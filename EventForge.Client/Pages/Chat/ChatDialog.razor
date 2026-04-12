@@ -173,7 +173,7 @@
                                                 </div>
                                                 <MudText Typo="Typo.caption"
                                                          Color="Color.Secondary" Class="text-truncate-block">
-                                                    @(chat.LastMessage?.Content ?? "")
+                                                    @StripHtml(chat.LastMessage?.Content ?? "")
                                                 </MudText>
                                             </div>
                                         </div>
@@ -188,7 +188,7 @@
                 @* New-chat FAB (bottom-right of sidebar) *@
                 <MudTooltip Text="@TranslationService.GetTranslation("chat.newChat", "Nuova Chat")" Placement="Placement.Left">
                     <MudFab Color="Color.Primary"
-                            StartIcon="@Icons.Material.Filled.Edit"
+                            StartIcon="@Icons.Material.Filled.AddComment"
                             Size="Size.Medium"
                             Class="chat-dlg-new-fab"
                             OnClick="@OpenStartConversationDialogAsync" />
@@ -318,7 +318,7 @@
                                 @foreach (var msg in _messages)
                                 {
                                     var isMe = msg.SenderId == _currentUserId;
-                                    <div class="@($"d-flex {(isMe ? "justify-end" : "justify-start")} mb-1")">
+                                    <div class="@($"d-flex {(isMe ? "justify-end" : "justify-start")} mb-1 message-item")">
                                         @if (!isMe)
                                         {
                                             <div class="chat-avatar-mini">
@@ -338,14 +338,41 @@
                                             }
                                             <div class="@($"msg-bubble {(isMe ? "msg-bubble--me" : "msg-bubble--other")}")"
                                                  style="@GetBubbleStyle(isMe, selIsWa)">
+                                                @* Message content — same rendering for own and others *@
                                                 <div role="article"
                                                      aria-label="@TranslationService.GetTranslation("chat.message", "Chat message")"
-                                                     class="chat-pre-wrap">@ChatMarkdownRenderer.Render(msg.Content)</div>
+                                                     class="rte-content"
+                                                     style="font-size:0.875rem;">
+                                                    @if (msg.Format == MessageFormat.Html)
+                                                    {
+                                                        @((MarkupString)(msg.Content ?? string.Empty))
+                                                    }
+                                                    else
+                                                    {
+                                                        @ChatMarkdownRenderer.Render(msg.Content)
+                                                    }
+                                                </div>
                                                 <div class="d-flex justify-end align-center gap-1 mt-1">
+                                                    @if (isMe && !msg.IsDeleted)
+                                                    {
+                                                        @* Edit button for own messages *@
+                                                        <MudTooltip Text="@TranslationService.GetTranslation("chat.editMessage", "Modifica")">
+                                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                                           Size="Size.Small"
+                                                                           Style="opacity:.6;font-size:.7rem;color:rgba(255,255,255,0.8);padding:2px;"
+                                                                           OnClick="@(() => _ = OpenEditDialogAsync(msg))" />
+                                                        </MudTooltip>
+                                                    }
                                                     <MudText Typo="Typo.caption"
                                                              Style="@($"opacity:.7;font-size:.65rem;color:{(isMe ? "white" : "var(--mud-palette-text-secondary)")};")">
                                                         @FormatMessageTime(msg.SentAt)
                                                     </MudText>
+                                                    @if (msg.IsEdited)
+                                                    {
+                                                        <MudTooltip Text="@(msg.EditedAt.HasValue ? $"Modificato {FormatMessageTime(msg.EditedAt.Value)}" : "Modificato")">
+                                                            <span class="message-edited-indicator">@TranslationService.GetTranslation("chat.edited", "(modificato)")</span>
+                                                        </MudTooltip>
+                                                    }
                                                     @if (isMe)
                                                     {
                                                         <MudIcon Icon="@Icons.Material.Filled.DoneAll"
@@ -421,17 +448,17 @@
                         }
                     </div>
 
-                    @* Message composer *@
-                    <div class="chat-dlg-composer">
-                        <EnhancedMessageComposer CurrentChat="@_selectedChat"
-                                                 ReplyToMessage="@_replyToMessage"
-                                                 OnSendMessage="@SendMessageAsync"
-                                                 OnAttachFile="@HandleAttachFilesAsync"
-                                                 OnCancelReply="@CancelReply"
-                                                 OnRemoveAttachment="@RemoveAttachment"
-                                                 PendingAttachments="@_pendingAttachments"
-                                                 IsSending="@IsComposerBusy" />
-                    </div>
+                    @* Floating compose button *@
+                    <MudTooltip Text="@TranslationService.GetTranslation("chat.writeMessage", "Scrivi messaggio")"
+                                Placement="Placement.Left">
+                        <MudFab Class="chat-dlg-compose-fab"
+                                Color="Color.Primary"
+                                StartIcon="@Icons.Material.Filled.Edit"
+                                Size="Size.Medium"
+                                Disabled="@_isSendingMessage"
+                                OnClick="@OpenComposeDialogAsync"
+                                aria-label="@TranslationService.GetTranslation("chat.writeMessage", "Scrivi messaggio")" />
+                    </MudTooltip>
                 }
                 else
                 {
@@ -469,10 +496,7 @@
     private bool _isLoadingChats;
     private bool _isLoadingMessages;
     private bool _isSendingMessage;
-    private bool _isUploadingFiles;
-
-    // Combined: composer spinner shown during both upload and send.
-    private bool IsComposerBusy => _isSendingMessage || _isUploadingFiles;
+    private bool _mergeOnceCompleted;
 
     // ── Filter / search ──────────────────────────────────────────────────────
     private string _searchText  = string.Empty;
@@ -492,7 +516,6 @@
     private readonly HashSet<Guid> _messageIds          = [];
     private List<ChatMemberDto>    _chatMembers         = [];
     private ChatMessageDto?        _replyToMessage;
-    private List<MessageAttachmentDto> _pendingAttachments = [];
 
     // ── Typing ───────────────────────────────────────────────────────────────
     private readonly HashSet<Guid>                          _typingUsers = [];
@@ -567,6 +590,13 @@
         StateHasChanged();
         try
         {
+            // Auto-merge any duplicate DM threads once per session (silently).
+            if (!_mergeOnceCompleted)
+            {
+                _mergeOnceCompleted = true;
+                await ChatService.MergeDuplicateChatsAsync();
+            }
+
             _chatList    = await ChatService.GetChatsAsync(1, 50);
             _totalUnread = _chatList.Sum(c => c.UnreadCount);
         }
@@ -695,7 +725,6 @@
             _selectedChat.LastMessage = sent;
             _selectedChat.UpdatedAt   = sent.SentAt;
             _replyToMessage           = null;
-            _pendingAttachments.Clear();
             await ScrollToBottomAsync();
         }
         catch (Exception ex)
@@ -710,37 +739,44 @@
         }
     }
 
-    private async Task HandleAttachFilesAsync(IReadOnlyList<IBrowserFile> files)
+    private void SetReplyToMessage(ChatMessageDto m) { _replyToMessage = m; StateHasChanged(); }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Compose dialog
+    // ────────────────────────────────────────────────────────────────────────
+
+    private async Task OpenComposeDialogAsync()
     {
-        if (_selectedChat == null || files.Count == 0) return;
-        _isUploadingFiles = true;
-        StateHasChanged();
+        if (_selectedChat == null) return;
         try
         {
-            foreach (var file in files)
+            var parameters = new DialogParameters
             {
-                var attachment = await ChatService.UploadFileAsync(_selectedChat.Id, file);
-                if (attachment != null)
-                    _pendingAttachments.Add(attachment);
-                else
-                    AppNotification.ShowWarning($"Impossibile caricare il file '{file.Name}'.");
+                { nameof(ComposeMessageDialog.CurrentChat), _selectedChat },
+                { nameof(ComposeMessageDialog.ReplyToMessage), _replyToMessage }
+            };
+            var options = new DialogOptions
+            {
+                MaxWidth         = MaxWidth.Medium,
+                FullWidth        = true,
+                BackdropClick    = false,
+                CloseButton      = false,
+                CloseOnEscapeKey = true
+            };
+            var dialog = await DialogService.ShowAsync<ComposeMessageDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: SendMessageDto messageDto })
+            {
+                _replyToMessage = null;
+                await SendMessageAsync(messageDto);
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error uploading file(s) to chat {ChatId}", _selectedChat.Id);
-            AppNotification.ShowError($"Errore nel caricamento del file: {ex.Message}");
-        }
-        finally
-        {
-            _isUploadingFiles = false;
-            StateHasChanged();
+            Logger.LogError(ex, "Error opening compose dialog");
+            AppNotification.ShowError(TranslationService.GetTranslation("chat.composeDialogError", "Impossibile aprire il compositore messaggi."));
         }
     }
-
-    private void SetReplyToMessage(ChatMessageDto m) { _replyToMessage = m; StateHasChanged(); }
-    private void CancelReply()                        { _replyToMessage = null; StateHasChanged(); }
-    private void RemoveAttachment(MessageAttachmentDto a) { _pendingAttachments.Remove(a); StateHasChanged(); }
 
     private async Task ToggleMessageReaction(Guid messageId, string emoji)
     {
@@ -770,9 +806,37 @@
         catch (Exception ex) { AppNotification.ShowError($"Errore reazione: {ex.Message}"); }
     }
 
-    private Task EditMessage(ChatMessageDto _)   { AppNotification.ShowInfo("Message editing coming soon!"); return Task.CompletedTask; }
     private Task ShareMessage(ChatMessageDto _)  { AppNotification.ShowInfo("Message sharing coming soon!"); return Task.CompletedTask; }
     private Task ReportMessage(ChatMessageDto _) { AppNotification.ShowInfo("Message reporting coming soon!"); return Task.CompletedTask; }
+
+    private async Task OpenEditDialogAsync(ChatMessageDto message)
+    {
+        if (_selectedChat == null) return;
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { nameof(ComposeMessageDialog.CurrentChat),   _selectedChat },
+                { nameof(ComposeMessageDialog.MessageToEdit), message }
+            };
+            var options = new DialogOptions
+            {
+                MaxWidth         = MaxWidth.Medium,
+                FullWidth        = true,
+                BackdropClick    = false,
+                CloseButton      = false,
+                CloseOnEscapeKey = true
+            };
+            await DialogService.ShowAsync<ComposeMessageDialog>(string.Empty, parameters, options);
+            // The dialog calls ChatService.EditMessageAsync internally.
+            // OnMessageEdited (SignalR) will update the local message list automatically.
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening edit dialog for message {MessageId}", message.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("chat.editDialogError", "Impossibile aprire la finestra di modifica."));
+        }
+    }
 
     private async Task DeleteMessage(ChatMessageDto msg)
     {
@@ -854,13 +918,12 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void OnMessageEdited(EditMessageDto e)
+    private void OnMessageEdited(ChatMessageDto updated)
     {
-        var m = _messages.FirstOrDefault(x => x.Id == e.MessageId);
-        if (m is not null)
+        var index = _messages.FindIndex(x => x.Id == updated.Id);
+        if (index >= 0)
         {
-            m.Content = e.Content;
-            m.IsEdited = true;
+            _messages[index] = updated;
             InvokeAsync(StateHasChanged);
         }
     }
@@ -1032,6 +1095,19 @@
 
     private static string FormatMessageTime(DateTime dt) =>
         dt.Date == DateTime.Today ? dt.ToString("HH:mm") : dt.ToString("dd/MM HH:mm");
+
+    /// <summary>
+    /// Strips HTML tags from a string so that message previews in the sidebar show plain text.
+    /// </summary>
+    private static readonly System.Text.RegularExpressions.Regex _htmlTagRegex =
+        new(@"<[^>]*>", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static string StripHtml(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+        if (!html.Contains('<')) return html;
+        return _htmlTagRegex.Replace(html, string.Empty).Trim();
+    }
 
     private void CancelAllTypingTimers()
     {

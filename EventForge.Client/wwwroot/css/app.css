@@ -799,6 +799,7 @@ kbd {
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    position: relative; /* anchor for compose FAB */
 }
 
 .chat-dlg-chat-header {
@@ -838,9 +839,12 @@ kbd {
     flex-shrink: 0;
 }
 
-.chat-dlg-composer {
-    flex-shrink: 0;
-    border-top: 1px solid var(--mud-palette-divider);
+.chat-dlg-compose-fab {
+    position: absolute !important;
+    bottom: 16px;
+    right: 16px;
+    z-index: 5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* ── Conversation list items ─────────────────────────────── */
@@ -1466,3 +1470,70 @@ kbd {
 
 /* Drop-zone dashed border */
 .ef-drop-zone-dashed { border-style: dashed; cursor: pointer; }
+/* ============================================================
+   RTE content rendered inside chat message bubbles
+   ============================================================ */
+.rte-content p { margin: 0 0 0.4rem; }
+.rte-content p:last-child { margin-bottom: 0; }
+.rte-content ul,
+.rte-content ol { padding-left: 1.2rem; margin: 0.2rem 0; }
+.rte-content code {
+    background: rgba(0,0,0,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.88em;
+}
+.rte-content pre {
+    background: rgba(0,0,0,0.06);
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.88em;
+    white-space: pre-wrap;
+}
+.rte-content a { color: inherit; text-decoration: underline; }
+.rte-content table { border-collapse: collapse; width: 100%; }
+.rte-content td,
+.rte-content th {
+    border: 1px solid rgba(0,0,0,0.15);
+    padding: 4px 8px;
+    font-size: 0.9em;
+}
+
+/* Edited indicator shown after message body */
+.message-edited-indicator {
+    font-size: 0.72rem;
+    color: var(--muted-text, rgba(0,0,0,0.45));
+    font-style: italic;
+    margin-left: 6px;
+    cursor: default;
+    white-space: nowrap;
+}
+
+/* Inline edit icon — visible only on hover of the message row */
+.message-actions { opacity: 0; transition: opacity 0.15s; }
+.message-item:hover .message-actions,
+.fc-msg-row:hover .message-actions { opacity: 1; }
+
+.btn-edit-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 2px 6px;
+    color: var(--muted-text, rgba(0,0,0,0.45));
+    border-radius: 3px;
+}
+.btn-edit-icon:hover { background: rgba(0,0,0,0.06); }
+
+/* Dark mode overrides */
+@media (prefers-color-scheme: dark) {
+    .rte-content code,
+    .rte-content pre { background: rgba(255,255,255,0.08); }
+    .rte-content td,
+    .rte-content th { border-color: rgba(255,255,255,0.15); }
+    .message-edited-indicator,
+    .btn-edit-icon { color: rgba(255,255,255,0.4); }
+    .btn-edit-icon:hover { background: rgba(255,255,255,0.08); }
+}

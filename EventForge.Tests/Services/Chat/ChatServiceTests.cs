@@ -78,7 +78,7 @@ public class ChatServiceTests : IDisposable
                 ChangedAt = DateTime.UtcNow
             });
 
-        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockEnvironment.Object, new MemoryCache(new MemoryCacheOptions()), _mockOnlineUserTracker.Object);
+        _chatService = new ChatService(_context, _mockAuditLogService.Object, _mockLogger.Object, _mockHubContext.Object, _mockEnvironment.Object, new MemoryCache(new MemoryCacheOptions()), _mockOnlineUserTracker.Object, new EventForge.Server.Services.Chat.HtmlSanitizerService());
 
         // Seed test data
         SeedTestData();

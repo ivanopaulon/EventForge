@@ -164,7 +164,8 @@ builder.Services.AddHostedService<EventForge.Server.HostedServices.PerformanceCo
 builder.Services.AddSignalR(options =>
 {
     // Configure SignalR options for better authentication support
-    options.MaximumReceiveMessageSize = 32 * 1024; // 32KB
+    // Increased from 32KB to 256KB to accommodate HTML-formatted chat messages
+    options.MaximumReceiveMessageSize = 256 * 1024; // 256KB
     options.StreamBufferCapacity = 10;
     options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 
@@ -172,6 +173,15 @@ builder.Services.AddSignalR(options =>
     options.KeepAliveInterval = TimeSpan.FromSeconds(15);
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
     options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+})
+.AddJsonProtocol(options =>
+{
+    // Use UnsafeRelaxedJsonEscaping so that HTML characters (<, >, &, etc.) in
+    // chat message payloads are not double-escaped to \u003c / \u003e / \u0026.
+    // This is safe because all HTML content is sanitized server-side by
+    // HtmlSanitizerService before being persisted or broadcast.
+    options.PayloadSerializerOptions.Encoder =
+        System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
 });
 
 // WhatsApp Cloud API named HttpClient

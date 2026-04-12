@@ -26,6 +26,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Authorization" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" />
+    <PackageReference Include="Syncfusion.Blazor.RichTextEditor" />
+    <PackageReference Include="Syncfusion.Blazor.InPlaceEditor" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
     <PackageReference Include="Polly" />
     <PackageReference Include="Syncfusion.Blazor.Schedule" />
@@ -45,10 +47,7 @@
 
   <!-- Write version.txt to publish folder so UpdateAgent can read it without loading the DLL -->
   <Target Name="WriteVersionFile" AfterTargets="Publish">
-    <WriteLinesToFile
-      File="$(PublishDir)version.txt"
-      Lines="$(InformationalVersion)"
-      Overwrite="true" />
+    <WriteLinesToFile File="$(PublishDir)version.txt" Lines="$(InformationalVersion)" Overwrite="true" />
   </Target>
 
 </Project>

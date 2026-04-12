@@ -361,6 +361,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<INotificationService, NotificationService>();
         _ = services.AddScoped<IChatService, ChatService>();
         _ = services.AddSingleton<EventForge.Server.Services.Chat.IOnlineUserTracker, EventForge.Server.Services.Chat.OnlineUserTracker>();
+        _ = services.AddSingleton<EventForge.Server.Services.Chat.IHtmlSanitizerService, EventForge.Server.Services.Chat.HtmlSanitizerService>();
 
         // Register team services
         _ = services.AddScoped<ITeamService, TeamService>();

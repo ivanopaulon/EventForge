@@ -34,8 +34,26 @@ public class ChatMessage : AuditableEntity
     /// <summary>
     /// Message content (text).
     /// </summary>
-    [MaxLength(4000)]
+    [Column(TypeName = "nvarchar(max)")]
     public string? Content { get; set; }
+
+    /// <summary>
+    /// Content format (plain text or HTML from rich-text editor).
+    /// Defaults to Plain for backwards compatibility with pre-RTE messages.
+    /// </summary>
+    public MessageFormat Format { get; set; } = MessageFormat.Plain;
+
+    /// <summary>
+    /// ID of the user who last edited the message.
+    /// </summary>
+    [MaxLength(450)]
+    public string? EditedByUserId { get; set; }
+
+    /// <summary>
+    /// Row version for optimistic concurrency control.
+    /// </summary>
+    [Timestamp]
+    public byte[]? RowVersion { get; set; }
 
     /// <summary>
     /// Optional message this is replying to.

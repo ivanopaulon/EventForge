@@ -1,0 +1,218 @@
+@using EventForge.DTOs.Chat
+@using Microsoft.AspNetCore.Components.Forms
+@inject IChatService ChatService
+@inject IAuthService AuthService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ComposeMessageDialog> Logger
+
+@{
+    var dialogTitle = MessageToEdit != null
+        ? TranslationService.GetTranslation("chat.editMessage", "Modifica messaggio")
+        : (ReplyToMessage != null
+            ? TranslationService.GetTranslation("chat.replyTo", "Rispondi al messaggio")
+            : TranslationService.GetTranslation("chat.writeMessage", "Scrivi messaggio"));
+
+    var dialogIcon = MessageToEdit != null
+        ? Icons.Material.Filled.EditNote
+        : Icons.Material.Filled.Edit;
+}
+
+<EFDialog Icon="@dialogIcon"
+          Title="@dialogTitle"
+          IsProcessing="@(_isUploading || _isSaving)"
+          MinWidth="min(700px, 96vw)"
+          OnClose="Cancel">
+    <ChildContent>
+
+        @* Recipient / chat info *@
+        @if (CurrentChat != null)
+        {
+            <div class="d-flex align-center gap-2 mb-3 pa-2"
+                 style="background:var(--mud-palette-grey-lighten5);border-radius:6px;border:1px solid var(--mud-palette-divider);">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Secondary" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary"
+                         Style="font-weight:600;margin-right:4px;">
+                    @TranslationService.GetTranslation("chat.to", "A:")
+                </MudText>
+                <MudText Typo="Typo.body2" Style="font-weight:600;">
+                    @GetChatDisplayName()
+                </MudText>
+            </div>
+        }
+
+        <EnhancedMessageComposer CurrentChat="@CurrentChat"
+                                 ReplyToMessage="@_replyToMessage"
+                                 InitialContent="@(MessageToEdit?.Content)"
+                                 OnSendMessage="@OnComposerSendAsync"
+                                 OnAttachFile="@HandleAttachFilesAsync"
+                                 OnCancelReply="@HandleCancelReply"
+                                 OnRemoveAttachment="@RemoveAttachment"
+                                 PendingAttachments="@_pendingAttachments"
+                                 IsSending="@(_isUploading || _isSaving)"
+                                 RteHeight="200px" />
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Color="Color.Secondary"
+                   Disabled="@(_isUploading || _isSaving)">
+            @TranslationService.GetTranslation("common.cancel", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public ChatResponseDto? CurrentChat { get; set; }
+
+    /// <summary>Optional reply context — set when the user taps Reply on a message.</summary>
+    [Parameter] public ChatMessageDto? ReplyToMessage { get; set; }
+
+    /// <summary>
+    /// When set the dialog operates in edit mode: the existing message content is pre-loaded
+    /// and "Send" calls EditMessageAsync instead of returning a new SendMessageDto.
+    /// </summary>
+    [Parameter] public ChatMessageDto? MessageToEdit { get; set; }
+
+    private bool _isUploading;
+    private bool _isSaving;
+    private ChatMessageDto? _replyToMessage;
+    private List<MessageAttachmentDto> _pendingAttachments = [];
+    private Guid _currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var user = await AuthService.GetCurrentUserAsync();
+            _currentUserId = user?.Id ?? Guid.Empty;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading current user in ComposeMessageDialog");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        _replyToMessage = ReplyToMessage;
+    }
+
+    private async Task HandleAttachFilesAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        if (CurrentChat == null || files.Count == 0) return;
+
+        const long maxFileSizeBytes = 50L * 1024 * 1024; // 50 MB
+        _isUploading = true;
+        StateHasChanged();
+        try
+        {
+            var oversized = files.Where(f => f.Size > maxFileSizeBytes).ToList();
+            foreach (var f in oversized)
+                AppNotification.ShowWarning(
+                    TranslationService.GetTranslation("chat.fileTooLarge",
+                        $"Il file '{f.Name}' supera il limite massimo di 50 MB e non può essere allegato.")
+                    .Replace("{name}", f.Name));
+
+            var valid = files.Where(f => f.Size <= maxFileSizeBytes).ToList();
+            foreach (var file in valid)
+            {
+                var attachment = await ChatService.UploadFileAsync(CurrentChat.Id, file);
+                if (attachment != null)
+                    _pendingAttachments.Add(attachment);
+                else
+                    AppNotification.ShowWarning(
+                        TranslationService.GetTranslation("chat.fileUploadFailed",
+                            "Impossibile caricare il file '{name}'.")
+                        .Replace("{name}", file.Name));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading file(s) to chat {ChatId}", CurrentChat.Id);
+            AppNotification.ShowError(
+                TranslationService.GetTranslation("chat.fileUploadError",
+                    "Errore nel caricamento del file: {message}")
+                .Replace("{message}", ex.Message));
+        }
+        finally
+        {
+            _isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveAttachment(MessageAttachmentDto attachment)
+    {
+        _pendingAttachments.Remove(attachment);
+        StateHasChanged();
+    }
+
+    private void HandleCancelReply()
+    {
+        _replyToMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task OnComposerSendAsync(SendMessageDto messageDto)
+    {
+        if (MessageToEdit != null)
+        {
+            // Edit mode: persist the changes directly, then close.
+            if (_currentUserId == Guid.Empty)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("chat.notAuthenticated", "Utente non autenticato."));
+                return;
+            }
+            _isSaving = true;
+            StateHasChanged();
+            try
+            {
+                var editDto = new EditMessageDto
+                {
+                    MessageId = MessageToEdit.Id,
+                    UserId    = _currentUserId,
+                    Content   = messageDto.Content ?? string.Empty,
+                    Format    = MessageFormat.Html
+                };
+                await ChatService.EditMessageAsync(MessageToEdit.Id, editDto);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error editing message {MessageId}", MessageToEdit.Id);
+                AppNotification.ShowError(
+                    TranslationService.GetTranslation("chat.editError", "Errore nella modifica: {message}")
+                    .Replace("{message}", ex.Message));
+            }
+            finally
+            {
+                _isSaving = false;
+                StateHasChanged();
+            }
+        }
+        else
+        {
+            // New message mode: return the DTO to the caller.
+            messageDto.Attachments = _pendingAttachments.ToList();
+            MudDialog.Close(DialogResult.Ok(messageDto));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetChatDisplayName()
+    {
+        if (CurrentChat == null) return string.Empty;
+        if (CurrentChat.Type == ChatType.WhatsApp)
+            return CurrentChat.BusinessPartyName ?? CurrentChat.ExternalPhoneNumber ?? CurrentChat.Name ?? "WhatsApp";
+        if (CurrentChat.Type == ChatType.DirectMessage)
+        {
+            var other = CurrentChat.Members?.FirstOrDefault(m => m.UserId != _currentUserId);
+            return other?.DisplayName ?? CurrentChat.Name ?? "Chat";
+        }
+        return CurrentChat.Name ?? "Chat";
+    }
+}

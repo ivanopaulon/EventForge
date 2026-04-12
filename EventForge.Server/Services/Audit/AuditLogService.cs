@@ -619,7 +619,11 @@ public class AuditLogService(
             memoryCache.Set(
                 ExportCacheKey(exportId),
                 (bytes, format, fileName),
-                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+                new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24),
+                    Size = 1
+                });
 
             return exportResult;
         }
