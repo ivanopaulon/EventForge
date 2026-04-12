@@ -257,8 +257,10 @@ public class ChatService(
             if (thread is null)
                 return null;
 
-            // Verify the requesting user is a member (skip check when userId is empty – server-side call)
-            if (userId != Guid.Empty)
+            // Verify the requesting user is a member (skip check when userId is empty – server-side call).
+            // WhatsApp chats are tenant-scoped external conversations with no ChatMember records;
+            // access is already enforced by the tenant filter above, so no member check is needed.
+            if (userId != Guid.Empty && thread.Type != ChatType.WhatsApp)
             {
                 var isMember = await context.ChatMembers
                     .AsNoTracking()
@@ -337,7 +339,9 @@ public class ChatService(
 
         if (searchDto.UserId.HasValue)
             query = query.Where(ct =>
-                context.ChatMembers.Any(cm =>
+                // WhatsApp chats are tenant-scoped with no ChatMember records; any tenant user may access them.
+                ct.Type == ChatType.WhatsApp
+                || context.ChatMembers.Any(cm =>
                     cm.ChatThreadId == ct.Id
                     && cm.UserId == searchDto.UserId.Value
                     && !cm.IsDeleted));
