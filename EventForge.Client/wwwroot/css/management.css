@@ -73,6 +73,7 @@
 }
 
 @media (max-width: 768px) {
+    .vat-rate-page-root,
     .vat-nature-page-root,
     .um-page-root,
     .pricelist-page-root {
@@ -80,6 +81,8 @@
         min-height: 100vh;
     }
 
+    .vat-rate-top { padding: 8px; }
+    .vat-rate-filters { padding: 4px 8px; }
     .pricelist-top { padding: 8px; }
     .pricelist-filters { padding: 4px 8px; }
 }
@@ -133,10 +136,11 @@
 .editing-row-highlight {
     background-color: rgba(var(--mud-palette-primary-rgb), 0.08);
     transition: background-color 0.3s ease;
-    animation: pulse-highlight 1s ease-in-out;
+    animation: pulse-row-highlight 1s ease-in-out;
 }
 
-@keyframes pulse-highlight {
+/* Named pulse-row-highlight to avoid collision with walkthrough-pulse in help-system.css */
+@keyframes pulse-row-highlight {
     0%, 100% { background-color: rgba(var(--mud-palette-primary-rgb), 0.08); }
     50%       { background-color: rgba(var(--mud-palette-primary-rgb), 0.15); }
 }

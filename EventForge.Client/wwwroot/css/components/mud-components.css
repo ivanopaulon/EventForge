@@ -14,47 +14,38 @@
     border-width: 0;
 }
 
-.ef-input {
+.ef-input .mud-input-root {
+    box-sizing: border-box !important;
+    height: 38px !important;
+    font-size: 0.90rem !important;
+    padding: 8px 0px 0px 16px !important;
 }
-    .ef-input .mud-input-root {
-        box-sizing: border-box !important;
-        height: 38px !important;
-        font-size: 0.90rem !important;
-        padding: 8px 0px 0px 16px !important;
-    }
-    .ef-input .mud-input-slot {
-        min-height: unset !important;
-        height: 80%;
-    }
-
-.ef-datepicker {
-
-}
-    .ef-datepicker .mud-input-root {
-        box-sizing: border-box !important;
-        height: 38px !important;
-        font-size: 0.90rem !important;
-        padding: 8px 0px 0px 16px !important;
-    }
-
-    .ef-datepicker .mud-input-slot {
-        min-height: unset !important;
-        height: 80%;
-    }
-
-.ef-select {
+.ef-input .mud-input-slot {
+    min-height: unset !important;
+    height: 80%;
 }
 
-    .ef-select .mud-select-input {
-        box-sizing: border-box !important;
-        height: 38px !important;
-        font-size: 0.90rem !important;
-        padding: 0px 0px 0px 16px !important;
-    }
-    .ef-select .mud-select-input-slot {
-        min-height: unset !important;
-        height: 80%;
-    }
+.ef-datepicker .mud-input-root {
+    box-sizing: border-box !important;
+    height: 38px !important;
+    font-size: 0.90rem !important;
+    padding: 8px 0px 0px 16px !important;
+}
+.ef-datepicker .mud-input-slot {
+    min-height: unset !important;
+    height: 80%;
+}
+
+.ef-select .mud-select-input {
+    box-sizing: border-box !important;
+    height: 38px !important;
+    font-size: 0.90rem !important;
+    padding: 0px 0px 0px 16px !important;
+}
+.ef-select .mud-select-input-slot {
+    min-height: unset !important;
+    height: 80%;
+}
 
 .ef-toolbar-button {
     min-height: 38px !important;
