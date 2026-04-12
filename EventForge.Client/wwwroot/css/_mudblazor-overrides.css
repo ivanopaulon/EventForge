@@ -71,3 +71,24 @@
     width: 36px !important;
     padding: 6px !important;
 }
+
+/* ─── 6. Dark-theme nav link active/hover state ─────────────────────────────
+ * In carbon-neon-dark, MudThemeProvider non riceve IsDarkMode quindi usa sempre
+ * la light palette: --mud-palette-primary diventa il navy scuro del drawer
+ * (#1F2F46). Il link attivo ha sfondo = testo = stesso colore → invisibile.
+ * Forziamo un highlight neon leggibile basato sull'accent del tema scuro.
+ */
+[data-theme="carbon-neon-dark"] .mud-nav-link.active {
+    background-color: rgba(0, 245, 255, 0.15) !important;
+    color: #00F5FF !important;
+    font-weight: 600 !important;
+    border-left: 3px solid #00F5FF;
+}
+
+[data-theme="carbon-neon-dark"] .mud-nav-link.active .mud-icon-root {
+    color: #00F5FF !important;
+}
+
+[data-theme="carbon-neon-dark"] .mud-nav-link:not(.active):hover {
+    background-color: rgba(0, 245, 255, 0.07) !important;
+}
