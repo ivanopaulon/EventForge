@@ -85,7 +85,7 @@ body {
     padding-bottom: 80px; /* Additional padding for content */
 }
 
-/* Accessibility improvements - .sr-only defined in mud-components.css */
+/* Accessibility improvements - .sr-only is defined in mud-components.css */
 
 /* Enhanced focus styles for better accessibility */
 .sr-only-focusable:focus {
@@ -520,9 +520,18 @@ kbd {
 /* Unified EFTable wrapper - ALWAYS THE SAME across all pages */
 .eftable-wrapper {
     width: 100%;
+    flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0; /* Critical for overflow: auto to work in flex containers */
+    overflow: auto;
+    padding: 8px 12px;
+}
+
+@media (max-width: 768px) {
+    .eftable-wrapper {
+        padding: 4px 8px;
+    }
 }
 
 /* Search input standard styling - used in toolbar section 2 */

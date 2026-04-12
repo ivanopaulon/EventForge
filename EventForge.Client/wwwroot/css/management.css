@@ -5,19 +5,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ─── Shared ─────────────────────────────────────────────────── */
-
-.eftable-wrapper {
-    flex: 1 1 auto;
-    min-height: 0; /* CRUCIAL for overflow in flexbox */
-    overflow: auto;
-    padding: 8px 12px;
-}
-
-@media (max-width: 768px) {
-    .eftable-wrapper {
-        padding: 4px 8px;
-    }
-}
+/* .eftable-wrapper is defined (with full properties) in app.css */
 
 /* ─── Business module ─────────────────────────────────────────── */
 
@@ -28,7 +16,7 @@
 .document-type-page-root {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -68,7 +56,7 @@
 .pricelist-page-root {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -102,7 +90,7 @@
 .product-page-root {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -130,7 +118,7 @@
 .transfer-order-page-root {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -153,17 +141,17 @@
     50%       { background-color: rgba(var(--mud-palette-primary-rgb), 0.15); }
 }
 
-/* Transfer order toolbar input width */
-.ef-input {
+/* Transfer order toolbar input width — scoped to avoid overriding global app.css .ef-input */
+.transfer-order-page-root .ef-input {
     max-width: 220px;
 }
 
 @media (max-width: 1200px) {
-    .ef-input { max-width: 180px; }
+    .transfer-order-page-root .ef-input { max-width: 180px; }
 }
 
 @media (max-width: 960px) {
-    .ef-input { max-width: 150px; }
+    .transfer-order-page-root .ef-input { max-width: 150px; }
 }
 
 @media (max-width: 768px) {
@@ -181,7 +169,7 @@
         padding: 8px;
     }
 
-    .ef-input {
+    .transfer-order-page-root .ef-input {
         max-width: 100%;
         min-width: 120px;
     }
