@@ -159,7 +159,7 @@
                                             <div class="flex-grow-1 overflow-hidden">
                                                 <div class="d-flex justify-space-between align-center">
                                                     <MudText Typo="Typo.body2"
-                                                             Class="@(chat.UnreadCount > 0 ? "font-weight-bold text-truncate-ef" : "text-truncate-ef")">
+                                                             Class="@(chat.UnreadCount > 0 ? "fw-bold text-truncate-ef" : "text-truncate-ef")">
                                                         @(isWa ? (chat.BusinessPartyName ?? chat.ExternalPhoneNumber ?? chatName) : chatName)
                                                     </MudText>
                                                     @if (chat.UnreadCount > 0)
