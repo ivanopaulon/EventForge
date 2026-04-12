@@ -526,16 +526,13 @@ public class ChatService : IChatService
     private void OnChatDeleted(object chatDeletedData)
     {
         // SignalR serializes with camelCase by default; try both casings for robustness.
-        if (chatDeletedData is System.Text.Json.JsonElement element)
+        if (chatDeletedData is System.Text.Json.JsonElement element
+            && (element.TryGetProperty("chatId", out var el) || element.TryGetProperty("ChatId", out el))
+            && el.TryGetGuid(out var chatId))
         {
-            var chatId = Guid.Empty;
-            if ((element.TryGetProperty("chatId", out var el) || element.TryGetProperty("ChatId", out el))
-                && el.TryGetGuid(out chatId))
-            {
-                InvalidateChatCaches(chatId);
-                RemovedFromChat?.Invoke(chatId);
-                return;
-            }
+            InvalidateChatCaches(chatId);
+            RemovedFromChat?.Invoke(chatId);
+            return;
         }
 
         _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);

@@ -315,6 +315,7 @@ public class ChatController(
     /// <summary>
     /// Retrieves messages for a specific chat thread with pagination.
     /// This is the primary endpoint used by the chat UI when selecting a conversation.
+    /// Validates that the requesting user is a member of the chat before returning messages.
     /// </summary>
     /// <param name="chatId">Chat thread identifier</param>
     /// <param name="page">Page number (1-based)</param>
@@ -322,19 +323,32 @@ public class ChatController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated message results for the chat</returns>
     /// <response code="200">Messages retrieved successfully</response>
+    /// <response code="404">Chat not found or user is not a member</response>
     [HttpGet("{chatId:guid}/messages")]
     [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetChatMessagesAsync(
         [FromRoute] Guid chatId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
+
         try
         {
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var tenantId = tenantContext.CurrentTenantId;
+
+            // Verify the user has access to this chat (must be a member within their tenant)
+            var chat = await chatService.GetChatByIdAsync(chatId, userId, tenantId, cancellationToken);
+            if (chat is null)
+                return CreateNotFoundProblem($"Chat with ID {chatId} was not found or is not accessible");
+
             var searchDto = new MessageSearchDto
             {
                 ChatId = chatId,
+                TenantId = tenantId,
                 PageNumber = page,
                 PageSize = pageSize
             };
