@@ -79,6 +79,7 @@ public class ThemeService(
                 _currentTheme = ThemeInfo.CarbonNeonLight.Key;
 
             await ApplyThemeToDocumentAsync();
+            OnThemeChanged?.Invoke();
         }
         catch (Exception ex)
         {

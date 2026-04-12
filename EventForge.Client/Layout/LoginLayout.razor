@@ -5,7 +5,7 @@
 @inject ILogger<LoginLayout> Logger
 @implements IDisposable
 
-<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
+<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" IsDarkMode="@ThemeService.IsDarkMode" />
 
 <MudLayout Class="align-content-center login-container">
     @Body

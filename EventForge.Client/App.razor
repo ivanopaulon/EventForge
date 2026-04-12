@@ -12,7 +12,7 @@
 @inject ILogger<App> Logger
 @implements IDisposable
 
-<MudThemeProvider Theme="_appTheme" />
+<MudThemeProvider Theme="_appTheme" IsDarkMode="@ThemeService.IsDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
