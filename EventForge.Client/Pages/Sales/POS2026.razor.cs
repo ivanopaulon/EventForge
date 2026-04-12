@@ -161,12 +161,8 @@ public partial class POS2026 : IAsyncDisposable
         StateHasChanged();
         try
         {
-            // Carica prodotti e best seller in parallelo
-            var productsTask = ProductService.GetProductsAsync(page: 1, pageSize: 500);
-            var analyticsTask = LoadBestSellerIdsAsync();
-            await Task.WhenAll(productsTask, analyticsTask);
-
-            var result = await productsTask;
+            // Carica prima i prodotti così la griglia diventa visibile il prima possibile
+            var result = await ProductService.GetProductsAsync(page: 1, pageSize: 500);
             _allProducts = result?.Items?.ToList() ?? new();
         }
         catch (Exception ex)
@@ -176,7 +172,12 @@ public partial class POS2026 : IAsyncDisposable
         finally
         {
             _isLoadingProducts = false;
+            StateHasChanged();
         }
+
+        // Carica i best seller in background dopo aver sbloccato la griglia prodotti
+        await LoadBestSellerIdsAsync();
+        StateHasChanged();
     }
 
     /// <summary>
