@@ -294,7 +294,7 @@
                                         @TranslationService.GetTranslation("common.delete", "Elimina") (@_selectedEntries.Count)
                                     </MudButton>
                                 }
-                                <PrymButton Intent="Secondary"
+                                <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                             StartIcon="@Icons.Material.Outlined.Add"
                                             Size="Size.Small"
                                             OnClick="OpenAddProductsDialog">
@@ -571,7 +571,7 @@
                                     @TranslationService.GetTranslation("pricelist.importExportDescription", "Importa o esporta listini in formato Excel/CSV")
                                 </MudText>
                                 <MudStack Row="true" Spacing="2">
-                                <PrymButton Intent="Secondary"
+                                <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                             StartIcon="@Icons.Material.Outlined.FileUpload"
                                             OnClick="OpenImportDialog">
                                     @TranslationService.GetTranslation("pricelist.import", "Importa da Excel")
@@ -596,7 +596,7 @@
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                     @TranslationService.GetTranslation("pricelist.duplicateDescription", "Crea una copia di questo listino con opzioni di trasformazione prezzi")
                                 </MudText>
-                                <PrymButton Intent="Secondary"
+                                <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                             StartIcon="@Icons.Material.Outlined.ContentCopy"
                                             OnClick="DuplicatePriceList">
                                     @TranslationService.GetTranslation("pricelist.duplicateButton", "Duplica Listino")
@@ -627,7 +627,7 @@
                 @TranslationService.GetTranslation("pricelist.unsavedChanges", "Modifiche non salvate")
             </MudChip>
         }
-        <PrymButton Intent="Ghost" OnClick="Cancel" Disabled="_isSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </PrymButton>
         <PrymButton StartIcon="@Icons.Material.Filled.Save"

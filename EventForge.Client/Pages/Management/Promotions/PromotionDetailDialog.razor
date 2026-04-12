@@ -81,7 +81,7 @@
                                         </MudItem>
                                         <!-- MaxUses -->
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_updateModel.MaxUses"
+                                            <PrymNullableNumericField T="int" @bind-Value="_updateModel.MaxUses"
                                                                        Label="@TranslationService.GetTranslation("field.maxUses", "Max Utilizzi")"
                                                                        Placeholder="@TranslationService.GetTranslation("promotion.unlimited", "Illimitato")"
                                                                        @bind-Value:after="@(() => _hasChanges = true)" />
@@ -95,7 +95,7 @@
                                         </MudItem>
                                         <!-- MinOrderAmount -->
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_updateModel.MinOrderAmount"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_updateModel.MinOrderAmount"
                                                                        Label="@TranslationService.GetTranslation("field.minOrderAmount", "Importo Minimo Ordine")"
                                                                        Format="F2"
                                                                        Adornment="Adornment.Start"
@@ -111,7 +111,7 @@
                                         </MudItem>
                                         <!-- MaxTotalDiscountPercentage -->
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_updateModel.MaxTotalDiscountPercentage"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_updateModel.MaxTotalDiscountPercentage"
                                                                        Label="@TranslationService.GetTranslation("field.maxTotalDiscountPercentage", "Cap Sconto Max %")"
                                                                        Min="0"
                                                                        Max="100"
@@ -123,7 +123,7 @@
                                         </MudItem>
                                         <!-- MaxUsesPerCustomer -->
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_updateModel.MaxUsesPerCustomer"
+                                            <PrymNullableNumericField T="int" @bind-Value="_updateModel.MaxUsesPerCustomer"
                                                                        Label="@TranslationService.GetTranslation("field.maxUsesPerCustomer", "Max Utilizzi per Cliente")"
                                                                        Min="1"
                                                                        HelperText="@TranslationService.GetTranslation("field.maxUsesPerCustomerHint", "Lascia vuoto per nessun limite per cliente.")"
@@ -345,7 +345,7 @@
                                                    Color="Color.Info" />
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <PrymNullableNumericField @bind-Value="_ruleModel.MinOrderAmount"
+                                        <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.MinOrderAmount"
                                                                    Label="@TranslationService.GetTranslation("field.minOrderAmount", "Importo Minimo Ordine")"
                                                                    Format="F2"
                                                                    Adornment="Adornment.Start"
@@ -354,14 +354,14 @@
                                     @if (_ruleModel.RuleType == "Discount" || _ruleModel.RuleType == "CategoryDiscount" || _ruleModel.RuleType == "CustomerSpecific")
                                     {
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_ruleModel.DiscountPercentage"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountPercentage"
                                                                        Label="@TranslationService.GetTranslation("field.discountPercentage", "% Sconto")"
                                                                        Format="F2"
                                                                        Adornment="Adornment.End"
                                                                        AdornmentText="%" />
                                         </MudItem>
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_ruleModel.DiscountAmount"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountAmount"
                                                                        Label="@TranslationService.GetTranslation("field.discountAmount", "Importo Sconto Fisso")"
                                                                        Format="F2"
                                                                        Adornment="Adornment.Start"
@@ -371,14 +371,14 @@
                                     @if (_ruleModel.RuleType == "CartAmountDiscount" || _ruleModel.RuleType == "Coupon")
                                     {
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_ruleModel.DiscountPercentage"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountPercentage"
                                                                        Label="@TranslationService.GetTranslation("field.discountPercentage", "% Sconto")"
                                                                        Format="F2"
                                                                        Adornment="Adornment.End"
                                                                        AdornmentText="%" />
                                         </MudItem>
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_ruleModel.DiscountAmount"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountAmount"
                                                                        Label="@TranslationService.GetTranslation("field.discountAmount", "Importo Sconto Fisso")"
                                                                        Format="F2"
                                                                        Adornment="Adornment.Start"
@@ -388,12 +388,12 @@
                                     @if (_ruleModel.RuleType == "BuyXGetY")
                                     {
                                         <MudItem xs="12" md="6">
-                                            <PrymNumericField @bind-Value="_ruleModel.RequiredQuantity"
+                                            <PrymNullableNumericField T="int" @bind-Value="_ruleModel.RequiredQuantity"
                                                               Label="@TranslationService.GetTranslation("field.requiredQuantity", "Quantità Richiesta (X)")"
                                                               Min="1" />
                                         </MudItem>
                                         <MudItem xs="12" md="6">
-                                            <PrymNumericField @bind-Value="_ruleModel.FreeQuantity"
+                                            <PrymNullableNumericField T="int" @bind-Value="_ruleModel.FreeQuantity"
                                                               Label="@TranslationService.GetTranslation("field.freeQuantity", "Quantità Omaggio (Y)")"
                                                               Min="1" />
                                         </MudItem>
@@ -401,7 +401,7 @@
                                     @if (_ruleModel.RuleType == "FixedPrice" || _ruleModel.RuleType == "Bundle")
                                     {
                                         <MudItem xs="12" md="6">
-                                            <PrymNullableNumericField @bind-Value="_ruleModel.FixedPrice"
+                                            <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.FixedPrice"
                                                                        Label="@TranslationService.GetTranslation("field.fixedPrice", "Prezzo Fisso")"
                                                                        Format="F2"
                                                                        Adornment="Adornment.Start"
