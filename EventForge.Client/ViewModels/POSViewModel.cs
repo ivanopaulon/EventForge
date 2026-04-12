@@ -168,46 +168,60 @@ public class POSViewModel : IDisposable
 
             _logger.LogInformation("POS ViewModel initialization started");
 
-            // Load operators
-            try
+            // Load operators, POS terminals and payment methods in parallel to reduce startup latency.
+            // Each local function writes to a distinct property (AvailableOperators, AvailablePos,
+            // PaymentMethods) so there are no shared-state race conditions.
+            await Task.WhenAll(
+                LoadOperatorsAsync(),
+                LoadPosTerminalsAsync(),
+                LoadPaymentMethodsAsync());
+
+            async Task LoadOperatorsAsync()
             {
-                var pagedResult = await _storeUserService.GetPagedAsync(1, MaxOperatorsPageSize);
-                AvailableOperators = pagedResult?.Items?.ToList() ?? new List<StoreUserDto>();
-                _logger.LogInformation("Loaded {Count} operators", AvailableOperators.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading operators");
-                NotifyError("Error loading operators");
-                AvailableOperators = new List<StoreUserDto>();
+                try
+                {
+                    var pagedResult = await _storeUserService.GetPagedAsync(1, MaxOperatorsPageSize);
+                    AvailableOperators = pagedResult?.Items?.ToList() ?? new List<StoreUserDto>();
+                    _logger.LogInformation("Loaded {Count} operators", AvailableOperators.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error loading operators");
+                    NotifyError("Error loading operators");
+                    AvailableOperators = new List<StoreUserDto>();
+                }
             }
 
-            // Load POS terminals
-            try
+            async Task LoadPosTerminalsAsync()
             {
-                var posResult = await _storePosService.GetActiveAsync();
-                AvailablePos = posResult?.ToList() ?? new List<StorePosDto>();
-                _logger.LogInformation("Loaded {Count} POS terminals", AvailablePos.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading POS terminals");
-                NotifyError("Error loading POS terminals");
-                AvailablePos = new List<StorePosDto>();
+                try
+                {
+                    var posResult = await _storePosService.GetActiveAsync();
+                    AvailablePos = posResult?.ToList() ?? new List<StorePosDto>();
+                    _logger.LogInformation("Loaded {Count} POS terminals", AvailablePos.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error loading POS terminals");
+                    NotifyError("Error loading POS terminals");
+                    AvailablePos = new List<StorePosDto>();
+                }
             }
 
-            // Load payment methods
-            try
+            async Task LoadPaymentMethodsAsync()
             {
-                var paymentMethodsResult = await _paymentMethodService.GetActiveAsync();
-                PaymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
-                _logger.LogInformation("Loaded {Count} payment methods", PaymentMethods.Count);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading payment methods");
-                NotifyError("Error loading payment methods");
-                PaymentMethods = new List<PaymentMethodDto>();
+                try
+                {
+                    var paymentMethodsResult = await _paymentMethodService.GetActiveAsync();
+                    PaymentMethods = paymentMethodsResult?.ToList() ?? new List<PaymentMethodDto>();
+                    _logger.LogInformation("Loaded {Count} payment methods", PaymentMethods.Count);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error loading payment methods");
+                    NotifyError("Error loading payment methods");
+                    PaymentMethods = new List<PaymentMethodDto>();
+                }
             }
 
             // Auto-select operator if user has matching StoreUser record
@@ -250,9 +264,6 @@ public class POSViewModel : IDisposable
                 _logger.LogWarning("No active POS terminals available");
                 NotifyError("No active POS terminals available. Contact administrator.");
             }
-
-            // Check for suspended sessions
-            await CheckForSuspendedSessionsAsync();
 
             _logger.LogInformation("POS ViewModel initialization complete");
         }
