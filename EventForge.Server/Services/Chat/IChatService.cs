@@ -616,6 +616,21 @@ public interface IChatService
         MessageReactionActionDto reactionDto,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Finds all duplicate DirectMessage chats for a given user and merges each duplicate group
+    /// into the single primary thread (the one with the most recent activity).
+    /// All messages, read receipts and attachments are re-parented to the primary thread;
+    /// the secondary threads are then soft-deleted.
+    /// </summary>
+    /// <param name="userId">The user whose DM chats should be de-duplicated.</param>
+    /// <param name="tenantId">Tenant scope for the operation.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Summary of how many threads were merged.</returns>
+    Task<DmMergeResultDto> MergeDirectMessageDuplicatesAsync(
+        Guid userId,
+        Guid? tenantId,
+        CancellationToken cancellationToken = default);
+
     #endregion
 }
 
@@ -911,6 +926,19 @@ public class UpdateChatDto
     public bool? IsPrivate { get; set; }
     public string? PreferredLocale { get; set; }
     public Dictionary<string, object>? Metadata { get; set; }
+}
+
+/// <summary>
+/// Result of a DM de-duplication / merge operation.
+/// </summary>
+public class DmMergeResultDto
+{
+    /// <summary>Number of secondary (duplicate) threads that were merged and deleted.</summary>
+    public int MergedThreadCount { get; set; }
+    /// <summary>Total number of messages that were re-assigned to the primary thread.</summary>
+    public int ReassignedMessageCount { get; set; }
+    /// <summary>IDs of the primary (surviving) threads, keyed by the other-user ID.</summary>
+    public List<Guid> PrimaryThreadIds { get; set; } = [];
 }
 
 #endregion

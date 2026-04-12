@@ -29,6 +29,11 @@ public interface IChatService : IDisposable
     Task<ChatStatsDto> GetChatStatsAsync(CancellationToken cancellationToken = default);
     Task<MessageAttachmentDto?> UploadFileAsync(Guid chatId, IBrowserFile file, CancellationToken cancellationToken = default);
     Task<bool> DeleteChatAsync(Guid chatId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Calls the server to merge any duplicate DirectMessage chats for the current user
+    /// (same pair of users, same tenant). Returns the number of duplicate threads removed.
+    /// </summary>
+    Task<int> MergeDuplicateChatsAsync(CancellationToken cancellationToken = default);
 
     // Events for real-time updates
     event Action<ChatResponseDto>? ChatCreated;
@@ -627,6 +632,29 @@ public class ChatService : IChatService
         {
             _logger.LogError(ex, "Error deleting chat {ChatId}", chatId);
             throw;
+        }
+    }
+
+    public async Task<int> MergeDuplicateChatsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<object, DmMergeResultDto>(
+                $"{BaseUrl}/merge-duplicates", new { }, cancellationToken);
+
+            var merged = result?.MergedThreadCount ?? 0;
+            if (merged > 0)
+            {
+                // Invalidate the chat list so the sidebar is refreshed with the merged threads.
+                _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
+                _logger.LogInformation("Merged {Count} duplicate DM thread(s).", merged);
+            }
+            return merged;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "MergeDuplicateChatsAsync failed (non-critical).");
+            return 0;
         }
     }
 }

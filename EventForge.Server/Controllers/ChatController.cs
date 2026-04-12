@@ -1114,6 +1114,36 @@ public class ChatController(
     }
 
     #endregion
+
+    /// <summary>
+    /// Automatically finds and merges all duplicate DirectMessage chats for the current user.
+    /// When two DM threads exist between the same pair of users, their messages are consolidated
+    /// into the most-recently-updated thread and the duplicate is soft-deleted.
+    /// </summary>
+    /// <returns>Merge summary: how many duplicate threads were removed and messages re-parented.</returns>
+    /// <response code="200">Merge completed (zero or more threads merged).</response>
+    [HttpPost("merge-duplicates")]
+    [ProducesResponseType(typeof(DmMergeResultDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DmMergeResultDto>> MergeDirectMessageDuplicatesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantValidation) return tenantValidation;
+
+        if (tenantContext.CurrentUserId is not { } userId)
+            return CreateValidationProblemDetails("Unable to resolve user from current context");
+
+        var tenantId = tenantContext.CurrentTenantId;
+
+        try
+        {
+            var result = await chatService.MergeDirectMessageDuplicatesAsync(userId, tenantId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while merging duplicate chats", ex);
+        }
+    }
 }
 
 /// <summary>
