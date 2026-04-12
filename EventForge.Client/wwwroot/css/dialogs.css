@@ -120,9 +120,52 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   DARK THEME OVERRIDES — EFDialog (.efd-card)
+   Corrects the inline <style> which uses a blue-tinted dark (#12121f) that
+   does not match the app's neutral dark palette (#121212 / #262626).
+   Using !important to guarantee these rules win over the inline <style> tag
+   injected later in the DOM by Blazor component rendering.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="carbon-neon-dark"] .efd-card {
+    --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
+    --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
+    --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
+    --mud-palette-background:           #121212;
+    --mud-palette-surface:              #262626;
+    --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
+    --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
+    --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
+    --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
+    --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
+    --mud-palette-divider:              rgba(255, 255, 255, 0.12);
+    --efd-color-primary-light:          #00F5FF;
+    --efd-color-primary-focus:          #00E5FF;
+    color: rgba(255, 255, 255, 0.87) !important;
+    background: rgba(38, 38, 38, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efd-title {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efd-body {
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+    background-color: #262626 !important;
+    color: #00F5FF !important;
+}
+
+[data-theme="carbon-neon-dark"] .efd-actions {
+    border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    LIGHT THEME OVERRIDES — EFDialog (.efd-card)
-   The inline <style> in EFDialog.razor defines the dark defaults.
-   These rules flip all hardcoded dark values for [data-theme="carbon-neon-light"].
    ═══════════════════════════════════════════════════════════════════════════ */
 
 [data-theme="carbon-neon-light"] .efd-card {
@@ -139,18 +182,18 @@
     --mud-palette-divider:              rgba(0, 0, 0, 0.12);
     --efd-color-primary-light:          #3E97B3;
     --efd-color-primary-focus:          #2B677A;
-    color: rgba(26, 26, 26, 0.87);
-    background: rgba(255, 255, 255, 0.97);
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    color: rgba(26, 26, 26, 0.87) !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid #E0E0E0 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
 }
 
 [data-theme="carbon-neon-light"] .efd-title {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.10);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.10) !important;
 }
 
 [data-theme="carbon-neon-light"] .efd-body {
-    color: rgba(26, 26, 26, 0.87);
+    color: rgba(26, 26, 26, 0.87) !important;
 }
 
 [data-theme="carbon-neon-light"] .efd-body .mud-tabs .mud-tab:hover {
@@ -228,7 +271,7 @@
 }
 
 [data-theme="carbon-neon-light"] .efd-actions {
-    border-top: 1px solid rgba(0, 0, 0, 0.10);
+    border-top: 1px solid rgba(0, 0, 0, 0.10) !important;
 }
 
 [data-theme="carbon-neon-light"] .efd-actions .mud-button-root.mud-button-text {
@@ -241,8 +284,52 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   DARK THEME OVERRIDES — EFSystemDialog (.efsd-card)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="carbon-neon-dark"] .efsd-card {
+    --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
+    --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
+    --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
+    --mud-palette-background:           #121212;
+    --mud-palette-surface:              #262626;
+    --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
+    --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
+    --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
+    --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
+    --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
+    --mud-palette-divider:              rgba(255, 255, 255, 0.12);
+    --efsd-color-primary-light:         #00F5FF;
+    --efsd-color-primary-focus:         #00E5FF;
+    color: rgba(255, 255, 255, 0.87) !important;
+    background: rgba(38, 38, 38, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efsd-title-text {
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efsd-hrdiv {
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efsd-subtitle {
+    color: rgba(255, 255, 255, 0.60) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efsd-body {
+    color: rgba(255, 255, 255, 0.87) !important;
+}
+
+[data-theme="carbon-neon-dark"] .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+    background-color: #262626 !important;
+    color: #00F5FF !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    LIGHT THEME OVERRIDES — EFSystemDialog (.efsd-card)
-   The inline <style> in EFSystemDialog.razor defines the dark defaults.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 [data-theme="carbon-neon-light"] .efsd-card {
@@ -259,31 +346,31 @@
     --mud-palette-divider:              rgba(0, 0, 0, 0.12);
     --efsd-color-primary-light:         #3E97B3;
     --efsd-color-primary-focus:         #2B677A;
-    color: rgba(26, 26, 26, 0.87);
-    background: rgba(255, 255, 255, 0.97);
-    border: 1px solid #E0E0E0;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    color: rgba(26, 26, 26, 0.87) !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    border: 1px solid #E0E0E0 !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
 }
 
 [data-theme="carbon-neon-light"] .efsd-title-text {
-    color: rgba(26, 26, 26, 0.87);
-    text-shadow: none;
+    color: rgba(26, 26, 26, 0.87) !important;
+    text-shadow: none !important;
 }
 
 [data-theme="carbon-neon-light"] .efsd-hrdiv {
-    background: rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.12) !important;
 }
 
 [data-theme="carbon-neon-light"] .efsd-subtitle {
-    color: rgba(26, 26, 26, 0.72);
+    color: rgba(26, 26, 26, 0.72) !important;
 }
 
 [data-theme="carbon-neon-light"] .efsd-tb-default {
-    background: rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.12) !important;
 }
 
 [data-theme="carbon-neon-light"] .efsd-body {
-    color: rgba(26, 26, 26, 0.87);
+    color: rgba(26, 26, 26, 0.87) !important;
 }
 
 [data-theme="carbon-neon-light"] .efsd-body .mud-input-root input,
