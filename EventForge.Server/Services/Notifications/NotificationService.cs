@@ -1641,13 +1641,19 @@ public class NotificationService(
             var currentCount = memoryCache.GetOrCreate(windowKey, entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                entry.Size = 1;
                 return 0;
             });
 
             var isAllowed = currentCount < limit;
             if (isAllowed)
             {
-                memoryCache.Set(windowKey, currentCount + 1, TimeSpan.FromHours(1));
+                var setOptions = new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
+                    Size = 1
+                };
+                memoryCache.Set(windowKey, currentCount + 1, setOptions);
             }
 
             var remainingQuota = Math.Max(0, limit - (currentCount + (isAllowed ? 1 : 0)));

@@ -969,7 +969,11 @@ public class ChatController(
             memoryCache.Set(
                 ChatExportCacheKey(exportId),
                 new ChatExportCacheEntry(bytes, format, messages.Count, DateTime.UtcNow),
-                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+                new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24),
+                    Size = 1
+                });
 
             var result = new ChatExportResultDto
             {
