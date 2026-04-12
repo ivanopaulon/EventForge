@@ -466,7 +466,7 @@ kbd {
     font-family: monospace;
     font-size: 0.85em;
     color: #fff;
-    background-color: #333;
+    background-color: var(--neutral-dark-light);
     border-radius: 3px;
     box-shadow: inset 0 -1px 0 rgba(0,0,0,0.25);
 }
@@ -875,9 +875,9 @@ kbd {
     border: 2px solid var(--mud-palette-background-grey);
 }
 
-.status-dot--online  { background: #47d16c; }
-.status-dot--away    { background: #f8a723; }
-.status-dot--busy    { background: #e8323a; }
+.status-dot--online  { background: var(--ef-status-online); }
+.status-dot--away    { background: var(--ef-status-away); }
+.status-dot--busy    { background: var(--ef-status-busy); }
 .status-dot--offline { background: var(--mud-palette-text-disabled); }
 
 /* Override dot border colour inside dialogs / headers */
@@ -1038,7 +1038,7 @@ kbd {
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #4CAF50, transparent);
+    background: linear-gradient(90deg, transparent, var(--mud-palette-success), transparent);
     top: 50%;
 }
 
@@ -1058,7 +1058,7 @@ kbd {
     position: absolute;
     width: 20px;
     height: 20px;
-    border-color: #4CAF50;
+    border-color: var(--mud-palette-success);
     border-style: solid;
 }
 
@@ -1101,7 +1101,7 @@ kbd {
 }
 
 .camera-scanner-ctrl-btn--active.mud-icon-button {
-    color: #FFC107 !important;
+    color: var(--mud-palette-warning) !important;
 }
 
 /* Last detected code badge */

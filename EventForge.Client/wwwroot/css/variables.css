@@ -21,6 +21,11 @@
  /* AppBar hover / interactive surface */
  --ef-hover-dark: #384048;
 
+ /* Presence / status dot colors */
+ --ef-status-online: #47d16c;
+ --ef-status-away:   #f8a723;
+ --ef-status-busy:   #e8323a;
+
  /* Form & focus */
  --form-focus-border: rgba(36,123,255,0.6);
 

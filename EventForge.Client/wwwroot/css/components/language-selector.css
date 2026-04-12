@@ -45,7 +45,7 @@
 }
 
 .flag-default {
- background: #cccccc;
+ background: var(--mud-palette-lines-default, #cccccc);
 }
 
 /* Animation for language changes */

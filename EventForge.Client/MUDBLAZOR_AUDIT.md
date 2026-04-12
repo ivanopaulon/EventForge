@@ -1,6 +1,6 @@
 # MudBlazor Design System Audit — EventForge.Client
 
-**Version:** Phase 1+2+3d+3e+3f+3g+3h+4+5  
+**Version:** Phase 1+2+3d+3e+3f+3g+3h+4+5+6  
 **MudBlazor:** 9.2.0  
 **Framework:** Blazor WASM (.NET 10)  
 **Audit date:** 2025 — updated 2026-04-12  
@@ -18,7 +18,7 @@
 | E | `Style="font-weight:N"` multi-value (skipped) | ~50 | Low | 📋 Documented |
 | F | CSS `!important` overrides | 167 → **150** | High | ⚠️ Phase 5: 17 palette-var `!important` removed from mud-components.css; sizing rules kept |
 | G | `.mud-*` class overrides | 122 → **122** | Medium | ⚠️ Unchanged — structural overrides that require CSS-level targeting |
-| H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 → 0 | High | ✅ Fixed (Task 3) |
+| H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 → **0 (active)** | High | ✅ Phase 6: status-dot colors → `--ef-status-*`; scanner `#4CAF50`/`#FFC107` → palette vars; `#333`/`#cccccc` → semantic vars |
 | I | `<MudThemeProvider />` with no theme binding | 1 → 0 | High | ✅ Fixed (Task 1) — bound to IThemeService |
 | J | `Style=` (capital-S) inline on MudBlazor components | 826 → **151** | Medium | ⚠️ Substantially fixed — 675+ replacements total; 108 remaining are dynamic (@expr), 43 complex multi-value |
 | K | `style=` (lowercase) HTML inline | 110 → **64** | Low | ✅ Phase 3g: 46 simple styles converted to CSS classes — 52 complex multi-property + 12 single-use remain |
@@ -35,6 +35,8 @@
 **Total fixed in Phase 3g:** 26 HTML inline style → CSS class conversions (overflow-y:auto, width:100%, cursor:pointer, font-weight:600, text-align:right/center on td/th); `.overflow-y-auto` utility class added  
 **Total fixed in Phase 3h:** Added `--ef-hover-dark` CSS variable (replaces 2 hardcoded `#384048`); removed `!important` from 3 `cursor:pointer` hover rules + 1 redundant box-shadow  
 **Total fixed in Phase 4:** `EventForgeTheme.GetMudTheme()` now includes `Shadows` (26 lighter elevation levels aligned to `--shadow-sm/md/lg`) and explicit `ZIndex` configuration; removed `.mud-paper.ef-tile { box-shadow !important }` override block  
+**Total fixed in Phase 5:** 17 palette-var `!important` removed from mud-components.css; corrected baseline counts (comment-stripping) F: 167 active, G: 122 active  
+**Total fixed in Phase 6:** 8 hardcoded colors removed from app.css/language-selector.css → `--ef-status-online/away/busy` vars added; `#4CAF50`→`var(--mud-palette-success)` ×2; `#FFC107`→`var(--mud-palette-warning)`; `#333`→`var(--neutral-dark-light)`; `#cccccc`→`var(--mud-palette-lines-default)`  
 **Remaining static Style=:** ~151 (108 dynamic `@expr`, 43 complex multi-value — intentionally kept)
 
 ---
