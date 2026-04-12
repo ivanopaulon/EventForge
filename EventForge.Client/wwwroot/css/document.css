@@ -2,7 +2,7 @@
 .document-page-root {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
 }
 
@@ -11,12 +11,7 @@
     padding: 12px;
 }
 
-.eftable-wrapper {
-    flex: 1 1 auto;
-    min-height: 0; /* CRUCIAL for overflow in flexbox */
-    overflow: auto;
-    padding: 8px 12px;
-}
+/* .eftable-wrapper is defined (with full properties) in app.css */
 
 /* Document Procedure Page Enhancements */
 
@@ -81,13 +76,9 @@
         height: auto;
         min-height: 100vh;
     }
-    
+
     .document-top {
         padding: 8px;
-    }
-    
-    .eftable-wrapper {
-        padding: 4px 8px;
     }
 }
 

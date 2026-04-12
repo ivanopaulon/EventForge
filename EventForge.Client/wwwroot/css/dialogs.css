@@ -495,22 +495,6 @@
     font-size: 0.875rem;
 }
 
-/* Dialog Animations */
-.mud-dialog-container {
-    animation: dialogFadeIn 0.2s ease-out;
-}
-
-@keyframes dialogFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 /* Button Hover Effects */
 .ef-dialog-actions .mud-button {
     transition: all 0.2s ease-in-out;

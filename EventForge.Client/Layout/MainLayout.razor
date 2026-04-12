@@ -22,7 +22,7 @@
 @inject IHttpClientService HttpClientService
 @implements IAsyncDisposable
 
-<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
+<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" IsDarkMode="@ThemeService.IsDarkMode" />
 
 <MudLayout>
     <!-- AppBar: [Menu] [Home] [ThemeToggle] ---- [Logo] -->
@@ -108,8 +108,8 @@
     </MudMainContent>
 </MudLayout>
 
-<!-- Global Loading Dialog - centralized modal loading component -->
-<GlobalLoadingDialog />
+<!-- Global Loading Overlay - centralized modal loading component (backed by PageLoadingOverlay/EFSystemDialog) -->
+<GlobalLoadingOverlay />
 
 <!-- Connection Lost Overlay - monitors server connectivity -->
 <ConnectionLostOverlay />

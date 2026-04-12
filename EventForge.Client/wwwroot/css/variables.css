@@ -56,6 +56,30 @@
 
  /* Loading placeholder text fallback */
  --blazor-load-percentage-text: "Loading";
+
+ /* Semantic color aliases — map to MudBlazor palette where available */
+ --text-primary:   var(--mud-palette-text-primary,   #1F2F46);
+ --text-secondary: var(--mud-palette-text-secondary, #666666);
+ --success:        var(--mud-palette-success,  #4CAF50);
+ --error:          var(--mud-palette-error,    #F44336);
+ --warning:        var(--mud-palette-warning,  #FF9800);
+ --info:           var(--mud-palette-info,     #2196F3);
+ --link-color:     var(--mud-palette-primary,  #1F2F46);
+
+ /* Status badge light/dark tints */
+ --success-light: var(--mud-palette-success-lighten, #d4edda);
+ --success-dark:  #155724;
+ --error-light:   var(--mud-palette-error-lighten,   #f8d7da);
+ --error-dark:    #721c24;
+ --warning-light: var(--mud-palette-warning-lighten, #fff3cd);
+ --warning-dark:  #856404;
+
+ /* Sidebar / Navigation drawer */
+ --sidebar-background:  var(--mud-palette-drawer-background, #1A1A1A);
+ --sidebar-hover-bg:    var(--mud-palette-action-default-hover, rgba(0,0,0,0.08));
+ --sidebar-text:        var(--mud-palette-drawer-text, #FFFFFF);
+ --sidebar-active-bg:   var(--mud-palette-primary, #1F2F46);
+ --sidebar-text-active: #FFFFFF;
 }
 
 /* Dark mode sensible defaults (will be overridden by MudBlazor dark theme variables when used) */
