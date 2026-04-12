@@ -32,7 +32,7 @@
         else
         {
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
-                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                <MudTabPanel Text="@TranslationService.GetTranslation("tab.general", "Generale")" Icon="@Icons.Material.Outlined.Info">
                     <MudForm @ref="_form">
                         <MudGrid>
                             <MudItem xs="12" md="4">
@@ -43,10 +43,7 @@
                                                MaxLength="10"
                                                Immediate="true"
                                                OnBlur="@HandleBlur"
-                                               aria-describedby="code-help" />
-                                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")" />
                             </MudItem>
 
                             <MudItem xs="12" md="8">
@@ -57,10 +54,7 @@
                                                MaxLength="100"
                                                Immediate="true"
                                                OnBlur="@HandleBlur"
-                                               aria-describedby="name-help" />
-                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")" />
                             </MudItem>
 
                             <MudItem xs="12">
@@ -69,15 +63,12 @@
                                                Lines="4"
                                                MaxLength="500"
                                                OnBlur="@HandleBlur"
-                                               aria-describedby="description-help" />
-                                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")" />
                             </MudItem>
                         </MudGrid>
                     </MudForm>
                 </MudTabPanel>
-                <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
+                <MudTabPanel Text="@TranslationService.GetTranslation("tab.audit", "Audit")" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
                     <MudGrid>
                         <MudItem xs="12" md="6">
                             <PrymTextField T="string" Value="@(_vatNature?.Id.ToString() ?? string.Empty)"

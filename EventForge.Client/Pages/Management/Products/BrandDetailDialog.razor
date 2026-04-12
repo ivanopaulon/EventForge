@@ -44,10 +44,7 @@
                                                MaxLength="200"
                                                Immediate="true"
                                                OnBlur="@(() => MarkChanged())"
-                                               aria-describedby="name-help" />
-                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.nomeBrand", "Inserisci il nome del marchio")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.nomeBrand", "Inserisci il nome del marchio")" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -55,10 +52,7 @@
                                                Label="@TranslationService.GetTranslation("drawer.field.paese", "Paese")"
                                                MaxLength="100"
                                                OnBlur="@(() => MarkChanged())"
-                                               aria-describedby="country-help" />
-                                <MudText id="country-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.paese", "Paese di origine del marchio")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.paese", "Paese di origine del marchio")" />
                             </MudItem>
 
                             <MudItem xs="12">
@@ -67,10 +61,7 @@
                                                Lines="3"
                                                MaxLength="1000"
                                                OnBlur="@(() => MarkChanged())"
-                                               aria-describedby="description-help" />
-                                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.descrizioneBrand", "Descrizione opzionale del marchio")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.descrizioneBrand", "Descrizione opzionale del marchio")" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -78,10 +69,7 @@
                                                Label="@TranslationService.GetTranslation("drawer.field.sitoWeb", "Sito Web")"
                                                MaxLength="500"
                                                OnBlur="@(() => MarkChanged())"
-                                               aria-describedby="website-help" />
-                                <MudText id="website-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.sitoWeb", "URL del sito web del marchio")
-                                </MudText>
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.sitoWeb", "URL del sito web del marchio")" />
                             </MudItem>
 
                             @if (!_isCreateMode && _brand != null)

@@ -36,7 +36,7 @@
                     @TranslationService.GetTranslation("classificationNode.parentLoadWarning", "Impossibile caricare i nodi padre. Il campo Nodo Padre potrebbe non essere disponibile, ma puoi comunque procedere.")
                 </MudAlert>
             }
-            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab">
+            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab" Color="Color.Primary">
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.generalInfo", "Informazioni")" Icon="@Icons.Material.Outlined.Info">
                     <MudForm @ref="_form" Class="pa-2">

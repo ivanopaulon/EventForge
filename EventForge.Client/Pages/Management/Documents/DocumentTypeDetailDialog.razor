@@ -32,7 +32,7 @@
         }
         else
         {
-            <MudForm @ref="_form" Class="pa-2">
+            <MudForm @ref="_form" Class="pa-4">
                 <MudGrid>
                     <MudItem xs="12" md="6">
                         <PrymTextField @bind-Value="DocumentTypeName"
@@ -42,10 +42,7 @@
                                        MaxLength="50"
                                        Immediate="true"
                                        OnBlur="@(() => MarkChanged())"
-                                       aria-describedby="name-help" />
-                        <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("documentType.helperText.name", "Inserisci il nome del tipo documento")
-                        </MudText>
+                                       HelperText="@TranslationService.GetTranslation("documentType.helperText.name", "Inserisci il nome del tipo documento")" />
                     </MudItem>
 
                     <MudItem xs="12" md="6">
@@ -56,10 +53,7 @@
                                        MaxLength="10"
                                        Immediate="true"
                                        OnBlur="@(() => MarkChanged())"
-                                       aria-describedby="code-help" />
-                        <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("documentType.helperText.code", "Codice univoco per il tipo documento (es: DDT, FT, NC)")
-                        </MudText>
+                                       HelperText="@TranslationService.GetTranslation("documentType.helperText.code", "Codice univoco per il tipo documento (es: DDT, FT, NC)")" />
                     </MudItem>
 
                     <MudItem xs="12">
@@ -68,10 +62,7 @@
                                        Lines="3"
                                        MaxLength="200"
                                        OnBlur="@(() => MarkChanged())"
-                                       aria-describedby="notes-help" />
-                        <MudText id="notes-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("documentType.helperText.notes", "Note o descrizione aggiuntiva")
-                        </MudText>
+                                       HelperText="@TranslationService.GetTranslation("documentType.helperText.notes", "Note o descrizione aggiuntiva")" />
                     </MudItem>
 
                     <MudItem xs="12" md="6">
@@ -79,7 +70,7 @@
                                     @bind-Value="DocumentTypeRequiredPartyType"
                                     Label="@TranslationService.GetTranslation("field.requiredPartyType", "Tipo Controparte Richiesto")"
                                     @bind-Value:after="@MarkChanged"
-                                    aria-describedby="party-type-help">
+                                    HelperText="@TranslationService.GetTranslation("documentType.helperText.partyType", "Tipo di controparte richiesto per questo documento")">
                             <MudSelectItem T="BusinessPartyType" Value="BusinessPartyType.Customer">
                                 @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
                             </MudSelectItem>
@@ -90,9 +81,6 @@
                                 @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
                             </MudSelectItem>
                         </PrymSelect>
-                        <MudText id="party-type-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("documentType.helperText.partyType", "Tipo di controparte richiesto per questo documento")
-                        </MudText>
                     </MudItem>
 
                     <MudItem xs="12" md="6">
@@ -101,7 +89,7 @@
                                     Label="@TranslationService.GetTranslation("field.defaultWarehouse", "Magazzino Predefinito")"
                                     Clearable="true"
                                     @bind-Value:after="@MarkChanged"
-                                    aria-describedby="warehouse-help">
+                                    HelperText="@TranslationService.GetTranslation("documentType.helperText.warehouse", "Magazzino predefinito per i documenti di questo tipo")">
                             @if (_warehouses != null)
                             {
                                 @foreach (var warehouse in _warehouses)
@@ -110,9 +98,6 @@
                                 }
                             }
                         </PrymSelect>
-                        <MudText id="warehouse-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("documentType.helperText.warehouse", "Magazzino predefinito per i documenti di questo tipo")
-                        </MudText>
                     </MudItem>
 
                     <MudItem xs="12" md="4">
