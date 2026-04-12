@@ -3,6 +3,8 @@
 @using EventForge.Client.Models.Messaging
 @using EventForge.Client.Shared.Helpers
 @using Microsoft.AspNetCore.Components.Forms
+@using Syncfusion.Blazor.InPlaceEditor
+@using Syncfusion.Blazor.RichTextEditor
 @inject IAuthService AuthService
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
@@ -322,7 +324,7 @@
                                 @foreach (var msg in _messages)
                                 {
                                     var isMe = msg.SenderId == _currentUserId;
-                                    <div class="@($"d-flex {(isMe ? "justify-end" : "justify-start")} mb-1")">
+                                    <div class="@($"d-flex {(isMe ? "justify-end" : "justify-start")} mb-1 message-item")">
                                         @if (!isMe)
                                         {
                                             <div style="margin-right:8px;flex-shrink:0;align-self:flex-end;">
@@ -342,20 +344,85 @@
                                             }
                                             <div class="@($"msg-bubble {(isMe ? "msg-bubble--me" : "msg-bubble--other")}")"
                                                  style="@GetBubbleStyle(isMe, selIsWa)">
-                                                <div role="article"
-                                                     aria-label="@TranslationService.GetTranslation("chat.message", "Chat message")"
-                                                     style="white-space:pre-wrap;word-break:break-word;font-size:0.875rem;">@ChatMarkdownRenderer.Render(msg.Content)</div>
-                                                <div class="d-flex justify-end align-center gap-1 mt-1">
-                                                    <MudText Typo="Typo.caption"
-                                                             Style="@($"opacity:.7;font-size:.65rem;color:{(isMe ? "white" : "var(--mud-palette-text-secondary)")};")">
-                                                        @FormatMessageTime(msg.SentAt)
-                                                    </MudText>
-                                                    @if (isMe)
-                                                    {
-                                                        <MudIcon Icon="@Icons.Material.Filled.DoneAll"
-                                                                 Style="@($"font-size:.8rem;color:{(msg.Status == MessageStatus.Read ? "#90caf9" : "rgba(255,255,255,0.5)")};")"/>
-                                                    }
-                                                </div>
+                                                @if (isMe && !msg.IsDeleted)
+                                                {
+                                                    @* Own messages: wrap in SfInPlaceEditor for inline editing *@
+                                                    <SfInPlaceEditor @key="@($"ipe-{msg.Id}")"
+                                                                     TValue="string"
+                                                                     Type="Syncfusion.Blazor.InPlaceEditor.InputType.RichTextEditor"
+                                                                     Value="@msg.Content"
+                                                                     EditableOn="EditableType.EditIconClick"
+                                                                     Mode="Syncfusion.Blazor.InPlaceEditor.RenderMode.Popup"
+                                                                     ActionOnBlur="ActionBlur.Cancel"
+                                                                     ActionBegin="@((Syncfusion.Blazor.InPlaceEditor.ActionBeginEventArgs<string> a) => OnEditBegin(msg, a))"
+                                                                     OnActionSuccess="@((Syncfusion.Blazor.InPlaceEditor.ActionEventArgs<string> a) => _ = OnInPlaceEditSubmitted(msg, a))"
+                                                                     OnActionFailure="@((Syncfusion.Blazor.InPlaceEditor.ActionEventArgs<string> a) => OnInPlaceEditFailed(msg, a))">
+                                                        <EditorComponent>
+                                                            <SfRichTextEditor>
+                                                                <RichTextEditorToolbarSettings Items="@ChatEditorConfig.ToolbarItems" />
+                                                            </SfRichTextEditor>
+                                                        </EditorComponent>
+                                                        <Template>
+                                                            @* Rendered (non-editing) state *@
+                                                            <div role="article"
+                                                                 aria-label="@TranslationService.GetTranslation("chat.message", "Chat message")"
+                                                                 class="rte-content"
+                                                                 style="font-size:0.875rem;">
+                                                                @if (msg.Format == MessageFormat.Html)
+                                                                {
+                                                                    @((MarkupString)(msg.Content ?? string.Empty))
+                                                                }
+                                                                else
+                                                                {
+                                                                    @ChatMarkdownRenderer.Render(msg.Content)
+                                                                }
+                                                            </div>
+                                                            <div class="d-flex justify-end align-center gap-1 mt-1">
+                                                                <MudText Typo="Typo.caption"
+                                                                         Style="@($"opacity:.7;font-size:.65rem;color:{(isMe ? "white" : "var(--mud-palette-text-secondary)")};")">
+                                                                    @FormatMessageTime(msg.SentAt)
+                                                                </MudText>
+                                                                @if (msg.IsEdited)
+                                                                {
+                                                                    <MudTooltip Text="@(msg.EditedAt.HasValue ? $"Modificato {FormatMessageTime(msg.EditedAt.Value)}" : "Modificato")">
+                                                                        <span class="message-edited-indicator">@TranslationService.GetTranslation("chat.edited", "(modificato)")</span>
+                                                                    </MudTooltip>
+                                                                }
+                                                                <MudIcon Icon="@Icons.Material.Filled.DoneAll"
+                                                                         Style="@($"font-size:.8rem;color:{(msg.Status == MessageStatus.Read ? "#90caf9" : "rgba(255,255,255,0.5)")};")"/>
+                                                            </div>
+                                                        </Template>
+                                                    </SfInPlaceEditor>
+                                                }
+                                                else
+                                                {
+                                                    @* Other users' messages: display-only *@
+                                                    <div role="article"
+                                                         aria-label="@TranslationService.GetTranslation("chat.message", "Chat message")"
+                                                         class="rte-content"
+                                                         style="font-size:0.875rem;">
+                                                        @if (msg.Format == MessageFormat.Html)
+                                                        {
+                                                            @((MarkupString)(msg.Content ?? string.Empty))
+                                                        }
+                                                        else
+                                                        {
+                                                            @ChatMarkdownRenderer.Render(msg.Content)
+                                                        }
+                                                    </div>
+                                                    <div class="d-flex justify-end align-center gap-1 mt-1">
+                                                        <MudText Typo="Typo.caption"
+                                                                 Style="@($"opacity:.7;font-size:.65rem;color:{(isMe ? "white" : "var(--mud-palette-text-secondary)")};")">
+                                                            @FormatMessageTime(msg.SentAt)
+                                                        </MudText>
+                                                        @if (msg.IsEdited)
+                                                        {
+                                                            <MudTooltip Text="@(msg.EditedAt.HasValue ? $"Modificato {FormatMessageTime(msg.EditedAt.Value)}" : "Modificato")">
+                                                                <span class="message-edited-indicator">@TranslationService.GetTranslation("chat.edited", "(modificato)")</span>
+                                                            </MudTooltip>
+                                                        }
+                                                    </div>
+                                                }
                                             </div>
                                         </div>
                                     </div>
@@ -778,6 +845,43 @@
     private Task ShareMessage(ChatMessageDto _)  { AppNotification.ShowInfo("Message sharing coming soon!"); return Task.CompletedTask; }
     private Task ReportMessage(ChatMessageDto _) { AppNotification.ShowInfo("Message reporting coming soon!"); return Task.CompletedTask; }
 
+    private void OnEditBegin(ChatMessageDto msg, Syncfusion.Blazor.InPlaceEditor.ActionBeginEventArgs<string> args)
+    {
+        // Pre-populate the in-place editor with the current content.
+        // No server call at this stage.
+    }
+
+    private async Task OnInPlaceEditSubmitted(ChatMessageDto msg, Syncfusion.Blazor.InPlaceEditor.ActionEventArgs<string> args)
+    {
+        var newContent = args.Value ?? string.Empty;
+
+        // Skip if content unchanged
+        if (newContent == msg.Content)
+            return;
+
+        try
+        {
+            var editDto = new EditMessageDto
+            {
+                MessageId = msg.Id,
+                UserId    = _currentUserId,
+                Content   = newContent,
+                Format    = MessageFormat.Html,
+            };
+            await ChatService.EditMessageAsync(msg.Id, editDto);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error editing message {MessageId}", msg.Id);
+            AppNotification.ShowError($"Errore nella modifica: {ex.Message}");
+        }
+    }
+
+    private void OnInPlaceEditFailed(ChatMessageDto msg, Syncfusion.Blazor.InPlaceEditor.ActionEventArgs<string> args)
+    {
+        Logger.LogWarning("In-place edit failed for message {MessageId}", msg.Id);
+    }
+
     private async Task DeleteMessage(ChatMessageDto msg)
     {
         var ok = await DialogService.ShowMessageBoxAsync(
@@ -858,10 +962,14 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void OnMessageEdited(EditMessageDto e)
+    private void OnMessageEdited(ChatMessageDto updated)
     {
-        var m = _messages.FirstOrDefault(x => x.Id == e.MessageId);
-        if (m is not null) { m.Content = e.Content; m.IsEdited = true; InvokeAsync(StateHasChanged); }
+        var index = _messages.FindIndex(x => x.Id == updated.Id);
+        if (index >= 0)
+        {
+            _messages[index] = updated;
+            InvokeAsync(StateHasChanged);
+        }
     }
 
     private void OnMessageDeleted(Guid id) { _messages.RemoveAll(m => m.Id == id); _messageIds.Remove(id); InvokeAsync(StateHasChanged); }

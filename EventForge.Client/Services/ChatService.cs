@@ -33,7 +33,7 @@ public interface IChatService : IDisposable
     // Events for real-time updates
     event Action<ChatResponseDto>? ChatCreated;
     event Action<ChatMessageDto>? MessageReceived;
-    event Action<EditMessageDto>? MessageEdited;
+    event Action<ChatMessageDto>? MessageEdited;
     event Action<Guid>? MessageDeleted;
     event Action<Guid, Guid>? MessageRead;
     event Action<TypingIndicatorDto>? TypingIndicator;
@@ -110,7 +110,7 @@ public class ChatService : IChatService
     #region Events
     public event Action<ChatResponseDto>? ChatCreated;
     public event Action<ChatMessageDto>? MessageReceived;
-    public event Action<EditMessageDto>? MessageEdited;
+    public event Action<ChatMessageDto>? MessageEdited;
     public event Action<Guid>? MessageDeleted;
     public event Action<Guid, Guid>? MessageRead;
     public event Action<TypingIndicatorDto>? TypingIndicator;
@@ -400,9 +400,9 @@ public class ChatService : IChatService
         MessageReceived?.Invoke(message);
     }
 
-    private void OnMessageEdited(EditMessageDto editMessage)
+    private void OnMessageEdited(ChatMessageDto updatedMessage)
     {
-        MessageEdited?.Invoke(editMessage);
+        MessageEdited?.Invoke(updatedMessage);
     }
 
     private void OnMessageDeleted(object deletedMessage)

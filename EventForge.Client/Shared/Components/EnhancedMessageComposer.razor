@@ -1,11 +1,14 @@
 @using EventForge.DTOs.Chat
 @using Microsoft.AspNetCore.Authorization
+@using EventForge.Client.Shared.Helpers
+@using Syncfusion.Blazor.RichTextEditor
 @attribute [Authorize]
 @inject ITranslationService TranslationService
 @inject IJSRuntime JSRuntime
 @inject IAppNotificationService AppNotification
 @inject IRealtimeService RealtimeService
 @inject ILogger<EnhancedMessageComposer> Logger
+@inject NavigationManager Navigation
 
 <MudPaper Elevation="3" Class="pa-3 enhanced-message-composer" Style="@ComposerStyle">
     <!-- Reply indicator if replying to a message -->
@@ -48,86 +51,21 @@
                            aria-label="@TranslationService.GetTranslation("chat.addEmoji", "Add emoji")" />
         </MudTooltip>
 
-        <!-- Message input field with mention support -->
+        <!-- Rich text editor with Syncfusion RTE -->
         <div class="flex-grow-1 position-relative">
-            <MudTextField T="string" 
-                          @bind-Value="@MessageText"
-                          @ref="messageInput"
-                          Label="@TranslationService.GetTranslation("chat.typeMessage", "Type a message...")"
-                          Placeholder="@GetPlaceholderText()"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          MaxLength="4000"
-                          Lines="@(MessageText.Contains('\n') ? Math.Min(5, MessageText.Split('\n').Length) : 1)"
-                          @onkeydown="@OnKeyDown"
-                          @oninput="@OnInput"
-                          HelperText="@GetHelperText()"
-                          aria-describedby="message-composer-help" />
-            
-            <!-- Mention suggestions dropdown -->
-            @if (ShowMentionSuggestions && MentionSuggestions?.Any() == true)
-            {
-                <MudPaper Class="mention-suggestions position-absolute w-100" 
-                          Style="top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;"
-                          Elevation="8">
-                    @foreach (var user in MentionSuggestions.Take(5))
-                    {
-                        <MudButton Class="w-100 justify-start pa-2"
-                                   Variant="Variant.Text"
-                                   StartIcon="@Icons.Material.Filled.Person"
-                                   OnClick="@(() => InsertMention(user))"
-                                   tabindex="0"
-                                   role="option"
-                                   aria-label="@($"Mention {user.DisplayName}")">
-                            <div class="d-flex align-center w-100">
-                                <MudAvatar Size="Size.Small" Class="mr-2">
-                                    @if (!string.IsNullOrEmpty(user.AvatarUrl))
-                                    {
-                                        <MudImage Src="@user.AvatarUrl" Alt="@user.DisplayName" />
-                                    }
-                                    else
-                                    {
-                                        @user.DisplayName?.FirstOrDefault()
-                                    }
-                                </MudAvatar>
-                                <div class="flex-grow-1 text-left">
-                                    <MudText Typo="Typo.body2">@user.DisplayName</MudText>
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@@@user.Username</MudText>
-                                </div>
-                                @if (user.IsOnline)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Circle" 
-                                             Color="Color.Success" 
-                                             Size="Size.Small" />
-                                }
-                            </div>
-                        </MudButton>
-                    }
-                </MudPaper>
-            }
+            <SfRichTextEditor @ref="_rteRef"
+                              Value="@MessageText"
+                              ValueChanged="@OnRteValueChanged"
+                              Placeholder="@GetPlaceholderText()"
+                              Height="80px"
+                              EnableXhtml="true">
+                <RichTextEditorToolbarSettings Items="@ChatEditorConfig.ToolbarItems" />
+                <RichTextEditorImageSettings SaveUrl="@RteImageUploadUrl"
+                                             Path="/api/v1/chat/image-uploads" />
+                <RichTextEditorEvents OnActionComplete="@OnRteActionComplete"
+                                      OnImageUploadSuccess="@OnRteImageUploadSuccess" />
+            </SfRichTextEditor>
         </div>
-
-        <!-- Format toggle buttons -->
-        <MudButtonGroup Variant="Variant.Text" Size="Size.Small" Class="format-buttons">
-            <MudTooltip Text="@TranslationService.GetTranslation("chat.formatBold", "Bold")">
-                <MudIconButton Icon="@Icons.Material.Filled.FormatBold"
-                               Size="Size.Small"
-                               OnClick="@(() => ToggleFormat("**", "**"))"
-                               aria-label="@TranslationService.GetTranslation("chat.formatBold", "Bold")" />
-            </MudTooltip>
-            <MudTooltip Text="@TranslationService.GetTranslation("chat.formatItalic", "Italic")">
-                <MudIconButton Icon="@Icons.Material.Filled.FormatItalic"
-                               Size="Size.Small"
-                               OnClick="@(() => ToggleFormat("*", "*"))"
-                               aria-label="@TranslationService.GetTranslation("chat.formatItalic", "Italic")" />
-            </MudTooltip>
-            <MudTooltip Text="@TranslationService.GetTranslation("chat.formatCode", "Code")">
-                <MudIconButton Icon="@Icons.Material.Filled.Code"
-                               Size="Size.Small"
-                               OnClick="@(() => ToggleFormat("`", "`"))"
-                               aria-label="@TranslationService.GetTranslation("chat.formatCode", "Code")" />
-            </MudTooltip>
-        </MudButtonGroup>
 
         <!-- Send button -->
         <MudTooltip Text="@TranslationService.GetTranslation("chat.sendMessage", "Send message")">
@@ -240,233 +178,56 @@
     // True when there is something to send (text or at least one pending attachment).
     private bool CanSend => !string.IsNullOrWhiteSpace(MessageText) || PendingAttachments?.Count > 0;
 
-    private MudTextField<string>? messageInput;
+    private SfRichTextEditor? _rteRef;
     private InputFile? fileInput;
     private string MessageText = "";
     private bool ShowEmojiPicker = false;
-    private bool ShowMentionSuggestions = false;
-    private string LastMentionQuery = "";
-    private int MentionStartPosition = -1;
-    private List<UserMentionSuggestionDto>? MentionSuggestions = new();
     private readonly List<Guid> MentionedUserIds = new();
     private DateTime _lastTypingIndicatorSent = DateTime.MinValue;
     private static readonly TimeSpan TypingIndicatorThrottle = TimeSpan.FromSeconds(3);
 
-    private readonly string[] CommonEmojis = new[]
-    {
+    // Base URL for RTE image upload — uses the existing chat file upload endpoint
+    private string RteImageUploadUrl =>
+        Navigation.BaseUri.TrimEnd('/') + "/api/v1/chat/upload-image";
+
+    private readonly string[] CommonEmojis =
+    [
         "😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃",
         "😉", "😊", "😇", "😍", "🤩", "😘", "😗", "😚", "😙", "😋",
         "😎", "🤓", "🧐", "🤔", "😐", "😑", "😶", "🙄", "😏", "😣",
         "👍", "👎", "👌", "🤞", "✌️", "🤟", "🤘", "🤙", "👈", "👉",
         "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
         "🔥", "💯", "💢", "💥", "💦", "💨", "🎉", "🎊", "👏", "🙌"
-    };
+    ];
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        try
-        {
-            if (firstRender)
-            {
-                await JSRuntime.InvokeVoidAsync("addMessageComposerKeyboardShortcuts");
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OnAfterRenderAsync.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
-    }
+    protected override Task OnAfterRenderAsync(bool firstRender) => Task.CompletedTask;
 
     private string GetPlaceholderText()
     {
         if (ReplyToMessage != null)
-        {
             return TranslationService.GetTranslation("chat.replyPlaceholder", $"Reply to {ReplyToMessage.SenderName}...");
-        }
         return TranslationService.GetTranslation("chat.typeMessage", "Type a message...");
     }
 
-    private string GetHelperText()
+    private void OnRteValueChanged(string value)
     {
-        var parts = new List<string>();
-        
-        if (MessageText.Length > 3800)
-        {
-            parts.Add($"{4000 - MessageText.Length} characters remaining");
-        }
-        
-        if (MentionedUserIds.Count > 0)
-        {
-            parts.Add($"{MentionedUserIds.Count} mentioned");
-        }
-
-        parts.Add("Use @ to mention users, ** for bold, * for italic");
-        
-        return string.Join(" • ", parts);
+        MessageText = value;
+        _ = SendTypingIndicator();
     }
 
-    private async Task OnKeyDown(KeyboardEventArgs e)
+    private async Task OnRteActionComplete(ActionCompleteEventArgs args)
     {
-        try
-        {
-            // Handle Enter key
-            if (e.Key == "Enter")
-            {
-                if (e.ShiftKey)
-                {
-                    // Allow new line with Shift+Enter
-                    return;
-                }
-                else
-                {
-                    // Send message with Enter
-                    await SendMessage();
-                }
-            }
-            
-            // Handle Escape key
-            if (e.Key == "Escape")
-            {
-                if (ShowMentionSuggestions)
-                {
-                    ShowMentionSuggestions = false;
-                    StateHasChanged();
-                }
-                else if (ReplyToMessage != null)
-                {
-                    await CancelReply();
-                }
-            }
-
-            // Handle navigation in mention suggestions
-            if (ShowMentionSuggestions && (e.Key == "ArrowUp" || e.Key == "ArrowDown"))
-            {
-                // TODO: Implement keyboard navigation for mention suggestions
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OnKeyDown.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
+        // SfRichTextEditor intercepts Enter to insert <p> tags. We detect Ctrl+Enter or
+        // a custom toolbar "send" action and call SendMessage. Because RTE doesn't
+        // provide a reliable keyboard event from inside the iframe, users click the
+        // Send button; Shift+Enter naturally inserts a new paragraph in the RTE.
+        await Task.CompletedTask;
     }
 
-    private async Task OnInput(ChangeEventArgs e)
+    private void OnRteImageUploadSuccess(ImageSuccessEventArgs args)
     {
-        try
-        {
-            var text = e.Value?.ToString() ?? "";
-            MessageText = text;
-
-            // Check for mentions
-            await CheckForMentions(text);
-            
-            // Send typing indicator
-            await SendTypingIndicator();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OnInput.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
-    }
-
-    private async Task CheckForMentions(string text)
-    {
-        // Find @ symbol and check if we should show mention suggestions
-        var lastAtIndex = text.LastIndexOf('@');
-        
-        if (lastAtIndex >= 0)
-        {
-            var afterAt = text.Substring(lastAtIndex + 1);
-            var spaceIndex = afterAt.IndexOfAny(new char[] { ' ', '\n', '\t' });
-            
-            if (spaceIndex == -1) // Still typing the mention
-            {
-                var query = afterAt.ToLower();
-                if (query != LastMentionQuery)
-                {
-                    LastMentionQuery = query;
-                    MentionStartPosition = lastAtIndex;
-                    await SearchUsers(query);
-                }
-            }
-            else
-            {
-                ShowMentionSuggestions = false;
-            }
-        }
-        else
-        {
-            ShowMentionSuggestions = false;
-        }
-
-        StateHasChanged();
-    }
-
-    private async Task SearchUsers(string query)
-    {
-        if (CurrentChat == null) return;
-
-        try
-        {
-            // For now, filter from current chat members
-            // In real implementation, this would call a service method
-            var filteredMembers = CurrentChat.Members
-                .Where(m => m.Username?.ToLower().Contains(query) == true || 
-                           m.DisplayName?.ToLower().Contains(query) == true)
-                .Select(m => new UserMentionSuggestionDto
-                {
-                    Id = m.UserId,
-                    Username = m.Username ?? "",
-                    DisplayName = m.DisplayName ?? m.Username ?? "",
-                    AvatarUrl = m.AvatarUrl,
-                    IsOnline = m.IsOnline
-                })
-                .ToList();
-
-            MentionSuggestions = filteredMembers;
-            ShowMentionSuggestions = filteredMembers.Any();
-        }
-        catch (Exception)
-        {
-            // Log error and hide suggestions
-            ShowMentionSuggestions = false;
-        }
-    }
-
-    private async Task InsertMention(UserMentionSuggestionDto user)
-    {
-        try
-        {
-            if (MentionStartPosition >= 0)
-            {
-                var beforeMention = MessageText.Substring(0, MentionStartPosition);
-                var afterMention = MessageText.Substring(MentionStartPosition + LastMentionQuery.Length + 1);
-                
-                MessageText = $"{beforeMention}@{user.Username} {afterMention}";
-                
-                if (!MentionedUserIds.Contains(user.Id))
-                {
-                    MentionedUserIds.Add(user.Id);
-                }
-            }
-
-            ShowMentionSuggestions = false;
-            StateHasChanged();
-
-            // Focus back to input
-            if (messageInput != null)
-            {
-                await messageInput.FocusAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in InsertMention.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
+        // The RTE automatically replaces the base64 src with the URL returned by the server.
+        // Nothing extra needed here; the value is updated via OnRteValueChanged.
     }
 
     private void ToggleEmojiPicker()
@@ -479,41 +240,14 @@
     {
         try
         {
-            MessageText += emoji;
+            if (_rteRef is not null)
+                await _rteRef.ExecuteCommandAsync(CommandName.InsertHTML, emoji);
             ShowEmojiPicker = false;
             StateHasChanged();
-
-            // Focus back to input
-            if (messageInput != null)
-            {
-                await messageInput.FocusAsync();
-            }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in InsertEmoji.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
-    }
-
-    private async Task ToggleFormat(string startTag, string endTag)
-    {
-        try
-        {
-            // TODO: Implement text formatting with selection support
-            // For now, just append the format tags
-            var selectionStart = MessageText.Length;
-            MessageText = MessageText.Insert(selectionStart, startTag + endTag);
-            StateHasChanged();
-
-            if (messageInput != null)
-            {
-                await messageInput.FocusAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in ToggleFormat.");
             AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
@@ -534,15 +268,16 @@
                 Content = MessageText.Trim(),
                 ReplyToMessageId = ReplyToMessage?.Id,
                 MentionedUserIds = MentionedUserIds.ToList(),
-                Format = MessageFormat.Markdown, // Assuming markdown for now
+                Format = MessageFormat.Html,
                 Attachments = PendingAttachments?.ToList()
             };
 
-            // Clear the composer
-            MessageText = "";
+            // Clear the composer — update Value binding then refresh the RTE component
+            MessageText = string.Empty;
+            if (_rteRef is not null)
+                await _rteRef.RefreshUIAsync();
             MentionedUserIds.Clear();
             ShowEmojiPicker = false;
-            ShowMentionSuggestions = false;
 
             await OnSendMessage.InvokeAsync(message);
         }

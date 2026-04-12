@@ -37,7 +37,8 @@ public class ChatService(
     IHubContext<ChatHub> hubContext,
     IWebHostEnvironment environment,
     IMemoryCache memoryCache,
-    IOnlineUserTracker onlineUserTracker) : IChatService
+    IOnlineUserTracker onlineUserTracker,
+    IHtmlSanitizerService htmlSanitizerService) : IChatService
 {
 
     #region Chat Thread Management
@@ -671,13 +672,19 @@ public class ChatService(
             var messageId = Guid.NewGuid();
             var now = DateTime.UtcNow;
 
+            // Sanitize HTML content server-side before persistence
+            var sanitizedContent = messageDto.Format == MessageFormat.Html && !string.IsNullOrEmpty(messageDto.Content)
+                ? htmlSanitizerService.Sanitize(messageDto.Content)
+                : messageDto.Content;
+
             // Create message entity
             var message = new Data.Entities.Chat.ChatMessage
             {
                 Id = messageId,
                 ChatThreadId = messageDto.ChatId,
                 SenderId = messageDto.SenderId,
-                Content = messageDto.Content,
+                Content = sanitizedContent,
+                Format = messageDto.Format,
                 ReplyToMessageId = messageDto.ReplyToMessageId,
                 Status = MessageStatus.Pending,
                 SentAt = now,
@@ -1153,24 +1160,31 @@ public class ChatService(
             metadata["EditedBy"] = editDto.UserId.ToString();
             metadata["LastEditedAt"] = DateTime.UtcNow.ToString("O");
 
-            // 6. Update message fields
-            message.Content = editDto.Content;
+            // 6. Sanitize HTML content server-side before persistence
+            var sanitizedContent = editDto.Format == MessageFormat.Html
+                ? htmlSanitizerService.Sanitize(editDto.Content)
+                : editDto.Content;
+
+            // 7. Update message fields
+            message.Content = sanitizedContent;
+            message.Format = editDto.Format;
             message.IsEdited = true;
             message.EditedAt = DateTime.UtcNow;
+            message.EditedByUserId = editDto.UserId.ToString();
             message.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
             message.ModifiedAt = DateTime.UtcNow;
 
-            // 7. Save to database
+            // 8. Save to database
             await context.SaveChangesAsync(cancellationToken);
 
-            // 8. Log audit trail with old and new content
+            // 9. Log audit trail with old and new content
             _ = await auditLogService.LogEntityChangeAsync(
                 entityName: "ChatMessage",
                 entityId: editDto.MessageId,
                 propertyName: "Content",
                 operationType: "Update",
                 oldValue: oldContent,
-                newValue: editDto.Content,
+                newValue: sanitizedContent,
                 changedBy: editDto.UserId.ToString(),
                 entityDisplayName: $"Message Edit: {editDto.MessageId}",
                 cancellationToken: cancellationToken);
@@ -2783,6 +2797,7 @@ public class ChatService(
             IsEdited = message.IsEdited,
             IsDeleted = message.IsDeleted,
             Locale = message.Locale,
+            Format = message.Format,
             Metadata = metadata
         };
     }
