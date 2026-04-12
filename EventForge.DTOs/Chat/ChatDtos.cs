@@ -783,4 +783,19 @@ namespace EventForge.DTOs.Chat
         /// <summary>True when the user has at least one active SignalR connection.</summary>
         public bool IsOnline { get; set; }
     }
+
+    /// <summary>
+    /// Result of a DM de-duplication / merge operation.
+    /// </summary>
+    public class DmMergeResultDto
+    {
+        /// <summary>Number of secondary (duplicate) threads that were merged and deleted.</summary>
+        public int MergedThreadCount { get; set; }
+
+        /// <summary>Total number of messages that were re-assigned to the primary thread.</summary>
+        public int ReassignedMessageCount { get; set; }
+
+        /// <summary>IDs of the primary (surviving) threads.</summary>
+        public List<Guid> PrimaryThreadIds { get; set; } = [];
+    }
 }

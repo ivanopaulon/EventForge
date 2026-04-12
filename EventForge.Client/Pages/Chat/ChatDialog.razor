@@ -500,6 +500,7 @@
     private bool _isLoadingChats;
     private bool _isLoadingMessages;
     private bool _isSendingMessage;
+    private bool _mergeOnceCompleted;
 
     // ── Filter / search ──────────────────────────────────────────────────────
     private string _searchText  = string.Empty;
@@ -593,6 +594,13 @@
         StateHasChanged();
         try
         {
+            // Auto-merge any duplicate DM threads once per session (silently).
+            if (!_mergeOnceCompleted)
+            {
+                _mergeOnceCompleted = true;
+                await ChatService.MergeDuplicateChatsAsync();
+            }
+
             _chatList    = await ChatService.GetChatsAsync(1, 50);
             _totalUnread = _chatList.Sum(c => c.UnreadCount);
         }

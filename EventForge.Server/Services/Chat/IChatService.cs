@@ -928,17 +928,4 @@ public class UpdateChatDto
     public Dictionary<string, object>? Metadata { get; set; }
 }
 
-/// <summary>
-/// Result of a DM de-duplication / merge operation.
-/// </summary>
-public class DmMergeResultDto
-{
-    /// <summary>Number of secondary (duplicate) threads that were merged and deleted.</summary>
-    public int MergedThreadCount { get; set; }
-    /// <summary>Total number of messages that were re-assigned to the primary thread.</summary>
-    public int ReassignedMessageCount { get; set; }
-    /// <summary>IDs of the primary (surviving) threads, keyed by the other-user ID.</summary>
-    public List<Guid> PrimaryThreadIds { get; set; } = [];
-}
-
 #endregion
