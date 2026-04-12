@@ -699,7 +699,107 @@ public class ChatController(
     }
 
     /// <summary>
-    /// Gets secure file download information with access validation.
+    /// Uploads an image inserted via the RichTextEditor to prevent base64 inline data URIs
+    /// from bloating the message payload. Returns a URL the RTE can use as the image src.
+    /// Only image content types are accepted (jpeg, png, gif, webp).
+    /// </summary>
+    /// <param name="file">Image file posted by the Syncfusion RTE upload handler.</param>
+    /// <param name="env">Web host environment (injected from DI).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>JSON with the public URL under which the uploaded image is accessible.</returns>
+    /// <response code="200">Image uploaded and URL returned.</response>
+    /// <response code="400">File missing, not an image, or exceeds the size limit.</response>
+    [HttpPost("upload-image")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UploadRteImageAsync(
+        IFormFile file,
+        [FromServices] IWebHostEnvironment env,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+            return CreateValidationProblemDetails("Image file cannot be empty.");
+
+        const long maxImageSize = 5 * 1024 * 1024; // 5 MB
+        if (file.Length > maxImageSize)
+            return CreateValidationProblemDetails("Image must not exceed 5 MB.");
+
+        var allowedMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "image/jpeg", "image/png", "image/gif", "image/webp"
+        };
+
+        if (!allowedMimeTypes.Contains(file.ContentType))
+            return CreateValidationProblemDetails($"Unsupported image type '{file.ContentType}'. Allowed: jpeg, png, gif, webp.");
+
+        try
+        {
+            var uploadId = Guid.NewGuid();
+            var extension = Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension)) extension = "bin";
+
+            var relativePath = Path.Combine("Uploads", "chat-images",
+                DateTime.UtcNow.Year.ToString(), DateTime.UtcNow.Month.ToString("D2"),
+                $"{uploadId}.{extension}");
+
+            var fullPath = Path.Combine(env.ContentRootPath, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+
+            await using (var stream = System.IO.File.Create(fullPath))
+            {
+                await file.CopyToAsync(stream, cancellationToken);
+            }
+
+            var request = HttpContext.Request;
+            var baseUrl = $"{request.Scheme}://{request.Host}";
+            var fileUrl = $"{baseUrl}/api/v1/chat/image-uploads/{uploadId}.{extension}";
+
+            return Ok(new { url = fileUrl });
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while uploading the image.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Serves a previously uploaded RTE inline image.
+    /// </summary>
+    [HttpGet("image-uploads/{fileName}")]
+    [AllowAnonymous]
+    public IActionResult GetRteImage(
+        [FromRoute] string fileName,
+        [FromServices] IWebHostEnvironment env)
+    {
+        // Basic path-traversal protection: only alphanumeric + dash/underscore + dot allowed.
+        if (string.IsNullOrEmpty(fileName) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(fileName, @"^[\w\-]+\.[a-z]+$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+        {
+            return BadRequest();
+        }
+
+        var root = Path.Combine(env.ContentRootPath, "Uploads", "chat-images");
+        var found = Directory.Exists(root)
+            ? Directory.GetFiles(root, fileName, SearchOption.AllDirectories).FirstOrDefault()
+            : null;
+
+        if (found == null)
+            return NotFound();
+
+        var ext = Path.GetExtension(fileName).TrimStart('.').ToLowerInvariant();
+        var mimeType = ext switch
+        {
+            "jpg" or "jpeg" => "image/jpeg",
+            "png"           => "image/png",
+            "gif"           => "image/gif",
+            "webp"          => "image/webp",
+            _               => "application/octet-stream"
+        };
+        return PhysicalFile(found, mimeType);
+    }
+
+
     /// Provides time-limited URLs, access logging, and download tracking.
     /// </summary>
     /// <param name="attachmentId">File attachment identifier</param>

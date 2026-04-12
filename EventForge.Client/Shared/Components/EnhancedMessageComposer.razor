@@ -230,6 +230,12 @@
         // Nothing extra needed here; the value is updated via OnRteValueChanged.
     }
 
+    private void ToggleEmojiPicker()
+    {
+        ShowEmojiPicker = !ShowEmojiPicker;
+        StateHasChanged();
+    }
+
     private async Task InsertEmoji(string emoji)
     {
         try
@@ -266,10 +272,10 @@
                 Attachments = PendingAttachments?.ToList()
             };
 
-            // Clear the composer — use SetValueAsync to fully reset RTE state
-            if (_rteRef is not null)
-                await _rteRef.SetValueAsync(string.Empty);
+            // Clear the composer — update Value binding then refresh the RTE component
             MessageText = string.Empty;
+            if (_rteRef is not null)
+                await _rteRef.RefreshUIAsync();
             MentionedUserIds.Clear();
             ShowEmojiPicker = false;
 

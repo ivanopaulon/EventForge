@@ -344,7 +344,7 @@
                                                                      Type="Syncfusion.Blazor.InPlaceEditor.InputType.RichTextEditor"
                                                                      Value="@msg.Content"
                                                                      EditableOn="EditableType.EditIconClick"
-                                                                     Mode="RenderMode.Popup"
+                                                                     Mode="Syncfusion.Blazor.InPlaceEditor.RenderMode.Popup"
                                                                      ActionOnBlur="ActionBlur.Cancel"
                                                                      ActionBegin="@((Syncfusion.Blazor.InPlaceEditor.ActionBeginEventArgs<string> a) => OnEditBegin(msg, a))"
                                                                      OnActionSuccess="@((Syncfusion.Blazor.InPlaceEditor.ActionEventArgs<string> a) => _ = OnInPlaceEditSubmitted(msg, a))"

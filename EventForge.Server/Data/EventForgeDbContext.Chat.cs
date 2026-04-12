@@ -44,6 +44,19 @@ public partial class EventForgeDbContext
             .HasForeignKey(cm => cm.ReplyToMessageId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        // Store Format as a readable string (nvarchar(20)) rather than an opaque int.
+        _ = modelBuilder.Entity<ChatMessage>()
+            .Property(cm => cm.Format)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+
+        // Filtered index enables efficient queries for edited messages.
+        _ = modelBuilder.Entity<ChatMessage>()
+            .HasIndex(cm => new { cm.IsEdited, cm.EditedAt })
+            .HasDatabaseName("IX_ChatMessages_IsEdited_EditedAt")
+            .HasFilter("[IsEdited] = 1");
+
         _ = modelBuilder.Entity<MessageAttachment>()
             .HasOne(ma => ma.Message)
             .WithMany(m => m.Attachments)

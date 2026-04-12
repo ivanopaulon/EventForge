@@ -142,7 +142,20 @@
                             {
                                 <span class="fc-bubble-sender">@msg.SenderName</span>
                             }
-                            <span class="fc-bubble-text">@msg.Content</span>
+                            @if (msg.Format == MessageFormat.Html)
+                            {
+                                <span class="fc-bubble-text rte-content">@((MarkupString)(msg.Content ?? string.Empty))</span>
+                            }
+                            else
+                            {
+                                <span class="fc-bubble-text">@msg.Content</span>
+                            }
+                            @if (msg.IsEdited)
+                            {
+                                <span class="message-edited-indicator" title="@msg.EditedAt?.ToString("g")">
+                                    (modificato)
+                                </span>
+                            }
                             <span class="fc-bubble-time">@msg.SentAt.ToString("HH:mm")</span>
                         </div>
                     </div>
