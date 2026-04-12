@@ -337,7 +337,9 @@ public class ChatController(
 
         try
         {
-            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            if (tenantContext.CurrentUserId is not { } userId)
+                return Unauthorized();
+
             var tenantId = tenantContext.CurrentTenantId;
 
             // Verify the user has access to this chat (must be a member within their tenant)
@@ -358,7 +360,7 @@ public class ChatController(
         }
         catch (Exception ex)
         {
-            return CreateInternalServerErrorProblem("An error occurred while retrieving messages for chat", ex);
+            return CreateInternalServerErrorProblem($"An error occurred while retrieving messages for chat {chatId}", ex);
         }
     }
 
