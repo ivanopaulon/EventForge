@@ -22,6 +22,7 @@
               MaxLength="MaxLength"
               Lines="Lines"
               InputType="InputType"
+              OnAdornmentClick="OnAdornmentClick"
               HelperText="@HelperText"
               Class="@Class"
               Style="@Style"
@@ -47,6 +48,7 @@
     [Parameter] public int                        MaxLength            { get; set; } = 524288;
     [Parameter] public int                        Lines                { get; set; } = 1;
     [Parameter] public InputType                  InputType            { get; set; } = InputType.Text;
+    [Parameter] public EventCallback<MouseEventArgs> OnAdornmentClick  { get; set; }
     [Parameter] public string?                    HelperText           { get; set; }
     [Parameter] public string?                    Class                { get; set; }
     [Parameter] public string?                    Style                { get; set; }

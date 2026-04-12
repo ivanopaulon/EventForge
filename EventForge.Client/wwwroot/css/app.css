@@ -1546,3 +1546,76 @@ kbd {
     .btn-edit-icon { color: rgba(255,255,255,0.4); }
     .btn-edit-icon:hover { background: rgba(255,255,255,0.08); }
 }
+
+/* ============================================================
+   .plsd-* — shared progress-log panel (PageLoadingSystemDialog
+   and LoginSystemDialog both use these classes)
+   ============================================================ */
+.plsd-log {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 2px;
+}
+
+.plsd-log-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.4s ease;
+}
+
+.plsd-log-active {
+    border-left: 2px solid rgba(100, 160, 255, 0.75);
+    padding-left: 6px;
+    margin-left: -8px;
+}
+
+.plsd-log-icon {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Tiny rotating dot used in place of MudProgressCircular */
+.plsd-spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid rgba(100, 160, 255, 0.25);
+    border-top-color: rgba(100, 160, 255, 0.9);
+    animation: plsd-spin 0.7s linear infinite;
+}
+
+@keyframes plsd-spin { to { transform: rotate(360deg); } }
+
+.plsd-log-text {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.plsd-log-text-active {
+    color: white;
+    font-weight: 600;
+}
+
+.plsd-elapsed {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.72rem;
+    margin-top: 2px;
+}
+
+@media (max-width: 480px) {
+    .plsd-log-active {
+        border-left: none;
+        padding-left: 0;
+        margin-left: 0;
+    }
+}
