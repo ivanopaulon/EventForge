@@ -14,9 +14,14 @@ public static class ChatEditorConfig
 {
     /// <summary>
     /// Ordered list of toolbar items for the chat RTE / in-place editor.
+    /// The first two entries are custom items (AttachFile, AddEmoji) handled via
+    /// <see cref="Syncfusion.Blazor.RichTextEditor.RichTextEditorCustomToolbarItem"/>.
     /// </summary>
     public static readonly List<ToolbarItemModel> ToolbarItems =
     [
+        new() { Name = "AttachFile", TooltipText = "Allega file" },
+        new() { Name = "AddEmoji",   TooltipText = "Emoji" },
+        new() { Command = ToolbarCommand.Separator },
         new() { Command = ToolbarCommand.Bold },
         new() { Command = ToolbarCommand.Italic },
         new() { Command = ToolbarCommand.Underline },

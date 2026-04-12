@@ -723,13 +723,20 @@ public class ChatService(
             {
                 var attachments = messageDto.Attachments.Select(att => new Data.Entities.Chat.MessageAttachment
                 {
-                    Id = Guid.NewGuid(),
+                    // Preserve the attachment ID generated during the pre-upload so that the
+                    // download URL (/api/v1/chat/files/{id}/download) remains valid.
+                    Id = att.Id != Guid.Empty ? att.Id : Guid.NewGuid(),
                     MessageId = messageId,
                     TenantId = chat.TenantId,
                     FileName = att.FileName ?? "unknown",
+                    OriginalFileName = att.OriginalFileName ?? att.FileName ?? "unknown",
                     FileUrl = att.FileUrl ?? string.Empty,
+                    ThumbnailUrl = att.ThumbnailUrl,
                     FileSize = att.FileSize,
                     ContentType = att.ContentType ?? "application/octet-stream",
+                    MediaType = att.MediaType,
+                    UploadedAt = att.UploadedAt == default ? now : att.UploadedAt,
+                    UploadedBy = messageDto.SenderId,
                     CreatedAt = now,
                     ModifiedAt = now
                 }).ToList();
@@ -740,10 +747,12 @@ public class ChatService(
                 attachmentDtos = attachments.Select(att => new MessageAttachmentDto
                 {
                     Id = att.Id,
-                    FileName = att.FileName,
+                    FileName = att.OriginalFileName ?? att.FileName,
                     FileUrl = att.FileUrl,
+                    ThumbnailUrl = att.ThumbnailUrl,
                     FileSize = att.FileSize,
-                    ContentType = att.ContentType
+                    ContentType = att.ContentType,
+                    MediaType = att.MediaType
                 }).ToList();
             }
 
@@ -1562,12 +1571,12 @@ public class ChatService(
             var attachmentId = Guid.NewGuid();
             var mediaType = DetermineMediaType(uploadDto.ContentType);
 
-            // Build storage path: {ContentRoot}/Uploads/chat/{chatId}/{attachmentId}_{safeFileName}
+            // Build storage path: {ContentRoot}/Uploads/chat/{attachmentId}/{safeFileName}
+            // Using attachmentId as the directory avoids a dependency on a not-yet-existing message.
             var safeFileName = Path.GetFileName(uploadDto.FileName);
-            var chatDir = Path.Combine(environment.ContentRootPath, "Uploads", "chat", uploadDto.ChatId.ToString());
-            Directory.CreateDirectory(chatDir);
-            var storedFileName = $"{attachmentId}_{safeFileName}";
-            var storedFilePath = Path.Combine(chatDir, storedFileName);
+            var attachDir = Path.Combine(environment.ContentRootPath, "Uploads", "chat", attachmentId.ToString());
+            Directory.CreateDirectory(attachDir);
+            var storedFilePath = Path.Combine(attachDir, safeFileName);
 
             // Write stream to disk
             await using (var fileStream = new FileStream(storedFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
@@ -1577,41 +1586,14 @@ public class ChatService(
 
             var fileUrl = $"/api/v1/chat/files/{attachmentId}/download";
             var thumbnailUrl = mediaType == MediaType.Image ? $"/api/v1/chat/files/{attachmentId}/thumbnail" : null;
+            var uploadedAt = DateTime.UtcNow;
 
-            // Persist MessageAttachment entity
-            var attachment = new Data.Entities.Chat.MessageAttachment
-            {
-                Id = attachmentId,
-                MessageId = uploadDto.ChatId, // Placeholder until message is created; updated by caller if needed
-                FileName = storedFileName,
-                OriginalFileName = safeFileName,
-                FileSize = uploadDto.FileSize,
-                ContentType = uploadDto.ContentType,
-                MediaType = mediaType,
-                FileUrl = fileUrl,
-                ThumbnailUrl = thumbnailUrl,
-                UploadedAt = DateTime.UtcNow,
-                UploadedBy = uploadDto.UploadedBy,
-                TenantId = Guid.Empty, // Set by caller if tenant-scoped
-                MediaMetadataJson = uploadDto.Metadata is not null
-                    ? System.Text.Json.JsonSerializer.Serialize(uploadDto.Metadata) : null
-            };
-            context.MessageAttachments.Add(attachment);
-            await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                entityName: "MessageAttachment",
-                entityId: attachmentId,
-                propertyName: "Upload",
-                operationType: "Insert",
-                oldValue: null,
-                newValue: $"File: {safeFileName}, Size: {uploadDto.FileSize}, Type: {uploadDto.ContentType}",
-                changedBy: uploadDto.UploadedBy.ToString(),
-                entityDisplayName: $"File Upload: {safeFileName}",
-                cancellationToken: cancellationToken);
+            // NOTE: The MessageAttachment DB record is intentionally NOT persisted here because no
+            // ChatMessage exists yet at upload time.  The record is created by SendMessageAsync when
+            // the user actually sends the message, using the attachmentId returned by this method.
 
             logger.LogInformation(
-                "User {UserId} uploaded file {FileName} ({FileSize} bytes) to chat {ChatId} in {ElapsedMs}ms",
+                "User {UserId} uploaded file {FileName} ({FileSize} bytes) for chat {ChatId} in {ElapsedMs}ms",
                 uploadDto.UploadedBy, safeFileName, uploadDto.FileSize, uploadDto.ChatId, stopwatch.ElapsedMilliseconds);
 
             return new FileUploadResultDto
@@ -1623,7 +1605,7 @@ public class ChatService(
                 MediaType = mediaType,
                 FileSize = uploadDto.FileSize,
                 Success = true,
-                UploadedAt = attachment.UploadedAt
+                UploadedAt = uploadedAt
             };
         }
         catch (Exception ex)
@@ -1686,11 +1668,11 @@ public class ChatService(
 
             if (attachment is null) return null;
 
-            // Storage path: {ContentRoot}/Uploads/chat/{chatId}/{storedFileName}
+            // Storage path: {ContentRoot}/Uploads/chat/{attachmentId}/{fileName}
             var physicalPath = Path.Combine(
                 environment.ContentRootPath,
                 "Uploads", "chat",
-                attachment.MessageId.ToString(),
+                attachment.Id.ToString(),
                 attachment.FileName);
 
             if (!System.IO.File.Exists(physicalPath)) return null;
@@ -2895,5 +2877,162 @@ public class ChatService(
     }
 
     #endregion
+
+    /// <summary>
+    /// Finds all duplicate DirectMessage chats for <paramref name="userId"/> (same pair of two users,
+    /// same tenant) and merges each group into a single primary thread.
+    ///
+    /// Strategy:
+    ///   - For each pair of users that has more than one active DM thread, the thread with the
+    ///     most-recent UpdatedAt becomes the "primary".
+    ///   - All ChatMessages from secondary threads are re-parented to the primary thread.
+    ///   - All MessageReadReceipts and MessageAttachments referencing secondary messages are
+    ///     implicitly kept (their MessageId does not change; only the parent thread changes).
+    ///   - ChatMembers in secondary threads that are NOT already members of the primary are
+    ///     moved to the primary.
+    ///   - Secondary threads are soft-deleted (IsDeleted = true, IsActive = false).
+    /// </summary>
+    public async Task<DmMergeResultDto> MergeDirectMessageDuplicatesAsync(
+        Guid userId,
+        Guid? tenantId,
+        CancellationToken cancellationToken = default)
+    {
+        var result = new DmMergeResultDto();
+
+        try
+        {
+            // 1. Find all active DM threads where this user is a member.
+            var userDmQuery = context.ChatThreads
+                .Where(ct => !ct.IsDeleted && ct.IsActive && ct.Type == ChatType.DirectMessage);
+
+            if (tenantId.HasValue)
+                userDmQuery = userDmQuery.Where(ct => ct.TenantId == tenantId.Value);
+
+            var userDmIds = await userDmQuery
+                .Where(ct => ct.Members.Any(m => m.UserId == userId && !m.IsDeleted))
+                .Select(ct => ct.Id)
+                .ToListAsync(cancellationToken);
+
+            if (userDmIds.Count < 2) return result; // Nothing to merge
+
+            // 2. Load members for all those threads (only two-person threads qualify as DMs).
+            var membersByThread = await context.ChatMembers
+                .AsNoTracking()
+                .Where(cm => userDmIds.Contains(cm.ChatThreadId) && !cm.IsDeleted)
+                .Select(cm => new { cm.ChatThreadId, cm.UserId })
+                .ToListAsync(cancellationToken);
+
+            // 3. Group threads by the canonical "other user" (the user who is NOT the caller).
+            //    Key = other-user ID; Value = list of thread IDs.
+            var threadsByOtherUser = membersByThread
+                .GroupBy(cm => cm.ChatThreadId)
+                .Where(g =>
+                {
+                    var uids = g.Select(cm => cm.UserId).Distinct().ToList();
+                    // Must be exactly 2 members and one of them must be userId
+                    return uids.Count == 2 && uids.Contains(userId);
+                })
+                .Select(g => new
+                {
+                    ThreadId   = g.Key,
+                    OtherUserId = g.Select(cm => cm.UserId).First(id => id != userId)
+                })
+                .GroupBy(x => x.OtherUserId)
+                .Where(g => g.Count() > 1)      // Only groups with actual duplicates
+                .ToList();
+
+            if (threadsByOtherUser.Count == 0) return result;
+
+            // 4. Load UpdatedAt for ordering
+            var allDupThreadIds = threadsByOtherUser
+                .SelectMany(g => g.Select(x => x.ThreadId))
+                .Distinct()
+                .ToList();
+
+            var threadMeta = await context.ChatThreads
+                .Where(ct => allDupThreadIds.Contains(ct.Id))
+                .Select(ct => new { ct.Id, ct.UpdatedAt })
+                .ToDictionaryAsync(ct => ct.Id, ct => ct.UpdatedAt, cancellationToken);
+
+            var now = DateTime.UtcNow;
+
+            foreach (var group in threadsByOtherUser)
+            {
+                // Pick the primary: the most recently updated thread
+                var ordered = group
+                    .OrderByDescending(x => threadMeta.TryGetValue(x.ThreadId, out var upd) ? upd : DateTime.MinValue)
+                    .ToList();
+
+                var primaryId    = ordered[0].ThreadId;
+                var secondaryIds = ordered.Skip(1).Select(x => x.ThreadId).ToList();
+
+                // 5. Re-parent messages from secondary threads to the primary thread
+                var messagesToMove = await context.ChatMessages
+                    .Where(m => secondaryIds.Contains(m.ChatThreadId))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var msg in messagesToMove)
+                    msg.ChatThreadId = primaryId;
+
+                result.ReassignedMessageCount += messagesToMove.Count;
+
+                // 6. Move members from secondary threads that aren't already in the primary
+                var existingPrimaryMemberIds = await context.ChatMembers
+                    .Where(cm => cm.ChatThreadId == primaryId && !cm.IsDeleted)
+                    .Select(cm => cm.UserId)
+                    .ToListAsync(cancellationToken);
+
+                var membersToMove = await context.ChatMembers
+                    .Where(cm => secondaryIds.Contains(cm.ChatThreadId) && !cm.IsDeleted
+                              && !existingPrimaryMemberIds.Contains(cm.UserId))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var member in membersToMove)
+                {
+                    member.ChatThreadId = primaryId;
+                    member.ModifiedAt   = now;
+                }
+
+                // 7. Soft-delete secondary threads and their remaining members
+                var secondaryThreads = await context.ChatThreads
+                    .Where(ct => secondaryIds.Contains(ct.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var thread in secondaryThreads)
+                {
+                    thread.IsActive    = false;
+                    thread.IsDeleted   = true;
+                    thread.ModifiedAt  = now;
+                }
+
+                var remainingSecondaryMembers = await context.ChatMembers
+                    .Where(cm => secondaryIds.Contains(cm.ChatThreadId) && !cm.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var member in remainingSecondaryMembers)
+                {
+                    member.IsDeleted  = true;
+                    member.IsActive   = false;
+                    member.ModifiedAt = now;
+                }
+
+                result.MergedThreadCount += secondaryIds.Count;
+                result.PrimaryThreadIds.Add(primaryId);
+
+                logger.LogInformation(
+                    "Merged {SecondaryCount} duplicate DM threads into primary {PrimaryId} for user {UserId} (tenant {TenantId}). Moved {MessageCount} messages.",
+                    secondaryIds.Count, primaryId, userId, tenantId, messagesToMove.Count);
+            }
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error merging duplicate DM threads for user {UserId}", userId);
+            throw;
+        }
+    }
 
 }
