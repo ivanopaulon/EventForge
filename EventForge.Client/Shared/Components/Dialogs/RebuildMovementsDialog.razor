@@ -185,7 +185,7 @@
                             </MudText>
                         }
                     </MudText>
-                    <div style="max-height:280px; overflow-y:auto;">
+                    <div class="mh-280-scroll">
                         <MudTable Items="@PreviewCreatedItems"
                                   Dense="true" Striped="true" Hover="true" Elevation="0">
                             <HeaderContent>
@@ -325,7 +325,7 @@
                     <MudText Typo="Typo.subtitle2" Class="mt-4 mb-2">
                         @TranslationService.GetTranslation("rebuildMovements.errorDetail", "Dettaglio errori")
                     </MudText>
-                    <div style="max-height:200px; overflow-y:auto;">
+                    <div class="mh-200-scroll">
                         <MudTable Items="@ApplyErrorItems"
                                   Dense="true" Elevation="0">
                             <HeaderContent>

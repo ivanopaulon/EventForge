@@ -13,7 +13,7 @@
             <div class="dlg-body-col">
 
                 @* Priority/Type badge row *@
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="nfd-chips-row">
                     <MudChip T="string"
                              Color="@GetPriorityColor(Notification.Priority)"
                              Size="Size.Small"
@@ -60,7 +60,7 @@
                         <MudText Typo="Typo.caption" Class="text-section-label">Collegamento</MudText>
                         <MudLink Href="@Notification.Payload.ActionUrl"
                                  Target="_blank"
-                                 Style="color: var(--mud-palette-primary); margin-top: 4px; display: block; word-break: break-all;">
+                                 Class="nfd-action-link">
                             @Notification.Payload.ActionUrl
                         </MudLink>
                     </div>
@@ -72,7 +72,7 @@
                     <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Tag</MudText>
-                        <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                        <div class="nfd-tags-row">
                             @foreach (var tag in Notification.Payload.Tags)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@tag</MudChip>
@@ -83,7 +83,7 @@
 
                 @* Timestamps *@
                 <MudDivider Class="divider-dark" />
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="nfd-grid-2col">
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Ricevuta</MudText>
                         <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>

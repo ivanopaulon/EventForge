@@ -11,8 +11,7 @@
             var isSelected = SelectedItem?.Id == item.Id;
 
             <MudPaper Elevation="@(isSelected ? 4 : 1)"
-                      Class="@GetItemClass(item)"
-                      Style="cursor: pointer; border-radius: 12px; transition: all 0.15s ease;"
+                      Class="@($"{GetItemClass(item)} ef-touch-card")"
                       @onclick="@(() => SelectItem(item))">
 
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="pa-3">

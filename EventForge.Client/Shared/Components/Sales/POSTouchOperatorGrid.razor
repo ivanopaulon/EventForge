@@ -21,8 +21,7 @@
         {
             <MudItem xs="6" sm="4" md="3">
                 <MudPaper Elevation="@(SelectedOperatorId == op.Id ? 6 : 2)"
-                          Class="@GetCardClass(op.Id)"
-                          Style="cursor: pointer; border-radius: 16px; transition: all 0.15s ease;"
+                          Class="@($"{GetCardClass(op.Id)} ef-touch-card")"
                           @onclick="@(() => SelectOperator(op))">
                     <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-4">
 

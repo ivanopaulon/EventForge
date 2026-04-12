@@ -99,8 +99,7 @@ else if (!ViewModel.SelectedPosId.HasValue)
             {
                 <MudItem xs="12" sm="6" md="4">
                     <MudPaper Elevation="3"
-                              Class="pos-touch-pos-card"
-                              Style="cursor: pointer; border-radius: 16px;"
+                              Class="pos-touch-pos-card ef-touch-card"
                               @onclick="@(() => OnPosCardSelectedAsync(pos))">
                         <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-5">
                             <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
