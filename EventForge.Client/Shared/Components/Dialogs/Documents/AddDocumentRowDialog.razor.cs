@@ -238,7 +238,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task OnProductSelectedAsync(ProductDto? product)
     {
-        Logger.LogInformation("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}",
+        Logger.LogDebug("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}",
             product?.Id, product?.Name ?? "NULL");
 
         try
