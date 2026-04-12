@@ -107,16 +107,264 @@
     .ef-dialog-content {
         padding: 16px;
     }
-    
+
     .ef-dialog-actions {
         padding: 12px 16px;
         flex-direction: column;
         gap: 8px;
     }
-    
+
     .ef-dialog-actions .mud-button {
         width: 100%;
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES — EFDialog (.efd-card)
+   The inline <style> in EFDialog.razor defines the dark defaults.
+   These rules flip all hardcoded dark values for [data-theme="carbon-neon-light"].
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="carbon-neon-light"] .efd-card {
+    --mud-palette-text-primary:         rgba(26, 26, 26, 0.87);
+    --mud-palette-text-secondary:       rgba(26, 26, 26, 0.60);
+    --mud-palette-text-disabled:        rgba(26, 26, 26, 0.38);
+    --mud-palette-background:           #F5F5F5;
+    --mud-palette-surface:              #FFFFFF;
+    --mud-palette-action-default:       rgba(26, 26, 26, 0.78);
+    --mud-palette-action-default-hover: rgba(0, 0, 0, 0.04);
+    --mud-palette-action-disabled:      rgba(26, 26, 26, 0.26);
+    --mud-palette-lines-default:        rgba(0, 0, 0, 0.12);
+    --mud-palette-lines-inputs:         rgba(0, 0, 0, 0.35);
+    --mud-palette-divider:              rgba(0, 0, 0, 0.12);
+    --efd-color-primary-light:          #3E97B3;
+    --efd-color-primary-focus:          #2B677A;
+    color: rgba(26, 26, 26, 0.87);
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="carbon-neon-light"] .efd-title {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+[data-theme="carbon-neon-light"] .efd-body {
+    color: rgba(26, 26, 26, 0.87);
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-tabs .mud-tab:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-tabs .mud-tab.mud-tab-active {
+    background-color: rgba(62, 151, 179, 0.10) !important;
+    color: #3E97B3 !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-root input,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-root textarea,
+[data-theme="carbon-neon-light"] .efd-body .mud-input input,
+[data-theme="carbon-neon-light"] .efd-body .mud-input textarea {
+    color: rgba(26, 26, 26, 0.87) !important;
+    caret-color: #1A1A1A !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-root,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-root-outlined {
+    color: rgba(26, 26, 26, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body label.mud-input-label,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-label {
+    color: rgba(26, 26, 26, 0.70) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+    background-color: #FFFFFF !important;
+    color: #3E97B3 !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efd-body fieldset.mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined fieldset {
+    border-color: rgba(0, 0, 0, 0.23) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined:hover .mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined:hover fieldset {
+    border-color: rgba(0, 0, 0, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined:focus-within fieldset {
+    border-color: #3E97B3 !important;
+    border-width: 2px !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-input-adornment .mud-icon-root,
+[data-theme="carbon-neon-light"] .efd-body .mud-input-adornment .mud-icon-button {
+    color: rgba(26, 26, 26, 0.55) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-select .mud-input-root,
+[data-theme="carbon-neon-light"] .efd-body .mud-select-input {
+    color: rgba(26, 26, 26, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-checkbox .mud-button-label,
+[data-theme="carbon-neon-light"] .efd-body .mud-checkbox-label,
+[data-theme="carbon-neon-light"] .efd-body span.mud-button-label {
+    color: rgba(26, 26, 26, 0.80) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-checkbox .mud-svg-icon,
+[data-theme="carbon-neon-light"] .efd-body .mud-checkbox .mud-icon-root {
+    color: rgba(26, 26, 26, 0.65) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-body .mud-switch-label {
+    color: rgba(26, 26, 26, 0.80) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-actions {
+    border-top: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+[data-theme="carbon-neon-light"] .efd-actions .mud-button-root.mud-button-text {
+    color: rgba(26, 26, 26, 0.65) !important;
+}
+
+[data-theme="carbon-neon-light"] .efd-actions .mud-button-root.mud-button-text:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    color: rgba(26, 26, 26, 0.87) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES — EFSystemDialog (.efsd-card)
+   The inline <style> in EFSystemDialog.razor defines the dark defaults.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="carbon-neon-light"] .efsd-card {
+    --mud-palette-text-primary:         rgba(26, 26, 26, 0.87);
+    --mud-palette-text-secondary:       rgba(26, 26, 26, 0.60);
+    --mud-palette-text-disabled:        rgba(26, 26, 26, 0.38);
+    --mud-palette-background:           #F5F5F5;
+    --mud-palette-surface:              #FFFFFF;
+    --mud-palette-action-default:       rgba(26, 26, 26, 0.78);
+    --mud-palette-action-default-hover: rgba(0, 0, 0, 0.04);
+    --mud-palette-action-disabled:      rgba(26, 26, 26, 0.26);
+    --mud-palette-lines-default:        rgba(0, 0, 0, 0.12);
+    --mud-palette-lines-inputs:         rgba(0, 0, 0, 0.35);
+    --mud-palette-divider:              rgba(0, 0, 0, 0.12);
+    --efsd-color-primary-light:         #3E97B3;
+    --efsd-color-primary-focus:         #2B677A;
+    color: rgba(26, 26, 26, 0.87);
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid #E0E0E0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="carbon-neon-light"] .efsd-title-text {
+    color: rgba(26, 26, 26, 0.87);
+    text-shadow: none;
+}
+
+[data-theme="carbon-neon-light"] .efsd-hrdiv {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="carbon-neon-light"] .efsd-subtitle {
+    color: rgba(26, 26, 26, 0.72);
+}
+
+[data-theme="carbon-neon-light"] .efsd-tb-default {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="carbon-neon-light"] .efsd-body {
+    color: rgba(26, 26, 26, 0.87);
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-root input,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-root textarea,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input input,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input textarea {
+    color: rgba(26, 26, 26, 0.87) !important;
+    caret-color: #1A1A1A !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-root,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-root-outlined {
+    color: rgba(26, 26, 26, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body label.mud-input-label,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-label {
+    color: rgba(26, 26, 26, 0.70) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+    background-color: #FFFFFF !important;
+    color: #3E97B3 !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efsd-body fieldset.mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined fieldset {
+    border-color: rgba(0, 0, 0, 0.23) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined:hover .mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined:hover fieldset {
+    border-color: rgba(0, 0, 0, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined:focus-within fieldset {
+    border-color: #3E97B3 !important;
+    border-width: 2px !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-adornment .mud-icon-root,
+[data-theme="carbon-neon-light"] .efsd-body .mud-input-adornment .mud-icon-button {
+    color: rgba(26, 26, 26, 0.55) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-select .mud-input-root,
+[data-theme="carbon-neon-light"] .efsd-body .mud-select-input {
+    color: rgba(26, 26, 26, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox .mud-button-label,
+[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox-label,
+[data-theme="carbon-neon-light"] .efsd-body span.mud-button-label {
+    color: rgba(26, 26, 26, 0.80) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox .mud-svg-icon,
+[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox .mud-icon-root {
+    color: rgba(26, 26, 26, 0.65) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-alert {
+    background-color: rgba(255, 152, 0, 0.10) !important;
+    color: rgba(26, 26, 26, 0.85) !important;
+    border: 1px solid rgba(255, 152, 0, 0.4) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-button-root.mud-button-text {
+    color: rgba(26, 26, 26, 0.60) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-button-root.mud-button-text:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    color: rgba(26, 26, 26, 0.87) !important;
+}
+
+[data-theme="carbon-neon-light"] .efsd-body .mud-button-root.mud-button-outlined {
+    border-color: rgba(0, 0, 0, 0.40) !important;
+    color: rgba(26, 26, 26, 0.85) !important;
 }
 
 /* Dialog Loading Overlay */
