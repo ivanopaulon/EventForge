@@ -229,18 +229,17 @@
                                     Questo permette il calcolo ottimizzato del resto.
                                 </MudText>
                             </div>
-                            <MudButton Size="Size.Small"
-                                       StartIcon="@Icons.Material.Outlined.Refresh"
-                                       Variant="Variant.Outlined"
-                                       OnClick="InitializeDenominationsAsync"
-                                       Disabled="@_initializingDenominations">
+                            <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
+                                        Size="Size.Small"
+                                        StartIcon="@Icons.Material.Outlined.Refresh"
+                                        OnClick="InitializeDenominationsAsync"
+                                        Disabled="@_initializingDenominations">
                                 @if (_initializingDenominations)
                                 {
                                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
                                 }
                                 Inizializza tagli @ViewModel.Entity.CurrencyCode
-                            </MudButton>
-                            </MudButton>
+                            </PrymButton>
                         </div>
 
                         @if (ViewModel.CashDenominations.Count == 0)
@@ -276,8 +275,6 @@
                                                 <MudNumericField Value="@denom.Quantity"
                                                                  ValueChanged="@((int qty) => UpdateDenominationAsync(denom.Id, qty))"
                                                                  T="int" Min="0" Max="9999"
-                                                                 Variant="Variant.Outlined"
-                                                                 Margin="Margin.Dense"
                                                                  Class="ef-input-100" />
                                             </td>
                                             <td>@($"{ViewModel.Entity.CurrencyCode} {denom.TotalValue:N2}")</td>
@@ -306,36 +303,24 @@
                     <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History">
                         <MudGrid>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                              Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                               Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                               ReadOnly="true" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
-                                              Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
+                                               Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                               ReadOnly="true" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
-                                              Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                                               Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                               ReadOnly="true" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
-                                              Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
+                                               Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                               ReadOnly="true" />
                             </MudItem>
                         </MudGrid>
                     </MudTabPanel>
@@ -345,17 +330,17 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel"
-                   Variant="Variant.Text"
-                   Disabled="@ViewModel.IsSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                    OnClick="Cancel"
+                    Disabled="@ViewModel.IsSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton OnClick="SaveAsync"
-                   Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving || ViewModel.Entity == null)">
+        </PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveAsync"
+                    Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving || ViewModel.Entity == null)">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 
