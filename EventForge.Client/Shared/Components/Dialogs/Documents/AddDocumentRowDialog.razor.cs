@@ -2924,13 +2924,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         StopStatsTimer();
         _panelStateSaveDebouncer?.Dispose();
 
-        // Cleanup keyboard shortcuts - PR #2c-Part1 Commit 2
-        // Dispose .NET reference first to prevent further callbacks, then unregister JS handler
+        // Cleanup keyboard shortcuts: unregister JS handler first (stops any in-flight
+        // callbacks), then dispose the .NET reference.
         if (_dotNetRef != null)
         {
-            _dotNetRef.Dispose();
-            _dotNetRef = null;
-
             try
             {
                 await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.unregister");
@@ -2939,6 +2936,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             {
                 // Ignore errors during cleanup (e.g., if component already disposed)
             }
+
+            _dotNetRef.Dispose();
+            _dotNetRef = null;
         }
     }
 
