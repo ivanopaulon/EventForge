@@ -58,7 +58,7 @@
                         {
                             <MudText Typo="Typo.subtitle2">Business Party Selezionati (@_selectedBusinessParties.Count)</MudText>
                             
-                            <MudPaper Outlined="true" Class="pa-2" Style="max-height: 300px; overflow-y: auto;">
+                            <MudPaper Outlined="true" Class="pa-2 mh-300-scroll">
                                 <MudStack Spacing="1">
                                     @foreach (var bp in _selectedBusinessParties)
                                     {
@@ -136,7 +136,7 @@
                             <MudDivider />
                             <MudText Typo="Typo.subtitle2">Anteprima Importazione (@_csvParsedBusinessParties.Count elementi)</MudText>
                             
-                            <MudSimpleTable Striped="true" Dense="true" Style="max-height: 300px; overflow-y: auto;">
+                            <MudSimpleTable Striped="true" Dense="true" Class="mh-300-scroll">
                                 <thead>
                                     <tr>
                                         <th>Nome</th>

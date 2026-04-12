@@ -880,6 +880,20 @@ kbd {
 .status-dot--busy    { background: var(--ef-status-busy); }
 .status-dot--offline { background: var(--mud-palette-text-disabled); }
 
+/* Smaller presence dot variant (8px, used in chat user lists) */
+.presence-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid white;
+}
+.presence-dot--online { background: var(--ef-status-online); }
+.presence-dot--away   { background: var(--ef-status-away); }
+.presence-dot--busy   { background: var(--ef-status-busy); }
+
 /* Override dot border colour inside dialogs / headers */
 .mud-dialog .status-dot,
 .chat-dlg-chat-header .status-dot {
@@ -1268,6 +1282,7 @@ kbd {
 .flex-wrap-wrap { flex-wrap: wrap; }
 .flex-no-shrink { flex-shrink: 0; }
 .gap-2          { gap: 8px; }
+.gap-3          { gap: 12px; }
 .min-w-0        { min-width: 0; }
 .min-width-80   { min-width: 80px; }
 
@@ -1343,6 +1358,31 @@ kbd {
 .h-full-border       { height: 100%; border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; }
 .border-success-l-3  { border-left: 3px solid var(--mud-palette-success); }
 .border-warning-l-3  { border-left: 3px solid var(--mud-palette-warning); }
+
+/* ── Phase 7 utility classes ─────────────────────────────────────────────────── */
+
+/* Flex column layout: full-height container with hidden overflow */
+.ef-flex-col-fill    { display:flex; flex-direction:column; height:100%; overflow:hidden; }
+/* Flex child that fills remaining height */
+.ef-flex-child-fill  { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+/* Positioned relative + no flex shrink (for avatar + presence dot) */
+.pos-rel-no-shrink   { position:relative; flex-shrink:0; }
+/* Scrollable container capped at 300px */
+.mh-300-scroll       { max-height:300px; overflow-y:auto; }
+/* Scrollable container capped at 350px */
+.mh-350-scroll       { max-height:350px; overflow-y:auto; }
+/* Pre-formatted monospace log text */
+.log-pre-mono        { white-space:pre-wrap; font-size:0.75rem; font-family:monospace; }
+/* Pre-formatted log text with top margin (exception stack traces) */
+.log-pre-mt          { white-space:pre-wrap; font-size:0.75rem; margin-top:4px; }
+/* Muted helper text (opacity + spacing) */
+.opacity-60-ml-4     { opacity:0.6; margin-left:4px; }
+/* Grey rounded panel (used in detail dialogs and POS keypad) */
+.bg-grey-r8          { background:var(--mud-palette-background-grey); border-radius:8px; }
+/* Dialog body: padded flex-column with gap */
+.dlg-body-col        { padding:16px 20px; display:flex; flex-direction:column; gap:16px; }
+/* Color swatch button (44×44, no native border) */
+.color-swatch-btn    { width:44px; height:44px; border:none; border-radius:8px; cursor:pointer; padding:2px; }
 .border-tertiary-l   { border-left: 4px solid var(--mud-palette-tertiary); }
 .bg-white-glass      { background: rgba(255,255,255,0.05); border-radius: 4px; }
 .bg-primary-light    { background-color: var(--mud-palette-primary-lighten); }

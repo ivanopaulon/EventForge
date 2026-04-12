@@ -42,7 +42,7 @@
             }
 
             <!-- User list -->
-            <MudList T="ChatAvailableUserDto" Dense="true" Style="max-height:350px;overflow-y:auto;">
+            <MudList T="ChatAvailableUserDto" Dense="true" Class="mh-350-scroll">
                 @foreach (var user in FilteredUsers)
                 {
                     var isSelected = _selectedUsers.Contains(user.Id);
@@ -62,7 +62,7 @@
                                 </MudAvatar>
                                 @if (user.IsOnline)
                                 {
-                                    <div style="width:8px;height:8px;background:#4caf50;border-radius:50%;position:absolute;bottom:0;right:0;border:1px solid white;"></div>
+                                    <div class="presence-dot presence-dot--online"></div>
                                 }
                             </div>
                             <div class="flex-grow-1 overflow-hidden">

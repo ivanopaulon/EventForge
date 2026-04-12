@@ -175,7 +175,7 @@
                             <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
                                 <input type="color" value="@(_model.Color ?? "#FF9800")"
                                        @onchange="OnColorChanged"
-                                       style="width:44px;height:44px;border:none;border-radius:8px;cursor:pointer;padding:2px;" />
+                                       class="color-swatch-btn" />
                                 <MudStack Spacing="1">
                                     <MudText Typo="Typo.caption">@TranslationService.GetTranslation("events.presetColors", "Rapidi")</MudText>
                                     <MudStack Row Spacing="1">

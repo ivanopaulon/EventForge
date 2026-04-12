@@ -118,7 +118,7 @@
                                                  OnClick="@(() => ToggleContact(contact))"
                                                  Class="@($"contact-item{(isSelected ? " contact-item--selected" : "")}")">
                                         <div class="d-flex align-center gap-3">
-                                            <div style="position:relative;flex-shrink:0;">
+                                            <div class="pos-rel-no-shrink">
                                                 <MudAvatar Style="@($"background:{GetAvatarColor(contact.Name)};color:#fff;font-size:.8rem;font-weight:600;width:44px;height:44px;")">
                                                     @contact.Initials
                                                 </MudAvatar>

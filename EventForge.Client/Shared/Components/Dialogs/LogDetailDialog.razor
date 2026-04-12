@@ -72,7 +72,7 @@
                 {
                     <MudAlert Severity="Severity.Error" Class="mt-2">
                         <strong>Exception:</strong>
-                        <pre style="white-space: pre-wrap; font-size: 0.75rem; margin-top: 4px;">@AdminLog.Exception</pre>
+                        <pre class="log-pre-mt">@AdminLog.Exception</pre>
                     </MudAlert>
                 }
 
@@ -80,7 +80,7 @@
                 {
                     <MudPaper Elevation="0" Class="mt-2 pa-2 bg-white-glass">
                         <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Properties:</strong></MudText>
-                        <pre style="white-space: pre-wrap; font-size: 0.75rem; font-family: monospace;">@System.Text.Json.JsonSerializer.Serialize(AdminLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                        <pre class="log-pre-mono">@System.Text.Json.JsonSerializer.Serialize(AdminLog.Properties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
                     </MudPaper>
                 }
             }
@@ -99,7 +99,7 @@
                 {
                     <MudPaper Elevation="0" Class="mt-2 pa-2 bg-white-glass">
                         <MudText Typo="Typo.subtitle2" Class="mb-1"><strong>Properties:</strong></MudText>
-                        <pre style="white-space: pre-wrap; font-size: 0.75rem; font-family: monospace;">@System.Text.Json.JsonSerializer.Serialize(SanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
+                        <pre class="log-pre-mono">@System.Text.Json.JsonSerializer.Serialize(SanitizedLog.PublicProperties, new System.Text.Json.JsonSerializerOptions { WriteIndented = true })</pre>
                     </MudPaper>
                 }
             }

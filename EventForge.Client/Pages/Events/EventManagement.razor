@@ -24,8 +24,8 @@
 @inject ILogger<EventManagement> Logger
 
 <PageTitle>@TranslationService.GetTranslation("nav.events", "Gestione Calendario")</PageTitle>
-<div class="management-page-root" style="display:flex; flex-direction:column; height:100%; overflow:hidden;">
-    <div style="display:flex; flex-direction:column; height:100%; overflow:hidden; gap:0.75rem;">
+<div class="management-page-root ef-flex-col-fill">
+    <div class="ef-flex-col-fill gap-3">
 
         <MudPaper Elevation="1" Class="pa-3">
             <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
