@@ -313,6 +313,42 @@ public class ChatController(
     }
 
     /// <summary>
+    /// Retrieves messages for a specific chat thread with pagination.
+    /// This is the primary endpoint used by the chat UI when selecting a conversation.
+    /// </summary>
+    /// <param name="chatId">Chat thread identifier</param>
+    /// <param name="page">Page number (1-based)</param>
+    /// <param name="pageSize">Number of messages per page</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated message results for the chat</returns>
+    /// <response code="200">Messages retrieved successfully</response>
+    [HttpGet("{chatId:guid}/messages")]
+    [ProducesResponseType(typeof(PagedResult<ChatMessageDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<ChatMessageDto>>> GetChatMessagesAsync(
+        [FromRoute] Guid chatId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var searchDto = new MessageSearchDto
+            {
+                ChatId = chatId,
+                PageNumber = page,
+                PageSize = pageSize
+            };
+
+            var result = await chatService.GetMessagesAsync(searchDto, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving messages for chat", ex);
+        }
+    }
+
+    /// <summary>
     /// Retrieves chat messages with filtering, pagination, and permission validation.
     /// Supports thread navigation, search within conversations, and content filtering.
     /// </summary>
