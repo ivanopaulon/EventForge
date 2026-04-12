@@ -869,7 +869,18 @@
         if (ok != true) return;
         try
         {
-            await ChatService.DeleteChatAsync(_selectedChat.Id);
+            var chatId = _selectedChat.Id;
+            await ChatService.DeleteChatAsync(chatId);
+
+            // Optimistic UI update: remove immediately without waiting for SignalR
+            _chatList.RemoveAll(c => c.Id == chatId);
+            _totalUnread = _chatList.Sum(c => c.UnreadCount);
+            _selectedChatId = null;
+            _selectedChat = null;
+            _messages.Clear();
+            _messageIds.Clear();
+            StateHasChanged();
+
             AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.chatDeleted", "Chat eliminata"));
         }
         catch (Exception ex) { AppNotification.ShowError($"Errore eliminazione chat: {ex.Message}"); }
