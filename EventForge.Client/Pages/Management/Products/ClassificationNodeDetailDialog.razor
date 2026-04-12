@@ -44,72 +44,63 @@
                             <MudItem xs="12" md="8">
                                 <MudGrid>
                                     <MudItem xs="12" md="6">
-                                        <MudTextField @bind-Value="NodeName"
-                                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                                                      Variant="Variant.Outlined"
-                                                      Required="true"
-                                                      RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                                                      MaxLength="100"
-                                                      Immediate="true"
-                                                      OnBlur="@(()=> MarkChanged())"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="NodeName"
+                                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                                       Required="true"
+                                                       RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                                       MaxLength="100"
+                                                       Immediate="true"
+                                                       OnBlur="@(()=> MarkChanged())" />
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
-                                        <MudTextField Value="@(NodeCode ?? "-")"
-                                                      Label="@TranslationService.GetTranslation("field.code", "Codice")"
-                                                      Variant="Variant.Outlined"
-                                                      ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField T="string" Value="@(NodeCode ?? "-")"
+                                                       Label="@TranslationService.GetTranslation("field.code", "Codice")"
+                                                       ReadOnly="true" />
                                     </MudItem>
 
                                     <MudItem xs="12">
-                                        <MudTextField @bind-Value="NodeDescription"
-                                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                                      Variant="Variant.Outlined"
-                                                      Lines="3"
-                                                      MaxLength="200"
-                                                      OnBlur="@(()=> MarkChanged())"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="NodeDescription"
+                                                       Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                                       Lines="3"
+                                                       MaxLength="200"
+                                                       OnBlur="@(()=> MarkChanged())" />
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
-                                        <MudSelect T="ProductClassificationType" @bind-Value="NodeType"
-                                                   Label="@TranslationService.GetTranslation("field.type", "Tipo")"
-                                                   Variant="Variant.Outlined"
-                                                   Required="true"
-                                                   Disabled="@(_isCreateMode && NodeParentId.HasValue)"
-                                                   OnClose="@(()=> MarkChanged())">
+                                        <PrymSelect T="ProductClassificationType" @bind-Value="NodeType"
+                                                    Label="@TranslationService.GetTranslation("field.type", "Tipo")"
+                                                    Required="true"
+                                                    Disabled="@(_isCreateMode && NodeParentId.HasValue)"
+                                                    @bind-Value:after="@MarkChanged">
                                             <MudSelectItem Value="@ProductClassificationType.Category">@TranslationService.GetTranslation("classificationType.category", "Categoria")</MudSelectItem>
                                             <MudSelectItem Value="@ProductClassificationType.Family">@TranslationService.GetTranslation("classificationType.family", "Famiglia")</MudSelectItem>
                                             <MudSelectItem Value="@ProductClassificationType.MerchandiseGroup">@TranslationService.GetTranslation("classificationType.merchandiseGroup", "Gruppo Merceologico")</MudSelectItem>
-                                        </MudSelect>
+                                        </PrymSelect>
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
-                                        <MudSelect T="ProductClassificationNodeStatus" @bind-Value="NodeStatus"
-                                                   Label="@TranslationService.GetTranslation("field.status", "Stato")"
-                                                   Variant="Variant.Outlined"
-                                                   Required="true"
-                                                   OnClose="@(()=> MarkChanged())">
+                                        <PrymSelect T="ProductClassificationNodeStatus" @bind-Value="NodeStatus"
+                                                    Label="@TranslationService.GetTranslation("field.status", "Stato")"
+                                                    Required="true"
+                                                    @bind-Value:after="@MarkChanged">
                                             <MudSelectItem Value="@ProductClassificationNodeStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
                                             <MudSelectItem Value="@ProductClassificationNodeStatus.Inactive">@TranslationService.GetTranslation("status.inactive", "Inattivo")</MudSelectItem>
                                             <MudSelectItem Value="@ProductClassificationNodeStatus.Pending">@TranslationService.GetTranslation("status.pending", "In attesa")</MudSelectItem>
-                                        </MudSelect>
+                                        </PrymSelect>
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
-                                        <MudSelect T="Guid?" @bind-Value="NodeParentId"
-                                                   Label="@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")"
-                                                   Variant="Variant.Outlined"
-                                                   Clearable="true"
-                                                   OnClose="@(()=> MarkChanged())">
+                                        <PrymSelect T="Guid?" @bind-Value="NodeParentId"
+                                                    Label="@TranslationService.GetTranslation("field.parentNode", "Nodo Padre")"
+                                                    Clearable="true"
+                                                    @bind-Value:after="@MarkChanged">
                                             <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("classificationNode.rootNode", "Nodo Radice")</MudSelectItem>
                                             @foreach (var p in _availableParentNodes.Where(p => _isCreateMode || (p.Id != (EntityId ?? Guid.Empty) && !IsDescendant(p.Id, EntityId ?? Guid.Empty))))
                                             {
                                                 <MudSelectItem T="Guid?" Value="@((Guid?)p.Id)">@GetNodeDisplayName(p)</MudSelectItem>
                                             }
-                                        </MudSelect>
+                                        </PrymSelect>
                                     </MudItem>
                                 </MudGrid>
                             </MudItem>
@@ -139,12 +130,11 @@
                         @if (_node != null)
                         {
                             <div class="d-flex justify-end mb-2">
-                                <MudButton Variant="Variant.Outlined"
-                                           Color="Color.Primary"
+                                <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                            StartIcon="@Icons.Material.Outlined.AddCircleOutline"
                                            OnClick="@OpenCreateChildDialogAsync">
                                     @TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")
-                                </MudButton>
+                                </PrymButton>
                             </div>
                             @if (_childrenLoading)
                             {
@@ -174,7 +164,7 @@
                                                             <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(nodeItem.Node.Type)">@GetTypeDisplayName(nodeItem.Node.Type)</MudChip>
                                                             <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(nodeItem.Node.Status)">@GetStatusDisplayName(nodeItem.Node.Status)</MudChip>
                                                         </div>
-                                                        <MudIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
+                                                        <PrymIconButton Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" Color="Color.Info"
                                                                        OnClick="@(() => OpenChildDetailDialogAsync(nodeItem.Node.Id))" />
                                                     </div>
                                                 </BodyContent>
@@ -188,26 +178,24 @@
 
                     <MudTabPanel Text="@TranslationService.GetTranslation("classificationNode.audit", "Audit")" Icon="@Icons.Material.Outlined.History">
                         <MudText Typo="Typo.body2">@TranslationService.GetTranslation("messages.auditFullscreen", "Storia modifiche disponibile in modalità fullscreen")</MudText>
-                        <MudButton Class="mt-3"
-                                   Variant="Variant.Filled"
-                                   Color="Color.Primary"
+                        <PrymButton Class="mt-3"
                                    StartIcon="@Icons.Material.Outlined.History"
                                    OnClick="@OpenAuditDialog">
                             @TranslationService.GetTranslation("classificationNode.viewAudit", "Apri cronologia")
-                        </MudButton>
+                        </PrymButton>
                     </MudTabPanel>
                 }
             </MudTabs>
         }
     </ChildContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Save"
-                   OnClick="SaveAsync" Disabled="_isSaving || _isLoading">
+        </PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Outlined.Save"
+                    OnClick="SaveAsync" Disabled="_isSaving || _isLoading">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 
