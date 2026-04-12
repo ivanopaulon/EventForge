@@ -28,58 +28,48 @@
         <MudGrid Spacing="3">
             <!-- IBAN -->
             <MudItem xs="12" md="6">
-                <MudTextField Value="@_accountingData.Iban"
-                              Label="@TranslationService.GetTranslation("field.iban", "IBAN")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.AccountBalance"
-                    Margin="Margin.Dense"/>
+                <PrymTextField Value="@_accountingData.Iban"
+                               Label="@TranslationService.GetTranslation("field.iban", "IBAN")"
+                               ReadOnly="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.AccountBalance" />
             </MudItem>
 
             <!-- Bank Name -->
             <MudItem xs="12" md="6">
-                <MudTextField Value="@_accountingData.BankName"
-                              Label="@TranslationService.GetTranslation("field.bank", "Banca")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Business"
-                    Margin="Margin.Dense"/>
+                <PrymTextField Value="@_accountingData.BankName"
+                               Label="@TranslationService.GetTranslation("field.bank", "Banca")"
+                               ReadOnly="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Business" />
             </MudItem>
 
             <!-- Payment Term -->
             <MudItem xs="12" md="6">
-                <MudTextField Value="@_accountingData.PaymentTermName"
-                              Label="@TranslationService.GetTranslation("field.paymentTerm", "Termini di Pagamento")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.CalendarMonth"
-                    Margin="Margin.Dense"/>
+                <PrymTextField Value="@_accountingData.PaymentTermName"
+                               Label="@TranslationService.GetTranslation("field.paymentTerm", "Termini di Pagamento")"
+                               ReadOnly="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.CalendarMonth" />
             </MudItem>
 
             <!-- Credit Limit -->
             <MudItem xs="12" md="6">
-                <MudTextField Value="@(_accountingData.CreditLimit?.ToString("C") ?? "-")"
-                              Label="@TranslationService.GetTranslation("field.creditLimit", "Limite di Credito")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Euro"
-                    Margin="Margin.Dense"/>
+                <PrymTextField Value="@(_accountingData.CreditLimit?.ToString("C") ?? "-")"
+                               Label="@TranslationService.GetTranslation("field.creditLimit", "Limite di Credito")"
+                               ReadOnly="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Euro" />
             </MudItem>
 
             <!-- Notes -->
             <MudItem xs="12">
-                <MudTextField Value="@(_accountingData.Notes ?? string.Empty)"
-                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                              Variant="Variant.Outlined"
-                              Lines="3"
-                              ReadOnly="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Notes"
-                    Margin="Margin.Dense"/>
+                <PrymTextField Value="@(_accountingData.Notes ?? string.Empty)"
+                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                               Lines="3"
+                               ReadOnly="true"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Notes" />
             </MudItem>
         </MudGrid>
     }
