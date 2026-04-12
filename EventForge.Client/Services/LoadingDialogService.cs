@@ -13,7 +13,8 @@ public interface ILoadingDialogService
     /// <summary>
     /// Shows the loading dialog with specified options
     /// </summary>
-    Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false, CancellationToken ct = default);
+    Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false,
+        IReadOnlyList<string>? progressMessages = null, bool showElapsedTime = false, CancellationToken ct = default);
 
     /// <summary>
     /// Updates the current operation text
@@ -45,7 +46,8 @@ public class LoadingDialogService : ILoadingDialogService
 
     public event Action<LoadingDialogState>? StateChanged;
 
-    public async Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false, CancellationToken ct = default)
+    public async Task ShowAsync(string title = "Caricamento...", string? operation = null, bool showProgress = false,
+        IReadOnlyList<string>? progressMessages = null, bool showElapsedTime = false, CancellationToken ct = default)
     {
         _currentState = new LoadingDialogState
         {
@@ -53,7 +55,9 @@ public class LoadingDialogService : ILoadingDialogService
             Title = title,
             CurrentOperation = operation ?? string.Empty,
             ShowProgress = showProgress,
-            Progress = showProgress ? 0 : null
+            Progress = showProgress ? 0 : null,
+            ProgressMessages = progressMessages,
+            ShowElapsedTime = showElapsedTime
         };
 
         StateChanged?.Invoke(_currentState);
@@ -104,10 +108,8 @@ public record LoadingDialogState
     public bool IsVisible { get; set; } = false;
     public string Title { get; set; } = "Caricamento...";
     public string CurrentOperation { get; set; } = string.Empty;
-    public string LogoUrl { get; set; } = string.Empty;
-    public string LogoAltText { get; set; } = "Logo";
-    public bool ShowTotalTime { get; set; } = true;
-    public bool ShowTaskTime { get; set; } = true;
     public bool ShowProgress { get; set; } = false;
     public double? Progress { get; set; }
+    public IReadOnlyList<string>? ProgressMessages { get; set; }
+    public bool ShowElapsedTime { get; set; } = false;
 }

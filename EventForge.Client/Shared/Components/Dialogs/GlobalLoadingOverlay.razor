@@ -1,0 +1,49 @@
+@using EventForge.Client.Services
+@using EventForge.Client.Shared.Components.Dialogs.SystemDialogs
+@inject ILoadingDialogService LoadingDialogService
+@inject ILogger<GlobalLoadingOverlay> Logger
+@implements IDisposable
+
+<!-- Global Loading Overlay - controlled by ILoadingDialogService, rendered via PageLoadingOverlay/EFSystemDialog -->
+<PageLoadingOverlay Visible="@_state.IsVisible"
+                    Message="@BuildMessage()"
+                    ShowProgressLog="@(_state.ProgressMessages?.Count > 0)"
+                    ProgressMessages="@_state.ProgressMessages"
+                    ShowElapsedTime="@_state.ShowElapsedTime"
+                    ProgressValue="@(_state.ShowProgress ? _state.Progress : null)" />
+
+@code {
+    private LoadingDialogState _state = new();
+
+    protected override void OnInitialized()
+    {
+        LoadingDialogService.StateChanged += OnStateChanged;
+        _state = LoadingDialogService.GetCurrentState();
+    }
+
+    private string? BuildMessage()
+    {
+        if (!_state.IsVisible) return null;
+        if (string.IsNullOrEmpty(_state.CurrentOperation))
+            return _state.Title;
+        return $"{_state.Title} – {_state.CurrentOperation}";
+    }
+
+    private async void OnStateChanged(LoadingDialogState newState)
+    {
+        try
+        {
+            _state = newState;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in GlobalLoadingOverlay.OnStateChanged.");
+        }
+    }
+
+    public void Dispose()
+    {
+        LoadingDialogService.StateChanged -= OnStateChanged;
+    }
+}
