@@ -16,28 +16,25 @@
         </MudText>
         <MudGrid Spacing="3">
             <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="Product.DefaultPrice"
-                                 Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
-                                 Variant="Variant.Outlined"
-                                 ReadOnly="@(!IsEditMode)"
-                                 Min="0"
-                                 Format="N2"
-                                 Adornment="Adornment.Start"
-                                 AdornmentText="€"
-                                 HelperText="@TranslationService.GetTranslation("helper.defaultPrice", "Prezzo base del prodotto")"
-                                 @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                <PrymNumericField T="decimal"
+                                  @bind-Value="Product.DefaultPrice"
+                                  Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
+                                  ReadOnly="@(!IsEditMode)"
+                                  Min="0"
+                                  Format="N2"
+                                  Adornment="Adornment.Start"
+                                  AdornmentText="€"
+                                  HelperText="@TranslationService.GetTranslation("helper.defaultPrice", "Prezzo base del prodotto")"
+                                  @bind-Value:after="NotifyUpdated" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSelect T="Guid?"
-                           @bind-Value="Product.VatRateId"
-                           Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
-                           Variant="Variant.Outlined"
-                           Class="ef-select"
-                           ReadOnly="@(!IsEditMode)"
-                           Clearable="true"
-                           @bind-Value:after="NotifyUpdated">
+                <PrymSelect T="Guid?"
+                            @bind-Value="Product.VatRateId"
+                            Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
+                            ReadOnly="@(!IsEditMode)"
+                            Clearable="true"
+                            @bind-Value:after="NotifyUpdated">
                     @if (_vatRates != null)
                     {
                         @foreach (var vat in _vatRates)
@@ -45,7 +42,7 @@
                             <MudSelectItem T="Guid?" Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
                         }
                     }
-                </MudSelect>
+                </PrymSelect>
             </MudItem>
 
             <MudItem xs="12">

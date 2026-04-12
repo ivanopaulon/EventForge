@@ -32,93 +32,68 @@
         else
         {
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
-                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                <MudTabPanel Text="@TranslationService.GetTranslation("tab.general", "Generale")" Icon="@Icons.Material.Outlined.Info">
                     <MudForm @ref="_form">
                         <MudGrid>
                             <MudItem xs="12" md="4">
-                                <MudTextField @bind-Value="_vatNature!.Code"
-                                              Label="@($"{TranslationService.GetTranslation("drawer.field.codiceNaturaIva", "Codice")} *")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
-                                              MaxLength="10"
-                                              Immediate="true"
-                                              OnBlur="@HandleBlur"
-                                              aria-describedby="code-help"
-                    Margin="Margin.Dense"/>
-                                <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")
-                                </MudText>
+                                <PrymTextField @bind-Value="_vatNature!.Code"
+                                               Label="@($"{TranslationService.GetTranslation("drawer.field.codiceNaturaIva", "Codice")} *")"
+                                               Required="true"
+                                               RequiredError="@TranslationService.GetTranslation("drawer.error.codiceObbligatorio", "Il codice è obbligatorio")"
+                                               MaxLength="10"
+                                               Immediate="true"
+                                               OnBlur="@HandleBlur"
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")" />
                             </MudItem>
 
                             <MudItem xs="12" md="8">
-                                <MudTextField @bind-Value="_vatNature!.Name"
-                                              Label="@($"{TranslationService.GetTranslation("drawer.field.nomeNaturaIva", "Nome")} *")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
-                                              MaxLength="100"
-                                              Immediate="true"
-                                              OnBlur="@HandleBlur"
-                                              aria-describedby="name-help"
-                    Margin="Margin.Dense"/>
-                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")
-                                </MudText>
+                                <PrymTextField @bind-Value="_vatNature!.Name"
+                                               Label="@($"{TranslationService.GetTranslation("drawer.field.nomeNaturaIva", "Nome")} *")"
+                                               Required="true"
+                                               RequiredError="@TranslationService.GetTranslation("drawer.error.nomeObbligatorio", "Il nome è obbligatorio")"
+                                               MaxLength="100"
+                                               Immediate="true"
+                                               OnBlur="@HandleBlur"
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_vatNature!.Description"
-                                              Label="@TranslationService.GetTranslation("drawer.field.descrizione", "Descrizione")"
-                                              Variant="Variant.Outlined"
-                                              Lines="4"
-                                              MaxLength="500"
-                                              OnBlur="@HandleBlur"
-                                              aria-describedby="description-help"
-                    Margin="Margin.Dense"/>
-                                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")
-                                </MudText>
+                                <PrymTextField @bind-Value="_vatNature!.Description"
+                                               Label="@TranslationService.GetTranslation("drawer.field.descrizione", "Descrizione")"
+                                               Lines="4"
+                                               MaxLength="500"
+                                               OnBlur="@HandleBlur"
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")" />
                             </MudItem>
                         </MudGrid>
                     </MudForm>
                 </MudTabPanel>
-                <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
+                <MudTabPanel Text="@TranslationService.GetTranslation("tab.audit", "Audit")" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
                     <MudGrid>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_vatNature?.Id.ToString() ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_vatNature?.Id.ToString() ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_vatNature?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_vatNature?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_vatNature?.CreatedBy ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_vatNature?.CreatedBy ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_vatNature?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_vatNature?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_vatNature?.ModifiedBy ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_vatNature?.ModifiedBy ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>
@@ -126,13 +101,13 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SaveVatNatureAsync" Disabled="_isSaving || _isLoading || _vatNature == null">
+        </PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveVatNatureAsync" Disabled="_isSaving || _isLoading || _vatNature == null">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 

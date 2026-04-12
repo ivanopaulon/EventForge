@@ -99,11 +99,11 @@
     </RowTemplate>
     <AdditionalRowActions Context="item">
         <MudTooltip Text="@TranslationService.GetTranslation("audit.viewHistory", "Cronologia Modifiche")">
-            <MudIconButton Icon="@Icons.Material.Outlined.History"
-                           Color="Color.Default"
-                           Size="Size.Small"
-                           Class="ef-row-actionbutton"
-                           OnClick="@(() => ViewProductAuditLog(item))" />
+            <PrymIconButton Icon="@Icons.Material.Outlined.History"
+                            Color="Color.Default"
+                            Size="Size.Small"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => ViewProductAuditLog(item))" />
         </MudTooltip>
     </AdditionalRowActions>
 </EntityManagementPage>

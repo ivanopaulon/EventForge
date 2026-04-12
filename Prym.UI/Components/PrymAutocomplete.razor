@@ -1,0 +1,55 @@
+@typeparam T
+
+<MudAutocomplete T="T"
+                 Value="Value"
+                 ValueChanged="ValueChanged"
+                 For="For"
+                 SearchFunc="SearchFunc"
+                 ToStringFunc="ToStringFunc"
+                 Label="@Label"
+                 Placeholder="@Placeholder"
+                 HelperText="@HelperText"
+                 Variant="Variant.Outlined"
+                 Margin="Margin.Dense"
+                 MinCharacters="MinCharacters"
+                 DebounceInterval="DebounceInterval"
+                 ShowProgressIndicator="ShowProgressIndicator"
+                 Clearable="Clearable"
+                 Disabled="Disabled"
+                 ReadOnly="ReadOnly"
+                 Adornment="Adornment"
+                 AdornmentIcon="@AdornmentIcon"
+                 AdornmentColor="AdornmentColor"
+                 CoerceText="CoerceText"
+                 CoerceValue="CoerceValue"
+                 ResetValueOnEmptyText="ResetValueOnEmptyText"
+                 ItemTemplate="ItemTemplate"
+                 Class="@Class"
+                 Style="@Style" />
+
+@code {
+    [Parameter] public T?                                                                   Value                 { get; set; }
+    [Parameter] public EventCallback<T?>                                                    ValueChanged          { get; set; }
+    [Parameter] public Expression<Func<T?>>?                                                For                   { get; set; }
+    /// <summary>Async search function. MudBlazor 9 signature includes CancellationToken.</summary>
+    [Parameter] public Func<string, CancellationToken, Task<IEnumerable<T>>>?               SearchFunc            { get; set; }
+    [Parameter] public Func<T?, string>?                                                    ToStringFunc          { get; set; }
+    [Parameter] public string?                                                              Label                 { get; set; }
+    [Parameter] public string?                                                              Placeholder           { get; set; }
+    [Parameter] public string?                                                              HelperText            { get; set; }
+    [Parameter] public int                                                                  MinCharacters         { get; set; } = 2;
+    [Parameter] public int                                                                  DebounceInterval      { get; set; } = 300;
+    [Parameter] public bool                                                                 ShowProgressIndicator { get; set; } = true;
+    [Parameter] public bool                                                                 Clearable             { get; set; } = false;
+    [Parameter] public bool                                                                 Disabled              { get; set; } = false;
+    [Parameter] public bool                                                                 ReadOnly              { get; set; } = false;
+    [Parameter] public Adornment                                                            Adornment             { get; set; } = Adornment.None;
+    [Parameter] public string?                                                              AdornmentIcon         { get; set; }
+    [Parameter] public Color                                                                AdornmentColor        { get; set; } = Color.Default;
+    [Parameter] public bool                                                                 CoerceText            { get; set; } = false;
+    [Parameter] public bool                                                                 CoerceValue           { get; set; } = false;
+    [Parameter] public bool                                                                 ResetValueOnEmptyText { get; set; } = false;
+    [Parameter] public RenderFragment<T>?                                                   ItemTemplate          { get; set; }
+    [Parameter] public string?                                                              Class                 { get; set; }
+    [Parameter] public string?                                                              Style                 { get; set; }
+}

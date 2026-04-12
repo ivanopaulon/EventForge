@@ -68,121 +68,92 @@
                     <MudForm @ref="_form" Model="@ViewModel.Entity">
                         <MudGrid>
                             <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.Name"
-                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
-                                              Required="true"
-                                              MaxLength="50"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.Name"
+                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                               Required="true"
+                                               RequiredError="Il nome è obbligatorio."
+                                               MaxLength="50"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudSelect @bind-Value="ViewModel.Entity.Status"
-                                           Label="@TranslationService.GetTranslation("field.status", "Status")"
-                                           Variant="Variant.Outlined"
-                                           Class="ef-select"
-                                           @bind-Value:after="HandleEntityChanged">
+                                <PrymSelect @bind-Value="ViewModel.Entity.Status"
+                                            Label="@TranslationService.GetTranslation("field.status", "Status")"
+                                            @bind-Value:after="HandleEntityChanged">
                                     @foreach (CashRegisterStatus status in Enum.GetValues(typeof(CashRegisterStatus)))
                                     {
                                         <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
                                     }
-                                </MudSelect>
+                                </PrymSelect>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.Location"
-                                              Label="@TranslationService.GetTranslation("field.location", "Location")"
-                                              MaxLength="100"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.Location"
+                                               Label="@TranslationService.GetTranslation("field.location", "Location")"
+                                               MaxLength="100"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.TerminalIdentifier"
-                                              Label="@TranslationService.GetTranslation("field.terminalIdentifier", "Identificatore Terminale")"
-                                              MaxLength="100"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.TerminalIdentifier"
+                                               Label="@TranslationService.GetTranslation("field.terminalIdentifier", "Identificatore Terminale")"
+                                               MaxLength="100"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.IPAddress"
-                                              Label="@TranslationService.GetTranslation("field.ipAddress", "Indirizzo IP")"
-                                              MaxLength="45"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.IPAddress"
+                                               Label="@TranslationService.GetTranslation("field.ipAddress", "Indirizzo IP")"
+                                               MaxLength="45"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.CurrencyCode"
-                                              Label="@TranslationService.GetTranslation("field.currencyCode", "Codice Valuta")"
-                                              MaxLength="3"
-                                              Placeholder="EUR"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.CurrencyCode"
+                                               Label="@TranslationService.GetTranslation("field.currencyCode", "Codice Valuta")"
+                                               MaxLength="3"
+                                               Placeholder="EUR"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="ViewModel.Entity.TimeZone"
-                                              Label="@TranslationService.GetTranslation("field.timeZone", "Fuso Orario")"
-                                              MaxLength="50"
-                                              Placeholder="Europe/Rome"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.TimeZone"
+                                               Label="@TranslationService.GetTranslation("field.timeZone", "Fuso Orario")"
+                                               MaxLength="50"
+                                               Placeholder="Europe/Rome"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudNumericField @bind-Value="ViewModel.Entity.LocationLatitude"
-                                                 Label="@TranslationService.GetTranslation("field.locationLatitude", "Latitudine")"
-                                                 Min="-90"
-                                                 Max="90"
-                                                 Variant="Variant.Outlined"
-                                                 @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymNullableNumericField @bind-Value="ViewModel.Entity.LocationLatitude"
+                                                          Label="@TranslationService.GetTranslation("field.locationLatitude", "Latitudine")"
+                                                          Min="-90"
+                                                          Max="90"
+                                                          @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <MudNumericField @bind-Value="ViewModel.Entity.LocationLongitude"
-                                                 Label="@TranslationService.GetTranslation("field.locationLongitude", "Longitudine")"
-                                                 Min="-180"
-                                                 Max="180"
-                                                 Variant="Variant.Outlined"
-                                                 @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymNullableNumericField @bind-Value="ViewModel.Entity.LocationLongitude"
+                                                          Label="@TranslationService.GetTranslation("field.locationLongitude", "Longitudine")"
+                                                          Min="-180"
+                                                          Max="180"
+                                                          @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="ViewModel.Entity.Description"
-                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                              Lines="2"
-                                              MaxLength="200"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.Description"
+                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                               Lines="2"
+                                               MaxLength="200"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="ViewModel.Entity.Notes"
-                                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                                              Lines="2"
-                                              MaxLength="200"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.Notes"
+                                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                               Lines="2"
+                                               MaxLength="200"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
                         </MudGrid>
                     </MudForm>
@@ -290,58 +261,53 @@
                             <MudPaper Class="pa-4 border-dark-sm-r8" Elevation="0">
                                 <MudGrid>
                                     <MudItem xs="12" sm="6">
-                                        <MudTextField @bind-Value="_newPrinterName"
-                                                      Label="Nome Stampante"
-                                                      Required="true"
-                                                      MaxLength="50"
-                                                      Variant="Variant.Outlined"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_newPrinterName"
+                                                       Label="Nome Stampante"
+                                                       Required="true"
+                                                       RequiredError="Il nome è obbligatorio."
+                                                       MaxLength="50" />
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
-                                        <MudTextField @bind-Value="_newPrinterAddress"
-                                                      Label="Indirizzo (IP / percorso)"
-                                                      MaxLength="100"
-                                                      Variant="Variant.Outlined"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_newPrinterAddress"
+                                                       Label="Indirizzo (IP / percorso)"
+                                                       MaxLength="100" />
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
-                                        <MudTextField @bind-Value="_newPrinterLocation"
-                                                      Label="Posizione"
-                                                      MaxLength="50"
-                                                      Variant="Variant.Outlined"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_newPrinterLocation"
+                                                       Label="Posizione"
+                                                       MaxLength="50" />
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
-                                        <MudSelect @bind-Value="_newPrinterCategory" Label="Categoria" Variant="Variant.Outlined">
+                                        <PrymSelect @bind-Value="_newPrinterCategory" Label="Categoria">
                                             <MudSelectItem Value="PrinterCategory.Fiscal">Fiscale</MudSelectItem>
                                             <MudSelectItem Value="PrinterCategory.Receipt">Scontrino</MudSelectItem>
                                             <MudSelectItem Value="PrinterCategory.KDS">KDS</MudSelectItem>
                                             <MudSelectItem Value="PrinterCategory.Label">Etichette</MudSelectItem>
                                             <MudSelectItem Value="PrinterCategory.Report">Report</MudSelectItem>
-                                        </MudSelect>
+                                        </PrymSelect>
                                     </MudItem>
                                 </MudGrid>
                                 <div class="d-flex gap-2 mt-3">
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                    <PrymButton Intent="PrymButton.ButtonIntent.Primary"
                                                StartIcon="@Icons.Material.Outlined.Save"
                                                OnClick="SaveNewPrinterAsync"
                                                Disabled="_savingNewPrinter">
                                         @(_savingNewPrinter ? "Salvataggio..." : "Salva & Seleziona")
-                                    </MudButton>
-                                    <MudButton Variant="Variant.Text"
+                                    </PrymButton>
+                                    <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
                                                OnClick="@(() => _showNewPrinterForm = false)">
                                         Annulla
-                                    </MudButton>
+                                    </PrymButton>
                                 </div>
                             </MudPaper>
                         }
                         else
                         {
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                            <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                        StartIcon="@Icons.Material.Outlined.Add"
                                        OnClick="@(() => _showNewPrinterForm = true)">
                                 Crea nuova stampante
-                            </MudButton>
+                            </PrymButton>
                         }
                     }
                 </MudTabPanel>
@@ -531,50 +497,46 @@
                             <MudPaper Class="pa-4 border-dark-sm-r8" Elevation="0">
                                 <MudGrid>
                                     <MudItem xs="12" sm="6">
-                                        <MudTextField @bind-Value="_newGroupCode"
-                                                      Label="Codice Gruppo"
-                                                      Required="true"
-                                                      MaxLength="50"
-                                                      Variant="Variant.Outlined"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_newGroupCode"
+                                                       Label="Codice Gruppo"
+                                                       Required="true"
+                                                       RequiredError="Il codice è obbligatorio."
+                                                       MaxLength="50" />
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
-                                        <MudTextField @bind-Value="_newGroupName"
-                                                      Label="Nome Gruppo"
-                                                      Required="true"
-                                                      MaxLength="50"
-                                                      Variant="Variant.Outlined"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_newGroupName"
+                                                       Label="Nome Gruppo"
+                                                       Required="true"
+                                                       RequiredError="Il nome è obbligatorio."
+                                                       MaxLength="50" />
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField @bind-Value="_newGroupDescription"
-                                                      Label="Descrizione"
-                                                      MaxLength="200"
-                                                      Variant="Variant.Outlined"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_newGroupDescription"
+                                                       Label="Descrizione"
+                                                       MaxLength="200" />
                                     </MudItem>
                                 </MudGrid>
                                 <div class="d-flex gap-2 mt-3">
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                    <PrymButton Intent="PrymButton.ButtonIntent.Primary"
                                                StartIcon="@Icons.Material.Outlined.Save"
                                                OnClick="SaveNewGroupAsync"
                                                Disabled="_savingNewGroup">
                                         @(_savingNewGroup ? "Salvataggio..." : "Salva & Seleziona")
-                                    </MudButton>
-                                    <MudButton Variant="Variant.Text"
+                                    </PrymButton>
+                                    <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
                                                OnClick="@(() => _showNewGroupForm = false)">
                                         Annulla
-                                    </MudButton>
+                                    </PrymButton>
                                 </div>
                             </MudPaper>
                         }
                         else
                         {
-                            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                            <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                        StartIcon="@Icons.Material.Outlined.Add"
                                        OnClick="@(() => _showNewGroupForm = true)">
                                 Crea nuovo gruppo
-                            </MudButton>
+                            </PrymButton>
                         }
                     }
                 </MudTabPanel>
@@ -583,46 +545,34 @@
                 <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History" Disabled="@ViewModel.IsNewEntity">
                     <MudGrid>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(ViewModel.Entity.Id.ToString())"
-                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@(ViewModel.Entity.Id.ToString())"
+                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm"))"
-                                          Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@(ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm"))"
+                                           Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@(ViewModel.Entity.CreatedBy ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@(ViewModel.Entity.ModifiedBy ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField Value="@(ViewModel.Entity.LastOpenedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")"
-                                          Label="Ultima apertura"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@(ViewModel.Entity.LastOpenedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")"
+                                           Label="Ultima apertura"
+                                           ReadOnly="true" />
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>
@@ -631,13 +581,17 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="ViewModel.IsSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                    OnClick="Cancel"
+                    Disabled="ViewModel.IsSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SaveAsync" Disabled="ViewModel.IsSaving || ViewModel.IsLoading || ViewModel.Entity == null">
+        </PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveAsync"
+                    Disabled="ViewModel.IsSaving || ViewModel.IsLoading || ViewModel.Entity == null">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 

@@ -23,46 +23,40 @@
                                             && (!_selectedDestinationWarehouseId.HasValue || t.DestinationWarehouseId == _selectedDestinationWarehouseId.Value)
                                             && (string.IsNullOrEmpty(_selectedStatus) || t.Status == _selectedStatus))">
     <AdditionalToolbarContent>
-        <MudSelect @bind-Value="_selectedSourceWarehouseId"
-                   @bind-Value:after="OnFilterChanged"
-                   Label="@TranslationService.GetTranslation("transferOrder.sourceWarehouse", "Source Warehouse")"
-                   Variant="Variant.Outlined"
-                   T="Guid?"
-                   Clearable="true"
-                   Class="ml-2 ef-min-200"
->
+        <PrymSelect T="Guid?"
+                    @bind-Value="_selectedSourceWarehouseId"
+                    @bind-Value:after="OnFilterChanged"
+                    Label="@TranslationService.GetTranslation("transferOrder.sourceWarehouse", "Source Warehouse")"
+                    Clearable="true"
+                    Class="ml-2 ef-min-200">
             @foreach (var warehouse in _warehouses)
             {
                 <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
             }
-        </MudSelect>
-        <MudSelect @bind-Value="_selectedDestinationWarehouseId"
-                   @bind-Value:after="OnFilterChanged"
-                   Label="@TranslationService.GetTranslation("transferOrder.destinationWarehouse", "Destination Warehouse")"
-                   Variant="Variant.Outlined"
-                   T="Guid?"
-                   Clearable="true"
-                   Class="ml-2 ef-min-200"
->
+        </PrymSelect>
+        <PrymSelect T="Guid?"
+                    @bind-Value="_selectedDestinationWarehouseId"
+                    @bind-Value:after="OnFilterChanged"
+                    Label="@TranslationService.GetTranslation("transferOrder.destinationWarehouse", "Destination Warehouse")"
+                    Clearable="true"
+                    Class="ml-2 ef-min-200">
             @foreach (var warehouse in _warehouses)
             {
                 <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
             }
-        </MudSelect>
-        <MudSelect @bind-Value="_selectedStatus"
-                   @bind-Value:after="OnFilterChanged"
-                   Label="@TranslationService.GetTranslation("common.status", "Status")"
-                   Variant="Variant.Outlined"
-                   T="string"
-                   Clearable="true"
-                   Class="ml-2 min-width-150"
->
+        </PrymSelect>
+        <PrymSelect T="string"
+                    @bind-Value="_selectedStatus"
+                    @bind-Value:after="OnFilterChanged"
+                    Label="@TranslationService.GetTranslation("common.status", "Status")"
+                    Clearable="true"
+                    Class="ml-2 min-width-150">
             <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("transferOrder.status.pending", "Pending")</MudSelectItem>
             <MudSelectItem Value="@("Shipped")">@TranslationService.GetTranslation("transferOrder.status.shipped", "Shipped")</MudSelectItem>
             <MudSelectItem Value="@("InTransit")">@TranslationService.GetTranslation("transferOrder.status.inTransit", "In Transit")</MudSelectItem>
             <MudSelectItem Value="@("Completed")">@TranslationService.GetTranslation("transferOrder.status.completed", "Completed")</MudSelectItem>
             <MudSelectItem Value="@("Cancelled")">@TranslationService.GetTranslation("transferOrder.status.cancelled", "Cancelled")</MudSelectItem>
-        </MudSelect>
+        </PrymSelect>
     </AdditionalToolbarContent>
 
     <HeaderContent Context="columnConfigurations">
@@ -156,21 +150,21 @@
         @if (item.Status == "Pending")
         {
             <MudTooltip Text="@TranslationService.GetTranslation("transferOrder.action.ship", "Spedisci ordine")">
-                <MudIconButton Icon="@Icons.Material.Outlined.LocalShipping"
-                               Color="Color.Primary"
-                               Size="Size.Small"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => ShipOrder(item))" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.LocalShipping"
+                                Color="Color.Primary"
+                                Size="Size.Small"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => ShipOrder(item))" />
             </MudTooltip>
         }
         @if (item.Status == "Shipped" || item.Status == "InTransit")
         {
             <MudTooltip Text="@TranslationService.GetTranslation("transferOrder.action.receive", "Ricevi merce")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Inventory"
-                               Color="Color.Success"
-                               Size="Size.Small"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => ReceiveOrder(item))" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.Inventory"
+                                Color="Color.Success"
+                                Size="Size.Small"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => ReceiveOrder(item))" />
             </MudTooltip>
         }
     </AdditionalRowActions>

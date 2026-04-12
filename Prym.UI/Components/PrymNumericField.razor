@@ -1,0 +1,59 @@
+@typeparam T where T : struct
+
+<MudNumericField T="T"
+                 Value="Value"
+                 ValueChanged="ValueChanged"
+                 For="For"
+                 Label="@Label"
+                 Placeholder="@Placeholder"
+                 Variant="Variant.Outlined"
+                 Margin="Margin.Dense"
+                 HideSpinButtons="true"
+                 Immediate="Immediate"
+                 Required="Required"
+                 RequiredError="@RequiredError"
+                 Format="@Format"
+                 ReadOnly="ReadOnly"
+                 Disabled="Disabled"
+                 HelperText="@HelperText"
+                 Class="@Class"
+                 Style="@Style"
+                 @attributes="AllAttrs" />
+
+@code {
+    [Parameter] public T                        Value                { get; set; } = default;
+    [Parameter] public EventCallback<T>         ValueChanged         { get; set; }
+    [Parameter] public Expression<Func<T>>?     For                  { get; set; }
+    [Parameter] public string?                  Label                { get; set; }
+    [Parameter] public string?                  Placeholder          { get; set; }
+    [Parameter] public T?                       Min                  { get; set; }
+    [Parameter] public T?                       Max                  { get; set; }
+    [Parameter] public T?                       Step                 { get; set; }
+    [Parameter] public string?                  Format               { get; set; }
+    [Parameter] public bool                     Immediate            { get; set; } = false;
+    [Parameter] public bool                     Required             { get; set; } = false;
+    [Parameter] public string?                  RequiredError        { get; set; }
+    [Parameter] public bool                     ReadOnly             { get; set; } = false;
+    [Parameter] public bool                     Disabled             { get; set; } = false;
+    [Parameter] public string?                  HelperText           { get; set; }
+    [Parameter] public string?                  Class                { get; set; }
+    [Parameter] public string?                  Style                { get; set; }
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IReadOnlyDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    // Merge Min/Max/Step (only when provided) with any extra HTML attributes.
+    private Dictionary<string, object?> AllAttrs
+    {
+        get
+        {
+            var d = new Dictionary<string, object?>();
+            if (Min.HasValue)  d["Min"]  = Min.Value;
+            if (Max.HasValue)  d["Max"]  = Max.Value;
+            if (Step.HasValue) d["Step"] = Step.Value;
+            if (AdditionalAttributes != null)
+                foreach (var kv in AdditionalAttributes)
+                    d[kv.Key] = kv.Value;
+            return d;
+        }
+    }
+}

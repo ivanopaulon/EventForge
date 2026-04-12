@@ -58,24 +58,18 @@
                     <MudForm @ref="_form" Model="@ViewModel.Entity">
                         <MudGrid>
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="ViewModel.Entity.Name"
-                                              Label="@TranslationService.GetTranslation("field.name", "Nome")"
-                                              Required="true"
-                                              MaxLength="100"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.Name"
+                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                               Required="true"
+                                               MaxLength="100"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="ViewModel.Entity.Description"
-                                              Label="Descrizione"
-                                              MaxLength="200"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              Lines="2"
-                                              @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="ViewModel.Entity.Description"
+                                               Label="Descrizione"
+                                               MaxLength="200"
+                                               Lines="2"
+                                               @bind-Value:after="HandleEntityChanged" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSwitch @bind-Value="ViewModel.Entity.IsEnabled"
@@ -91,11 +85,9 @@
                 <MudTabPanel Text="Connessione" Icon="@Icons.Material.Outlined.Cable">
                     <MudGrid>
                         <MudItem xs="12" sm="6">
-                            <MudSelect @bind-Value="ViewModel.Entity.ConnectionType"
-                                       Label="Tipo di connessione"
-                                       Variant="Variant.Outlined"
-                                       Class="ef-select"
-                                       @bind-Value:after="HandleEntityChanged">
+                            <PrymSelect @bind-Value="ViewModel.Entity.ConnectionType"
+                                        Label="Tipo di connessione"
+                                        @bind-Value:after="HandleEntityChanged">
                                 <MudSelectItem Value="@("Tcp")">
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                         <MudIcon Icon="@Icons.Material.Outlined.Cable" Size="Size.Small" />
@@ -108,40 +100,31 @@
                                         <MudText>TCP via Agente</MudText>
                                     </MudStack>
                                 </MudSelectItem>
-                            </MudSelect>
+                            </PrymSelect>
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudNumericField @bind-Value="ViewModel.Entity.TimeoutMs"
-                                            Label="Timeout (ms)"
-                                            Min="1000"
-                                            Max="120000"
-                                            Step="1000"
-                                            Variant="Variant.Outlined"
-                                            Class="ef-input"
-                                            @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField @bind-Value="ViewModel.Entity.TimeoutMs"
+                                              Label="Timeout (ms)"
+                                              Min="1000"
+                                              Max="120000"
+                                              Step="1000"
+                                              @bind-Value:after="HandleEntityChanged" />
                         </MudItem>
                         <MudItem xs="12" sm="8">
-                            <MudTextField @bind-Value="ViewModel.Entity.IpAddress"
-                                          Label="Indirizzo IP del terminale"
-                                          MaxLength="45"
-                                          Variant="Variant.Outlined"
-                                          Class="ef-input"
-                                          Placeholder="es. 192.168.1.100"
-                                          HelperText="Indirizzo IPv4 o IPv6 del terminale POS"
-                                          @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField @bind-Value="ViewModel.Entity.IpAddress"
+                                           Label="Indirizzo IP del terminale"
+                                           MaxLength="45"
+                                           Placeholder="es. 192.168.1.100"
+                                           HelperText="Indirizzo IPv4 o IPv6 del terminale POS"
+                                           @bind-Value:after="HandleEntityChanged" />
                         </MudItem>
                         <MudItem xs="12" sm="4">
-                            <MudNumericField @bind-Value="ViewModel.Entity.Port"
-                                            Label="Porta TCP"
-                                            Min="1"
-                                            Max="65535"
-                                            Variant="Variant.Outlined"
-                                            Class="ef-input"
-                                            HelperText="Default: 60000"
-                                            @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField @bind-Value="ViewModel.Entity.Port"
+                                              Label="Porta TCP"
+                                              Min="1"
+                                              Max="65535"
+                                              HelperText="Default: 60000"
+                                              @bind-Value:after="HandleEntityChanged" />
                         </MudItem>
 
                         @if (ViewModel.Entity.ConnectionType == "TcpViaAgent")
@@ -150,14 +133,11 @@
                                 <MudAlert Severity="Severity.Info" Class="mb-2">
                                     Connessione tramite agente: il server contatta l'agente che si connette localmente al terminale.
                                 </MudAlert>
-                                <MudTextField @bind-Value="_agentIdText"
-                                              Label="ID Agente (GUID)"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                                              Placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                                              HelperText="GUID dell'agente EventForge configurato nel server"
-                                              @bind-Value:after="OnAgentIdChanged"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField @bind-Value="_agentIdText"
+                                               Label="ID Agente (GUID)"
+                                               Placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                                               HelperText="GUID dell'agente EventForge configurato nel server"
+                                               @bind-Value:after="OnAgentIdChanged" />
                             </MudItem>
                         }
 
@@ -194,14 +174,11 @@
                             </MudAlert>
                         </MudItem>
                         <MudItem xs="12" sm="6">
-                            <MudTextField @bind-Value="ViewModel.Entity.TerminalId"
-                                          Label="ID Terminale (max 8 caratteri)"
-                                          MaxLength="8"
-                                          Variant="Variant.Outlined"
-                                          Class="ef-input"
-                                          HelperText="Identificativo del terminale (se richiesto dal provider POS)"
-                                          @bind-Value:after="HandleEntityChanged"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField @bind-Value="ViewModel.Entity.TerminalId"
+                                           Label="ID Terminale (max 8 caratteri)"
+                                           MaxLength="8"
+                                           HelperText="Identificativo del terminale (se richiesto dal provider POS)"
+                                           @bind-Value:after="HandleEntityChanged" />
                         </MudItem>
                         <MudItem xs="12">
                             <MudSwitch @bind-Value="ViewModel.Entity.AmountConfirmationRequired"
@@ -241,36 +218,24 @@
                     <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History">
                         <MudGrid>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                              Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                               Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                               ReadOnly="true" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
-                                              Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
+                                               Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                               ReadOnly="true" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
-                                              Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                                               Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                               ReadOnly="true" />
                             </MudItem>
                             <MudItem xs="12" sm="6">
-                                <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
-                                              Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Class="ef-input"
-                    Margin="Margin.Dense"/>
+                                <PrymTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
+                                               Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                               ReadOnly="true" />
                             </MudItem>
                         </MudGrid>
                     </MudTabPanel>
@@ -280,17 +245,13 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel"
-                   Variant="Variant.Text"
-                   Disabled="@ViewModel.IsSaving">
+        <PrymButton Intent="Ghost" OnClick="Cancel" Disabled="@ViewModel.IsSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton OnClick="SaveAsync"
-                   Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving || ViewModel.Entity == null)">
+        </PrymButton>
+        <PrymButton OnClick="SaveAsync"
+                    Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving || ViewModel.Entity == null)">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 

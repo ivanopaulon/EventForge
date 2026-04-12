@@ -21,32 +21,28 @@
                       OnCreateOverride="@(async () => NavigationManager.NavigateTo("/documents/create"))"
                       OnViewEntity="@(async id => NavigationManager.NavigateTo($"/documents/edit/{id}"))">
     <AdditionalToolbarContent>
-        <MudSelect T="Guid?"
-                   Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
-                   Class="ef-select ef-min-200 mr-2"
-                   Value="_service.DocumentTypeId"
-                   ValueChanged="@OnDocumentTypeChanged"
-                   Clearable="true"
-
-                    Variant="Variant.Outlined">
+        <PrymSelect T="Guid?"
+                    Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
+                    Class="ef-select ef-min-200 mr-2"
+                    Value="_service.DocumentTypeId"
+                    ValueChanged="@OnDocumentTypeChanged"
+                    Clearable="true">
             @foreach (var type in _documentTypes)
             {
                 <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
             }
-        </MudSelect>
-        <MudSelect T="DocumentStatus?"
-                   Label="@TranslationService.GetTranslation("documents.status", "Stato")"
-                   Class="ef-select min-width-150 mr-2"
-                   Value="_service.Status"
-                   ValueChanged="@OnStatusChanged"
-                   Clearable="true"
-
-                    Variant="Variant.Outlined">
+        </PrymSelect>
+        <PrymSelect T="DocumentStatus?"
+                    Label="@TranslationService.GetTranslation("documents.status", "Stato")"
+                    Class="ef-select min-width-150 mr-2"
+                    Value="_service.Status"
+                    ValueChanged="@OnStatusChanged"
+                    Clearable="true">
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("status.draft", "Bozza")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Open">@TranslationService.GetTranslation("status.open", "Aperto")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Closed">@TranslationService.GetTranslation("status.closed", "Chiuso")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Cancelled">@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudSelectItem>
-        </MudSelect>
+        </PrymSelect>
     </AdditionalToolbarContent>
 
     <HeaderContent Context="columnConfigurations">
@@ -157,11 +153,11 @@
         @if (doc.Status == DocumentStatus.Open)
         {
             <MudTooltip Text="@TranslationService.GetTranslation("documents.close", "Chiudi")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Lock"
-                               Size="Size.Small"
-                               Color="Color.Warning"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => CloseDocumentAsync(doc.Id))" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.Lock"
+                                Size="Size.Small"
+                                Color="Color.Warning"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => CloseDocumentAsync(doc.Id))" />
             </MudTooltip>
         }
     </AdditionalRowActions>

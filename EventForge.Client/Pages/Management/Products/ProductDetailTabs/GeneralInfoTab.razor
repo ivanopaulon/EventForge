@@ -20,71 +20,61 @@
                 <MudGrid Spacing="3">
                     <!-- Code -->
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="Product.Code"
-                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
-                                      Variant="Variant.Outlined"
-                                      ReadOnly="@(!IsEditMode)"
-                                      MaxLength="100"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.QrCode"
-                                      @bind-Value:after="NotifyUpdated"
-                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")"
-                    Margin="Margin.Dense"/>
+                        <PrymTextField @bind-Value="Product.Code"
+                                       Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                       ReadOnly="@(!IsEditMode)"
+                                       MaxLength="100"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.QrCode"
+                                       @bind-Value:after="NotifyUpdated"
+                                       HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
                     </MudItem>
 
                     <!-- Name -->
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="Product.Name"
-                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                                      Variant="Variant.Outlined"
-                                      ReadOnly="@(!IsEditMode)"
-                                      MaxLength="100"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Label"
-                                      @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                        <PrymTextField @bind-Value="Product.Name"
+                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                       ReadOnly="@(!IsEditMode)"
+                                       MaxLength="100"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Label"
+                                       @bind-Value:after="NotifyUpdated" />
                     </MudItem>
 
                     <!-- Short description -->
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="Product.ShortDescription"
-                                      Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
-                                      Variant="Variant.Outlined"
-                                      ReadOnly="@(!IsEditMode)"
-                                      MaxLength="50"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Subject"
-                                      @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                        <PrymTextField @bind-Value="Product.ShortDescription"
+                                       Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                       ReadOnly="@(!IsEditMode)"
+                                       MaxLength="50"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Subject"
+                                       @bind-Value:after="NotifyUpdated" />
                     </MudItem>
 
                     <!-- Description -->
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="Product.Description"
-                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                      Variant="Variant.Outlined"
-                                      Lines="5"
-                                      ReadOnly="@(!IsEditMode)"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Description"
-                                      @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                        <PrymTextField @bind-Value="Product.Description"
+                                       Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                       Lines="5"
+                                       ReadOnly="@(!IsEditMode)"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Description"
+                                       @bind-Value:after="NotifyUpdated" />
                     </MudItem>
 
                     <!-- Status and Bundle -->
                     <MudItem xs="12" md="6">
-                        <MudSelect T="ProductStatus"
-                                   @bind-Value="Product.Status"
-                                   Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
-                                   Variant="Variant.Outlined"
-                                   Class="ef-select"
-                                   ReadOnly="@(!IsEditMode)"
-                                   @bind-Value:after="NotifyUpdated">
+                        <PrymSelect T="ProductStatus"
+                                    @bind-Value="Product.Status"
+                                    Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                                    ReadOnly="@(!IsEditMode)"
+                                    @bind-Value:after="NotifyUpdated">
                             <MudSelectItem T="ProductStatus" Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
                             <MudSelectItem T="ProductStatus" Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
                             <MudSelectItem T="ProductStatus" Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
                             <MudSelectItem T="ProductStatus" Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
-                        </MudSelect>
+                        </PrymSelect>
                     </MudItem>
 
                     <MudItem xs="12" md="6">

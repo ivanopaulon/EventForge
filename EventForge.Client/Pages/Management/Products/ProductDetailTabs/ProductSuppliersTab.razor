@@ -19,12 +19,11 @@
                            Disabled="@(_productSuppliers == null || _productSuppliers.Count() < 2)">
                     @TranslationService.GetTranslation("supplier.getSuggestions", "Suggerimenti Fornitori")
                 </MudButton>
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           StartIcon="@Icons.Material.Filled.Add" 
-                           OnClick="@OpenCreateDialog">
+                <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                            StartIcon="@Icons.Material.Filled.Add"
+                            OnClick="@OpenCreateDialog">
                     @TranslationService.GetTranslation("common.add", "Aggiungi")
-                </MudButton>
+                </PrymButton>
             </MudItem>
 
             <MudItem xs="12">
@@ -57,11 +56,11 @@
                                 }
                             </MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                <PrymIconButton Icon="@Icons.Material.Filled.Edit"
                                                Size="Size.Small"
                                                Color="Color.Primary"
                                                OnClick="@(() => OpenEditDialog(context))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                <PrymIconButton Icon="@Icons.Material.Filled.Delete"
                                                Size="Size.Small"
                                                Color="Color.Error"
                                                OnClick="@(() => DeleteSupplierAsync(context))" />

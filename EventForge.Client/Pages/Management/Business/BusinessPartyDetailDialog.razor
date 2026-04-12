@@ -33,11 +33,11 @@
         }
         else
         {
-            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px"
-                     ActivePanelIndex="_activeTab" ActivePanelIndexChanged="OnTabChanged">
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true" ActivePanelIndex="_activeTab" ActivePanelIndexChanged="OnTabChanged">
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.general", "Generale")"
                              Icon="@Icons.Material.Filled.Info">
+                    <MudForm @ref="_form">
                     <GeneralInfoTab Party="@_party"
                                     IsEditMode="@_isEditMode"
                                     IsNewParty="@_isCreateMode"
@@ -45,6 +45,7 @@
                                     OnAddressCreated="@HandleAddressCreated"
                                     OnManageGroupsClicked="@OnManageGroupsClicked"
                                     OnRemoveGroup="@OnRemoveGroup" />
+                    </MudForm>
                 </MudTabPanel>
 
                 @if (!_isCreateMode && _party != null)
@@ -109,6 +110,7 @@
     private bool _isCreateMode => EntityId == null || EntityId == Guid.Empty;
     private bool _isEditMode = true;
     private bool _isSaving = false;
+    private MudForm? _form;
     private int _activeTab = 0;
 
     private string _originalPartySnapshot = string.Empty;
@@ -181,6 +183,12 @@
     private async Task SavePartyAsync()
     {
         if (_party == null) return;
+
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid) return;
+        }
 
         _isSaving = true;
         try

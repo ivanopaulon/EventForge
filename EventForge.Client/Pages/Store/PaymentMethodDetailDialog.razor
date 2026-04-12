@@ -15,7 +15,7 @@
           Title="@(_isCreateMode ? TranslationService.GetTranslation("paymentMethod.createNew", "Crea Nuovo Metodo di Pagamento") : (_paymentMethod?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthSimple">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed">
     <ChildContent>
         @if (_isLoading)
         {
@@ -31,188 +31,181 @@
         }
         else
         {
-            <MudForm @ref="_form">
-                <MudGrid>
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="PaymentMethodCode"
-                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("paymentMethod.error.codeRequired", "Il codice è obbligatorio")"
-                                      MaxLength="50"
-                                      Immediate="true"
-                                      Disabled="@(!_isCreateMode)"
-                                      Class="ef-input"
-                                      @bind-Value:after="@MarkChanged"
-                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.code", "Codice univoco (es. CASH, CARD, BANK)")"
-                    Margin="Margin.Dense"/>
-                    </MudItem>
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    <MudForm @ref="_form">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="PaymentMethodCode"
+                                               Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                               Required="true"
+                                               RequiredError="@TranslationService.GetTranslation("paymentMethod.error.codeRequired", "Il codice è obbligatorio")"
+                                               MaxLength="50"
+                                               Immediate="true"
+                                               Disabled="@(!_isCreateMode)"
+                                               HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.code", "Codice univoco (es. CASH, CARD, BANK)")"
+                                               @bind-Value:after="@MarkChanged" />
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudTextField @bind-Value="PaymentMethodName"
-                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                                      Variant="Variant.Outlined"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("paymentMethod.error.nameRequired", "Il nome è obbligatorio")"
-                                      MaxLength="100"
-                                      Immediate="true"
-                                      Class="ef-input"
-                                      @bind-Value:after="@MarkChanged"
-                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.name", "Nome visualizzato (es. Contanti, Carta di Credito)")"
-                    Margin="Margin.Dense"/>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="PaymentMethodName"
+                                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                               Required="true"
+                                               RequiredError="@TranslationService.GetTranslation("paymentMethod.error.nameRequired", "Il nome è obbligatorio")"
+                                               MaxLength="100"
+                                               Immediate="true"
+                                               HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.name", "Nome visualizzato (es. Contanti, Carta di Credito)")"
+                                               @bind-Value:after="@MarkChanged" />
+                            </MudItem>
 
-                    <MudItem xs="12">
-                        <MudTextField @bind-Value="PaymentMethodDescription"
-                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                      Variant="Variant.Outlined"
-                                      Lines="3"
-                                      MaxLength="500"
-                                      Class="ef-input"
-                                      @bind-Value:after="@MarkChanged"
-                                      HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.description", "Descrizione opzionale del metodo di pagamento")"
-                    Margin="Margin.Dense"/>
-                    </MudItem>
+                            <MudItem xs="12">
+                                <PrymTextField @bind-Value="PaymentMethodDescription"
+                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                               Lines="3"
+                                               MaxLength="500"
+                                               HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.description", "Descrizione opzionale del metodo di pagamento")"
+                                               @bind-Value:after="@MarkChanged" />
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudSelect @bind-Value="PaymentMethodIcon"
-                                   Label="@TranslationService.GetTranslation("field.icon", "Icona")"
-                                   Variant="Variant.Outlined"
-                                   Class="ef-select"
-                                   @bind-Value:after="@MarkChanged"
-                                   HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.icon", "Icona da visualizzare nell'interfaccia")">
-                            <MudSelectItem Value="@("AttachMoney")">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
-                                    AttachMoney (Contanti)
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("CreditCard")">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-2" />
-                                    CreditCard (Carta di Credito)
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("Payment")">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
-                                    Payment (Bancomat/Debit)
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("AccountBalance")">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Class="mr-2" />
-                                    AccountBalance (Bonifico)
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("Money")">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.Money" Class="mr-2" />
-                                    Money (Denaro)
-                                </div>
-                            </MudSelectItem>
-                            <MudSelectItem Value="@("LocalAtm")">
-                                <div class="d-flex align-center">
-                                    <MudIcon Icon="@Icons.Material.Filled.LocalAtm" Class="mr-2" />
-                                    LocalAtm (ATM/Bancomat)
-                                </div>
-                            </MudSelectItem>
-                        </MudSelect>
-                    </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymSelect @bind-Value="PaymentMethodIcon"
+                                            Label="@TranslationService.GetTranslation("field.icon", "Icona")"
+                                            HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.icon", "Icona da visualizzare nell'interfaccia")"
+                                            @bind-Value:after="@MarkChanged">
+                                    <MudSelectItem Value="@("AttachMoney")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Class="mr-2" />
+                                            AttachMoney (Contanti)
+                                        </div>
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="@("CreditCard")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.CreditCard" Class="mr-2" />
+                                            CreditCard (Carta di Credito)
+                                        </div>
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="@("Payment")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Payment" Class="mr-2" />
+                                            Payment (Bancomat/Debit)
+                                        </div>
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="@("AccountBalance")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Class="mr-2" />
+                                            AccountBalance (Bonifico)
+                                        </div>
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="@("Money")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.Money" Class="mr-2" />
+                                            Money (Denaro)
+                                        </div>
+                                    </MudSelectItem>
+                                    <MudSelectItem Value="@("LocalAtm")">
+                                        <div class="d-flex align-center">
+                                            <MudIcon Icon="@Icons.Material.Filled.LocalAtm" Class="mr-2" />
+                                            LocalAtm (ATM/Bancomat)
+                                        </div>
+                                    </MudSelectItem>
+                                </PrymSelect>
+                            </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudPaper Elevation="0" Class="pa-3 d-flex align-center border-divider">
-                            <MudText Typo="Typo.body2" Class="mr-3">
-                                @TranslationService.GetTranslation("paymentMethod.iconPreview", "Anteprima Icona:")
-                            </MudText>
-                            @if (!string.IsNullOrEmpty(PaymentMethodIcon))
-                            {
-                                <MudIcon Icon="@GetMaterialIcon(PaymentMethodIcon)" Size="Size.Large" Color="Color.Primary" />
-                            }
-                            else
-                            {
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                    @TranslationService.GetTranslation("paymentMethod.noIconSelected", "Nessuna icona selezionata")
+                            <MudItem xs="12" md="6">
+                                <MudPaper Elevation="0" Class="pa-3 d-flex align-center border-divider">
+                                    <MudText Typo="Typo.body2" Class="mr-3">
+                                        @TranslationService.GetTranslation("paymentMethod.iconPreview", "Anteprima Icona:")
+                                    </MudText>
+                                    @if (!string.IsNullOrEmpty(PaymentMethodIcon))
+                                    {
+                                        <MudIcon Icon="@GetMaterialIcon(PaymentMethodIcon)" Size="Size.Large" Color="Color.Primary" />
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            @TranslationService.GetTranslation("paymentMethod.noIconSelected", "Nessuna icona selezionata")
+                                        </MudText>
+                                    }
+                                </MudPaper>
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <PrymNumericField @bind-Value="PaymentMethodDisplayOrder"
+                                                  Label="@TranslationService.GetTranslation("field.displayOrder", "Ordine di Visualizzazione")"
+                                                  Min="0"
+                                                  HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.displayOrder", "Ordine di visualizzazione (0 = primo)")"
+                                                  @bind-Value:after="@MarkChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="4">
+                                <MudSwitch @bind-Value="PaymentMethodIsActive"
+                                          Label="@TranslationService.GetTranslation("field.isActive", "Attivo")"
+                                          Color="Color.Primary"
+                                          Class="mt-2"
+                                          @bind-Value:after="@MarkChanged" />
+                                <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("paymentMethod.helperText.isActive", "Se attivo, il metodo sarà disponibile per le vendite")
                                 </MudText>
-                            }
-                        </MudPaper>
-                    </MudItem>
+                            </MudItem>
 
-                    <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="PaymentMethodDisplayOrder"
-                                        Label="@TranslationService.GetTranslation("field.displayOrder", "Ordine di Visualizzazione")"
-                                        Variant="Variant.Outlined"
-                                        Min="0"
-                                        @bind-Value:after="@MarkChanged"
-                                        HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.displayOrder", "Ordine di visualizzazione (0 = primo)")"
-                    Margin="Margin.Dense"/>
-                    </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudSwitch @bind-Value="PaymentMethodAllowsChange"
+                                          Label="@TranslationService.GetTranslation("field.allowsChange", "Permette Resto")"
+                                          Color="Color.Primary"
+                                          Class="mt-2"
+                                          @bind-Value:after="@MarkChanged" />
+                                <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("paymentMethod.helperText.allowsChange", "Se il cliente può ricevere il resto (tipico per contanti)")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="4">
-                        <MudSwitch @bind-Value="PaymentMethodIsActive"
-                                  Label="@TranslationService.GetTranslation("field.isActive", "Attivo")"
-                                  Color="Color.Primary"
-                                  Class="mt-2"
-                                  @bind-Value:after="@MarkChanged" />
-                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("paymentMethod.helperText.isActive", "Se attivo, il metodo sarà disponibile per le vendite")
-                        </MudText>
-                    </MudItem>
+                            <MudItem xs="12">
+                                <MudSwitch @bind-Value="PaymentMethodRequiresIntegration"
+                                          Label="@TranslationService.GetTranslation("field.requiresIntegration", "Richiede Integrazione Esterna")"
+                                          Color="Color.Primary"
+                                          Class="mt-2"
+                                          @bind-Value:after="@MarkChanged" />
+                                <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                                    @TranslationService.GetTranslation("paymentMethod.helperText.requiresIntegration", "Attiva se il metodo richiede integrazione con sistemi esterni (es. POS bancario)")
+                                </MudText>
+                            </MudItem>
 
-                    <MudItem xs="12" md="4">
-                        <MudSwitch @bind-Value="PaymentMethodAllowsChange"
-                                  Label="@TranslationService.GetTranslation("field.allowsChange", "Permette Resto")"
-                                  Color="Color.Primary"
-                                  Class="mt-2"
-                                  @bind-Value:after="@MarkChanged" />
-                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("paymentMethod.helperText.allowsChange", "Se il cliente può ricevere il resto (tipico per contanti)")
-                        </MudText>
-                    </MudItem>
-
-                    <MudItem xs="12">
-                        <MudSwitch @bind-Value="PaymentMethodRequiresIntegration"
-                                  Label="@TranslationService.GetTranslation("field.requiresIntegration", "Richiede Integrazione Esterna")"
-                                  Color="Color.Primary"
-                                  Class="mt-2"
-                                  @bind-Value:after="@MarkChanged" />
-                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
-                            @TranslationService.GetTranslation("paymentMethod.helperText.requiresIntegration", "Attiva se il metodo richiede integrazione con sistemi esterni (es. POS bancario)")
-                        </MudText>
-                    </MudItem>
-
-                    @if (PaymentMethodRequiresIntegration)
-                    {
-                        <MudItem xs="12">
-                            @if (!_isCreateMode)
+                            @if (PaymentMethodRequiresIntegration)
                             {
-                                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
-                                    @TranslationService.GetTranslation("paymentMethod.integrationConfigSecurityNote",
-                                        "Nota: La configurazione di integrazione non viene visualizzata per motivi di sicurezza. Lasciare vuoto per mantenere quella esistente, oppure inserire una nuova configurazione.")
-                                </MudAlert>
+                                <MudItem xs="12">
+                                    @if (!_isCreateMode)
+                                    {
+                                        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                                            @TranslationService.GetTranslation("paymentMethod.integrationConfigSecurityNote",
+                                                "Nota: La configurazione di integrazione non viene visualizzata per motivi di sicurezza. Lasciare vuoto per mantenere quella esistente, oppure inserire una nuova configurazione.")
+                                        </MudAlert>
+                                    }
+                                    <PrymTextField @bind-Value="PaymentMethodIntegrationConfig"
+                                                   Label="@TranslationService.GetTranslation("field.integrationConfig", "Configurazione Integrazione (JSON)")"
+                                                   Lines="5"
+                                                   MaxLength="2000"
+                                                   HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.integrationConfig", "Configurazione JSON per l'integrazione esterna")"
+                                                   @bind-Value:after="@MarkChanged" />
+                                </MudItem>
                             }
-                            <MudTextField Margin="Margin.Dense" @bind-Value="PaymentMethodIntegrationConfig"
-                                          Label="@TranslationService.GetTranslation("field.integrationConfig", "Configurazione Integrazione (JSON)")"
-                                          Variant="Variant.Outlined"
-                                          Lines="5"
-                                          MaxLength="2000"
-                                          Class="ef-input"
-                                          @bind-Value:after="@MarkChanged"
-                                          HelperText="@TranslationService.GetTranslation("paymentMethod.helperText.integrationConfig", "Configurazione JSON per l'integrazione esterna")" />
-                        </MudItem>
-                    }
-                </MudGrid>
-            </MudForm>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+            </MudTabs>
         }
     </ChildContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                    OnClick="Cancel"
+                    Disabled="_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SavePaymentMethodAsync" Disabled="_isSaving || _isLoading || _paymentMethod == null">
+        </PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SavePaymentMethodAsync"
+                    Disabled="_isSaving || _isLoading || _paymentMethod == null">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 

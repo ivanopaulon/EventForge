@@ -22,74 +22,67 @@
             <MudGrid Spacing="3">
                 <!-- Party Type -->
                 <MudItem xs="12" md="6">
-                <MudSelect @bind-Value="Party.PartyType"
-                           Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
-                           Variant="Variant.Outlined"
-                           ReadOnly="@(!IsEditMode)"
-                           @bind-Value:after="NotifyUpdated"
-                           Required="true">
+                <PrymSelect @bind-Value="Party.PartyType"
+                            Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo")} *")"
+                            ReadOnly="@(!IsEditMode)"
+                            Required="true"
+                            @bind-Value:after="NotifyUpdated">
                     <MudSelectItem Value="@BusinessPartyType.Cliente">@TranslationService.GetTranslation("partyType.cliente", "Cliente")</MudSelectItem>
                     <MudSelectItem Value="@BusinessPartyType.Supplier">@TranslationService.GetTranslation("partyType.supplier", "Fornitore")</MudSelectItem>
                     <MudSelectItem Value="@BusinessPartyType.Both">@TranslationService.GetTranslation("partyType.both", "Cliente/Fornitore")</MudSelectItem>
-                </MudSelect>
+                </PrymSelect>
             </MudItem>
             
             <!-- Name -->
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="Party.Name"
-                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="@(!IsEditMode)"
-                              Required="true"
-                              MaxLength="200"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Business"
-                              @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                <PrymTextField @bind-Value="Party.Name"
+                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                               ReadOnly="@(!IsEditMode)"
+                               Required="true"
+                               RequiredError="Il nome è obbligatorio."
+                               MaxLength="200"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Business"
+                               @bind-Value:after="NotifyUpdated" />
             </MudItem>
             
             <!-- Tax Code -->
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="Party.TaxCode"
-                              Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="@(!IsEditMode)"
-                              MaxLength="20"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                <PrymTextField @bind-Value="Party.TaxCode"
+                               Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                               ReadOnly="@(!IsEditMode)"
+                               MaxLength="20"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Badge"
+                               @bind-Value:after="NotifyUpdated" />
             </MudItem>
             
             <!-- VAT Number with Lookup -->
             <MudItem xs="12">
                 <div class="d-flex gap-2">
-                    <MudTextField Class="flex-grow-1"
-                                  @bind-Value="Party.VatNumber"
-                                  Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="@(!IsEditMode)"
-                                  MaxLength="20"
-                                  Placeholder="IT12345678901"
-                                  Adornment="Adornment.Start"
-                                  AdornmentIcon="@Icons.Material.Outlined.Business"
-                                  HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
-                                  @bind-Value:after="NotifyUpdated"
-                                  Margin="Margin.Dense"/>
+                    <PrymTextField Class="flex-grow-1"
+                                   @bind-Value="Party.VatNumber"
+                                   Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                   ReadOnly="@(!IsEditMode)"
+                                   MaxLength="20"
+                                   Placeholder="IT12345678901"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Outlined.Business"
+                                   HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
+                                   @bind-Value:after="NotifyUpdated" />
                     @if (IsEditMode)
                     {
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Filled.Search"
-                                   OnClick="@LookupVatAsync"
-                                   Disabled="@(_isLookingUp || string.IsNullOrWhiteSpace(Party.VatNumber))"
-                                   Class="align-self-start mt-1-em">
+                        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                                    StartIcon="@Icons.Material.Filled.Search"
+                                    OnClick="@LookupVatAsync"
+                                    Disabled="@(_isLookingUp || string.IsNullOrWhiteSpace(Party.VatNumber))"
+                                    Class="align-self-start mt-1-em">
                             @if (_isLookingUp)
                             {
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                             }
                             @TranslationService.GetTranslation("common.search", "Cerca")
-                        </MudButton>
+                        </PrymButton>
                     }
                 </div>
             </MudItem>
@@ -108,11 +101,10 @@
                                 <MudText Typo="Typo.body2"><strong>@_lookupResult.Name</strong></MudText>
                                 <MudText Typo="Typo.caption">@_lookupResult.Address</MudText>
                             </div>
-                            <MudButton Variant="Variant.Text" 
-                                       Color="Color.Primary" 
-                                       OnClick="@(async () => await ApplyLookupData())">
+                            <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                                        OnClick="@(async () => await ApplyLookupData())">
                                 @TranslationService.GetTranslation("vat.useData", "Usa questi dati")
-                            </MudButton>
+                            </PrymButton>
                         </div>
                     </MudAlert>
                 </MudItem>
@@ -132,28 +124,24 @@
             
             <!-- SDI Code -->
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="Party.SdiCode"
-                              Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="@(!IsEditMode)"
-                              MaxLength="10"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.QrCode"
-                              @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                <PrymTextField @bind-Value="Party.SdiCode"
+                               Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                               ReadOnly="@(!IsEditMode)"
+                               MaxLength="10"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.QrCode"
+                               @bind-Value:after="NotifyUpdated" />
             </MudItem>
             
             <!-- PEC -->
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="Party.Pec"
-                              Label="@TranslationService.GetTranslation("field.pec", "PEC")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="@(!IsEditMode)"
-                              MaxLength="100"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Email"
-                              @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                <PrymTextField @bind-Value="Party.Pec"
+                               Label="@TranslationService.GetTranslation("field.pec", "PEC")"
+                               ReadOnly="@(!IsEditMode)"
+                               MaxLength="100"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Email"
+                               @bind-Value:after="NotifyUpdated" />
             </MudItem>
 
             <!-- Is Active -->
@@ -167,16 +155,14 @@
             
             <!-- Notes -->
             <MudItem xs="12">
-                <MudTextField @bind-Value="Party.Notes"
-                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                              Variant="Variant.Outlined"
-                              Lines="4"
-                              ReadOnly="@(!IsEditMode)"
-                              MaxLength="500"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Notes"
-                              @bind-Value:after="NotifyUpdated"
-                    Margin="Margin.Dense"/>
+                <PrymTextField @bind-Value="Party.Notes"
+                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                               Lines="4"
+                               ReadOnly="@(!IsEditMode)"
+                               MaxLength="500"
+                               Adornment="Adornment.Start"
+                               AdornmentIcon="@Icons.Material.Filled.Notes"
+                               @bind-Value:after="NotifyUpdated" />
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -192,12 +178,12 @@
                 </MudText>
                 @if (IsEditMode)
                 {
-                    <MudButton Variant="Variant.Outlined" 
+                    <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Outlined.Edit"
                                OnClick="@OnManageGroupsClicked">
                         @TranslationService.GetTranslation("action.manageGroups", "Gestisci Gruppi")
-                    </MudButton>
+                    </PrymButton>
                 }
             </MudStack>
             
@@ -232,12 +218,12 @@
                     @TranslationService.GetTranslation("businessParty.categories", "Categorie e Tag")
                 </MudText>
                 <MudTooltip Text="@TranslationService.GetTranslation("info.featureInDevelopment", "Funzionalità in sviluppo")">
-                    <MudButton Variant="Variant.Outlined" 
+                    <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                Size="Size.Small"
                                StartIcon="@Icons.Material.Outlined.Edit"
                                Disabled="true">
                         @TranslationService.GetTranslation("action.manageCategories", "Gestisci Categorie")
-                    </MudButton>
+                    </PrymButton>
                 </MudTooltip>
             </MudStack>
             
@@ -265,34 +251,26 @@
                 </MudText>
                 <MudGrid Spacing="3">
                     <MudItem xs="12" md="6">
-                        <MudTextField Value="@Party.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
-                                      Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                      Variant="Variant.Outlined"
-                                      ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                        <PrymTextField Value="@Party.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                       Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                       ReadOnly="true" />
                     </MudItem>
                     <MudItem xs="12" md="6">
-                        <MudTextField Value="@Party.CreatedBy"
-                                      Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                      Variant="Variant.Outlined"
-                                      ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                        <PrymTextField Value="@Party.CreatedBy"
+                                       Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                       ReadOnly="true" />
                     </MudItem>
                     @if (Party.ModifiedAt.HasValue)
                     {
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@Party.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
-                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@Party.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
+                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@Party.ModifiedBy"
-                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField Value="@Party.ModifiedBy"
+                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                     }
                 </MudGrid>

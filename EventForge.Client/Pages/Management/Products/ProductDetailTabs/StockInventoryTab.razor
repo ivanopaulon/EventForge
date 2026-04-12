@@ -27,47 +27,43 @@
                     </MudText>
                     <MudGrid Spacing="2">
                         <MudItem xs="12" sm="6">
-                            <MudNumericField Value="@(Product.ReorderPoint ?? 0)"
-                                             Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
-                                             Variant="Variant.Outlined"
-                                             ReadOnly="true"
-                                             Min="0" 
-                                             Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.reorderPoint", "Livello di riordino")"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField T="decimal"
+                                              Value="@(Product.ReorderPoint ?? 0)"
+                                              Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                                              ReadOnly="true"
+                                              Min="0"
+                                              Format="N2"
+                                              HelperText="@TranslationService.GetTranslation("helper.reorderPoint", "Livello di riordino")" />
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
-                            <MudNumericField Value="@(Product.SafetyStock ?? 0)"
-                                             Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
-                                             Variant="Variant.Outlined"
-                                             ReadOnly="true"
-                                             Min="0" 
-                                             Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.safetyStock", "Scorta minima")"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField T="decimal"
+                                              Value="@(Product.SafetyStock ?? 0)"
+                                              Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
+                                              ReadOnly="true"
+                                              Min="0"
+                                              Format="N2"
+                                              HelperText="@TranslationService.GetTranslation("helper.safetyStock", "Scorta minima")" />
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
-                            <MudNumericField Value="@(Product.TargetStockLevel ?? 0)"
-                                             Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Obiettivo")"
-                                             Variant="Variant.Outlined"
-                                             ReadOnly="true"
-                                             Min="0" 
-                                             Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.targetStockLevel", "Stock target")"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField T="decimal"
+                                              Value="@(Product.TargetStockLevel ?? 0)"
+                                              Label="@TranslationService.GetTranslation("field.targetStockLevel", "Livello Obiettivo")"
+                                              ReadOnly="true"
+                                              Min="0"
+                                              Format="N2"
+                                              HelperText="@TranslationService.GetTranslation("helper.targetStockLevel", "Stock target")" />
                         </MudItem>
 
                         <MudItem xs="12" sm="6">
-                            <MudNumericField Value="@(Product.AverageDailyDemand ?? 0)"
-                                             Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Giornaliera")"
-                                             Variant="Variant.Outlined"
-                                             ReadOnly="true"
-                                             Min="0" 
-                                             Format="N2"
-                                             HelperText="@TranslationService.GetTranslation("helper.averageDailyDemand", "Media giornaliera")"
-                    Margin="Margin.Dense"/>
+                            <PrymNumericField T="decimal"
+                                              Value="@(Product.AverageDailyDemand ?? 0)"
+                                              Label="@TranslationService.GetTranslation("field.averageDailyDemand", "Domanda Giornaliera")"
+                                              ReadOnly="true"
+                                              Min="0"
+                                              Format="N2"
+                                              HelperText="@TranslationService.GetTranslation("helper.averageDailyDemand", "Media giornaliera")" />
                         </MudItem>
                     </MudGrid>
                 </MudPaper>

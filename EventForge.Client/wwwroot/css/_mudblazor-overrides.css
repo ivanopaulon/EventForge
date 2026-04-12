@@ -32,7 +32,47 @@
     top: var(--mud-appbar-height) !important;
 }
 
-/* ─── 3. Dark-theme nav link active/hover state ─────────────────────────────
+/* ─── 3. Input control margin reset ────────────────────────────────────────
+ * MudBlazor adds top/bottom margin to .mud-input-control by default, which
+ * causes vertical misalignment when text fields and buttons are mixed in the
+ * same MudStack row (e.g. filter bars).  Reset to zero so all rows align on
+ * the same baseline.
+ */
+.mud-input-control {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+/* ─── 4. Outlined input background ─────────────────────────────────────────
+ * Apply a subtle whitesmoke fill to all Variant.Outlined inputs so they are
+ * visually distinguished from the page background without changing the border
+ * colour defined by the theme.
+ */
+.mud-input-root-outlined {
+    background-color: whitesmoke !important;
+    border-radius: 4px;
+}
+
+/* ─── 5. Filter-bar uniform 36px height ────────────────────────────────────
+ * Wrap filter-bar containers with class="filtri-bar" to enforce a consistent
+ * 36px height for both MudButton and MudIconButton children.  Without this,
+ * buttons rendered alongside Dense inputs end up at different heights.
+ */
+.filtri-bar .mud-button-root {
+    height: 36px !important;
+    min-height: 36px !important;
+    line-height: 36px;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.filtri-bar .mud-icon-button {
+    height: 36px !important;
+    width: 36px !important;
+    padding: 6px !important;
+}
+
+/* ─── 6. Dark-theme nav link active/hover state ─────────────────────────────
  * In carbon-neon-dark, MudThemeProvider non riceve IsDarkMode quindi usa sempre
  * la light palette: --mud-palette-primary diventa il navy scuro del drawer
  * (#1F2F46). Il link attivo ha sfondo = testo = stesso colore → invisibile.
@@ -52,4 +92,3 @@
 [data-theme="carbon-neon-dark"] .mud-nav-link:not(.active):hover {
     background-color: rgba(0, 245, 255, 0.07) !important;
 }
-

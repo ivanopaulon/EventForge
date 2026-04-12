@@ -19,14 +19,12 @@
         </MudText>
         <MudGrid Spacing="3">
             <MudItem xs="12" md="6">
-                <MudSelect T="Guid?"
-                           @bind-Value="Product.BrandId"
-                           Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
-                           Variant="Variant.Outlined"
-                           Class="ef-select"
-                           ReadOnly="@(!IsEditMode)"
-                           Clearable="true"
-                           @bind-Value:after="OnBrandChanged">
+                <PrymSelect T="Guid?"
+                            @bind-Value="Product.BrandId"
+                            Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                            ReadOnly="@(!IsEditMode)"
+                            Clearable="true"
+                            @bind-Value:after="OnBrandChanged">
                     @if (_brands != null)
                     {
                         @foreach (var brand in _brands)
@@ -34,18 +32,16 @@
                             <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
                         }
                     }
-                </MudSelect>
+                </PrymSelect>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSelect T="Guid?"
-                           @bind-Value="Product.ModelId"
-                           Label="@TranslationService.GetTranslation("field.model", "Modello")"
-                           Variant="Variant.Outlined"
-                           Class="ef-select"
-                           ReadOnly="@(!IsEditMode)"
-                           Clearable="true"
-                           @bind-Value:after="NotifyUpdated">
+                <PrymSelect T="Guid?"
+                            @bind-Value="Product.ModelId"
+                            Label="@TranslationService.GetTranslation("field.model", "Modello")"
+                            ReadOnly="@(!IsEditMode)"
+                            Clearable="true"
+                            @bind-Value:after="NotifyUpdated">
                     @if (_models != null)
                     {
                         @foreach (var model in _models)
@@ -53,18 +49,16 @@
                             <MudSelectItem T="Guid?" Value="@((Guid?)model.Id)">@model.Name</MudSelectItem>
                         }
                     }
-                </MudSelect>
+                </PrymSelect>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSelect T="Guid?"
-                           @bind-Value="Product.UnitOfMeasureId"
-                           Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
-                           Variant="Variant.Outlined"
-                           Class="ef-select"
-                           ReadOnly="@(!IsEditMode)"
-                           Clearable="true"
-                           @bind-Value:after="NotifyUpdated">
+                <PrymSelect T="Guid?"
+                            @bind-Value="Product.UnitOfMeasureId"
+                            Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                            ReadOnly="@(!IsEditMode)"
+                            Clearable="true"
+                            @bind-Value:after="NotifyUpdated">
                     @if (_unitsOfMeasure != null && _unitsOfMeasure.Any())
                     {
                         @foreach (var um in _unitsOfMeasure)
@@ -72,43 +66,40 @@
                             <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
                         }
                     }
-                </MudSelect>
+                </PrymSelect>
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudTextField Value="@(_categoryName ?? "-")"
-                              Label="@TranslationService.GetTranslation("product.categoryLabel","Categoria")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Category))"
-                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")"
-                    Margin="Margin.Dense"/>
+                <PrymTextField T="string"
+                               Value="@(_categoryName ?? "-")"
+                               Label="@TranslationService.GetTranslation("product.categoryLabel","Categoria")"
+                               ReadOnly="true"
+                               Adornment="Adornment.End"
+                               AdornmentIcon="@Icons.Material.Outlined.Search"
+                               OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Category))"
+                               AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudTextField Value="@(_familyName ?? "-")"
-                              Label="@TranslationService.GetTranslation("product.familyLabel","Famiglia")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Family))"
-                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")"
-                    Margin="Margin.Dense"/>
+                <PrymTextField T="string"
+                               Value="@(_familyName ?? "-")"
+                               Label="@TranslationService.GetTranslation("product.familyLabel","Famiglia")"
+                               ReadOnly="true"
+                               Adornment="Adornment.End"
+                               AdornmentIcon="@Icons.Material.Outlined.Search"
+                               OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.Family))"
+                               AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudTextField Value="@(_groupName ?? "-")"
-                              Label="@TranslationService.GetTranslation("product.groupLabel","Gruppo")"
-                              Variant="Variant.Outlined"
-                              ReadOnly="true"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Outlined.Search"
-                              OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))"
-                              AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")"
-                    Margin="Margin.Dense"/>
+                <PrymTextField T="string"
+                               Value="@(_groupName ?? "-")"
+                               Label="@TranslationService.GetTranslation("product.groupLabel","Gruppo")"
+                               ReadOnly="true"
+                               Adornment="Adornment.End"
+                               AdornmentIcon="@Icons.Material.Outlined.Search"
+                               OnAdornmentClick="@(() => OpenPicker(ProductClassificationType.MerchandiseGroup))"
+                               AdornmentAriaLabel="@TranslationService.GetTranslation("common.select","Seleziona")" />
             </MudItem>
         </MudGrid>
     </MudPaper>

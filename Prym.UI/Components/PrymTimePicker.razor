@@ -1,0 +1,31 @@
+<MudTimePicker Time="Time"
+               TimeChanged="TimeChanged"
+               For="For"
+               Label="@Label"
+               Placeholder="@Placeholder"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               AmPm="AmPm"
+               TimeFormat="@TimeFormat"
+               Clearable="Clearable"
+               Disabled="Disabled"
+               ReadOnly="ReadOnly"
+               HelperText="@HelperText"
+               Class="@Class"
+               Style="@Style" />
+
+@code {
+    [Parameter] public TimeSpan?                    Time        { get; set; }
+    [Parameter] public EventCallback<TimeSpan?>     TimeChanged { get; set; }
+    [Parameter] public Expression<Func<TimeSpan?>>? For         { get; set; }
+    [Parameter] public string?                      Label       { get; set; }
+    [Parameter] public string?                      Placeholder { get; set; }
+    [Parameter] public bool                         AmPm        { get; set; } = false;
+    [Parameter] public string?                      TimeFormat  { get; set; }
+    [Parameter] public bool                         Clearable   { get; set; } = true;
+    [Parameter] public bool                         Disabled    { get; set; } = false;
+    [Parameter] public bool                         ReadOnly    { get; set; } = false;
+    [Parameter] public string?                      HelperText  { get; set; }
+    [Parameter] public string?                      Class       { get; set; }
+    [Parameter] public string?                      Style       { get; set; }
+}

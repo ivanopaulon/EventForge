@@ -31,65 +31,46 @@
         else
         {
             <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
-                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                <MudTabPanel Text="@TranslationService.GetTranslation("tab.general", "Generale")" Icon="@Icons.Material.Outlined.Info">
                     <MudForm @ref="_form">
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="UnitName"
-                                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                                              MaxLength="50"
-                                              Immediate="true"
-                                              @bind-Value:after="@MarkChanged"
-                                              aria-describedby="name-help"
-                    Margin="Margin.Dense"/>
-                                <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.umName", "Nome dell'unità di misura (es. Kilogrammo, Litro, Pezzo)")
-                                </MudText>
+                                <PrymTextField @bind-Value="UnitName"
+                                               Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                               Required="true"
+                                               RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                               MaxLength="50"
+                                               Immediate="true"
+                                               @bind-Value:after="@MarkChanged"
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.umName", "Nome dell'unità di misura (es. Kilogrammo, Litro, Pezzo)")" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="UnitSymbol"
-                                              Label="@($"{TranslationService.GetTranslation("field.symbol", "Simbolo")} *")"
-                                              Variant="Variant.Outlined"
-                                              Required="true"
-                                              RequiredError="@TranslationService.GetTranslation("validation.symbolRequired", "Il simbolo è obbligatorio")"
-                                              MaxLength="10"
-                                              Immediate="true"
-                                              Disabled="@(!_isCreateMode)"
-                                              @bind-Value:after="@MarkChanged"
-                                              aria-describedby="symbol-help"
-                    Margin="Margin.Dense"/>
-                                <MudText id="symbol-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.umSymbol", "Simbolo dell'unità (es. kg, l, pz) - Non modificabile dopo la creazione")
-                                </MudText>
+                                <PrymTextField @bind-Value="UnitSymbol"
+                                               Label="@($"{TranslationService.GetTranslation("field.symbol", "Simbolo")} *")"
+                                               Required="true"
+                                               RequiredError="@TranslationService.GetTranslation("validation.symbolRequired", "Il simbolo è obbligatorio")"
+                                               MaxLength="10"
+                                               Immediate="true"
+                                               Disabled="@(!_isCreateMode)"
+                                               @bind-Value:after="@MarkChanged"
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.umSymbol", "Simbolo dell'unità (es. kg, l, pz) - Non modificabile dopo la creazione")" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="UnitDescription"
-                                              Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                              Variant="Variant.Outlined"
-                                              Lines="3"
-                                              MaxLength="200"
-                                              @bind-Value:after="@MarkChanged"
-                                              aria-describedby="description-help"
-                    Margin="Margin.Dense"/>
-                                <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.umDescription", "Descrizione opzionale dell'unità di misura")
-                                </MudText>
+                                <PrymTextField @bind-Value="UnitDescription"
+                                               Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                               Lines="3"
+                                               MaxLength="200"
+                                               @bind-Value:after="@MarkChanged"
+                                               HelperText="@TranslationService.GetTranslation("drawer.helperText.umDescription", "Descrizione opzionale dell'unità di misura")" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
                                 <MudSwitch @bind-Value="UnitIsDefault"
                                            Label="@TranslationService.GetTranslation("field.isDefault", "Unità Predefinita")"
                                            Color="Color.Primary"
-                                           @bind-Value:after="@MarkChanged"
-                                           aria-describedby="default-help" />
-                                <MudText id="default-help" Typo="Typo.caption" Class="mud-input-helper-text">
-                                    @TranslationService.GetTranslation("drawer.helperText.umIsDefault", "Imposta come unità di misura predefinita")
-                                </MudText>
+                                           @bind-Value:after="@MarkChanged" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -101,42 +82,32 @@
                         </MudGrid>
                     </MudForm>
                 </MudTabPanel>
-                <MudTabPanel Text="Audit" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
+                <MudTabPanel Text="@TranslationService.GetTranslation("tab.audit", "Audit")" Icon="@Icons.Material.Outlined.History" Disabled="@_isCreateMode">
                     <MudGrid>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_unit?.Id.ToString() ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.id", "ID")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_unit?.Id.ToString() ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_unit?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_unit?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_unit?.CreatedBy ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_unit?.CreatedBy ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_unit?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_unit?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
+                                           ReadOnly="true" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <MudTextField Value="@(_unit?.ModifiedBy ?? string.Empty)"
-                                          Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
-                                          Variant="Variant.Outlined"
-                                          ReadOnly="true"
-                    Margin="Margin.Dense"/>
+                            <PrymTextField T="string" Value="@(_unit?.ModifiedBy ?? string.Empty)"
+                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
+                                           ReadOnly="true" />
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>
@@ -144,13 +115,13 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SaveAsync" Disabled="_isSaving || _isLoading || _unit == null">
+        </PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveAsync" Disabled="_isSaving || _isLoading || _unit == null">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 
