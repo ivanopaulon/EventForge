@@ -45,42 +45,31 @@
                             <MudPaper Elevation="0" Class="pa-4">
                                 <MudGrid Spacing="3">
                                     <MudItem xs="12" md="12">
-                                        <MudTextField @bind-Value="_updateModel.Name"
-                                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
-                                                      Variant="Variant.Outlined"
-                                                      Required="true"
-                                                      Class="ef-input"
-                                                      @bind-Value:after="@(() => _hasChanges = true)"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_updateModel.Name"
+                                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                                       Required="true"
+                                                       @bind-Value:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField @bind-Value="_updateModel.Description"
-                                                      Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
-                                                      Variant="Variant.Outlined"
-                                                      Lines="3"
-                                                      Class="ef-input"
-                                                      @bind-Value:after="@(() => _hasChanges = true)"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_updateModel.Description"
+                                                       Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                                       Lines="3"
+                                                       @bind-Value:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <MudSelect @bind-Value="_updateModel.Status"
-                                                   Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
-                                                   Variant="Variant.Outlined"
-                                                   Required="true"
-                                                   Class="ef-select"
-                                                   @bind-Value:after="@(() => _hasChanges = true)">
+                                        <PrymSelect @bind-Value="_updateModel.Status"
+                                                    Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                                                    Required="true"
+                                                    @bind-Value:after="@(() => _hasChanges = true)">
                                             <MudSelectItem Value="@PriceListStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
                                             <MudSelectItem Value="@PriceListStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
-                                        </MudSelect>
+                                        </PrymSelect>
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <MudNumericField @bind-Value="_updateModel.Priority"
-                                                         Label="@TranslationService.GetTranslation("field.priority", "Priorità")"
-                                                         Variant="Variant.Outlined"
-                                                         Min="0" Max="100"
-                                                         Class="ef-numeric"
-                                                         @bind-Value:after="@(() => _hasChanges = true)"
-                    Margin="Margin.Dense"/>
+                                        <PrymNumericField @bind-Value="_updateModel.Priority"
+                                                          Label="@TranslationService.GetTranslation("field.priority", "Priorità")"
+                                                          Min="0" Max="100"
+                                                          @bind-Value:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                     <MudItem xs="12" md="12">
                                         <MudSwitch @bind-Value="_updateModel.IsDefault"
@@ -89,27 +78,20 @@
                                                    @bind-Value:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <MudDatePicker @bind-Date="_validFrom"
-                                                       Label="@TranslationService.GetTranslation("field.validFrom", "Valido Dal")"
-                                                       Variant="Variant.Outlined"
-                                                       @bind-Date:after="@(() => _hasChanges = true)"
-                    Margin="Margin.Dense"/>
+                                        <PrymDatePicker @bind-Date="_validFrom"
+                                                        Label="@TranslationService.GetTranslation("field.validFrom", "Valido Dal")"
+                                                        @bind-Date:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                     <MudItem xs="12" md="6">
-                                        <MudDatePicker @bind-Date="_validTo"
-                                                       Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino Al")"
-                                                       Variant="Variant.Outlined"
-                                                       @bind-Date:after="@(() => _hasChanges = true)"
-                    Margin="Margin.Dense"/>
+                                        <PrymDatePicker @bind-Date="_validTo"
+                                                        Label="@TranslationService.GetTranslation("field.validTo", "Valido Fino Al")"
+                                                        @bind-Date:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                     <MudItem xs="12">
-                                        <MudTextField @bind-Value="_updateModel.Notes"
-                                                      Label="@TranslationService.GetTranslation("field.notes", "Note")"
-                                                      Variant="Variant.Outlined"
-                                                      Lines="4"
-                                                      Class="ef-input"
-                                                      @bind-Value:after="@(() => _hasChanges = true)"
-                    Margin="Margin.Dense"/>
+                                        <PrymTextField @bind-Value="_updateModel.Notes"
+                                                       Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                                       Lines="4"
+                                                       @bind-Value:after="@(() => _hasChanges = true)" />
                                     </MudItem>
                                 </MudGrid>
                             </MudPaper>
@@ -224,15 +206,12 @@
                                     <!-- Col 2 (4): Price + Add Button -->
                                     <MudItem xs="12" md="4">
                                         <MudStack Spacing="2">
-                                            <MudNumericField @bind-Value="_quickAddPrice"
-                                                             Label="@TranslationService.GetTranslation("field.price", "Prezzo")"
-                                                             Variant="Variant.Outlined"
-                                                             Adornment="Adornment.Start"
-                                                             AdornmentIcon="@Icons.Material.Filled.Euro"
-                                                             Min="0" Step="0.01M" Format="N2"
-                                                             Disabled="@(_selectedProductToAdd == null)"
-                                                             Class="ef-numeric"
-                    Margin="Margin.Dense"/>
+                                            <PrymNumericField @bind-Value="_quickAddPrice"
+                                                              Label="@TranslationService.GetTranslation("field.price", "Prezzo")"
+                                                              Adornment="Adornment.Start"
+                                                              AdornmentIcon="@Icons.Material.Filled.Euro"
+                                                              Min="0" Step="0.01M" Format="N2"
+                                                              Disabled="@(_selectedProductToAdd == null)" />
                                             <MudButton Variant="Variant.Filled" Color="Color.Success"
                                                        StartIcon="@Icons.Material.Filled.Add" FullWidth="true"
                                                        OnClick="@AddProductQuick"
@@ -273,35 +252,27 @@
                             <FiltersPanel>
                                 <MudGrid Spacing="2">
                                     <MudItem xs="12" md="3">
-                                        <MudSelect @bind-Value="_filterStatus"
-                                                   Label="@TranslationService.GetTranslation("field.status", "Stato")"
-                                                   Variant="Variant.Outlined"
-                                                   Clearable="true"
-                                                   @bind-Value:after="FilterEntries"
-                                                   Class="ef-select">
+                                        <PrymSelect @bind-Value="_filterStatus"
+                                                    Label="@TranslationService.GetTranslation("field.status", "Stato")"
+                                                    Clearable="true"
+                                                    @bind-Value:after="FilterEntries">
                                             <MudSelectItem Value="@((PriceListEntryStatus?)PriceListEntryStatus.Active)">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
                                             <MudSelectItem Value="@((PriceListEntryStatus?)PriceListEntryStatus.Deleted)">@TranslationService.GetTranslation("status.deleted", "Inattivo")</MudSelectItem>
-                                        </MudSelect>
+                                        </PrymSelect>
                                     </MudItem>
                                     <MudItem xs="12" md="3">
-                                        <MudNumericField @bind-Value="_filterMinPrice"
-                                                         Label="@TranslationService.GetTranslation("pricelist.minPrice", "Prezzo Min")"
-                                                         Variant="Variant.Outlined"
-                                                         Min="0"
-                                                         @bind-Value:after="FilterEntries"
-                                                         Clearable="true"
-                                                         Class="ef-numeric"
-                    Margin="Margin.Dense"/>
+                                        <PrymNullableNumericField T="decimal" @bind-Value="_filterMinPrice"
+                                                                   Label="@TranslationService.GetTranslation("pricelist.minPrice", "Prezzo Min")"
+                                                                   Min="0"
+                                                                   @bind-Value:after="FilterEntries"
+                                                                   Clearable="true" />
                                     </MudItem>
                                     <MudItem xs="12" md="3">
-                                        <MudNumericField @bind-Value="_filterMaxPrice"
-                                                         Label="@TranslationService.GetTranslation("pricelist.maxPrice", "Prezzo Max")"
-                                                         Variant="Variant.Outlined"
-                                                         Min="0"
-                                                         @bind-Value:after="FilterEntries"
-                                                         Clearable="true"
-                                                         Class="ef-numeric"
-                    Margin="Margin.Dense"/>
+                                        <PrymNullableNumericField T="decimal" @bind-Value="_filterMaxPrice"
+                                                                   Label="@TranslationService.GetTranslation("pricelist.maxPrice", "Prezzo Max")"
+                                                                   Min="0"
+                                                                   @bind-Value:after="FilterEntries"
+                                                                   Clearable="true" />
                                     </MudItem>
                                     <MudItem xs="12" md="3">
                                         <MudButton Variant="Variant.Outlined" Color="Color.Default"
@@ -323,12 +294,12 @@
                                         @TranslationService.GetTranslation("common.delete", "Elimina") (@_selectedEntries.Count)
                                     </MudButton>
                                 }
-                                <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Outlined.Add"
-                                           Size="Size.Small"
-                                           OnClick="OpenAddProductsDialog">
+                                <PrymButton Intent="Secondary"
+                                            StartIcon="@Icons.Material.Outlined.Add"
+                                            Size="Size.Small"
+                                            OnClick="OpenAddProductsDialog">
                                     @TranslationService.GetTranslation("pricelist.addMultiple", "Aggiungi Multipli")
-                                </MudButton>
+                                </PrymButton>
                                 <MudButton Variant="Variant.Outlined" Color="Color.Default"
                                            StartIcon="@Icons.Material.Outlined.FileUpload"
                                            Size="Size.Small"
@@ -417,16 +388,12 @@
                                             @if (_editingEntryId == item.Id)
                                             {
                                                 <div class="d-flex align-center gap-1">
-                                                    <MudNumericField @bind-Value="_editingPrice"
-                                                                     Variant="Variant.Outlined"
-                                                                     Adornment="Adornment.Start"
-                                                                     AdornmentIcon="@Icons.Material.Filled.Euro"
-                                                                     Min="0" Step="0.01M" Format="N2"
-                                                                     Class="ef-numeric ef-input-150"
-
-                                                                     @onkeydown="@(e => HandlePriceEditKeyDown(e, item))"
-                                                                     Immediate="true"
-                    Margin="Margin.Dense"/>
+                                                    <PrymNumericField @bind-Value="_editingPrice"
+                                                                      Adornment="Adornment.Start"
+                                                                      AdornmentIcon="@Icons.Material.Filled.Euro"
+                                                                      Min="0" Step="0.01M" Format="N2"
+                                                                      @onkeydown="@(e => HandlePriceEditKeyDown(e, item))"
+                                                                      Immediate="true" />
                                                 </div>
                                             }
                                             else
@@ -558,12 +525,10 @@
                                         @_assignedBusinessParties.Count
                                     </MudChip>
                                 </MudStack>
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.Add"
-                                           OnClick="@OpenAssignBusinessPartyDialog">
+                             <PrymButton StartIcon="@Icons.Material.Filled.Add"
+                                            OnClick="@OpenAssignBusinessPartyDialog">
                                     @TranslationService.GetTranslation("pricelist.assignBusinessParty", "Assegna Partner")
-                                </MudButton>
+                                </PrymButton>
                             </MudStack>
                         </MudPaper>
 
@@ -588,12 +553,10 @@
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                     @TranslationService.GetTranslation("pricelist.bulkUpdateDescription", "Applica incrementi, decrementi percentuali o imposta un valore fisso a tutti i prezzi del listino")
                                 </MudText>
-                                <MudButton Variant="Variant.Filled"
-                                           Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Outlined.Update"
-                                           OnClick="OpenBulkUpdatePricesDialog">
+                                <PrymButton StartIcon="@Icons.Material.Outlined.Update"
+                                            OnClick="OpenBulkUpdatePricesDialog">
                                     @TranslationService.GetTranslation("pricelist.updatePrices", "Aggiorna Prezzi")
-                                </MudButton>
+                                </PrymButton>
                             </MudStack>
                         </MudPaper>
 
@@ -608,12 +571,11 @@
                                     @TranslationService.GetTranslation("pricelist.importExportDescription", "Importa o esporta listini in formato Excel/CSV")
                                 </MudText>
                                 <MudStack Row="true" Spacing="2">
-                                    <MudButton Variant="Variant.Outlined"
-                                               Color="Color.Primary"
-                                               StartIcon="@Icons.Material.Outlined.FileUpload"
-                                               OnClick="OpenImportDialog">
-                                        @TranslationService.GetTranslation("pricelist.import", "Importa da Excel")
-                                    </MudButton>
+                                <PrymButton Intent="Secondary"
+                                            StartIcon="@Icons.Material.Outlined.FileUpload"
+                                            OnClick="OpenImportDialog">
+                                    @TranslationService.GetTranslation("pricelist.import", "Importa da Excel")
+                                </PrymButton>
                                     <MudButton Variant="Variant.Outlined"
                                                Color="Color.Default"
                                                StartIcon="@Icons.Material.Outlined.FileDownload"
@@ -634,12 +596,11 @@
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                     @TranslationService.GetTranslation("pricelist.duplicateDescription", "Crea una copia di questo listino con opzioni di trasformazione prezzi")
                                 </MudText>
-                                <MudButton Variant="Variant.Outlined"
-                                           Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Outlined.ContentCopy"
-                                           OnClick="DuplicatePriceList">
+                                <PrymButton Intent="Secondary"
+                                            StartIcon="@Icons.Material.Outlined.ContentCopy"
+                                            OnClick="DuplicatePriceList">
                                     @TranslationService.GetTranslation("pricelist.duplicateButton", "Duplica Listino")
-                                </MudButton>
+                                </PrymButton>
                             </MudStack>
                         </MudPaper>
                     </MudStack>
@@ -666,14 +627,14 @@
                 @TranslationService.GetTranslation("pricelist.unsavedChanges", "Modifiche non salvate")
             </MudChip>
         }
-        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_isSaving">
+        <PrymButton Intent="Ghost" OnClick="Cancel" Disabled="_isSaving">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SavePriceList" Disabled="_isSaving || _isLoading || _priceList == null"
-                   Size="Size.Small">
+        </PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SavePriceList" Disabled="_isSaving || _isLoading || _priceList == null"
+                    Size="Size.Small">
             @TranslationService.GetTranslation("pricelist.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 
