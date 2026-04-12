@@ -6,7 +6,6 @@
 @inject IAuthService AuthService
 @inject IChatService ChatService
 @inject IRealtimeService RealtimeService
-@inject IWhatsAppClientService WhatsAppClientService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -858,10 +857,20 @@
     private void OnMessageEdited(EditMessageDto e)
     {
         var m = _messages.FirstOrDefault(x => x.Id == e.MessageId);
-        if (m is not null) { m.Content = e.Content; m.IsEdited = true; InvokeAsync(StateHasChanged); }
+        if (m is not null)
+        {
+            m.Content = e.Content;
+            m.IsEdited = true;
+            InvokeAsync(StateHasChanged);
+        }
     }
 
-    private void OnMessageDeleted(Guid id) { _messages.RemoveAll(m => m.Id == id); _messageIds.Remove(id); InvokeAsync(StateHasChanged); }
+    private void OnMessageDeleted(Guid id)
+    {
+        _messages.RemoveAll(m => m.Id == id);
+        _messageIds.Remove(id);
+        InvokeAsync(StateHasChanged);
+    }
 
     private void OnMessageRead(Guid chatId, Guid msgId)
     {
