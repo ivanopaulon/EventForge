@@ -18,143 +18,125 @@
     <ChildContent>
         <PageLoadingOverlay Visible="_isLoading" />
 
-            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
-                <MudStack Spacing="3">
-                    
-                    <!-- Dati Identificativi -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            @TranslationService.GetTranslation("business.identification", "Dati Identificativi")
-                        </MudText>
-                        
-                        <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="6">
-                                <MudSelect @bind-Value="_model.PartyType"
-                                          Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo Partner")} *")"
-                                          Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"
-                                          Required="true">
-                                    <MudSelectItem Value="BusinessPartyType.Cliente">
-                                        @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
-                                    </MudSelectItem>
-                                    <MudSelectItem Value="BusinessPartyType.Supplier">
-                                        @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
-                                    </MudSelectItem>
-                                    <MudSelectItem Value="BusinessPartyType.Both">
-                                        @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
-                                    </MudSelectItem>
-                                </MudSelect>
-                            </MudItem>
-                            <MudItem xs="12" sm="6">
-                                <MudTextField @bind-Value="_model.Name"
-                                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense"
-                                              Required="true"
-                                              RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                                              MaxLength="200"
-                                              Counter="200" />
-                            </MudItem>
-                        </MudGrid>
-                    </MudPaper>
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="pa-4">
+            <MudStack Spacing="3">
 
-                    <!-- Dati Fiscali -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            @TranslationService.GetTranslation("business.fiscalData", "Dati Fiscali (Opzionali)")
-                        </MudText>
-                        
-                        <MudGrid Spacing="2">
-                            <MudItem xs="12" sm="4">
-                                <MudTextField @bind-Value="_model.TaxCode"
-                                              Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense"
-                                              MaxLength="20" />
-                            </MudItem>
-                            <MudItem xs="12" sm="8">
-                                <div class="d-flex gap-2">
-                                    <MudTextField Class="flex-grow-1" @bind-Value="_model.VatNumber"
- Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
- Variant="Variant.Outlined"
- Margin="Margin.Dense"
- MaxLength="20"
- Placeholder="IT12345678901"
- />
-                                    <MudButton Variant="Variant.Filled"
-                                               Color="Color.Primary"
-                                               StartIcon="@Icons.Material.Filled.Search"
-                                               OnClick="@LookupVatAsync"
-                                               Disabled="@(string.IsNullOrWhiteSpace(_model.VatNumber) || _isLookingUp)"
-                                               Class="align-self-start mt-1-em">
-                                        @if (_isLookingUp)
-                                        {
-                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                                        }
-                                        else
-                                        {
-                                            @TranslationService.GetTranslation("common.search", "Cerca")
-                                        }
-                                    </MudButton>
-                                </div>
-                            </MudItem>
-                        </MudGrid>
-                        
-                        <!-- VAT Lookup Result -->
-                        @if (_lookupResult != null)
-                        {
-                            @if (_lookupResult.IsValid)
-                            {
-                                <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.CheckCircle" Dense="true" Class="mt-3">
-                                    <MudStack Spacing="1">
-                                        <MudText Typo="Typo.body2" Class="fw-semibold">
-                                            @_lookupResult.Name
-                                        </MudText>
-                                        <MudText Typo="Typo.caption">@_lookupResult.Address</MudText>
-                                        <MudButton Size="Size.Small"
-                                                   Variant="Variant.Text"
-                                                   StartIcon="@Icons.Material.Outlined.ContentCopy"
-                                                   OnClick="@ApplyLookupData">
-                                            @TranslationService.GetTranslation("vat.useData", "Usa questi dati")
-                                        </MudButton>
-                                    </MudStack>
-                                </MudAlert>
-                            }
-                            else
-                            {
-                                <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">
-                                    @TranslationService.GetTranslation("vat.invalidVat", "Partita IVA non valida o non trovata")
-                                </MudAlert>
-                            }
-                        }
-                        
-                        <MudGrid Spacing="2" Class="mt-2">
-                            <MudItem xs="12" sm="4">
-                                <MudTextField @bind-Value="_model.SdiCode"
-                                              Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense"
-                                              MaxLength="10" />
-                            </MudItem>
-                        </MudGrid>
-                    </MudPaper>
+                <!-- Dati Identificativi -->
+                <MudText Typo="Typo.subtitle2">
+                    @TranslationService.GetTranslation("business.identification", "Dati Identificativi")
+                </MudText>
 
-                </MudStack>
-            </MudForm>
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <PrymSelect @bind-Value="_model.PartyType"
+                                    Label="@($"{TranslationService.GetTranslation("field.partyType", "Tipo Partner")} *")"
+                                    Required="true">
+                            <MudSelectItem Value="BusinessPartyType.Cliente">
+                                @TranslationService.GetTranslation("businessPartyType.customer", "Cliente")
+                            </MudSelectItem>
+                            <MudSelectItem Value="BusinessPartyType.Supplier">
+                                @TranslationService.GetTranslation("businessPartyType.supplier", "Fornitore")
+                            </MudSelectItem>
+                            <MudSelectItem Value="BusinessPartyType.Both">
+                                @TranslationService.GetTranslation("businessPartyType.both", "Entrambi")
+                            </MudSelectItem>
+                        </PrymSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <PrymTextField @bind-Value="_model.Name"
+                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome/Ragione Sociale")} *")"
+                                       Required="true"
+                                       RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                       MaxLength="200"
+                                       Counter="200" />
+                    </MudItem>
+                </MudGrid>
+
+                <!-- Dati Fiscali -->
+                <MudText Typo="Typo.subtitle2" Class="mt-2">
+                    @TranslationService.GetTranslation("business.fiscalData", "Dati Fiscali (Opzionali)")
+                </MudText>
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4">
+                        <PrymTextField @bind-Value="_model.TaxCode"
+                                       Label="@TranslationService.GetTranslation("field.taxCode", "Codice Fiscale")"
+                                       MaxLength="20" />
+                    </MudItem>
+                    <MudItem xs="12" sm="8">
+                        <div class="d-flex gap-2">
+                            <PrymTextField Class="flex-1"
+                                           @bind-Value="_model.VatNumber"
+                                           Label="@TranslationService.GetTranslation("field.vatNumber", "Partita IVA")"
+                                           MaxLength="20"
+                                           Placeholder="IT12345678901" />
+                            <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                                        StartIcon="@Icons.Material.Filled.Search"
+                                        OnClick="@LookupVatAsync"
+                                        Disabled="@(string.IsNullOrWhiteSpace(_model.VatNumber) || _isLookingUp)"
+                                        Class="align-self-start mt-1-em">
+                                @if (_isLookingUp)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                }
+                                else
+                                {
+                                    @TranslationService.GetTranslation("common.search", "Cerca")
+                                }
+                            </PrymButton>
+                        </div>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- VAT Lookup Result -->
+                @if (_lookupResult != null)
+                {
+                    @if (_lookupResult.IsValid)
+                    {
+                        <MudAlert Severity="Severity.Success" Icon="@Icons.Material.Filled.CheckCircle" Dense="true" Class="mt-1">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.body2" Class="fw-semibold">@_lookupResult.Name</MudText>
+                                <MudText Typo="Typo.caption">@_lookupResult.Address</MudText>
+                                <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                                            Size="Size.Small"
+                                            StartIcon="@Icons.Material.Outlined.ContentCopy"
+                                            OnClick="@ApplyLookupData">
+                                    @TranslationService.GetTranslation("vat.useData", "Usa questi dati")
+                                </PrymButton>
+                            </MudStack>
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                            @TranslationService.GetTranslation("vat.invalidVat", "Partita IVA non valida o non trovata")
+                        </MudAlert>
+                    }
+                }
+
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="4">
+                        <PrymTextField @bind-Value="_model.SdiCode"
+                                       Label="@TranslationService.GetTranslation("field.sdiCode", "Codice SDI")"
+                                       MaxLength="10" />
+                    </MudItem>
+                </MudGrid>
+
+            </MudStack>
+        </MudForm>
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" 
-                   Variant="Variant.Text" 
-                   Disabled="@_isLoading">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                    OnClick="Cancel"
+                    Disabled="@_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton OnClick="CreatePartner" 
-                   Variant="Variant.Filled" 
-                   Color="Color.Primary"
-                   Disabled="@(!_isFormValid || _isLoading)"
-                   StartIcon="@Icons.Material.Outlined.Save">
+        </PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    StartIcon="@Icons.Material.Outlined.Save"
+                    OnClick="CreatePartner"
+                    Disabled="@(!_isFormValid || _isLoading)">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 
