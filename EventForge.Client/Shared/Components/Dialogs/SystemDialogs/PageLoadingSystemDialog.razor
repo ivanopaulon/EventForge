@@ -25,10 +25,7 @@
                     <span class="plsd-log-icon">
                         @if (isFirst)
                         {
-                            <MudProgressCircular Class="spinner-14" Size="MudBlazor.Size.Small"
- Indeterminate="true"
- Color="Color.Primary"
- />
+                            <span class="plsd-spinner" aria-hidden="true"></span>
                         }
                         else
                         {
@@ -194,6 +191,21 @@
         display: flex;
         align-items: center;
         justify-content: center;
+    }
+
+    /* Tiny rotating dot — replaces MudProgressCircular (linear bar at top already covers progress) */
+    .plsd-spinner {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 2px solid rgba(100, 160, 255, 0.25);
+        border-top-color: rgba(100, 160, 255, 0.9);
+        animation: plsd-spin 0.7s linear infinite;
+    }
+
+    @@keyframes plsd-spin {
+        to { transform: rotate(360deg); }
     }
 
     .plsd-log-text {

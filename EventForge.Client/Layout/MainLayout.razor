@@ -22,7 +22,7 @@
 @inject IHttpClientService HttpClientService
 @implements IAsyncDisposable
 
-<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
+<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" IsDarkMode="@ThemeService.IsDarkMode" />
 
 <MudLayout>
     <!-- AppBar: [Menu] [Home] [ThemeToggle] ---- [Logo] -->
