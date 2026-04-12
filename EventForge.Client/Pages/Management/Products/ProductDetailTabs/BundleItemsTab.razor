@@ -11,12 +11,11 @@
     <MudPaper Elevation="1" Class="pa-4">
         <MudGrid Spacing="3">
             <MudItem xs="12" Class="d-flex justify-end align-center mb-2">
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           StartIcon="@Icons.Material.Filled.Add" 
-                           OnClick="@OpenCreateDialog">
+                <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                            StartIcon="@Icons.Material.Filled.Add"
+                            OnClick="@OpenCreateDialog">
                     @TranslationService.GetTranslation("common.add", "Aggiungi")
-                </MudButton>
+                </PrymButton>
             </MudItem>
 
             <MudItem xs="12">
@@ -40,10 +39,10 @@
                             </MudTd>
                             <MudTd DataLabel='@TranslationService.GetTranslation("field.quantity", "Quantità")'>@context.Quantity</MudTd>
                             <MudTd DataLabel='@TranslationService.GetTranslation("field.actions", "Azioni")' >
-                                <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                <PrymIconButton Icon="@Icons.Material.Filled.Edit" 
                                                Color="Color.Primary" 
                                                OnClick="@(() => OpenEditDialog(context))" />
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                <PrymIconButton Icon="@Icons.Material.Filled.Delete" 
                                                Color="Color.Error" 
                                                OnClick="@(() => DeleteBundleItemAsync(context))" />
                             </MudTd>
