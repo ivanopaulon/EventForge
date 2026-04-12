@@ -267,7 +267,7 @@ namespace EventForge.Client.Shared.Components
         /// </summary>
         private async Task OnProductSelectionChangedAsync(ProductDto? product)
         {
-            Logger.LogInformation("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}",
+            Logger.LogDebug("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}",
                 product?.Id, product?.Name ?? "NULL");
 
             try
@@ -289,7 +289,7 @@ namespace EventForge.Client.Shared.Components
                 // Update display values (unit of measure, VAT, etc.)
                 UpdateDisplayValues();
 
-                Logger.LogInformation("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}",
+                Logger.LogDebug("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}",
                     SelectedProduct?.Id, _currentUnitName, _currentVatName);
             }
             catch (Exception ex)
@@ -383,8 +383,9 @@ namespace EventForge.Client.Shared.Components
 
                 await Task.WhenAll(unitsTask, vatRatesTask);
 
-                _availableUnits = await unitsTask;
-                var vatRatesResult = await vatRatesTask;
+                // Tasks are already completed — retrieve their results directly
+                _availableUnits = unitsTask.Result;
+                var vatRatesResult = vatRatesTask.Result;
                 _availableVatRates = vatRatesResult?.Items ?? Enumerable.Empty<VatRateDto>();
             }
             catch (Exception ex)
@@ -594,17 +595,31 @@ namespace EventForge.Client.Shared.Components
         }
 
         /// <summary>
-        /// Opens the camera barcode scanner dialog and delegates the detected barcode
-        /// to SearchByBarcode, which performs an exact product-code lookup.
+        /// Opens the camera barcode scanner dialog in continuous mode so the scanner
+        /// stays open after each detection, allowing multiple consecutive scans.
+        /// Each detected barcode is delegated to SearchByBarcode for an exact product-code lookup.
         /// </summary>
         private async Task OpenCameraScannerAsync()
         {
             var parameters = new DialogParameters<CameraBarcodeScannerDialog>
             {
-                { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, SearchByBarcode) }
+                { x => x.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, SearchByBarcode) },
+                { x => x.ContinuousMode, true }
             };
             await DialogService.ShowAsync<CameraBarcodeScannerDialog>(
                 string.Empty, parameters, Dialogs.EFDialogDefaults.Options);
+        }
+
+        /// <summary>
+        /// Exposes focus control to parent components so they can programmatically move
+        /// the keyboard focus into the product search field (e.g. after a dialog opens).
+        /// </summary>
+        public async Task FocusAsync()
+        {
+            if (_autocomplete != null)
+            {
+                await _autocomplete.FocusAsync();
+            }
         }
 
         #endregion
