@@ -99,6 +99,16 @@ namespace EventForge.Client.Shared.Components
         [Parameter] public ProductEditMode EditMode { get; set; } = ProductEditMode.Dialog;
         [Parameter] public ProductCreateMode CreateMode { get; set; } = ProductCreateMode.Delegate;
 
+        /// <summary>
+        /// When true (default), each product selection automatically notifies the parent via
+        /// <see cref="SelectedProductChanged"/> and then immediately resets the component
+        /// (clears text, clears product info, re-focuses the search field) so the operator
+        /// can scan the next item without any manual interaction.
+        /// Set to false when the parent needs the selection to stay visible (e.g. an edit form
+        /// that populates fields and waits for the user to explicitly move on).
+        /// </summary>
+        [Parameter] public bool ContinuousReadMode { get; set; } = true;
+
         #endregion
 
         #region Parameters - Two-Way Binding
@@ -270,27 +280,31 @@ namespace EventForge.Client.Shared.Components
             Logger.LogDebug("OnProductSelectionChangedAsync called. Product: {ProductId} - {ProductName}",
                 product?.Id, product?.Name ?? "NULL");
 
+            if (product == null) return;
+
             try
             {
-                // Track previous product BEFORE update so OnParametersSet can detect the
-                // parent-driven reset to null and restore focus for consecutive selections.
                 _previousSelectedProduct = product;
-
-                // Update local property
                 SelectedProduct = product;
 
-                // ✅ CRITICAL: Notify parent component (AddDocumentRowDialog, ProductNotFoundDialog, etc.)
-                // Without this, the parent never knows a product was selected!
                 if (SelectedProductChanged.HasDelegate)
-                {
                     await SelectedProductChanged.InvokeAsync(product);
+
+                if (ContinuousReadMode)
+                {
+                    // Auto-reset: clear selection so component is immediately ready for next scan
+                    SelectedProduct = null;
+                    _previousSelectedProduct = null;
+                    _searchText = string.Empty;
+                    _shouldFocusAfterProductAdded = true;
+                    StateHasChanged();
+                }
+                else
+                {
+                    UpdateDisplayValues();
                 }
 
-                // Update display values (unit of measure, VAT, etc.)
-                UpdateDisplayValues();
-
-                Logger.LogDebug("Product selection propagated to parent. SelectedProduct: {ProductId}, UnitOfMeasure: {Unit}, VAT: {Vat}",
-                    SelectedProduct?.Id, _currentUnitName, _currentVatName);
+                Logger.LogDebug("Product selection propagated to parent. SelectedProduct: {ProductId}", product?.Id);
             }
             catch (Exception ex)
             {
@@ -310,27 +324,27 @@ namespace EventForge.Client.Shared.Components
 
                 if (productWithCode?.Product != null)
                 {
-                    // Product found - update binding.
-                    // Set _previousSelectedProduct BEFORE notifying the parent so that
-                    // OnParametersSet correctly detects the parent reset (SelectedProduct → null)
-                    // and schedules focus + text-clear for consecutive scans.
                     _previousSelectedProduct = productWithCode.Product;
                     SelectedProduct = productWithCode.Product;
                     await SelectedProductChanged.InvokeAsync(SelectedProduct);
 
-                    // Notify parent with code context (barcode-specific metadata).
-                    // NOTE: SelectedProductChanged has already handled adding the product to the cart.
-                    // OnProductWithCodeFound is for barcode-specific metadata only; the handler
-                    // must NOT call AddProductAsync again to avoid a double-add.
                     if (OnProductWithCodeFound.HasDelegate)
-                    {
                         await OnProductWithCodeFound.InvokeAsync(productWithCode);
+
+                    if (ContinuousReadMode)
+                    {
+                        SelectedProduct = null;
+                        _previousSelectedProduct = null;
+                        _searchText = string.Empty;
+                        _shouldFocusAfterProductAdded = true;
+                        StateHasChanged();
+                    }
+                    else
+                    {
+                        UpdateDisplayValues();
                     }
 
-                    // Update display values
-                    UpdateDisplayValues();
-
-                    Logger.LogInformation("Product found by barcode {Barcode}: {ProductName}",
+                    Logger.LogDebug("Product found by barcode {Barcode}: {ProductName}",
                         barcode, productWithCode.Product.Name);
                 }
                 else
