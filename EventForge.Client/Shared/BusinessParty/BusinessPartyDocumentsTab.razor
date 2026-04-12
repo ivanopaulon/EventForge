@@ -18,8 +18,10 @@
                                    Clearable="true"
                                    Density="Density.Compact">
                     <PickerActions>
-                        <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
-                        <MudButton OnClick="@(() => LoadDocumentsAsync())">@TranslationService.GetTranslation("common.apply", "Applica")</MudButton>
+                        <MudButton Class="mr-auto align-self-start" OnClick="@(() => { _dateRange = null; })"
+                               Variant="Variant.Text" Color="Color.Secondary">@TranslationService.GetTranslation("common.clear", "Pulisci")</MudButton>
+                        <MudButton OnClick="@(() => LoadDocumentsAsync())"
+                               Variant="Variant.Outlined" Color="Color.Primary">@TranslationService.GetTranslation("common.apply", "Applica")</MudButton>
                     </PickerActions>
                 </MudDateRangePicker>
             </MudItem>

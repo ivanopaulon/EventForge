@@ -18,7 +18,7 @@
                           Style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px;">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudStack Spacing="0">
-                            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.55);">
+                            <MudText Typo="Typo.body2" Class="text-dark-muted">
                                 @if (!string.IsNullOrEmpty(Item.ProductCode))
                                 {
                                     @Item.ProductCode
@@ -36,7 +36,7 @@
 
                 <!-- Quantity row -->
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                    <MudText Typo="Typo.caption" Class="text-dark-muted">
                         @TranslationService.GetTranslation("sales.quantity", "Quantità")
                     </MudText>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -64,7 +64,7 @@
 
                 <!-- Price row -->
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                    <MudText Typo="Typo.caption" Class="text-dark-muted">
                         @TranslationService.GetTranslation("sales.unitPrice", "Prezzo unitario (€)")
                     </MudText>
                     <MudNumericField @bind-Value="_unitPrice"
@@ -79,7 +79,7 @@
 
                 <!-- Discount row -->
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.caption" Style="color: rgba(255,255,255,0.55);">
+                    <MudText Typo="Typo.caption" Class="text-dark-muted">
                         @TranslationService.GetTranslation("sales.discountPercent", "Sconto (%)")
                     </MudText>
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">

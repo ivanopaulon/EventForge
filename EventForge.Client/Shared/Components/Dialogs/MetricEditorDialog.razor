@@ -190,14 +190,16 @@
     </ChildContent>
     
     <DialogActions>
-        <MudButton OnClick="Cancel" StartIcon="@Icons.Material.Outlined.Close">
+        <MudButton OnClick="Cancel" StartIcon="@Icons.Material.Outlined.Close"
+                               Variant="Variant.Text" Color="Color.Default">
             Annulla
         </MudButton>
         <MudSpacer />
         
         @if (_activeStepIndex > 0)
         {
-            <MudButton OnClick="PrevStep" StartIcon="@Icons.Material.Outlined.ArrowBack">
+            <MudButton OnClick="PrevStep" StartIcon="@Icons.Material.Outlined.ArrowBack"
+                               Variant="Variant.Text" Color="Color.Default">
                 Indietro
             </MudButton>
         }

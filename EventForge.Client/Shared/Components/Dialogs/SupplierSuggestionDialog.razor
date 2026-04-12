@@ -167,7 +167,8 @@
         }
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.close", "Chiudi")</MudButton>
     </DialogActions>
 </EFDialog>
 

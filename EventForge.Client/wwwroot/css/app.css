@@ -1128,3 +1128,50 @@ kbd {
 .fw-semibold  { font-weight: 600 !important; }
 .fw-bold      { font-weight: 700 !important; }
 .fw-extrabold { font-weight: 800 !important; }
+
+/* ── Text utility classes — replaces Style= on MudText ───────────────────── */
+/* Text overflow / nowrap */
+.text-truncate-ef { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text-nowrap      { white-space: nowrap; }
+.text-prewrap     { white-space: pre-wrap; }
+.text-breakall    { word-break: break-all; }
+.text-breakword   { word-break: break-word; }
+
+/* Opacity / muted */
+.text-opacity-70  { opacity: 0.7; }
+.text-opacity-80  { opacity: 0.8; }
+
+/* Monospace / code */
+.text-mono        { font-family: monospace; }
+.text-mono-sm     { font-family: monospace; font-size: 0.8rem; }
+
+/* Section label style (used in dialog headers for dark backgrounds) */
+.text-section-label {
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Muted text on dark backgrounds */
+.text-dark-muted     { color: rgba(255, 255, 255, 0.55); }
+.text-dark-secondary { color: rgba(255, 255, 255, 0.70); }
+.text-dark-primary   { color: rgba(255, 255, 255, 0.87); }
+.text-dark-full      { color: rgba(255, 255, 255, 1); }
+
+/* Max-width constraints for table cells */
+.ef-max-200 { max-width: 200px; }
+.ef-max-300 { max-width: 300px; }
+.ef-max-400 { max-width: 400px; }
+
+/* Display */
+.d-inline { display: inline; }
+
+/* Flex utilities for MudText */
+.flex-1        { flex: 1; }
+.flex-shrink-0 { flex-shrink: 0; }
+
+/* Cursor */
+.cursor-pointer { cursor: pointer; }
+
+/* Margin utilities */
+.mt-1-px { margin-top: 4px; }

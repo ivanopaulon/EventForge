@@ -220,7 +220,7 @@
                     else if (column.PropertyName == "ProductName")
                     {
                         <MudTd DataLabel="@TranslationService.GetTranslation("field.productName", "Nome Prodotto")">
-                            <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:300px;">@item.ProductName</MudText>
+                            <MudText Typo="Typo.body2" Class="text-truncate ef-max-300" >@item.ProductName</MudText>
                         </MudTd>
                     }
                     else if (column.PropertyName == "WarehouseName")

@@ -180,7 +180,7 @@
                         @TranslationService.GetTranslation("rebuildMovements.previewDetail", "Dettaglio movimenti da creare")
                         @if (PreviewCreatedCount > _previewMaxRows)
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2" Style="display:inline;">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2 d-inline" >
                                 (mostrati @_previewMaxRows di @PreviewCreatedCount)
                             </MudText>
                         }
@@ -199,7 +199,7 @@
                                     <MudText Typo="Typo.body2">@context.DocumentNumber</MudText>
                                 </MudTd>
                                 <MudTd>
-                                    <MudText Typo="Typo.body2" Class="text-truncate" Style="max-width:200px;">@context.ProductName</MudText>
+                                    <MudText Typo="Typo.body2" Class="text-truncate ef-max-200" >@context.ProductName</MudText>
                                 </MudTd>
                                 <MudTd>
                                     <MudChip T="string" Size="Size.Small"

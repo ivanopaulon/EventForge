@@ -26,7 +26,7 @@
         {
             <div class="d-flex align-center gap-1">
                 <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary" />
-                <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                <MudText Typo="Typo.body2" Class="text-nowrap">
                     <strong>@SelectedOperatorName</strong>
                 </MudText>
             </div>
@@ -58,7 +58,7 @@
         {
             <div class="d-flex align-center gap-1">
                 <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Size="Size.Small" Color="Color.Default" />
-                <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                <MudText Typo="Typo.body2" Class="text-nowrap">
                     @SelectedPosName
                 </MudText>
             </div>
@@ -125,7 +125,7 @@
             var displayId = sessionStr.Length >= 8 ? sessionStr.Substring(0, 8) : sessionStr;
             <div class="d-flex align-center gap-1">
                 <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" Color="Color.Info" />
-                <MudText Typo="Typo.caption" Color="Color.Info" Style="white-space:nowrap;">#@displayId</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Info" Class="text-nowrap">#@displayId</MudText>
             </div>
         }
 
@@ -159,12 +159,12 @@
             <MudIcon Icon="@Icons.Material.Outlined.Inbox"
                      Size="Size.Small"
                      Color="@(drawerOpen ? Color.Success : Color.Warning)" />
-            <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+            <MudText Typo="Typo.body2" Class="text-nowrap">
                 <strong>@FiscalDrawerSummary!.Name</strong>
             </MudText>
             <MudText Typo="Typo.caption"
                      Color="@(drawerOpen ? Color.Success : Color.Warning)"
-                     Style="white-space:nowrap;">
+                     Class="text-nowrap">
                 @(drawerOpen
                     ? TranslationService.GetTranslation("sales.drawerOpen", "Aperto")
                     : TranslationService.GetTranslation("sales.drawerClosed", "Chiuso"))
@@ -175,18 +175,18 @@
             {
                 <MudDivider Vertical="true" FlexItem="true" />
                 <div class="d-flex align-center gap-1">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="white-space:nowrap;">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-nowrap">
                         @TranslationService.GetTranslation("sales.balance", "Saldo"):
                     </MudText>
-                    <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                    <MudText Typo="Typo.body2" Class="text-nowrap">
                         <strong>@($"€ {FiscalDrawerSummary!.CurrentBalance:N2}")</strong>
                     </MudText>
                 </div>
                 <div class="d-flex align-center gap-1">
-                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="white-space:nowrap;">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-nowrap">
                         @TranslationService.GetTranslation("sales.sessionSales", "Vendite"):
                     </MudText>
-                    <MudText Typo="Typo.body2" Style="white-space:nowrap;">
+                    <MudText Typo="Typo.body2" Class="text-nowrap">
                         <strong>@($"€ {FiscalDrawerSummary!.SessionTotalSales:N2}")</strong>
                     </MudText>
                 </div>

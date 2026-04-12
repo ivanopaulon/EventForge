@@ -452,7 +452,7 @@
                                     <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.location", "Location")</strong></MudText></MudItem>
                                     <MudItem xs="7"><MudText Typo="Typo.body2">@(_selectedSessionForDetails.Location ?? "-")</MudText></MudItem>
                                     <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.userAgent", "User Agent")</strong></MudText></MudItem>
-                                    <MudItem xs="7"><MudText Typo="Typo.body2" Style="word-break:break-all;">@_selectedSessionForDetails.UserAgent</MudText></MudItem>
+                                    <MudItem xs="7"><MudText Typo="Typo.body2" Class="text-breakall">@_selectedSessionForDetails.UserAgent</MudText></MudItem>
                                     <MudItem xs="5"><MudText Typo="Typo.body2"><strong>@TranslationService.GetTranslation("health.isCurrentSession", "Is Current Session")</strong></MudText></MudItem>
                                     <MudItem xs="7"><MudText Typo="Typo.body2">@(_selectedSessionForDetails.IsCurrentSession ? TranslationService.GetTranslation("common.yes", "Yes") : TranslationService.GetTranslation("common.no", "No"))</MudText></MudItem>
                                 </MudGrid>

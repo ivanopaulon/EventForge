@@ -8,10 +8,11 @@
 @inject NavigationManager NavigationManager
 @inject IServiceProvider ServiceProvider
 @inject IAuthenticationDialogService AuthenticationDialogService
+@inject IThemeService ThemeService
 @inject ILogger<App> Logger
 @implements IDisposable
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_appTheme" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -63,6 +64,7 @@
 
 @code {
     private bool _loginDialogShown = false;
+    private MudTheme _appTheme = EventForgeTheme.GetMudTheme("default");
 
     protected override Task OnInitializedAsync()
     {
@@ -74,7 +76,23 @@
         
         // Subscribe to authentication state changes for protected routes
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
+
+        // Subscribe to theme changes
+        ThemeService.OnThemeChanged += OnThemeChanged;
+        UpdateTheme();
+
         return Task.CompletedTask;
+    }
+
+    private void OnThemeChanged()
+    {
+        UpdateTheme();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateTheme()
+    {
+        _appTheme = EventForgeTheme.GetMudTheme(ThemeService.CurrentTheme);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -147,5 +165,6 @@
     public void Dispose()
     {
         AuthService.OnAuthenticationStateChanged -= OnAuthenticationStateChanged;
+        ThemeService.OnThemeChanged -= OnThemeChanged;
     }
 }

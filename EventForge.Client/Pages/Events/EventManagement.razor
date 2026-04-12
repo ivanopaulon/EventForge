@@ -142,7 +142,7 @@
                                             <div style="width:10px;height:10px;border-radius:50%;background:@(r.Color ?? "#FF9800");flex-shrink:0;" />
                                             <MudStack Spacing="0">
                                                 <MudText Typo="Typo.body2">@r.Title</MudText>
-                                                <MudText Typo="Typo.caption" Style="opacity:.7">@r.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                                <MudText Typo="Typo.caption" Class="text-opacity-70">@r.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
                                             </MudStack>
                                             <MudSpacer />
                                             @if (!string.IsNullOrEmpty(r.AssignedToUserId))
@@ -177,7 +177,7 @@
                                             <div style="width:10px;height:10px;border-radius:50%;background:@(t.Color ?? "#9C27B0");flex-shrink:0;" />
                                             <MudStack Spacing="0">
                                                 <MudText Typo="Typo.body2">@t.Title</MudText>
-                                                <MudText Typo="Typo.caption" Style="opacity:.7">@t.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                                                <MudText Typo="Typo.caption" Class="text-opacity-70">@t.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
                                             </MudStack>
                                             <MudSpacer />
                                             @if (!string.IsNullOrEmpty(t.AssignedToUserId))

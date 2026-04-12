@@ -269,11 +269,13 @@
         @if (_parsedEntries != null && _importResult == null)
         {
             <MudButton OnClick="ResetImport"
-                      StartIcon="@Icons.Material.Outlined.Refresh">
+                      StartIcon="@Icons.Material.Outlined.Refresh"
+                               Variant="Variant.Text" Color="Color.Secondary">
                 @TranslationService.GetTranslation("button.reset", "Ricarica File")
             </MudButton>
         }
-        <MudButton OnClick="Cancel">
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">
             @TranslationService.GetTranslation("button.cancel", _importResult != null ? "Chiudi" : "Annulla")
         </MudButton>
         @if (_parsedEntries != null && _validRowCount > 0 && _importResult == null)

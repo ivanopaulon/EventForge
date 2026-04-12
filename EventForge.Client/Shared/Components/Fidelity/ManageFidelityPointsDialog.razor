@@ -83,7 +83,8 @@
         </MudForm>
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Annulla</MudButton>
+        <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">Annulla</MudButton>
         <MudButton Color="@(_operationType == PointsOperationType.Add ? Color.Success : Color.Warning)" 
                    Variant="Variant.Filled" 
                    OnClick="Submit" 

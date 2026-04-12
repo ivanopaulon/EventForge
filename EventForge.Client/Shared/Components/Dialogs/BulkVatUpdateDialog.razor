@@ -131,7 +131,7 @@
                     <div>
                         <MudText Typo="Typo.subtitle2" Class="mb-1">
                             @(_isRunning ? "Avanzamento in tempo reale" : "Dettaglio elaborazione")
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2" Style="display:inline;">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2 d-inline" >
                                 (@_log.Count @(_log.Count == 1 ? "elemento" : "elementi"))
                             </MudText>
                         </MudText>
@@ -174,7 +174,7 @@
                                         @if (context.Status == StatusUpdated)
                                         {
                                             <MudText Typo="Typo.body2" Color="Color.Success"
-                                                     Class="text-truncate" Style="max-width:200px;" title="@context.Detail">
+                                                     Class="text-truncate ef-max-200"  title="@context.Detail">
                                                 → @context.Detail
                                             </MudText>
                                         }
@@ -189,7 +189,7 @@
                                         else
                                         {
                                             <MudText Typo="Typo.caption" Color="Color.Error"
-                                                     Class="text-truncate" Style="max-width:200px;" title="@context.Detail">
+                                                     Class="text-truncate ef-max-200"  title="@context.Detail">
                                                 @context.Detail
                                             </MudText>
                                         }

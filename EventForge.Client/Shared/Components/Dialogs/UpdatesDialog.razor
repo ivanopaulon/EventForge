@@ -129,12 +129,12 @@
                                     @if (!string.IsNullOrEmpty(_packageDetails.ReleaseNotes))
                                     {
                                         <MudItem xs="4"><MudText Typo="Typo.body2"><strong>Note di rilascio</strong></MudText></MudItem>
-                                        <MudItem xs="8"><MudText Typo="Typo.body2" Style="white-space:pre-wrap">@_packageDetails.ReleaseNotes</MudText></MudItem>
+                                        <MudItem xs="8"><MudText Typo="Typo.body2" Class="text-prewrap">@_packageDetails.ReleaseNotes</MudText></MudItem>
                                     }
                                     @if (!string.IsNullOrEmpty(_packageDetails.Checksum))
                                     {
                                         <MudItem xs="4"><MudText Typo="Typo.body2"><strong>Checksum SHA-256</strong></MudText></MudItem>
-                                        <MudItem xs="8"><MudText Typo="Typo.caption" Style="word-break:break-all"><code>@_packageDetails.Checksum</code></MudText></MudItem>
+                                        <MudItem xs="8"><MudText Typo="Typo.caption" Class="text-breakall"><code>@_packageDetails.Checksum</code></MudText></MudItem>
                                     }
                                 </MudGrid>
                             </MudPaper>

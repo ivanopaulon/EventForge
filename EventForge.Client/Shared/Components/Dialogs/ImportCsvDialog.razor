@@ -402,7 +402,8 @@
     <DialogActions>
         @if (_activeStepIndex == 0)
         {
-            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+            <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step1Next" 
                        Disabled="@(_selectedFile == null)">
                 @TranslationService.GetTranslation("common.next", "Avanti")
@@ -410,21 +411,24 @@
         }
         else if (_activeStepIndex == 1)
         {
-            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton OnClick="@(() => _activeStepIndex--)"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step2Next">
                 @TranslationService.GetTranslation("common.next", "Avanti")
             </MudButton>
         }
         else if (_activeStepIndex == 2)
         {
-            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton OnClick="@(() => _activeStepIndex--)"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _activeStepIndex++)">
                 @TranslationService.GetTranslation("common.next", "Avanti")
             </MudButton>
         }
         else if (_activeStepIndex == 3)
         {
-            <MudButton OnClick="@(() => _activeStepIndex--)">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
+            <MudButton OnClick="@(() => _activeStepIndex--)"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ImportCsv" 
                        Disabled="@(!_validationResult?.IsValid ?? true)">
                 @TranslationService.GetTranslation("csvImport.import", "Importa")

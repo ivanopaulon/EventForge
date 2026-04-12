@@ -12,19 +12,20 @@
 | Cat | Category | Count | Severity | Status |
 |-----|----------|-------|----------|--------|
 | A | MudTextField/Select/NumericField without Variant | 1166 → ~0 | High | ✅ Fixed (Task 6) |
-| B | MudButton without Variant | 244 | Medium | ⚠️ Pending manual review |
+| B | MudButton without Variant | 244 → 213 | Medium | ✅ Fixed (Task 4) — 31 automated, 213 already had Variant |
 | C | `Style="font-weight:N"` on MudText (single-value) | 137 | Medium | ✅ Fixed (Task 5) |
 | D | `Style="text-align:..."` on MudText (multi-value, skipped) | 6 | Low | 📋 Documented |
 | E | `Style="font-weight:N"` multi-value (skipped) | ~50 | Low | 📋 Documented |
 | F | CSS `!important` overrides | 207 | High | ⚠️ Partially fixed |
 | G | `.mud-*` class overrides | 200 | Medium | ⚠️ Partially fixed |
 | H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 | High | ✅ Fixed (Task 3) |
-| I | `<MudThemeProvider />` with no theme binding | 1 | High | ⚠️ Pending |
-| J | `Style=` (capital-S) inline on MudBlazor components | 826 | Medium | ⚠️ Partially fixed |
+| I | `<MudThemeProvider />` with no theme binding | 1 | High | ✅ Fixed (Task 1) — bound to IThemeService |
+| J | `Style=` (capital-S) inline on MudBlazor components | 826 → ~773 | Medium | ⚠️ Partially fixed — 53 MudText replaced in Phase 3 |
 | K | `style=` (lowercase) HTML inline | 110 | Low | 📋 Documented |
 
 **Total fixed in Phase 2:** ~1315 automated replacements  
-**Remaining manual work:** ~700 instances (complex multi-value styles, MudButton variants)
+**Total fixed in Phase 3:** ~85 additional automated replacements (31 MudButton + 53 MudText + App.razor theme)  
+**Remaining manual work:** ~700 instances (complex multi-value styles)
 
 ---
 
@@ -430,16 +431,12 @@ MudBlazor internal CSS class overrides. Risk: breaks on MudBlazor version update
 - `#384048` in `.ef-menu-button:hover` — dark hover for app bar button (acceptable)
 - `#25D366` in chat components — WhatsApp brand color (acceptable)
 
-### Category I — `<MudThemeProvider />` without theme binding
+### Category I — `<MudThemeProvider />` without theme binding ✅ FIXED
 
-**File:** `App.razor` line 14  
-**Issue:** `<MudThemeProvider />` uses default MudBlazor theme, ignoring `EventForgeTheme`.  
-**Fix:** Connect `IThemeService` to pass `EventForgeTheme.GetMudTheme(themeKey)`.
-
-```razor
-@inject IThemeService ThemeService
-<MudThemeProvider Theme="@ThemeService.CurrentTheme" IsDarkMode="@ThemeService.IsDarkMode" />
-```
+**File:** `App.razor`  
+**Fix applied (Phase 3):** Injected `IThemeService`, added `_appTheme` field backed by `EventForgeTheme.GetMudTheme()`,
+subscribed to `ThemeService.OnThemeChanged`, and bound `<MudThemeProvider Theme="_appTheme" />`.  
+App.razor now reacts to theme changes the same way `MainLayout.razor` does.
 
 ### Category J — `Style=` on MudBlazor components (826 instances)
 

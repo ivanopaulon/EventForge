@@ -216,17 +216,20 @@
         {
             @if (!_showResult)
             {
-                <MudButton OnClick="BackToForm">@TranslationService.GetTranslation("button.back", "Indietro")</MudButton>
+                <MudButton OnClick="BackToForm"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("button.back", "Indietro")</MudButton>
             }
             @if (_showResult)
             {
-                <MudButton Color="Color.Primary" Disabled="@_isProcessing" OnClick="Close">
+                <MudButton Color="Color.Primary" Disabled="@_isProcessing" OnClick="Close"
+                               Variant="Variant.Text">
                     @TranslationService.GetTranslation("button.close", "Chiudi")
                 </MudButton>
             }
             else
             {
-                <MudButton Color="Color.Primary" Disabled="@_isProcessing" OnClick="ApplyChanges">
+                <MudButton Color="Color.Primary" Disabled="@_isProcessing" OnClick="ApplyChanges"
+                               Variant="Variant.Outlined">
                     @if (_isProcessing)
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true" />
@@ -240,8 +243,10 @@
         }
         else
         {
-            <MudButton OnClick="Cancel">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
-            <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isProcessing)" OnClick="ShowPreview">
+            <MudButton OnClick="Cancel"
+                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("button.cancel", "Annulla")</MudButton>
+            <MudButton Color="Color.Primary" Disabled="@(!_isValid || _isProcessing)" OnClick="ShowPreview"
+                               Variant="Variant.Text">
                 @if (_isProcessing)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" />
