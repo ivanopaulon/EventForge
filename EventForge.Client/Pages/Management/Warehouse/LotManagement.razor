@@ -16,18 +16,17 @@
                       Service="_service"
                       AdditionalFilter="@(l => string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus)">
     <AdditionalToolbarContent>
-        <MudSelect @bind-Value="_selectedStatus"
-                   @bind-Value:after="OnFilterChanged"
-                   Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
-                   Variant="Variant.Outlined"
-                   Clearable="true"
-                   Class="ml-2 min-width-150"
->
+        <PrymSelect T="string"
+                    @bind-Value="_selectedStatus"
+                    @bind-Value:after="OnFilterChanged"
+                    Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
+                    Clearable="true"
+                    Class="ml-2 min-width-150">
             <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("warehouse.active", "Attivo")</MudSelectItem>
             <MudSelectItem Value="@("Blocked")">@TranslationService.GetTranslation("warehouse.blocked", "Bloccato")</MudSelectItem>
             <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>
             <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("warehouse.recalled", "Richiamato")</MudSelectItem>
-        </MudSelect>
+        </PrymSelect>
     </AdditionalToolbarContent>
 
     <HeaderContent Context="columnConfigurations">
@@ -157,21 +156,21 @@
         @if (item.Status != "Blocked")
         {
             <MudTooltip Text="@TranslationService.GetTranslation("warehouse.block", "Blocca lotto")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Lock"
-                               Color="Color.Warning"
-                               Size="Size.Small"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => BlockLot(item))" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.Lock"
+                                Color="Color.Warning"
+                                Size="Size.Small"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => BlockLot(item))" />
             </MudTooltip>
         }
         else
         {
             <MudTooltip Text="@TranslationService.GetTranslation("warehouse.unblock", "Sblocca lotto")">
-                <MudIconButton Icon="@Icons.Material.Outlined.LockOpen"
-                               Color="Color.Success"
-                               Size="Size.Small"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => UnblockLot(item))" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.LockOpen"
+                                Color="Color.Success"
+                                Size="Size.Small"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => UnblockLot(item))" />
             </MudTooltip>
         }
     </AdditionalRowActions>

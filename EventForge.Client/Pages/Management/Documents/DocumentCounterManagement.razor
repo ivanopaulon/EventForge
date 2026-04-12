@@ -18,14 +18,12 @@
                       AdditionalFilter="@(c => !_selectedDocumentTypeId.HasValue || c.DocumentTypeId == _selectedDocumentTypeId.Value)"
                       OnCreateOverride="@OpenCreateDialog">
     <AdditionalToolbarContent>
-        <MudSelect T="Guid?"
-                   Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
-                   Class="ef-select ef-min-200 mr-2"
-                   @bind-Value="_selectedDocumentTypeId"
-                   @bind-Value:after="OnFilterChanged"
-                   Clearable="true"
-
-                    Variant="Variant.Outlined">
+        <PrymSelect T="Guid?"
+                    Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
+                    Class="ef-select ef-min-200 mr-2"
+                    @bind-Value="_selectedDocumentTypeId"
+                    @bind-Value:after="OnFilterChanged"
+                    Clearable="true">
             @if (_documentTypes != null)
             {
                 @foreach (var type in _documentTypes)
@@ -33,7 +31,7 @@
                     <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
                 }
             }
-        </MudSelect>
+        </PrymSelect>
     </AdditionalToolbarContent>
 
     <HeaderContent Context="columnConfigurations">
@@ -142,11 +140,11 @@
 
     <AdditionalRowActions Context="item">
         <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                           Color="Color.Primary"
-                           Size="Size.Small"
-                           Class="ef-row-actionbutton"
-                           OnClick="@(() => OpenEditDialog(item))" />
+            <PrymIconButton Icon="@Icons.Material.Outlined.Edit"
+                            Color="Color.Primary"
+                            Size="Size.Small"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => OpenEditDialog(item))" />
         </MudTooltip>
     </AdditionalRowActions>
 </EntityManagementPage>

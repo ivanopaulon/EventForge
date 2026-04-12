@@ -97,11 +97,11 @@
 
     <AdditionalRowActions Context="item">
         <MudTooltip Text="@TranslationService.GetTranslation("classificationNode.addChild", "Aggiungi figlio")">
-            <MudIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
-                           Color="Color.Secondary"
-                           Size="Size.Small"
-                           Class="ef-row-actionbutton"
-                           OnClick="@(() => OpenAddChildDialogAsync(item.Id))" />
+            <PrymIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
+                            Color="Color.Secondary"
+                            Size="Size.Small"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => OpenAddChildDialogAsync(item.Id))" />
         </MudTooltip>
     </AdditionalRowActions>
 </EntityManagementPage>

@@ -29,10 +29,10 @@
         <MudTooltip Text="@(_entityPage?.EFTableRef?.SelectedItems.Count > 0
                             ? $"Aggiorna da P.IVA ({_entityPage.EFTableRef.SelectedItems.Count(p => !string.IsNullOrWhiteSpace(p.VatNumber))} selezionati con P.IVA)"
                             : "Aggiorna ragione sociale da P.IVA per tutti i business party")">
-            <MudIconButton Icon="@Icons.Material.Outlined.ManageSearch"
-                           Color="Color.Primary"
-                           Size="Size.Medium"
-                           OnClick="@OpenBulkVatUpdateDialogAsync" />
+            <PrymIconButton Icon="@Icons.Material.Outlined.ManageSearch"
+                            Color="Color.Primary"
+                            Size="Size.Medium"
+                            OnClick="@OpenBulkVatUpdateDialogAsync" />
         </MudTooltip>
     </AdditionalToolbarContent>
 
@@ -192,17 +192,17 @@
         @if (item.PartyType == BusinessPartyType.Supplier || item.PartyType == BusinessPartyType.Both)
         {
             <MudTooltip Text="@TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Inventory2"
-                               Color="Color.Dark"
-                               Size="Size.Small"
-                               OnClick="@(() => ManageSupplierProductsAsync(item))" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.Inventory2"
+                                Color="Color.Dark"
+                                Size="Size.Small"
+                                OnClick="@(() => ManageSupplierProductsAsync(item))" />
             </MudTooltip>
         }
         <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
-            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                           Color="Color.Primary"
-                           Size="Size.Small"
-                           OnClick="@(() => EditBusinessParty(item))" />
+            <PrymIconButton Icon="@Icons.Material.Outlined.Edit"
+                            Color="Color.Primary"
+                            Size="Size.Small"
+                            OnClick="@(() => EditBusinessParty(item))" />
         </MudTooltip>
     </AdditionalRowActions>
 </EntityManagementPage>
