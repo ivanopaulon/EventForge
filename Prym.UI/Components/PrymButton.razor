@@ -1,0 +1,43 @@
+<MudButton Variant="_variant"
+           Color="_color"
+           StartIcon="@StartIcon"
+           EndIcon="@EndIcon"
+           Size="Size"
+           Disabled="Disabled"
+           OnClick="OnClick"
+           Href="@Href"
+           HtmlTag="@HtmlTag"
+           Class="@Class"
+           Style="@Style">
+    @ChildContent
+</MudButton>
+
+@code {
+    public enum ButtonIntent { Primary, Secondary, Ghost, Danger }
+
+    [Parameter] public ButtonIntent    Intent       { get; set; } = ButtonIntent.Primary;
+    [Parameter] public string?         StartIcon    { get; set; }
+    [Parameter] public string?         EndIcon      { get; set; }
+    [Parameter] public Size            Size         { get; set; } = Size.Medium;
+    [Parameter] public bool            Disabled     { get; set; } = false;
+    [Parameter] public EventCallback   OnClick      { get; set; }
+    [Parameter] public string?         Href         { get; set; }
+    [Parameter] public string          HtmlTag      { get; set; } = "button";
+    [Parameter] public string?         Class        { get; set; }
+    [Parameter] public string?         Style        { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private Variant _variant => Intent switch
+    {
+        ButtonIntent.Secondary => Variant.Outlined,
+        ButtonIntent.Ghost     => Variant.Text,
+        _                      => Variant.Filled,
+    };
+
+    private Color _color => Intent switch
+    {
+        ButtonIntent.Danger => Color.Error,
+        ButtonIntent.Ghost  => Color.Default,
+        _                   => Color.Primary,
+    };
+}

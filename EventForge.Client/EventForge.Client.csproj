@@ -35,6 +35,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+    <ProjectReference Include="..\Prym.UI\Prym.UI.csproj" />
   </ItemGroup>
   <ItemGroup>
     <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
