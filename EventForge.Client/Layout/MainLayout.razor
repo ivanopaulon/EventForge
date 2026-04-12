@@ -25,7 +25,7 @@
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
 <MudLayout>
-    <!-- AppBar: [Menu] [Home] ---- [logoWhite] [Login?] -->
+    <!-- AppBar: [Menu] [Home] ---- [Logo] [ThemeToggle] -->
     <MudAppBar Elevation="1" role="banner" Class="ef-appbar">
         <MudTooltip Text="@TranslationService.GetTranslation("navigation.menu", "Menu")">
             <MudIconButton Icon="@Icons.Material.Outlined.Menu"
@@ -46,12 +46,20 @@
             </MudIconButton>
         </MudTooltip>
         <MudSpacer />
-        <MudImage Src="@(_branding?.LogoUrl ?? "/logoWhite.svg")"
+        <MudImage Src="@GetLogoSrc()"
                   Alt="@($"{(_branding?.ApplicationName ?? "PRYM")} Logo")"
                   Height="@(_branding?.LogoHeight ?? 40)"
                   ObjectFit="ObjectFit.Contain"
                   Class="ef-appbar-logo mx-2">
         </MudImage>
+        <MudTooltip Text="@(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.switchLight", "Passa al tema chiaro") : TranslationService.GetTranslation("theme.switchDark", "Passa al tema scuro"))">
+            <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="@(async () => await ThemeService.ToggleThemeAsync())"
+                           aria-label="@(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.switchLight", "Passa al tema chiaro") : TranslationService.GetTranslation("theme.switchDark", "Passa al tema scuro"))"
+                           Class="ef-menu-button">
+            </MudIconButton>
+        </MudTooltip>
     </MudAppBar>
     
     @if (_isAuthenticated)
@@ -198,6 +206,14 @@
     private void UpdateTheme()
     {
         _currentTheme = EventForgeTheme.GetMudTheme(ThemeService.CurrentTheme);
+    }
+
+    private string GetLogoSrc()
+    {
+        var configuredUrl = _branding?.LogoUrl;
+        if (string.IsNullOrEmpty(configuredUrl) || configuredUrl == "/logoWhite.svg")
+            return ThemeService.IsDarkMode ? "/images/logoWhite.svg" : "/images/logo.svg";
+        return configuredUrl;
     }
 
     private string GetPageTitle()
