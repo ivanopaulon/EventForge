@@ -1,6 +1,6 @@
 # MudBlazor Design System Audit — EventForge.Client
 
-**Version:** Phase 1+2+3d+3e+3f+3g+3h+4  
+**Version:** Phase 1+2+3d+3e+3f+3g+3h+4+5  
 **MudBlazor:** 9.2.0  
 **Framework:** Blazor WASM (.NET 10)  
 **Audit date:** 2025 — updated 2026-04-12  
@@ -16,12 +16,15 @@
 | C | `Style="font-weight:N"` on MudText (single-value) | 137 → 0 | Medium | ✅ Fixed (Task 5) |
 | D | `Style="text-align:..."` on MudText (multi-value, skipped) | 6 | Low | 📋 Documented |
 | E | `Style="font-weight:N"` multi-value (skipped) | ~50 | Low | 📋 Documented |
-| F | CSS `!important` overrides | 229 → **224** | High | ⚠️ Partially fixed — target ~50 requires full MudTheme migration |
-| G | `.mud-*` class overrides | 282 → **280** | Medium | ⚠️ Partially fixed — target ~30 requires full MudTheme migration |
+| F | CSS `!important` overrides | 167 → **150** | High | ⚠️ Phase 5: 17 palette-var `!important` removed from mud-components.css; sizing rules kept |
+| G | `.mud-*` class overrides | 122 → **122** | Medium | ⚠️ Unchanged — structural overrides that require CSS-level targeting |
 | H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 → 0 | High | ✅ Fixed (Task 3) |
 | I | `<MudThemeProvider />` with no theme binding | 1 → 0 | High | ✅ Fixed (Task 1) — bound to IThemeService |
 | J | `Style=` (capital-S) inline on MudBlazor components | 826 → **151** | Medium | ⚠️ Substantially fixed — 675+ replacements total; 108 remaining are dynamic (@expr), 43 complex multi-value |
 | K | `style=` (lowercase) HTML inline | 110 → **64** | Low | ✅ Phase 3g: 46 simple styles converted to CSS classes — 52 complex multi-property + 12 single-use remain |
+
+> **Note (Phase 5):** Previous Cat F/G counts (229/282) were measured by `grep` which matched inside `/* ... */` block comments.  
+> The corrected baseline with comment-stripping is **167 active !important** and **122 active .mud-\* rules** across all CSS files.
 
 **Total fixed in Phase 2:** ~1315 automated replacements  
 **Total fixed in Phase 3a/3b:** ~85 additional (31 MudButton + 53 MudText + App.razor theme)  
