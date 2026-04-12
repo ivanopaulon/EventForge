@@ -80,61 +80,61 @@
         
         <!-- Azioni -->
         <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
-            <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.History"
- Color="Color.Default"
- Size="Size.Small"
- OnClick="@(() => OnViewHistory.InvokeAsync(Card))"
- title="Storico transazioni"
- />
+            <MudIconButton Class="text-white-full"
+                           Icon="@Icons.Material.Outlined.History"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           OnClick="@(() => OnViewHistory.InvokeAsync(Card))"
+                           title="Storico transazioni" />
             
             @if (Card.Status == FidelityCardStatus.Active)
             {
-                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.AddCircle"
- Color="Color.Default"
- Size="Size.Small"
- OnClick="@(() => OnManagePoints.InvokeAsync(Card))"
- title="Gestisci punti"
- />
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.AddCircle"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnManagePoints.InvokeAsync(Card))"
+                               title="Gestisci punti" />
             }
             
             @if (Card.Status != FidelityCardStatus.Revoked)
             {
-                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.Edit"
- Color="Color.Default"
- Size="Size.Small"
- OnClick="@(() => OnEdit.InvokeAsync(Card))"
- title="Modifica card"
- />
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.Edit"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnEdit.InvokeAsync(Card))"
+                               title="Modifica card" />
             }
             
             @if (Card.Status == FidelityCardStatus.Active)
             {
-                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.Pause"
- Color="Color.Default"
- Size="Size.Small"
- OnClick="@(() => OnSuspend.InvokeAsync(Card))"
- title="Sospendi card"
- />
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.Pause"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnSuspend.InvokeAsync(Card))"
+                               title="Sospendi card" />
             }
             
             @if (Card.Status == FidelityCardStatus.Suspended)
             {
-                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.PlayArrow"
- Color="Color.Default"
- Size="Size.Small"
- OnClick="@(() => OnActivate.InvokeAsync(Card))"
- title="Riattiva card"
- />
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.PlayArrow"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnActivate.InvokeAsync(Card))"
+                               title="Riattiva card" />
             }
             
             @if (Card.Status != FidelityCardStatus.Revoked)
             {
-                <MudIconButton Class="text-white-full" Icon="@Icons.Material.Outlined.Block"
- Color="Color.Default"
- Size="Size.Small"
- OnClick="@(() => OnRevoke.InvokeAsync(Card))"
- title="Revoca card"
- />
+                <MudIconButton Class="text-white-full"
+                               Icon="@Icons.Material.Outlined.Block"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="@(() => OnRevoke.InvokeAsync(Card))"
+                               title="Revoca card" />
             }
         </MudStack>
         
