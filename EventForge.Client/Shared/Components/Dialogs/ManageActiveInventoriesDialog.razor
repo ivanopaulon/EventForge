@@ -15,7 +15,7 @@
         {
             <!-- InitialCheck Mode: Lista completa inventari aperti -->
             <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                <MudText Typo="Typo.body1"  Class="fw-semibold">
                     @TranslationService.GetTranslation("warehouse.openInventoriesFound", "Ci sono {0} inventari non finalizzati.", AllOpenInventories.Count)
                 </MudText>
                 <MudText Typo="Typo.body2">
@@ -83,7 +83,7 @@
         {
             <!-- SwitchInventory Mode: Focus su inventario corrente + azioni rapide -->
             <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                <MudText Typo="Typo.body1"  Class="fw-semibold">
                     @TranslationService.GetTranslation("warehouse.switchInventoryWarning", "Stai per cambiare inventario")
                 </MudText>
                 <MudText Typo="Typo.body2">
@@ -101,11 +101,11 @@
                 <MudGrid Spacing="2" Class="mb-3">
                     <MudItem xs="6">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.documentNumber", "Numero"):</MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">#@CurrentDocument.Number</MudText>
+                        <MudText Typo="Typo.body1"  Class="fw-semibold">#@CurrentDocument.Number</MudText>
                     </MudItem>
                     <MudItem xs="6">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino"):</MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">@CurrentDocument.WarehouseName</MudText>
+                        <MudText Typo="Typo.body1"  Class="fw-semibold">@CurrentDocument.WarehouseName</MudText>
                     </MudItem>
                     <MudItem xs="6">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.items", "Articoli"):</MudText>

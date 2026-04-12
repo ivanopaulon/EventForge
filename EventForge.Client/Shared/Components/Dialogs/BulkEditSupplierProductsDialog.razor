@@ -159,7 +159,8 @@
                                              Min="0m"
                                              Step="0.01m"
                                              Format="N2"
-                                             Disabled="@(!_request.UpdateMode.HasValue)" />
+                                             Disabled="@(!_request.UpdateMode.HasValue)"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
 
@@ -176,7 +177,8 @@
                                              Label="@TranslationService.GetTranslation("field.leadTimeDays", "Tempi di Consegna (giorni)")"
                                              Variant="Variant.Outlined"
                                              Min="0"
-                                             Clearable="true" />
+                                             Clearable="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         <MudItem xs="12" md="6">
@@ -185,7 +187,8 @@
                                           Variant="Variant.Outlined"
                                           MaxLength="10"
                                           Placeholder="EUR"
-                                          Clearable="true" />
+                                          Clearable="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         <MudItem xs="12" md="6">
@@ -193,7 +196,8 @@
                                              Label="@TranslationService.GetTranslation("field.minOrderQty", "Quantità Minima Ordine")"
                                              Variant="Variant.Outlined"
                                              Min="0"
-                                             Clearable="true" />
+                                             Clearable="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         <MudItem xs="12" md="6">

@@ -55,7 +55,8 @@
                                                           Required="true"
                                                           MaxLength="100"
                                                           Class="ef-input"
-                                                          @bind-Value:after="@(() => _hasChanges = true)" />
+                                                          @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                             <ValidationMessage For="() => _updateModel.Name" />
                                         </MudItem>
                                         <!-- Descrizione -->
@@ -66,20 +67,23 @@
                                                           Lines="3"
                                                           MaxLength="500"
                                                           Class="ef-input"
-                                                          @bind-Value:after="@(() => _hasChanges = true)" />
+                                                          @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- Date -->
                                         <MudItem xs="12" md="6">
                                             <MudDatePicker @bind-Date="_startDate"
                                                            Label="@TranslationService.GetTranslation("field.startDate", "Data Inizio")"
                                                            Variant="Variant.Outlined"
-                                                           @bind-Date:after="@(() => _hasChanges = true)" />
+                                                           @bind-Date:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <MudItem xs="12" md="6">
                                             <MudDatePicker @bind-Date="_endDate"
                                                            Label="@TranslationService.GetTranslation("field.endDate", "Data Fine")"
                                                            Variant="Variant.Outlined"
-                                                           @bind-Date:after="@(() => _hasChanges = true)" />
+                                                           @bind-Date:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- Priorità -->
                                         <MudItem xs="12" md="6">
@@ -88,7 +92,8 @@
                                                              Variant="Variant.Outlined"
                                                              Min="0"
                                                              Class="ef-numeric"
-                                                             @bind-Value:after="@(() => _hasChanges = true)" />
+                                                             @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- MaxUses -->
                                         <MudItem xs="12" md="6">
@@ -97,7 +102,8 @@
                                                              Variant="Variant.Outlined"
                                                              Placeholder="@TranslationService.GetTranslation("promotion.unlimited", "Illimitato")"
                                                              Class="ef-numeric"
-                                                             @bind-Value:after="@(() => _hasChanges = true)" />
+                                                             @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- CouponCode -->
                                         <MudItem xs="12" md="6">
@@ -106,7 +112,8 @@
                                                           Variant="Variant.Outlined"
                                                           MaxLength="50"
                                                           Class="ef-input"
-                                                          @bind-Value:after="@(() => _hasChanges = true)" />
+                                                          @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- MinOrderAmount -->
                                         <MudItem xs="12" md="6">
@@ -117,7 +124,8 @@
                                                              Adornment="Adornment.Start"
                                                              AdornmentText="€"
                                                              Class="ef-numeric"
-                                                             @bind-Value:after="@(() => _hasChanges = true)" />
+                                                             @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- IsCombinable -->
                                         <MudItem xs="12">
@@ -138,7 +146,8 @@
                                                              AdornmentText="%"
                                                              HelperText="@TranslationService.GetTranslation("field.maxTotalDiscountPercentageHint", "Limite massimo sconto cumulato. Lascia vuoto per nessun limite.")"
                                                              Class="ef-numeric"
-                                                             @bind-Value:after="@(() => _hasChanges = true)" />
+                                                             @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <!-- MaxUsesPerCustomer -->
                                         <MudItem xs="12" md="6">
@@ -148,7 +157,8 @@
                                                              Min="1"
                                                              HelperText="@TranslationService.GetTranslation("field.maxUsesPerCustomerHint", "Lascia vuoto per nessun limite per cliente.")"
                                                              Class="ef-numeric"
-                                                             @bind-Value:after="@(() => _hasChanges = true)" />
+                                                             @bind-Value:after="@(() => _hasChanges = true)"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                     </MudGrid>
                                 </MudPaper>
@@ -373,7 +383,8 @@
                                                          Variant="Variant.Outlined"
                                                          Format="F2"
                                                          Adornment="Adornment.Start"
-                                                         AdornmentText="€" />
+                                                         AdornmentText="€"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     @if (_ruleModel.RuleType == "Discount" || _ruleModel.RuleType == "CategoryDiscount" || _ruleModel.RuleType == "CustomerSpecific")
                                     {
@@ -383,7 +394,8 @@
                                                              Variant="Variant.Outlined"
                                                              Format="F2"
                                                              Adornment="Adornment.End"
-                                                             AdornmentText="%" />
+                                                             AdornmentText="%"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <MudItem xs="12" md="6">
                                             <MudNumericField @bind-Value="_ruleModel.DiscountAmount"
@@ -391,7 +403,8 @@
                                                              Variant="Variant.Outlined"
                                                              Format="F2"
                                                              Adornment="Adornment.Start"
-                                                             AdornmentText="€" />
+                                                             AdornmentText="€"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                     }
                                     @if (_ruleModel.RuleType == "CartAmountDiscount" || _ruleModel.RuleType == "Coupon")
@@ -402,7 +415,8 @@
                                                              Variant="Variant.Outlined"
                                                              Format="F2"
                                                              Adornment="Adornment.End"
-                                                             AdornmentText="%" />
+                                                             AdornmentText="%"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <MudItem xs="12" md="6">
                                             <MudNumericField @bind-Value="_ruleModel.DiscountAmount"
@@ -410,7 +424,8 @@
                                                              Variant="Variant.Outlined"
                                                              Format="F2"
                                                              Adornment="Adornment.Start"
-                                                             AdornmentText="€" />
+                                                             AdornmentText="€"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                     }
                                     @if (_ruleModel.RuleType == "BuyXGetY")
@@ -419,13 +434,15 @@
                                             <MudNumericField @bind-Value="_ruleModel.RequiredQuantity"
                                                              Label="@TranslationService.GetTranslation("field.requiredQuantity", "Quantità Richiesta (X)")"
                                                              Variant="Variant.Outlined"
-                                                             Min="1" />
+                                                             Min="1"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <MudItem xs="12" md="6">
                                             <MudNumericField @bind-Value="_ruleModel.FreeQuantity"
                                                              Label="@TranslationService.GetTranslation("field.freeQuantity", "Quantità Omaggio (Y)")"
                                                              Variant="Variant.Outlined"
-                                                             Min="1" />
+                                                             Min="1"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                     }
                                     @if (_ruleModel.RuleType == "FixedPrice" || _ruleModel.RuleType == "Bundle")
@@ -436,7 +453,8 @@
                                                              Variant="Variant.Outlined"
                                                              Format="F2"
                                                              Adornment="Adornment.Start"
-                                                             AdornmentText="€" />
+                                                             AdornmentText="€"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                     }
                                     @* Products targeting *@
@@ -532,13 +550,15 @@
                                             <MudTimePicker @bind-Time="_ruleStartTime"
                                                            Label="@TranslationService.GetTranslation("promotion.rules.startTime", "Ora Inizio")"
                                                            Variant="Variant.Outlined"
-                                                           AmPm="false" />
+                                                           AmPm="false"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                         <MudItem xs="12" md="6">
                                             <MudTimePicker @bind-Time="_ruleEndTime"
                                                            Label="@TranslationService.GetTranslation("promotion.rules.endTime", "Ora Fine")"
                                                            Variant="Variant.Outlined"
-                                                           AmPm="false" />
+                                                           AmPm="false"
+                    Margin="Margin.Dense"/>
                                         </MudItem>
                                     }
                                     <MudItem xs="12">

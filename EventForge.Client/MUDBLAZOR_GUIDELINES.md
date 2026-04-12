@@ -1,180 +1,373 @@
-# MudBlazor Component Guidelines — EventForge.Client
+# MudBlazor Design System Guidelines — EventForge.Client
 
-These guidelines define the **standard** way to use MudBlazor v6+ components in
-this codebase.  All new code and any refactored code must follow these rules.
-
----
-
-## 1. Button Variants
-
-| Variant | Use case |
-|---------|----------|
-| `Variant.Filled` | **Primary actions** — the single most important action on a page or in a dialog (e.g. "Save", "Confirm", "Submit"). Only one per visible action group. |
-| `Variant.Outlined` | **Secondary actions** — supporting actions alongside a primary button (e.g. "Cancel", "Back", "Export"). |
-| `Variant.Text` | **Tertiary / low-emphasis actions** — links, destructive-confirm buttons, menu items in a popover. |
-
-```razor
-<!-- ✅ Correct -->
-<MudButton Variant="Variant.Filled" Color="Color.Primary">Save</MudButton>
-<MudButton Variant="Variant.Outlined" Color="Color.Default">Cancel</MudButton>
-<MudButton Variant="Variant.Text" Color="Color.Error">Delete</MudButton>
-
-<!-- ❌ Wrong — multiple Filled buttons in one action group -->
-<MudButton Variant="Variant.Filled">Save</MudButton>
-<MudButton Variant="Variant.Filled">Cancel</MudButton>
-```
-
-**Icon buttons** (`MudIconButton`) use no variant — they are always compact.
+**MudBlazor:** 9.2.0 | **Framework:** Blazor WASM (.NET 10)
 
 ---
 
-## 2. Form Inputs
+## §1 Core Principle
 
-All form inputs must use:
+> **All styling goes through the theme system or utility classes. Inline `Style=` is prohibited except for dynamic/computed values.**
 
+The precedence order is:
+1. **MudBlazor parameters** (`Variant=`, `Color=`, `Typo=`, `Align=`, `Size=`, etc.)
+2. **Theme tokens** via `EventForgeTheme.cs`
+3. **CSS utility classes** (`.fw-bold`, `.ef-input`, `.ef-select`, etc.)
+4. **CSS variables** (`var(--mud-palette-primary)`) for values not in MudBlazor params
+5. **Inline `Style=`** — only for truly dynamic/computed values (e.g., `Style="@($"width:{value}px;")"`)
+
+---
+
+## §2 Canonical Component Rules
+
+### 2.1 MudButton
+
+| Use case | Variant | Color | Notes |
+|----------|---------|-------|-------|
+| Primary action (Save, Submit) | `Variant.Filled` | `Color.Primary` | Main CTA |
+| Secondary action (Cancel, Back) | `Variant.Outlined` | `Color.Primary` | |
+| Destructive (Delete, Remove) | `Variant.Filled` | `Color.Error` | Always confirm first |
+| Tertiary / text-only | `Variant.Text` | `Color.Primary` | Low-emphasis |
+| Toolbar icon action | `MudIconButton` | `Color.Inherit` | `Size.Small` |
+
+**✅ Correct:**
 ```razor
-Variant="Variant.Outlined"
-Margin="Margin.Dense"
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">
+    Salva
+</MudButton>
+
+<MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="Cancel">
+    Annulla
+</MudButton>
+
+<MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="DeleteAsync">
+    Elimina
+</MudButton>
 ```
 
-This applies to: `MudTextField`, `MudSelect`, `MudDatePicker`, `MudTimePicker`,
-`MudAutocomplete`, `MudNumericField`, `MudCheckBox` (label only).
-
+**❌ Wrong:**
 ```razor
-<!-- ✅ Correct -->
-<MudTextField @bind-Value="model.Name"
-              Label="Name"
+<MudButton>Salva</MudButton>                              <!-- No Variant, no Color -->
+<MudButton Style="font-weight:bold">Salva</MudButton>    <!-- Inline style -->
+<MudButton Variant="Variant.Filled">Delete</MudButton>   <!-- Missing Color.Error for destructive -->
+```
+
+---
+
+### 2.2 MudTextField / MudNumericField / MudDatePicker / MudTimePicker
+
+**Always use:** `Variant="Variant.Outlined"` + `Margin="Margin.Dense"` + `Class="ef-input"` (where applicable).
+
+**✅ Correct:**
+```razor
+<MudTextField @bind-Value="_model.Name"
+              Label="Nome"
+              Variant="Variant.Outlined"
+              Margin="Margin.Dense"
+              Class="ef-input" />
+
+<MudNumericField @bind-Value="_model.Quantity"
+                 Label="Quantità"
+                 Variant="Variant.Outlined"
+                 Margin="Margin.Dense"
+                 Min="0"
+                 Class="ef-input" />
+
+<MudDatePicker @bind-Date="_model.Date"
+               Label="Data"
+               Variant="Variant.Outlined"
+               Margin="Margin.Dense"
+               Class="ef-datepicker" />
+```
+
+**❌ Wrong:**
+```razor
+<MudTextField @bind-Value="_model.Name" Label="Nome" />                    <!-- No Variant -->
+<MudTextField @bind-Value="_model.Name" Variant="Variant.Text" ... />      <!-- Wrong Variant -->
+<MudTextField @bind-Value="_model.Name" Style="height:30px;" ... />        <!-- Inline style -->
+```
+
+---
+
+### 2.3 MudSelect / MudAutocomplete
+
+**Always use:** `Variant="Variant.Outlined"`.
+
+**✅ Correct:**
+```razor
+<MudSelect @bind-Value="_model.Status"
+           Label="Stato"
+           Variant="Variant.Outlined"
+           Class="ef-select">
+    <MudSelectItem Value="@Status.Active">Attivo</MudSelectItem>
+    <MudSelectItem Value="@Status.Inactive">Inattivo</MudSelectItem>
+</MudSelect>
+
+<MudAutocomplete @bind-Value="_selectedItem"
+                 SearchFunc="SearchAsync"
+                 Label="Cerca"
+                 Variant="Variant.Outlined"
+                 Margin="Margin.Dense" />
+```
+
+---
+
+### 2.4 MudText
+
+**Rules:**
+- ALWAYS specify `Typo=` parameter
+- Bold text: use `Class="fw-bold"` (or `fw-semibold`, `fw-medium`) — NOT `Style="font-weight:700"`
+- Aligned text: use `Align=` parameter — NOT `Style="text-align:right"`
+- Colored text: use `Color=` parameter — NOT `Style="color:var(...)"`
+
+**Font-weight utility classes:**
+| Class | Weight | Use when |
+|-------|--------|----------|
+| `.fw-medium` | 500 | Slightly emphasized body text |
+| `.fw-semibold` | 600 | Labels, subtitles, table headers |
+| `.fw-bold` | 700 | Key figures, amounts, strong emphasis |
+| `.fw-extrabold` | 800 | Hero numbers, KPI values |
+
+**✅ Correct:**
+```razor
+<MudText Typo="Typo.h5" Class="fw-bold">@_revenue</MudText>
+
+<MudText Typo="Typo.subtitle1" Align="Align.Center">@_title</MudText>
+
+<MudText Typo="Typo.body2" Color="Color.Secondary">@_subtitle</MudText>
+
+<MudText Typo="Typo.caption" Class="fw-semibold">@_label</MudText>
+```
+
+**❌ Wrong:**
+```razor
+<MudText Style="font-weight:700;">@_revenue</MudText>               <!-- Use fw-bold class -->
+<MudText Style="text-align:center;">@_title</MudText>              <!-- Use Align= param -->
+<MudText Style="color:var(--mud-palette-secondary);">@s</MudText>  <!-- Use Color= param -->
+<MudText>@_text</MudText>                                          <!-- Missing Typo= -->
+```
+
+---
+
+### 2.5 MudCard / MudPaper
+
+**Elevation standards:**
+| Context | Elevation | Notes |
+|---------|-----------|-------|
+| Embedded/flat container | `0` | Inside another card or panel |
+| Standard list card | `1` | Default raised look |
+| Active/selected/highlighted | `2` | Current selection |
+| Modal/dialog emphasis | `4` | Used sparingly |
+
+**✅ Correct:**
+```razor
+@* List card *@
+<MudCard Elevation="1">
+    <MudCardContent>...</MudCardContent>
+</MudCard>
+
+@* Pure container *@
+<MudPaper Elevation="0" Class="pa-4">
+    ...
+</MudPaper>
+
+@* Highlighted *@
+<MudCard Elevation="2" Class="selected-card">
+    ...
+</MudCard>
+```
+
+**❌ Wrong:**
+```razor
+<MudPaper Style="box-shadow: 0 2px 4px rgba(0,0,0,0.1);">...</MudPaper>  <!-- Use Elevation= -->
+<MudCard Elevation="8">...</MudCard>                                       <!-- Too high -->
+```
+
+---
+
+### 2.6 MudDialog
+
+**Standards:**
+- Default `MaxWidth="MaxWidth.Medium"` for standard forms
+- `DisableBackdropClick="true"` for forms with unsaved data
+- Use `EFDialog` wrapper component (provides consistent header, close button, progress)
+
+**✅ Correct:**
+```razor
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            ...
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">Annulla</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">Salva</MudButton>
+    </DialogActions>
+</MudDialog>
+```
+
+---
+
+### 2.7 MudAlert
+
+- Never use inline `Style=` on `<MudAlert`
+- Use `Severity=` to convey meaning (not color)
+- Use `Dense="true"` inside forms/cards for compact display
+
+**✅ Correct:**
+```razor
+<MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+<MudAlert Severity="Severity.Success" Dense="true" Class="mb-2">Salvato!</MudAlert>
+```
+
+**❌ Wrong:**
+```razor
+<MudAlert Style="background-color:red;">@_errorMessage</MudAlert>  <!-- Use Severity -->
+<MudAlert Severity="Severity.Info" Style="margin-top:8px;">...</MudAlert>  <!-- Use Class |
+```
+
+---
+
+## §3 Anti-Patterns
+
+### Anti-pattern 1: Inline font-weight
+```razor
+@* ❌ WRONG *@
+<MudText Typo="Typo.body1" Style="font-weight:600;">Total</MudText>
+
+@* ✅ CORRECT *@
+<MudText Typo="Typo.body1" Class="fw-semibold">Total</MudText>
+@* OR use the right Typo: *@
+<MudText Typo="Typo.subtitle1">Total</MudText>  @* subtitle1 = 600 weight in theme *@
+```
+
+### Anti-pattern 2: Inline text-align on MudText
+```razor
+@* ❌ WRONG *@
+<MudText Typo="Typo.h5" Style="text-align:right;">€ 1.234,56</MudText>
+
+@* ✅ CORRECT *@
+<MudText Typo="Typo.h5" Align="Align.Right">€ 1.234,56</MudText>
+```
+
+### Anti-pattern 3: Color via Style on MudText
+```razor
+@* ❌ WRONG *@
+<MudText Style="color:var(--mud-palette-success);">+12%</MudText>
+
+@* ✅ CORRECT *@
+<MudText Color="Color.Success">+12%</MudText>
+```
+
+### Anti-pattern 4: Form inputs without Variant
+```razor
+@* ❌ WRONG *@
+<MudTextField @bind-Value="_name" Label="Nome" />
+
+@* ✅ CORRECT *@
+<MudTextField @bind-Value="_name" Label="Nome"
               Variant="Variant.Outlined"
               Margin="Margin.Dense" />
-
-<!-- ❌ Wrong — missing Variant/Margin -->
-<MudTextField @bind-Value="model.Name" Label="Name" />
 ```
 
-For dense data-entry forms use the CSS helper class `ef-input` / `ef-select` to
-further compact the input height to 38px.
+### Anti-pattern 5: Hardcoded colors in CSS
+```css
+/* ❌ WRONG */
+.my-element { background-color: #1F2F46; color: white; }
 
----
+/* ✅ CORRECT */
+.my-element {
+    background-color: var(--mud-palette-appbar-background);
+    color: var(--mud-palette-appbar-text);
+}
+```
 
-## 3. Card / Paper Elevation Scale
-
-| Elevation | Use case |
-|-----------|----------|
-| `0` | Flat surface — sidebar panels, table row backgrounds, inner sections that sit on an already-elevated card. |
-| `1` | Default card — standard content blocks. |
-| `2` | Elevated section — secondary cards inside a page, action panels. |
-| `4` | Hero / featured card — primary summary panel, main dashboard widget. |
-
+### Anti-pattern 6: Missing Typo on MudText
 ```razor
-<!-- ✅ Correct -->
-<MudPaper Elevation="1">...</MudPaper>
-<MudCard Elevation="4">...</MudCard>  <!-- hero card -->
+@* ❌ WRONG *@
+<MudText>Welcome back</MudText>
 
-<!-- ❌ Wrong — arbitrary elevation value -->
-<MudPaper Elevation="10">...</MudPaper>
+@* ✅ CORRECT *@
+<MudText Typo="Typo.body1">Welcome back</MudText>
 ```
 
 ---
 
-## 4. Typography — MudText vs Raw HTML
+## §4 Dark Mode Checklist
 
-| Scenario | Use |
-|----------|-----|
-| Text that needs theme-aware colour or typography variant | `<MudText>` |
-| Static layout headings that will never change with the theme | `<h1>`…`<h6>` with CSS class |
-| Body copy inside a `MudCard` or `MudPaper` | `<MudText Typo="Typo.body1">` |
-| Icon + label combinations | `<MudText>` inside a `MudStack` |
+Before committing any UI change, verify:
 
-```razor
-<!-- ✅ Correct -->
-<MudText Typo="Typo.h5" Color="Color.Primary">Section title</MudText>
-<MudText Typo="Typo.body2" Color="Color.Secondary">Supporting text</MudText>
+- [ ] Component uses `Color=` parameters (not hardcoded colors)
+- [ ] CSS uses `var(--mud-palette-*)` variables (not hex colors)
+- [ ] No `background-color: white` or `color: black` hardcoded
+- [ ] Images/icons use `Color.Inherit` or theme color
+- [ ] Borders use `var(--mud-palette-divider)`
+- [ ] Shadows use `rgba(0,0,0,0.N)` with alpha (not solid colors)
+- [ ] Test page in both light (`carbon-neon-light`) and dark (`carbon-neon-dark`) mode
 
-<!-- ❌ Wrong — raw HTML bypasses theme colours -->
-<h5 style="color: #0099CC">Section title</h5>
-```
-
----
-
-## 5. Theme System
-
-### How to use ThemeService
-
-```csharp
-@inject IThemeService ThemeService
-
-// Toggle between light and dark
-await ThemeService.ToggleThemeAsync();
-
-// Set explicit theme by key
-await ThemeService.SetThemeAsync("carbon-neon-dark");
-
-// Check current state
-bool isDark = ThemeService.IsDarkMode;
-string key  = ThemeService.CurrentTheme; // "carbon-neon-light" | "carbon-neon-dark"
-```
-
-### How to use EventForgeTheme
-
-`EventForgeTheme` is a **static class** — use it only from layout components that
-host a `<MudThemeProvider>`.  Do **not** call it from individual pages or widgets.
-
-```csharp
-// Get the full MudTheme for a theme key
-MudTheme theme = EventForgeTheme.GetMudTheme(ThemeService.CurrentTheme);
-
-// Get only a palette (rare)
-PaletteLight light = EventForgeTheme.GetLightPalette("carbon-neon-light");
-PaletteDark  dark  = EventForgeTheme.GetDarkPalette("carbon-neon-dark");
-```
-
-### Adding a new theme
-
-1. Add a new `ThemeInfo` static member in `ThemeService.cs` and include it in `AvailableThemes`.
-2. Add the new key to the switch expression in `EventForgeTheme.GetLightPalette` and/or `GetDarkPalette`.
-3. Update `ThemeService.InitializeAsync` backward-compat mapping if needed.
+**Key CSS variables for dark-mode-safe code:**
+| Purpose | Variable |
+|---------|----------|
+| Page background | `var(--mud-palette-background)` |
+| Card/surface | `var(--mud-palette-surface)` |
+| Primary text | `var(--mud-palette-text-primary)` |
+| Secondary text | `var(--mud-palette-text-secondary)` |
+| Disabled text | `var(--mud-palette-text-disabled)` |
+| Primary color | `var(--mud-palette-primary)` |
+| Dividers | `var(--mud-palette-divider)` |
+| AppBar background | `var(--mud-palette-appbar-background)` |
+| AppBar text | `var(--mud-palette-appbar-text)` |
 
 ---
 
-## 6. No Inline Styles on MudBlazor Components
+## §5 PR Review Checklist
 
-**Never** use `style="…"` (lowercase) or `Style="…"` (MudBlazor parameter) on
-MudBlazor components.  Use `Class=` with CSS utility classes instead.
+When reviewing a PR that includes UI changes, check:
 
-```razor
-<!-- ❌ Wrong -->
-<MudButton Style="margin-top: 16px; width: 100%">Click</MudButton>
-<MudText style="color: red">Error</MudText>
+### Styling
+- [ ] No new `Style="font-weight:N"` on `<MudText` — use `Class="fw-*"` or `Typo=`
+- [ ] No new `Style="text-align:..."` on `<MudText` — use `Align=`
+- [ ] No hardcoded hex colors in CSS — use `var(--mud-palette-*)`
+- [ ] No new `!important` unless specifically overriding MudBlazor
 
-<!-- ✅ Correct -->
-<MudButton Class="mt-4 full-width">Click</MudButton>
-<MudText Color="Color.Error">Error</MudText>
-```
+### Components
+- [ ] All `<MudTextField`, `<MudSelect`, `<MudNumericField` have `Variant="Variant.Outlined"`
+- [ ] All `<MudTextField`, `<MudNumericField` have `Margin="Margin.Dense"`
+- [ ] All `<MudButton` have explicit `Variant=` and `Color=`
+- [ ] All `<MudText` have `Typo=` parameter
+- [ ] No `Style=` on `<MudAlert`
 
-### Spacing utility classes
+### Theme awareness
+- [ ] Tested in both light and dark mode
+- [ ] New colors use CSS variables
+- [ ] New components use established CSS classes (`ef-input`, `ef-select`, etc.)
 
-Use MudBlazor's built-in spacing helpers (`ma-`, `pa-`, `mt-`, `mb-`, `ml-`, `mr-`,
-`pt-`, `pb-`, `pl-`, `pr-`) wherever possible before reaching for custom CSS.
-
-```razor
-<MudStack Spacing="2" Class="mt-2 mb-4">...</MudStack>
-```
-
-If you need a truly custom layout rule, add it to the **component's own `.razor.css`
-scoped stylesheet** — never as an inline attribute.
+### Performance
+- [ ] No unnecessarily deep CSS selectors
+- [ ] No duplicate CSS rules
 
 ---
 
-## 7. CSS File Ownership
+## §6 CSS Class Reference
 
-| File | Purpose |
-|------|---------|
-| `wwwroot/css/_mudblazor-overrides.css` | Structural MudBlazor overrides (AppBar height, drawer clip). No component styles here. |
-| `wwwroot/css/components/mud-components.css` | EventForge custom CSS classes (`ef-input`, `ef-appbar`, `ef-dialog`, etc.). |
-| `wwwroot/css/app.css` | Global application styles, font configuration, accessibility helpers. |
-| `wwwroot/css/variables.css` | CSS custom properties mapped to `--mud-palette-*` tokens. |
-| `*.razor.css` | Component-scoped styles for individual Blazor components. |
+| Class | Purpose |
+|-------|---------|
+| `.ef-input` | Standard text/numeric input styling |
+| `.ef-select` | Standard select styling |
+| `.ef-datepicker` | Standard date picker styling |
+| `.ef-appbar` | AppBar with theme colors |
+| `.ef-dialog` | Dialog with theme colors |
+| `.ef-menu-button` | Menu toggle button in AppBar |
+| `.ef-account-menu` | Account menu button |
+| `.ef-toolbar-button` | 38×38px toolbar icon button |
+| `.ef-row-actionbutton` | 24×24px row action button |
+| `.ef-table-sticky-header` | Table with sticky header support |
+| `.ef-scroll-to-top` | Fixed floating scroll-to-top button |
+| `.fw-medium` | font-weight: 500 |
+| `.fw-semibold` | font-weight: 600 |
+| `.fw-bold` | font-weight: 700 |
+| `.fw-extrabold` | font-weight: 800 |
 
-Do **not** add `!important` to `app.css` or `variables.css`.  
-Use `!important` in `mud-components.css` only when MudBlazor specificity cannot
-be overcome by nesting or attribute selectors.
+---
+
+*Last updated: Phase 2 — MudBlazor standardization. See `MUDBLAZOR_AUDIT.md` for full audit data.*

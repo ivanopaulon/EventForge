@@ -24,7 +24,7 @@
                                     @Item.ProductCode
                                 }
                             </MudText>
-                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600;">
+                            <MudText Typo="Typo.subtitle2"  Class="fw-semibold">
                                 @Item.ProductName
                             </MudText>
                         </MudStack>
@@ -51,7 +51,8 @@
                                          Variant="Variant.Outlined"
                                          Min="1"
                                          HideSpinButtons="true"
-                                         Style="max-width: 100px; text-align: center; font-size: 1.3rem; font-weight: 700;" />
+                                         Style="max-width: 100px; text-align: center; font-size: 1.3rem; font-weight: 700;"
+                    Margin="Margin.Dense"/>
                         <MudIconButton Icon="@Icons.Material.Filled.Add"
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
@@ -72,7 +73,8 @@
                                      Format="F2"
                                      Adornment="Adornment.Start"
                                      AdornmentText="€"
-                                     Style="font-size: 1.1rem;" />
+                                     Style="font-size: 1.1rem;"
+                    Margin="Margin.Dense"/>
                 </MudStack>
 
                 <!-- Discount row -->
@@ -96,7 +98,8 @@
                                          Min="0"
                                          Max="100"
                                          Suffix="%"
-                                         Style="max-width: 100px;" />
+                                         Style="max-width: 100px;"
+                    Margin="Margin.Dense"/>
                     </MudStack>
                     @if (_discountPercent > 0)
                     {

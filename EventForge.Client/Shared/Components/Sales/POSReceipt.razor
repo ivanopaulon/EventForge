@@ -4,7 +4,7 @@
 <MudPaper Elevation="3" Class="pa-4" Style="max-width: 400px; font-family: 'Courier New', monospace;">
     <!-- Receipt Header -->
     <div class="text-center mb-4">
-        <MudText Typo="Typo.h5" Style="font-weight: 600;">
+        <MudText Typo="Typo.h5"  Class="fw-semibold">
             @TranslationService.GetTranslation("sales.receipt", "SCONTRINO")
         </MudText>
         @if (SessionNumber != null)
@@ -28,7 +28,7 @@
             {
                 <div class="mb-2">
                     <div class="d-flex justify-space-between">
-                        <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                        <MudText Typo="Typo.body2"  Class="fw-semibold">
                             @item.ProductName
                         </MudText>
                     </div>
@@ -87,10 +87,10 @@
 
         <!-- Grand Total -->
         <div class="d-flex justify-space-between mb-3">
-            <MudText Typo="Typo.h6" Style="font-weight: 700;">
+            <MudText Typo="Typo.h6"  Class="fw-bold">
                 @TranslationService.GetTranslation("sales.total", "TOTALE")
             </MudText>
-            <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: 700;">
+            <MudText Typo="Typo.h6" Color="Color.Primary"  Class="fw-bold">
                 @GrandTotal.ToString("C")
             </MudText>
         </div>
@@ -117,10 +117,10 @@
             @if (TotalPaid > 0)
             {
                 <div class="d-flex justify-space-between mt-2">
-                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    <MudText Typo="Typo.body2"  Class="fw-semibold">
                         @TranslationService.GetTranslation("sales.paid", "Pagato")
                     </MudText>
-                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    <MudText Typo="Typo.body2"  Class="fw-semibold">
                         @TotalPaid.ToString("C")
                     </MudText>
                 </div>
@@ -130,10 +130,10 @@
             @if (Change > 0)
             {
                 <div class="d-flex justify-space-between mt-2">
-                    <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;">
+                    <MudText Typo="Typo.h6" Color="Color.Success"  Class="fw-bold">
                         @TranslationService.GetTranslation("sales.change", "RESTO")
                     </MudText>
-                    <MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: 700;">
+                    <MudText Typo="Typo.h6" Color="Color.Success"  Class="fw-bold">
                         @Change.ToString("C")
                     </MudText>
                 </div>
@@ -143,10 +143,10 @@
             @if (Remaining > 0)
             {
                 <div class="d-flex justify-space-between mt-2">
-                    <MudText Typo="Typo.body2" Color="Color.Warning" Style="font-weight: 600;">
+                    <MudText Typo="Typo.body2" Color="Color.Warning"  Class="fw-semibold">
                         @TranslationService.GetTranslation("sales.remaining", "Rimanente")
                     </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Warning" Style="font-weight: 600;">
+                    <MudText Typo="Typo.body2" Color="Color.Warning"  Class="fw-semibold">
                         @Remaining.ToString("C")
                     </MudText>
                 </div>

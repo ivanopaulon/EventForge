@@ -44,7 +44,8 @@
                                               MaxLength="10"
                                               Immediate="true"
                                               OnBlur="@HandleBlur"
-                                              aria-describedby="code-help" />
+                                              aria-describedby="code-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="code-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.codiceNaturaIva", "Codice della natura IVA (es. N1, N2, N3)")
                                 </MudText>
@@ -59,7 +60,8 @@
                                               MaxLength="100"
                                               Immediate="true"
                                               OnBlur="@HandleBlur"
-                                              aria-describedby="name-help" />
+                                              aria-describedby="name-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="name-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.nomeNaturaIva", "Nome descrittivo della natura IVA")
                                 </MudText>
@@ -72,7 +74,8 @@
                                               Lines="4"
                                               MaxLength="500"
                                               OnBlur="@HandleBlur"
-                                              aria-describedby="description-help" />
+                                              aria-describedby="description-help"
+                    Margin="Margin.Dense"/>
                                 <MudText id="description-help" Typo="Typo.caption" Class="mud-input-helper-text">
                                     @TranslationService.GetTranslation("drawer.helperText.descrizioneNaturaIva", "Descrizione dello scopo e utilizzo della natura IVA")
                                 </MudText>
@@ -86,31 +89,36 @@
                             <MudTextField Value="@(_vatNature?.Id.ToString() ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatNature?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatNature?.CreatedBy ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatNature?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatNature?.ModifiedBy ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>

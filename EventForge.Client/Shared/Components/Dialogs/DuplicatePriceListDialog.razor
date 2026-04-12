@@ -62,7 +62,8 @@
                                         RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                         MaxLength="100"
                                         Adornment="Adornment.Start"
-                                        AdornmentIcon="@Icons.Material.Outlined.Label" />
+                                        AdornmentIcon="@Icons.Material.Outlined.Label"
+                    Margin="Margin.Dense"/>
 
                             <MudTextField @bind-Value="_code"
                                         Label="@TranslationService.GetTranslation("field.code", "Codice")"
@@ -70,7 +71,8 @@
                                         HelperText="@TranslationService.GetTranslation("pricelist.codeHelper", "Lascia vuoto per generazione automatica")"
                                         MaxLength="50"
                                         Adornment="Adornment.Start"
-                                        AdornmentIcon="@Icons.Material.Outlined.Tag" />
+                                        AdornmentIcon="@Icons.Material.Outlined.Tag"
+                    Margin="Margin.Dense"/>
 
                             <MudTextField @bind-Value="_description"
                                         Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
@@ -78,7 +80,8 @@
                                         Lines="3"
                                         MaxLength="500"
                                         Adornment="Adornment.Start"
-                                        AdornmentIcon="@Icons.Material.Outlined.Description" />
+                                        AdornmentIcon="@Icons.Material.Outlined.Description"
+                    Margin="Margin.Dense"/>
                         </MudStack>
                     </MudPaper>
 
@@ -120,7 +123,8 @@
                                                Clearable="true"
                                                Adornment="Adornment.Start"
                                                AdornmentIcon="@Icons.Material.Outlined.Percent"
-                                               HelperText="@TranslationService.GetTranslation("pricelist.markupHelp", "Positivo = aumento, Negativo = sconto")" />
+                                               HelperText="@TranslationService.GetTranslation("pricelist.markupHelp", "Positivo = aumento, Negativo = sconto")"
+                    Margin="Margin.Dense"/>
 
                                 <MudSelect T="RoundingStrategy?"
                                          @bind-Value="_roundingStrategy"
@@ -217,7 +221,8 @@
                                                        Min="0"
                                                        Clearable="true"
                                                        Adornment="Adornment.Start"
-                                                       AdornmentIcon="@Icons.Material.Outlined.Numbers" />
+                                                       AdornmentIcon="@Icons.Material.Outlined.Numbers"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudDatePicker @bind-Date="_newValidFrom"
@@ -226,7 +231,8 @@
                                                      Clearable="true"
                                                      DateFormat="dd/MM/yyyy"
                                                      Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
+                                                     AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudDatePicker @bind-Date="_newValidTo"
@@ -235,7 +241,8 @@
                                                      Clearable="true"
                                                      DateFormat="dd/MM/yyyy"
                                                      Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Outlined.CalendarToday" />
+                                                     AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                 </MudGrid>
                             </MudStack>

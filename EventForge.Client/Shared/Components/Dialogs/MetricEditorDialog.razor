@@ -22,13 +22,15 @@
                                   Variant="Variant.Outlined"
                                   Required="true"
                                   HelperText="Nome descrittivo della metrica da visualizzare"
-                                  Immediate="true" />
+                                  Immediate="true"
+                    Margin="Margin.Dense"/>
                     
                     <MudTextField @bind-Value="Metric.Description"
                                   Label="Descrizione (opzionale)"
                                   Variant="Variant.Outlined"
                                   Lines="2"
-                                  HelperText="Testo tooltip per spiegare la metrica" />
+                                  HelperText="Testo tooltip per spiegare la metrica"
+                    Margin="Margin.Dense"/>
                 </MudStack>
             </MudStep>
 
@@ -87,7 +89,8 @@
                                   Label="Formato Visualizzazione"
                                   Variant="Variant.Outlined"
                                   HelperText="Formato numerico (N0 = intero, N2 = 2 decimali, C2 = valuta, P2 = percentuale)"
-                                  Placeholder="N0, N2, C2, P2" />
+                                  Placeholder="N0, N2, C2, P2"
+                    Margin="Margin.Dense"/>
                     
                     <MudSelect @bind-Value="Metric.Icon"
                                Label="Icona"

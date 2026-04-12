@@ -106,7 +106,8 @@
                                              Min="1" Max="365"
                                              Clearable="true"
                                              HelperText="@TranslationService.GetTranslation("notificationPreferences.autoArchiveHelp", "Lascia vuoto per disabilitare")"
-                                             @bind-Value:after="OnPreferenceChanged" />
+                                             @bind-Value:after="OnPreferenceChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                 </MudCardContent>

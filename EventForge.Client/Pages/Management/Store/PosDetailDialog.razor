@@ -52,7 +52,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.body1"  Class="fw-semibold">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
@@ -74,7 +74,8 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -96,7 +97,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -105,7 +107,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -114,7 +117,8 @@
                                               MaxLength="45"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -124,7 +128,8 @@
                                               Placeholder="EUR"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -134,7 +139,8 @@
                                               Placeholder="Europe/Rome"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -143,7 +149,8 @@
                                                  Min="-90"
                                                  Max="90"
                                                  Variant="Variant.Outlined"
-                                                 @bind-Value:after="HandleEntityChanged" />
+                                                 @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
@@ -152,7 +159,8 @@
                                                  Min="-180"
                                                  Max="180"
                                                  Variant="Variant.Outlined"
-                                                 @bind-Value:after="HandleEntityChanged" />
+                                                 @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12">
@@ -162,7 +170,8 @@
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12">
@@ -172,7 +181,8 @@
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudForm>
@@ -284,19 +294,22 @@
                                                       Label="Nome Stampante"
                                                       Required="true"
                                                       MaxLength="50"
-                                                      Variant="Variant.Outlined" />
+                                                      Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudTextField @bind-Value="_newPrinterAddress"
                                                       Label="Indirizzo (IP / percorso)"
                                                       MaxLength="100"
-                                                      Variant="Variant.Outlined" />
+                                                      Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudTextField @bind-Value="_newPrinterLocation"
                                                       Label="Posizione"
                                                       MaxLength="50"
-                                                      Variant="Variant.Outlined" />
+                                                      Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudSelect @bind-Value="_newPrinterCategory" Label="Categoria" Variant="Variant.Outlined">
@@ -522,20 +535,23 @@
                                                       Label="Codice Gruppo"
                                                       Required="true"
                                                       MaxLength="50"
-                                                      Variant="Variant.Outlined" />
+                                                      Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12" sm="6">
                                         <MudTextField @bind-Value="_newGroupName"
                                                       Label="Nome Gruppo"
                                                       Required="true"
                                                       MaxLength="50"
-                                                      Variant="Variant.Outlined" />
+                                                      Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                     <MudItem xs="12">
                                         <MudTextField @bind-Value="_newGroupDescription"
                                                       Label="Descrizione"
                                                       MaxLength="200"
-                                                      Variant="Variant.Outlined" />
+                                                      Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
                                 </MudGrid>
                                 <div class="d-flex gap-2 mt-3">
@@ -570,37 +586,43 @@
                             <MudTextField Value="@(ViewModel.Entity.Id.ToString())"
                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField Value="@(ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm"))"
                                           Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="6">
                             <MudTextField Value="@(ViewModel.Entity.LastOpenedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")"
                                           Label="Ultima apertura"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>

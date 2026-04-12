@@ -58,14 +58,16 @@
                                        Label="@($"{TranslationService.GetTranslation("transferOrder.shipmentDate", "Data Spedizione")} *")"
                                        Variant="Variant.Outlined"
                                        Required="true"
-                                       Editable="true" />
+                                       Editable="true"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                     <MudItem xs="12" md="6">
                         <MudDatePicker @bind-Date="_expectedArrivalDate"
                                        Label="@TranslationService.GetTranslation("transferOrder.expectedArrival", "Arrivo Previsto")"
                                        Variant="Variant.Outlined"
                                        Editable="true"
-                                       MinDate="@_shipmentDate" />
+                                       MinDate="@_shipmentDate"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 </MudGrid>
 
@@ -73,7 +75,8 @@
                               Label="@TranslationService.GetTranslation("transferOrder.shippingReference", "Riferimento Spedizione")"
                               Variant="Variant.Outlined"
                               Placeholder="@TranslationService.GetTranslation("transferOrder.trackingPlaceholder", "Numero tracking, corriere...")"
-                              MaxLength="200" />
+                              MaxLength="200"
+                    Margin="Margin.Dense"/>
 
                 <!-- Stock Validation Section -->
                 <MudPaper Elevation="2" Class="pa-3">

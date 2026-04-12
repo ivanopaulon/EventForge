@@ -41,7 +41,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.CreditCard" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.body1"  Class="fw-semibold">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
@@ -64,7 +64,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="ViewModel.Entity.Description"
@@ -73,7 +74,8 @@
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
                                               Lines="2"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudSwitch @bind-Value="ViewModel.Entity.IsEnabled"
@@ -116,7 +118,8 @@
                                             Step="1000"
                                             Variant="Variant.Outlined"
                                             Class="ef-input"
-                                            @bind-Value:after="HandleEntityChanged" />
+                                            @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="8">
                             <MudTextField @bind-Value="ViewModel.Entity.IpAddress"
@@ -126,7 +129,8 @@
                                           Class="ef-input"
                                           Placeholder="es. 192.168.1.100"
                                           HelperText="Indirizzo IPv4 o IPv6 del terminale POS"
-                                          @bind-Value:after="HandleEntityChanged" />
+                                          @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" sm="4">
                             <MudNumericField @bind-Value="ViewModel.Entity.Port"
@@ -136,7 +140,8 @@
                                             Variant="Variant.Outlined"
                                             Class="ef-input"
                                             HelperText="Default: 60000"
-                                            @bind-Value:after="HandleEntityChanged" />
+                                            @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
 
                         @if (ViewModel.Entity.ConnectionType == "TcpViaAgent")
@@ -151,7 +156,8 @@
                                               Class="ef-input"
                                               Placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                                               HelperText="GUID dell'agente EventForge configurato nel server"
-                                              @bind-Value:after="OnAgentIdChanged" />
+                                              @bind-Value:after="OnAgentIdChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         }
 
@@ -194,7 +200,8 @@
                                           Variant="Variant.Outlined"
                                           Class="ef-input"
                                           HelperText="Identificativo del terminale (se richiesto dal provider POS)"
-                                          @bind-Value:after="HandleEntityChanged" />
+                                          @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12">
                             <MudSwitch @bind-Value="ViewModel.Entity.AmountConfirmationRequired"
@@ -238,28 +245,32 @@
                                               Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
                                               Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
                                               Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
                                               Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudTabPanel>

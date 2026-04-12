@@ -24,7 +24,8 @@
                    @bind-Value="_selectedDocumentTypeId"
                    @bind-Value:after="OnFilterChanged"
                    Clearable="true"
-                   Style="min-width: 200px; margin-right: 8px;">
+                   Style="min-width: 200px; margin-right: 8px;"
+                    Variant="Variant.Outlined">
             @if (_documentTypes != null)
             {
                 @foreach (var type in _documentTypes)

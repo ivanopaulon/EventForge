@@ -31,7 +31,8 @@
                                          Placeholder="Digita per cercare..."
                                          AdornmentIcon="@Icons.Material.Filled.Search"
                                          Adornment="Adornment.Start"
-                                         ValueChanged="@OnBusinessPartySelected">
+                                         ValueChanged="@OnBusinessPartySelected"
+                    Margin="Margin.Dense">
                             <ItemTemplate Context="bp">
                                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
                                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
@@ -39,7 +40,7 @@
                                             <MudIcon Icon="@Icons.Material.Filled.Business" Size="Size.Small" />
                                         </MudAvatar>
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@bp.Name</MudText>
+                                            <MudText Typo="Typo.body2"  Class="fw-semibold">@bp.Name</MudText>
                                             @if (!string.IsNullOrEmpty(bp.VatNumber))
                                             {
                                                 <MudText Typo="Typo.caption" Color="Color.Secondary">P.IVA: @bp.VatNumber</MudText>

@@ -43,7 +43,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.Kitchen" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.body1"  Class="fw-semibold">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         ID: @ViewModel.Entity.Id.ToString()[..8]... · @ViewModel.Entity.StationType
                                     </MudText>
@@ -65,7 +65,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -100,7 +101,8 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -108,7 +110,8 @@
                                                  Label="@TranslationService.GetTranslation("field.sortOrder", "Ordine")"
                                                  Variant="Variant.Outlined"
                                                  Min="0"
-                                                 @bind-Value:after="HandleEntityChanged" />
+                                                 @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -127,7 +130,8 @@
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12">
@@ -137,7 +141,8 @@
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudForm>

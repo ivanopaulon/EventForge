@@ -27,7 +27,8 @@
                    Value="_service.DocumentTypeId"
                    ValueChanged="@OnDocumentTypeChanged"
                    Clearable="true"
-                   Style="min-width: 200px; margin-right: 8px;">
+                   Style="min-width: 200px; margin-right: 8px;"
+                    Variant="Variant.Outlined">
             @foreach (var type in _documentTypes)
             {
                 <MudSelectItem T="Guid?" Value="@type.Id">@type.Name</MudSelectItem>
@@ -39,7 +40,8 @@
                    Value="_service.Status"
                    ValueChanged="@OnStatusChanged"
                    Clearable="true"
-                   Style="min-width: 150px; margin-right: 8px;">
+                   Style="min-width: 150px; margin-right: 8px;"
+                    Variant="Variant.Outlined">
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("status.draft", "Bozza")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Open">@TranslationService.GetTranslation("status.open", "Aperto")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Closed">@TranslationService.GetTranslation("status.closed", "Chiuso")</MudSelectItem>
@@ -137,7 +139,7 @@
             else if (column.PropertyName == "TotalGrossAmount")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("documents.amount", "Importo")" Style="text-align:right;">
-                    <MudText Typo="Typo.body2" Style="font-weight:600;">@ctx.Item.TotalGrossAmount.ToString("C2")</MudText>
+                    <MudText Typo="Typo.body2"  Class="fw-semibold">@ctx.Item.TotalGrossAmount.ToString("C2")</MudText>
                 </MudTd>
             }
             else if (column.PropertyName == "Status")

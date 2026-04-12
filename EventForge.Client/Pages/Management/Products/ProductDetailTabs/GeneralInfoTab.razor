@@ -28,7 +28,8 @@
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.QrCode"
                                       @bind-Value:after="NotifyUpdated"
-                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                                      HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Name -->
@@ -40,7 +41,8 @@
                                       MaxLength="100"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Label"
-                                      @bind-Value:after="NotifyUpdated" />
+                                      @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Short description -->
@@ -52,7 +54,8 @@
                                       MaxLength="50"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Subject"
-                                      @bind-Value:after="NotifyUpdated" />
+                                      @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Description -->
@@ -64,7 +67,8 @@
                                       ReadOnly="@(!IsEditMode)"
                                       Adornment="Adornment.Start"
                                       AdornmentIcon="@Icons.Material.Filled.Description"
-                                      @bind-Value:after="NotifyUpdated" />
+                                      @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                     </MudItem>
 
                     <!-- Status and Bundle -->

@@ -57,9 +57,9 @@
 }
 
 .ef-appbar {
-    background-color: slategray !important;
+    background-color: var(--mud-palette-appbar-background) !important;
     padding: 0px !important;
-    color: white !important;
+    color: var(--mud-palette-appbar-text) !important;
     min-height: 48px !important;
     height: 48px !important;
 }
@@ -74,13 +74,13 @@
 /* Drawer clip and AppBar height overrides are in _mudblazor-overrides.css */
 
 .ef-dialog {
-    background-color: whitesmoke !important;
+    background-color: var(--mud-palette-surface) !important;
     padding: 0px !important;
 }
 
     .ef-dialog .mud-dialog-title {
-        background-color: slategray !important;
-        color: white !important;
+        background-color: var(--mud-palette-appbar-background) !important;
+        color: var(--mud-palette-appbar-text) !important;
         align-items: flex-end !important;
         min-height: 48px !important;
         height: 48px !important;
@@ -98,7 +98,7 @@
     width: 36px !important;
     margin: -2px 16px 0px -18px !important;
     box-sizing: border-box !important;
-    color: whitesmoke !important;
+    color: var(--mud-palette-appbar-text) !important;
     border-radius: 4px;
 }
 
@@ -114,13 +114,13 @@
     width: 36px !important;
     margin: -2px -16px 0px -18px !important;
     box-sizing: border-box !important;
-    color: whitesmoke !important;
+    color: var(--mud-palette-appbar-text) !important;
     border-radius: 4px;
 }
 
 /* ----------- MENU TRIGGER (il bottone del menu) ----------- */
 .ef-account-menu .mud-button-root {
-    color: white !important;
+    color: var(--mud-palette-appbar-text) !important;
     border-radius: 6px !important;
     padding: 4px 12px !important;
     transition: background-color .2s;
@@ -134,7 +134,7 @@
 /* ----------- POPOVER (il contenitore del menu a discesa) ----------- */
 /* ATTENZIONE: il popover NON è dentro .ef-account-menu, quindi usa attributo data o classe globale */
 .mud-popover-open.ef-account-menu-popover {
-    background-color: #f9f9f9 !important;
+    background-color: var(--mud-palette-surface) !important;
     border-radius: 8px !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
     min-width: 250px !important;
@@ -148,19 +148,19 @@
 
 /* ----------- ITEM DEL MENU ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-list-item {
-    color: #333 !important;
+    color: var(--mud-palette-text-primary) !important;
     padding: 10px 16px !important;
     font-size: 0.95rem !important;
 }
 
 .mud-popover-open.ef-account-menu-popover .mud-list-item:hover {
-    background-color: #e3f0ff !important;
-    color: #003c80 !important;
+    background-color: var(--mud-palette-primary-hover) !important;
+    color: var(--mud-palette-primary) !important;
 }
 
 /* Disabilitati */
 .mud-popover-open.ef-account-menu-popover .mud-list-item.mud-disabled {
-    color: #999 !important;
+    color: var(--mud-palette-text-disabled) !important;
     background-color: transparent !important;
 }
 
@@ -170,7 +170,7 @@
 
 /* ----------- DIVIDER ----------- */
 .mud-popover-open.ef-account-menu-popover .mud-divider {
-    border-color: #ddd !important;
+    border-color: var(--mud-palette-divider) !important;
     margin: 4px 0 !important;
 }
 
@@ -199,3 +199,14 @@
     z-index: 1200;
 }
 
+
+/* ----------- Outlined input variant (Variant.Outlined) ----------- */
+.ef-input .mud-input-outlined-input {
+    height: 30px !important;
+    font-size: 0.90rem !important;
+    padding: 0 12px !important;
+}
+
+.ef-input .mud-input-label-outlined {
+    font-size: 0.90rem !important;
+}

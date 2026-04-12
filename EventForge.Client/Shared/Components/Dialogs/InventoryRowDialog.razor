@@ -94,7 +94,8 @@
                                     Adornment="Adornment.Start"
                                     AdornmentIcon="@Icons.Material.Outlined.Numbers"
                                     @ref="_quantityField"
-                                    @onkeydown="@OnQuantityKeyDown" />
+                                    @onkeydown="@OnQuantityKeyDown"
+                    Margin="Margin.Dense"/>
 
                     <MudTextField @bind-Value="_notes"
                                  Label="@TranslationService.GetTranslation("warehouse.notes", "Note")"

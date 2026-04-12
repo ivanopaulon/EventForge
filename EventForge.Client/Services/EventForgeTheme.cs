@@ -20,14 +20,17 @@ public static class EventForgeTheme
         Typography = GetTypography(),
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "8px"
+            DefaultBorderRadius = "8px",
+            AppbarHeight = "48px",
+            DrawerWidthLeft = "280px",
+            DrawerMiniWidthLeft = "56px"
         }
     };
 
     /// <summary>Returns the light-mode palette for the given theme key.</summary>
     public static PaletteLight GetLightPalette(string themeKey) => themeKey switch
     {
-        "carbon-neon-light" => new PaletteLight
+        "carbon-neon-light" or "carbon-neon" => new PaletteLight
         {
             Primary = "#0099CC",
             Secondary = "#00D9FF",
@@ -51,7 +54,7 @@ public static class EventForgeTheme
     /// <summary>Returns the dark-mode palette for the given theme key.</summary>
     public static PaletteDark GetDarkPalette(string themeKey) => themeKey switch
     {
-        "carbon-neon-dark" => new PaletteDark
+        "carbon-neon-dark" or "carbon-neon" => new PaletteDark
         {
             Primary = "#00F5FF",
             Secondary = "#FF006E",
@@ -114,35 +117,124 @@ public static class EventForgeTheme
         Error = "#f06292"
     };
 
+    private static readonly string[] _displayFonts = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"];
+    private static readonly string[] _bodyFonts = ["Noto Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"];
+
     private static Typography GetTypography() => new()
     {
         Default = new DefaultTypography
         {
-            FontFamily = ["Noto Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"]
+            FontFamily = _bodyFonts,
+            FontSize = "0.875rem",
+            FontWeight = "400",
+            LineHeight = "1.43",
+            LetterSpacing = "normal"
         },
         H1 = new H1Typography
         {
-            FontFamily = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+            FontFamily = _displayFonts,
+            FontSize = "6rem",
+            FontWeight = "300",
+            LineHeight = "6.25rem",
+            LetterSpacing = "-0.01562em"
         },
         H2 = new H2Typography
         {
-            FontFamily = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+            FontFamily = _displayFonts,
+            FontSize = "3.75rem",
+            FontWeight = "300",
+            LineHeight = "4.5rem",
+            LetterSpacing = "-0.00833em"
         },
         H3 = new H3Typography
         {
-            FontFamily = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+            FontFamily = _displayFonts,
+            FontSize = "3rem",
+            FontWeight = "400",
+            LineHeight = "3.5rem",
+            LetterSpacing = "normal"
         },
         H4 = new H4Typography
         {
-            FontFamily = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+            FontFamily = _displayFonts,
+            FontSize = "2.125rem",
+            FontWeight = "400",
+            LineHeight = "2.625rem",
+            LetterSpacing = "0.00735em"
         },
         H5 = new H5Typography
         {
-            FontFamily = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+            FontFamily = _displayFonts,
+            FontSize = "1.5rem",
+            FontWeight = "400",
+            LineHeight = "2rem",
+            LetterSpacing = "normal"
         },
         H6 = new H6Typography
         {
-            FontFamily = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+            FontFamily = _displayFonts,
+            FontSize = "1.25rem",
+            FontWeight = "600",
+            LineHeight = "2rem",
+            LetterSpacing = "0.0075em"
+        },
+        Subtitle1 = new Subtitle1Typography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "1rem",
+            FontWeight = "600",
+            LineHeight = "1.75rem",
+            LetterSpacing = "0.00938em"
+        },
+        Subtitle2 = new Subtitle2Typography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "0.875rem",
+            FontWeight = "600",
+            LineHeight = "1.375rem",
+            LetterSpacing = "0.00714em"
+        },
+        Body1 = new Body1Typography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "1rem",
+            FontWeight = "400",
+            LineHeight = "1.5rem",
+            LetterSpacing = "0.00938em"
+        },
+        Body2 = new Body2Typography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "0.875rem",
+            FontWeight = "400",
+            LineHeight = "1.25rem",
+            LetterSpacing = "0.01071em"
+        },
+        Button = new ButtonTypography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "0.875rem",
+            FontWeight = "600",
+            LineHeight = "1.5rem",
+            LetterSpacing = "0.4px",
+            TextTransform = "none"
+        },
+        Caption = new CaptionTypography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "0.75rem",
+            FontWeight = "400",
+            LineHeight = "1.25rem",
+            LetterSpacing = "0.03333em"
+        },
+        Overline = new OverlineTypography
+        {
+            FontFamily = _bodyFonts,
+            FontSize = "0.75rem",
+            FontWeight = "400",
+            LineHeight = "2rem",
+            LetterSpacing = "0.08333em",
+            TextTransform = "uppercase"
         }
     };
 }

@@ -357,7 +357,7 @@ else
                             <MudDivider Class="my-1" />
 
                             <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                                <MudText Typo="Typo.h6" Style="font-weight: 700;">
+                                <MudText Typo="Typo.h6"  Class="fw-bold">
                                     @TranslationService.GetTranslation("sales.total", "TOTALE")
                                 </MudText>
                                 <MudText Typo="Typo.h4" Style="font-weight: 800; color: var(--mud-palette-primary);">
@@ -381,10 +381,10 @@ else
                             @if (ViewModel.CurrentSession.RemainingAmount > 0)
                             {
                                 <MudStack Row="true" Justify="Justify.SpaceBetween">
-                                    <MudText Typo="Typo.body1" Color="Color.Error" Style="font-weight: 600;">
+                                    <MudText Typo="Typo.body1" Color="Color.Error"  Class="fw-semibold">
                                         @TranslationService.GetTranslation("sales.remaining", "Da pagare")
                                     </MudText>
-                                    <MudText Typo="Typo.body1" Color="Color.Error" Style="font-weight: 600;">
+                                    <MudText Typo="Typo.body1" Color="Color.Error"  Class="fw-semibold">
                                         @ViewModel.CurrentSession.RemainingAmount.ToString("C")
                                     </MudText>
                                 </MudStack>

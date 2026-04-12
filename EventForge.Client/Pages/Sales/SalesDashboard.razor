@@ -53,7 +53,7 @@
                 <MudPaper Class="pa-4" Style="border-left: 4px solid var(--mud-palette-primary);">
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Questa Settimana</MudText>
-                        <MudText Typo="Typo.h5" Style="font-weight:700;">@FormatEuro(_dashboard.WeekTotalSales)</MudText>
+                        <MudText Typo="Typo.h5"  Class="fw-bold">@FormatEuro(_dashboard.WeekTotalSales)</MudText>
                     </MudStack>
                 </MudPaper>
             </MudItem>
@@ -61,7 +61,7 @@
                 <MudPaper Class="pa-4" Style="border-left: 4px solid var(--mud-palette-secondary);">
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Questo Mese</MudText>
-                        <MudText Typo="Typo.h5" Style="font-weight:700;">@FormatEuro(_dashboard.MonthTotalSales)</MudText>
+                        <MudText Typo="Typo.h5"  Class="fw-bold">@FormatEuro(_dashboard.MonthTotalSales)</MudText>
                     </MudStack>
                 </MudPaper>
             </MudItem>
@@ -69,7 +69,7 @@
                 <MudPaper Class="pa-4" Style="border-left: 4px solid var(--mud-palette-info);">
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo Cassetti</MudText>
-                        <MudText Typo="Typo.h5" Style="font-weight:700;">@FormatEuro(_dashboard.TotalDrawerBalance)</MudText>
+                        <MudText Typo="Typo.h5"  Class="fw-bold">@FormatEuro(_dashboard.TotalDrawerBalance)</MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @_dashboard.OpenSessionsCount / @_dashboard.ActiveDrawersCount attivi
                         </MudText>
@@ -88,21 +88,21 @@
                                 <MudIcon Icon="@Icons.Material.Outlined.Money" Color="Color.Success" Size="Size.Small" />
                                 <MudText Typo="Typo.body2">Contanti</MudText>
                             </div>
-                            <MudText Typo="Typo.body1" Style="font-weight:600;">@FormatEuro(_dashboard.TodayCashSales)</MudText>
+                            <MudText Typo="Typo.body1"  Class="fw-semibold">@FormatEuro(_dashboard.TodayCashSales)</MudText>
                         </div>
                         <div class="d-flex justify-space-between align-center">
                             <div class="d-flex align-center gap-2">
                                 <MudIcon Icon="@Icons.Material.Outlined.CreditCard" Color="Color.Primary" Size="Size.Small" />
                                 <MudText Typo="Typo.body2">Carta</MudText>
                             </div>
-                            <MudText Typo="Typo.body1" Style="font-weight:600;">@FormatEuro(_dashboard.TodayCardSales)</MudText>
+                            <MudText Typo="Typo.body1"  Class="fw-semibold">@FormatEuro(_dashboard.TodayCardSales)</MudText>
                         </div>
                         <div class="d-flex justify-space-between align-center">
                             <div class="d-flex align-center gap-2">
                                 <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Color="Color.Secondary" Size="Size.Small" />
                                 <MudText Typo="Typo.body2">Altro</MudText>
                             </div>
-                            <MudText Typo="Typo.body1" Style="font-weight:600;">@FormatEuro(_dashboard.TodayOtherSales)</MudText>
+                            <MudText Typo="Typo.body1"  Class="fw-semibold">@FormatEuro(_dashboard.TodayOtherSales)</MudText>
                         </div>
                     </MudStack>
                 </MudPaper>

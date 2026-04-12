@@ -51,14 +51,16 @@
                                                       RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
                                                       MaxLength="100"
                                                       Immediate="true"
-                                                      OnBlur="@(()=> MarkChanged())" />
+                                                      OnBlur="@(()=> MarkChanged())"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">
                                         <MudTextField Value="@(NodeCode ?? "-")"
                                                       Label="@TranslationService.GetTranslation("field.code", "Codice")"
                                                       Variant="Variant.Outlined"
-                                                      ReadOnly="true" />
+                                                      ReadOnly="true"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
 
                                     <MudItem xs="12">
@@ -67,7 +69,8 @@
                                                       Variant="Variant.Outlined"
                                                       Lines="3"
                                                       MaxLength="200"
-                                                      OnBlur="@(()=> MarkChanged())" />
+                                                      OnBlur="@(()=> MarkChanged())"
+                    Margin="Margin.Dense"/>
                                     </MudItem>
 
                                     <MudItem xs="12" md="6">

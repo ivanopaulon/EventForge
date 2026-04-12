@@ -29,7 +29,7 @@
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @TranslationService.GetTranslation("products.product", "Prodotto")
                         </MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                        <MudText Typo="Typo.body1"  Class="fw-semibold">
                             @State.Product.Name
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -41,7 +41,7 @@
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")
                         </MudText>
-                        <MudText Typo="Typo.body1" Style="font-weight: 600;">
+                        <MudText Typo="Typo.body1"  Class="fw-semibold">
                             @GetLocationDisplayText()
                         </MudText>
                     </MudItem>

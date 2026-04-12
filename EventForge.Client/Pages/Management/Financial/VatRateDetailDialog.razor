@@ -58,7 +58,8 @@
                                                  Immediate="true"
                                                  Class="ef-input"
                                                  @bind-Value:after="@MarkChanged"
-                                                 aria-describedby="percentage-help" />
+                                                 aria-describedby="percentage-help"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -83,7 +84,8 @@
                                                  Max="10"
                                                  Class="ef-input"
                                                  @bind-Value:after="@MarkChanged"
-                                                 HelperText="@TranslationService.GetTranslation("field.fiscalCodeHelper", "Codice per integrazione stampante fiscale (1-10)")" />
+                                                 HelperText="@TranslationService.GetTranslation("field.fiscalCodeHelper", "Codice per integrazione stampante fiscale (1-10)")"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -92,7 +94,8 @@
                                                Variant="Variant.Outlined"
                                                Class="ef-datepicker"
                                                @bind-Date:after="@MarkChanged"
-                                               aria-describedby="validFrom-help" />
+                                               aria-describedby="validFrom-help"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -101,7 +104,8 @@
                                                Variant="Variant.Outlined"
                                                Class="ef-datepicker"
                                                @bind-Date:after="@MarkChanged"
-                                               aria-describedby="validTo-help" />
+                                               aria-describedby="validTo-help"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -134,7 +138,8 @@
                                               Lines="4"
                                               Class="ef-input"
                                               @bind-Value:after="@MarkChanged"
-                                              aria-describedby="notes-help" />
+                                              aria-describedby="notes-help"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudForm>
@@ -145,31 +150,36 @@
                             <MudTextField Value="@(_vatRate?.Id.ToString() ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.id", "ID")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatRate?.CreatedAt.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatRate?.CreatedBy ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatRate?.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@(_vatRate?.ModifiedBy ?? string.Empty)"
                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     </MudGrid>
                 </MudTabPanel>

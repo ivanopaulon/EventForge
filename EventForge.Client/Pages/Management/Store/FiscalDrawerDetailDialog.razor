@@ -43,7 +43,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.Inbox" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.body1"  Class="fw-semibold">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
@@ -71,7 +71,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudTextField @bind-Value="ViewModel.Entity.Code"
@@ -79,7 +80,8 @@
                                               MaxLength="20"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="ViewModel.Entity.Description"
@@ -87,7 +89,8 @@
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudSelect @bind-Value="ViewModel.Entity.AssignmentType"
@@ -144,7 +147,8 @@
                                                  Variant="Variant.Outlined"
                                                  Disabled="@(!ViewModel.IsNewEntity)"
                                                  HelperText="@(ViewModel.IsNewEntity ? "Il fondo cassa iniziale è impostabile solo alla creazione." : "Non modificabile dopo la creazione.")"
-                                                 @bind-Value:after="HandleEntityChanged" />
+                                                 @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="ViewModel.Entity.Notes"
@@ -153,7 +157,8 @@
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
                                               Lines="2"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudForm>
@@ -217,7 +222,7 @@
                             <MudItem xs="12" sm="4">
                                 <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo attuale</MudText>
-                                    <MudText Typo="Typo.h6" Style="font-weight:700;">@FormatBalance(ViewModel.Entity.CurrentBalance)</MudText>
+                                    <MudText Typo="Typo.h6"  Class="fw-bold">@FormatBalance(ViewModel.Entity.CurrentBalance)</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
@@ -309,7 +314,7 @@
                                     <MudText Typo="Typo.body2">
                                         <strong>Totale contante contato:</strong>
                                     </MudText>
-                                    <MudText Typo="Typo.h6" Style="font-weight:700;">
+                                    <MudText Typo="Typo.h6"  Class="fw-bold">
                                         @FormatBalance(ViewModel.CashDenominations.Sum(d => d.TotalValue))
                                     </MudText>
                                 </MudStack>
@@ -328,28 +333,32 @@
                                               Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField Value="@(ViewModel.Entity.CreatedBy ?? "-")"
                                               Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
                                               Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" sm="6">
                                 <MudTextField Value="@(ViewModel.Entity.ModifiedBy ?? "-")"
                                               Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
                                               ReadOnly="true"
                                               Variant="Variant.Outlined"
-                                              Class="ef-input" />
+                                              Class="ef-input"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudTabPanel>

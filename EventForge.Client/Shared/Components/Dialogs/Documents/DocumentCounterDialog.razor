@@ -19,7 +19,8 @@
                                @bind-Value="_model.DocumentTypeId"
                                Label="@($"{TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")} *")"
                                Required="true"
-                               Disabled="@_isEditMode">
+                               Disabled="@_isEditMode"
+                    Variant="Variant.Outlined">
                         @if (DocumentTypes != null)
                         {
                             @foreach (var type in DocumentTypes)
@@ -39,7 +40,8 @@
                                   Required="true"
                                   MaxLength="10"
                                   Disabled="@_isEditMode"
-                                  HelperText="@TranslationService.GetTranslation("documentCounter.seriesHelper", "Es: A, B, 2025")" />
+                                  HelperText="@TranslationService.GetTranslation("documentCounter.seriesHelper", "Es: A, B, 2025")"
+                    Variant="Variant.Outlined"/>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -51,7 +53,8 @@
                                      Min="2000"
                                      Max="2100"
                                      Disabled="@_isEditMode"
-                                     HelperText="@TranslationService.GetTranslation("documentCounter.yearHelper", "Lascia vuoto per contatore generale")" />
+                                     HelperText="@TranslationService.GetTranslation("documentCounter.yearHelper", "Lascia vuoto per contatore generale")"
+                    Variant="Variant.Outlined"/>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -61,7 +64,8 @@
                                   @bind-Value="_model.Prefix"
                                   Label="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")"
                                   MaxLength="10"
-                                  HelperText="@TranslationService.GetTranslation("documentCounter.prefixHelper", "Es: INV, DOC")" />
+                                  HelperText="@TranslationService.GetTranslation("documentCounter.prefixHelper", "Es: INV, DOC")"
+                    Variant="Variant.Outlined"/>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -73,7 +77,8 @@
                                      Min="1"
                                      Max="10"
                                      Required="true"
-                                     HelperText="@TranslationService.GetTranslation("documentCounter.paddingHelper", "5 = 00001")" />
+                                     HelperText="@TranslationService.GetTranslation("documentCounter.paddingHelper", "5 = 00001")"
+                    Variant="Variant.Outlined"/>
                 </MudItem>
 
                 @if (_isEditMode)
@@ -86,7 +91,8 @@
                                          Label="@($"{TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")} *")"
                                          Min="0"
                                          Required="true"
-                                         HelperText="@TranslationService.GetTranslation("documentCounter.currentValueHelper", "Prossimo numero da generare")" />
+                                         HelperText="@TranslationService.GetTranslation("documentCounter.currentValueHelper", "Prossimo numero da generare")"
+                    Variant="Variant.Outlined"/>
                     </MudItem>
                 }
 
@@ -98,7 +104,8 @@
                                   Label="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern Formato")"
                                   MaxLength="50"
                                   HelperText="@TranslationService.GetTranslation("documentCounter.formatPatternHelper", "Placeholders: {PREFIX}, {SERIES}, {YEAR}, {NUMBER}")"
-                                  Placeholder="{SERIES}/{YEAR}/{NUMBER}" />
+                                  Placeholder="{SERIES}/{YEAR}/{NUMBER}"
+                    Variant="Variant.Outlined"/>
                 </MudItem>
 
                 <MudItem xs="12">
@@ -115,7 +122,8 @@
                                   @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("common.notes", "Note")"
                                   Lines="3"
-                                  MaxLength="200" />
+                                  MaxLength="200"
+                    Variant="Variant.Outlined"/>
                 </MudItem>
             </MudGrid>
         </MudForm>

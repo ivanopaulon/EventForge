@@ -43,7 +43,7 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.Person" />
                                 </MudAvatar>
                                 <div>
-                                    <MudText Typo="Typo.body1" Style="font-weight: 600;">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.body1"  Class="fw-semibold">@ViewModel.Entity.Name</MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         @@@ViewModel.Entity.Username - ID: @ViewModel.Entity.Id.ToString()[..8]...
                                     </MudText>
@@ -71,7 +71,8 @@
                                               MaxLength="100"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -83,7 +84,8 @@
                                               Class="ef-input"
                                               Disabled="@(!ViewModel.IsNewEntity)"
                                               HelperText="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("field.usernameRequired", "Username obbligatorio") : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             @if (ViewModel.IsNewEntity)
@@ -96,7 +98,8 @@
                                                   Variant="Variant.Outlined"
                                                   Class="ef-input"
                                                   HelperText="@TranslationService.GetTranslation("field.passwordHelper", "Lascia vuoto per generare automaticamente")"
-                                                  @bind-Value:after="HandleEntityChanged" />
+                                                  @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                                 </MudItem>
                             }
 
@@ -107,7 +110,8 @@
                                               InputType="InputType.Email"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -116,7 +120,8 @@
                                               MaxLength="50"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -156,7 +161,8 @@
                                               MaxLength="20"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -165,7 +171,8 @@
                                                Variant="Variant.Outlined"
                                                Class="ef-input"
                                                DateFormat="dd/MM/yyyy"
-                                               @bind-Date:after="HandleEntityChanged" />
+                                               @bind-Date:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
 
                             @if (ViewModel.IsNewEntity)
@@ -185,7 +192,8 @@
                                               MaxLength="200"
                                               Variant="Variant.Outlined"
                                               Class="ef-input"
-                                              @bind-Value:after="HandleEntityChanged" />
+                                              @bind-Value:after="HandleEntityChanged"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
                     </MudForm>

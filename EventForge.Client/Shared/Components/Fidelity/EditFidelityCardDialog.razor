@@ -12,7 +12,7 @@
         <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudIcon Icon="@Icons.Material.Outlined.Info" />
-                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                <MudText Typo="Typo.body2"  Class="fw-semibold">
                     MODALITÀ DEMO - I dati verranno persi al refresh della pagina
                 </MudText>
             </MudStack>
@@ -26,7 +26,8 @@
                                  Label="Numero Card"
                                  Variant="Variant.Outlined"
                                  ReadOnly="true"
-                                 Disabled="true" />
+                                 Disabled="true"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
@@ -58,7 +59,8 @@
                                    Label="Valida da *"
                                    Variant="Variant.Outlined"
                                    Required="true"
-                                   Editable="true" />
+                                   Editable="true"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
@@ -66,7 +68,8 @@
                                    Label="Valida fino a *"
                                    Variant="Variant.Outlined"
                                    Required="true"
-                                   Editable="true" />
+                                   Editable="true"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
                 <MudItem xs="12" md="4">
@@ -74,7 +77,8 @@
                                      Label="Sconto %"
                                      Variant="Variant.Outlined"
                                      Min="0"
-                                     Max="100" />
+                                     Max="100"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
                 <MudItem xs="12" md="4">
@@ -94,7 +98,8 @@
                                  Label="Note"
                                  Variant="Variant.Outlined"
                                  Lines="3"
-                                 MaxLength="500" />
+                                 MaxLength="500"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
             </MudGrid>

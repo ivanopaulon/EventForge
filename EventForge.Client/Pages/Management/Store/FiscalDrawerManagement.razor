@@ -117,7 +117,7 @@
             else if (column.PropertyName == "CurrentBalance")
             {
                 <MudTd DataLabel="Saldo">
-                    <MudText Typo="Typo.body2" Style="font-weight:600;">
+                    <MudText Typo="Typo.body2"  Class="fw-semibold">
                         @FormatCurrency(ctx.Item.CurrentBalance, ctx.Item.CurrencyCode)
                     </MudText>
                 </MudTd>

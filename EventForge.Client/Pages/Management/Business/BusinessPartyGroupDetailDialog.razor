@@ -40,20 +40,23 @@
                                           Label="Nome"
                                           Required="true"
                                           Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged" />
+                                          @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField @bind-Value="_groupCode"
                                           Label="Codice"
                                           Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged" />
+                                          @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12">
                             <MudTextField @bind-Value="_description"
                                           Label="Descrizione"
                                           Lines="3"
                                           Variant="Variant.Outlined"
-                                          @bind-Value:after="@MarkChanged" />
+                                          @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudSelect @bind-Value="_groupType"
@@ -71,7 +74,8 @@
                                              Min="0"
                                              Max="100"
                                              Variant="Variant.Outlined"
-                                             @bind-Value:after="@MarkChanged" />
+                                             @bind-Value:after="@MarkChanged"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -189,7 +193,7 @@
                                 <RowTemplate Context="member">
                                     <MudTd DataLabel="Business Party">
                                         <MudStack Spacing="0">
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            <MudText Typo="Typo.body2"  Class="fw-semibold">
                                                 @member.BusinessPartyName
                                                 @if (member.IsFeatured)
                                                 {

@@ -42,7 +42,8 @@
                                    Variant="Variant.Outlined"
                                    Clearable="true"
                                    AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                   Adornment="Adornment.Start" />
+                                   Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudDatePicker @bind-Date="_toDate"
@@ -50,7 +51,8 @@
                                    Variant="Variant.Outlined"
                                    Clearable="true"
                                    AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                   Adornment="Adornment.Start" />
+                                   Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="6">
                     <MudSelect @bind-Value="_selectedWarehouseId"
@@ -111,7 +113,8 @@
                                      Adornment="Adornment.End"
                                      AdornmentText="%"
                                      HelperText="@TranslationService.GetTranslation("stockReconciliation.discrepancyThresholdHelp", "Differenze superiori a questa soglia saranno marcate come discrepanze maggiori")"
-                                     Clearable="false" />
+                                     Clearable="false"
+                    Margin="Margin.Dense"/>
                 </MudItem>
                 
                 <!-- Switches on a separate row -->
@@ -260,7 +263,7 @@
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.product", "Product")">
                             <div>
-                                <MudText Typo="Typo.body2" Style="font-weight:600;">@context.ProductCode</MudText>
+                                <MudText Typo="Typo.body2"  Class="fw-semibold">@context.ProductCode</MudText>
                                 <MudText Typo="Typo.caption">@context.ProductName</MudText>
                             </div>
                         </MudTd>
@@ -274,12 +277,12 @@
                             <MudText Typo="Typo.body2">@context.CurrentQuantity.ToString("N2")</MudText>
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")" Style="text-align:right;">
-                            <MudText Typo="Typo.body2" Style="font-weight:600;">@context.CalculatedQuantity.ToString("N2")</MudText>
+                            <MudText Typo="Typo.body2"  Class="fw-semibold">@context.CalculatedQuantity.ToString("N2")</MudText>
                         </MudTd>
                         <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")" Style="text-align:right;">
                             <MudText Typo="Typo.body2" 
                                      Color="@(context.Difference > 0 ? Color.Success : (context.Difference < 0 ? Color.Error : Color.Default))"
-                                     Style="font-weight:600;">
+                                      Class="fw-semibold">
                                 @((context.Difference > 0 ? "+" : "") + context.Difference.ToString("N2"))
                                 @if (context.DifferencePercentage != 0)
                                 {
@@ -442,7 +445,8 @@
                                                Variant="Variant.Outlined"
                                                Clearable="true"
                                                AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                               Adornment="Adornment.Start" />
+                                               Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudDatePicker @bind-Date="_rebuildToDate"
@@ -450,7 +454,8 @@
                                                Variant="Variant.Outlined"
                                                Clearable="true"
                                                AdornmentIcon="@Icons.Material.Outlined.CalendarToday"
-                                               Adornment="Adornment.Start" />
+                                               Adornment="Adornment.Start"
+                    Margin="Margin.Dense"/>
                             </MudItem>
                             <MudItem xs="12" md="6">
                                 <MudSelect @bind-Value="_rebuildWarehouseId"

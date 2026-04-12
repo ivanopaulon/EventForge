@@ -9,7 +9,7 @@
     {
         <!-- Header with Title and Action Buttons -->
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">
+            <MudText Typo="Typo.subtitle1"  Class="fw-semibold">
                 <MudIcon Icon="@Icons.Material.Outlined.Business" Size="Size.Small" Class="mr-1" />
                 @Title
             </MudText>
@@ -96,7 +96,7 @@
                         
                         <!-- Business Party Info -->
                         <MudStack Spacing="0" Style="flex: 1;">
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">@bp.Name</MudText>
+                            <MudText Typo="Typo.body2"  Class="fw-semibold">@bp.Name</MudText>
                             
                             <!-- Fiscal Info (inline) -->
                             @if (ShowFiscalInfo && (!string.IsNullOrEmpty(bp.VatNumber) || !string.IsNullOrEmpty(bp.TaxCode)))
@@ -197,7 +197,7 @@
                             <MudIcon Icon="@GetIcon(SelectedBusinessParty)" Size="Size.Large" />
                         </MudAvatar>
                         <MudStack Spacing="0" Style="flex: 1;">
-                            <MudText Typo="Typo.h6" Style="font-weight: 600;">
+                            <MudText Typo="Typo.h6"  Class="fw-semibold">
                                 @SelectedBusinessParty.Name
                             </MudText>
                             <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -274,7 +274,7 @@
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                 @TranslationService.GetTranslation("businessparty.vatNumber", "Partita IVA")
                                             </MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            <MudText Typo="Typo.body2"  Class="fw-semibold">
                                                 @SelectedBusinessParty.VatNumber
                                             </MudText>
                                         </MudStack>
@@ -290,7 +290,7 @@
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                 @TranslationService.GetTranslation("businessparty.taxCode", "Codice Fiscale")
                                             </MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            <MudText Typo="Typo.body2"  Class="fw-semibold">
                                                 @SelectedBusinessParty.TaxCode
                                             </MudText>
                                         </MudStack>
@@ -306,7 +306,7 @@
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                 @TranslationService.GetTranslation("businessparty.sdiCode", "Codice SDI")
                                             </MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            <MudText Typo="Typo.body2"  Class="fw-semibold">
                                                 @SelectedBusinessParty.SdiCode
                                             </MudText>
                                         </MudStack>
@@ -322,7 +322,7 @@
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                 @TranslationService.GetTranslation("businessparty.pec", "PEC")
                                             </MudText>
-                                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                            <MudText Typo="Typo.body2"  Class="fw-semibold">
                                                 @SelectedBusinessParty.Pec
                                             </MudText>
                                         </MudStack>
@@ -342,7 +342,7 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @TranslationService.GetTranslation("businessparty.location", "Indirizzo")
                                 </MudText>
-                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                <MudText Typo="Typo.body2"  Class="fw-semibold">
                                     @GetFullAddress(SelectedBusinessParty)
                                 </MudText>
                             </MudStack>
@@ -355,7 +355,7 @@
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @TranslationService.GetTranslation("businessparty.location", "Località")
                             </MudText>
-                            <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                            <MudText Typo="Typo.body2"  Class="fw-semibold">
                                 <MudIcon Icon="@Icons.Material.Outlined.LocationOn" Size="Size.Small" Class="mr-1" />
                                 @GetLocationTooltip(SelectedBusinessParty)
                             </MudText>
@@ -373,7 +373,7 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @GetContactTypeLabel(contact!.ContactType)
                                 </MudText>
-                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                <MudText Typo="Typo.body2"  Class="fw-semibold">
                                     @contact.Value
                                 </MudText>
                             </MudStack>
@@ -389,7 +389,7 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @TranslationService.GetTranslation("businessparty.addresses", "Indirizzi")
                                 </MudText>
-                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                <MudText Typo="Typo.body2"  Class="fw-semibold">
                                     @SelectedBusinessParty.AddressCount
                                 </MudText>
                             </MudItem>
@@ -397,7 +397,7 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @TranslationService.GetTranslation("businessparty.contacts", "Contatti")
                                 </MudText>
-                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                <MudText Typo="Typo.body2"  Class="fw-semibold">
                                     @SelectedBusinessParty.ContactCount
                                 </MudText>
                             </MudItem>
@@ -405,7 +405,7 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                                     @TranslationService.GetTranslation("businessparty.references", "Referenze")
                                 </MudText>
-                                <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                                <MudText Typo="Typo.body2"  Class="fw-semibold">
                                     @SelectedBusinessParty.ReferenceCount
                                 </MudText>
                             </MudItem>

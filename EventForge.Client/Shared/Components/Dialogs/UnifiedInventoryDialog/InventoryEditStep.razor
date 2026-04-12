@@ -92,7 +92,8 @@
                               Disabled="true"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Outlined.Warehouse"
-                              Class="mud-input-disabled-custom" />
+                              Class="mud-input-disabled-custom"
+                    Margin="Margin.Dense"/>
 
                 <MudTextField Value="@GetLocationDisplay()"
                               Label="@TranslationService.GetTranslation("warehouse.storageLocation", "Ubicazione")"
@@ -101,7 +102,8 @@
                               Disabled="true"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Outlined.LocationOn"
-                              Class="mud-input-disabled-custom" />
+                              Class="mud-input-disabled-custom"
+                    Margin="Margin.Dense"/>
             }
 
             <MudDivider Class="my-4" />
@@ -140,7 +142,8 @@
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory2"
                                         @ref="_quantityField"
                                         ValueChanged="@OnAlternativeUnitChanged"
-                                        HelperText="@($"1 {State.ProductUnit?.UnitType} = {State.ConversionFactor:N2} {TranslationService.GetTranslation("warehouse.baseUnits", "unità base")}")" />
+                                        HelperText="@($"1 {State.ProductUnit?.UnitType} = {State.ConversionFactor:N2} {TranslationService.GetTranslation("warehouse.baseUnits", "unità base")}")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                     <MudItem xs="6">
                         <MudNumericField T="decimal"
@@ -155,7 +158,8 @@
                                         Adornment="Adornment.Start"
                                         AdornmentIcon="@Icons.Material.Outlined.Inventory"
                                         ValueChanged="@OnBaseUnitChanged"
-                                        HelperText="@(_quantityAlternative > 0 ? $"= {_quantityAlternative:N2} {State.ProductUnit?.UnitType}" : "")" />
+                                        HelperText="@(_quantityAlternative > 0 ? $"= {_quantityAlternative:N2} {State.ProductUnit?.UnitType}" : "")"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                 </MudGrid>
                 
@@ -179,7 +183,8 @@
                                 Adornment="Adornment.Start"
                                 AdornmentIcon="@Icons.Material.Outlined.Numbers"
                                 @ref="_quantityField"
-                                ValueChanged="@_quantityChangedCallback" />
+                                ValueChanged="@_quantityChangedCallback"
+                    Margin="Margin.Dense"/>
             }
 
             <MudTextField Value="@State.DraftNotes"
@@ -190,7 +195,8 @@
                          Counter="200"
                          Adornment="Adornment.Start"
                          AdornmentIcon="@Icons.Material.Outlined.Comment"
-                         ValueChanged="@_notesChangedCallback" />
+                         ValueChanged="@_notesChangedCallback"
+                    Margin="Margin.Dense"/>
         </MudStack>
     </MudForm>
 

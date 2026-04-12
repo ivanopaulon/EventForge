@@ -57,7 +57,9 @@
                                   IconSize="Size.Medium"
                                   Immediate="true"
                                   Class="mt-0"
-                                  Clearable="true" />
+                                  Clearable="true"
+                    Variant="Variant.Outlined"
+                    Margin="Margin.Dense"/>
                 </ToolBarContent>
                 <HeaderContent Context="columnConfigurations">
                     @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))

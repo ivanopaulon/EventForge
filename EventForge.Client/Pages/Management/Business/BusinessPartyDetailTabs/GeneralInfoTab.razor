@@ -44,7 +44,8 @@
                               MaxLength="200"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Business"
-                              @bind-Value:after="NotifyUpdated" />
+                              @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
             </MudItem>
             
             <!-- Tax Code -->
@@ -56,7 +57,8 @@
                               MaxLength="20"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Badge"
-                              @bind-Value:after="NotifyUpdated" />
+                              @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
             </MudItem>
             
             <!-- VAT Number with Lookup -->
@@ -72,7 +74,8 @@
                                   AdornmentIcon="@Icons.Material.Outlined.Business"
                                   HelperText="@TranslationService.GetTranslation("businessParty.vatNumberHelper", "Partita IVA (con o senza codice paese)")"
                                   @bind-Value:after="NotifyUpdated"
-                                  Style="flex-grow: 1;" />
+                                  Style="flex-grow: 1;"
+                    Margin="Margin.Dense"/>
                     @if (IsEditMode)
                     {
                         <MudButton Variant="Variant.Filled"
@@ -136,7 +139,8 @@
                               MaxLength="10"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.QrCode"
-                              @bind-Value:after="NotifyUpdated" />
+                              @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
             </MudItem>
             
             <!-- PEC -->
@@ -148,7 +152,8 @@
                               MaxLength="100"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Email"
-                              @bind-Value:after="NotifyUpdated" />
+                              @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
             </MudItem>
 
             <!-- Is Active -->
@@ -170,7 +175,8 @@
                               MaxLength="500"
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Notes"
-                              @bind-Value:after="NotifyUpdated" />
+                              @bind-Value:after="NotifyUpdated"
+                    Margin="Margin.Dense"/>
                 </MudItem>
             </MudGrid>
         </MudPaper>
@@ -237,7 +243,7 @@
             
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense>
                 <MudStack Spacing="1">
-                    <MudText Typo="Typo.body2" Style="font-weight: 600;">
+                    <MudText Typo="Typo.body2"  Class="fw-semibold">
                         🚧 @TranslationService.GetTranslation("info.featureInDesign", "Funzionalità in Fase di Progettazione")
                     </MudText>
                     <MudText Typo="Typo.body2">
@@ -262,13 +268,15 @@
                         <MudTextField Value="@Party.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
                                       Label="@TranslationService.GetTranslation("field.createdAt", "Creato il")"
                                       Variant="Variant.Outlined"
-                                      ReadOnly="true" />
+                                      ReadOnly="true"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                     <MudItem xs="12" md="6">
                         <MudTextField Value="@Party.CreatedBy"
                                       Label="@TranslationService.GetTranslation("field.createdBy", "Creato da")"
                                       Variant="Variant.Outlined"
-                                      ReadOnly="true" />
+                                      ReadOnly="true"
+                    Margin="Margin.Dense"/>
                     </MudItem>
                     @if (Party.ModifiedAt.HasValue)
                     {
@@ -276,13 +284,15 @@
                             <MudTextField Value="@Party.ModifiedAt.Value.ToString("dd/MM/yyyy HH:mm")"
                                           Label="@TranslationService.GetTranslation("field.modifiedAt", "Modificato il")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                         <MudItem xs="12" md="6">
                             <MudTextField Value="@Party.ModifiedBy"
                                           Label="@TranslationService.GetTranslation("field.modifiedBy", "Modificato da")"
                                           Variant="Variant.Outlined"
-                                          ReadOnly="true" />
+                                          ReadOnly="true"
+                    Margin="Margin.Dense"/>
                         </MudItem>
                     }
                 </MudGrid>
