@@ -1,0 +1,117 @@
+@using EventForge.DTOs.Chat
+@using Microsoft.AspNetCore.Components.Forms
+@inject IChatService ChatService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ComposeMessageDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Filled.Edit"
+          Title="@(ReplyToMessage != null
+                    ? TranslationService.GetTranslation("chat.replyTo", "Rispondi al messaggio")
+                    : TranslationService.GetTranslation("chat.writeMessage", "Scrivi messaggio"))"
+          IsProcessing="@_isUploading"
+          MinWidth="min(700px, 96vw)"
+          OnClose="Cancel">
+    <ChildContent>
+        <EnhancedMessageComposer CurrentChat="@CurrentChat"
+                                 ReplyToMessage="@_replyToMessage"
+                                 OnSendMessage="@OnComposerSendAsync"
+                                 OnAttachFile="@HandleAttachFilesAsync"
+                                 OnCancelReply="@HandleCancelReply"
+                                 OnRemoveAttachment="@RemoveAttachment"
+                                 PendingAttachments="@_pendingAttachments"
+                                 IsSending="@_isUploading"
+                                 RteHeight="200px" />
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Color="Color.Secondary"
+                   Disabled="@_isUploading">
+            @TranslationService.GetTranslation("common.cancel", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public ChatResponseDto? CurrentChat { get; set; }
+
+    /// <summary>Optional reply context — set when the user taps Reply on a message.</summary>
+    [Parameter] public ChatMessageDto? ReplyToMessage { get; set; }
+
+    private bool _isUploading;
+    private ChatMessageDto? _replyToMessage;
+    private List<MessageAttachmentDto> _pendingAttachments = [];
+
+    protected override void OnParametersSet()
+    {
+        _replyToMessage = ReplyToMessage;
+    }
+
+    private async Task HandleAttachFilesAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        if (CurrentChat == null || files.Count == 0) return;
+
+        const long maxFileSizeBytes = 50L * 1024 * 1024; // 50 MB
+        _isUploading = true;
+        StateHasChanged();
+        try
+        {
+            var oversized = files.Where(f => f.Size > maxFileSizeBytes).ToList();
+            foreach (var f in oversized)
+                AppNotification.ShowWarning(
+                    TranslationService.GetTranslation("chat.fileTooLarge",
+                        $"Il file '{f.Name}' supera il limite massimo di 50 MB e non può essere allegato.")
+                    .Replace("{name}", f.Name));
+
+            var valid = files.Where(f => f.Size <= maxFileSizeBytes).ToList();
+            foreach (var file in valid)
+            {
+                var attachment = await ChatService.UploadFileAsync(CurrentChat.Id, file);
+                if (attachment != null)
+                    _pendingAttachments.Add(attachment);
+                else
+                    AppNotification.ShowWarning(
+                        TranslationService.GetTranslation("chat.fileUploadFailed",
+                            "Impossibile caricare il file '{name}'.")
+                        .Replace("{name}", file.Name));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading file(s) to chat {ChatId}", CurrentChat.Id);
+            AppNotification.ShowError(
+                TranslationService.GetTranslation("chat.fileUploadError",
+                    "Errore nel caricamento del file: {message}")
+                .Replace("{message}", ex.Message));
+        }
+        finally
+        {
+            _isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void RemoveAttachment(MessageAttachmentDto attachment)
+    {
+        _pendingAttachments.Remove(attachment);
+        StateHasChanged();
+    }
+
+    private void HandleCancelReply()
+    {
+        _replyToMessage = null;
+        StateHasChanged();
+    }
+
+    private Task OnComposerSendAsync(SendMessageDto messageDto)
+    {
+        messageDto.Attachments = _pendingAttachments.ToList();
+        MudDialog.Close(DialogResult.Ok(messageDto));
+        return Task.CompletedTask;
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

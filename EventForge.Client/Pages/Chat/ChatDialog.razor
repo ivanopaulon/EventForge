@@ -492,17 +492,17 @@
                         }
                     </div>
 
-                    @* Message composer *@
-                    <div class="chat-dlg-composer">
-                        <EnhancedMessageComposer CurrentChat="@_selectedChat"
-                                                 ReplyToMessage="@_replyToMessage"
-                                                 OnSendMessage="@SendMessageAsync"
-                                                 OnAttachFile="@HandleAttachFilesAsync"
-                                                 OnCancelReply="@CancelReply"
-                                                 OnRemoveAttachment="@RemoveAttachment"
-                                                 PendingAttachments="@_pendingAttachments"
-                                                 IsSending="@IsComposerBusy" />
-                    </div>
+                    @* Floating compose button *@
+                    <MudTooltip Text="@TranslationService.GetTranslation("chat.writeMessage", "Scrivi messaggio")"
+                                Placement="Placement.Left">
+                        <MudFab Class="chat-dlg-compose-fab"
+                                Color="Color.Primary"
+                                StartIcon="@Icons.Material.Filled.Edit"
+                                Size="Size.Medium"
+                                Disabled="@_isSendingMessage"
+                                OnClick="@OpenComposeDialogAsync"
+                                aria-label="@TranslationService.GetTranslation("chat.writeMessage", "Scrivi messaggio")" />
+                    </MudTooltip>
                 }
                 else
                 {
@@ -540,10 +540,6 @@
     private bool _isLoadingChats;
     private bool _isLoadingMessages;
     private bool _isSendingMessage;
-    private bool _isUploadingFiles;
-
-    // Combined: composer spinner shown during both upload and send.
-    private bool IsComposerBusy => _isSendingMessage || _isUploadingFiles;
 
     // ── Filter / search ──────────────────────────────────────────────────────
     private string _searchText  = string.Empty;
@@ -563,7 +559,6 @@
     private readonly HashSet<Guid> _messageIds          = [];
     private List<ChatMemberDto>    _chatMembers         = [];
     private ChatMessageDto?        _replyToMessage;
-    private List<MessageAttachmentDto> _pendingAttachments = [];
 
     // ── Typing ───────────────────────────────────────────────────────────────
     private readonly HashSet<Guid>                          _typingUsers = [];
@@ -766,7 +761,6 @@
             _selectedChat.LastMessage = sent;
             _selectedChat.UpdatedAt   = sent.SentAt;
             _replyToMessage           = null;
-            _pendingAttachments.Clear();
             await ScrollToBottomAsync();
         }
         catch (Exception ex)
@@ -781,37 +775,44 @@
         }
     }
 
-    private async Task HandleAttachFilesAsync(IReadOnlyList<IBrowserFile> files)
+    private void SetReplyToMessage(ChatMessageDto m) { _replyToMessage = m; StateHasChanged(); }
+
+    // ────────────────────────────────────────────────────────────────────────
+    // Compose dialog
+    // ────────────────────────────────────────────────────────────────────────
+
+    private async Task OpenComposeDialogAsync()
     {
-        if (_selectedChat == null || files.Count == 0) return;
-        _isUploadingFiles = true;
-        StateHasChanged();
+        if (_selectedChat == null) return;
         try
         {
-            foreach (var file in files)
+            var parameters = new DialogParameters
             {
-                var attachment = await ChatService.UploadFileAsync(_selectedChat.Id, file);
-                if (attachment != null)
-                    _pendingAttachments.Add(attachment);
-                else
-                    AppNotification.ShowWarning($"Impossibile caricare il file '{file.Name}'.");
+                { nameof(ComposeMessageDialog.CurrentChat), _selectedChat },
+                { nameof(ComposeMessageDialog.ReplyToMessage), _replyToMessage }
+            };
+            var options = new DialogOptions
+            {
+                MaxWidth         = MaxWidth.Medium,
+                FullWidth        = true,
+                BackdropClick    = false,
+                CloseButton      = false,
+                CloseOnEscapeKey = true
+            };
+            var dialog = await DialogService.ShowAsync<ComposeMessageDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: SendMessageDto messageDto })
+            {
+                _replyToMessage = null;
+                await SendMessageAsync(messageDto);
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error uploading file(s) to chat {ChatId}", _selectedChat.Id);
-            AppNotification.ShowError($"Errore nel caricamento del file: {ex.Message}");
-        }
-        finally
-        {
-            _isUploadingFiles = false;
-            StateHasChanged();
+            Logger.LogError(ex, "Error opening compose dialog");
+            AppNotification.ShowError(TranslationService.GetTranslation("chat.composeDialogError", "Impossibile aprire il compositore messaggi."));
         }
     }
-
-    private void SetReplyToMessage(ChatMessageDto m) { _replyToMessage = m; StateHasChanged(); }
-    private void CancelReply()                        { _replyToMessage = null; StateHasChanged(); }
-    private void RemoveAttachment(MessageAttachmentDto a) { _pendingAttachments.Remove(a); StateHasChanged(); }
 
     private async Task ToggleMessageReaction(Guid messageId, string emoji)
     {

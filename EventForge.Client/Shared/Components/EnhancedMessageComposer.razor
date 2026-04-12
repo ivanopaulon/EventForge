@@ -57,7 +57,7 @@
                               Value="@MessageText"
                               ValueChanged="@OnRteValueChanged"
                               Placeholder="@GetPlaceholderText()"
-                              Height="80px"
+                              Height="@RteHeight"
                               EnableXhtml="true">
                 <RichTextEditorToolbarSettings Items="@ChatEditorConfig.ToolbarItems" />
                 <RichTextEditorImageSettings SaveUrl="@RteImageUploadUrl"
@@ -174,6 +174,7 @@
     [Parameter] public EventCallback<MessageAttachmentDto> OnRemoveAttachment { get; set; }
     [Parameter] public string ComposerStyle { get; set; } = "";
     [Parameter] public bool IsSending { get; set; }
+    [Parameter] public string RteHeight { get; set; } = "120px";
 
     // True when there is something to send (text or at least one pending attachment).
     private bool CanSend => !string.IsNullOrWhiteSpace(MessageText) || PendingAttachments?.Count > 0;
