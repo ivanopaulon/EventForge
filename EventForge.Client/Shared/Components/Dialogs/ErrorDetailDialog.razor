@@ -19,7 +19,7 @@
                 @* Technical details from server *@
                 @if (!string.IsNullOrWhiteSpace(ErrorInfo.Details) && ErrorInfo.Details != ErrorInfo.Message)
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Dettagli tecnici</MudText>
                         <MudText Typo="Typo.body2" Class="text-code-muted text-breakword">@ErrorInfo.Details</MudText>
@@ -29,7 +29,7 @@
                 @* Exception info *@
                 @if (!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionMessage))
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Eccezione@(!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionType) ? $" ({ErrorInfo.ExceptionType})" : "")</MudText>
                         <MudText Typo="Typo.body2" Class="text-code-muted text-breakword">@ErrorInfo.ExceptionMessage</MudText>
@@ -39,7 +39,7 @@
                 @* Correlation ID for server-side log tracing *@
                 @if (!string.IsNullOrWhiteSpace(ErrorInfo.CorrelationId))
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">ID Correlazione</MudText>
                         <MudText Typo="Typo.body2" Class="text-code-muted">@ErrorInfo.CorrelationId</MudText>
@@ -47,7 +47,7 @@
                 }
 
                 @* Timestamp *@
-                <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                <MudDivider Class="divider-dark" />
                 <div>
                     <MudText Typo="Typo.caption" Class="text-section-label">Timestamp</MudText>
                     <MudText Typo="Typo.body2" Class="text-code-muted">@ErrorInfo.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>

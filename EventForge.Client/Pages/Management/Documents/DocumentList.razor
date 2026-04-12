@@ -23,11 +23,11 @@
     <AdditionalToolbarContent>
         <MudSelect T="Guid?"
                    Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
-                   Class="ef-select"
+                   Class="ef-select ef-min-200 mr-2"
                    Value="_service.DocumentTypeId"
                    ValueChanged="@OnDocumentTypeChanged"
                    Clearable="true"
-                   Style="min-width: 200px; margin-right: 8px;"
+
                     Variant="Variant.Outlined">
             @foreach (var type in _documentTypes)
             {
@@ -36,11 +36,11 @@
         </MudSelect>
         <MudSelect T="DocumentStatus?"
                    Label="@TranslationService.GetTranslation("documents.status", "Stato")"
-                   Class="ef-select"
+                   Class="ef-select min-width-150 mr-2"
                    Value="_service.Status"
                    ValueChanged="@OnStatusChanged"
                    Clearable="true"
-                   Style="min-width: 150px; margin-right: 8px;"
+
                     Variant="Variant.Outlined">
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("status.draft", "Bozza")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Open">@TranslationService.GetTranslation("status.open", "Aperto")</MudSelectItem>

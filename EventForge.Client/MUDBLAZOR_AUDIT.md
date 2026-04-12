@@ -1,6 +1,6 @@
 # MudBlazor Design System Audit — EventForge.Client
 
-**Version:** Phase 1+2  
+**Version:** Phase 1+2+3d  
 **MudBlazor:** 9.2.0  
 **Framework:** Blazor WASM (.NET 10)  
 **Audit date:** 2025  
@@ -20,13 +20,15 @@
 | G | `.mud-*` class overrides | 200 | Medium | ⚠️ Partially fixed |
 | H | Hardcoded colors in CSS (`slategray`, `whitesmoke`, `#333`) | 12 | High | ✅ Fixed (Task 3) |
 | I | `<MudThemeProvider />` with no theme binding | 1 | High | ✅ Fixed (Task 1) — bound to IThemeService |
-| J | `Style=` (capital-S) inline on MudBlazor components | 826 → ~605 | Medium | ⚠️ Partially fixed — Phase 3a/3b/3c: 168 MudTh/MudTd + 53 MudText + MudButton |
+| J | `Style=` (capital-S) inline on MudBlazor components | 826 → ~470 | Medium | ⚠️ Partially fixed — Phase 3a/3b/3c: 221 + Phase 3d: 135 (MudPaper/Stack/Divider/IconButton/Button/NumericField/Select) |
 | K | `style=` (lowercase) HTML inline | 110 | Low | 📋 Documented |
 
 **Total fixed in Phase 2:** ~1315 automated replacements  
 **Total fixed in Phase 3a/3b:** ~85 additional (31 MudButton + 53 MudText + App.razor theme)  
 **Total fixed in Phase 3c:** ~168 additional (165 MudTh/MudTd + 3 MudText static styles)  
-**Remaining manual work:** ~600 instances (complex multi-value styles, dynamic Style=)
+**Total fixed in Phase 3d:** 135 additional (MudPaper 63 + MudStack 19 + MudDivider 10 + MudIconButton 9 + MudButton 12 + MudNumericField 12 + MudSelect 10)  
+**Remaining static Style= on Mud* components:** ~73 (MudPaper 61, MudIconButton 6 with existing Color=, MudButton 1, MudNumericField 1, MudSelect 4 — all complex/unique patterns)  
+**Remaining manual work:** ~400 instances (complex multi-value styles, dynamic Style=)
 
 ---
 

@@ -31,7 +31,7 @@
                                    Label="Campo"
                                    Variant="Variant.Outlined"
                                    Dense="true"
-                                   Style="flex: 1;"
+                                   Class="flex-1"
                                    T="string">
                             @foreach (var field in AvailableFields)
                             {
@@ -62,7 +62,7 @@
                                        Color="Color.Error"
                                        Size="Size.Small"
                                        OnClick="() => RemoveCondition(condition)"
-                                       Style="margin-top: 4px;" />
+                                       Class="mt-1-em" />
                     </div>
 
                     @{

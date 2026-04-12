@@ -83,7 +83,7 @@
                                    StartIcon="@Icons.Material.Filled.Search"
                                    OnClick="@LookupVatAsync"
                                    Disabled="@(_isLookingUp || string.IsNullOrWhiteSpace(Party.VatNumber))"
-                                   Style="align-self: flex-start; margin-top: 4px;">
+                                   Class="align-self-start mt-1-em">
                             @if (_isLookingUp)
                             {
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />

@@ -141,7 +141,7 @@
                                         </MudPaper>
                                     </MudItem>
                                     <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-success-lighten);">
+                                        <MudPaper Elevation="0" Class="pa-2 bg-success-light">
                                             <MudStack Spacing="0" AlignItems="AlignItems.Center">
                                                 <MudText Typo="Typo.h5" Color="Color.Success">
                                                     @_members.Count(m => m.Status == BusinessPartyGroupMemberStatus.Active)
@@ -151,7 +151,7 @@
                                         </MudPaper>
                                     </MudItem>
                                     <MudItem xs="4">
-                                        <MudPaper Elevation="0" Class="pa-2" Style="background-color: var(--mud-palette-warning-lighten);">
+                                        <MudPaper Elevation="0" Class="pa-2 bg-warning-light">
                                             <MudStack Spacing="0" AlignItems="AlignItems.Center">
                                                 <MudText Typo="Typo.h5" Color="Color.Warning">
                                                     @_members.Count(m => m.Status == BusinessPartyGroupMemberStatus.Suspended)

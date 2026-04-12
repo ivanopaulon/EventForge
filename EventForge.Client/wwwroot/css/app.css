@@ -1236,3 +1236,65 @@ kbd {
 .ef-w-120   { width: 120px; }
 .ef-w-50    { width: 50px; }
 .ef-w-32    { width: 32px; }
+
+/* ── Phase 3d utility classes ─────────────────────────────────────────────── */
+
+/* MudPaper background variants */
+.bg-grey          { background-color: var(--mud-palette-background-grey) !important; }
+.bg-white         { background: #ffffff !important; }
+.bg-warning-light { background-color: var(--mud-palette-warning-lighten) !important; }
+.bg-success-light { background-color: var(--mud-palette-success-lighten) !important; }
+.bg-info-light    { background: var(--mud-palette-info-lighten) !important; }
+
+/* MudPaper border variants */
+.border-default     { border: 1px solid var(--mud-palette-lines-default); }
+.border-subtle      { border: 1px solid rgba(0, 0, 0, 0.12); }
+.border-primary-l   { border-left: 4px solid var(--mud-palette-primary); }
+.border-secondary-l { border-left: 4px solid var(--mud-palette-secondary); }
+.border-success-l   { border-left: 4px solid var(--mud-palette-success); }
+.border-warning-l   { border-left: 4px solid var(--mud-palette-warning); }
+.border-error-l     { border-left: 4px solid var(--mud-palette-error); }
+.border-info-l      { border-left: 4px solid var(--mud-palette-info); }
+
+/* Border radius */
+.rounded-12 { border-radius: 12px; }
+.rounded-4  { border-radius: 4px; }
+
+/* MudPaper/MudStack size helpers */
+.w-full         { width: 100%; }
+.h-full         { height: 100%; }
+.h-full-min-280 { height: 100%; min-height: 280px; }
+.min-width-150  { min-width: 150px; }
+.ef-min-200     { min-width: 200px; }
+
+/* Flex helpers for MudStack/MudSelect */
+.flex-wrap-wrap { flex-wrap: wrap; }
+.flex-no-shrink { flex-shrink: 0; }
+.gap-2          { gap: 8px; }
+.min-w-0        { min-width: 0; }
+.min-width-80   { min-width: 80px; }
+
+/* MudDivider dark background helpers */
+.divider-dark    { border-color: rgba(255, 255, 255, 0.12) !important; }
+.divider-dark-bg { background: rgba(255, 255, 255, 0.3) !important; }
+
+/* Combined paper card with popup border */
+.ef-popup-card { border: 1px solid rgba(0,0,0,0.12); border-radius: 4px; min-width: 150px; }
+
+/* MudButton card/menu variants */
+.ef-card-btn    { height: 80px; text-align: left; justify-content: flex-start; padding: 16px; }
+.ef-compact-btn { min-width: 32px; height: 32px; padding: 2px; }
+
+/* Touch target sizes for MudIconButton */
+.touch-44       { min-width: 44px !important; height: 44px !important; }
+.touch-52       { min-width: 52px !important; height: 52px !important; }
+.icon-btn-muted { color: rgba(255, 255, 255, 0.70); flex-shrink: 0; }
+
+/* MudNumericField/MudTextField width constraints */
+.ef-input-60  { max-width:  60px; }
+.ef-input-100 { max-width: 100px; }
+.ef-input-120 { max-width: 120px; }
+.ef-input-150 { max-width: 150px; }
+
+/* Margin/padding helpers */
+.mt-1-em { margin-top: 4px; }

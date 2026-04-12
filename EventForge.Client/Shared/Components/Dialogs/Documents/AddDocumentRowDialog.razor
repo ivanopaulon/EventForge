@@ -117,7 +117,7 @@
                             <!-- Stats Cards -->
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="4">
-                                    <MudPaper Elevation="2" Class="pa-3" Style="text-align: center; background: white;">
+                                    <MudPaper Elevation="2" Class="pa-3 text-center bg-white">
                                         <MudIcon Icon="@Icons.Material.Filled.QrCodeScanner" Color="Color.Primary" Size="Size.Medium" />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Scansioni Totali</MudText>
                                         <MudText Typo="Typo.h3" Color="Color.Primary">@_continuousScanCount</MudText>
@@ -125,7 +125,7 @@
                                 </MudItem>
 
                                 <MudItem xs="12" sm="4">
-                                    <MudPaper Elevation="2" Class="pa-3" Style="text-align: center; background: white;">
+                                    <MudPaper Elevation="2" Class="pa-3 text-center bg-white">
                                         <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Success" Size="Size.Medium" />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti Unici</MudText>
                                         <MudText Typo="Typo.h3" Color="Color.Success">@_uniqueProductsCount</MudText>
@@ -133,7 +133,7 @@
                                 </MudItem>
 
                                 <MudItem xs="12" sm="4">
-                                    <MudPaper Elevation="2" Class="pa-3" Style="text-align: center; background: white;">
+                                    <MudPaper Elevation="2" Class="pa-3 text-center bg-white">
                                         <MudIcon Icon="@Icons.Material.Filled.Speed" Color="Color.Info" Size="Size.Medium" />
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">Velocità</MudText>
                                         <MudText Typo="Typo.h3" Color="Color.Info">@_scansPerMinute<MudText Typo="Typo.caption" Inline="true">/min</MudText></MudText>
@@ -154,7 +154,7 @@
                                         @foreach (var scan in _recentContinuousScans.Take(5))
                                         {
                                             <MudListItem T="string" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
-                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="w-full">
                                                     <MudStack Spacing="0">
                                                         <MudText Typo="Typo.body2"><strong>@scan.ProductName</strong></MudText>
                                                         <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -352,7 +352,7 @@
                     <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->
                     @if (!_isEditMode && _dialogMode == DialogMode.Standard)
                     {
-                        <MudPaper Elevation="1" Class="pa-3" Style="background-color: var(--mud-palette-background-grey);">
+                        <MudPaper Elevation="1" Class="pa-3 bg-grey">
                             <MudCheckBox T="bool"
                                          @bind-Checked="_model.MergeDuplicateProducts"
                                          Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")"
@@ -402,7 +402,7 @@
         </div>
     </ChildContent>
     <DialogActions>
-        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="w-full">
             <MudText Typo="Typo.caption" Class="ml-2 text-secondary-color">
                 <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" />
                 @TranslationService.GetTranslation("documents.shortcutEnter", "Enter: Salva") ·

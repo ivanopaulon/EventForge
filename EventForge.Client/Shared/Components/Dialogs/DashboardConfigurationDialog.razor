@@ -55,7 +55,7 @@
                 }
                 else
                 {
-                    <MudPaper Elevation="0" Class="pa-2" Style="border: 1px solid var(--mud-palette-lines-default);">
+                    <MudPaper Elevation="0" Class="pa-2 border-default">
                         @foreach (var (metric, index) in _metrics.Select((m, i) => (m, i)))
                         {
                             <MudPaper Elevation="1" Class="pa-2 mb-2 metric-card"

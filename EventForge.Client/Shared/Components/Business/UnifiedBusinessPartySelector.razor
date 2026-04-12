@@ -87,15 +87,15 @@
                              Style="flex-grow: 1;">
             <!-- ItemTemplate -->
             <ItemTemplate Context="bp">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Style="width: 100%;">
-                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="flex: 1;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="w-full">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-1">
                         <!-- Avatar -->
                         <MudAvatar Color="@GetAvatarColor(bp)" Size="Size.Small">
                             <MudIcon Icon="@GetIcon(bp)" Size="Size.Small" />
                         </MudAvatar>
                         
                         <!-- Business Party Info -->
-                        <MudStack Spacing="0" Style="flex: 1;">
+                        <MudStack Spacing="0" Class="flex-1">
                             <MudText Typo="Typo.body2" Class="fw-semibold">@bp.Name</MudText>
                             
                             <!-- Fiscal Info (inline) -->
@@ -196,7 +196,7 @@
                         <MudAvatar Color="@GetAvatarColor(SelectedBusinessParty)" Size="Size.Large">
                             <MudIcon Icon="@GetIcon(SelectedBusinessParty)" Size="Size.Large" />
                         </MudAvatar>
-                        <MudStack Spacing="0" Style="flex: 1;">
+                        <MudStack Spacing="0" Class="flex-1">
                             <MudText Typo="Typo.h6" Class="fw-semibold">
                                 @SelectedBusinessParty.Name
                             </MudText>
@@ -214,7 +214,7 @@
                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                 @TranslationService.GetTranslation("businessparty.groups", "Gruppi")
                             </MudText>
-                            <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+                            <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
                                 @foreach (var group in GetSortedGroups(SelectedBusinessParty))
                                 {
                                     var currentGroup = group; // Capture for closure

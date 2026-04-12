@@ -21,8 +21,8 @@
                    Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
                    Variant="Variant.Outlined"
                    Clearable="true"
-                   Class="ml-2"
-                   Style="min-width: 150px;">
+                   Class="ml-2 min-width-150"
+>
             <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("warehouse.active", "Attivo")</MudSelectItem>
             <MudSelectItem Value="@("Blocked")">@TranslationService.GetTranslation("warehouse.blocked", "Bloccato")</MudSelectItem>
             <MudSelectItem Value="@("Expired")">@TranslationService.GetTranslation("warehouse.expired", "Scaduto")</MudSelectItem>

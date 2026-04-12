@@ -20,11 +20,11 @@
     <AdditionalToolbarContent>
         <MudSelect T="Guid?"
                    Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
-                   Class="ef-select"
+                   Class="ef-select ef-min-200 mr-2"
                    @bind-Value="_selectedDocumentTypeId"
                    @bind-Value:after="OnFilterChanged"
                    Clearable="true"
-                   Style="min-width: 200px; margin-right: 8px;"
+
                     Variant="Variant.Outlined">
             @if (_documentTypes != null)
             {

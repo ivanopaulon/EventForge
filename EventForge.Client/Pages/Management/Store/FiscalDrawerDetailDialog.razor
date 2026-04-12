@@ -214,19 +214,19 @@
                         <MudText Typo="Typo.subtitle2" Class="mb-2">Riepilogo Saldi</MudText>
                         <MudGrid>
                             <MudItem xs="12" sm="4">
-                                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Fondo cassa iniziale</MudText>
                                     <MudText Typo="Typo.h6">@FormatBalance(ViewModel.Entity.OpeningBalance)</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
-                                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo attuale</MudText>
                                     <MudText Typo="Typo.h6" Class="fw-bold">@FormatBalance(ViewModel.Entity.CurrentBalance)</MudText>
                                 </MudPaper>
                             </MudItem>
                             <MudItem xs="12" sm="4">
-                                <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                                <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                     <MudText Typo="Typo.caption" Color="Color.Secondary">Sessione</MudText>
                                     @if (ViewModel.Entity.HasOpenSession)
                                     {
@@ -301,7 +301,7 @@
                                                                  T="int" Min="0" Max="9999"
                                                                  Variant="Variant.Outlined"
                                                                  Margin="Margin.Dense"
-                                                                 Style="width:100px;" />
+                                                                 Class="ef-input-100" />
                                             </td>
                                             <td>@($"{ViewModel.Entity.CurrencyCode} {denom.TotalValue:N2}")</td>
                                         </tr>
@@ -309,7 +309,7 @@
                                 </tbody>
                             </MudSimpleTable>
 
-                            <MudPaper Class="pa-3" Elevation="0" Style="background: var(--mud-palette-background-grey);">
+                            <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                                     <MudText Typo="Typo.body2">
                                         <strong>Totale contante contato:</strong>

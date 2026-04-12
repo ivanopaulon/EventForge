@@ -44,7 +44,7 @@
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        Size="Size.Large"
-                                       Style="min-width: 52px; height: 52px;"
+                                       Class="touch-52"
                                        OnClick="@DecreaseQty"
                                        Disabled="@(_qty <= 1)" />
                         <MudNumericField @bind-Value="_qty"
@@ -57,7 +57,7 @@
                                        Variant="Variant.Outlined"
                                        Color="Color.Primary"
                                        Size="Size.Large"
-                                       Style="min-width: 52px; height: 52px;"
+                                       Class="touch-52"
                                        OnClick="@IncreaseQty" />
                     </MudStack>
                 </MudStack>
@@ -73,7 +73,7 @@
                                      Format="F2"
                                      Adornment="Adornment.Start"
                                      AdornmentText="€"
-                                     Style="font-size: 1.1rem;"
+                                     Class="text-lg-custom"
                     Margin="Margin.Dense"/>
                 </MudStack>
 
@@ -88,7 +88,7 @@
                             <MudButton Variant="@(_discountPercent == preset ? Variant.Filled : Variant.Outlined)"
                                        Color="@(_discountPercent == preset ? Color.Warning : Color.Default)"
                                        Size="Size.Medium"
-                                       Style="min-width: 56px; font-weight: 600;"
+                                       Style="min-width: 56px;" Class="fw-semibold"
                                        OnClick="@(() => _discountPercent = preset)">
                                 @preset%
                             </MudButton>
@@ -98,7 +98,7 @@
                                          Min="0"
                                          Max="100"
                                          Suffix="%"
-                                         Style="max-width: 100px;"
+                                         Class="ef-input-100"
                     Margin="Margin.Dense"/>
                     </MudStack>
                     @if (_discountPercent > 0)

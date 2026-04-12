@@ -45,7 +45,7 @@
                 @* Sender *@
                 @if (!string.IsNullOrWhiteSpace(Notification.SenderName))
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Mittente</MudText>
                         <MudText Typo="Typo.body2" Class="text-dark-secondary mt-1-px">@Notification.SenderName</MudText>
@@ -55,7 +55,7 @@
                 @* Action URL *@
                 @if (!string.IsNullOrWhiteSpace(Notification.Payload?.ActionUrl))
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Collegamento</MudText>
                         <MudLink Href="@Notification.Payload.ActionUrl"
@@ -69,7 +69,7 @@
                 @* Tags *@
                 @if (Notification.Payload?.Tags?.Any() == true)
                 {
-                    <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                    <MudDivider Class="divider-dark" />
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Tag</MudText>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
@@ -82,7 +82,7 @@
                 }
 
                 @* Timestamps *@
-                <MudDivider Style="border-color: rgba(255,255,255,0.12);" />
+                <MudDivider Class="divider-dark" />
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div>
                         <MudText Typo="Typo.caption" Class="text-section-label">Ricevuta</MudText>

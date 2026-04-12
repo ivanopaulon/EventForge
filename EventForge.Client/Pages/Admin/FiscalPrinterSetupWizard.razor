@@ -54,7 +54,7 @@
 
         <MudRadioGroup T="string" @bind-Value="_connectionType">
             <MudStack Spacing="3">
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("TCP")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>TCP/IP – Diretto</b></MudText>
@@ -62,7 +62,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("TcpViaAgent")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>TCP/IP via Agente</b> – stampante in rete dell'Agent</MudText>
@@ -70,7 +70,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("Serial")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>Seriale RS232</b> – Porta COM</MudText>
@@ -78,7 +78,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("UsbViaAgent")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>USB via Agente</b> – EventForge UpdateAgent</MudText>
@@ -86,7 +86,7 @@
                         </MudStack>
                     </MudRadio>
                 </MudPaper>
-                <MudPaper Class="pa-4" Elevation="0" Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudPaper Class="pa-4 border-default" Elevation="0">
                     <MudRadio Value="@("NetworkShare")" Color="Color.Primary">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body1"><b>Condivisione di Rete</b> – Windows Network Share</MudText>
@@ -760,7 +760,7 @@
                             <MudTd>
                                 <MudNumericField T="int" @bind-Value="context.FiscalCode"
                                                  Min="1" Max="10" Dense="true" Margin="Margin.Dense"
-                                                 Variant="Variant.Outlined" Style="max-width:100px;" />
+                                                 Variant="Variant.Outlined" Class="ef-input-100" />
                             </MudTd>
                             <MudTd>
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.SuggestedCode</MudChip>
@@ -798,7 +798,7 @@
                             <MudTd>
                                 <MudNumericField T="int" @bind-Value="context.FiscalCode"
                                                  Min="1" Max="10" Dense="true" Margin="Margin.Dense"
-                                                 Variant="Variant.Outlined" Style="max-width:100px;" />
+                                                 Variant="Variant.Outlined" Class="ef-input-100" />
                             </MudTd>
                             <MudTd>
                                 <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.SuggestedCode</MudChip>

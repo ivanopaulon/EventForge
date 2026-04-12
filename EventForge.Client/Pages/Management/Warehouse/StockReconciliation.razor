@@ -30,7 +30,7 @@
         </MudText>
 
         @* Filters Section *@
-        <MudPaper Class="pa-4 mb-4" Elevation="2" Style="background-color: var(--mud-palette-background-grey);">
+        <MudPaper Class="pa-4 mb-4 bg-grey" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-3">
                 <MudIcon Icon="@Icons.Material.Outlined.FilterList" Class="mr-2" />
                 @TranslationService.GetTranslation("stockReconciliation.filters", "Filters and Options")
@@ -301,7 +301,7 @@
                         {
                             <MudTr>
                                 <td colspan="8" style="padding:0;">
-                                    <MudPaper Class="pa-3 ma-2" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 ma-2 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.subtitle2" Class="mb-2">
                                             @TranslationService.GetTranslation("stockReconciliation.sourceMovements", "Source Movements")
                                         </MudText>
@@ -364,7 +364,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                        <MudPaper Class="pa-3 bg-success-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.correct", "Correct")
                             </MudText>
@@ -372,7 +372,7 @@
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" sm="6" md="2">
-                        <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                        <MudPaper Class="pa-3 bg-warning-light" Elevation="0">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                                 @TranslationService.GetTranslation("stockReconciliation.summary.minorDiscrepancies", "Minor Discrepancies")
                             </MudText>
@@ -562,31 +562,31 @@
 
                             <MudGrid Spacing="2" Class="mb-3">
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.documentsScanned", "Documenti")</MudText>
                                         <MudText Typo="Typo.h6">@_rebuildResult.DocumentsScanned</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.rowsScanned", "Righe")</MudText>
                                         <MudText Typo="Typo.h6">@_rebuildResult.RowsScanned</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-success-lighten);">
+                                    <MudPaper Class="pa-3 bg-success-light" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.movementsCreated", "Creati")</MudText>
                                         <MudText Typo="Typo.h6" Color="Color.Success">@_rebuildResult.MovementsCreated</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-background-grey);">
+                                    <MudPaper Class="pa-3 bg-grey" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.alreadyExist", "Già esistenti")</MudText>
                                         <MudText Typo="Typo.h6">@_rebuildResult.RowsAlreadyHadMovement</MudText>
                                     </MudPaper>
                                 </MudItem>
                                 <MudItem xs="6" sm="4" md="2">
-                                    <MudPaper Class="pa-3" Elevation="0" Style="background-color: var(--mud-palette-warning-lighten);">
+                                    <MudPaper Class="pa-3 bg-warning-light" Elevation="0">
                                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@TranslationService.GetTranslation("stockReconciliation.rebuild.skipped", "Saltati (no loc.)")</MudText>
                                         <MudText Typo="Typo.h6" Color="Color.Warning">@_rebuildResult.RowsSkippedNoLocation</MudText>
                                     </MudPaper>

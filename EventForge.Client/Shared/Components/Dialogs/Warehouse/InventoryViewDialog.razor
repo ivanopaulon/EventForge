@@ -31,7 +31,7 @@
         else if (_document != null)
         {
             <!-- Document Header Information -->
-            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+            <MudPaper Elevation="0" Class="pa-4 mb-4 bg-grey">
                 <MudText Typo="Typo.h6" Class="mb-3">
                     <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
                     @TranslationService.GetTranslation("warehouse.documentInfo", "Informazioni Documento")
@@ -75,26 +75,26 @@
             </MudPaper>
 
             <!-- Statistics Section -->
-            <MudPaper Elevation="0" Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+            <MudPaper Elevation="0" Class="pa-4 mb-4 bg-grey">
                 <MudText Typo="Typo.h6" Class="mb-3">
                     <MudIcon Icon="@Icons.Material.Outlined.Analytics" Class="mr-2" />
                     @TranslationService.GetTranslation("warehouse.inventoryStats", "Statistiche Inventario")
                 </MudText>
                 <MudGrid>
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="2" Class="pa-3" Style="text-align: center;">
+                        <MudPaper Elevation="2" Class="pa-3 text-center">
                             <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.items", "Articoli")</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Info">@_document.TotalItems</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="2" Class="pa-3" Style="text-align: center;">
+                        <MudPaper Elevation="2" Class="pa-3 text-center">
                             <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.positiveAdjustments", "Eccedenze (+)")</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Success">@_positiveAdjustments</MudText>
                         </MudPaper>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudPaper Elevation="2" Class="pa-3" Style="text-align: center;">
+                        <MudPaper Elevation="2" Class="pa-3 text-center">
                             <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.negativeAdjustments", "Mancanze (-)")</MudText>
                             <MudText Typo="Typo.h4" Color="Color.Error">@_negativeAdjustments</MudText>
                         </MudPaper>

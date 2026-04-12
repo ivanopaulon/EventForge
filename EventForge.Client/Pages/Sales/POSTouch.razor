@@ -146,7 +146,7 @@ else
             <MudStack Spacing="3">
 
                 <!-- Product scanner -->
-                <MudPaper Elevation="2" Class="pa-3" Style="border-radius: 12px;">
+                <MudPaper Elevation="2" Class="pa-3 rounded-12">
                     <UnifiedProductScanner
                         SelectedProduct="@_currentProduct"
                         SelectedProductChanged="@OnProductSelectedAsync"
@@ -164,7 +164,7 @@ else
                 </MudPaper>
 
                 <!-- Keypad + mode toggle -->
-                <MudPaper Elevation="2" Class="pa-3" Style="border-radius: 12px;">
+                <MudPaper Elevation="2" Class="pa-3 rounded-12">
 
                     <!-- Mode toggle -->
                     <MudButtonGroup Variant="Variant.Outlined"
@@ -237,7 +237,7 @@ else
                 <!-- Quick actions row -->
                 @if (ViewModel.CurrentSession?.Items.Any() == true)
                 {
-                    <MudPaper Elevation="1" Class="pa-2" Style="border-radius: 12px;">
+                    <MudPaper Elevation="1" Class="pa-2 rounded-12">
                         <MudStack Row="true" Spacing="1" Justify="Justify.SpaceAround" Wrap="Wrap.Wrap">
 
                             <MudButton Variant="Variant.Text"
@@ -316,7 +316,7 @@ else
                 <!-- Totals summary -->
                 @if (ViewModel.CurrentSession != null)
                 {
-                    <MudPaper Elevation="3" Class="pa-4" Style="border-radius: 12px;">
+                    <MudPaper Elevation="3" Class="pa-4 rounded-12">
 
                         <MudStack Spacing="1">
 

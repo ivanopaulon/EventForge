@@ -29,8 +29,8 @@
                    Variant="Variant.Outlined"
                    T="Guid?"
                    Clearable="true"
-                   Class="ml-2"
-                   Style="min-width: 200px;">
+                   Class="ml-2 ef-min-200"
+>
             @foreach (var warehouse in _warehouses)
             {
                 <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
@@ -42,8 +42,8 @@
                    Variant="Variant.Outlined"
                    T="Guid?"
                    Clearable="true"
-                   Class="ml-2"
-                   Style="min-width: 200px;">
+                   Class="ml-2 ef-min-200"
+>
             @foreach (var warehouse in _warehouses)
             {
                 <MudSelectItem Value="@((Guid?)warehouse.Id)">@warehouse.Name</MudSelectItem>
@@ -55,8 +55,8 @@
                    Variant="Variant.Outlined"
                    T="string"
                    Clearable="true"
-                   Class="ml-2"
-                   Style="min-width: 150px;">
+                   Class="ml-2 min-width-150"
+>
             <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("transferOrder.status.pending", "Pending")</MudSelectItem>
             <MudSelectItem Value="@("Shipped")">@TranslationService.GetTranslation("transferOrder.status.shipped", "Shipped")</MudSelectItem>
             <MudSelectItem Value="@("InTransit")">@TranslationService.GetTranslation("transferOrder.status.inTransit", "In Transit")</MudSelectItem>

@@ -29,7 +29,7 @@
             Validità: @Card.ValidFrom.ToString("dd/MM/yyyy") - @Card.ValidTo.ToString("dd/MM/yyyy")
         </MudText>
         
-        <MudDivider Style="background: rgba(255,255,255,0.3);" />
+        <MudDivider Class="divider-dark-bg" />
         
         <!-- Contatori Punti -->
         <MudGrid Spacing="2">
@@ -54,7 +54,7 @@
         </MudGrid>
         
         <!-- Vantaggi -->
-        <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+        <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
             @if (Card.DiscountPercentage > 0)
             {
                 <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Discount"
@@ -79,7 +79,7 @@
         </MudStack>
         
         <!-- Azioni -->
-        <MudStack Row="true" Spacing="1" Style="flex-wrap: wrap;">
+        <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
             <MudIconButton Icon="@Icons.Material.Outlined.History"
                            Color="Color.Default"
                            Size="Size.Small"

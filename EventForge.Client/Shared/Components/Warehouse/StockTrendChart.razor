@@ -16,7 +16,7 @@
     {
         <!-- Statistics Cards -->
         <MudStack Row="true" Spacing="2" Class="mb-4">
-            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1 ef-popup-card">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("stock.current", "Attuale")
                 </MudText>
@@ -24,7 +24,7 @@
                     @StockTrend.CurrentStock.ToString("N2")
                 </MudText>
             </MudPaper>
-            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1 ef-popup-card">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("stock.average", "Media")
                 </MudText>
@@ -32,7 +32,7 @@
                     @StockTrend.AverageStock.ToString("N2")
                 </MudText>
             </MudPaper>
-            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1 ef-popup-card">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("stock.minimum", "Minimo")
                 </MudText>
@@ -40,7 +40,7 @@
                     @StockTrend.MinStock.ToString("N2")
                 </MudText>
             </MudPaper>
-            <MudPaper Elevation="0" Class="pa-3 flex-grow-1" Style="border: 1px solid rgba(0,0,0,0.12); border-radius:4px; min-width: 150px;">
+            <MudPaper Elevation="0" Class="pa-3 flex-grow-1 ef-popup-card">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @TranslationService.GetTranslation("stock.maximum", "Massimo")
                 </MudText>
