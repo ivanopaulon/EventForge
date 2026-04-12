@@ -139,8 +139,8 @@
  Variant="@(reaction.HasCurrentUserReacted ? Variant.Filled : Variant.Outlined)"
  Color="@(reaction.HasCurrentUserReacted ? Color.Primary : Color.Default)"
  OnClick="@(() => ToggleReaction(reaction.Emoji))"
- Style="cursor: pointer; min-height:24px;"
- aria-label="@($"{reaction.Emoji} reaction, {reaction.Count} users, {(reaction.HasCurrentUserReacted ? "remove" : "add")} your reaction")" />
+
+ aria-label="@($"{reaction.Emoji} reaction, {reaction.Count} users, {(reaction.HasCurrentUserReacted ? "remove" : "add")} your reaction")" Class="chip-touch" />
  }
  </div>
  </div>

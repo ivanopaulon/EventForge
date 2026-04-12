@@ -28,8 +28,8 @@
                                  OnClose="@(() => ToggleContact(contact))"
                                  Size="Size.Small"
                                  Style="@GetChipStyle(contact)">
-                            <MudIcon Icon="@(contact.Channel == MessagingChannel.WhatsApp ? Icons.Custom.Brands.WhatsApp : Icons.Material.Filled.Person)"
-                                     Style="font-size:12px;margin-right:3px;" />
+                            <MudIcon Icon="@(contact.Channel == MessagingChannel.WhatsApp ? Icons.Custom.Brands.WhatsApp : Icons.Material.Filled.Person)" Class="icon-12 mr-1"
+ />
                             @contact.Name
                         </MudChip>
                     }
@@ -89,8 +89,8 @@
                     @if (filtered.Count == 0)
                     {
                         <div class="d-flex flex-column align-center justify-center pa-8 gap-2">
-                            <MudIcon Icon="@Icons.Material.Outlined.SearchOff"
-                                     Style="font-size:48px;opacity:.3;" />
+                            <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Class="icon-48 opacity-30"
+ />
                             <MudText Typo="Typo.body1">
                                 @TranslationService.GetTranslation("chat.noContactsFound", "Nessun contatto trovato")
                             </MudText>
@@ -107,7 +107,7 @@
                         @if (internalContacts.Count > 0 && _channelFilter != MessagingChannel.WhatsApp)
                         {
                             <div class="contact-group-header">
-                                <MudIcon Icon="@Icons.Material.Filled.Business" Style="font-size:14px;" />
+                                <MudIcon Icon="@Icons.Material.Filled.Business" Class="icon-14" />
                                 Utenti interni
                             </div>
                             <MudList T="object" Dense="true" Clickable="true" Padding="false">
@@ -142,8 +142,8 @@
                                             @if (isSelected)
                                             {
                                                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                                         Color="Color.Primary"
-                                                         Style="flex-shrink:0;" />
+                                                         Color="Color.Primary" Class="flex-no-shrink"
+ />
                                             }
                                         </div>
                                     </MudListItem>
@@ -156,7 +156,7 @@
                         {
                             <div class="contact-group-header contact-group-header--wa">
                                 <MudIcon Icon="@Icons.Custom.Brands.WhatsApp"
-                                         Style="font-size:14px;color:#25D366;" />
+                                         Style="color:#25D366" Class="icon-14" />
                                 Contatti WhatsApp
                             </div>
                             <MudList T="object" Dense="true" Clickable="true" Padding="false">
@@ -167,9 +167,9 @@
                                                  OnClick="@(() => ToggleContact(contact))"
                                                  Class="@($"contact-item{(isSelected ? " contact-item--selected" : "")}")">
                                         <div class="d-flex align-center gap-3">
-                                            <MudAvatar Style="background:#25D366;color:white;width:44px;height:44px;flex-shrink:0;">
-                                                <MudIcon Icon="@Icons.Custom.Brands.WhatsApp"
-                                                         Style="font-size:22px;" />
+                                            <MudAvatar Class="avatar-44 avatar-whatsapp flex-no-shrink">
+                                                <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Class="icon-22"
+ />
                                             </MudAvatar>
                                             <div class="flex-grow-1 overflow-hidden">
                                                 <MudText Typo="Typo.body1" Class="text-truncate-ef fw-medium">
@@ -181,15 +181,15 @@
                                                         @contact.Phone
                                                     </MudText>
                                                 }
-                                                <MudChip T="string" Label="true" Size="Size.Small"
-                                                         Style="background:#dcf8c6;color:#1a7a4a;height:18px;font-size:.65rem;padding:0 4px;">
+                                                <MudChip T="string" Label="true" Size="Size.Small" Class="chip-whatsapp chip-xs"
+>
                                                     WA
                                                 </MudChip>
                                             </div>
                                             @if (isSelected)
                                             {
                                                 <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
-                                                         Style="color:#25D366;flex-shrink:0;" />
+                                                         Style="color:#25D366" Class="flex-no-shrink" />
                                             }
                                         </div>
                                     </MudListItem>

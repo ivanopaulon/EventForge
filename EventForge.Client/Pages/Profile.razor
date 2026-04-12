@@ -35,7 +35,7 @@ else if (_profile != null)
         <MudPaper Elevation="0" Class="profile-sidebar" Style="border-right: 1px solid var(--mud-palette-divider);">
             <!-- Avatar & Identity -->
             <div class="d-flex flex-column align-center pa-4 pb-2">
-                <MudAvatar Style="width:88px;height:88px;font-size:2rem;background:var(--mud-palette-primary);color:#fff;" Class="mb-3">
+                <MudAvatar Class="mb-3 avatar-88 avatar-primary">
                     @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
                     {
                         <MudImage Src="@_profile.AvatarUrl" Alt="@_profile.FullName" />

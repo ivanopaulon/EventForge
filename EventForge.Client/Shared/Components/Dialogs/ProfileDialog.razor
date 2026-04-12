@@ -25,7 +25,7 @@
             <!-- Avatar header strip -->
             <MudPaper Elevation="0" Class="pa-3 mb-3" Style="border-bottom: 1px solid var(--mud-palette-divider);">
                 <div class="d-flex align-center gap-3">
-                    <MudAvatar Style="width:64px;height:64px;font-size:1.4rem;background:var(--mud-palette-primary);color:#fff;">
+                    <MudAvatar Class="avatar-64 avatar-primary">
                         @if (!string.IsNullOrEmpty(_profile.AvatarUrl))
                         {
                             <MudImage Src="@_profile.AvatarUrl" Alt="@_profile.FullName" />

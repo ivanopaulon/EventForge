@@ -13,8 +13,8 @@
             </MudStack>
             <MudChip T="string" 
                      Size="Size.Small" 
-                     Color="@GetStatusColor()" 
-                     Style="font-weight: 600;">
+                     Color="@GetStatusColor()" Class="fw-semibold" 
+>
                 @GetStatusText()
             </MudChip>
         </MudStack>
@@ -57,22 +57,22 @@
         <MudStack Row="true" Spacing="1" Class="flex-wrap-wrap">
             @if (Card.DiscountPercentage > 0)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Discount"
-                         Style="background: rgba(255,255,255,0.2); color: white;">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Discount" Class="chip-white-alpha"
+>
                     Sconto @Card.DiscountPercentage%
                 </MudChip>
             }
             @if (Card.HasPriorityAccess)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Star"
-                         Style="background: rgba(255,255,255,0.2); color: white;">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Star" Class="chip-white-alpha"
+>
                     Priority Access
                 </MudChip>
             }
             @if (Card.HasBirthdayBonus)
             {
-                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Cake"
-                         Style="background: rgba(255,255,255,0.2); color: white;">
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Outlined.Cake" Class="chip-white-alpha"
+>
                     Birthday Bonus
                 </MudChip>
             }
