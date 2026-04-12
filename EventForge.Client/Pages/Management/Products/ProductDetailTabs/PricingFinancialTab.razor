@@ -16,7 +16,7 @@
         </MudText>
         <MudGrid Spacing="3">
             <MudItem xs="12" md="6">
-                <PrymNumericField T="decimal"
+                <PrymNullableNumericField T="decimal"
                                   @bind-Value="Product.DefaultPrice"
                                   Label="@TranslationService.GetTranslation("field.defaultPrice", "Prezzo Predefinito")"
                                   ReadOnly="@(!IsEditMode)"

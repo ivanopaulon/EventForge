@@ -104,7 +104,7 @@
                                     Membri del Gruppo
                                 </MudText>
                                 <MudStack Row="true" Spacing="2">
-                                    <PrymButton Intent="Ghost"
+                                    <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
                                                 StartIcon="@Icons.Material.Filled.Download"
                                                 OnClick="@ExportMembersToCsv"
                                                 Size="Size.Small"
@@ -247,7 +247,7 @@
         }
     </ChildContent>
     <DialogActions>
-        <PrymButton Intent="Ghost" OnClick="Cancel" Disabled="_isSaving">Annulla</PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">Annulla</PrymButton>
         <PrymButton StartIcon="@Icons.Material.Filled.Save"
                     OnClick="SaveAsync" Disabled="_isSaving || _isLoading || (_group == null && !_isCreateMode)">
             Salva

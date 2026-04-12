@@ -125,7 +125,7 @@
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <PrymNullableNumericField @bind-Value="ViewModel.Entity.LocationLatitude"
+                                <PrymNullableNumericField T="decimal" @bind-Value="ViewModel.Entity.LocationLatitude"
                                                           Label="@TranslationService.GetTranslation("field.locationLatitude", "Latitudine")"
                                                           Min="-90"
                                                           Max="90"
@@ -133,7 +133,7 @@
                             </MudItem>
 
                             <MudItem xs="12" sm="6">
-                                <PrymNullableNumericField @bind-Value="ViewModel.Entity.LocationLongitude"
+                                <PrymNullableNumericField T="decimal" @bind-Value="ViewModel.Entity.LocationLongitude"
                                                           Label="@TranslationService.GetTranslation("field.locationLongitude", "Longitudine")"
                                                           Min="-180"
                                                           Max="180"

@@ -120,7 +120,7 @@
                                 </PrymSelect>
                             </MudItem>
                             <MudItem xs="12" md="4">
-                                <PrymNumericField @bind-Value="ViewModel.Entity.Port"
+                                <PrymNullableNumericField T="int" @bind-Value="ViewModel.Entity.Port"
                                                   Label="Porta TCP"
                                                   Min="1" Max="65535"
                                                   @bind-Value:after="HandleEntityChanged" />
@@ -162,13 +162,13 @@
                                            @bind-Value:after="HandleEntityChanged" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <PrymNumericField @bind-Value="ViewModel.Entity.BaudRate"
+                            <PrymNullableNumericField T="int" @bind-Value="ViewModel.Entity.BaudRate"
                                               Label="Baud Rate"
                                               Min="300" Max="115200"
                                               @bind-Value:after="HandleEntityChanged" />
                         </MudItem>
                         <MudItem xs="12" md="6">
-                            <PrymNumericField @bind-Value="ViewModel.Entity.PrinterWidth"
+                            <PrymNullableNumericField T="int" @bind-Value="ViewModel.Entity.PrinterWidth"
                                               Label="Larghezza stampa (caratteri)"
                                               Min="10" Max="200"
                                               @bind-Value:after="HandleEntityChanged" />
