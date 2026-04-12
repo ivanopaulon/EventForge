@@ -36,7 +36,7 @@
                     <MudForm @ref="_form">
                         <MudGrid>
                             <MudItem xs="12" md="6">
-                                <MudTextField @bind-Value="_vatRate!.Name"
+                                <MudTextField Margin="Margin.Dense" @bind-Value="_vatRate!.Name"
                                               Label="@($"{TranslationService.GetTranslation("drawer.field.nomeAliquotaIva", "Nome Aliquota IVA")} *")"
                                               Variant="Variant.Outlined"
                                               Required="true"

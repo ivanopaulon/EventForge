@@ -191,7 +191,7 @@
                                         "Nota: La configurazione di integrazione non viene visualizzata per motivi di sicurezza. Lasciare vuoto per mantenere quella esistente, oppure inserire una nuova configurazione.")
                                 </MudAlert>
                             }
-                            <MudTextField @bind-Value="PaymentMethodIntegrationConfig"
+                            <MudTextField Margin="Margin.Dense" @bind-Value="PaymentMethodIntegrationConfig"
                                           Label="@TranslationService.GetTranslation("field.integrationConfig", "Configurazione Integrazione (JSON)")"
                                           Variant="Variant.Outlined"
                                           Lines="5"

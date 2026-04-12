@@ -549,15 +549,14 @@
                     </MudSelectItem>
                 </MudSelect>
 
-                <MudTextField @bind-Value="_editingNotes"
+                <MudTextField Margin="Margin.Dense" @bind-Value="_editingNotes"
                               @bind-Value:after="UpdateEditingValidation"
                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
                               Variant="Variant.Outlined"
                               Lines="3"
                               Required="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference)"
                               HelperText="@(Math.Abs(_editingNewQuantity - _editingItem.Quantity) > FullEditNotesRequiredDifference ? TranslationService.GetTranslationFormatted("stock.notesRequired", "Note obbligatorie per differenze > {0} unità", FullEditNotesRequiredDifference) : "")"
-                              Class="mb-3"
-                    Margin="Margin.Dense"/>
+                              Class="mb-3" />
 
                 <div class="d-flex justify-end gap-2">
                     <MudButton Variant="Variant.Text"
