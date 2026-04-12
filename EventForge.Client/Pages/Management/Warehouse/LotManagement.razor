@@ -80,7 +80,7 @@
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lotCode", "Codice Lotto")">
                     <div>
-                        <MudText Typo="Typo.body2"  Class="fw-semibold">@ctx.Item.Code</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Code</MudText>
                         @if (!string.IsNullOrEmpty(ctx.Item.Barcode))
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.Barcode</MudText>

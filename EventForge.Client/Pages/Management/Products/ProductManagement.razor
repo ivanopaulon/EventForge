@@ -87,7 +87,7 @@
                 <MudTd DataLabel="@TranslationService.GetTranslation("field.price", "Prezzo")" Style="text-align:right;">
                     @if (ctx.Item.DefaultPrice.HasValue)
                     {
-                        <MudText Typo="Typo.body2"  Class="fw-semibold">@ctx.Item.DefaultPrice.Value.ToString("C2")</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.DefaultPrice.Value.ToString("C2")</MudText>
                     }
                     else
                     {

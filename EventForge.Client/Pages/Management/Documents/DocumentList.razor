@@ -139,7 +139,7 @@
             else if (column.PropertyName == "TotalGrossAmount")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("documents.amount", "Importo")" Style="text-align:right;">
-                    <MudText Typo="Typo.body2"  Class="fw-semibold">@ctx.Item.TotalGrossAmount.ToString("C2")</MudText>
+                    <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.TotalGrossAmount.ToString("C2")</MudText>
                 </MudTd>
             }
             else if (column.PropertyName == "Status")

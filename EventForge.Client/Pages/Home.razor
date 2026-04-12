@@ -50,7 +50,7 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary" Size="Size.Large" />
                         <div>
-                            <MudText Typo="Typo.h4"  Class="fw-bold">@_productCount</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">@_productCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti</MudText>
                         </div>
                     }
@@ -68,7 +68,7 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Secondary" Size="Size.Large" />
                         <div>
-                            <MudText Typo="Typo.h4"  Class="fw-bold">@_businessPartyCount</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">@_businessPartyCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Business Party</MudText>
                         </div>
                     }
@@ -86,7 +86,7 @@
                     {
                         <MudIcon Icon="@Icons.Material.Outlined.Description" Color="Color.Tertiary" Size="Size.Large" />
                         <div>
-                            <MudText Typo="Typo.h4"  Class="fw-bold">@_documentCount</MudText>
+                            <MudText Typo="Typo.h4" Class="fw-bold">@_documentCount</MudText>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Documenti</MudText>
                         </div>
                     }
@@ -147,7 +147,7 @@
                             <MudListItem T="EventDto">
                                 <div class="d-flex justify-space-between align-center" style="width:100%">
                                     <div>
-                                        <MudText Typo="Typo.body2"  Class="fw-medium">@ev.Name</MudText>
+                                        <MudText Typo="Typo.body2" Class="fw-medium">@ev.Name</MudText>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">
                                             @ev.StartDate.ToString("dd/MM HH:mm")
                                         </MudText>
@@ -193,7 +193,7 @@
                             <MudListItem T="CalendarReminderDto">
                                 <div class="d-flex justify-space-between align-center" style="width:100%">
                                     <div>
-                                        <MudText Typo="Typo.body2"  Class="fw-medium">@task.Title</MudText>
+                                        <MudText Typo="Typo.body2" Class="fw-medium">@task.Title</MudText>
                                         <MudText Typo="Typo.caption"
                                                  Color="@(task.DueDate < DateTime.UtcNow ? Color.Error : Color.Secondary)">
                                             @task.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
@@ -240,7 +240,7 @@
                             <MudListItem T="CalendarReminderDto">
                                 <div class="d-flex justify-space-between align-center" style="width:100%">
                                     <div>
-                                        <MudText Typo="Typo.body2"  Class="fw-medium">@rem.Title</MudText>
+                                        <MudText Typo="Typo.body2" Class="fw-medium">@rem.Title</MudText>
                                         <MudText Typo="Typo.caption"
                                                  Color="@(rem.DueDate < DateTime.UtcNow ? Color.Error : Color.Secondary)">
                                             @rem.DueDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
@@ -267,7 +267,7 @@
             <div class="d-flex align-center justify-space-between mb-3 flex-wrap gap-2">
                 <div class="d-flex align-center gap-2">
                     <MudIcon Icon="@Icons.Material.Outlined.BarChart" Color="Color.Success" />
-                    <MudText Typo="Typo.subtitle1"  Class="fw-semibold">Riepilogo Vendite Oggi</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="fw-semibold">Riepilogo Vendite Oggi</MudText>
                 </div>
                 <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.OpenInNew"
                            Href="/sales/dashboard" Color="Color.Primary">
@@ -285,7 +285,7 @@
                 </MudItem>
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6"  Class="fw-bold">
+                        <MudText Typo="Typo.h6" Class="fw-bold">
                             €@_salesDashboard.WeekTotalSales.ToString("N2")
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Settimana</MudText>
@@ -293,7 +293,7 @@
                 </MudItem>
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6"  Class="fw-bold">
+                        <MudText Typo="Typo.h6" Class="fw-bold">
                             €@_salesDashboard.TotalDrawerBalance.ToString("N2")
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Saldo cassetti</MudText>
@@ -301,7 +301,7 @@
                 </MudItem>
                 <MudItem xs="6" sm="3">
                     <MudStack Spacing="0" AlignItems="AlignItems.Center">
-                        <MudText Typo="Typo.h6"  Class="fw-bold">
+                        <MudText Typo="Typo.h6" Class="fw-bold">
                             @_salesDashboard.OpenSessionsCount / @_salesDashboard.ActiveDrawersCount
                         </MudText>
                         <MudText Typo="Typo.caption" Color="Color.Secondary">Sessioni aperte</MudText>

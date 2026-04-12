@@ -8,7 +8,7 @@
     {
         <!-- Header with Title and Action Buttons -->
         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-            <MudText Typo="Typo.subtitle1"  Class="fw-semibold">
+            <MudText Typo="Typo.subtitle1" Class="fw-semibold">
                 <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
                 @Title
             </MudText>
@@ -123,7 +123,7 @@
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     @TranslationService.GetTranslation("products.code", "Codice")
                 </MudText>
-                <MudText Typo="Typo.body2"  Class="fw-semibold">
+                <MudText Typo="Typo.body2" Class="fw-semibold">
                     @SelectedProduct.Code
                 </MudText>
             </MudItem>
@@ -131,7 +131,7 @@
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     @TranslationService.GetTranslation("products.name", "Nome")
                 </MudText>
-                <MudText Typo="Typo.body2"  Class="fw-semibold">
+                <MudText Typo="Typo.body2" Class="fw-semibold">
                     @SelectedProduct.Name
                 </MudText>
             </MudItem>
@@ -165,7 +165,7 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         @TranslationService.GetTranslation("products.price", "Prezzo")
                     </MudText>
-                    <MudText Typo="Typo.body2"  Class="fw-semibold">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">
                         @SelectedProduct.DefaultPrice.Value.ToString("C2")
                     </MudText>
                 </MudItem>
@@ -176,7 +176,7 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">
                         @TranslationService.GetTranslation("warehouse.currentStock", "Giacenza Attuale")
                     </MudText>
-                    <MudText Typo="Typo.body2"  Class="fw-semibold">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">
                         @CurrentStockQuantity.Value.ToString("N2") @(_currentUnitSymbol ?? "")
                     </MudText>
                 </MudItem>

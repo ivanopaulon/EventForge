@@ -45,7 +45,7 @@ else if (_profile != null)
                         @GetUserInitials()
                     }
                 </MudAvatar>
-                <MudText Typo="Typo.subtitle1" Align="Align.Center"  Class="fw-semibold">@_profile.FullName</MudText>
+                <MudText Typo="Typo.subtitle1" Align="Align.Center" Class="fw-semibold">@_profile.FullName</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mb-2">@_profile.Email</MudText>
                 @if (_profile.Roles?.Any() == true)
                 {

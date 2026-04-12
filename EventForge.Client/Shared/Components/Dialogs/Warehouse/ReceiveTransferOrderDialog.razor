@@ -58,7 +58,7 @@
                                Required="true"
                                Editable="true"
                                MinDate="@TransferOrder?.ShipmentDate"
-                    Margin="Margin.Dense"/>
+                               Margin="Margin.Dense"/>
 
                 <!-- Per-Row Receiving Section -->
                 <MudPaper Elevation="2" Class="pa-3">
@@ -89,7 +89,7 @@
                                         <MudText Typo="Typo.caption">@context.ProductCode</MudText>
                                     </MudTd>
                                     <MudTd DataLabel="Shipped">
-                                        <MudText  Class="fw-semibold">@context.QuantityShipped.ToString("N2")</MudText>
+                                        <MudText Class="fw-semibold">@context.QuantityShipped.ToString("N2")</MudText>
                                     </MudTd>
                                     <MudTd DataLabel="Destination">
                                         <MudSelect @bind-Value="context.DestinationLocationId"

@@ -22,7 +22,7 @@
                 <MudText Typo="Typo.body1">
                     @TranslationService.GetTranslation("documents.netTotal", "Totale Netto")
                 </MudText>
-                <MudText Typo="Typo.body1"  Class="fw-medium">
+                <MudText Typo="Typo.body1" Class="fw-medium">
                     @Document.TotalNetAmount.ToString("C2")
                 </MudText>
             </MudStack>
@@ -32,7 +32,7 @@
                 <MudText Typo="Typo.body1">
                     @TranslationService.GetTranslation("documents.vatTotal", "Totale IVA")
                 </MudText>
-                <MudText Typo="Typo.body1"  Class="fw-medium">
+                <MudText Typo="Typo.body1" Class="fw-medium">
                     @Document.VatAmount.ToString("C2")
                 </MudText>
             </MudStack>
@@ -97,7 +97,7 @@
                             <MudText Typo="Typo.body2">
                                 @TranslationService.GetTranslation("documents.amountPaid", "Importo Pagato"):
                             </MudText>
-                            <MudText Typo="Typo.body2"  Class="fw-medium">
+                            <MudText Typo="Typo.body2" Class="fw-medium">
                                 @Document.AmountPaid.ToString("C2")
                             </MudText>
                         </MudStack>
