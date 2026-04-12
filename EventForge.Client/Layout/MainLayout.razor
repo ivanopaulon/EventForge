@@ -25,7 +25,7 @@
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" />
 
 <MudLayout>
-    <!-- AppBar: [Menu] [Home] ---- [Logo] [ThemeToggle] -->
+    <!-- AppBar: [Menu] [Home] [ThemeToggle] ---- [Logo] -->
     <MudAppBar Elevation="1" role="banner" Class="ef-appbar">
         <MudTooltip Text="@TranslationService.GetTranslation("navigation.menu", "Menu")">
             <MudIconButton Icon="@Icons.Material.Outlined.Menu"
@@ -45,13 +45,6 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
-        <MudSpacer />
-        <MudImage Src="@GetLogoSrc()"
-                  Alt="@($"{(_branding?.ApplicationName ?? "PRYM")} Logo")"
-                  Height="@(_branding?.LogoHeight ?? 40)"
-                  ObjectFit="ObjectFit.Contain"
-                  Class="ef-appbar-logo mx-2">
-        </MudImage>
         <MudTooltip Text="@(ThemeService.IsDarkMode ? TranslationService.GetTranslation("theme.switchLight", "Passa al tema chiaro") : TranslationService.GetTranslation("theme.switchDark", "Passa al tema scuro"))">
             <MudIconButton Icon="@(ThemeService.IsDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
                            Color="Color.Inherit"
@@ -60,6 +53,11 @@
                            Class="ef-menu-button">
             </MudIconButton>
         </MudTooltip>
+        <MudSpacer />
+        <img src="@GetLogoSrc()"
+             alt="@($"{(_branding?.ApplicationName ?? "PRYM")} Logo")"
+             class="ef-appbar-logo mx-2"
+             style="height:@((_branding?.LogoHeight ?? 32))px; width:auto;" />
     </MudAppBar>
     
     @if (_isAuthenticated)
@@ -212,7 +210,7 @@
     {
         var configuredUrl = _branding?.LogoUrl;
         if (string.IsNullOrEmpty(configuredUrl) || configuredUrl == "/logoWhite.svg")
-            return ThemeService.IsDarkMode ? "/images/logoWhite.svg" : "/images/logo.svg";
+            return ThemeService.IsDarkMode ? "/logoWhite.svg" : "/logo.svg";
         return configuredUrl;
     }
 
