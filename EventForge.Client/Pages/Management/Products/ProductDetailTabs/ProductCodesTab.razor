@@ -34,14 +34,14 @@
                             <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.codeType", "Tipo Codice")">@context.CodeType</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">@context.Code</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.AlternativeDescription</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                Size="Size.Small"
                                                Color="Color.Primary"

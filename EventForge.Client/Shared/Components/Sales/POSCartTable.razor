@@ -14,16 +14,16 @@
             <HeaderContent>
                 <MudTh>@TranslationService.GetTranslation("products.code", "Codice")</MudTh>
                 <MudTh>@TranslationService.GetTranslation("products.product", "Prodotto")</MudTh>
-                <MudTh Style="text-align: center;">@TranslationService.GetTranslation("sales.quantity", "Quantità")</MudTh>
-                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.price", "Prezzo")</MudTh>
-                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.discount", "Sconto")</MudTh>
-                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("sales.total", "Totale")</MudTh>
-                <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("sales.quantity", "Quantità")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("sales.price", "Prezzo")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("sales.discount", "Sconto")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("sales.total", "Totale")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Code">@context.ProductCode</MudTd>
                 <MudTd DataLabel="Product">@context.ProductName</MudTd>
-                <MudTd DataLabel="Quantity" Style="text-align: center;">
+                <MudTd DataLabel="Quantity" >
                     <div class="d-flex align-center justify-center gap-1">
                         <MudIconButton Icon="@Icons.Material.Filled.Remove" 
                                        Size="Size.Small" 
@@ -44,7 +44,7 @@
                                        Disabled="@IsDisabled" />
                     </div>
                 </MudTd>
-                <MudTd DataLabel="Price" Style="text-align: right;">
+                <MudTd DataLabel="Price" >
                     <MudNumericField T="decimal"
                                      Value="@context.UnitPrice"
                                      ValueChanged="@((decimal val) => HandlePriceChanged(context, val))"
@@ -56,7 +56,7 @@
                                      Disabled="@IsDisabled"
                     Margin="Margin.Dense"/>
                 </MudTd>
-                <MudTd DataLabel="Discount" Style="text-align: right;">
+                <MudTd DataLabel="Discount" >
                     <div class="d-flex align-center justify-end gap-1">
                         <MudNumericField T="decimal"
                                          Value="@context.DiscountPercent"
@@ -72,12 +72,12 @@
                         <MudText Typo="Typo.body2">%</MudText>
                     </div>
                 </MudTd>
-                <MudTd DataLabel="Total" Style="text-align: right;">
+                <MudTd DataLabel="Total" >
                     <MudText Typo="Typo.body1" Class="fw-semibold">
                         @context.TotalAmount.ToString("C")
                     </MudText>
                 </MudTd>
-                <MudTd DataLabel="Actions" Style="text-align: center;">
+                <MudTd DataLabel="Actions" >
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" 
                                    Size="Size.Small" 
                                    Color="Color.Primary"

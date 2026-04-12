@@ -400,13 +400,13 @@
                                     }
                                     else if (column.PropertyName == "Quantity")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudText Typo="Typo.body2">@row.Quantity.ToString("N2")</MudText>
                                         </MudTd>
                                     }
                                     else if (column.PropertyName == "UnitOfMeasure")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: center;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
                                                 @row.UnitOfMeasure
                                             </MudChip>
@@ -414,13 +414,13 @@
                                     }
                                     else if (column.PropertyName == "UnitPrice")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudText Typo="Typo.body2">@row.UnitPrice.ToString("C2")</MudText>
                                         </MudTd>
                                     }
                                     else if (column.PropertyName == "VatRate")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: center;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Percent">
                                                 @row.VatRate.ToString("N0")%
                                             </MudChip>
@@ -428,7 +428,7 @@
                                     }
                                     else if (column.PropertyName == "UnitPriceGross")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudText Typo="Typo.body2" Color="Color.Primary">
                                                 @((row.UnitPrice * (1 + row.VatRate / 100)).ToString("C2"))
                                             </MudText>
@@ -436,7 +436,7 @@
                                     }
                                     else if (column.PropertyName == "DiscountTotal")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             @if (row.DiscountTotal > 0)
                                             {
                                                 <MudText Typo="Typo.body2" Color="Color.Success">
@@ -451,7 +451,7 @@
                                     }
                                     else if (column.PropertyName == "LineTotal")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudText Typo="Typo.body2" Class="fw-medium">
                                                 @row.LineTotal.ToString("C2")
                                             </MudText>
@@ -459,7 +459,7 @@
                                     }
                                     else if (column.PropertyName == "VatTotal")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudText Typo="Typo.body2" Color="Color.Info">
                                                 @row.VatTotal.ToString("C2")
                                             </MudText>
@@ -467,7 +467,7 @@
                                     }
                                     else if (column.PropertyName == "GrossTotal")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             <MudText Typo="Typo.h6" Color="Color.Primary" Class="fw-semibold">
                                                 @grossTotal.ToString("C2")
                                             </MudText>
@@ -481,7 +481,7 @@
                                     }
                                     else if (column.PropertyName == "LineDiscount")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             @if (row.LineDiscount > 0)
                                             {
                                                 <MudText Typo="Typo.body2">@row.LineDiscount.ToString("N2")%</MudText>
@@ -494,7 +494,7 @@
                                     }
                                     else if (column.PropertyName == "LineDiscountValue")
                                     {
-                                        <MudTd DataLabel="@column.DisplayName" Style="text-align: right;">
+                                        <MudTd DataLabel="@column.DisplayName" >
                                             @if (row.LineDiscountValue > 0)
                                             {
                                                 <MudText Typo="Typo.body2">@row.LineDiscountValue.ToString("C2")</MudText>
@@ -509,7 +509,7 @@
                                 
                                 <!-- Actions cell -->
                                 <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" 
-                                       Style="text-align: right; white-space: nowrap;">
+ >
                                     <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
                                         <MudIconButton Icon="@Icons.Material.Outlined.Edit" 
                                                       Size="Size.Small" 

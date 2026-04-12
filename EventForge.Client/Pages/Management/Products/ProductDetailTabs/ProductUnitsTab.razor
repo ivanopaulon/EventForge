@@ -37,7 +37,7 @@
                             <MudTh>@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.status", "Stato")</MudTh>
-                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.unitType", "Tipo Unità")">@context.UnitType</MudTd>
@@ -45,7 +45,7 @@
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.conversionFactor", "Fattore di Conversione")">@context.ConversionFactor.ToString("N3")</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">@context.Description</MudTd>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">@context.Status</MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                Size="Size.Small"
                                                Color="Color.Primary"

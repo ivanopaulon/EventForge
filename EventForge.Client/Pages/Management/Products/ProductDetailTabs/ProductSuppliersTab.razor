@@ -43,7 +43,7 @@
                             <MudTh>@TranslationService.GetTranslation("field.cost", "Costo")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.leadTime", "Tempo di Consegna")</MudTh>
                             <MudTh>@TranslationService.GetTranslation("field.isPreferred", "Preferito")</MudTh>
-                            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
+                            <MudTh >@TranslationService.GetTranslation("field.actions", "Azioni")</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="@TranslationService.GetTranslation("field.supplier", "Fornitore")">@context.SupplierName</MudTd>
@@ -56,7 +56,7 @@
                                     <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" />
                                 }
                             </MudTd>
-                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+                            <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                Size="Size.Small"
                                                Color="Color.Primary"

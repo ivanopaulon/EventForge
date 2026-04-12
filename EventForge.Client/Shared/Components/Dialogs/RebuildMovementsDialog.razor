@@ -192,7 +192,7 @@
                                 <MudTh>@TranslationService.GetTranslation("field.document", "Documento")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
-                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
+                                <MudTh >@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
                             </HeaderContent>
                             <RowTemplate>
                                 <MudTd>
@@ -210,7 +210,7 @@
                                             : TranslationService.GetTranslation("rebuildMovements.outbound", "↓ Uscita"))
                                     </MudChip>
                                 </MudTd>
-                                <MudTd Style="text-align:right;">
+                                <MudTd >
                                     <MudText Typo="Typo.body2" Class="fw-semibold">@context.Quantity.ToString("N2")</MudText>
                                 </MudTd>
                             </RowTemplate>

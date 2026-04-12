@@ -105,16 +105,16 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ClosedAt" InitialDirection="SortDirection.Descending">Data/Ora</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ZReportNumber">N° Z-Report</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:right"><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:right"><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
+            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
+            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
             <MudTh>Operatore</MudTh>
             <MudTh>Azioni</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Data/Ora">@context.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
             <MudTd DataLabel="N° Z-Report"><b>#@context.ZReportNumber</b></MudTd>
-            <MudTd DataLabel="Scontrini" Style="text-align:right">@context.ReceiptCount</MudTd>
-            <MudTd DataLabel="Totale" Style="text-align:right">@context.TotalAmount.ToString("C2")</MudTd>
+            <MudTd DataLabel="Scontrini" >@context.ReceiptCount</MudTd>
+            <MudTd DataLabel="Totale" >@context.TotalAmount.ToString("C2")</MudTd>
             <MudTd DataLabel="Operatore">@(context.Operator ?? "—")</MudTd>
             <MudTd>
                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">

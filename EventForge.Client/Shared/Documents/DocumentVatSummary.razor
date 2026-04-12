@@ -30,10 +30,10 @@
 
         <MudTable Items="@vatGroups" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="0">
             <HeaderContent>
-                <MudTh Style="white-space: nowrap;">@TranslationService.GetTranslation("documents.vatRate", "Aliq.")</MudTh>
-                <MudTh Style="white-space: nowrap; text-align: right;">@TranslationService.GetTranslation("documents.netAmount", "Netto")</MudTh>
-                <MudTh Style="white-space: nowrap; text-align: right;">@TranslationService.GetTranslation("documents.vatAmount", "IVA")</MudTh>
-                <MudTh Style="white-space: nowrap; text-align: right;">@TranslationService.GetTranslation("documents.grossAmount", "Lordo")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("documents.vatRate", "Aliq.")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("documents.netAmount", "Netto")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("documents.vatAmount", "IVA")</MudTh>
+                <MudTh >@TranslationService.GetTranslation("documents.grossAmount", "Lordo")</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="@TranslationService.GetTranslation("documents.vatRate", "Aliq.")">
@@ -41,21 +41,21 @@
                         <span>@context.VatRate.ToString("N2")%</span>
                     </MudTooltip>
                 </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("documents.netAmount", "Netto")" Style="text-align: right;">
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.netAmount", "Netto")" >
                     @context.NetTotal.ToString("C2")
                 </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("documents.vatAmount", "IVA")" Style="text-align: right;">
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.vatAmount", "IVA")" >
                     @context.VatTotal.ToString("C2")
                 </MudTd>
-                <MudTd DataLabel="@TranslationService.GetTranslation("documents.grossAmount", "Lordo")" Style="text-align: right;">
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.grossAmount", "Lordo")" >
                     @context.GrossTotal.ToString("C2")
                 </MudTd>
             </RowTemplate>
             <FooterContent>
-                <MudTd Style="font-weight: bold;">@TranslationService.GetTranslation("documents.total", "Totale")</MudTd>
-                <MudTd Style="font-weight: bold; text-align: right;">@vatGroups.Sum(g => g.NetTotal).ToString("C2")</MudTd>
-                <MudTd Style="font-weight: bold; text-align: right;">@vatGroups.Sum(g => g.VatTotal).ToString("C2")</MudTd>
-                <MudTd Style="font-weight: bold; text-align: right;">@vatGroups.Sum(g => g.GrossTotal).ToString("C2")</MudTd>
+                <MudTd >@TranslationService.GetTranslation("documents.total", "Totale")</MudTd>
+                <MudTd >@vatGroups.Sum(g => g.NetTotal).ToString("C2")</MudTd>
+                <MudTd >@vatGroups.Sum(g => g.VatTotal).ToString("C2")</MudTd>
+                <MudTd >@vatGroups.Sum(g => g.GrossTotal).ToString("C2")</MudTd>
             </FooterContent>
         </MudTable>
     }

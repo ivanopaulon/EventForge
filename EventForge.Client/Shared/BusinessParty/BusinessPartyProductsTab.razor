@@ -101,32 +101,32 @@
                 <HeaderContent Context="_">
                     <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("product.name", "Nome")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.valuePurchased", "Val. Acquisti")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.qtySold", "Qty Vendite")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.valueSold", "Val. Vendite")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("product.valuePurchased", "Val. Acquisti")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("product.qtySold", "Qty Vendite")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("product.valueSold", "Val. Vendite")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")</MudTh>
                 </HeaderContent>
                 <RowTemplate Context="context">
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">@context.ProductCode</MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Nome")">@context.ProductName</MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.qtyPurchased", "Qty Acquisti")" >
                         @context.QuantityPurchased.ToString("N2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.valuePurchased", "Val. Acquisti")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.valuePurchased", "Val. Acquisti")" >
                         @context.ValuePurchased.ToString("C2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.qtySold", "Qty Vendite")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.qtySold", "Qty Vendite")" >
                         @context.QuantitySold.ToString("N2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.valueSold", "Val. Vendite")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.valueSold", "Val. Vendite")" >
                         @context.ValueSold.ToString("C2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.avgPurchasePrice", "Prezzo Med. Acq.")" >
                         @context.AvgPurchasePrice.ToString("C2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("product.avgSalePrice", "Prezzo Med. Vend.")" >
                         @context.AvgSalePrice.ToString("C2")
                     </MudTd>
                 </RowTemplate>

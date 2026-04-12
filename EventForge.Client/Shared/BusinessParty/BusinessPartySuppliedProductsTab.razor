@@ -72,12 +72,12 @@
             <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
             <MudTh>@TranslationService.GetTranslation("product.name", "Nome")</MudTh>
             <MudTh>@TranslationService.GetTranslation("productSupplier.supplierCode", "Codice Fornitore")</MudTh>
-            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")</MudTh>
-            <MudTh Style="text-align: right;">@TranslationService.GetTranslation("productSupplier.lastPurchasePrice", "Ultimo Prezzo")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.lastPurchasePrice", "Ultimo Prezzo")</MudTh>
             <MudTh>@TranslationService.GetTranslation("productSupplier.lastPurchaseDate", "Ultima Data")</MudTh>
-            <MudTh Style="text-align: center;">@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (gg)")</MudTh>
-            <MudTh Style="text-align: center;">@TranslationService.GetTranslation("productSupplier.preferred", "Preferito")</MudTh>
-            <MudTh Style="text-align: center;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (gg)")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.preferred", "Preferito")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate Context="context">
             <MudTd Style="width: 50px;">
@@ -96,7 +96,7 @@
             <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.supplierCode", "Codice Fornitore")">
                 @context.SupplierProductCode
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")" Style="text-align: right;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")" >
                 @if (context.UnitCost.HasValue)
                 {
                     <text>@context.UnitCost.Value.ToString("C2")</text>
@@ -106,7 +106,7 @@
                     <text>-</text>
                 }
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.lastPurchasePrice", "Ultimo Prezzo")" Style="text-align: right;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.lastPurchasePrice", "Ultimo Prezzo")" >
                 @if (context.LastPurchasePrice.HasValue)
                 {
                     <text>@context.LastPurchasePrice.Value.ToString("C2")</text>
@@ -119,16 +119,16 @@
             <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.lastPurchaseDate", "Ultima Data")">
                 @(context.LastPurchaseDate?.ToShortDateString() ?? "-")
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (gg)")" Style="text-align: center;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (gg)")" >
                 @(context.LeadTimeDays?.ToString() ?? "-")
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.preferred", "Preferito")" Style="text-align: center;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.preferred", "Preferito")" >
                 @if (context.Preferred)
                 {
                     <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
                 }
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: center;">
+            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" >
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                               Size="Size.Small"
                               Color="Color.Primary"

@@ -21,19 +21,19 @@
                 <MudTable Items="@_previews" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm">
                     <HeaderContent>
                         <MudTh>@TranslationService.GetTranslation("product.name", "Prodotto")</MudTh>
-                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("bulkEdit.currentPrice", "Prezzo Attuale")</MudTh>
-                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("bulkEdit.newPrice", "Nuovo Prezzo")</MudTh>
-                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("bulkEdit.delta", "Delta")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("bulkEdit.currentPrice", "Prezzo Attuale")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("bulkEdit.newPrice", "Nuovo Prezzo")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("bulkEdit.delta", "Delta")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Prodotto")">@context.ProductName</MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("bulkEdit.currentPrice", "Prezzo Attuale")" Style="text-align: right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("bulkEdit.currentPrice", "Prezzo Attuale")" >
                             @(context.CurrentUnitCost?.ToString("C2") ?? "-")
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("bulkEdit.newPrice", "Nuovo Prezzo")" Style="text-align: right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("bulkEdit.newPrice", "Nuovo Prezzo")" >
                             @(context.NewUnitCost?.ToString("C2") ?? "-")
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("bulkEdit.delta", "Delta")" Style="text-align: right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("bulkEdit.delta", "Delta")" >
                             @if (context.Delta.HasValue)
                             {
                                 <span style="color: @(context.Delta.Value >= 0 ? "green" : "red")">

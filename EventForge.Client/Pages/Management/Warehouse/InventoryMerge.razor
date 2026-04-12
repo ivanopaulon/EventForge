@@ -56,7 +56,7 @@
                     <MudTh>Data Inventario</MudTh>
                     <MudTh>Magazzino</MudTh>
                     <MudTh>Stato</MudTh>
-                    <MudTh Style="text-align:right">N° Righe</MudTh>
+                    <MudTh >N° Righe</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Numero">
@@ -73,7 +73,7 @@
                             @context.Status
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="N° Righe" Style="text-align:right">
+                    <MudTd DataLabel="N° Righe" >
                         @context.RowCount
                     </MudTd>
                 </RowTemplate>
@@ -209,7 +209,7 @@
                 <MudTh>Data</MudTh>
                 <MudTh>Magazzino</MudTh>
                 <MudTh>Stato</MudTh>
-                <MudTh Style="text-align:right">Righe</MudTh>
+                <MudTh >Righe</MudTh>
                 <MudTh>Ruolo</MudTh>
             </HeaderContent>
             <RowTemplate>
@@ -221,7 +221,7 @@
                         @context.Status
                     </MudChip>
                 </MudTd>
-                <MudTd DataLabel="Righe" Style="text-align:right">@context.RowCount</MudTd>
+                <MudTd DataLabel="Righe" >@context.RowCount</MudTd>
                 <MudTd DataLabel="Ruolo">
                     @if (context.Id == (_targetDocumentId ?? _selectedDocuments.FirstOrDefault()?.Id))
                     {

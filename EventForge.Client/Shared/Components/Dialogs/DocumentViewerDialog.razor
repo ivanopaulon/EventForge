@@ -54,14 +54,14 @@
                             <HeaderContent Context="columns">
                                 <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.unitOfMeasure", "UM")</MudTh>
-                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
-                                <MudTh Style="text-align:right;">@TranslationService.GetTranslation("field.unitPrice", "Prezzo")</MudTh>
+                                <MudTh >@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                                <MudTh >@TranslationService.GetTranslation("field.unitPrice", "Prezzo")</MudTh>
                             </HeaderContent>
                             <RowTemplate Context="r">
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.product", "Prodotto")">@r.Description</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.unitOfMeasure", "UM")">@r.UnitOfMeasure</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" Style="text-align:right;">@r.Quantity.ToString("N2")</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo")" Style="text-align:right;">€@r.UnitPrice.ToString("N2")</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.quantity", "Quantità")" >@r.Quantity.ToString("N2")</MudTd>
+                                <MudTd DataLabel="@TranslationService.GetTranslation("field.unitPrice", "Prezzo")" >€@r.UnitPrice.ToString("N2")</MudTd>
                             </RowTemplate>
                         </EFTable>
                     }

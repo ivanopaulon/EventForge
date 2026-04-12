@@ -46,7 +46,7 @@
         <MudTh>
             @TranslationService.GetTranslation("field.status", "Stato")
         </MudTh>
-        <MudTh Style="text-align: right;">
+        <MudTh >
             @TranslationService.GetTranslation("field.actions", "Azioni")
         </MudTh>
     </HeaderContent>
@@ -151,7 +151,7 @@
                 @GetStatusText(context.Status)
             </MudChip>
         </MudTd>
-        <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" Style="text-align: right;">
+        <MudTd DataLabel="@TranslationService.GetTranslation("field.actions", "Azioni")" >
             <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1">
                 <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                Size="Size.Small"

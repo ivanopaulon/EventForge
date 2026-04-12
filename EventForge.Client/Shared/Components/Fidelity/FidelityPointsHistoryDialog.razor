@@ -48,8 +48,8 @@
                 <HeaderContent Context="columns">
                     <MudTh>Data</MudTh>
                     <MudTh>Tipo</MudTh>
-                    <MudTh Style="text-align: right;">Punti</MudTh>
-                    <MudTh Style="text-align: right;">Saldo Dopo</MudTh>
+                    <MudTh >Punti</MudTh>
+                    <MudTh >Saldo Dopo</MudTh>
                     <MudTh>Descrizione</MudTh>
                 </HeaderContent>
                 <RowTemplate Context="t">
@@ -62,14 +62,14 @@
                             @GetTransactionTypeText(t.Type)
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Punti" Style="text-align: right;">
+                    <MudTd DataLabel="Punti" >
                         <MudText Typo="Typo.body2"
                                  Color="@(t.Points > 0 ? Color.Success : Color.Warning)"
                                   Class="fw-semibold">
                             @(t.Points > 0 ? "+" : "")@t.Points
                         </MudText>
                     </MudTd>
-                    <MudTd DataLabel="Saldo Dopo" Style="text-align: right;">
+                    <MudTd DataLabel="Saldo Dopo" >
                         <MudText Typo="Typo.body2" Class="fw-medium">@t.BalanceAfter</MudText>
                     </MudTd>
                     <MudTd DataLabel="Descrizione">

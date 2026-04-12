@@ -152,7 +152,7 @@
                                 <MudTh>@TranslationService.GetTranslation("field.description", "Descrizione")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.mpn", "MPN")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTh>
-                                <MudTh Style="text-align: right;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                                <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <RowTemplate Context="context">
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">@context.Name</MudTd>
@@ -168,7 +168,7 @@
                                 </MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.mpn", "MPN")">@(context.ManufacturerPartNumber ?? "-")</MudTd>
                                 <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">@context.CreatedAt.ToString("dd/MM/yyyy")</MudTd>
-                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" Style="text-align: right;">
+                                <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" >
                                     <MudIconButton Icon="@Icons.Material.Filled.Edit"
                                                   Color="Color.Primary"
                                                   Size="Size.Small"

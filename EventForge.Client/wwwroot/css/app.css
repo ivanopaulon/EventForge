@@ -1222,3 +1222,17 @@ kbd {
 
 /* Max width 180 */
 .ef-max-180 { max-width: 180px; }
+
+/* Non-standard brand colors */
+.text-success-light { color: #90EE90; }
+
+/* ── Table cell alignment utility classes (Phase 3c) ─────────────────────── */
+.text-right { text-align: right !important; }
+.text-center { text-align: center !important; }
+.text-left  { text-align: left !important; }
+
+/* Table column width helpers */
+.ef-min-120 { min-width: 120px; }
+.ef-w-120   { width: 120px; }
+.ef-w-50    { width: 50px; }
+.ef-w-32    { width: 32px; }

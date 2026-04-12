@@ -30,9 +30,9 @@
                     <MudTh>@TranslationService.GetTranslation("document.date", "Data")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("document.type", "Tipo")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.quantity", "Quantità")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.unitPrice", "Prezzo Unit.")</MudTh>
-                    <MudTh Style="text-align: right;">@TranslationService.GetTranslation("document.total", "Totale")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("document.quantity", "Quantità")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("document.unitPrice", "Prezzo Unit.")</MudTh>
+                    <MudTh >@TranslationService.GetTranslation("document.total", "Totale")</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="@TranslationService.GetTranslation("document.date", "Data")">@context.Date.ToShortDateString()</MudTd>
@@ -47,13 +47,13 @@
                             <text>@context.Number</text>
                         }
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("document.quantity", "Quantità")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.quantity", "Quantità")" >
                         @context.Quantity.ToString("N2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("document.unitPrice", "Prezzo Unit.")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.unitPrice", "Prezzo Unit.")" >
                         @context.UnitPrice.ToString("C2")
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("document.total", "Totale")" Style="text-align: right;">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("document.total", "Totale")" >
                         @context.LineTotal.ToString("C2")
                     </MudTd>
                 </RowTemplate>

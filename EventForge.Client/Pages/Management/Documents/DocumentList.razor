@@ -89,7 +89,7 @@
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
 
     <RowTemplate Context="ctx">
@@ -138,7 +138,7 @@
             }
             else if (column.PropertyName == "TotalGrossAmount")
             {
-                <MudTd DataLabel="@TranslationService.GetTranslation("documents.amount", "Importo")" Style="text-align:right;">
+                <MudTd DataLabel="@TranslationService.GetTranslation("documents.amount", "Importo")" >
                     <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.TotalGrossAmount.ToString("C2")</MudText>
                 </MudTd>
             }

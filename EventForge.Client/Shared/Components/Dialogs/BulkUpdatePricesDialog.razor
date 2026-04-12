@@ -172,16 +172,16 @@
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("field.code", "Codice")</MudTh>
-                                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.currentPrice", "Prezzo Attuale")</MudTh>
-                                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.newPrice", "Nuovo Prezzo")</MudTh>
-                                        <MudTh Style="text-align: right;">@TranslationService.GetTranslation("field.change", "Variazione")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("field.currentPrice", "Prezzo Attuale")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("field.newPrice", "Nuovo Prezzo")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("field.change", "Variazione")</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Prodotto">@context.ProductName</MudTd>
                                         <MudTd DataLabel="Codice">@context.ProductCode</MudTd>
-                                        <MudTd DataLabel="Prezzo Attuale" Style="text-align: right;">€@context.CurrentPrice.ToString("N2")</MudTd>
-                                        <MudTd DataLabel="Nuovo Prezzo" Style="text-align: right;">€@context.NewPrice.ToString("N2")</MudTd>
-                                        <MudTd DataLabel="Variazione" Style="text-align: right;">
+                                        <MudTd DataLabel="Prezzo Attuale" >€@context.CurrentPrice.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Nuovo Prezzo" >€@context.NewPrice.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Variazione" >
                                             <MudChip T="string" Size="Size.Small" Color="@(context.ChangeAmount >= 0 ? Color.Success : Color.Error)">
                                                 @(context.ChangeAmount >= 0 ? "+" : "")€@context.ChangeAmount.ToString("N2") (@(context.ChangePercentage >= 0 ? "+" : "")@context.ChangePercentage.ToString("N2")%)
                                             </MudChip>

@@ -249,10 +249,10 @@
                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.product", "Product")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.warehouse", "Warehouse")</MudTh>
                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.location", "Location")</MudTh>
-                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")</MudTh>
-                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")</MudTh>
-                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")</MudTh>
-                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")</MudTh>
+                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd>
@@ -273,13 +273,13 @@
                         <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.location", "Location")">
                             @context.LocationCode
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.currentQty", "Current Stock")" >
                             <MudText Typo="Typo.body2">@context.CurrentQuantity.ToString("N2")</MudText>
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.calculatedQty", "Calculated Stock")" >
                             <MudText Typo="Typo.body2" Class="fw-semibold">@context.CalculatedQuantity.ToString("N2")</MudText>
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")" Style="text-align:right;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.difference", "Difference")" >
                             <MudText Typo="Typo.body2" 
                                      Color="@(context.Difference > 0 ? Color.Success : (context.Difference < 0 ? Color.Error : Color.Default))"
                                       Class="fw-semibold">
@@ -290,7 +290,7 @@
                                 }
                             </MudText>
                         </MudTd>
-                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")" Style="text-align:center;">
+                        <MudTd DataLabel="@TranslationService.GetTranslation("stockReconciliation.severity", "Severity")" >
                             <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
                                 @TranslationService.GetTranslation($"stockReconciliation.severity.{context.Severity.ToString().ToLower()}", context.Severity.ToString())
                             </MudChip>
@@ -612,16 +612,16 @@
                                     <HeaderContent>
                                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.rebuild.col.document", "Documento")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.rebuild.col.product", "Prodotto")</MudTh>
-                                        <MudTh Style="text-align:right;">@TranslationService.GetTranslation("stockReconciliation.rebuild.col.quantity", "Quantità")</MudTh>
-                                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.rebuild.col.movementType", "Tipo mov.")</MudTh>
-                                        <MudTh Style="text-align:center;">@TranslationService.GetTranslation("stockReconciliation.rebuild.col.status", "Stato")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.rebuild.col.quantity", "Quantità")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.rebuild.col.movementType", "Tipo mov.")</MudTh>
+                                        <MudTh >@TranslationService.GetTranslation("stockReconciliation.rebuild.col.status", "Stato")</MudTh>
                                         <MudTh>@TranslationService.GetTranslation("stockReconciliation.rebuild.col.error", "Errore")</MudTh>
                                     </HeaderContent>
                                     <RowTemplate>
                                         <MudTd DataLabel="Documento">@context.DocumentNumber</MudTd>
                                         <MudTd DataLabel="Prodotto">@context.ProductName</MudTd>
-                                        <MudTd DataLabel="Quantità" Style="text-align:right;">@context.Quantity.ToString("N2")</MudTd>
-                                        <MudTd DataLabel="Tipo mov." Style="text-align:center;">
+                                        <MudTd DataLabel="Quantità" >@context.Quantity.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Tipo mov." >
                                             @if (context.MovementType == "Inbound")
                                             {
                                                 <MudChip T="string" Size="Size.Small" Color="Color.Success">
@@ -635,7 +635,7 @@
                                                 </MudChip>
                                             }
                                         </MudTd>
-                                        <MudTd DataLabel="Stato" Style="text-align:center;">
+                                        <MudTd DataLabel="Stato" >
                                             @{
                                                 var (chipColor, chipText) = context.Status switch
                                                 {
