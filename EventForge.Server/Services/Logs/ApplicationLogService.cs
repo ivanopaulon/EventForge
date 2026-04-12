@@ -437,7 +437,11 @@ public class ApplicationLogService(
             memoryCache.Set(
                 LogExportCacheKey(exportId),
                 (bytes, format, fileName, contentType),
-                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+                new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24),
+                    Size = 1
+                });
 
             var result = new ExportResultDto
             {
@@ -533,7 +537,11 @@ public class ApplicationLogService(
                 AlertOnErrors = keys.TryGetValue("Log.Monitor.AlertOnErrors", out var v7) && bool.TryParse(v7, out var b7) && b7
             };
 
-            memoryCache.Set(MonitoringConfigCacheKey, config, absoluteExpirationRelativeToNow: TimeSpan.FromMinutes(5));
+            memoryCache.Set(MonitoringConfigCacheKey, config, new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
+                Size = 1
+            });
             return config;
         }
         catch (Exception ex)

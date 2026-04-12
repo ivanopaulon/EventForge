@@ -495,7 +495,11 @@ public class NotificationsController(
             memoryCache.Set(
                 ExportCacheKey(exportId),
                 new ExportCacheEntry(bytes, format, notifications.Count, DateTime.UtcNow),
-                absoluteExpirationRelativeToNow: TimeSpan.FromHours(24));
+                new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24),
+                    Size = 1
+                });
 
             var downloadUrl = Url.Action(nameof(DownloadExportAsync), new { exportId });
             var result = new NotificationExportResultDto
