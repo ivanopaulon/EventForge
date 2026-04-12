@@ -723,13 +723,20 @@ public class ChatService(
             {
                 var attachments = messageDto.Attachments.Select(att => new Data.Entities.Chat.MessageAttachment
                 {
-                    Id = Guid.NewGuid(),
+                    // Preserve the attachment ID generated during the pre-upload so that the
+                    // download URL (/api/v1/chat/files/{id}/download) remains valid.
+                    Id = att.Id != Guid.Empty ? att.Id : Guid.NewGuid(),
                     MessageId = messageId,
                     TenantId = chat.TenantId,
                     FileName = att.FileName ?? "unknown",
+                    OriginalFileName = att.OriginalFileName ?? att.FileName ?? "unknown",
                     FileUrl = att.FileUrl ?? string.Empty,
+                    ThumbnailUrl = att.ThumbnailUrl,
                     FileSize = att.FileSize,
                     ContentType = att.ContentType ?? "application/octet-stream",
+                    MediaType = att.MediaType,
+                    UploadedAt = att.UploadedAt == default ? now : att.UploadedAt,
+                    UploadedBy = messageDto.SenderId,
                     CreatedAt = now,
                     ModifiedAt = now
                 }).ToList();
@@ -740,10 +747,12 @@ public class ChatService(
                 attachmentDtos = attachments.Select(att => new MessageAttachmentDto
                 {
                     Id = att.Id,
-                    FileName = att.FileName,
+                    FileName = att.OriginalFileName ?? att.FileName,
                     FileUrl = att.FileUrl,
+                    ThumbnailUrl = att.ThumbnailUrl,
                     FileSize = att.FileSize,
-                    ContentType = att.ContentType
+                    ContentType = att.ContentType,
+                    MediaType = att.MediaType
                 }).ToList();
             }
 
@@ -1562,12 +1571,12 @@ public class ChatService(
             var attachmentId = Guid.NewGuid();
             var mediaType = DetermineMediaType(uploadDto.ContentType);
 
-            // Build storage path: {ContentRoot}/Uploads/chat/{chatId}/{attachmentId}_{safeFileName}
+            // Build storage path: {ContentRoot}/Uploads/chat/{attachmentId}/{safeFileName}
+            // Using attachmentId as the directory avoids a dependency on a not-yet-existing message.
             var safeFileName = Path.GetFileName(uploadDto.FileName);
-            var chatDir = Path.Combine(environment.ContentRootPath, "Uploads", "chat", uploadDto.ChatId.ToString());
-            Directory.CreateDirectory(chatDir);
-            var storedFileName = $"{attachmentId}_{safeFileName}";
-            var storedFilePath = Path.Combine(chatDir, storedFileName);
+            var attachDir = Path.Combine(environment.ContentRootPath, "Uploads", "chat", attachmentId.ToString());
+            Directory.CreateDirectory(attachDir);
+            var storedFilePath = Path.Combine(attachDir, safeFileName);
 
             // Write stream to disk
             await using (var fileStream = new FileStream(storedFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, useAsync: true))
@@ -1577,41 +1586,14 @@ public class ChatService(
 
             var fileUrl = $"/api/v1/chat/files/{attachmentId}/download";
             var thumbnailUrl = mediaType == MediaType.Image ? $"/api/v1/chat/files/{attachmentId}/thumbnail" : null;
+            var uploadedAt = DateTime.UtcNow;
 
-            // Persist MessageAttachment entity
-            var attachment = new Data.Entities.Chat.MessageAttachment
-            {
-                Id = attachmentId,
-                MessageId = uploadDto.ChatId, // Placeholder until message is created; updated by caller if needed
-                FileName = storedFileName,
-                OriginalFileName = safeFileName,
-                FileSize = uploadDto.FileSize,
-                ContentType = uploadDto.ContentType,
-                MediaType = mediaType,
-                FileUrl = fileUrl,
-                ThumbnailUrl = thumbnailUrl,
-                UploadedAt = DateTime.UtcNow,
-                UploadedBy = uploadDto.UploadedBy,
-                TenantId = Guid.Empty, // Set by caller if tenant-scoped
-                MediaMetadataJson = uploadDto.Metadata is not null
-                    ? System.Text.Json.JsonSerializer.Serialize(uploadDto.Metadata) : null
-            };
-            context.MessageAttachments.Add(attachment);
-            await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                entityName: "MessageAttachment",
-                entityId: attachmentId,
-                propertyName: "Upload",
-                operationType: "Insert",
-                oldValue: null,
-                newValue: $"File: {safeFileName}, Size: {uploadDto.FileSize}, Type: {uploadDto.ContentType}",
-                changedBy: uploadDto.UploadedBy.ToString(),
-                entityDisplayName: $"File Upload: {safeFileName}",
-                cancellationToken: cancellationToken);
+            // NOTE: The MessageAttachment DB record is intentionally NOT persisted here because no
+            // ChatMessage exists yet at upload time.  The record is created by SendMessageAsync when
+            // the user actually sends the message, using the attachmentId returned by this method.
 
             logger.LogInformation(
-                "User {UserId} uploaded file {FileName} ({FileSize} bytes) to chat {ChatId} in {ElapsedMs}ms",
+                "User {UserId} uploaded file {FileName} ({FileSize} bytes) for chat {ChatId} in {ElapsedMs}ms",
                 uploadDto.UploadedBy, safeFileName, uploadDto.FileSize, uploadDto.ChatId, stopwatch.ElapsedMilliseconds);
 
             return new FileUploadResultDto
@@ -1623,7 +1605,7 @@ public class ChatService(
                 MediaType = mediaType,
                 FileSize = uploadDto.FileSize,
                 Success = true,
-                UploadedAt = attachment.UploadedAt
+                UploadedAt = uploadedAt
             };
         }
         catch (Exception ex)
@@ -1686,11 +1668,11 @@ public class ChatService(
 
             if (attachment is null) return null;
 
-            // Storage path: {ContentRoot}/Uploads/chat/{chatId}/{storedFileName}
+            // Storage path: {ContentRoot}/Uploads/chat/{attachmentId}/{fileName}
             var physicalPath = Path.Combine(
                 environment.ContentRootPath,
                 "Uploads", "chat",
-                attachment.MessageId.ToString(),
+                attachment.Id.ToString(),
                 attachment.FileName);
 
             if (!System.IO.File.Exists(physicalPath)) return null;

@@ -34,24 +34,8 @@
 
     <!-- Main composer area -->
     <div class="d-flex align-center gap-2">
-        
-        <!-- File attachment button -->
-        <MudTooltip Text="@TranslationService.GetTranslation("chat.attachFile", "Attach file")">
-            <MudIconButton Icon="@Icons.Material.Filled.AttachFile"
-                           Color="Color.Primary"
-                           OnClick="@SelectFile"
-                           aria-label="@TranslationService.GetTranslation("chat.attachFile", "Attach file")" />
-        </MudTooltip>
 
-        <!-- Emoji picker button -->
-        <MudTooltip Text="@TranslationService.GetTranslation("chat.addEmoji", "Add emoji")">
-            <MudIconButton Icon="@Icons.Material.Filled.EmojiEmotions"
-                           Color="Color.Primary"
-                           OnClick="@ToggleEmojiPicker"
-                           aria-label="@TranslationService.GetTranslation("chat.addEmoji", "Add emoji")" />
-        </MudTooltip>
-
-        <!-- Rich text editor with Syncfusion RTE -->
+        <!-- Rich text editor with Syncfusion RTE (file attach and emoji are in the toolbar) -->
         <div class="flex-grow-1 position-relative">
             <SfRichTextEditor @ref="_rteRef"
                               Value="@MessageText"
@@ -59,7 +43,24 @@
                               Placeholder="@GetPlaceholderText()"
                               Height="@RteHeight"
                               EnableXhtml="true">
-                <RichTextEditorToolbarSettings Items="@ChatEditorConfig.ToolbarItems" />
+                <RichTextEditorToolbarSettings Items="@ChatEditorConfig.ToolbarItems">
+                    <RichTextEditorCustomToolbarItems>
+                        <RichTextEditorCustomToolbarItem Name="AttachFile">
+                            <Template>
+                                <button type="button" class="e-btn e-tbar-btn rte-custom-btn" title="@TranslationService.GetTranslation("chat.attachFile", "Allega file")" @onclick="SelectFile">
+                                    <span class="rte-custom-btn-icon">📎</span>
+                                </button>
+                            </Template>
+                        </RichTextEditorCustomToolbarItem>
+                        <RichTextEditorCustomToolbarItem Name="AddEmoji">
+                            <Template>
+                                <button type="button" class="e-btn e-tbar-btn rte-custom-btn" title="@TranslationService.GetTranslation("chat.addEmoji", "Emoji")" @onclick="ToggleEmojiPicker">
+                                    <span class="rte-custom-btn-icon">😊</span>
+                                </button>
+                            </Template>
+                        </RichTextEditorCustomToolbarItem>
+                    </RichTextEditorCustomToolbarItems>
+                </RichTextEditorToolbarSettings>
                 <RichTextEditorImageSettings SaveUrl="@RteImageUploadUrl"
                                              Path="/api/v1/chat/image-uploads" />
                 <RichTextEditorEvents OnActionComplete="@OnRteActionComplete"
@@ -120,13 +121,13 @@
     }
 </MudPaper>
 
-<!-- Hidden file input -->
+<!-- Hidden file input – unique ID per component instance avoids conflicts when multiple composers are mounted -->
 <InputFile @ref="fileInput" 
            OnChange="@HandleFileInputChanged"
            multiple 
            accept="*/*" 
            style="display: none;" 
-           id="file-input" />
+           id="@_fileInputId" />
 
 <style>
 .enhanced-message-composer {
@@ -162,6 +163,21 @@
 .attachments-preview .mud-chip {
     max-width: 200px;
 }
+
+.rte-custom-btn {
+    padding: 0 6px !important;
+    min-width: 32px;
+    height: 28px;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rte-custom-btn-icon {
+    font-style: normal;
+    line-height: 1;
+}
 </style>
 
 @code {
@@ -175,6 +191,10 @@
     [Parameter] public string ComposerStyle { get; set; } = "";
     [Parameter] public bool IsSending { get; set; }
     [Parameter] public string RteHeight { get; set; } = "120px";
+    /// <summary>
+    /// When set, pre-populates the editor content (used in edit-message mode).
+    /// </summary>
+    [Parameter] public string? InitialContent { get; set; }
 
     // True when there is something to send (text or at least one pending attachment).
     private bool CanSend => !string.IsNullOrWhiteSpace(MessageText) || PendingAttachments?.Count > 0;
@@ -186,6 +206,9 @@
     private readonly List<Guid> MentionedUserIds = new();
     private DateTime _lastTypingIndicatorSent = DateTime.MinValue;
     private static readonly TimeSpan TypingIndicatorThrottle = TimeSpan.FromSeconds(3);
+    // Unique ID per instance – prevents conflicts when multiple composers are mounted simultaneously.
+    private readonly string _fileInputId = $"ef-file-{Guid.NewGuid():N}";
+    private bool _initialContentApplied;
 
     // Base URL for RTE image upload — uses the existing chat file upload endpoint
     private string RteImageUploadUrl =>
@@ -200,6 +223,16 @@
         "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
         "🔥", "💯", "💢", "💥", "💦", "💨", "🎉", "🎊", "👏", "🙌"
     ];
+
+    protected override void OnParametersSet()
+    {
+        // Apply InitialContent once when the component first receives it (edit-message mode).
+        if (!_initialContentApplied && !string.IsNullOrEmpty(InitialContent))
+        {
+            MessageText = InitialContent;
+            _initialContentApplied = true;
+        }
+    }
 
     protected override Task OnAfterRenderAsync(bool firstRender) => Task.CompletedTask;
 
@@ -351,8 +384,8 @@
     {
         try
         {
-            // Trigger file input click
-            await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('file-input').click()");
+            // Use the unique instance ID so multiple composers on the same page don't conflict.
+            await JSRuntime.InvokeVoidAsync("eval", $"document.getElementById('{_fileInputId}').click()");
         }
         catch (Exception ex)
         {
