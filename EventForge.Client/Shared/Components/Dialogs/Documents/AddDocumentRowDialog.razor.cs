@@ -888,7 +888,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Barcode.Input = string.Empty;
             _state.Barcode.ScannedBarcode = string.Empty;
         }
-        else if (data is ProductNotFoundDialog.AssignResult assignResult && assignResult.Action == "assigned" && assignResult.Product != null)
+        else if (data is ProductNotFoundDialog.AssignResult assignResult && assignResult.Product != null)
         {
             // Set product and populate fields
             await SelectProductAndPopulateAsync(assignResult.Product);
@@ -985,7 +985,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // 6. Load recent transactions
             await LoadRecentTransactions(product.Id);
 
-            // 7. Load recent transactions (see above)
+            // 7. Force UI update
 
             // ✅ Force UI update
             await InvokeAsync(StateHasChanged);
@@ -2028,12 +2028,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     {
                         if (_productScannerRef != null)
                             await _productScannerRef.TriggerEditAsync();
-                        else
-                            AppNotification.ShowWarning("Seleziona prima un prodotto");
                     }
                     else
                     {
-                        AppNotification.ShowWarning("Seleziona prima un prodotto");
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"));
                     }
                     break;
 
