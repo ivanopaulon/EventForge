@@ -1,4 +1,4 @@
-using EventForge.DTOs.Profile;
+using Prym.DTOs.Profile;
 using MudBlazor;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;

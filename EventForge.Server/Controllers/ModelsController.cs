@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products;
+using Prym.DTOs.Products;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Caching;

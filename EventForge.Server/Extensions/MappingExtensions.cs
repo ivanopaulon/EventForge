@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Extensions;
 
@@ -47,7 +47,7 @@ public static class MappingExtensions
             DocumentTypeName = entity.DocumentType?.Name,
             IsDocumentTypeStockIncrease = entity.DocumentType?.IsStockIncrease ?? false,
             PriceApplicationModeOverride = entity.PriceApplicationModeOverride.HasValue
-                ? (EventForge.DTOs.Common.PriceApplicationMode)entity.PriceApplicationModeOverride.Value
+                ? (Prym.DTOs.Common.PriceApplicationMode)entity.PriceApplicationModeOverride.Value
                 : null,
             PriceListId = entity.PriceListId,
             PriceListName = entity.PriceList?.Name,
@@ -58,8 +58,8 @@ public static class MappingExtensions
             BusinessPartyName = entity.BusinessParty?.Name,
             CustomerName = entity.CustomerName,
             Notes = entity.Notes,
-            Status = (EventForge.DTOs.Common.DocumentStatus)entity.Status,
-            PaymentStatus = (EventForge.DTOs.Common.PaymentStatus)entity.PaymentStatus,
+            Status = (Prym.DTOs.Common.DocumentStatus)entity.Status,
+            PaymentStatus = (Prym.DTOs.Common.PaymentStatus)entity.PaymentStatus,
             ApprovalStatus = MapApprovalStatus(entity.ApprovalStatus),
             TotalNetAmount = entity.TotalNetAmount,
             VatAmount = entity.VatAmount,
@@ -138,7 +138,7 @@ public static class MappingExtensions
         {
             Id = entity.Id,
             DocumentHeaderId = entity.DocumentHeaderId,
-            RowType = (EventForge.DTOs.Common.DocumentRowType)entity.RowType,
+            RowType = (Prym.DTOs.Common.DocumentRowType)entity.RowType,
             ParentRowId = entity.ParentRowId,
             ProductCode = entity.ProductCode,
             ProductId = entity.ProductId,
@@ -150,7 +150,7 @@ public static class MappingExtensions
             Quantity = entity.Quantity,
             LineDiscount = entity.LineDiscount,
             LineDiscountValue = entity.LineDiscountValue,
-            DiscountType = (EventForge.DTOs.Common.DiscountType)entity.DiscountType,
+            DiscountType = (Prym.DTOs.Common.DiscountType)entity.DiscountType,
             VatRate = entity.VatRate,
             VatDescription = entity.VatDescription,
             IsGift = entity.IsGift,
@@ -202,7 +202,7 @@ public static class MappingExtensions
             Quantity = dto.Quantity,
             LineDiscount = dto.LineDiscount,
             LineDiscountValue = dto.LineDiscountValue,
-            DiscountType = (EventForge.DTOs.Common.DiscountType)dto.DiscountType,
+            DiscountType = (Prym.DTOs.Common.DiscountType)dto.DiscountType,
             VatRate = dto.VatRate,
             VatDescription = dto.VatDescription,
             IsGift = dto.IsGift,
@@ -228,16 +228,16 @@ public static class MappingExtensions
     /// Entity has: None(0), Pending(1), Approved(2), Rejected(3)
     /// DTO has: Pending(0), Approved(1), Rejected(2)
     /// </summary>
-    private static EventForge.DTOs.Common.ApprovalStatus MapApprovalStatus(
+    private static Prym.DTOs.Common.ApprovalStatus MapApprovalStatus(
         EventForge.Server.Data.Entities.Documents.ApprovalStatus entityStatus)
     {
         return entityStatus switch
         {
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.None => EventForge.DTOs.Common.ApprovalStatus.Pending,
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Pending => EventForge.DTOs.Common.ApprovalStatus.Pending,
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved => EventForge.DTOs.Common.ApprovalStatus.Approved,
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected => EventForge.DTOs.Common.ApprovalStatus.Rejected,
-            _ => EventForge.DTOs.Common.ApprovalStatus.Pending
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.None => Prym.DTOs.Common.ApprovalStatus.Pending,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Pending => Prym.DTOs.Common.ApprovalStatus.Pending,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved => Prym.DTOs.Common.ApprovalStatus.Approved,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected => Prym.DTOs.Common.ApprovalStatus.Rejected,
+            _ => Prym.DTOs.Common.ApprovalStatus.Pending
         };
     }
 }

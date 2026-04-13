@@ -1,8 +1,8 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.Station;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Products;
+using Prym.DTOs.Station;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.Warehouse;
 using Microsoft.AspNetCore.Components.Forms;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -763,12 +763,12 @@ public class ProductService(
         }
     }
 
-    public async Task<EventForge.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default)
+    public async Task<Prym.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default)
     {
         try
         {
             logger.LogInformation("Starting bulk price update for {Count} products", bulkUpdateDto.ProductIds.Count);
-            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkUpdatePricesDto, EventForge.DTOs.Bulk.BulkUpdateResultDto>(
+            var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkUpdatePricesDto, Prym.DTOs.Bulk.BulkUpdateResultDto>(
                 "api/v1/product-management/bulk-update-prices",
                 bulkUpdateDto,
                 ct);

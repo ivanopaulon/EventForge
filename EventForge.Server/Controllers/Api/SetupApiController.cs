@@ -1,4 +1,4 @@
-using EventForge.DTOs.Setup;
+using Prym.DTOs.Setup;
 using EventForge.Server.Services.Setup;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

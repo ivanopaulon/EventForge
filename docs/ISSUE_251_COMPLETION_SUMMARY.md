@@ -368,7 +368,7 @@ L'issue #251 "Collaborazione" è stata **completata al 100%** con successo. Il s
    - `EventForge.Server/Services/Documents/IDocumentCommentService.cs`
    - `EventForge.Server/Services/Documents/DocumentCommentService.cs`
    - `EventForge.Server/Controllers/DocumentsController.cs`
-   - `EventForge.DTOs/Documents/DocumentCommentDto.cs`
+   - `Prym.DTOs/Documents/DocumentCommentDto.cs`
 
 ---
 

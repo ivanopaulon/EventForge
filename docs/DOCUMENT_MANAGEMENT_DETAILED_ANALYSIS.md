@@ -644,7 +644,7 @@
 EventForge.Server/Data/Entities/Documents/: 13 file
 EventForge.Server/Services/Documents/: 27 file
 EventForge.Server/Controllers/Document*.cs: 3,392 LOC
-EventForge.DTOs/Documents/: 20+ file
+Prym.DTOs/Documents/: 20+ file
 ```
 
 ### B. Database Schema

@@ -77,7 +77,7 @@ private async Task PerformSearch()
 ```
 
 **Benefici**:
-- ✅ Utilizza il vero `EventForge.DTOs.Products.ProductDto`
+- ✅ Utilizza il vero `Prym.DTOs.Products.ProductDto`
 - ✅ Ricerca prodotti dal database reale
 - ✅ Supporto completo per filtraggio
 - ✅ Error handling robusto
@@ -101,7 +101,7 @@ private void HandleProductSelected(ProductSearch.ProductDto product)
 
 **After**:
 ```csharp
-private void HandleProductSelected(EventForge.DTOs.Products.ProductDto product)
+private void HandleProductSelected(Prym.DTOs.Products.ProductDto product)
 {
     // Validazione prezzo
     if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)

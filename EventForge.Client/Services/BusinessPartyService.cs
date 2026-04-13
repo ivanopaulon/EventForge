@@ -1,6 +1,6 @@
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Products;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
+using Prym.DTOs.Products;
 
 namespace EventForge.Client.Services
 {
@@ -30,13 +30,13 @@ namespace EventForge.Client.Services
         Task<BusinessPartyFullDetailDto?> GetFullDetailAsync(Guid id, bool includeInactive = false, CancellationToken ct = default);
 
         // BusinessParty Documents
-        Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
+        Task<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
             Guid businessPartyId,
             DateTime? fromDate = null,
             DateTime? toDate = null,
             Guid? documentTypeId = null,
             string? searchNumber = null,
-            EventForge.DTOs.Common.ApprovalStatus? approvalStatus = null,
+            Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
             int page = 1,
             int pageSize = 20,
             CancellationToken ct = default);
@@ -222,13 +222,13 @@ namespace EventForge.Client.Services
 
         #region BusinessParty Documents
 
-        public async Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
+        public async Task<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>?> GetBusinessPartyDocumentsAsync(
             Guid businessPartyId,
             DateTime? fromDate = null,
             DateTime? toDate = null,
             Guid? documentTypeId = null,
             string? searchNumber = null,
-            EventForge.DTOs.Common.ApprovalStatus? approvalStatus = null,
+            Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
             int page = 1,
             int pageSize = 20,
             CancellationToken ct = default)
@@ -262,7 +262,7 @@ namespace EventForge.Client.Services
                     query += $"&approvalStatus={approvalStatus.Value}";
                 }
 
-                return await httpClientService.GetAsync<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>(query, ct);
+                return await httpClientService.GetAsync<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>>(query, ct);
             }
             catch (Exception ex)
             {

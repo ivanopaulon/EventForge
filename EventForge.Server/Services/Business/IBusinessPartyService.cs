@@ -1,4 +1,4 @@
-using EventForge.DTOs.Business;
+using Prym.DTOs.Business;
 
 namespace EventForge.Server.Services.Business;
 
@@ -31,7 +31,7 @@ public interface IBusinessPartyService
     /// <param name="partyType">Business party type</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of business parties of the specified type</returns>
-    Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default);
+    Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(Prym.DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches business parties by name or tax code.
@@ -41,7 +41,7 @@ public interface IBusinessPartyService
     /// <param name="pageSize">Maximum number of results to return (default 50)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of matching business parties</returns>
-    Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, DTOs.Common.BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken cancellationToken = default);
+    Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, Prym.DTOs.Common.BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Creates a new business party.
@@ -164,13 +164,13 @@ public interface IBusinessPartyService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of document headers</returns>
-    Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
+    Task<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
         Guid businessPartyId,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         Guid? documentTypeId = null,
         string? searchNumber = null,
-        DTOs.Common.ApprovalStatus? approvalStatus = null,
+        Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
         PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default);
 
@@ -201,7 +201,7 @@ public interface IBusinessPartyService
     /// <summary>
     /// Get business parties for export with batch processing support
     /// </summary>
-    Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
+    Task<IEnumerable<Prym.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 }

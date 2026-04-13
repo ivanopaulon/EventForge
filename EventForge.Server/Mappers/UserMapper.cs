@@ -1,7 +1,7 @@
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for User entity to DTOs.
+/// Static mapper for User entity to Prym.DTOs.
 /// </summary>
 public static class UserMapper
 {
@@ -31,9 +31,9 @@ public static class UserMapper
     /// <summary>
     /// Maps User entity to UserManagementDto.
     /// </summary>
-    public static EventForge.DTOs.SuperAdmin.UserManagementDto ToManagementDto(User user, List<string> roles, string? tenantName = null)
+    public static Prym.DTOs.SuperAdmin.UserManagementDto ToManagementDto(User user, List<string> roles, string? tenantName = null)
     {
-        return new EventForge.DTOs.SuperAdmin.UserManagementDto
+        return new Prym.DTOs.SuperAdmin.UserManagementDto
         {
             Id = user.Id,
             Username = user.Username,

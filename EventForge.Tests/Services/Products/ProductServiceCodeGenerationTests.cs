@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products;
+using Prym.DTOs.Products;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
@@ -67,7 +67,7 @@ public class ProductServiceCodeGenerationTests : IDisposable
         {
             Name = "Test Product",
             Code = string.Empty, // Empty code should trigger generation
-            Status = EventForge.DTOs.Common.ProductStatus.Active
+            Status = Prym.DTOs.Common.ProductStatus.Active
         };
 
         // Act
@@ -92,7 +92,7 @@ public class ProductServiceCodeGenerationTests : IDisposable
         {
             Name = "Test Product",
             Code = null!, // Null code should trigger generation
-            Status = EventForge.DTOs.Common.ProductStatus.Active
+            Status = Prym.DTOs.Common.ProductStatus.Active
         };
 
         // Act
@@ -113,7 +113,7 @@ public class ProductServiceCodeGenerationTests : IDisposable
         {
             Name = "Test Product",
             Code = providedCode,
-            Status = EventForge.DTOs.Common.ProductStatus.Active
+            Status = Prym.DTOs.Common.ProductStatus.Active
         };
 
         // Act
@@ -138,7 +138,7 @@ public class ProductServiceCodeGenerationTests : IDisposable
         {
             Name = "Test Product",
             Code = "   ", // Whitespace should be treated as empty
-            Status = EventForge.DTOs.Common.ProductStatus.Active
+            Status = Prym.DTOs.Common.ProductStatus.Active
         };
 
         // Act
@@ -171,7 +171,7 @@ public class ProductServiceCodeGenerationTests : IDisposable
         var updateDto = new UpdateProductDto
         {
             Name = "Updated Product",
-            Status = EventForge.DTOs.Common.ProductStatus.Active
+            Status = Prym.DTOs.Common.ProductStatus.Active
         };
 
         // Act
@@ -196,7 +196,7 @@ public class ProductServiceCodeGenerationTests : IDisposable
         {
             Name = "Test Product",
             Code = string.Empty,
-            Status = EventForge.DTOs.Common.ProductStatus.Active
+            Status = Prym.DTOs.Common.ProductStatus.Active
         };
 
         // Act

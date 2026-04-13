@@ -1,4 +1,4 @@
-using EventForge.DTOs.Chat;
+using Prym.DTOs.Chat;
 using EventForge.Server.Services.Chat;
 using EventForge.Server.Services.External.WhatsApp;
 using Microsoft.AspNetCore.Authorization;

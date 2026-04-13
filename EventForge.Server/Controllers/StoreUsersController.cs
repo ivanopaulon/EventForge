@@ -1,4 +1,4 @@
-using EventForge.DTOs.Store;
+using Prym.DTOs.Store;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Store;
 using Microsoft.AspNetCore.Authorization;
@@ -678,7 +678,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="404">If store user not found or has no photo</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("{id:guid}/photo")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> GetStoreUserPhotoDocument(
@@ -812,7 +812,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="404">If store user group not found or has no logo</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("groups/{id:guid}/logo")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> GetStoreUserGroupLogoDocument(
@@ -1112,7 +1112,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// <response code="404">If store POS not found or has no image</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("pos/{id:guid}/image")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> GetStorePosImageDocument(

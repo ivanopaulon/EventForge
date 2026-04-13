@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products;
+using Prym.DTOs.Products;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Products;

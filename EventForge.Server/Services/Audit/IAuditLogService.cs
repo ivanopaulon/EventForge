@@ -133,8 +133,8 @@ public interface IAuditLogService
     /// <param name="searchDto">Search criteria</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated audit trail results</returns>
-    Task<PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
-        EventForge.DTOs.Audit.AuditTrailSearchDto searchDto,
+    Task<PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
+        Prym.DTOs.Audit.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -142,7 +142,7 @@ public interface IAuditLogService
     /// </summary>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Audit trail statistics</returns>
-    Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
+    Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
         CancellationToken cancellationToken = default);
 
     /// <summary>

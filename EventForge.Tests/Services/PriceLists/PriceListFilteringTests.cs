@@ -1,7 +1,7 @@
-using EventForge.DTOs.Audit;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.SuperAdmin;
+using Prym.DTOs.Audit;
+using Prym.DTOs.Common;
+using Prym.DTOs.PriceLists;
+using Prym.DTOs.SuperAdmin;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.PriceList;
@@ -10,7 +10,7 @@ using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using DtoPriceListStatus = EventForge.DTOs.Common.PriceListStatus;
+using DtoPriceListStatus = Prym.DTOs.Common.PriceListStatus;
 using EntityPriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Tests.Services.PriceLists;
@@ -265,10 +265,10 @@ public class PriceListFilteringTests : IDisposable
             => Task.FromResult(new PagedResult<EntityChangeLog> { Items = Enumerable.Empty<EntityChangeLog>(), TotalCount = 0, Page = 1, PageSize = 10 });
         public Task<EntityChangeLog?> GetLogByIdAsync(Guid id, CancellationToken cancellationToken = default)
             => Task.FromResult<EntityChangeLog?>(null);
-        public Task<PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(EventForge.DTOs.Audit.AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
-            => Task.FromResult(new PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto> { Items = Enumerable.Empty<EventForge.DTOs.Audit.AuditTrailResponseDto>(), TotalCount = 0, Page = 1, PageSize = 10 });
-        public Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(new EventForge.DTOs.Audit.AuditTrailStatisticsDto());
+        public Task<PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(Prym.DTOs.Audit.AuditTrailSearchDto searchDto, CancellationToken cancellationToken = default)
+            => Task.FromResult(new PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto> { Items = Enumerable.Empty<Prym.DTOs.Audit.AuditTrailResponseDto>(), TotalCount = 0, Page = 1, PageSize = 10 });
+        public Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(new Prym.DTOs.Audit.AuditTrailStatisticsDto());
         public Task<ExportResultDto> ExportAdvancedAsync(ExportRequestDto exportRequest, CancellationToken cancellationToken = default)
             => Task.FromResult(new ExportResultDto());
         public Task<ExportResultDto?> GetExportStatusAsync(Guid exportId, CancellationToken cancellationToken = default)

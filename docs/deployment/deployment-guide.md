@@ -140,7 +140,7 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ["EventForge.Server/EventForge.Server.csproj", "EventForge.Server/"]
-COPY ["EventForge.DTOs/EventForge.DTOs.csproj", "EventForge.DTOs/"]
+COPY ["Prym.DTOs/Prym.DTOs.csproj", "Prym.DTOs/"]
 RUN dotnet restore "EventForge.Server/EventForge.Server.csproj"
 COPY . .
 WORKDIR "/src/EventForge.Server"

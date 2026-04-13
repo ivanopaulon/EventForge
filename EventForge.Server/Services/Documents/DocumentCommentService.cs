@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;

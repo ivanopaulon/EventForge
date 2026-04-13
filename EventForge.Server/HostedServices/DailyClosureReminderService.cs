@@ -1,4 +1,4 @@
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Notifications;
 using EventForge.Server.Data;
 using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;

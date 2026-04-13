@@ -1,4 +1,4 @@
-using EventForge.DTOs.Business;
+using Prym.DTOs.Business;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -815,7 +815,7 @@ public class BusinessPartyGroupService(
             GroupIcon = member.Group?.Icon,
             BusinessPartyId = member.BusinessPartyId,
             BusinessPartyName = member.BusinessParty?.Name ?? string.Empty,
-            BusinessPartyType = (DTOs.Common.BusinessPartyType)(member.BusinessParty?.PartyType ?? Data.Entities.Business.BusinessPartyType.Cliente),
+            BusinessPartyType = (Prym.DTOs.Common.BusinessPartyType)(member.BusinessParty?.PartyType ?? Data.Entities.Business.BusinessPartyType.Cliente),
             MemberSince = member.MemberSince,
             MemberUntil = member.MemberUntil,
             Status = member.Status,

@@ -1,15 +1,15 @@
 // Global using statements for the EventForge.Server project
 
-global using EventForge.DTOs.Audit;
-global using EventForge.DTOs.Auth;
-global using EventForge.DTOs.Calendar;
-global using EventForge.DTOs.Common;
-global using EventForge.DTOs.Events;
-global using EventForge.DTOs.Health;
-global using EventForge.DTOs.Performance;
+global using Prym.DTOs.Audit;
+global using Prym.DTOs.Auth;
+global using Prym.DTOs.Calendar;
+global using Prym.DTOs.Common;
+global using Prym.DTOs.Events;
+global using Prym.DTOs.Health;
+global using Prym.DTOs.Performance;
 // Logs DTOs are in SuperAdmin namespace
-global using EventForge.DTOs.SuperAdmin;
-global using EventForge.DTOs.Tenants;
+global using Prym.DTOs.SuperAdmin;
+global using Prym.DTOs.Tenants;
 global using EventForge.Server.Data;
 global using EventForge.Server.Data.Entities.Audit;
 global using EventForge.Server.Data.Entities.Auth;

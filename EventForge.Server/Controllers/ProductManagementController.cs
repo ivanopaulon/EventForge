@@ -1,8 +1,8 @@
-using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.Promotions;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.PriceLists;
+using Prym.DTOs.Products;
+using Prym.DTOs.Promotions;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Documents;
@@ -514,7 +514,7 @@ public class ProductManagementController(
     /// <response code="404">If product not found or has no image</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpGet("products/{id}/image")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Teams.DocumentReferenceDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> GetProductImageDocument(
@@ -1022,7 +1022,7 @@ public class ProductManagementController(
     public async Task<ActionResult<PagedResult<PriceListDto>>> GetPriceLists(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] PriceListDirection? direction = null,
-        [FromQuery] DTOs.Common.PriceListStatus? status = null,
+        [FromQuery] Prym.DTOs.Common.PriceListStatus? status = null,
         CancellationToken cancellationToken = default)
     {
         var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
@@ -1514,7 +1514,7 @@ public class ProductManagementController(
                 ValidTo = dto.ValidTo,
                 EventId = null,
                 MarkupPercentage = dto.MarkupPercentage,
-                RoundingStrategy = dto.RoundingStrategy ?? EventForge.DTOs.Common.RoundingStrategy.None,
+                RoundingStrategy = dto.RoundingStrategy ?? Prym.DTOs.Common.RoundingStrategy.None,
                 OnlyActiveProducts = dto.OnlyActiveProducts,
                 OnlyProductsWithPrice = true,
                 MinimumPrice = dto.MinimumPrice,
@@ -1564,7 +1564,7 @@ public class ProductManagementController(
                 ValidTo = dto.ValidTo,
                 EventId = null,
                 MarkupPercentage = dto.MarkupPercentage,
-                RoundingStrategy = dto.RoundingStrategy ?? EventForge.DTOs.Common.RoundingStrategy.None,
+                RoundingStrategy = dto.RoundingStrategy ?? Prym.DTOs.Common.RoundingStrategy.None,
                 OnlyActiveProducts = dto.OnlyActiveProducts,
                 OnlyProductsWithPrice = true,
                 MinimumPrice = dto.MinimumPrice,
@@ -2846,7 +2846,7 @@ public class ProductManagementController(
                 return CreateNotFoundProblem($"Product with ID {id} not found.");
 
             // Get document movements using DocumentHeaderService
-            var queryParameters = new EventForge.DTOs.Documents.DocumentHeaderQueryParameters
+            var queryParameters = new Prym.DTOs.Documents.DocumentHeaderQueryParameters
             {
                 Page = pagination.Page,
                 PageSize = pagination.PageSize,
@@ -3064,7 +3064,7 @@ public class ProductManagementController(
             var endDate = new DateTime(targetYear, 12, 31, 23, 59, 59);
 
             // Get document movements for the year to extract price data
-            var queryParameters = new EventForge.DTOs.Documents.DocumentHeaderQueryParameters
+            var queryParameters = new Prym.DTOs.Documents.DocumentHeaderQueryParameters
             {
                 Page = 1,
                 PageSize = 10000, // Get all movements for the year
@@ -3101,7 +3101,7 @@ public class ProductManagementController(
                     decimal unitDiscount = 0m;
                     if (row.Quantity > 0)
                     {
-                        if (row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
+                        if (row.DiscountType == Prym.DTOs.Common.DiscountType.Percentage)
                         {
                             unitDiscount = unitPriceNormalized * (row.LineDiscount / 100m);
                         }
@@ -3438,11 +3438,11 @@ public class ProductManagementController(
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("bulk-update-prices")]
     [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkUpdateResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Bulk.BulkUpdateResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkUpdateResultDto>> BulkUpdatePrices(
-        [FromBody] EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+    public async Task<ActionResult<Prym.DTOs.Bulk.BulkUpdateResultDto>> BulkUpdatePrices(
+        [FromBody] Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)

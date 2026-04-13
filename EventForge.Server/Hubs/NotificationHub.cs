@@ -1,4 +1,4 @@
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Notifications;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;

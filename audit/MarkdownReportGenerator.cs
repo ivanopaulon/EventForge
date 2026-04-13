@@ -200,7 +200,7 @@ namespace EventForge.Audit
             {
                 sb.AppendLine("2. **Complete DTO Consolidation**");
                 sb.AppendLine("   - Remove all legacy DTO namespace references");
-                sb.AppendLine("   - Move inline DTOs to EventForge.DTOs project");
+                sb.AppendLine("   - Move inline DTOs to Prym.DTOs project");
                 sb.AppendLine();
             }
 

@@ -1,6 +1,6 @@
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Promotions;
-using EventForge.DTOs.Sales;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Promotions;
+using Prym.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Promotions;
@@ -1460,7 +1460,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 {
                     try
                     {
-                        var voidMovementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
+                        var voidMovementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
                         {
                             MovementType = "VOID",
                             ProductId = item.ProductId,
@@ -1501,7 +1501,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                         {
                             context.Attach(document);
                         }
-                        document.Status = EventForge.DTOs.Common.DocumentStatus.Cancelled;
+                        document.Status = Prym.DTOs.Common.DocumentStatus.Cancelled;
                         document.ModifiedBy = currentUser;
                         document.ModifiedAt = DateTime.UtcNow;
                         await context.SaveChangesAsync(cancellationToken);
@@ -1603,7 +1603,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
 
             // Create document header
-            var createDocumentDto = new EventForge.DTOs.Documents.CreateDocumentHeaderDto
+            var createDocumentDto = new Prym.DTOs.Documents.CreateDocumentHeaderDto
             {
                 DocumentTypeId = receiptDocumentType.Id,
                 Number = null, // Will be auto-generated
@@ -1615,7 +1615,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 IsFiscal = true,
                 TotalDiscountAmount = session.DiscountAmount,
                 Notes = $"Generato dalla sessione di vendita {session.Id}",
-                Rows = activeItems.Select(item => new EventForge.DTOs.Documents.CreateDocumentRowDto
+                Rows = activeItems.Select(item => new Prym.DTOs.Documents.CreateDocumentRowDto
                 {
                     ProductId = item.ProductId,
                     Quantity = item.Quantity,
@@ -1647,7 +1647,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 try
                 {
 
-                    var movementDto = new EventForge.DTOs.Warehouse.CreateStockMovementDto
+                    var movementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
                     {
                         MovementType = "Outbound",
                         ProductId = item.ProductId,

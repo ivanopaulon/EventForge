@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Client.Services;
 
@@ -91,10 +91,10 @@ public interface IDocumentHeaderService
     /// <summary>
     /// Performs bulk approval of multiple documents.
     /// </summary>
-    Task<EventForge.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default);
+    Task<Prym.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default);
 
     /// <summary>
     /// Performs bulk status change of multiple documents.
     /// </summary>
-    Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto?> BulkStatusChangeAsync(EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto, CancellationToken ct = default);
+    Task<Prym.DTOs.Bulk.BulkStatusChangeResultDto?> BulkStatusChangeAsync(Prym.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto, CancellationToken ct = default);
 }

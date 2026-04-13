@@ -138,7 +138,7 @@ public class DocumentRow : AuditableEntity
     /// Discount type (percentage or value).
     /// </summary>
     [Display(Name = "Discount Type", Description = "Type of discount applied (percentage or value).")]
-    public EventForge.DTOs.Common.DiscountType DiscountType { get; set; } = EventForge.DTOs.Common.DiscountType.Percentage;
+    public Prym.DTOs.Common.DiscountType DiscountType { get; set; } = Prym.DTOs.Common.DiscountType.Percentage;
 
     /// <summary>
     /// VAT rate applied to the line (percentage).
@@ -256,7 +256,7 @@ public class DocumentRow : AuditableEntity
     private decimal GetEffectiveDiscount()
     {
         var subtotal = UnitPrice * Quantity;
-        var discount = DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
+        var discount = DiscountType == Prym.DTOs.Common.DiscountType.Percentage
             ? subtotal * (LineDiscount / 100)
             : LineDiscountValue;
 

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 
@@ -869,7 +869,7 @@ public class StockMovementService(
 
     #region Export Operations
 
-    public async Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
+    public async Task<IEnumerable<Prym.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
@@ -915,12 +915,12 @@ public class StockMovementService(
         }
     }
 
-    private async Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryInBatchesAsync(
+    private async Task<IEnumerable<Prym.DTOs.Export.InventoryExportDto>> GetInventoryInBatchesAsync(
         IQueryable<StockMovement> query,
         CancellationToken ct)
     {
         const int batchSize = 5000;
-        var results = new List<EventForge.DTOs.Export.InventoryExportDto>();
+        var results = new List<Prym.DTOs.Export.InventoryExportDto>();
         var skip = 0;
 
         while (true)
@@ -943,12 +943,12 @@ public class StockMovementService(
         return results;
     }
 
-    private static EventForge.DTOs.Export.InventoryExportDto MapToInventoryExportDto(StockMovement sm)
+    private static Prym.DTOs.Export.InventoryExportDto MapToInventoryExportDto(StockMovement sm)
     {
         var warehouse = sm.ToLocation?.Warehouse ?? sm.FromLocation?.Warehouse;
         var location = sm.ToLocation ?? sm.FromLocation;
 
-        return new EventForge.DTOs.Export.InventoryExportDto
+        return new Prym.DTOs.Export.InventoryExportDto
         {
             Id = sm.Id,
             MovementDate = sm.MovementDate,

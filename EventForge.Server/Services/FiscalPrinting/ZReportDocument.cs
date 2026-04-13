@@ -1,4 +1,4 @@
-using EventForge.DTOs.FiscalPrinting;
+using Prym.DTOs.FiscalPrinting;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;

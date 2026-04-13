@@ -240,11 +240,11 @@ builder.Services.AddSwaggerGen(c =>
         }
 
         // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts
-        // PrinterDto exists in both EventForge.DTOs.Printing and EventForge.DTOs.Station
+        // PrinterDto exists in both Prym.DTOs.Printing and Prym.DTOs.Station
         if (type.Name == "PrinterDto")
         {
             var namespacePrefix = type.Namespace?
-                .Replace("EventForge.DTOs.", "")
+                .Replace("Prym.DTOs.", "")
                 .Replace(".", "") ?? "";
             return $"{namespacePrefix}{type.Name}";
         }

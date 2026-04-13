@@ -267,8 +267,8 @@ public class LogManagementService(
 
     #region Audit Logs (Integration)
 
-    public async Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditLogsAsync(
-        EventForge.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
+    public async Task<PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditLogsAsync(
+        Prym.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
         try
@@ -316,7 +316,7 @@ public class LogManagementService(
                 .OrderByDescending(a => a.PerformedAt)
                 .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
                 .Take(searchDto.PageSize)
-                .Select(a => new EventForge.DTOs.SuperAdmin.AuditTrailResponseDto
+                .Select(a => new Prym.DTOs.SuperAdmin.AuditTrailResponseDto
                 {
                     Id = a.Id,
                     OperationType = a.OperationType,
@@ -339,7 +339,7 @@ public class LogManagementService(
                 })
                 .ToListAsync(cancellationToken);
 
-            return new PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>
+            return new PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>
             {
                 Items = items,
                 TotalCount = totalCount,
@@ -354,7 +354,7 @@ public class LogManagementService(
         }
     }
 
-    public async Task<EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto> GetAuditStatisticsAsync(CancellationToken cancellationToken = default)
+    public async Task<Prym.DTOs.SuperAdmin.AuditTrailStatisticsDto> GetAuditStatisticsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
@@ -372,7 +372,7 @@ public class LogManagementService(
                 .GroupBy(a => a.OperationType.ToString())
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            return new EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto
+            return new Prym.DTOs.SuperAdmin.AuditTrailStatisticsDto
             {
                 TotalOperations = all.Count,
                 SuccessfulOperations = all.Count(a => a.WasSuccessful),

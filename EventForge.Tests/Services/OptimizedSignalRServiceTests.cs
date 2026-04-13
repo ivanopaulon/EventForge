@@ -1,6 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Chat;
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Chat;
+using Prym.DTOs.Notifications;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Reflection;

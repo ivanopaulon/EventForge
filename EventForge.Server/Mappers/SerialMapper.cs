@@ -1,9 +1,9 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for Serial entities and DTOs.
+/// Static mapper for Serial entities and Prym.DTOs.
 /// </summary>
 public static class SerialMapper
 {

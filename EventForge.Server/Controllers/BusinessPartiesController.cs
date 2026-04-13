@@ -1,5 +1,5 @@
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Products;
+using Prym.DTOs.Business;
+using Prym.DTOs.Products;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Business;
@@ -150,7 +150,7 @@ public class BusinessPartiesController(
     [ProducesResponseType(typeof(IEnumerable<BusinessPartyDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> GetBusinessPartiesByType(
-        DTOs.Common.BusinessPartyType partyType,
+        Prym.DTOs.Common.BusinessPartyType partyType,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
@@ -234,7 +234,7 @@ public class BusinessPartiesController(
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IEnumerable<BusinessPartyDto>>> SearchBusinessParties(
         [FromQuery] string searchTerm,
-        [FromQuery] DTOs.Common.BusinessPartyType? partyType = null,
+        [FromQuery] Prym.DTOs.Common.BusinessPartyType? partyType = null,
         [FromQuery] int pageSize = 50,
         CancellationToken cancellationToken = default)
     {
@@ -604,17 +604,17 @@ public class BusinessPartiesController(
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     /// <response code="404">If the business party is not found</response>
     [HttpGet("{businessPartyId:guid}/documents")]
-    [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>>> GetBusinessPartyDocuments(
+    public async Task<ActionResult<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>>> GetBusinessPartyDocuments(
         Guid businessPartyId,
         [FromQuery] DateTime? fromDate = null,
         [FromQuery] DateTime? toDate = null,
         [FromQuery] Guid? documentTypeId = null,
         [FromQuery] string? searchNumber = null,
-        [FromQuery] DTOs.Common.ApprovalStatus? approvalStatus = null,
+        [FromQuery] Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {

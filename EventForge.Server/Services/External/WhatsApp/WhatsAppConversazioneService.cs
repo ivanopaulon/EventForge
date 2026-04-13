@@ -1,6 +1,6 @@
-using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.External.WhatsApp;
+using Prym.DTOs.Chat;
+using Prym.DTOs.Common;
+using Prym.DTOs.External.WhatsApp;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Chat;

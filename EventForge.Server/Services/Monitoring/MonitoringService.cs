@@ -1,4 +1,4 @@
-using EventForge.DTOs.Monitoring;
+using Prym.DTOs.Monitoring;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Monitoring;

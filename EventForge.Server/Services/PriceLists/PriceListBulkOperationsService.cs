@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using PriceListEntryStatus = EventForge.Server.Data.Entities.PriceList.PriceListEntryStatus;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
@@ -670,23 +670,23 @@ public class PriceListBulkOperationsService(
     /// <summary>
     /// Applica la strategia di arrotondamento al prezzo.
     /// </summary>
-    private static decimal ApplyRounding(decimal value, EventForge.DTOs.Common.RoundingStrategy strategy)
+    private static decimal ApplyRounding(decimal value, Prym.DTOs.Common.RoundingStrategy strategy)
     {
         return strategy switch
         {
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest5Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest5Cents =>
                 Math.Round(value * 20, MidpointRounding.AwayFromZero) / 20m,
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest10Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest10Cents =>
                 Math.Round(value * 10, MidpointRounding.AwayFromZero) / 10m,
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest50Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest50Cents =>
                 Math.Round(value * 2, MidpointRounding.AwayFromZero) / 2m,
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearestEuro =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearestEuro =>
                 Math.Round(value, MidpointRounding.AwayFromZero),
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest99Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest99Cents =>
                 Math.Floor(value) + 0.99m,
 
             _ => value
@@ -696,16 +696,16 @@ public class PriceListBulkOperationsService(
     /// <summary>
     /// Calcola il nuovo prezzo in base all'operazione e al valore.
     /// </summary>
-    private static decimal CalculateNewPrice(decimal currentPrice, EventForge.DTOs.Common.BulkUpdateOperation operation, decimal value)
+    private static decimal CalculateNewPrice(decimal currentPrice, Prym.DTOs.Common.BulkUpdateOperation operation, decimal value)
     {
         return operation switch
         {
-            EventForge.DTOs.Common.BulkUpdateOperation.IncreaseByPercentage => currentPrice * (1 + value / 100),
-            EventForge.DTOs.Common.BulkUpdateOperation.DecreaseByPercentage => currentPrice * (1 - value / 100),
-            EventForge.DTOs.Common.BulkUpdateOperation.IncreaseByAmount => currentPrice + value,
-            EventForge.DTOs.Common.BulkUpdateOperation.DecreaseByAmount => currentPrice - value,
-            EventForge.DTOs.Common.BulkUpdateOperation.SetFixedPrice => value,
-            EventForge.DTOs.Common.BulkUpdateOperation.MultiplyBy => currentPrice * value,
+            Prym.DTOs.Common.BulkUpdateOperation.IncreaseByPercentage => currentPrice * (1 + value / 100),
+            Prym.DTOs.Common.BulkUpdateOperation.DecreaseByPercentage => currentPrice * (1 - value / 100),
+            Prym.DTOs.Common.BulkUpdateOperation.IncreaseByAmount => currentPrice + value,
+            Prym.DTOs.Common.BulkUpdateOperation.DecreaseByAmount => currentPrice - value,
+            Prym.DTOs.Common.BulkUpdateOperation.SetFixedPrice => value,
+            Prym.DTOs.Common.BulkUpdateOperation.MultiplyBy => currentPrice * value,
             _ => currentPrice
         };
     }

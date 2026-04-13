@@ -2,7 +2,7 @@ using EventForge.Server.ModelBinders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
+using AuthAuditOperationType = Prym.DTOs.Common.AuditOperationType;
 
 namespace EventForge.Server.Controllers;
 

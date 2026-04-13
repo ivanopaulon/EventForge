@@ -3,11 +3,11 @@ using EventForge.Client.Models.Documents;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Common;
 using EventForge.Client.Services.Documents;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Products;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
@@ -1171,9 +1171,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         try
         {
             // Build the payload with a single item representing the current row
-            var applyDto = new EventForge.DTOs.Promotions.ApplyPromotionRulesDto
+            var applyDto = new Prym.DTOs.Promotions.ApplyPromotionRulesDto
             {
-                CartItems = new List<EventForge.DTOs.Promotions.CartItemDto>
+                CartItems = new List<Prym.DTOs.Promotions.CartItemDto>
                 {
                     new()
                     {
@@ -1217,7 +1217,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                     if (itemResult.EffectiveDiscountPercentage > 0 && _state.Model.LineDiscount == 0m)
                     {
                         _state.Model.LineDiscount = itemResult.EffectiveDiscountPercentage;
-                        _state.Model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+                        _state.Model.DiscountType = Prym.DTOs.Common.DiscountType.Percentage;
                     }
 
                     _appliedPromotionsSummary = string.Join(", ", itemResult.AppliedPromotions.Select(ap => ap.PromotionName));
@@ -1291,7 +1291,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 UnitOfMeasureId = product.UnitOfMeasureId.Value,
                 ConversionFactor = 1,
                 UnitType = "Base",
-                Status = EventForge.DTOs.Common.ProductUnitStatus.Active
+                Status = Prym.DTOs.Common.ProductUnitStatus.Active
             });
 
             _state.SelectedUnitOfMeasureId = product.UnitOfMeasureId;
@@ -1987,7 +1987,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             _state.Model.LineDiscount = 0;
             _state.Model.LineDiscountValue = 0;
-            _state.Model.DiscountType = EventForge.DTOs.Common.DiscountType.Percentage;
+            _state.Model.DiscountType = Prym.DTOs.Common.DiscountType.Percentage;
 
             // Invalidate cached calculation result
             InvalidateCalculationCache();

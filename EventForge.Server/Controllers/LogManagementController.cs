@@ -337,12 +337,12 @@ public class LogManagementController(
     /// <response code="500">If an error occurred while retrieving audit logs</response>
     [HttpGet("audit-logs")]
     [Authorize(Roles = "SuperAdmin")]
-    [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditLogs(
-        [FromQuery] EventForge.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
+    public async Task<ActionResult<PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditLogs(
+        [FromQuery] Prym.DTOs.SuperAdmin.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -372,10 +372,10 @@ public class LogManagementController(
     /// <response code="500">If an error occurred while retrieving statistics</response>
     [HttpGet("audit-logs/statistics")]
     [Authorize(Roles = "SuperAdmin")]
-    [ProducesResponseType(typeof(EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.SuperAdmin.AuditTrailStatisticsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<EventForge.DTOs.SuperAdmin.AuditTrailStatisticsDto>> GetAuditStatistics(
+    public async Task<ActionResult<Prym.DTOs.SuperAdmin.AuditTrailStatisticsDto>> GetAuditStatistics(
         CancellationToken cancellationToken = default)
     {
         try

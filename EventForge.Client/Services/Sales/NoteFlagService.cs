@@ -1,6 +1,6 @@
 using EventForge.Client.Helpers;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Sales;
+using Prym.DTOs.Common;
+using Prym.DTOs.Sales;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace EventForge.Client.Services.Sales;

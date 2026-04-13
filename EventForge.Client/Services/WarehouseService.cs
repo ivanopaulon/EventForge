@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Client.Services;
 
@@ -78,13 +78,13 @@ public class WarehouseService(
         }
     }
 
-    public async Task<EventForge.DTOs.Bulk.BulkTransferResultDto?> BulkTransferAsync(EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto, CancellationToken ct = default)
+    public async Task<Prym.DTOs.Bulk.BulkTransferResultDto?> BulkTransferAsync(Prym.DTOs.Bulk.BulkTransferDto bulkTransferDto, CancellationToken ct = default)
     {
         try
         {
             logger.LogInformation("Starting bulk transfer of {Count} items from facility {SourceId} to {DestinationId}",
                 bulkTransferDto.Items.Count, bulkTransferDto.SourceFacilityId, bulkTransferDto.DestinationFacilityId);
-            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkTransferDto, EventForge.DTOs.Bulk.BulkTransferResultDto>(
+            var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkTransferDto, Prym.DTOs.Bulk.BulkTransferResultDto>(
                 "api/v1/warehouse/bulk-transfer",
                 bulkTransferDto,
                 ct);

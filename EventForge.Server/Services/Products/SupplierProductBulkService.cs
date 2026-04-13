@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products;
+using Prym.DTOs.Products;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 

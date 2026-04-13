@@ -1,7 +1,7 @@
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Export;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Export;
+using Prym.DTOs.Products;
+using Prym.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -875,8 +875,8 @@ public interface IWarehouseFacade
     /// <returns>Result of the bulk transfer operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when bulkTransferDto or currentUser is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<EventForge.DTOs.Bulk.BulkTransferResultDto> BulkTransferAsync(
-        EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto,
+    Task<Prym.DTOs.Bulk.BulkTransferResultDto> BulkTransferAsync(
+        Prym.DTOs.Bulk.BulkTransferDto bulkTransferDto,
         string currentUser,
         CancellationToken cancellationToken = default);
 

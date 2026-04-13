@@ -1,4 +1,4 @@
-using EventForge.DTOs.Setup;
+using Prym.DTOs.Setup;
 using MicrosoftSqlClient = Microsoft.Data.SqlClient;  // For actual connections
 
 namespace EventForge.Server.Services.Setup;

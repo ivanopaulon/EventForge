@@ -1,7 +1,7 @@
-using EventForge.DTOs.Banks;
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Banks;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
+using Prym.DTOs.VatRates;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;

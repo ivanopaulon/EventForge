@@ -1,4 +1,4 @@
-using EventForge.DTOs.FiscalPrinting;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Server.Services.FiscalPrinting.CustomProtocol;
 

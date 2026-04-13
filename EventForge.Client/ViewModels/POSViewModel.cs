@@ -1,11 +1,11 @@
 using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
 using EventForge.Client.Services.Store;
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Constants;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.Sales;
-using EventForge.DTOs.Store;
+using Prym.DTOs.Business;
+using Prym.DTOs.Constants;
+using Prym.DTOs.Products;
+using Prym.DTOs.Sales;
+using Prym.DTOs.Store;
 using Timer = System.Timers.Timer;
 
 namespace EventForge.Client.ViewModels;
@@ -439,7 +439,7 @@ public class POSViewModel : IDisposable
                     var priceResult = await _priceResolutionService.ResolvePriceAsync(
                         productId: product.Id,
                         businessPartyId: SelectedCustomer?.Id,
-                        direction: EventForge.DTOs.Common.PriceListDirection.Output,
+                        direction: Prym.DTOs.Common.PriceListDirection.Output,
                         quantity: 1m);
 
                     var addItemDto = new AddSaleItemDto

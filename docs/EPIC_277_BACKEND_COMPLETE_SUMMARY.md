@@ -180,13 +180,13 @@ Duration: 1m 34s
 ### Nuovi Files (Gennaio 2025)
 
 #### DTOs
-1. `EventForge.DTOs/Sales/TableSessionDtos.cs` (80 righe)
+1. `Prym.DTOs/Sales/TableSessionDtos.cs` (80 righe)
    - TableSessionDto
    - CreateTableSessionDto
    - UpdateTableSessionDto
    - UpdateTableStatusDto
 
-2. `EventForge.DTOs/Sales/TableReservationDtos.cs` (80 righe)
+2. `Prym.DTOs/Sales/TableReservationDtos.cs` (80 righe)
    - TableReservationDto
    - CreateTableReservationDto
    - UpdateTableReservationDto

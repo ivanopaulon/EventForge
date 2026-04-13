@@ -78,7 +78,7 @@ private async Task<IEnumerable<BrandDto>> SearchBrands(string value, Cancellatio
 1. ✅ Aggiunto `@inject IProductService ProductService`
 2. ✅ Rimosso mock data e classe ProductDto nested
 3. ✅ Implementato ricerca reale con `ProductService.GetProductsAsync()`
-4. ✅ Utilizzo di `EventForge.DTOs.Products.ProductDto` reale
+4. ✅ Utilizzo di `Prym.DTOs.Products.ProductDto` reale
 5. ✅ Aggiunto error handling e logging
 
 **Prima**:
@@ -106,7 +106,7 @@ private void HandleProductSelected(ProductSearch.ProductDto product)
 }
 
 // After
-private void HandleProductSelected(EventForge.DTOs.Products.ProductDto product)
+private void HandleProductSelected(Prym.DTOs.Products.ProductDto product)
 {
     // Validation
     if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)

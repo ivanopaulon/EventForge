@@ -86,7 +86,7 @@ namespace EventForge.Client.Services.Schema
         /// <param name="metricType">The metric type to filter by.</param>
         /// <param name="includeNested">Whether to include nested object properties.</param>
         /// <returns>List of compatible field metadata.</returns>
-        List<FieldMetadata> GetCompatibleFields(string entityType, EventForge.DTOs.Dashboard.MetricType metricType, bool includeNested = false);
+        List<FieldMetadata> GetCompatibleFields(string entityType, Prym.DTOs.Dashboard.MetricType metricType, bool includeNested = false);
 
         /// <summary>
         /// Gets a specific field by its path.

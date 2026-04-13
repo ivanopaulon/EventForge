@@ -1,4 +1,4 @@
-using EventForge.DTOs.Teams;
+using Prym.DTOs.Teams;
 
 namespace EventForge.Server.Services.Teams;
 

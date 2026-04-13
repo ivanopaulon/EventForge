@@ -1,9 +1,9 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for DocumentCounter entity to DTOs.
+/// Static mapper for DocumentCounter entity to Prym.DTOs.
 /// </summary>
 public static class DocumentCounterMapper
 {

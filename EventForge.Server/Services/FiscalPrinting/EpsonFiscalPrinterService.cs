@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.FiscalPrinting;
+using Prym.DTOs.Common;
+using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Data;
 using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;

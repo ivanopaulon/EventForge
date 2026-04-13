@@ -1,4 +1,4 @@
-using EventForge.DTOs.Common;
+using Prym.DTOs.Common;
 using EventForge.Server.Data.Entities.Documents;
 
 namespace EventForge.Tests.Services.Documents;

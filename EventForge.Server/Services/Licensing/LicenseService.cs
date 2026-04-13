@@ -1,4 +1,4 @@
-using EventForge.DTOs.Licensing;
+using Prym.DTOs.Licensing;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Licensing;

@@ -1,4 +1,4 @@
-using EventForge.DTOs.External;
+using Prym.DTOs.External;
 using System.Text.Json;
 
 namespace EventForge.Server.Services.External;

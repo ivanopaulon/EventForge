@@ -100,7 +100,7 @@ Dopo l'analisi approfondita delle issue e la verifica dello stato corrente, emer
 
 #### 2. DTOs per Sales API
 
-**Percorso**: `/EventForge.DTOs/Sales/` (DA CREARE)
+**Percorso**: `/Prym.DTOs/Sales/` (DA CREARE)
 
 Sono necessari i seguenti DTOs per le API:
 - [ ] `SaleSessionDto.cs`
@@ -256,7 +256,7 @@ Servizi client necessari:
 1. **Infrastruttura base**:
    - ✅ `RetailCartSessionsController.cs` - Controller cart base (in-memory)
    - ✅ `IRetailCartSessionService.cs` + implementazione
-   - ✅ DTOs base in `/EventForge.DTOs/RetailCart/`
+   - ✅ DTOs base in `/Prym.DTOs/RetailCart/`
    - ✅ Entità `StorePos.cs`, `StoreUser.cs` per POS e operatori
    - ✅ Sistema documenti completo (per generazione fatture/scontrini)
    - ✅ Sistema promozioni implementato

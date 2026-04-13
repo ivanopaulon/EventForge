@@ -1,4 +1,4 @@
-using EventForge.DTOs.RetailCart;
+using Prym.DTOs.RetailCart;
 
 namespace EventForge.Server.Services.RetailCart
 {

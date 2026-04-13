@@ -1,9 +1,9 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for DocumentWorkflow entity to DTOs.
+/// Static mapper for DocumentWorkflow entity to Prym.DTOs.
 /// </summary>
 public static class DocumentWorkflowMapper
 {
@@ -32,7 +32,7 @@ public static class DocumentWorkflowMapper
             ModifiedAt = workflow.ModifiedAt,
             ModifiedBy = workflow.ModifiedBy,
             StepCount = workflow.StepDefinitions?.Count ?? 0,
-            ActiveExecutions = workflow.WorkflowExecutions?.Count(e => e.Status == DTOs.Common.WorkflowExecutionStatus.InProgress) ?? 0
+            ActiveExecutions = workflow.WorkflowExecutions?.Count(e => e.Status == Prym.DTOs.Common.WorkflowExecutionStatus.InProgress) ?? 0
         };
     }
 

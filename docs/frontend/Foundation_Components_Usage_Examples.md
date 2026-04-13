@@ -295,7 +295,7 @@ This document provides practical examples for using the new foundation component
 
 ```razor
 @page "/brand-management"
-@using EventForge.DTOs.Products
+@using Prym.DTOs.Products
 @inject IBrandService BrandService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar

@@ -431,8 +431,8 @@ public class AuditLogService(
     /// <summary>
     /// Searches audit trail with advanced filtering.
     /// </summary>
-    public async Task<PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
-        EventForge.DTOs.Audit.AuditTrailSearchDto searchDto,
+    public async Task<PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto>> SearchAuditTrailAsync(
+        Prym.DTOs.Audit.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
         try
@@ -489,7 +489,7 @@ public class AuditLogService(
                 .OrderByDescending(log => log.ChangedAt)
                 .Skip(skip)
                 .Take(searchDto.PageSize)
-                .Select(log => new EventForge.DTOs.Audit.AuditTrailResponseDto
+                .Select(log => new Prym.DTOs.Audit.AuditTrailResponseDto
                 {
                     Id = log.Id,
                     EntityName = log.EntityName,
@@ -504,7 +504,7 @@ public class AuditLogService(
                 })
                 .ToListAsync(cancellationToken);
 
-            return new PagedResult<EventForge.DTOs.Audit.AuditTrailResponseDto>
+            return new PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto>
             {
                 Items = items,
                 TotalCount = totalCount,
@@ -521,7 +521,7 @@ public class AuditLogService(
     /// <summary>
     /// Gets audit trail statistics.
     /// </summary>
-    public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
+    public async Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
         CancellationToken cancellationToken = default)
     {
         try
@@ -536,7 +536,7 @@ public class AuditLogService(
             var superAdminEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
             var deletedEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.OperationType == "Delete", cancellationToken);
 
-            return new EventForge.DTOs.Audit.AuditTrailStatisticsDto
+            return new Prym.DTOs.Audit.AuditTrailStatisticsDto
             {
                 TotalEntries = totalEntries,
                 TodayEntries = todayEntries,

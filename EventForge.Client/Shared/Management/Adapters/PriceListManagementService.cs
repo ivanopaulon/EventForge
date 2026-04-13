@@ -1,6 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.Common;
+using Prym.DTOs.PriceLists;
 
 namespace EventForge.Client.Shared.Management.Adapters;
 

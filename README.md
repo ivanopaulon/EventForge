@@ -191,7 +191,7 @@ Always provide translated tooltips for better accessibility:
 ### Project Structure
 - **EventForge.Client** - Blazor WebAssembly client application
 - **EventForge.Server** - ASP.NET Core server application  
-- **EventForge.DTOs** - Shared data transfer objects
+- **Prym.DTOs** - Shared data transfer objects
 
 ### Key Services
 - **TranslationService** - Handles multi-language support

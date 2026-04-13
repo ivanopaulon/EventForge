@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceHistory;
+using Prym.DTOs.PriceHistory;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;

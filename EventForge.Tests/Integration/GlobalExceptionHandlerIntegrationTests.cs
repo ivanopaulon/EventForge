@@ -1,4 +1,4 @@
-using EventForge.DTOs.Auth;
+using Prym.DTOs.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
 using System.Net;
 using System.Net.Http.Json;

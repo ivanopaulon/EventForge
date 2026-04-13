@@ -1,5 +1,5 @@
-using EventForge.DTOs.FiscalPrinting;
-using EventForge.DTOs.Station;
+using Prym.DTOs.FiscalPrinting;
+using Prym.DTOs.Station;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.Station;

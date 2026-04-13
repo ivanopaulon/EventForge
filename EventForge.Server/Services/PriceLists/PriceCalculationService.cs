@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;

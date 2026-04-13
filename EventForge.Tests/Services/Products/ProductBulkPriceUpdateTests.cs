@@ -1,4 +1,4 @@
-using EventForge.DTOs.Bulk;
+using Prym.DTOs.Bulk;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;

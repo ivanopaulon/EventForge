@@ -156,7 +156,7 @@ public class ProductRecentTransactionsTests : IDisposable
                 UnitPrice = 100 - (i * 10),
                 BaseUnitPrice = 100 - (i * 10),
                 LineDiscount = 10, // 10% discount
-                DiscountType = EventForge.DTOs.Common.DiscountType.Percentage,
+                DiscountType = Prym.DTOs.Common.DiscountType.Percentage,
                 CreatedAt = DateTime.UtcNow.AddDays(-i * 10),
                 CreatedBy = "test"
             };
@@ -191,7 +191,7 @@ public class ProductRecentTransactionsTests : IDisposable
                 UnitPrice = 150 + (i * 20),
                 BaseUnitPrice = 150 + (i * 20),
                 LineDiscount = 5, // 5% discount
-                DiscountType = EventForge.DTOs.Common.DiscountType.Percentage,
+                DiscountType = Prym.DTOs.Common.DiscountType.Percentage,
                 CreatedAt = DateTime.UtcNow.AddDays(-i * 15),
                 CreatedBy = "test"
             };
@@ -313,7 +313,7 @@ public class ProductRecentTransactionsTests : IDisposable
             UnitPrice = 100,
             BaseUnitPrice = 100,
             LineDiscountValue = 50, // 50 total discount for 10 units = 5 per unit
-            DiscountType = EventForge.DTOs.Common.DiscountType.Value,
+            DiscountType = Prym.DTOs.Common.DiscountType.Value,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
         };

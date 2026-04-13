@@ -1,4 +1,4 @@
-using EventForge.DTOs.Analytics;
+using Prym.DTOs.Analytics;
 using EventForge.Server.Services.Monitoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 

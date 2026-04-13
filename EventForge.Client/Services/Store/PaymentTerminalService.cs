@@ -1,4 +1,4 @@
-using EventForge.DTOs.PaymentTerminal;
+using Prym.DTOs.PaymentTerminal;
 using System.Net.Http.Json;
 
 namespace EventForge.Client.Services.Store;

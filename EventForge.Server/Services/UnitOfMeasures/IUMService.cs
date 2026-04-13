@@ -1,4 +1,4 @@
-using EventForge.DTOs.UnitOfMeasures;
+using Prym.DTOs.UnitOfMeasures;
 
 namespace EventForge.Server.Services.UnitOfMeasures;
 

@@ -3,7 +3,7 @@ using EventForge.Client;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Documents;
 using EventForge.Client.Services.Updates;
-using EventForge.DTOs.Configuration;
+using Prym.DTOs.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;

@@ -1,5 +1,5 @@
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
 
 namespace EventForge.Client.Services;
 

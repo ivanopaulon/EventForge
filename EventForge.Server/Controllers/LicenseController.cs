@@ -1,4 +1,4 @@
-using EventForge.DTOs.Licensing;
+using Prym.DTOs.Licensing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

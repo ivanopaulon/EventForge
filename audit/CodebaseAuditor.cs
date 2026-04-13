@@ -67,7 +67,7 @@ namespace EventForge.Audit
                         Severity = IssueSeverity.High,
                         File = GetRelativePath(file),
                         Description = "Legacy DTO namespace reference found",
-                        Details = "File contains reference to 'EventForge.Server.DTOs' which should be 'EventForge.DTOs'"
+                        Details = "File contains reference to 'EventForge.Server.DTOs' which should be 'Prym.DTOs'"
                     });
                     _stats.LegacyDTOReferences++;
                 }
@@ -84,7 +84,7 @@ namespace EventForge.Audit
                             Severity = IssueSeverity.Medium,
                             File = GetRelativePath(file),
                             Description = "Inline DTO definition found in controller",
-                            Details = $"Found {dtoMatches.Count} DTO class(es) defined inline. Should be moved to EventForge.DTOs project"
+                            Details = $"Found {dtoMatches.Count} DTO class(es) defined inline. Should be moved to Prym.DTOs project"
                         });
                         _stats.InlineDTOs += dtoMatches.Count;
                     }
@@ -92,7 +92,7 @@ namespace EventForge.Audit
             }
             
             // Check DTO project organization
-            var dtoProjectPath = Path.Combine(_projectRoot, "EventForge.DTOs");
+            var dtoProjectPath = Path.Combine(_projectRoot, "Prym.DTOs");
             if (Directory.Exists(dtoProjectPath))
             {
                 var dtoFiles = Directory.GetFiles(dtoProjectPath, "*.cs", SearchOption.AllDirectories);
@@ -307,7 +307,7 @@ namespace EventForge.Audit
         {
             Console.WriteLine("Auditing Validation Patterns...");
             
-            var dtoFiles = Directory.GetFiles(Path.Combine(_projectRoot, "EventForge.DTOs"), "*.cs", SearchOption.AllDirectories);
+            var dtoFiles = Directory.GetFiles(Path.Combine(_projectRoot, "Prym.DTOs"), "*.cs", SearchOption.AllDirectories);
             
             foreach (var file in dtoFiles)
             {

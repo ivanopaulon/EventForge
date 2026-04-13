@@ -1,5 +1,5 @@
 using ClosedXML.Excel;
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -559,11 +559,11 @@ public class DocumentExportService(
         // Map entity PaymentStatus to DTO PaymentStatus
         var dtoPaymentStatus = doc.PaymentStatus switch
         {
-            Data.Entities.Documents.PaymentStatus.Unpaid => DTOs.Common.PaymentStatus.Pending,
-            Data.Entities.Documents.PaymentStatus.Paid => DTOs.Common.PaymentStatus.Paid,
-            Data.Entities.Documents.PaymentStatus.PartiallyPaid => DTOs.Common.PaymentStatus.Partial,
-            Data.Entities.Documents.PaymentStatus.Overdue => DTOs.Common.PaymentStatus.Pending, // Map Overdue to Pending
-            _ => DTOs.Common.PaymentStatus.Pending
+            Data.Entities.Documents.PaymentStatus.Unpaid => Prym.DTOs.Common.PaymentStatus.Pending,
+            Data.Entities.Documents.PaymentStatus.Paid => Prym.DTOs.Common.PaymentStatus.Paid,
+            Data.Entities.Documents.PaymentStatus.PartiallyPaid => Prym.DTOs.Common.PaymentStatus.Partial,
+            Data.Entities.Documents.PaymentStatus.Overdue => Prym.DTOs.Common.PaymentStatus.Pending, // Map Overdue to Pending
+            _ => Prym.DTOs.Common.PaymentStatus.Pending
         };
 
         return new DocumentHeaderDto

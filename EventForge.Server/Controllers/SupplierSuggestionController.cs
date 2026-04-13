@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products.SupplierSuggestion;
+using Prym.DTOs.Products.SupplierSuggestion;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;

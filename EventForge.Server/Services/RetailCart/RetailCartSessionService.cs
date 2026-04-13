@@ -1,5 +1,5 @@
-using EventForge.DTOs.Promotions;
-using EventForge.DTOs.RetailCart;
+using Prym.DTOs.Promotions;
+using Prym.DTOs.RetailCart;
 using EventForge.Server.Services.Promotions;
 using Microsoft.Extensions.Caching.Memory;
 using System.Collections.Concurrent;

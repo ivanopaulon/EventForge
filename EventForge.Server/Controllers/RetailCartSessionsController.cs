@@ -1,4 +1,4 @@
-using EventForge.DTOs.RetailCart;
+using Prym.DTOs.RetailCart;
 using EventForge.Server.Services.RetailCart;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

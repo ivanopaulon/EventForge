@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.UnitOfMeasures;
+using Prym.DTOs.Common;
+using Prym.DTOs.UnitOfMeasures;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Export;

@@ -77,8 +77,8 @@ This guide below provides a quick reference for the pattern.
 ```razor
 @page "/path/to/page"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.[Namespace]
-@using EventForge.DTOs.Common
+@using Prym.DTOs.[Namespace]
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]

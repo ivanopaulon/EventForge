@@ -31,7 +31,7 @@ public class NotificationRecipient : AuditableEntity
     /// Recipient-specific status of the notification.
     /// </summary>
     [Required]
-    public DTOs.Notifications.NotificationStatus Status { get; set; } = DTOs.Notifications.NotificationStatus.Pending;
+    public Prym.DTOs.Notifications.NotificationStatus Status { get; set; } = Prym.DTOs.Notifications.NotificationStatus.Pending;
 
     /// <summary>
     /// Timestamp when this recipient read the notification.

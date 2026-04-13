@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Common;
 
 namespace EventForge.Server.Data.Entities.StationMonitor;
 

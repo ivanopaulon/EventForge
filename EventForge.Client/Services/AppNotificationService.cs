@@ -92,7 +92,7 @@ public class AppNotificationService(
         string? correlationId = null;
         string? details = null;
 
-        if (ex?.Data[AppErrorInfo.ProblemDetailsDataKey] is EventForge.DTOs.Common.ProblemDetailsDto problemDetails)
+        if (ex?.Data[AppErrorInfo.ProblemDetailsDataKey] is Prym.DTOs.Common.ProblemDetailsDto problemDetails)
         {
             details = problemDetails.Detail;
             if (problemDetails.Extensions != null &&

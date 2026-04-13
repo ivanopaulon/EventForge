@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
+using AuthAuditOperationType = Prym.DTOs.Common.AuditOperationType;
 
 namespace EventForge.Server.Services.Tenants;
 

@@ -38,8 +38,8 @@ public class PriceListValidationServiceTests : IDisposable
             ValidFrom = DateTime.UtcNow.AddMonths(-2),
             ValidTo = DateTime.UtcNow.AddMonths(-1),
             Status = PriceListStatus.Active,
-            Direction = EventForge.DTOs.Common.PriceListDirection.Output,
-            Type = EventForge.DTOs.Common.PriceListType.Sales
+            Direction = Prym.DTOs.Common.PriceListDirection.Output,
+            Type = Prym.DTOs.Common.PriceListType.Sales
         };
 
         _context.PriceLists.Add(priceList);
@@ -68,8 +68,8 @@ public class PriceListValidationServiceTests : IDisposable
             ValidFrom = DateTime.UtcNow.AddMonths(1),
             ValidTo = DateTime.UtcNow.AddMonths(3),
             Status = PriceListStatus.Active,
-            Direction = EventForge.DTOs.Common.PriceListDirection.Output,
-            Type = EventForge.DTOs.Common.PriceListType.Sales
+            Direction = Prym.DTOs.Common.PriceListDirection.Output,
+            Type = Prym.DTOs.Common.PriceListType.Sales
         };
 
         _context.PriceLists.Add(priceList);
@@ -96,8 +96,8 @@ public class PriceListValidationServiceTests : IDisposable
             TenantId = _tenantId,
             Name = "Test List",
             Status = PriceListStatus.Active,
-            Direction = EventForge.DTOs.Common.PriceListDirection.Output,
-            Type = EventForge.DTOs.Common.PriceListType.Sales
+            Direction = Prym.DTOs.Common.PriceListDirection.Output,
+            Type = Prym.DTOs.Common.PriceListType.Sales
         };
 
         var product = new Product

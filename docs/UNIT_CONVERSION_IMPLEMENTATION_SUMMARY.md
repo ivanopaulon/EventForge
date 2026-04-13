@@ -62,7 +62,7 @@ EventForge.Server/
 
 ### DTOs
 ```
-EventForge.DTOs/Documents/
+Prym.DTOs/Documents/
 ├── CreateDocumentRowDto.cs                            [MODIFIED]
 ├── UpdateDocumentRowDto.cs                            [MODIFIED]
 └── DocumentRowDto.cs                                  [MODIFIED]

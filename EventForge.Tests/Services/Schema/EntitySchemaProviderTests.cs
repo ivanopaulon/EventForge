@@ -1,5 +1,5 @@
 using EventForge.Client.Services.Schema;
-using EventForge.DTOs.Dashboard;
+using Prym.DTOs.Dashboard;
 
 namespace EventForge.Tests.Services.Schema;
 

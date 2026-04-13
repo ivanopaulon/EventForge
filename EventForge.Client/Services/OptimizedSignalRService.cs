@@ -1,8 +1,8 @@
 using EventForge.Client.Services.Updates;
-using EventForge.DTOs.Chat;
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.FiscalPrinting;
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Chat;
+using Prym.DTOs.Documents;
+using Prym.DTOs.FiscalPrinting;
+using Prym.DTOs.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Collections.Concurrent;
 
@@ -81,9 +81,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? UserJoinedChat;
     public event Action<object>? UserLeftChat;
     public event Action<Guid, bool>? UserOnlineStatusChanged;
-    public event Action<EventForge.DTOs.Chat.ChatMessageDto>? WhatsAppMessageReceived;
-    public event Action<EventForge.DTOs.Chat.ChatResponseDto>? WhatsAppConversazioneAggiornata;
-    public event Action<EventForge.DTOs.Chat.ChatResponseDto>? WhatsAppNumeroNonRiconosciuto;
+    public event Action<Prym.DTOs.Chat.ChatMessageDto>? WhatsAppMessageReceived;
+    public event Action<Prym.DTOs.Chat.ChatResponseDto>? WhatsAppConversazioneAggiornata;
+    public event Action<Prym.DTOs.Chat.ChatResponseDto>? WhatsAppNumeroNonRiconosciuto;
     #endregion
 
     #region Events - Document Collaboration
@@ -546,15 +546,15 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         });
 
         // WhatsApp real-time events
-        _ = connection.On<EventForge.DTOs.Chat.ChatMessageDto>("NuovoMessaggioWhatsApp", msg =>
+        _ = connection.On<Prym.DTOs.Chat.ChatMessageDto>("NuovoMessaggioWhatsApp", msg =>
         {
             WhatsAppMessageReceived?.Invoke(msg);
         });
-        _ = connection.On<EventForge.DTOs.Chat.ChatResponseDto>("ConversazioneAggiornata", conv =>
+        _ = connection.On<Prym.DTOs.Chat.ChatResponseDto>("ConversazioneAggiornata", conv =>
         {
             WhatsAppConversazioneAggiornata?.Invoke(conv);
         });
-        _ = connection.On<EventForge.DTOs.Chat.ChatResponseDto>("NumeroNonRiconosciuto", conv =>
+        _ = connection.On<Prym.DTOs.Chat.ChatResponseDto>("NumeroNonRiconosciuto", conv =>
         {
             WhatsAppNumeroNonRiconosciuto?.Invoke(conv);
         });

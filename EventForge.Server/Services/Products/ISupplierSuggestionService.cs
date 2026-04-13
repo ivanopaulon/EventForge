@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products.SupplierSuggestion;
+using Prym.DTOs.Products.SupplierSuggestion;
 
 namespace EventForge.Server.Services.Products;
 

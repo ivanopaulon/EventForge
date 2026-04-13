@@ -1,6 +1,6 @@
-using EventForge.DTOs.Audit;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
+using Prym.DTOs.Audit;
+using Prym.DTOs.Common;
+using Prym.DTOs.SuperAdmin;
 
 namespace EventForge.Client.Services
 {
@@ -15,7 +15,7 @@ namespace EventForge.Client.Services
         // Audit Logs  
         Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default);
         Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id, CancellationToken ct = default);
-        Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default);
+        Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default);
         Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto, CancellationToken ct = default);
 
         // Real-time subscriptions
@@ -119,12 +119,12 @@ namespace EventForge.Client.Services
             }
         }
 
-        public async Task<EventForge.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default)
+        public async Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default)
         {
             try
             {
-                return await httpClientService.GetAsync<EventForge.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
-                       new EventForge.DTOs.Audit.AuditTrailStatisticsDto();
+                return await httpClientService.GetAsync<Prym.DTOs.Audit.AuditTrailStatisticsDto>("api/v1/audit-logs/statistics") ??
+                       new Prym.DTOs.Audit.AuditTrailStatisticsDto();
             }
             catch (Exception ex)
             {

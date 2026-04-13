@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -224,7 +224,7 @@ public interface IDocumentHeaderService
     /// <summary>
     /// Get documents for export with batch processing support
     /// </summary>
-    Task<IEnumerable<EventForge.DTOs.Export.DocumentExportDto>> GetDocumentsForExportAsync(
+    Task<IEnumerable<Prym.DTOs.Export.DocumentExportDto>> GetDocumentsForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 }

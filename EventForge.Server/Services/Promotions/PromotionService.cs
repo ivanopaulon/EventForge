@@ -1,4 +1,4 @@
-using EventForge.DTOs.Promotions;
+using Prym.DTOs.Promotions;
 using EventForge.Server.Services.Monitoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -711,21 +711,21 @@ public class PromotionService(
     /// <summary>
     /// Converts entity PromotionRuleType to DTO PromotionRuleType.
     /// </summary>
-    private static EventForge.DTOs.Common.PromotionRuleType ConvertRuleType(EventForge.Server.Data.Entities.Promotions.PromotionRuleType entityRuleType)
+    private static Prym.DTOs.Common.PromotionRuleType ConvertRuleType(EventForge.Server.Data.Entities.Promotions.PromotionRuleType entityRuleType)
     {
         return entityRuleType switch
         {
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => EventForge.DTOs.Common.PromotionRuleType.Discount,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => EventForge.DTOs.Common.PromotionRuleType.CategoryDiscount,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => EventForge.DTOs.Common.PromotionRuleType.CartAmountDiscount,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.BuyXGetY => EventForge.DTOs.Common.PromotionRuleType.BuyXGetY,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.FixedPrice => EventForge.DTOs.Common.PromotionRuleType.FixedPrice,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Bundle => EventForge.DTOs.Common.PromotionRuleType.Bundle,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CustomerSpecific => EventForge.DTOs.Common.PromotionRuleType.CustomerSpecific,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Coupon => EventForge.DTOs.Common.PromotionRuleType.Coupon,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.TimeLimited => EventForge.DTOs.Common.PromotionRuleType.TimeLimited,
-            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive => EventForge.DTOs.Common.PromotionRuleType.Exclusive,
-            _ => EventForge.DTOs.Common.PromotionRuleType.Discount
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => Prym.DTOs.Common.PromotionRuleType.Discount,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => Prym.DTOs.Common.PromotionRuleType.CategoryDiscount,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => Prym.DTOs.Common.PromotionRuleType.CartAmountDiscount,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.BuyXGetY => Prym.DTOs.Common.PromotionRuleType.BuyXGetY,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.FixedPrice => Prym.DTOs.Common.PromotionRuleType.FixedPrice,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Bundle => Prym.DTOs.Common.PromotionRuleType.Bundle,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CustomerSpecific => Prym.DTOs.Common.PromotionRuleType.CustomerSpecific,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Coupon => Prym.DTOs.Common.PromotionRuleType.Coupon,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.TimeLimited => Prym.DTOs.Common.PromotionRuleType.TimeLimited,
+            EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Exclusive => Prym.DTOs.Common.PromotionRuleType.Exclusive,
+            _ => Prym.DTOs.Common.PromotionRuleType.Discount
         };
     }
 

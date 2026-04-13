@@ -34,7 +34,7 @@
     <PackageReference Include="Syncfusion.Blazor.Themes" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+    <ProjectReference Include="..\Prym.DTOs\Prym.DTOs.csproj" />
     <ProjectReference Include="..\Prym.UI\Prym.UI.csproj" />
   </ItemGroup>
   <ItemGroup>

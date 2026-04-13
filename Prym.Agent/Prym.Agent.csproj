@@ -18,7 +18,7 @@
     <PackageReference Include="Microsoft.Data.SqlClient" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\EventForge.DTOs\EventForge.DTOs.csproj" />
+    <ProjectReference Include="..\Prym.DTOs\Prym.DTOs.csproj" />
     <ProjectReference Include="..\Prym.Hardware\Prym.Hardware.csproj" />
   </ItemGroup>
 </Project>

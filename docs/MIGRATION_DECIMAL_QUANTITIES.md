@@ -250,9 +250,9 @@ If you encounter issues:
 - `EventForge.Server/Controllers/WarehouseManagementController.cs` - Controller updated
 
 ### DTOs
-- `EventForge.DTOs/Documents/CreateDocumentRowDto.cs`
-- `EventForge.DTOs/Documents/UpdateDocumentRowDto.cs`
-- `EventForge.DTOs/Documents/DocumentRowDto.cs`
+- `Prym.DTOs/Documents/CreateDocumentRowDto.cs`
+- `Prym.DTOs/Documents/UpdateDocumentRowDto.cs`
+- `Prym.DTOs/Documents/DocumentRowDto.cs`
 
 ### Client-Side
 - `EventForge.Client/Shared/Components/Dialogs/Documents/AddDocumentRowDialog.razor`

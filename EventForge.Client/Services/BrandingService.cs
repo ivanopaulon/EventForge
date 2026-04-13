@@ -1,4 +1,4 @@
-using EventForge.DTOs.Configuration;
+using Prym.DTOs.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace EventForge.Client.Services;

@@ -1,8 +1,8 @@
 using EventForge.Client.Helpers;
-using EventForge.DTOs.Banks;
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Banks;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
+using Prym.DTOs.VatRates;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace EventForge.Client.Services

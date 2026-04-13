@@ -1,4 +1,4 @@
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Notifications;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Notifications;

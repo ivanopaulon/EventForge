@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
+using Prym.DTOs.Common;
+using Prym.DTOs.SuperAdmin;
 
 namespace EventForge.Client.Services
 {

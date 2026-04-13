@@ -1,2 +1,2 @@
-// This file has been replaced by EventForge.DTOs.Common.AuthEnums.cs
+// This file has been replaced by Prym.DTOs.Common.AuthEnums.cs
 // Use the shared AuditOperationType enum instead

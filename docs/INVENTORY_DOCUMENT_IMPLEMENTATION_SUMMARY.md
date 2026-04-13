@@ -150,10 +150,10 @@ On first use, the system creates:
 ## Files Changed
 
 ### Added (11 files)
-- `EventForge.DTOs/Warehouse/CreateInventoryDocumentDto.cs`
-- `EventForge.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
-- `EventForge.DTOs/Warehouse/InventoryDocumentDto.cs`
-- `EventForge.DTOs/Warehouse/InventoryDocumentRowDto.cs`
+- `Prym.DTOs/Warehouse/CreateInventoryDocumentDto.cs`
+- `Prym.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
+- `Prym.DTOs/Warehouse/InventoryDocumentDto.cs`
+- `Prym.DTOs/Warehouse/InventoryDocumentRowDto.cs`
 - `docs/INVENTORY_DOCUMENT_WORKFLOW.md`
 - `docs/PROCEDURA_INVENTARIO_DOCUMENTO.md`
 

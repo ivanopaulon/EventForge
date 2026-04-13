@@ -1,4 +1,4 @@
-using EventForge.DTOs.FiscalPrinting;
+using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.FiscalPrinting;

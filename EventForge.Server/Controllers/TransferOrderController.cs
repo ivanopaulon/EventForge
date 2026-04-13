@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;

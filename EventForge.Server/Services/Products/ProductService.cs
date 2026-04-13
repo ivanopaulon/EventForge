@@ -1,5 +1,5 @@
-using EventForge.DTOs.PriceHistory;
-using EventForge.DTOs.Products;
+using Prym.DTOs.PriceHistory;
+using Prym.DTOs.Products;
 using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.Data.SqlClient;
@@ -1409,8 +1409,8 @@ public class ProductService(
                 OwnerId = productId,
                 OwnerType = "Product",
                 FileName = file.FileName,
-                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
-                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                Type = Prym.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = Prym.DTOs.Common.DocumentReferenceSubType.None,
                 MimeType = file.ContentType,
                 StorageKey = storageKey,
                 Url = storageKey,
@@ -1462,7 +1462,7 @@ public class ProductService(
         }
     }
 
-    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetProductImageDocumentAsync(Guid productId, CancellationToken cancellationToken = default)
+    public async Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetProductImageDocumentAsync(Guid productId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -1552,7 +1552,7 @@ public class ProductService(
             VatRateId = product.VatRateId,
             VatRateName = product.VatRate?.Name,
             CategoryNodeId = product.CategoryNodeId,
-            Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
+            Status = (Prym.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded
         };
     }
@@ -1571,7 +1571,7 @@ public class ProductService(
 #pragma warning restore CS0618 // Type or member is obsolete
             ImageDocumentId = product.ImageDocumentId,
             ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
-            Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
+            Status = (Prym.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
@@ -1616,7 +1616,7 @@ public class ProductService(
 #pragma warning restore CS0618 // Type or member is obsolete
             ImageDocumentId = product.ImageDocumentId,
             ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
-            Status = (EventForge.DTOs.Common.ProductStatus)product.Status,
+            Status = (Prym.DTOs.Common.ProductStatus)product.Status,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
@@ -1656,7 +1656,7 @@ public class ProductService(
             CodeType = productCode.CodeType,
             Code = productCode.Code,
             AlternativeDescription = productCode.AlternativeDescription,
-            Status = (EventForge.DTOs.Common.ProductCodeStatus)productCode.Status,
+            Status = (Prym.DTOs.Common.ProductCodeStatus)productCode.Status,
             UnitOfMeasureId = productCode.ProductUnit?.UnitOfMeasureId,
             UnitOfMeasureName = productCode.ProductUnit?.UnitOfMeasure?.Name,
             ConversionFactor = productCode.ProductUnit?.ConversionFactor,
@@ -1677,7 +1677,7 @@ public class ProductService(
             ConversionFactor = productUnit.ConversionFactor,
             UnitType = productUnit.UnitType,
             Description = productUnit.Description,
-            Status = (DTOs.Common.ProductUnitStatus)productUnit.Status,
+            Status = (Prym.DTOs.Common.ProductUnitStatus)productUnit.Status,
             CreatedAt = productUnit.CreatedAt,
             CreatedBy = productUnit.CreatedBy,
             ModifiedAt = productUnit.ModifiedAt,
@@ -1714,9 +1714,9 @@ public class ProductService(
         }
     }
 
-    private static EventForge.DTOs.Teams.DocumentReferenceDto MapToDocumentReferenceDto(EventForge.Server.Data.Entities.Teams.DocumentReference documentReference)
+    private static Prym.DTOs.Teams.DocumentReferenceDto MapToDocumentReferenceDto(EventForge.Server.Data.Entities.Teams.DocumentReference documentReference)
     {
-        return new EventForge.DTOs.Teams.DocumentReferenceDto
+        return new Prym.DTOs.Teams.DocumentReferenceDto
         {
             Id = documentReference.Id,
             OwnerId = documentReference.OwnerId,
@@ -2395,7 +2395,7 @@ public class ProductService(
 
                 // Calculate unit discount
                 decimal unitDiscount = 0;
-                if (row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
+                if (row.DiscountType == Prym.DTOs.Common.DiscountType.Percentage)
                 {
                     unitDiscount = unitPriceNormalized * (row.LineDiscount / 100);
                 }
@@ -2429,7 +2429,7 @@ public class ProductService(
                     Currency = DefaultCurrency,
                     UnitOfMeasure = row.UnitOfMeasure,
                     DiscountType = row.DiscountType.ToString(),
-                    Discount = row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage
+                    Discount = row.DiscountType == Prym.DTOs.Common.DiscountType.Percentage
                         ? row.LineDiscount
                         : row.LineDiscountValue
                 };
@@ -2544,7 +2544,7 @@ public class ProductService(
 
     #region Export Operations
 
-    public async Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
+    public async Task<IEnumerable<Prym.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
@@ -2580,7 +2580,7 @@ public class ProductService(
                 .Take(pagination.PageSize)
                 .ToListAsync(ct);
 
-            return items.Select(p => new EventForge.DTOs.Export.ProductExportDto
+            return items.Select(p => new Prym.DTOs.Export.ProductExportDto
             {
                 Id = p.Id,
                 Code = p.Code,
@@ -2603,12 +2603,12 @@ public class ProductService(
         }
     }
 
-    private async Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsInBatchesAsync(
+    private async Task<IEnumerable<Prym.DTOs.Export.ProductExportDto>> GetProductsInBatchesAsync(
         IQueryable<Product> query,
         CancellationToken ct)
     {
         const int batchSize = 5000;
-        var results = new List<EventForge.DTOs.Export.ProductExportDto>();
+        var results = new List<Prym.DTOs.Export.ProductExportDto>();
         var skip = 0;
 
         while (true)
@@ -2622,7 +2622,7 @@ public class ProductService(
 
             if (batch.Count == 0) break;
 
-            results.AddRange(batch.Select(p => new EventForge.DTOs.Export.ProductExportDto
+            results.AddRange(batch.Select(p => new Prym.DTOs.Export.ProductExportDto
             {
                 Id = p.Id,
                 Code = p.Code,
@@ -2649,13 +2649,13 @@ public class ProductService(
     /// <summary>
     /// Performs a bulk price update on multiple products in a single transaction.
     /// </summary>
-    public async Task<EventForge.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
-        EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+    public async Task<Prym.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
+        Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
-        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var errors = new List<Prym.DTOs.Bulk.BulkItemError>();
         var successCount = 0;
 
         // Validate batch size
@@ -2667,21 +2667,21 @@ public class ProductService(
         // Validate required fields based on update type
         switch (bulkUpdateDto.UpdateType)
         {
-            case EventForge.DTOs.Bulk.PriceUpdateType.Replace:
+            case Prym.DTOs.Bulk.PriceUpdateType.Replace:
                 if (!bulkUpdateDto.NewPrice.HasValue)
                 {
                     throw new ArgumentException("NewPrice is required for Replace operation.");
                 }
                 break;
-            case EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage:
-            case EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage:
+            case Prym.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage:
+            case Prym.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage:
                 if (!bulkUpdateDto.Percentage.HasValue)
                 {
                     throw new ArgumentException("Percentage is required for percentage-based operations.");
                 }
                 break;
-            case EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByAmount:
-            case EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByAmount:
+            case Prym.DTOs.Bulk.PriceUpdateType.IncreaseByAmount:
+            case Prym.DTOs.Bulk.PriceUpdateType.DecreaseByAmount:
                 if (!bulkUpdateDto.Amount.HasValue)
                 {
                     throw new ArgumentException("Amount is required for amount-based operations.");
@@ -2708,7 +2708,7 @@ public class ProductService(
             var missingIds = bulkUpdateDto.ProductIds.Where(id => !foundIds.Contains(id)).ToList();
             foreach (var missingId in missingIds)
             {
-                errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                errors.Add(new Prym.DTOs.Bulk.BulkItemError
                 {
                     ItemId = missingId,
                     ErrorMessage = "Product not found or does not belong to the current tenant."
@@ -2724,7 +2724,7 @@ public class ProductService(
 
                     if (newPrice < 0)
                     {
-                        errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                        errors.Add(new Prym.DTOs.Bulk.BulkItemError
                         {
                             ItemId = product.Id,
                             ItemName = product.Name,
@@ -2744,7 +2744,7 @@ public class ProductService(
                 }
                 catch (Exception ex)
                 {
-                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = product.Id,
                         ItemName = product.Name,
@@ -2760,7 +2760,7 @@ public class ProductService(
                 "Bulk price update completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
-            return new EventForge.DTOs.Bulk.BulkUpdateResultDto
+            return new Prym.DTOs.Bulk.BulkUpdateResultDto
             {
                 TotalCount = bulkUpdateDto.ProductIds.Count,
                 SuccessCount = successCount,
@@ -2776,14 +2776,14 @@ public class ProductService(
             await transaction.RollbackAsync(cancellationToken);
             logger.LogError(ex, "Bulk price update failed and was rolled back");
 
-            return new EventForge.DTOs.Bulk.BulkUpdateResultDto
+            return new Prym.DTOs.Bulk.BulkUpdateResultDto
             {
                 TotalCount = bulkUpdateDto.ProductIds.Count,
                 SuccessCount = 0,
                 FailedCount = bulkUpdateDto.ProductIds.Count,
-                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                Errors = new List<Prym.DTOs.Bulk.BulkItemError>
                 {
-                    new EventForge.DTOs.Bulk.BulkItemError
+                    new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = Guid.Empty,
                         ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
@@ -2796,18 +2796,18 @@ public class ProductService(
         }
     }
 
-    private decimal CalculateNewPrice(decimal currentPrice, EventForge.DTOs.Bulk.BulkUpdatePricesDto dto)
+    private decimal CalculateNewPrice(decimal currentPrice, Prym.DTOs.Bulk.BulkUpdatePricesDto dto)
     {
         return dto.UpdateType switch
         {
-            EventForge.DTOs.Bulk.PriceUpdateType.Replace => dto.NewPrice ?? 0,
-            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage =>
+            Prym.DTOs.Bulk.PriceUpdateType.Replace => dto.NewPrice ?? 0,
+            Prym.DTOs.Bulk.PriceUpdateType.IncreaseByPercentage =>
                 currentPrice * (1 + (dto.Percentage ?? 0) / 100),
-            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage =>
+            Prym.DTOs.Bulk.PriceUpdateType.DecreaseByPercentage =>
                 currentPrice * (1 - (dto.Percentage ?? 0) / 100),
-            EventForge.DTOs.Bulk.PriceUpdateType.IncreaseByAmount =>
+            Prym.DTOs.Bulk.PriceUpdateType.IncreaseByAmount =>
                 currentPrice + (dto.Amount ?? 0),
-            EventForge.DTOs.Bulk.PriceUpdateType.DecreaseByAmount =>
+            Prym.DTOs.Bulk.PriceUpdateType.DecreaseByAmount =>
                 currentPrice - (dto.Amount ?? 0),
             _ => currentPrice
         };

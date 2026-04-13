@@ -1,4 +1,4 @@
-using EventForge.DTOs.Teams;
+using Prym.DTOs.Teams;
 using EventForge.Server.Services.Teams;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

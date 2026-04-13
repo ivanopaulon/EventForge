@@ -1,5 +1,5 @@
 using EventForge.Client.Services.Store;
-using EventForge.DTOs.PaymentTerminal;
+using Prym.DTOs.PaymentTerminal;
 
 namespace EventForge.Client.ViewModels;
 

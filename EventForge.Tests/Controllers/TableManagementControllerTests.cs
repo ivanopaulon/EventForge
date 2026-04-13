@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Sales;
+using Prym.DTOs.Common;
+using Prym.DTOs.Sales;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Http;

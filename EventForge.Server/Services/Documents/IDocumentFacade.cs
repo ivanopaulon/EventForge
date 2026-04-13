@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Services.Documents;
 
@@ -834,8 +834,8 @@ public interface IDocumentFacade
     /// <returns>Result of the bulk approval operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when bulkApprovalDto or currentUser is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<EventForge.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
-        EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
+    Task<Prym.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
+        Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
         string currentUser,
         CancellationToken cancellationToken = default);
 
@@ -848,8 +848,8 @@ public interface IDocumentFacade
     /// <returns>Result of the bulk status change operation</returns>
     /// <exception cref="ArgumentNullException">Thrown when bulkStatusChangeDto or currentUser is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto> BulkStatusChangeAsync(
-        EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
+    Task<Prym.DTOs.Bulk.BulkStatusChangeResultDto> BulkStatusChangeAsync(
+        Prym.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
         string currentUser,
         CancellationToken cancellationToken = default);
 

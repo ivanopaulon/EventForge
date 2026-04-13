@@ -179,7 +179,7 @@ Il componente `PageLoadingOverlay` è un overlay di caricamento standardizzato p
 
 ```razor
 @page "/brand-management"
-@using EventForge.DTOs.Products
+@using Prym.DTOs.Products
 @inject IBrandService BrandService
 @inject ITranslationService TranslationService
 @inject ISnackbar Snackbar

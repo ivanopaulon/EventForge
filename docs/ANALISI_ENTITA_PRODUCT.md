@@ -935,7 +935,7 @@ Il sistema gestisce **15+ relazioni dirette** dalla tabella Product verso altre 
 
 - **Codice sorgente**: `/EventForge.Server/Data/Entities/Products/`
 - **Entità comuni**: `/EventForge.Server/Data/Entities/Common/`
-- **DTOs**: `/EventForge.DTOs/Products/`
+- **DTOs**: `/Prym.DTOs/Products/`
 - **Servizi**: `/EventForge.Server/Services/Products/`
 
 ---

@@ -1,4 +1,4 @@
-using EventForge.DTOs.FiscalPrinting;
+using Prym.DTOs.FiscalPrinting;
 using Prym.Hardware.Exceptions;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting.Communication;

@@ -1,4 +1,4 @@
-using EventForge.DTOs.PaymentTerminal;
+using Prym.DTOs.PaymentTerminal;
 
 namespace EventForge.Server.Services.PaymentTerminal;
 

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Banks;
+using Prym.DTOs.Banks;
 
 namespace EventForge.Server.Services.Banks;
 

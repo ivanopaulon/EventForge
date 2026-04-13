@@ -1,5 +1,5 @@
 @using EventForge.Client.Services.Schema
-@using EventForge.DTOs.Dashboard
+@using Prym.DTOs.Dashboard
 @inject IEntitySchemaProvider SchemaProvider
 
 <MudStack Spacing="2">
@@ -109,7 +109,7 @@
             return;
         }
 
-        if (MetricType.HasValue && MetricType.Value != DTOs.Dashboard.MetricType.Count)
+        if (MetricType.HasValue && MetricType.Value != Prym.DTOs.Dashboard.MetricType.Count)
         {
             // For aggregation metrics, only show numeric fields
             AvailableFields = SchemaProvider.GetCompatibleFields(EntityType, MetricType.Value, false);
@@ -125,7 +125,7 @@
     {
         if (AvailableFields.Count == 0)
         {
-            if (MetricType == DTOs.Dashboard.MetricType.Count)
+            if (MetricType == Prym.DTOs.Dashboard.MetricType.Count)
             {
                 return "Il conteggio non richiede la selezione di un campo";
             }
@@ -134,10 +134,10 @@
 
         return MetricType switch
         {
-            DTOs.Dashboard.MetricType.Sum => "Seleziona un campo numerico da sommare",
-            DTOs.Dashboard.MetricType.Average => "Seleziona un campo numerico per calcolare la media",
-            DTOs.Dashboard.MetricType.Min => "Seleziona un campo numerico per trovare il minimo",
-            DTOs.Dashboard.MetricType.Max => "Seleziona un campo numerico per trovare il massimo",
+            Prym.DTOs.Dashboard.MetricType.Sum => "Seleziona un campo numerico da sommare",
+            Prym.DTOs.Dashboard.MetricType.Average => "Seleziona un campo numerico per calcolare la media",
+            Prym.DTOs.Dashboard.MetricType.Min => "Seleziona un campo numerico per trovare il minimo",
+            Prym.DTOs.Dashboard.MetricType.Max => "Seleziona un campo numerico per trovare il massimo",
             _ => "Seleziona il campo da utilizzare per il calcolo"
         };
     }

@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Client.Services;
 
@@ -36,5 +36,5 @@ public interface IWarehouseService
     /// <summary>
     /// Performs a bulk transfer of items between warehouses.
     /// </summary>
-    Task<EventForge.DTOs.Bulk.BulkTransferResultDto?> BulkTransferAsync(EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto, CancellationToken ct = default);
+    Task<Prym.DTOs.Bulk.BulkTransferResultDto?> BulkTransferAsync(Prym.DTOs.Bulk.BulkTransferDto bulkTransferDto, CancellationToken ct = default);
 }

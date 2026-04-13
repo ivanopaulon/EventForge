@@ -9,7 +9,7 @@ namespace EventForge.Server.Services.FiscalPrinting.Communication;
 /// </summary>
 /// <remarks>
 /// Extends <see cref="AgentProxyBaseCommunication"/> with TCP-specific endpoint paths and
-/// request DTOs. The agent opens the TCP socket on its side and relays the command bytes.
+/// request Prym.DTOs. The agent opens the TCP socket on its side and relays the command bytes.
 /// Retries on transient HTTP errors (3 attempts, exponential back-off).
 /// </remarks>
 public sealed class AgentTcpProxyCommunication(

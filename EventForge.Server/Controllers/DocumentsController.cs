@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Documents;
@@ -2483,11 +2483,11 @@ public class DocumentsController(
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("bulk-approve")]
     [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkApprovalResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Bulk.BulkApprovalResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkApprovalResultDto>> BulkApprove(
-        [FromBody] EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
+    public async Task<ActionResult<Prym.DTOs.Bulk.BulkApprovalResultDto>> BulkApprove(
+        [FromBody] Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)
@@ -2535,11 +2535,11 @@ public class DocumentsController(
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("bulk-status-change")]
     [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkStatusChangeResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Bulk.BulkStatusChangeResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkStatusChangeResultDto>> BulkStatusChange(
-        [FromBody] EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
+    public async Task<ActionResult<Prym.DTOs.Bulk.BulkStatusChangeResultDto>> BulkStatusChange(
+        [FromBody] Prym.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)

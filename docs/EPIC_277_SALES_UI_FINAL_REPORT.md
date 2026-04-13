@@ -76,7 +76,7 @@ Gestione completa tavoli per bar/ristorante:
 
 ### 3. Backend - API Contract Layer (DTOs)
 
-**Percorso**: `/EventForge.DTOs/Sales/`
+**Percorso**: `/Prym.DTOs/Sales/`
 
 Sono stati creati **6 file DTO** completi:
 
@@ -682,7 +682,7 @@ EventForge.Server/Data/Entities/Sales/
 
 ### Backend DTOs (6 files)
 ```
-EventForge.DTOs/Sales/
+Prym.DTOs/Sales/
 ├── CreateUpdateSaleSessionDto.cs  (80 lines)
 ├── SaleSessionDto.cs              (140 lines)
 ├── SaleItemDtos.cs                (120 lines)

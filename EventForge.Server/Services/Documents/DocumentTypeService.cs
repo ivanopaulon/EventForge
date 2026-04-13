@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using EventForge.Server.Mappers;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;

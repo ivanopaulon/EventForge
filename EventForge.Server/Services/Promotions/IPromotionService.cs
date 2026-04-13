@@ -1,4 +1,4 @@
-using EventForge.DTOs.Promotions;
+using Prym.DTOs.Promotions;
 
 namespace EventForge.Server.Services.Promotions;
 

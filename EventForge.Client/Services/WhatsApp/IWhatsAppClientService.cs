@@ -1,6 +1,6 @@
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Chat;
-using EventForge.DTOs.External.WhatsApp;
+using Prym.DTOs.Business;
+using Prym.DTOs.Chat;
+using Prym.DTOs.External.WhatsApp;
 
 namespace EventForge.Client.Services.WhatsApp;
 

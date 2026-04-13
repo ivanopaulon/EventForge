@@ -1,4 +1,4 @@
-using EventForge.DTOs.Sales;
+using Prym.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
 

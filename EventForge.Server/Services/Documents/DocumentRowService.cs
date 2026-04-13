@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -309,7 +309,7 @@ public class DocumentRowService(
         {
             Id = row.Id,
             DocumentHeaderId = row.DocumentHeaderId,
-            RowType = (EventForge.DTOs.Common.DocumentRowType)row.RowType,
+            RowType = (Prym.DTOs.Common.DocumentRowType)row.RowType,
             ParentRowId = row.ParentRowId,
             ProductCode = row.ProductCode,
             ProductId = row.ProductId,

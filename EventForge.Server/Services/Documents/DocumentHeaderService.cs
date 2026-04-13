@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using EventForge.Server.Mappers;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.Warehouse;
@@ -508,7 +508,7 @@ public class DocumentHeaderService(
                 return null;
             }
 
-            documentHeader.Status = EventForge.DTOs.Common.DocumentStatus.Closed;
+            documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Closed;
             documentHeader.ClosedAt = DateTime.UtcNow;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
@@ -594,7 +594,7 @@ public class DocumentHeaderService(
             query = query.Where(dh => dh.CustomerName != null && dh.CustomerName.Contains(parameters.CustomerName));
 
         if (parameters.Status.HasValue)
-            query = query.Where(dh => dh.Status == (EventForge.DTOs.Common.DocumentStatus)parameters.Status.Value);
+            query = query.Where(dh => dh.Status == (Prym.DTOs.Common.DocumentStatus)parameters.Status.Value);
 
         if (parameters.PaymentStatus.HasValue)
             query = query.Where(dh => dh.PaymentStatus == (EventForge.Server.Data.Entities.Documents.PaymentStatus)parameters.PaymentStatus.Value);
@@ -1063,7 +1063,7 @@ public class DocumentHeaderService(
             row.Quantity = updateDto.Quantity;
             row.LineDiscount = updateDto.LineDiscount;
             row.LineDiscountValue = updateDto.LineDiscountValue;
-            row.DiscountType = (EventForge.DTOs.Common.DiscountType)updateDto.DiscountType;
+            row.DiscountType = (Prym.DTOs.Common.DiscountType)updateDto.DiscountType;
             row.VatRate = updateDto.VatRate;
             row.VatDescription = updateDto.VatDescription;
             row.IsGift = updateDto.IsGift;
@@ -1898,7 +1898,7 @@ public class DocumentHeaderService(
 
     #region Export Operations
 
-    public async Task<IEnumerable<EventForge.DTOs.Export.DocumentExportDto>> GetDocumentsForExportAsync(
+    public async Task<IEnumerable<Prym.DTOs.Export.DocumentExportDto>> GetDocumentsForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
@@ -1930,7 +1930,7 @@ public class DocumentHeaderService(
             .Take(pagination.PageSize)
             .ToListAsync(ct);
 
-        return items.Select(d => new EventForge.DTOs.Export.DocumentExportDto
+        return items.Select(d => new Prym.DTOs.Export.DocumentExportDto
         {
             Id = d.Id,
             DocumentNumber = d.Number,
@@ -1946,12 +1946,12 @@ public class DocumentHeaderService(
         });
     }
 
-    private async Task<IEnumerable<EventForge.DTOs.Export.DocumentExportDto>> GetDocumentsInBatchesAsync(
+    private async Task<IEnumerable<Prym.DTOs.Export.DocumentExportDto>> GetDocumentsInBatchesAsync(
         IQueryable<DocumentHeader> query,
         CancellationToken ct)
     {
         const int batchSize = 5000;
-        var results = new List<EventForge.DTOs.Export.DocumentExportDto>();
+        var results = new List<Prym.DTOs.Export.DocumentExportDto>();
         var skip = 0;
 
         while (true)
@@ -1965,7 +1965,7 @@ public class DocumentHeaderService(
 
             if (batch.Count == 0) break;
 
-            results.AddRange(batch.Select(d => new EventForge.DTOs.Export.DocumentExportDto
+            results.AddRange(batch.Select(d => new Prym.DTOs.Export.DocumentExportDto
             {
                 Id = d.Id,
                 DocumentNumber = d.Number,

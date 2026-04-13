@@ -1,9 +1,9 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for Lot entities and DTOs.
+/// Static mapper for Lot entities and Prym.DTOs.
 /// </summary>
 public static class LotMapper
 {

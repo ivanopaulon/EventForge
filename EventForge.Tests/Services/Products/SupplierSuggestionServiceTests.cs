@@ -260,15 +260,15 @@ public class SupplierSuggestionServiceTests : IDisposable
         {
             if (suggestion.TotalScore < 60)
             {
-                Assert.Equal(EventForge.DTOs.Products.SupplierSuggestion.ConfidenceLevel.Low, suggestion.Confidence);
+                Assert.Equal(Prym.DTOs.Products.SupplierSuggestion.ConfidenceLevel.Low, suggestion.Confidence);
             }
             else if (suggestion.TotalScore < 80)
             {
-                Assert.Equal(EventForge.DTOs.Products.SupplierSuggestion.ConfidenceLevel.Medium, suggestion.Confidence);
+                Assert.Equal(Prym.DTOs.Products.SupplierSuggestion.ConfidenceLevel.Medium, suggestion.Confidence);
             }
             else
             {
-                Assert.Equal(EventForge.DTOs.Products.SupplierSuggestion.ConfidenceLevel.High, suggestion.Confidence);
+                Assert.Equal(Prym.DTOs.Products.SupplierSuggestion.ConfidenceLevel.High, suggestion.Confidence);
             }
         }
     }

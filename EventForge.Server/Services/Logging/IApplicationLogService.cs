@@ -11,7 +11,7 @@ public interface IApplicationLogService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated application logs</returns>
-    Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetApplicationLogsAsync(
+    Task<PagedResult<Prym.DTOs.Logging.ApplicationLogDto>> GetApplicationLogsAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 
@@ -22,7 +22,7 @@ public interface IApplicationLogService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated application logs for the log level</returns>
-    Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetLogsByLevelAsync(
+    Task<PagedResult<Prym.DTOs.Logging.ApplicationLogDto>> GetLogsByLevelAsync(
         string level,
         PaginationParameters pagination,
         CancellationToken ct = default);
@@ -35,7 +35,7 @@ public interface IApplicationLogService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="ct">Cancellation token</param>
     /// <returns>Paginated application logs within the date range</returns>
-    Task<PagedResult<DTOs.Logging.ApplicationLogDto>> GetLogsByDateRangeAsync(
+    Task<PagedResult<Prym.DTOs.Logging.ApplicationLogDto>> GetLogsByDateRangeAsync(
         DateTime startDate,
         DateTime? endDate,
         PaginationParameters pagination,

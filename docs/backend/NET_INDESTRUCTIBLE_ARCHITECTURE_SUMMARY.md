@@ -7,7 +7,7 @@ This document summarizes the implementation of .NET "indestructible" architectur
 ### 1. Separation of Concerns & Layered Architecture
 - **Status**: ✅ EXCELLENT
 - **Implementation**:
-  - Clean project separation: EventForge.Server (API), EventForge.Client (Blazor), EventForge.DTOs (shared)
+  - Clean project separation: EventForge.Server (API), EventForge.Client (Blazor), Prym.DTOs (shared)
   - Repository pattern with Entity Framework Core
   - Domain-driven service organization
   - Clear separation of data access, business logic, and presentation layers

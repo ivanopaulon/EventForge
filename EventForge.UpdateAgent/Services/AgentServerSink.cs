@@ -1,4 +1,4 @@
-using EventForge.DTOs.Logging;
+using Prym.DTOs.Logging;
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;

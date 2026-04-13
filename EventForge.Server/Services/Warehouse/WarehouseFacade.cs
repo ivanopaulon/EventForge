@@ -1,7 +1,7 @@
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Export;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Export;
+using Prym.DTOs.Products;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Export;
 using EventForge.Server.Services.Products;
@@ -1093,13 +1093,13 @@ public class WarehouseFacade(
 
     #region Bulk Operations
 
-    public async Task<EventForge.DTOs.Bulk.BulkTransferResultDto> BulkTransferAsync(
-        EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto,
+    public async Task<Prym.DTOs.Bulk.BulkTransferResultDto> BulkTransferAsync(
+        Prym.DTOs.Bulk.BulkTransferDto bulkTransferDto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
-        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var errors = new List<Prym.DTOs.Bulk.BulkItemError>();
         var successCount = 0;
 
         // Validate batch size
@@ -1179,7 +1179,7 @@ public class WarehouseFacade(
                 }
                 catch (Exception ex)
                 {
-                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = item.ProductId,
                         ErrorMessage = ex.Message
@@ -1194,7 +1194,7 @@ public class WarehouseFacade(
                 "Bulk transfer completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
-            return new EventForge.DTOs.Bulk.BulkTransferResultDto
+            return new Prym.DTOs.Bulk.BulkTransferResultDto
             {
                 TotalCount = bulkTransferDto.Items.Count,
                 SuccessCount = successCount,
@@ -1213,14 +1213,14 @@ public class WarehouseFacade(
             await transaction.RollbackAsync(CancellationToken.None);
             logger.LogError(ex, "Bulk transfer failed and was rolled back");
 
-            return new EventForge.DTOs.Bulk.BulkTransferResultDto
+            return new Prym.DTOs.Bulk.BulkTransferResultDto
             {
                 TotalCount = bulkTransferDto.Items.Count,
                 SuccessCount = 0,
                 FailedCount = bulkTransferDto.Items.Count,
-                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                Errors = new List<Prym.DTOs.Bulk.BulkItemError>
                 {
-                    new EventForge.DTOs.Bulk.BulkItemError
+                    new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = Guid.Empty,
                         ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"

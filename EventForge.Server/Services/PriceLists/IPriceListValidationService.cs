@@ -1,4 +1,4 @@
-using PriceListDirection = EventForge.DTOs.Common.PriceListDirection;
+using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Server.Services.PriceLists;

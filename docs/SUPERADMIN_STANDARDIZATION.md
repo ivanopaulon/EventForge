@@ -32,8 +32,8 @@ These are the **PERFECT EXAMPLES** to follow:
 ```razor
 @page "/superadmin/[page-name]"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.[Namespace]
-@using EventForge.DTOs.Common
+@using Prym.DTOs.[Namespace]
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize(Roles = "SuperAdmin")]

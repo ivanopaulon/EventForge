@@ -1,5 +1,5 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Business;
+using Prym.DTOs.Business;
 
 namespace EventForge.Client.ViewModels;
 
@@ -26,7 +26,7 @@ public class PaymentTermDetailViewModel : BaseEntityDetailViewModel<PaymentTermD
             Name = string.Empty,
             Description = null,
             DueDays = 0,
-            PaymentMethod = EventForge.DTOs.Common.PaymentMethod.BankTransfer,
+            PaymentMethod = Prym.DTOs.Common.PaymentMethod.BankTransfer,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = null,
             ModifiedAt = null,

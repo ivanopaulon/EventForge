@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Logging;
+using Prym.DTOs.Common;
+using Prym.DTOs.Logging;
 using EventForge.Server.Services.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

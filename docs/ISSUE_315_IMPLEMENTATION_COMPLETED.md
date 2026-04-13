@@ -315,8 +315,8 @@ If desired, the following could be added incrementally:
 4. `EventForge.Server/Data/Entities/Store/StoreUserPrivilege.cs`
 5. `EventForge.Server/Data/EventForgeDbContext.cs`
 6. `EventForge.Server/Services/Store/StoreUserService.cs`
-7. `EventForge.DTOs/Store/*` (12 DTO files)
-8. `EventForge.DTOs/Common/CommonEnums.cs`
+7. `Prym.DTOs/Store/*` (12 DTO files)
+8. `Prym.DTOs/Common/CommonEnums.cs`
 9. `EventForge.Server/Migrations/20251001065848_AddImageManagementToStoreEntities.cs`
 
 ---

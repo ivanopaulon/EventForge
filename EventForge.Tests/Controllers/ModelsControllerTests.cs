@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Products;
+using Prym.DTOs.Common;
+using Prym.DTOs.Products;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Products;

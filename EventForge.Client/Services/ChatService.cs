@@ -1,7 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
-using EventForge.DTOs.Chat;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Chat;
+using Prym.DTOs.Common;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace EventForge.Client.Services;

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Dashboard;
+using Prym.DTOs.Dashboard;
 
 namespace EventForge.Server.Services.Dashboard;
 

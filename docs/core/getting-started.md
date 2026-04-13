@@ -141,7 +141,7 @@ EventForge/
 │   ├── Services/              # Business logic services
 │   └── Components/            # Blazor components
 ├── EventForge.Client/         # Frontend (se applicabile)
-├── EventForge.DTOs/           # Data Transfer Objects
+├── Prym.DTOs/           # Data Transfer Objects
 ├── EventForge.Tests/          # Test project
 └── docs/                      # Documentazione
     ├── core/                  # Documentazione core

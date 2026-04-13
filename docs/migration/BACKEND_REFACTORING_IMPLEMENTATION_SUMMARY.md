@@ -70,7 +70,7 @@ else
 ### 4. DTO Consolidation to Shared
 **Status**: ✅ **ALREADY IMPLEMENTED** (Confirmed from DTO_REORGANIZATION_SUMMARY.md)
 
-- All DTOs consolidated in EventForge.DTOs project
+- All DTOs consolidated in Prym.DTOs project
 - 88 DTO files organized in 20 domain folders
 - No breaking changes, backward compatibility maintained
 
