@@ -20,7 +20,7 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
             {
                 var v = File.ReadAllText(versionFile).Trim();
                 if (!string.IsNullOrEmpty(v)) return v;
-                logger.LogDebug("version.txt at {Path} is empty, falling back to assembly", versionFile);
+                logger.LogWarning("version.txt at '{Path}' exists but is empty — falling back to assembly FileVersionInfo.", versionFile);
             }
 
             // Fallback: read from assembly in deploy path
@@ -55,7 +55,7 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
             {
                 var v = File.ReadAllText(versionFile).Trim();
                 if (!string.IsNullOrEmpty(v)) return v;
-                logger.LogDebug("version.txt at {Path} is empty", versionFile);
+                logger.LogWarning("version.txt at '{Path}' exists but is empty — no client version available.", versionFile);
             }
         }
         catch (Exception ex)

@@ -19,6 +19,7 @@ public class AgentWorker(
     ILogger<AgentWorker> logger) : BackgroundService
 {
     private HubConnection? _connection;
+    private volatile bool _firstConnection = true;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -154,12 +155,12 @@ public class AgentWorker(
                 return;
             }
 
-            // Apply in-memory immediately
+            // Apply in-memory after persisting to disk.
+            // Persisting first ensures the key survives even if the process crashes between the two steps.
+            await PersistEnrollmentAsync(result.ApiKey, result.InstallationId);
+
             options.ApiKey = result.ApiKey;
             options.InstallationId = result.InstallationId.ToString();
-
-            // Persist to appsettings.json so the key survives restarts
-            await PersistEnrollmentAsync(result.ApiKey, result.InstallationId);
 
             logger.LogInformation("Enrollment successful. InstallationId={Id} Code={Code}",
                 result.InstallationId, options.InstallationCode);
@@ -227,13 +228,18 @@ public class AgentWorker(
     {
         var server = options.Components.Server.Enabled;
         var client = options.Components.Client.Enabled;
-        return (server, client) switch
+        var result = (server, client) switch
         {
-            (true, true) => 3,   // Both
+            (true, true)  => 3,  // Both
             (true, false) => 1,  // Server
             (false, true) => 2,  // Client
-            _ => 3               // default Both
+            _             => 0   // Neither
         };
+        if (result == 0 && !options.StandaloneMode)
+            logger.LogWarning(
+                "MapComponents: both Server and Client components are disabled and StandaloneMode is false — " +
+                "no components will be reported to the Hub.");
+        return result;
     }
 
     private record EnrollmentResult(Guid InstallationId, string InstallationCode, string ApiKey);
@@ -482,11 +488,17 @@ public class AgentWorker(
             return Task.CompletedTask;
         };
 
-        _connection.Reconnected += _ =>
+        _connection.Reconnected += async _ =>
         {
             agentStatus.HubConnectionState = "Connected";
             logger.LogInformation("Reconnected to hub at {Url}.", options.HubUrl);
-            return Task.CompletedTask;
+            // Send a heartbeat so the Hub receives up-to-date state after reconnection
+            // without repeating the full registration sequence.
+            try { await SendHeartbeatAsync(CancellationToken.None); }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to send heartbeat after reconnection to {Url}.", options.HubUrl);
+            }
         };
 
         logger.LogInformation("Attempting to connect to Hub at {Url} (InstallationId={Id})",
@@ -507,8 +519,12 @@ public class AgentWorker(
         agentStatus.HubConnectionState = "Connected";
         logger.LogInformation("Connected to UpdateHub at {Url}", options.HubUrl);
 
-        // Register on connect — send full identity so Hub stays up-to-date
-        await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
+        // Register on first connect — send full identity so Hub gets the complete picture.
+        // On subsequent reconnects the Reconnected handler sends only a heartbeat.
+        if (_firstConnection)
+        {
+            _firstConnection = false;
+            await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
             VersionServer:    versionDetector.GetServerVersion(),
@@ -524,6 +540,12 @@ public class AgentWorker(
             DotNetVersion:    systemInfo.DotNetVersion,
             AgentVersion:     versionDetector.GetAgentVersion()),
             ct);
+        }
+        else
+        {
+            // New connection after a full reconnect cycle: send heartbeat so Hub has fresh state.
+            await SendHeartbeatAsync(ct);
+        }
 
         // Heartbeat loop
         while (!ct.IsCancellationRequested && _connection.State == HubConnectionState.Connected)

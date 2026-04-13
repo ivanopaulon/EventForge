@@ -19,6 +19,7 @@ public class UpdateExecutorService(
     BackupService backupService,
     IisManagerService iisManagerService,
     MigrationRunnerService migrationRunner,
+    PendingInstallService pendingInstallService,
     DownloadProgressService downloadProgress,
     ILogger<UpdateExecutorService> logger)
 {
@@ -163,29 +164,8 @@ public class UpdateExecutorService(
 
     private string? GetNextWindowDescription()
     {
-        var next = options.MaintenanceWindows.Count == 0 ? null : GetNextWindowStart();
+        var next = pendingInstallService.GetNextWindowStart();
         return next?.ToString("dd/MM/yyyy HH:mm");
-    }
-
-    private DateTime? GetNextWindowStart()
-    {
-        if (options.MaintenanceWindows.Count == 0) return null;
-        var now = DateTime.Now;
-        var best = DateTime.MaxValue;
-        for (var d = 0; d <= 7; d++)
-        {
-            var candidate = now.Date.AddDays(d);
-            foreach (var window in options.MaintenanceWindows)
-            {
-                if (window.DaysOfWeek.Count > 0 && !window.DaysOfWeek.Contains(candidate.DayOfWeek))
-                    continue;
-                if (!TimeOnly.TryParse(window.StartTime, out var start)) continue;
-                var windowStart = candidate.Add(start.ToTimeSpan());
-                if (windowStart > now && windowStart < best)
-                    best = windowStart;
-            }
-        }
-        return best == DateTime.MaxValue ? null : best;
     }
 
     /// <summary>
@@ -245,6 +225,7 @@ public class UpdateExecutorService(
         {
             // ── Phase 3: Extract ──
             Directory.CreateDirectory(tempDir);
+            ValidateZipPathTraversal(zipPath, tempDir);
             NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
                 detail: "Estrazione archivio ZIP…");
             ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
@@ -291,7 +272,7 @@ public class UpdateExecutorService(
             await ReportAsync(command, UpdatePhase.DeployingBinaries, false, true, null, ct);
             NotifyPhaseBackground(command, UpdatePhase.DeployingBinaries.ToString(),
                 detail: $"Copia file in: {deployPath}");
-            await DeployBinariesAsync(tempDir, deployPath, manifest, ct, logger);
+            await DeployBinariesAsync(tempDir, deployPath, manifest, ct);
 
             // ── Phase 8: Write version.txt ──
             await File.WriteAllTextAsync(Path.Combine(deployPath, "version.txt"), command.Version, ct);
@@ -539,10 +520,11 @@ public class UpdateExecutorService(
         var totalBytes = response.Content.Headers.ContentLength;
         await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
 
+        var bufferSize = Math.Clamp(options.DownloadBufferSizeKb, 16, 4096) * 1024;
         var fileMode = append ? FileMode.Append : FileMode.Create;
-        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
 
-        var buffer    = new byte[81920];
+        var buffer    = new byte[bufferSize];
         long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
         var lastLocalReport  = DateTime.UtcNow;
         var lastServerNotify = DateTime.UtcNow;
@@ -602,6 +584,30 @@ public class UpdateExecutorService(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Validates that no entry in the ZIP archive would extract outside <paramref name="destDir"/>
+    /// (path-traversal / zip-slip attack).
+    /// </summary>
+    /// <exception cref="System.Security.SecurityException">
+    /// Thrown when at least one entry resolves to a path outside <paramref name="destDir"/>.
+    /// </exception>
+    private static void ValidateZipPathTraversal(string zipPath, string destDir)
+    {
+        var fullDest = Path.GetFullPath(destDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+        using var archive = System.IO.Compression.ZipFile.OpenRead(zipPath);
+        foreach (var entry in archive.Entries)
+        {
+            // Entries that represent directories end with '/'; skip them.
+            if (string.IsNullOrEmpty(entry.Name)) continue;
+
+            var resolved = Path.GetFullPath(Path.Combine(fullDest, entry.FullName));
+            if (!resolved.StartsWith(fullDest, StringComparison.OrdinalIgnoreCase))
+                throw new System.Security.SecurityException(
+                    $"ZIP path traversal detected: entry '{entry.FullName}' would extract outside the target directory.");
+        }
+    }
+
     private static async Task VerifyChecksumAsync(string zipPath, string expectedChecksum, CancellationToken ct)
     {
         await using var stream = File.OpenRead(zipPath);
@@ -620,7 +626,7 @@ public class UpdateExecutorService(
                ?? new UpdateManifest();
     }
 
-    private static async Task DeployBinariesAsync(string extractedPath, string deployPath, UpdateManifest manifest, CancellationToken ct, ILogger<UpdateExecutorService> log)
+    private async Task DeployBinariesAsync(string extractedPath, string deployPath, UpdateManifest manifest, CancellationToken ct)
     {
         var binariesPath = Path.Combine(extractedPath, "binaries");
         if (!Directory.Exists(binariesPath)) binariesPath = extractedPath;
@@ -658,7 +664,7 @@ public class UpdateExecutorService(
                 }
                 catch (Exception ex)
                 {
-                    log.LogWarning(ex, "JSON merge failed for '{File}' — falling back to full overwrite.", relative);
+                    logger.LogWarning(ex, "JSON merge failed for '{File}' — falling back to full overwrite.", relative);
                     // Fall through to overwrite
                 }
             }

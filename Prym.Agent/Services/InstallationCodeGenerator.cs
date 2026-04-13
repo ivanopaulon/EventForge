@@ -82,7 +82,10 @@ public class InstallationCodeGenerator(
             root[AgentOptions.SectionName] = section;
 
             var writeOptions = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(AppSettingsPath, root.ToJsonString(writeOptions));
+            // Write to a temp file first, then atomically rename to avoid corruption on crash.
+            var tmpPath = AppSettingsPath + ".tmp";
+            File.WriteAllText(tmpPath, root.ToJsonString(writeOptions));
+            File.Move(tmpPath, AppSettingsPath, overwrite: true);
         }
         catch (Exception ex)
         {

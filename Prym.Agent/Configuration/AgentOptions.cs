@@ -73,6 +73,12 @@ public class AgentOptions
     public int DownloadMaxRetries { get; set; } = 5;
 
     /// <summary>
+    /// Size of the I/O buffer (in KB) used when streaming a downloaded package to disk.
+    /// Defaults to 80 KB. Clamped to [16, 4096] at runtime.
+    /// </summary>
+    public int DownloadBufferSizeKb { get; set; } = 80;
+
+    /// <summary>
     /// Directory (relative to the service exe or absolute) where package ZIP files are downloaded
     /// and temporarily extracted during installation.
     /// Defaults to <c>work</c> → resolves to <c>{ServiceExeDir}\work\</c>.
@@ -102,6 +108,7 @@ public class AgentOptions
     public InstallOptions Install { get; set; } = new();
     public BackupAgentOptions Backup { get; set; } = new();
     public LoggingAgentOptions Logging { get; set; } = new();
+    public PrinterProxyAgentOptions PrinterProxy { get; set; } = new();
 
     /// <summary>Local web UI (Razor Pages served on localhost).</summary>
     public UiOptions UI { get; set; } = new();
@@ -281,4 +288,18 @@ public class UiOptions
 
     /// <summary>HTTP Basic auth password. Change this before deploying.</summary>
     public string Password { get; set; } = "Admin#123!";
+}
+
+// ── Printer proxy ─────────────────────────────────────────────────────────
+
+public class PrinterProxyAgentOptions
+{
+    /// <summary>
+    /// When non-empty, the HTTP forward endpoint (<c>/api/printer-proxy/http-forward</c>)
+    /// only allows requests whose target host matches one of these patterns.
+    /// Supports exact hostnames (e.g. <c>192.168.1.100</c>) and wildcard suffixes
+    /// (e.g. <c>*.local</c>, <c>192.168.1.*</c>).
+    /// Empty list = no host restriction (allow all — not recommended for internet-facing agents).
+    /// </summary>
+    public List<string> AllowedHostPatterns { get; set; } = [];
 }

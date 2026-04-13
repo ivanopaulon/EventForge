@@ -52,15 +52,28 @@ public class IisManagerService(AgentOptions options, ILogger<IisManagerService> 
         };
 
         process.Start();
-        var output = await process.StandardOutput.ReadToEndAsync(ct);
-        var error = await process.StandardError.ReadToEndAsync(ct);
-        await process.WaitForExitAsync(ct);
 
-        if (process.ExitCode != 0)
-            // Non-zero exit is a warning, not an exception — the site may already be in the desired
-            // state (e.g. already stopped), or may not exist in dev. Never let IIS errors abort the update.
-            logger.LogWarning("appcmd {Args} exited {Code}: {Error}", arguments, process.ExitCode, error);
-        else
-            logger.LogDebug("appcmd {Args}: {Output}", arguments, output.Trim());
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
+
+        try
+        {
+            var output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            var error  = await process.StandardError.ReadToEndAsync(timeoutCts.Token);
+            await process.WaitForExitAsync(timeoutCts.Token);
+
+            if (process.ExitCode != 0)
+                // Non-zero exit is a warning, not an exception — the site may already be in the desired
+                // state (e.g. already stopped), or may not exist in dev. Never let IIS errors abort the update.
+                logger.LogWarning("appcmd {Args} exited {Code}: {Error}", arguments, process.ExitCode, error);
+            else
+                logger.LogDebug("appcmd {Args}: {Output}", arguments, output.Trim());
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // The 30 s timeout fired, not the application CancellationToken.
+            try { process.Kill(entireProcessTree: true); } catch { /* best effort */ }
+            throw new TimeoutException($"appcmd.exe '{arguments}' did not complete within 30 seconds.");
+        }
     }
 }

@@ -75,15 +75,18 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
                             ? sc.ToString().Trim('"') : null
         };
 
+        int countAfterEnqueue;
         lock (_queue)
         {
             if (_queue.Count >= MaxQueueDepth)
                 _queue.Dequeue(); // drop oldest when full (same strategy as Client)
             _queue.Enqueue(entry);
+            countAfterEnqueue = _queue.Count;
         }
 
-        // Flush immediately when we reach the batch size threshold
-        if (_queue.Count >= BatchSize)
+        // Flush immediately when we reach the batch size threshold.
+        // Count is captured inside the lock to avoid a read-outside-lock race.
+        if (countAfterEnqueue >= BatchSize)
             _ = FlushAsync(CancellationToken.None);
     }
 

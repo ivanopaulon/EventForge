@@ -81,15 +81,18 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
 
     private static async Task CopyDirectoryAsync(string source, string destination, CancellationToken ct)
     {
-        foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
-        {
-            ct.ThrowIfCancellationRequested();
-            var relative = Path.GetRelativePath(source, file);
-            var destFile = Path.Combine(destination, relative);
-            Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
-            await using var src = File.OpenRead(file);
-            await using var dst = File.Create(destFile);
-            await src.CopyToAsync(dst, ct);
-        }
+        var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
+
+        await Parallel.ForEachAsync(files,
+            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = ct },
+            async (file, token) =>
+            {
+                var relative = Path.GetRelativePath(source, file);
+                var destFile = Path.Combine(destination, relative);
+                Directory.CreateDirectory(Path.GetDirectoryName(destFile)!);
+                await using var src = File.OpenRead(file);
+                await using var dst = File.Create(destFile);
+                await src.CopyToAsync(dst, token);
+            });
     }
 }
