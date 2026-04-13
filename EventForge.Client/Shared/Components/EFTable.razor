@@ -80,6 +80,7 @@
           Striped="@Striped"
           Dense="@Dense"
           FixedHeader="@FixedHeader"
+          FixedFooter="@FixedFooter"
           Height="@Height"
           Loading="@IsLoading"
           LoadingProgressColor="@LoadingProgressColor"
@@ -441,6 +442,11 @@
     [Parameter] public bool Striped { get; set; } = true;
     [Parameter] public bool Dense { get; set; } = true;
     [Parameter] public bool FixedHeader { get; set; } = false;
+    /// <summary>
+    /// When true, the table footer row is fixed at the bottom of the scrollable area.
+    /// Requires Height to be set (use "100%" inside a flex-constrained container).
+    /// </summary>
+    [Parameter] public bool FixedFooter { get; set; } = false;
     /// <summary>
     /// When true, column headers stick to the top of the viewport (below the AppBar)
     /// as the user scrolls the page. Does not require a fixed Height on the table.
