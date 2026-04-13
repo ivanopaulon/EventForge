@@ -94,6 +94,9 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
+            // Ensure loading flags start clean (guards against stale ViewModel state on re-navigation)
+            _isLoadingProducts = false;
+
             ViewModel.StateChanged += OnViewModelStateChanged;
             ViewModel.OnNotification += HandleNotification;
 
@@ -351,6 +354,7 @@ public partial class POS2026 : IAsyncDisposable
         finally
         {
             _isLoadingProducts = false;
+            StateHasChanged();
         }
     }
 

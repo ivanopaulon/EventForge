@@ -1,5 +1,6 @@
 @* Pos26ProductCard — singola card articolo nella griglia POS 2026 *@
 @using Prym.DTOs.Products
+@implements IDisposable
 
 <div class="pos26-product-card @(CartQuantity > 0 ? "pos26-product-card--in-cart" : "")"
      @onclick="HandleTap"
@@ -63,7 +64,7 @@
     [Parameter] public EventCallback<ProductDto> OnLongPress { get; set; }
 
     // Long-press detection (>500ms)
-    private System.Timers.Timer? _longPressTimer;
+    private CancellationTokenSource? _longPressCts;
     private bool _longPressTriggered;
 
     // IsPromo always returns false until ProductDto exposes a promotional-price property.
@@ -77,30 +78,41 @@
 
     private const int LongPressThresholdMs = 500;
 
-    private void OnPointerDown(PointerEventArgs _)
+    private void OnPointerDown(PointerEventArgs args)
     {
         _longPressTriggered = false;
-        _longPressTimer?.Dispose();
-        _longPressTimer = new System.Timers.Timer(LongPressThresholdMs) { AutoReset = false };
-        _longPressTimer.Elapsed += async (_, _) =>
-        {
-            _longPressTriggered = true;
-            if (OnLongPress.HasDelegate)
-                await InvokeAsync(() => OnLongPress.InvokeAsync(Product));
-            else
-                await InvokeAsync(StateHasChanged);
-        };
-        _longPressTimer.Start();
+        _longPressCts?.Cancel();
+        _longPressCts?.Dispose();
+        _longPressCts = new CancellationTokenSource();
+        var token = _longPressCts.Token;
+        _ = Task.Delay(LongPressThresholdMs, token).ContinueWith(
+            async t =>
+            {
+                if (t.IsCompletedSuccessfully)
+                    await InvokeAsync(async () =>
+                    {
+                        _longPressTriggered = true;
+                        if (OnLongPress.HasDelegate)
+                            await OnLongPress.InvokeAsync(Product);
+                        else
+                            StateHasChanged();
+                    });
+            },
+            TaskScheduler.Default);
     }
 
     private void OnPointerUp(PointerEventArgs _)
     {
-        _longPressTimer?.Dispose();
+        _longPressCts?.Cancel();
+        _longPressCts?.Dispose();
+        _longPressCts = null;
     }
 
     private void OnPointerLeave(PointerEventArgs _)
     {
-        _longPressTimer?.Dispose();
+        _longPressCts?.Cancel();
+        _longPressCts?.Dispose();
+        _longPressCts = null;
         _longPressTriggered = false;
     }
 
@@ -109,4 +121,10 @@
 
     private static string FormatPrice(decimal? price) =>
         price.HasValue ? $"€{price.Value:F2}" : "–";
+
+    public void Dispose()
+    {
+        _longPressCts?.Cancel();
+        _longPressCts?.Dispose();
+    }
 }

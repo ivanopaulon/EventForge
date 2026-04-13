@@ -1,6 +1,7 @@
 @* Pos26SearchBar — barra ricerca con chip cliente *@
 @using Prym.DTOs.Business
 @using EventForge.Client.Shared.Components.Business
+@implements IDisposable
 
 <div class="pos26-searchbar-wrap">
     <div class="pos26-searchbar-input-wrap">
@@ -12,6 +13,7 @@
                class="pos26-searchbar-input"
                placeholder="@Placeholder"
                value="@SearchTerm"
+               data-barcode-input="true"
                @oninput="OnInputChanged"
                @onkeydown="OnKeyDown" />
         @if (!string.IsNullOrEmpty(SearchTerm))
@@ -67,7 +69,7 @@
     [Parameter] public EventCallback<string> OnBarcodeDetected { get; set; }
 
     private ElementReference _inputRef;
-    private System.Timers.Timer? _debounceTimer;
+    private CancellationTokenSource? _debounceCts;
     private bool _showCustomerSelector = false;
 
     private const int DebounceDelayMs = 300;
@@ -75,19 +77,21 @@
     private void OnInputChanged(ChangeEventArgs e)
     {
         var value = e.Value?.ToString() ?? string.Empty;
-        _debounceTimer?.Dispose();
-        _debounceTimer = new System.Timers.Timer(DebounceDelayMs);
-        _debounceTimer.AutoReset = false;
-        _debounceTimer.Elapsed += async (_, _) =>
-        {
-            _debounceTimer?.Dispose();
-            await InvokeAsync(async () =>
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = new CancellationTokenSource();
+        var token = _debounceCts.Token;
+        _ = Task.Delay(DebounceDelayMs, token).ContinueWith(
+            async t =>
             {
-                await SearchTermChanged.InvokeAsync(value);
-                StateHasChanged();
-            });
-        };
-        _debounceTimer.Start();
+                if (t.IsCompletedSuccessfully)
+                    await InvokeAsync(async () =>
+                    {
+                        await SearchTermChanged.InvokeAsync(value);
+                        StateHasChanged();
+                    });
+            },
+            TaskScheduler.Default);
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)
@@ -95,14 +99,18 @@
         // Rilevamento barcode: Enter dopo sequenza di tasti rapida
         if (e.Key == "Enter" && !string.IsNullOrEmpty(SearchTerm))
         {
-            _debounceTimer?.Dispose();
+            _debounceCts?.Cancel();
+            _debounceCts?.Dispose();
+            _debounceCts = null;
             await OnBarcodeDetected.InvokeAsync(SearchTerm);
         }
     }
 
     private async Task ClearSearch()
     {
-        _debounceTimer?.Dispose();
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+        _debounceCts = null;
         await SearchTermChanged.InvokeAsync(string.Empty);
     }
 
@@ -135,7 +143,11 @@
         return name.Length > 14 ? name[..12] + "…" : name;
     }
 
-    public void FocusInput() => _inputRef.FocusAsync();
+    public void FocusInput() => _ = _inputRef.FocusAsync();
 
-    public void Dispose() => _debounceTimer?.Dispose();
+    public void Dispose()
+    {
+        _debounceCts?.Cancel();
+        _debounceCts?.Dispose();
+    }
 }
