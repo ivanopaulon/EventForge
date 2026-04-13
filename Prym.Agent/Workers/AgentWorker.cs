@@ -19,7 +19,6 @@ public class AgentWorker(
     ILogger<AgentWorker> logger) : BackgroundService
 {
     private HubConnection? _connection;
-    private volatile bool _firstConnection = true;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -215,7 +214,9 @@ public class AgentWorker(
                 writer.WriteEndObject();
             }
 
-            await File.WriteAllBytesAsync(appSettingsPath, stream.ToArray());
+            var tmpPath = appSettingsPath + ".tmp";
+            await File.WriteAllBytesAsync(tmpPath, stream.ToArray());
+            File.Move(tmpPath, appSettingsPath, overwrite: true);
             logger.LogInformation("Enrollment credentials persisted to appsettings.json.");
         }
         catch (Exception ex)
@@ -246,6 +247,10 @@ public class AgentWorker(
 
     private async Task ConnectAndRunAsync(CancellationToken ct)
     {
+        // Reset per-connection registration flag so RegisterInstallation is re-sent
+        // on every new outer-loop reconnection (not just the very first lifetime start).
+        var registeredForThisConnection = false;
+
         _connection = new HubConnectionBuilder()
             .WithUrl(options.HubUrl, opts =>
             {
@@ -521,14 +526,14 @@ public class AgentWorker(
 
         // Register on first connect — send full identity so Hub gets the complete picture.
         // On subsequent reconnects the Reconnected handler sends only a heartbeat.
-        if (_firstConnection)
+        if (!registeredForThisConnection)
         {
-            _firstConnection = false;
+            registeredForThisConnection = true;
             await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
-            VersionServer:    versionDetector.GetServerVersion(),
-            VersionClient:    versionDetector.GetClientVersion(),
+            VersionServer:    await versionDetector.GetServerVersionAsync(),
+            VersionClient:    await versionDetector.GetClientVersionAsync(),
             Components:       new InstallationComponentsDto(
                                   options.Components.Server.Enabled,
                                   options.Components.Client.Enabled),
@@ -561,8 +566,8 @@ public class AgentWorker(
 
         await _connection.InvokeAsync("Heartbeat", new HeartbeatMessage(
             InstallationId: options.InstallationId,
-            VersionServer:  versionDetector.GetServerVersion(),
-            VersionClient:  versionDetector.GetClientVersion(),
+            VersionServer:  await versionDetector.GetServerVersionAsync(),
+            VersionClient:  await versionDetector.GetClientVersionAsync(),
             Status:         "Online",
             Timestamp:      DateTime.UtcNow,
             AgentVersion:   versionDetector.GetAgentVersion(),

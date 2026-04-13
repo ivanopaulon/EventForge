@@ -90,6 +90,8 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
                     logger.LogWarning("Removing pending update {PackageId} — zip not found at {Path}", m.PackageId, m.LocalZipPath);
                     _queue.Remove(m);
                 }
+                if (missing.Count > 0)
+                    SaveToDisk();
             }
 
             logger.LogInformation("Restored {Count} pending update(s) from disk. Queue blocked={Blocked}", _queue.Count, IsBlocked);

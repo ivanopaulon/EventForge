@@ -21,7 +21,7 @@ public class UpdateExecutorService(
     MigrationRunnerService migrationRunner,
     PendingInstallService pendingInstallService,
     DownloadProgressService downloadProgress,
-    ILogger<UpdateExecutorService> logger)
+    ILogger<UpdateExecutorService> logger) : IDisposable
 {
     // Single long-lived HttpClient; per-request timeout is enforced via CancellationTokenSource.
     private readonly HttpClient _http = new(new SocketsHttpHandler
@@ -136,10 +136,12 @@ public class UpdateExecutorService(
         Guid? packageId = null)
     {
         _ = Task.Run(() => NotifyPhaseAsync(command, currentPhase,
-            percentComplete: percentComplete,
-            isManualInstall: isManualInstall,
-            packageId: packageId,
-            detail: detail));
+                percentComplete: percentComplete,
+                isManualInstall: isManualInstall,
+                packageId: packageId,
+                detail: detail))
+            .ContinueWith(t => logger.LogWarning(t.Exception, "NotifyPhaseBackground faulted (phase={Phase})", currentPhase),
+                TaskContinuationOptions.OnlyOnFaulted);
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -617,12 +619,14 @@ public class UpdateExecutorService(
             throw new InvalidOperationException($"Checksum mismatch. Expected: {expectedChecksum} Actual: {actual}");
     }
 
+    private static readonly JsonSerializerOptions _manifestOpts = new() { PropertyNameCaseInsensitive = true };
+
     private static async Task<UpdateManifest> LoadManifestAsync(string extractedPath)
     {
         var manifestPath = Path.Combine(extractedPath, "manifest.json");
         if (!File.Exists(manifestPath)) return new UpdateManifest();
         var json = await File.ReadAllTextAsync(manifestPath);
-        return JsonSerializer.Deserialize<UpdateManifest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        return JsonSerializer.Deserialize<UpdateManifest>(json, _manifestOpts)
                ?? new UpdateManifest();
     }
 
@@ -641,36 +645,38 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
-        foreach (var file in Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories))
-        {
-            ct.ThrowIfCancellationRequested();
-            var relative = Path.GetRelativePath(binariesPath, file);
-            var dest = Path.Combine(deployPath, relative);
-            var relLower = relative.ToLowerInvariant();
-
-            // Hard-preserve: skip entirely (e.g. web.config managed by IIS/ops)
-            if (preserveSet.Count > 0 && File.Exists(dest) && preserveSet.Contains(relLower))
-                continue;
-
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-
-            // Deep-merge JSON config: new keys from template added, existing values kept
-            if (mergeSet.Count > 0 && File.Exists(dest) && mergeSet.Contains(relLower))
+        var files = Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories);
+        var parallelism = Math.Min(Environment.ProcessorCount, 8);
+        await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism, CancellationToken = ct },
+            async (file, fileCt) =>
             {
-                try
-                {
-                    await MergeJsonFilesAsync(file, dest, ct);
-                    continue;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "JSON merge failed for '{File}' — falling back to full overwrite.", relative);
-                    // Fall through to overwrite
-                }
-            }
+                var relative = Path.GetRelativePath(binariesPath, file);
+                var dest = Path.Combine(deployPath, relative);
+                var relLower = relative.ToLowerInvariant();
 
-            File.Copy(file, dest, overwrite: true);
-        }
+                // Hard-preserve: skip entirely (e.g. web.config managed by IIS/ops)
+                if (preserveSet.Count > 0 && File.Exists(dest) && preserveSet.Contains(relLower))
+                    return;
+
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+
+                // Deep-merge JSON config: new keys from template added, existing values kept
+                if (mergeSet.Count > 0 && File.Exists(dest) && mergeSet.Contains(relLower))
+                {
+                    try
+                    {
+                        await MergeJsonFilesAsync(file, dest, fileCt);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "JSON merge failed for '{File}' — falling back to full overwrite.", relative);
+                        // Fall through to overwrite
+                    }
+                }
+
+                File.Copy(file, dest, overwrite: true);
+            });
     }
 
     /// <summary>
@@ -690,7 +696,9 @@ public class UpdateExecutorService(
 
         var options = new JsonSerializerOptions { WriteIndented = true };
         var mergedJson = JsonSerializer.Serialize(merged, options);
-        await File.WriteAllTextAsync(targetPath, mergedJson, ct);
+        var tmpPath = targetPath + ".tmp";
+        await File.WriteAllTextAsync(tmpPath, mergedJson, ct);
+        File.Move(tmpPath, targetPath, overwrite: true);
     }
 
     /// <summary>
@@ -834,4 +842,6 @@ public class UpdateExecutorService(
             }
         }
     }
+
+    public void Dispose() => _http.Dispose();
 }

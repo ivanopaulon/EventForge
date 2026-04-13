@@ -51,10 +51,10 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
     /// Removes the oldest backup copies that exceed <see cref="BackupAgentOptions.MaxBackupsToKeep"/>
     /// for the given component. No-op when limit is 0 (unlimited).
     /// </summary>
-    private Task PruneOldBackupsAsync(string component, CancellationToken ct)
+    private async Task PruneOldBackupsAsync(string component, CancellationToken ct)
     {
         var max = options.Backup.MaxBackupsToKeep;
-        if (max <= 0) return Task.CompletedTask;
+        if (max <= 0) return;
 
         try
         {
@@ -67,16 +67,15 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
             for (var i = 0; i < toDelete; i++)
             {
                 ct.ThrowIfCancellationRequested();
-                logger.LogInformation("Pruning old backup: {Path}", existing[i]);
-                Directory.Delete(existing[i], recursive: true);
+                var dirToDelete = existing[i];
+                logger.LogInformation("Pruning old backup: {Path}", dirToDelete);
+                await Task.Run(() => Directory.Delete(dirToDelete, recursive: true), ct);
             }
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to prune old backups for component {Component}", component);
         }
-
-        return Task.CompletedTask;
     }
 
     private static async Task CopyDirectoryAsync(string source, string destination, CancellationToken ct)

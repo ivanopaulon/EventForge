@@ -70,9 +70,9 @@ public sealed class AgentPrinterService(
     {
         var found = new System.Collections.Concurrent.ConcurrentBag<(int Index, string Suffix)>();
 
-        Parallel.For(1, 10, i =>
+        Parallel.For(1, 100, i =>
         {
-            var suffix = $"USB00{i}";
+            var suffix = $"USB{i:D3}";
             var path   = BuildDevicePath(suffix);
 
             try

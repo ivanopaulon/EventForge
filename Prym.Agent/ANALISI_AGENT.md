@@ -1,8 +1,8 @@
 # Analisi approfondita — Prym.Agent
 
-> **Versione analisi:** 2  
+> **Versione analisi:** 3 (Sprint 5 — post-fix)  
 > **Data:** 2026-04-13  
-> **Stato del codice:** post Sprint 1–4 (commit `7452d9a`)  
+> **Stato del codice:** post Sprint 5 (tutte le correzioni 5A + 5B + 5C applicate)  
 > **Autore:** Copilot SWE Agent
 
 ---
@@ -354,13 +354,17 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | Timeout appcmd.exe | ✅ Risolto (S2.1) |
 | SSRF printer proxy | ✅ Risolto (S4.4) |
 | Hub DTOs in Prym.DTOs | ✅ Risolto (S4.3) |
-| Scrittura atomica PersistEnrollmentAsync | ❌ **Aperta (R1)** |
-| Scrittura atomica MergeJsonFilesAsync | ❌ **Aperta (R4)** |
-| _firstConnection semantics su reconnect esterno | ❌ **Aperta (R5)** |
-| Cleanup LoadFromDisk persistito | ❌ **Aperta (R6)** |
-| Username constant-time | ❌ **Aperta (R2)** |
-| Endpoint interni autenticati | ❌ **Aperta (R3)** |
-| JsonSerializerOptions cached (AgentServerSink, LoadManifest) | ❌ **Aperta (R11, R12)** |
-| NotifyPhaseBackground exception logging | ❌ **Aperta (R13)** |
-| DeployBinariesAsync parallelo | ❌ **Aperta (R7)** |
-| VersionDetectorService async | ❌ **Aperta (R10)** |
+| Scrittura atomica PersistEnrollmentAsync | ✅ Risolto (S5A.1) |
+| Scrittura atomica MergeJsonFilesAsync | ✅ Risolto (S5A.2) |
+| Username constant-time | ✅ Risolto (S5A.3) |
+| _firstConnection semantics su reconnect esterno | ✅ Risolto (S5A.4) |
+| Cleanup LoadFromDisk persistito | ✅ Risolto (S5A.5) |
+| JsonSerializerOptions cached (AgentServerSink, LoadManifest) | ✅ Risolto (S5B.1) |
+| NotifyPhaseBackground exception logging | ✅ Risolto (S5B.2) |
+| DeployBinariesAsync parallelo | ✅ Risolto (S5B.3) |
+| VersionDetectorService async | ✅ Risolto (S5B.4) |
+| AgentStatusService LastHeartbeatAt thread-safe | ✅ Risolto (S5C.1) |
+| AgentPrinterService USB001–USB099 scan | ✅ Risolto (S5C.2) |
+| UpdateExecutorService IDisposable su HttpClient | ✅ Risolto (S5C.3) |
+| PruneOldBackupsAsync asincrono | ✅ Risolto (S5C.4) |
+| Endpoint interni autenticati | ⚠️ **Aperta (R3)** — architettura trust-model localhost, da valutare in futuro |

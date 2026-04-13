@@ -9,8 +9,16 @@ public class AgentStatusService
     private volatile bool _reRegisterRequested;
 
     public string HubConnectionState { get; set; } = "Disconnected";
-    public DateTime? LastHeartbeatAt { get; set; }
     public string? LastHeartbeatError { get; set; }
+
+    private readonly object _heartbeatLock = new();
+    private DateTime? _lastHeartbeatAt;
+
+    public DateTime? LastHeartbeatAt
+    {
+        get { lock (_heartbeatLock) return _lastHeartbeatAt; }
+        set { lock (_heartbeatLock) _lastHeartbeatAt = value; }
+    }
 
     /// <summary>Enrollment status: null = not attempted, "Enrolled" = success, "Failed" = error.</summary>
     public string? EnrollmentStatus { get; set; }
