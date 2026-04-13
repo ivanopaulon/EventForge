@@ -27,6 +27,8 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
             return;
         }
 
+        var remoteIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
         var hasKey = context.Request.Headers.TryGetValue(ApiKeyHeader, out var apiKey) &&
                      !string.IsNullOrWhiteSpace(apiKey);
 
@@ -34,7 +36,7 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
         {
             if (requiresAuth)
             {
-                logger.LogWarning("Missing API key for {Path}", path);
+                logger.LogWarning("Missing API key for {Path} from {RemoteIp}", path, remoteIp);
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Missing X-Api-Key header.");
                 return;
@@ -45,6 +47,10 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
             return;
         }
 
+        // Mask the key for log safety: show only the first 8 characters.
+        var keyStr = apiKey!.ToString();
+        var maskedKey = keyStr.Length > 8 ? keyStr[..8] + "..." : "(short-key)";
+
         Installation? installation;
         try
         {
@@ -52,7 +58,8 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error looking up API key for {Path}", path);
+            logger.LogError(ex, "Error looking up API key ({MaskedKey}) for {Path} from {RemoteIp}",
+                maskedKey, path, remoteIp);
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
             await context.Response.WriteAsync("Authentication service unavailable.");
             return;
@@ -62,28 +69,33 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
         {
             if (requiresAuth)
             {
-                logger.LogWarning("Invalid API key attempt for {Path}", path);
+                logger.LogWarning("Invalid API key ({MaskedKey}) for {Path} from {RemoteIp}",
+                    maskedKey, path, remoteIp);
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 await context.Response.WriteAsync("Invalid API key.");
                 return;
             }
 
             // Invalid key on a download path — log and continue without setting InstallationId.
-            logger.LogWarning("Invalid API key on download path {Path} — continuing without agent identity", path);
+            logger.LogWarning("Invalid API key ({MaskedKey}) on download path {Path} from {RemoteIp} — continuing without agent identity",
+                maskedKey, path, remoteIp);
             await next(context);
             return;
         }
 
         if (installation.IsRevoked)
         {
-            logger.LogWarning("Revoked installation attempt: {InstallationId} ({Name}) for {Path}",
-                installation.Id, installation.Name, path);
+            logger.LogWarning("Revoked installation attempt: {InstallationId} ({Name}) for {Path} from {RemoteIp}. Reason: {Reason}",
+                installation.Id, installation.Name, path, remoteIp, installation.RevokedReason ?? "not specified");
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             await context.Response.WriteAsync(
                 $"This installation has been revoked. Reason: {installation.RevokedReason ?? "Not specified"}. " +
                 "Contact the Hub administrator to reinstate access.");
             return;
         }
+
+        logger.LogDebug("API key authenticated: Installation={InstallationId} ({Name}) for {Path} from {RemoteIp}",
+            installation.Id, installation.Name, path, remoteIp);
 
         context.Items["InstallationId"] = installation.Id;
         context.Items["Installation"] = installation;

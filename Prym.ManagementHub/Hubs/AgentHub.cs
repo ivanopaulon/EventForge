@@ -50,7 +50,13 @@ public class AgentHub(
             {
                 connectionTracker.Unregister(Context.ConnectionId);
                 await installationService.UpdateLastSeenAsync(installationId.Value, null, null, InstallationStatus.Offline);
-                logger.LogInformation("Agent disconnected: Installation={InstallationId}", installationId);
+
+                if (exception is not null)
+                    logger.LogWarning(exception,
+                        "Agent disconnected with error: Installation={InstallationId} Connection={ConnectionId}",
+                        installationId, Context.ConnectionId);
+                else
+                    logger.LogInformation("Agent disconnected: Installation={InstallationId}", installationId);
             }
             catch (Exception ex)
             {

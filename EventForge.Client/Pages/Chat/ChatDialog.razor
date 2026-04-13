@@ -38,7 +38,7 @@
                         }
                     </div>
                     <div class="d-flex align-center gap-1">
-                        <AuthorizeViewRoles Roles="Admin,SuperAdmin">
+                        <AuthorizeViewRoles RequiredRoles="@(new[]{"Admin","SuperAdmin"})">
                             <MudTooltip Text="@TranslationService.GetTranslation("chat.settings", "Impostazioni Chat")" Placement="Placement.Bottom">
                                 <MudIconButton Icon="@Icons.Material.Filled.Settings"
                                                Size="Size.Small"

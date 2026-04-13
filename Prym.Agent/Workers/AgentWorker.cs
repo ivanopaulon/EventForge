@@ -474,18 +474,36 @@ public class AgentWorker(
         _connection.Reconnecting += ex =>
         {
             agentStatus.HubConnectionState = "Reconnecting";
-            logger.LogWarning("Reconnecting to hub: {Message}", ex?.Message);
+            if (ex is not null)
+                logger.LogWarning(ex, "Reconnecting to hub at {Url} — reason: {Message} (inner: {Inner})",
+                    options.HubUrl, ex.Message, ex.InnerException?.Message ?? "none");
+            else
+                logger.LogWarning("Reconnecting to hub at {Url} — reason unknown.", options.HubUrl);
             return Task.CompletedTask;
         };
 
         _connection.Reconnected += _ =>
         {
             agentStatus.HubConnectionState = "Connected";
-            logger.LogInformation("Reconnected to hub.");
+            logger.LogInformation("Reconnected to hub at {Url}.", options.HubUrl);
             return Task.CompletedTask;
         };
 
-        await _connection.StartAsync(ct);
+        logger.LogInformation("Attempting to connect to Hub at {Url} (InstallationId={Id})",
+            options.HubUrl, options.InstallationId);
+        try
+        {
+            await _connection.StartAsync(ct);
+        }
+        catch (HttpRequestException httpEx)
+        {
+            var statusCode = httpEx.StatusCode.HasValue
+                ? $"{(int)httpEx.StatusCode.Value} {httpEx.StatusCode.Value}"
+                : "no HTTP status";
+            throw new InvalidOperationException(
+                $"Hub connection failed ({statusCode}) at {options.HubUrl} — {httpEx.Message}",
+                httpEx);
+        }
         agentStatus.HubConnectionState = "Connected";
         logger.LogInformation("Connected to UpdateHub at {Url}", options.HubUrl);
 
