@@ -3,7 +3,7 @@
 @implements IDisposable
 
 <EFSystemDialog Title="PRYM"
-                Subtitle="@State?.Message"
+                Subtitle="@(State?.ShowProgressLog == true ? null : State?.Message)"
                 TopBar="EFSystemDialog.EFTopBar.Primary"
                 ShowProgressBar="true"
                 ProgressColor="@(State?.ProgressColor ?? Color.Primary)"
