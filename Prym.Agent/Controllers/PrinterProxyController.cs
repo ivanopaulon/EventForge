@@ -317,16 +317,22 @@ public sealed class PrinterProxyController(
         {
             if (pattern.StartsWith("*.", StringComparison.OrdinalIgnoreCase))
             {
-                // *.example.com matches sub.example.com
+                // *.example.com should match sub.example.com but NOT notexample.com.
+                // The suffix includes the leading dot (e.g. ".example.com"), so we also
+                // accept an exact match with the part after the asterisk stripped of the dot
+                // (i.e. the host IS example.com itself).
                 var suffix = pattern[1..]; // ".example.com"
-                if (host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+                if (host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+                    (host.Length == suffix.Length - 1 ||          // exact: host == "example.com"
+                     host[^suffix.Length] == '.'))                // subdomain: "sub.example.com"
                     return true;
             }
             else if (pattern.EndsWith(".*", StringComparison.OrdinalIgnoreCase))
             {
-                // 192.168.1.* matches 192.168.1.100
+                // 192.168.1.* matches 192.168.1.100 but not 192.168.10.5
                 var prefix = pattern[..^1]; // "192.168.1."
-                if (host.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                if (host.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                    !host[prefix.Length..].Contains('.')) // no further dots = single octet
                     return true;
             }
             else if (host.Equals(pattern, StringComparison.OrdinalIgnoreCase))

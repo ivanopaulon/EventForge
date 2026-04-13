@@ -84,7 +84,7 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
         var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
 
         await Parallel.ForEachAsync(files,
-            new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount, CancellationToken = ct },
+            new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 8), CancellationToken = ct },
             async (file, token) =>
             {
                 var relative = Path.GetRelativePath(source, file);
