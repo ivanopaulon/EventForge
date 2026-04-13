@@ -486,8 +486,11 @@ public class AgentWorker(
         }
         catch (HttpRequestException httpEx)
         {
+            var statusCode = httpEx.StatusCode.HasValue
+                ? $"{(int)httpEx.StatusCode.Value} {httpEx.StatusCode.Value}"
+                : "no HTTP status";
             throw new InvalidOperationException(
-                $"Hub connection failed: {(int?)httpEx.StatusCode} {httpEx.StatusCode} at {options.HubUrl} — {httpEx.Message}",
+                $"Hub connection failed ({statusCode}) at {options.HubUrl} — {httpEx.Message}",
                 httpEx);
         }
         agentStatus.HubConnectionState = "Connected";

@@ -48,9 +48,8 @@ public class ApiKeyAuthMiddleware(RequestDelegate next, ILogger<ApiKeyAuthMiddle
         }
 
         // Mask the key for log safety: show only the first 8 characters.
-        var maskedKey = apiKey!.ToString().Length > 8
-            ? apiKey.ToString()[..8] + "..."
-            : "(short-key)";
+        var keyStr = apiKey!.ToString();
+        var maskedKey = keyStr.Length > 8 ? keyStr[..8] + "..." : "(short-key)";
 
         Installation? installation;
         try
