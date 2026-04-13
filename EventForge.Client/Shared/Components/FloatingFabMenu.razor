@@ -4,6 +4,7 @@
 @using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Pages.Chat
 @inject IChatService ChatService
+@inject IAuthService AuthService
 @inject INotificationService NotificationService
 @inject IDialogService DialogService
 @inject IUpdateNotificationService UpdateNotification
@@ -215,8 +216,11 @@
 
         try
         {
-            _chatList = await ChatService.GetChatsAsync();
-            _totalUnread = _chatList.Sum(c => c.UnreadCount);
+            if (await AuthService.IsAuthenticatedAsync())
+            {
+                _chatList = await ChatService.GetChatsAsync();
+                _totalUnread = _chatList.Sum(c => c.UnreadCount);
+            }
         }
         catch
         {
