@@ -636,6 +636,15 @@ namespace EventForge.Client.Shared.Components
             }
         }
 
+        /// <summary>
+        /// Triggers the product edit flow programmatically (e.g. from a parent keyboard shortcut).
+        /// Behaves identically to the scanner's own Edit button.
+        /// </summary>
+        public async Task TriggerEditAsync()
+        {
+            await HandleEditClick();
+        }
+
         #endregion
     }
 }

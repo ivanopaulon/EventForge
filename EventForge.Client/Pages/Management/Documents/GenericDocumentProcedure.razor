@@ -12,6 +12,7 @@
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Business
 @using EventForge.Client.Shared.Components.Common
+@using EventForge.Client.Models.Documents
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @implements IAsyncDisposable
 @inject IDocumentHeaderService DocumentHeaderService
@@ -1002,7 +1003,8 @@
         
         var parameters = new DialogParameters
         {
-            { "DocumentHeaderId", _currentDocument!.Id }
+            { "DocumentHeaderId", _currentDocument!.Id },
+            { nameof(AddDocumentRowDialog.InitialMode), DialogMode.ContinuousScan }
         };
 
         var options = new DialogOptions 
