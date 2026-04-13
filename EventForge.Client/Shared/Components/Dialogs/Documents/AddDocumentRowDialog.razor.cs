@@ -48,10 +48,11 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Initial dialog mode applied when opening in add mode.
-    /// Defaults to <see cref="DialogMode.ContinuousScan"/> so the operator can immediately
-    /// start scanning barcodes. Ignored in edit mode (always starts in Standard).
+    /// Defaults to <see cref="DialogMode.Standard"/> so the operator sees the full form;
+    /// pass <see cref="DialogMode.ContinuousScan"/> explicitly when opening via the "Scansiona" toolbar action.
+    /// Ignored in edit mode (always starts in Standard).
     /// </summary>
-    [Parameter] public DialogMode InitialMode { get; set; } = DialogMode.ContinuousScan;
+    [Parameter] public DialogMode InitialMode { get; set; } = DialogMode.Standard;
 
     #endregion
 
@@ -139,15 +140,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     private bool _showKeyboardHelp = false;
     private DotNetObjectReference<AddDocumentRowDialog>? _dotNetRef;
 
-    // Animation delay constants - PR #2c-Part1
-    private const int ProductSelectionAnimationDurationMs = 600;
-    private const int PriceFieldAnimationDurationMs = 400;
-
     // Real-time validation state - PR #2c-Part2 Commit 1
     private Dictionary<string, bool> _validationSuccess = new();
-
-    // Loading states - PR #2c-Part2 Commit 3
-    private bool _isSaving = false;
 
     // Price list metadata - PriceResolutionService integration
     private string? _appliedPriceListName;
@@ -193,7 +187,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             }
 
             // Apply initial dialog mode. In edit mode always stay in Standard;
-            // in add mode use the caller-supplied InitialMode (default: ContinuousScan).
+            // in add mode use the caller-supplied InitialMode (default: Standard).
             if (!_isEditMode)
             {
                 SetDialogMode(InitialMode);
@@ -645,34 +639,20 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     {
         try
         {
-            await InvokeAsync(StateHasChanged);
-
-            // Simulate processing delay
-            await Task.Delay(200);
-
             _model.UnitPrice = price;
-
-            await InvokeAsync(StateHasChanged);
-
-            // Show success message
-            AppNotification.ShowSuccess("Prezzo applicato");
 
             // Invalidate calculation cache (same as original HandleRecentPriceApplied)
             _cachedCalculationResult = null;
             _cachedCalculationKey = string.Empty;
 
-            // Reset animation flag after animation completes
-            await Task.Delay(PriceFieldAnimationDurationMs);
+            AppNotification.ShowSuccess("Prezzo applicato");
+
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error applying recent price {Price} in AddDocumentRowDialog.", price);
             AppNotification.ShowError(TranslationService.GetTranslation("documents.errorApplyingPrice", "Errore durante l'applicazione del prezzo."));
-        }
-        finally
-        {
-            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -763,7 +743,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Ctrl+E: Edit Product
             if (e.CtrlKey && e.Key == "e")
             {
-                await OpenEditProductDialog();
+                if (_state.SelectedProduct != null && _productScannerRef != null)
+                    await _productScannerRef.TriggerEditAsync();
+                else if (_state.SelectedProduct == null)
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"));
                 return;
             }
 
@@ -907,31 +890,21 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Barcode.Input = string.Empty;
             _state.Barcode.ScannedBarcode = string.Empty;
         }
+        else if (data is ProductNotFoundDialog.AssignResult assignResult && assignResult.Product != null)
+        {
+            // Set product and populate fields
+            await SelectProductAndPopulateAsync(assignResult.Product);
+
+            _state.Barcode.Input = string.Empty;
+            _state.Barcode.ScannedBarcode = string.Empty;
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected",
+                    "Codice assegnato e prodotto selezionato"));
+        }
         else
         {
-            try
-            {
-                dynamic assignResult = data;
-                if (assignResult.Action == "assigned" && assignResult.Product != null)
-                {
-                    ProductDto assignedProduct = assignResult.Product;
-
-                    // Set product and populate fields
-                    await SelectProductAndPopulateAsync(assignedProduct);
-
-                    _state.Barcode.Input = string.Empty;
-                    _state.Barcode.ScannedBarcode = string.Empty;
-
-                    AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.codeAssignedAndProductSelected",
-                            "Codice assegnato e prodotto selezionato"));
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Could not extract assignment info from dialog result");
-                _state.Barcode.Input = string.Empty;
-                _state.Barcode.ScannedBarcode = string.Empty;
-            }
+            _state.Barcode.Input = string.Empty;
+            _state.Barcode.ScannedBarcode = string.Empty;
         }
     }
 
@@ -1014,7 +987,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // 6. Load recent transactions
             await LoadRecentTransactions(product.Id);
 
-            // 7. Auto-focus quantity field handled by FocusQuantityField
+            // 7. Force UI update
 
             // ✅ Force UI update
             await InvokeAsync(StateHasChanged);
@@ -1249,21 +1222,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
     }
 
-    private async Task PopulateProductUnitsAsync(ProductDto product)
-    {
-        var units = await ProductService.GetProductUnitsAsync(product.Id);
-        _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
-
-        if (_state.Cache.AvailableUnits.Any())
-        {
-            SelectDefaultUnit();
-        }
-        else if (product.UnitOfMeasureId.HasValue)
-        {
-            await HandleNoUnitsConfigured(product);
-        }
-    }
-
     private void SelectDefaultUnit()
     {
         var defaultUnit = _state.Cache.AvailableUnits.FirstOrDefault(u => u.UnitType == "Base")
@@ -1305,11 +1263,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
 
         await Task.CompletedTask;
-    }
-
-    private Task FocusQuantityField()
-    {
-        return Task.CompletedTask;
     }
 
     private async Task HandleProductPopulationError(Exception ex, ProductDto product)
@@ -1363,81 +1316,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
         // Populate fields
         await PopulateFromProductAsync(product);
-    }
-
-    /// <summary>
-    /// Search products for autocomplete with debouncing
-    /// </summary>
-    /// <param name="searchTerm">The search term to query</param>
-    /// <param name="cancellationToken">Cancellation token for search operation</param>
-    /// <returns>List of matching products with exact matches prioritized</returns>
-    /// <remarks>
-    /// <para>Implements the following optimizations:</para>
-    /// <list type="bullet">
-    /// <item>Early return for searches shorter than 2 characters</item>
-    /// <item>50ms delay to reduce excessive API calls during typing</item>
-    /// <item>Proper cancellation token handling</item>
-    /// <item>Exact match prioritization</item>
-    /// </list>
-    /// <para>Returns up to 50 results with exact match first.</para>
-    /// </remarks>
-    private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
-        string searchTerm,
-        CancellationToken cancellationToken)
-    {
-        // Early return for empty/short search terms
-        if (string.IsNullOrWhiteSpace(searchTerm) || searchTerm.Length < 2)
-            return Array.Empty<ProductDto>();
-
-        try
-        {
-            // Add delay to avoid excessive renders (matches working autocompletes)
-            // The delay itself can be cancelled via the cancellationToken
-            await Task.Delay(50, cancellationToken);
-
-            Logger.LogDebug("Searching products with term: {SearchTerm}", searchTerm);
-
-            // Service call - Note: ProductService.SearchProductsAsync doesn't accept CancellationToken,
-            // so the actual search cannot be cancelled, only the delay above
-            var result = await ProductService.SearchProductsAsync(searchTerm, 50);
-
-            if (result == null)
-            {
-                Logger.LogWarning("Product search returned null for term: {SearchTerm}", searchTerm);
-                return Array.Empty<ProductDto>();
-            }
-
-            var products = new List<ProductDto>();
-
-            // Add exact match at the top
-            if (result.ExactMatch?.Product != null)
-            {
-                products.Add(result.ExactMatch.Product);
-            }
-
-            // Add other results (excluding duplicates)
-            if (result.SearchResults?.Any() == true)
-            {
-                var exactMatchId = result.ExactMatch?.Product?.Id;
-                products.AddRange(
-                    result.SearchResults.Where(p => p.Id != exactMatchId)
-                );
-            }
-
-            Logger.LogDebug("Found {Count} products for term '{SearchTerm}'", products.Count, searchTerm);
-            return products;
-        }
-        catch (OperationCanceledException)
-        {
-            // Handle cancellation gracefully
-            Logger.LogDebug("Product search cancelled for term: {SearchTerm}", searchTerm);
-            return Array.Empty<ProductDto>();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error searching products with term: {SearchTerm}", searchTerm);
-            return Array.Empty<ProductDto>();
-        }
     }
 
     /// <summary>
@@ -1789,7 +1667,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             return;
 
         _state.Processing.IsSaving = true;
-        _isSaving = true; // PR #2c-Part2 Commit 3
         try
         {
             // Validate form - PR #2c-Part2 Commit 1
@@ -1827,8 +1704,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         finally
         {
             _state.Processing.IsSaving = false;
-            _isSaving = false; // PR #2c-Part2 Commit 3
-            await InvokeAsync(StateHasChanged); // PR #2c-Part2 Commit 3
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -2006,98 +1882,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Apre il dialog per modificare rapidamente il prodotto
-    /// </summary>
-    private async Task OpenEditProductDialog()
-    {
-        // ✅ Check both _state.SelectedProduct and _selectedProduct
-        var productToEdit = _state.SelectedProduct ?? _selectedProduct;
-
-        if (productToEdit == null || productToEdit.Id == Guid.Empty)
-        {
-            Logger.LogWarning("OpenEditProductDialog called but no product selected. _state.SelectedProduct: {StateProduct}, _selectedProduct: {SelectedProduct}",
-                _state.SelectedProduct?.Id, _selectedProduct?.Id);
-
-            AppNotification.ShowWarning(TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"));
-            return;
-        }
-
-        Logger.LogInformation("Opening edit dialog for product {ProductId} - {ProductName}",
-            productToEdit.Id, productToEdit.Name);
-
-        try
-        {
-            var parameters = new DialogParameters
-            {
-                { "IsEditMode", true },
-                { "ProductId", productToEdit.Id },
-                { "ExistingProduct", productToEdit }
-            };
-
-            var options = new DialogOptions
-            {
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseButton = true,
-                CloseOnEscapeKey = true
-            };
-
-            var dialog = await DialogService.ShowAsync<QuickCreateProductDialog>(
-                TranslationService.GetTranslation("warehouse.quickEditProduct", "Modifica Rapida Prodotto"),
-                parameters,
-                options);
-
-            var result = await dialog.Result;
-
-            if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
-            {
-                Logger.LogInformation("Product updated: {ProductId} - {ProductName}",
-                    updatedProduct.Id, updatedProduct.Name);
-
-                // ✅ Update both variables
-                _selectedProduct = updatedProduct;
-                _state.SelectedProduct = updatedProduct;
-
-                _state.Model.Description = updatedProduct.Description;
-                _state.Model.ProductCode = updatedProduct.Code;
-                _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
-
-                if (updatedProduct.VatRateId.HasValue)
-                {
-                    _state.SelectedVatRateId = updatedProduct.VatRateId.Value;
-                    var vatRate = _state.Cache.AllVatRates.FirstOrDefault(v => v.Id == updatedProduct.VatRateId.Value);
-                    if (vatRate != null)
-                    {
-                        _state.Model.VatRate = vatRate.Percentage;
-                        _state.Model.VatDescription = vatRate.Name;
-                    }
-                }
-
-                if (updatedProduct.UnitOfMeasureId.HasValue)
-                {
-                    _state.SelectedUnitOfMeasureId = updatedProduct.UnitOfMeasureId.Value;
-                }
-
-                // Invalidate cached calculation result
-                InvalidateCalculationCache();
-
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"));
-
-                await InvokeAsync(StateHasChanged);
-            }
-            else
-            {
-                Logger.LogInformation("Product edit dialog canceled");
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OpenEditProductDialog for product {ProductId}.", productToEdit.Id);
-            AppNotification.ShowError(TranslationService.GetTranslation("products.editError", "Errore durante la modifica del prodotto."));
-        }
-    }
-
-    /// <summary>
     /// Handles product updates from ProductQuickInfo component
     /// </summary>
     private async Task HandleProductQuickInfoUpdate()
@@ -2149,39 +1933,22 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Handles product with code found from UnifiedProductScanner
+    /// Handles product with code found from UnifiedProductScanner.
+    /// NOTE: SelectedProductChanged fires first and already calls OnProductSelectedAsync
+    /// (which calls PopulateFromProductAsync). This handler only captures barcode-specific
+    /// data (ProductUnitId) that is exclusive to the barcode scan path.
     /// </summary>
-    private async Task HandleProductWithCodeFound(ProductWithCodeDto productWithCode)
+    private Task HandleProductWithCodeFound(ProductWithCodeDto productWithCode)
     {
-        try
+        // Handle the unit of measure specific from the barcode if present
+        if (productWithCode.Code?.ProductUnitId != null)
         {
-            Logger.LogInformation("Product found by barcode: {ProductCode} - {ProductName}",
-                productWithCode.Product.Code, productWithCode.Product.Name);
-
-            // Handle the unit of measure specific from the barcode if present
-            if (productWithCode.Code?.ProductUnitId != null)
-            {
-                _state.Barcode.ProductUnitId = productWithCode.Code.ProductUnitId;
-                Logger.LogInformation("Barcode has specific unit: {ProductUnitId}",
-                    productWithCode.Code.ProductUnitId);
-            }
-
-            // Update the selected product in multiple places for consistency:
-            // - _selectedProduct: local component variable for UI binding
-            // - _state.SelectedProduct: state shared with other components
-            // - _state.PreviousSelectedProduct: for comparison and rollback scenarios
-            _selectedProduct = productWithCode.Product;
-            _state.SelectedProduct = productWithCode.Product;
-            _state.PreviousSelectedProduct = productWithCode.Product;
-
-            // Populate fields from the product
-            await PopulateFromProductAsync(productWithCode.Product);
+            _state.Barcode.ProductUnitId = productWithCode.Code.ProductUnitId;
+            Logger.LogInformation("Barcode has specific unit: {ProductUnitId}",
+                productWithCode.Code.ProductUnitId);
         }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error handling product with code found");
-            AppNotification.ShowError(TranslationService.GetTranslation("errors.productLoad", "Errore nel caricamento del prodotto"));
-        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -2195,10 +1962,17 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             // Update our local reference with the updated product
             _selectedProduct = updatedProduct;
             _state.SelectedProduct = updatedProduct;
+            _state.PreviousSelectedProduct = updatedProduct;
 
             // Update the description and code fields
             _state.Model.Description = updatedProduct.Name;
             _state.Model.ProductCode = updatedProduct.Code;
+
+            // Sync DefaultPrice after product edit. The barcode/autocomplete selection path uses
+            // PriceResolutionService (price lists + promotions) via PopulateFromProductAsync, which
+            // is more accurate. Here we only apply the updated DefaultPrice directly because the user
+            // just changed it in the edit dialog — this is intentional and avoids a full repopulate.
+            _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
 
             // Update VAT if changed
             if (updatedProduct.VatRateId.HasValue)
@@ -2220,6 +1994,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
             // Invalidate cached calculation result
             InvalidateCalculationCache();
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updatedSuccess", "Prodotto aggiornato con successo"));
 
             await InvokeAsync(StateHasChanged);
         }
@@ -2255,11 +2031,12 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 case "ctrl+e":
                     if (_state.SelectedProduct != null)
                     {
-                        await OpenEditProductDialog();
+                        if (_productScannerRef != null)
+                            await _productScannerRef.TriggerEditAsync();
                     }
                     else
                     {
-                        AppNotification.ShowWarning("Seleziona prima un prodotto");
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"));
                     }
                     break;
 
@@ -2282,10 +2059,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
                 case "-":
                     DecrementQuantity();
-                    break;
-
-                case "*":
-                    await FocusQuantityField();
                     break;
             }
         }

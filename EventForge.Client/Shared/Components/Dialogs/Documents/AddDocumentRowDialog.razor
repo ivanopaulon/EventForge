@@ -10,7 +10,7 @@
 
 <EFDialog Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.PlaylistAdd)"
           Title="@TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")"
-          IsProcessing="@_isSaving"
+          IsProcessing="@_isProcessing"
           OnClose="Cancel"
           MinWidth="min(900px, 95vw)"
           @onkeydown="@OnDialogKeyDown">
@@ -44,8 +44,8 @@
             </div>
         }
 
-        <!-- Save progress bar - PR #2c-Part2 Commit 3 -->
-        @if (_isSaving)
+        <!-- Save progress bar -->
+        @if (_isProcessing)
         {
             <div class="save-progress"></div>
         }
@@ -204,6 +204,8 @@
                                                AllowClear="true"
                                                ShowCurrentStock="false"
                                                AutoFocus="!_isEditMode"
+                                               AvailableUnits="@_state.Cache.AllUnitsOfMeasure"
+                                               AvailableVatRates="@_state.Cache.AllVatRates"
                                                OnProductWithCodeFound="@HandleProductWithCodeFound"
                                                OnProductNotFound="@ShowProductNotFoundDialog"
                                                OnProductUpdated="@HandleProductUpdated" />
@@ -402,7 +404,7 @@
                 @TranslationService.GetTranslation("documents.shortcutEsc", "Esc: Chiudi")
             </MudText>
             <MudStack Row="true" Spacing="2">
-                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isSaving">
+                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
                     @TranslationService.GetTranslation("common.close", "Chiudi")
                 </MudButton>
 
@@ -411,10 +413,10 @@
                     <ChildContent>
                         <MudButton Color="Color.Primary"
                                    OnClick="SaveAndContinue"
-                                   Disabled="@(!IsValid() || _isSaving)"
-                                   Class="@(_isSaving ? "button-loading" : "")"
+                                   Disabled="@(!IsValid() || _isProcessing)"
+                                   Class="@(_isProcessing ? "button-loading" : "")"
                                    Variant="Variant.Filled">
-                            @if (_isSaving)
+                            @if (_isProcessing)
                             {
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                             }
