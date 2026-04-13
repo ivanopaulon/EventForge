@@ -140,7 +140,7 @@ public class UpdateExecutorService(
                 isManualInstall: isManualInstall,
                 packageId: packageId,
                 detail: detail))
-            .ContinueWith(t => logger.LogWarning(t.Exception, "NotifyPhaseBackground faulted (phase={Phase})", currentPhase),
+            .ContinueWith(t => logger.LogWarning(t.Exception?.GetBaseException(), "NotifyPhaseBackground faulted (phase={Phase})", currentPhase),
                 TaskContinuationOptions.OnlyOnFaulted);
     }
 
@@ -630,6 +630,8 @@ public class UpdateExecutorService(
                ?? new UpdateManifest();
     }
 
+    private const int DeployMaxParallelism = 8;
+
     private async Task DeployBinariesAsync(string extractedPath, string deployPath, UpdateManifest manifest, CancellationToken ct)
     {
         var binariesPath = Path.Combine(extractedPath, "binaries");
@@ -646,7 +648,7 @@ public class UpdateExecutorService(
             .ToHashSet();
 
         var files = Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories);
-        var parallelism = Math.Min(Environment.ProcessorCount, 8);
+        var parallelism = Math.Min(Environment.ProcessorCount, DeployMaxParallelism);
         await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism, CancellationToken = ct },
             async (file, fileCt) =>
             {
