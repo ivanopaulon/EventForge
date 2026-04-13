@@ -19,8 +19,9 @@ public class UpdateExecutorService(
     BackupService backupService,
     IisManagerService iisManagerService,
     MigrationRunnerService migrationRunner,
+    PendingInstallService pendingInstallService,
     DownloadProgressService downloadProgress,
-    ILogger<UpdateExecutorService> logger)
+    ILogger<UpdateExecutorService> logger) : IDisposable
 {
     // Single long-lived HttpClient; per-request timeout is enforced via CancellationTokenSource.
     private readonly HttpClient _http = new(new SocketsHttpHandler
@@ -135,10 +136,12 @@ public class UpdateExecutorService(
         Guid? packageId = null)
     {
         _ = Task.Run(() => NotifyPhaseAsync(command, currentPhase,
-            percentComplete: percentComplete,
-            isManualInstall: isManualInstall,
-            packageId: packageId,
-            detail: detail));
+                percentComplete: percentComplete,
+                isManualInstall: isManualInstall,
+                packageId: packageId,
+                detail: detail))
+            .ContinueWith(t => logger.LogWarning(t.Exception?.GetBaseException(), "NotifyPhaseBackground faulted (phase={Phase})", currentPhase),
+                TaskContinuationOptions.OnlyOnFaulted);
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -163,29 +166,8 @@ public class UpdateExecutorService(
 
     private string? GetNextWindowDescription()
     {
-        var next = options.MaintenanceWindows.Count == 0 ? null : GetNextWindowStart();
+        var next = pendingInstallService.GetNextWindowStart();
         return next?.ToString("dd/MM/yyyy HH:mm");
-    }
-
-    private DateTime? GetNextWindowStart()
-    {
-        if (options.MaintenanceWindows.Count == 0) return null;
-        var now = DateTime.Now;
-        var best = DateTime.MaxValue;
-        for (var d = 0; d <= 7; d++)
-        {
-            var candidate = now.Date.AddDays(d);
-            foreach (var window in options.MaintenanceWindows)
-            {
-                if (window.DaysOfWeek.Count > 0 && !window.DaysOfWeek.Contains(candidate.DayOfWeek))
-                    continue;
-                if (!TimeOnly.TryParse(window.StartTime, out var start)) continue;
-                var windowStart = candidate.Add(start.ToTimeSpan());
-                if (windowStart > now && windowStart < best)
-                    best = windowStart;
-            }
-        }
-        return best == DateTime.MaxValue ? null : best;
     }
 
     /// <summary>
@@ -245,6 +227,7 @@ public class UpdateExecutorService(
         {
             // ── Phase 3: Extract ──
             Directory.CreateDirectory(tempDir);
+            ValidateZipPathTraversal(zipPath, tempDir);
             NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
                 detail: "Estrazione archivio ZIP…");
             ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
@@ -291,7 +274,7 @@ public class UpdateExecutorService(
             await ReportAsync(command, UpdatePhase.DeployingBinaries, false, true, null, ct);
             NotifyPhaseBackground(command, UpdatePhase.DeployingBinaries.ToString(),
                 detail: $"Copia file in: {deployPath}");
-            await DeployBinariesAsync(tempDir, deployPath, manifest, ct, logger);
+            await DeployBinariesAsync(tempDir, deployPath, manifest, ct);
 
             // ── Phase 8: Write version.txt ──
             await File.WriteAllTextAsync(Path.Combine(deployPath, "version.txt"), command.Version, ct);
@@ -539,10 +522,11 @@ public class UpdateExecutorService(
         var totalBytes = response.Content.Headers.ContentLength;
         await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
 
+        var bufferSize = Math.Clamp(options.DownloadBufferSizeKb, 16, 4096) * 1024;
         var fileMode = append ? FileMode.Append : FileMode.Create;
-        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, 81920, useAsync: true);
+        await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
 
-        var buffer    = new byte[81920];
+        var buffer    = new byte[bufferSize];
         long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
         var lastLocalReport  = DateTime.UtcNow;
         var lastServerNotify = DateTime.UtcNow;
@@ -602,6 +586,30 @@ public class UpdateExecutorService(
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Validates that no entry in the ZIP archive would extract outside <paramref name="destDir"/>
+    /// (path-traversal / zip-slip attack).
+    /// </summary>
+    /// <exception cref="System.Security.SecurityException">
+    /// Thrown when at least one entry resolves to a path outside <paramref name="destDir"/>.
+    /// </exception>
+    private static void ValidateZipPathTraversal(string zipPath, string destDir)
+    {
+        var fullDest = Path.GetFullPath(destDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+
+        using var archive = System.IO.Compression.ZipFile.OpenRead(zipPath);
+        foreach (var entry in archive.Entries)
+        {
+            // Entries that represent directories end with '/'; skip them.
+            if (string.IsNullOrEmpty(entry.Name)) continue;
+
+            var resolved = Path.GetFullPath(Path.Combine(fullDest, entry.FullName));
+            if (!resolved.StartsWith(fullDest, StringComparison.OrdinalIgnoreCase))
+                throw new System.Security.SecurityException(
+                    $"ZIP path traversal detected: entry '{entry.FullName}' would extract outside the target directory.");
+        }
+    }
+
     private static async Task VerifyChecksumAsync(string zipPath, string expectedChecksum, CancellationToken ct)
     {
         await using var stream = File.OpenRead(zipPath);
@@ -611,16 +619,20 @@ public class UpdateExecutorService(
             throw new InvalidOperationException($"Checksum mismatch. Expected: {expectedChecksum} Actual: {actual}");
     }
 
+    private static readonly JsonSerializerOptions _manifestOpts = new() { PropertyNameCaseInsensitive = true };
+
     private static async Task<UpdateManifest> LoadManifestAsync(string extractedPath)
     {
         var manifestPath = Path.Combine(extractedPath, "manifest.json");
         if (!File.Exists(manifestPath)) return new UpdateManifest();
         var json = await File.ReadAllTextAsync(manifestPath);
-        return JsonSerializer.Deserialize<UpdateManifest>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        return JsonSerializer.Deserialize<UpdateManifest>(json, _manifestOpts)
                ?? new UpdateManifest();
     }
 
-    private static async Task DeployBinariesAsync(string extractedPath, string deployPath, UpdateManifest manifest, CancellationToken ct, ILogger<UpdateExecutorService> log)
+    private const int DeployMaxParallelism = 8;
+
+    private async Task DeployBinariesAsync(string extractedPath, string deployPath, UpdateManifest manifest, CancellationToken ct)
     {
         var binariesPath = Path.Combine(extractedPath, "binaries");
         if (!Directory.Exists(binariesPath)) binariesPath = extractedPath;
@@ -635,36 +647,38 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
-        foreach (var file in Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories))
-        {
-            ct.ThrowIfCancellationRequested();
-            var relative = Path.GetRelativePath(binariesPath, file);
-            var dest = Path.Combine(deployPath, relative);
-            var relLower = relative.ToLowerInvariant();
-
-            // Hard-preserve: skip entirely (e.g. web.config managed by IIS/ops)
-            if (preserveSet.Count > 0 && File.Exists(dest) && preserveSet.Contains(relLower))
-                continue;
-
-            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-
-            // Deep-merge JSON config: new keys from template added, existing values kept
-            if (mergeSet.Count > 0 && File.Exists(dest) && mergeSet.Contains(relLower))
+        var files = Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories);
+        var parallelism = Math.Min(Environment.ProcessorCount, DeployMaxParallelism);
+        await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism, CancellationToken = ct },
+            async (file, fileCt) =>
             {
-                try
-                {
-                    await MergeJsonFilesAsync(file, dest, ct);
-                    continue;
-                }
-                catch (Exception ex)
-                {
-                    log.LogWarning(ex, "JSON merge failed for '{File}' — falling back to full overwrite.", relative);
-                    // Fall through to overwrite
-                }
-            }
+                var relative = Path.GetRelativePath(binariesPath, file);
+                var dest = Path.Combine(deployPath, relative);
+                var relLower = relative.ToLowerInvariant();
 
-            File.Copy(file, dest, overwrite: true);
-        }
+                // Hard-preserve: skip entirely (e.g. web.config managed by IIS/ops)
+                if (preserveSet.Count > 0 && File.Exists(dest) && preserveSet.Contains(relLower))
+                    return;
+
+                Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+
+                // Deep-merge JSON config: new keys from template added, existing values kept
+                if (mergeSet.Count > 0 && File.Exists(dest) && mergeSet.Contains(relLower))
+                {
+                    try
+                    {
+                        await MergeJsonFilesAsync(file, dest, fileCt);
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "JSON merge failed for '{File}' — falling back to full overwrite.", relative);
+                        // Fall through to overwrite
+                    }
+                }
+
+                File.Copy(file, dest, overwrite: true);
+            });
     }
 
     /// <summary>
@@ -684,7 +698,9 @@ public class UpdateExecutorService(
 
         var options = new JsonSerializerOptions { WriteIndented = true };
         var mergedJson = JsonSerializer.Serialize(merged, options);
-        await File.WriteAllTextAsync(targetPath, mergedJson, ct);
+        var tmpPath = targetPath + ".tmp";
+        await File.WriteAllTextAsync(tmpPath, mergedJson, ct);
+        File.Move(tmpPath, targetPath, overwrite: true);
     }
 
     /// <summary>
@@ -828,4 +844,6 @@ public class UpdateExecutorService(
             }
         }
     }
+
+    public void Dispose() => _http.Dispose();
 }

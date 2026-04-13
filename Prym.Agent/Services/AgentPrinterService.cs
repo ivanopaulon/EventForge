@@ -68,11 +68,11 @@ public sealed class AgentPrinterService(
     /// <inheritdoc />
     public IReadOnlyList<string> ListDevices()
     {
-        var found = new List<string>();
+        var found = new System.Collections.Concurrent.ConcurrentBag<(int Index, string Suffix)>();
 
-        for (var i = 1; i <= 9; i++)
+        Parallel.For(1, 100, i =>
         {
-            var suffix = $"USB00{i}";
+            var suffix = $"USB{i:D3}";
             var path   = BuildDevicePath(suffix);
 
             try
@@ -85,7 +85,7 @@ public sealed class AgentPrinterService(
                     bufferSize: 1,
                     FileOptions.None);
 
-                found.Add(suffix);
+                found.Add((i, suffix));
 
                 logger.LogDebug("[AgentPrinterService] USB device discovered: {Path}", path);
             }
@@ -93,9 +93,9 @@ public sealed class AgentPrinterService(
             {
                 // Device not present or not accessible — skip silently.
             }
-        }
+        });
 
-        return found.AsReadOnly();
+        return found.OrderBy(x => x.Index).Select(x => x.Suffix).ToList().AsReadOnly();
     }
 
     // ── IAgentPrinterService – TCP (TcpViaAgent) ───────────────────────────────

@@ -29,6 +29,9 @@ public record PendingUpdate(
 /// </summary>
 public class PendingInstallService(AgentOptions options, ILogger<PendingInstallService> logger)
 {
+    private static readonly JsonSerializerOptions SerializeOptions   = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions DeserializeOptions = new() { PropertyNameCaseInsensitive = true };
+
     private readonly List<PendingUpdate> _queue = [];
     private readonly string _persistPath = Path.Combine(AppContext.BaseDirectory, "pending.json");
     private readonly Lock _lock = new();
@@ -66,8 +69,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         try
         {
             var json = File.ReadAllText(_persistPath);
-            var state = JsonSerializer.Deserialize<PersistentState>(json,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var state = JsonSerializer.Deserialize<PersistentState>(json, DeserializeOptions);
 
             if (state is null) return;
 
@@ -88,6 +90,8 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
                     logger.LogWarning("Removing pending update {PackageId} — zip not found at {Path}", m.PackageId, m.LocalZipPath);
                     _queue.Remove(m);
                 }
+                if (missing.Count > 0)
+                    SaveToDisk();
             }
 
             logger.LogInformation("Restored {Count} pending update(s) from disk. Queue blocked={Blocked}", _queue.Count, IsBlocked);
@@ -303,7 +307,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         try
         {
             var state = new PersistentState(_queue.ToList(), IsBlocked, BlockedReason, BlockedByPackageId);
-            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(state, SerializeOptions);
             // Write to a temp file first, then atomically rename to avoid corruption on crash.
             var tmpPath = _persistPath + ".tmp";
             File.WriteAllText(tmpPath, json);

@@ -20,6 +20,7 @@ namespace Prym.Agent.Controllers;
 [Route("api/printer-proxy")]
 public sealed class PrinterProxyController(
     IAgentPrinterService printerService,
+    AgentOptions agentOptions,
     ILogger<PrinterProxyController> logger) : ControllerBase
 {
     // Allows only Windows USB device names such as USB001-USB009, or paths like \\.\USB001.
@@ -136,20 +137,15 @@ public sealed class PrinterProxyController(
     /// </summary>
     /// <returns>200 OK with a <c>printers</c> array of display-name strings.</returns>
     [HttpGet("system-printers")]
-    public IActionResult ListSystemPrinters()
+    public async Task<IActionResult> ListSystemPrintersAsync()
     {
         var printerNames = new List<string>();
 
         try
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                printerNames = GetWindowsPrinters();
-            }
-            else
-            {
-                printerNames = GetLinuxPrinters();
-            }
+            printerNames = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? await GetWindowsPrintersAsync()
+                : await GetLinuxPrintersAsync();
         }
         catch (Exception ex)
         {
@@ -278,6 +274,16 @@ public sealed class PrinterProxyController(
             (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
             return BadRequest("targetUrl must be a valid absolute HTTP/HTTPS URL.");
 
+        // SSRF protection: enforce host allowlist when configured.
+        var allowedPatterns = agentOptions.PrinterProxy.AllowedHostPatterns;
+        if (allowedPatterns.Count > 0 && !IsHostAllowed(uri.Host, allowedPatterns))
+        {
+            logger.LogWarning(
+                "PrinterProxy http-forward blocked: host '{Host}' is not in AllowedHostPatterns.", uri.Host);
+            return StatusCode(StatusCodes.Status403Forbidden,
+                $"Host '{uri.Host}' is not permitted by the agent's printer-proxy allowlist.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.ContentType))
             return BadRequest("contentType is required.");
 
@@ -300,7 +306,44 @@ public sealed class PrinterProxyController(
         }
     }
 
-    private static List<string> GetWindowsPrinters()
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="host"/> matches at least one
+    /// entry in <paramref name="patterns"/>.
+    /// Supports exact matches and wildcard-prefix patterns (e.g. <c>*.local</c>, <c>192.168.1.*</c>).
+    /// </summary>
+    private static bool IsHostAllowed(string host, IEnumerable<string> patterns)
+    {
+        foreach (var pattern in patterns)
+        {
+            if (pattern.StartsWith("*.", StringComparison.OrdinalIgnoreCase))
+            {
+                // *.example.com should match sub.example.com but NOT notexample.com.
+                // The suffix includes the leading dot (e.g. ".example.com"), so we also
+                // accept an exact match with the part after the asterisk stripped of the dot
+                // (i.e. the host IS example.com itself).
+                var suffix = pattern[1..]; // ".example.com"
+                if (host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
+                    (host.Length == suffix.Length - 1 ||          // exact: host == "example.com"
+                     host[^suffix.Length] == '.'))                // subdomain: "sub.example.com"
+                    return true;
+            }
+            else if (pattern.EndsWith(".*", StringComparison.OrdinalIgnoreCase))
+            {
+                // 192.168.1.* matches 192.168.1.100 but not 192.168.10.5
+                var prefix = pattern[..^1]; // "192.168.1."
+                if (host.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
+                    !host[prefix.Length..].Contains('.')) // no further dots = single octet
+                    return true;
+            }
+            else if (host.Equals(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static async Task<List<string>> GetWindowsPrintersAsync()
     {
         var printers = new List<string>();
 
@@ -320,8 +363,9 @@ public sealed class PrinterProxyController(
         using var proc = System.Diagnostics.Process.Start(psi);
         if (proc is not null)
         {
-            var output = proc.StandardOutput.ReadToEnd();
-            proc.WaitForExit(5000);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
 
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -334,7 +378,7 @@ public sealed class PrinterProxyController(
         return printers;
     }
 
-    private static List<string> GetLinuxPrinters()
+    private static async Task<List<string>> GetLinuxPrintersAsync()
     {
         var printers = new List<string>();
 
@@ -349,8 +393,9 @@ public sealed class PrinterProxyController(
         using var proc = System.Diagnostics.Process.Start(psi);
         if (proc is not null)
         {
-            var output = proc.StandardOutput.ReadToEnd();
-            proc.WaitForExit(3000);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
 
             // lpstat -a format: "PrinterName accepting requests since ..."
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))

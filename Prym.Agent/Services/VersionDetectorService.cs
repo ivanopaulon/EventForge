@@ -20,10 +20,44 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
             {
                 var v = File.ReadAllText(versionFile).Trim();
                 if (!string.IsNullOrEmpty(v)) return v;
-                logger.LogDebug("version.txt at {Path} is empty, falling back to assembly", versionFile);
+                logger.LogWarning("version.txt at '{Path}' exists but is empty — falling back to assembly FileVersionInfo.", versionFile);
             }
 
             // Fallback: read from assembly in deploy path
+            var exeFiles = Directory.GetFiles(deployPath, "EventForge.Server.exe", SearchOption.TopDirectoryOnly);
+            if (exeFiles.Length > 0)
+            {
+                var fileVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(exeFiles[0]).FileVersion;
+                if (!string.IsNullOrWhiteSpace(fileVersion)) return fileVersion;
+                logger.LogDebug("FileVersion is empty for {Exe}", exeFiles[0]);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to detect server version from {Path}", deployPath);
+        }
+        return null;
+    }
+
+    public async Task<string?> GetServerVersionAsync()
+    {
+        if (!options.Components.Server.Enabled) return null;
+        var deployPath = options.Components.Server.DeployPath;
+        if (string.IsNullOrWhiteSpace(deployPath) || !Directory.Exists(deployPath))
+        {
+            logger.LogDebug("Server deploy path not found or empty: '{Path}'", deployPath);
+            return null;
+        }
+        try
+        {
+            var versionFile = Path.Combine(deployPath, "version.txt");
+            if (File.Exists(versionFile))
+            {
+                var v = (await File.ReadAllTextAsync(versionFile)).Trim();
+                if (!string.IsNullOrEmpty(v)) return v;
+                logger.LogWarning("version.txt at '{Path}' exists but is empty — falling back to assembly FileVersionInfo.", versionFile);
+            }
+
             var exeFiles = Directory.GetFiles(deployPath, "EventForge.Server.exe", SearchOption.TopDirectoryOnly);
             if (exeFiles.Length > 0)
             {
@@ -55,7 +89,33 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
             {
                 var v = File.ReadAllText(versionFile).Trim();
                 if (!string.IsNullOrEmpty(v)) return v;
-                logger.LogDebug("version.txt at {Path} is empty", versionFile);
+                logger.LogWarning("version.txt at '{Path}' exists but is empty — no client version available.", versionFile);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to detect client version from {Path}", deployPath);
+        }
+        return null;
+    }
+
+    public async Task<string?> GetClientVersionAsync()
+    {
+        if (!options.Components.Client.Enabled) return null;
+        var deployPath = options.Components.Client.DeployPath;
+        if (string.IsNullOrWhiteSpace(deployPath) || !Directory.Exists(deployPath))
+        {
+            logger.LogDebug("Client deploy path not found or empty: '{Path}'", deployPath);
+            return null;
+        }
+        try
+        {
+            var versionFile = Path.Combine(deployPath, "version.txt");
+            if (File.Exists(versionFile))
+            {
+                var v = (await File.ReadAllTextAsync(versionFile)).Trim();
+                if (!string.IsNullOrEmpty(v)) return v;
+                logger.LogWarning("version.txt at '{Path}' exists but is empty — no client version available.", versionFile);
             }
         }
         catch (Exception ex)

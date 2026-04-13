@@ -75,15 +75,18 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
                             ? sc.ToString().Trim('"') : null
         };
 
+        int countAfterEnqueue;
         lock (_queue)
         {
             if (_queue.Count >= MaxQueueDepth)
                 _queue.Dequeue(); // drop oldest when full (same strategy as Client)
             _queue.Enqueue(entry);
+            countAfterEnqueue = _queue.Count;
         }
 
-        // Flush immediately when we reach the batch size threshold
-        if (_queue.Count >= BatchSize)
+        // Flush immediately when we reach the batch size threshold.
+        // Count is captured inside the lock to avoid a read-outside-lock race.
+        if (countAfterEnqueue >= BatchSize)
             _ = FlushAsync(CancellationToken.None);
     }
 
@@ -122,6 +125,8 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
         }
     }
 
+    private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
     private async Task SendBatchAsync(List<AgentLogEntryDto> batch, CancellationToken ct)
     {
         try
@@ -135,10 +140,7 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
 
             using var request = new HttpRequestMessage(HttpMethod.Post, _ingestUrl)
             {
-                Content = JsonContent.Create(payload, options: new JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                })
+                Content = JsonContent.Create(payload, options: _jsonOptions)
             };
 
             if (!string.IsNullOrWhiteSpace(_maintenanceSecret))

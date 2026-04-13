@@ -1,6 +1,8 @@
-namespace EventForge.UpdateAgent.Models;
+namespace Prym.DTOs.Agent;
 
-// Mirror of the hub message types (kept local to avoid project reference)
+// Hub message types shared between Prym.Agent and EventForge.Server (UpdateHub).
+// Kept in Prym.DTOs so both projects reference a single authoritative definition.
+
 public record RegisterInstallationMessage(
     string InstallationId,
     string InstallationName,

@@ -1,4 +1,5 @@
 ﻿using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using Prym.Agent.Security;
 
@@ -70,7 +71,9 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
             var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
             if (credentials.Length != 2) return false;
 
-            return credentials[0] == expectedUser &&
+            return CryptographicOperations.FixedTimeEquals(
+                       Encoding.UTF8.GetBytes(credentials[0]),
+                       Encoding.UTF8.GetBytes(expectedUser)) &&
                    PasswordHasher.Verify(credentials[1], expectedPass);
         }
         catch

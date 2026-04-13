@@ -25,6 +25,9 @@ public class MigrationRunnerService(AgentOptions options, ILogger<MigrationRunne
             return;
         }
 
+        await using var conn = new SqlConnection(connectionString);
+        await conn.OpenAsync(ct);
+
         foreach (var relativePath in scriptRelativePaths)
         {
             ct.ThrowIfCancellationRequested();
@@ -44,8 +47,6 @@ public class MigrationRunnerService(AgentOptions options, ILogger<MigrationRunne
 
             try
             {
-                await using var conn = new SqlConnection(connectionString);
-                await conn.OpenAsync(ct);
                 await using var cmd = conn.CreateCommand();
                 // Support GO batch separators by splitting
                 foreach (var batch in sql.Split(["\nGO\n", "\r\nGO\r\n"], StringSplitOptions.RemoveEmptyEntries))
