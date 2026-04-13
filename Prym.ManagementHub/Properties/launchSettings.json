@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "EventForge.UpdateHub": {
+    "Prym.ManagementHub": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
