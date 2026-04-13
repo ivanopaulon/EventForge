@@ -190,7 +190,8 @@
                     @if (_dialogMode == DialogMode.Standard)
                     {
                         <!-- UNIFIED PRODUCT SCANNER: Replaces DocumentRowBarcodeScanner, MudAutocomplete, and ProductQuickInfo -->
-                        <UnifiedProductScanner SelectedProduct="@_selectedProduct"
+                        <UnifiedProductScanner @ref="_productScannerRef"
+                                               SelectedProduct="@_selectedProduct"
                                                SelectedProductChanged="@OnProductSelectedAsync"
                                                Title="@TranslationService.GetTranslation("documents.product", "Prodotto")"
                                                Placeholder="@TranslationService.GetTranslation("documents.searchOrScanProduct", "Scansiona barcode o cerca per nome...")"
@@ -199,6 +200,7 @@
                                                SearchMode="ProductSearchMode.Both"
                                                EditMode="ProductEditMode.Dialog"
                                                CreateMode="ProductCreateMode.Delegate"
+                                               ContinuousReadMode="false"
                                                AllowClear="true"
                                                ShowCurrentStock="false"
                                                AutoFocus="!_isEditMode"
@@ -337,16 +339,6 @@
                     Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
-                    }
-                    else
-                    {
-                        <!-- NON-STANDARD MODE: Keep original barcode scanner -->
-                        <DocumentRowBarcodeScanner @ref="_barcodeScannerRef"
-                                                   IsEnabled="true"
-                                                   AutoFocus="!_isEditMode"
-                                                   OnBarcodeScanned="@HandleBarcodeScanned"
-                                                   OnScanStart="@(() => Task.CompletedTask)"
-                                                   OnScanEnd="@(() => Task.CompletedTask)" />
                     }
 
                     <!-- 3.5 MERGE DUPLICATES CHECKBOX (Only in Add Mode) -->

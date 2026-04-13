@@ -127,7 +127,7 @@
     private readonly string _videoElementId = "camera-scanner-video-" + Guid.NewGuid().ToString("N")[..8];
     private readonly string _canvasElementId = "camera-scanner-canvas-" + Guid.NewGuid().ToString("N")[..8];
 
-    private bool _initializing = false;
+    private bool _initializing = true;
     private bool _scanning = false;
     private bool _torchOn = false;
     private bool _hasTorch = false;
@@ -145,8 +145,6 @@
     {
         if (firstRender)
         {
-            _initializing = true;
-            StateHasChanged();
             // Small delay so the video element is fully in the DOM
             await Task.Delay(150);
             await StartScannerAsync();

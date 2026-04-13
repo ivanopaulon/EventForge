@@ -28,105 +28,89 @@
                 </MudAlert>
             }
 
-            <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="pa-4">
                 <MudStack Spacing="3">
                     
                     <!-- Codice -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
-                        <MudTextField @bind-Value="_model.Code"
-                                      Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
-                                      MaxLength="100"
-                                      Counter="100"
-                                      Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
-                    </MudPaper>
+                    <PrymTextField @bind-Value="_model.Code"
+                                   Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
+                                   MaxLength="100"
+                                   Counter="100"
+                                   Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
 
                     <!-- Descrizione -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
-                        <MudTextField @bind-Value="_model.Description"
-                                      Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Required="true"
-                                      RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
-                                      Lines="3"
-                                      MaxLength="500"
-                                      Counter="500" />
-                    </MudPaper>
+                    <PrymTextField @bind-Value="_model.Description"
+                                   Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                                   Required="true"
+                                   RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
+                                   Lines="3"
+                                   MaxLength="500"
+                                   Counter="500" />
 
                     <!-- Dati Commerciali -->
-                    <MudPaper Elevation="2" Class="pa-4 mb-4">
-                        <MudText Typo="Typo.h6" Class="mb-3">
-                            @TranslationService.GetTranslation("products.commercialData", "Dati Commerciali")
-                        </MudText>
+                    <MudText Typo="Typo.subtitle2" Class="mt-2">
+                        @TranslationService.GetTranslation("products.commercialData", "Dati Commerciali")
+                    </MudText>
+                    
+                    <MudGrid Spacing="2">
+                        <!-- Unità di Misura -->
+                        <MudItem xs="12" sm="4">
+                            <PrymSelect @bind-Value="_model.UnitOfMeasureId"
+                                        Label="@($"{TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")} *")"
+                                        Required="true">
+                                @if (_availableUnits != null && _availableUnits.Any())
+                                {
+                                    @foreach (var unit in _availableUnits)
+                                    {
+                                        <MudSelectItem Value="@((Guid?)unit.Id)">@unit.Symbol - @unit.Name</MudSelectItem>
+                                    }
+                                }
+                            </PrymSelect>
+                        </MudItem>
                         
-                        <MudGrid Spacing="2">
-                            <!-- Unità di Misura -->
-                            <MudItem xs="12" sm="4">
-                                <MudSelect @bind-Value="_model.UnitOfMeasureId"
-                                          Label="@($"{TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")} *")"
-                                          Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"
-                                          Required="true">
-                                    @if (_availableUnits != null && _availableUnits.Any())
+                        <!-- Prezzo -->
+                        <MudItem xs="12" sm="4">
+                            <PrymNullableNumericField T="decimal"
+                                                      @bind-Value="_model.DefaultPrice"
+                                                      Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo")} *")"
+                                                      Required="true"
+                                                      Min="0"
+                                                      Format="F2" />
+                        </MudItem>
+                        
+                        <!-- Aliquota IVA -->
+                        <MudItem xs="12" sm="4">
+                            <PrymSelect @bind-Value="_model.VatRateId"
+                                        Label="@($"{TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")} *")"
+                                        Required="true">
+                                @if (_vatRates != null && _vatRates.Any())
+                                {
+                                    @foreach (var vat in _vatRates)
                                     {
-                                        @foreach (var unit in _availableUnits)
-                                        {
-                                            <MudSelectItem Value="@((Guid?)unit.Id)">@unit.Symbol - @unit.Name</MudSelectItem>
-                                        }
+                                        <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
                                     }
-                                </MudSelect>
-                            </MudItem>
-                            
-                            <!-- Prezzo -->
-                            <MudItem xs="12" sm="4">
-                                <MudNumericField @bind-Value="_model.DefaultPrice"
-                                               Label="@($"{TranslationService.GetTranslation("field.salePrice", "Prezzo")} *")"
-                                               Variant="Variant.Outlined"
-                                               Margin="Margin.Dense"
-                                               Required="true"
-                                               Min="0"
-                                               Format="F2" />
-                            </MudItem>
-                            
-                            <!-- Aliquota IVA -->
-                            <MudItem xs="12" sm="4">
-                                <MudSelect @bind-Value="_model.VatRateId"
-                                          Label="@($"{TranslationService.GetTranslation("products.vatRate", "Aliquota IVA")} *")"
-                                          Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"
-                                          Required="true">
-                                    @if (_vatRates != null && _vatRates.Any())
-                                    {
-                                        @foreach (var vat in _vatRates)
-                                        {
-                                            <MudSelectItem Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage %)</MudSelectItem>
-                                        }
-                                    }
-                                </MudSelect>
-                            </MudItem>
-                        </MudGrid>
-                    </MudPaper>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+                    </MudGrid>
 
                 </MudStack>
             </MudForm>
     </ChildContent>
     <DialogActions>
-        <MudButton OnClick="Cancel" 
-                   Variant="Variant.Text"
-                   Disabled="@_isLoading">
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                    OnClick="Cancel"
+                    Disabled="@_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
-        </MudButton>
-        <MudButton StartIcon="@Icons.Material.Outlined.Save"
-                   Color="Color.Primary"
-                   Variant="Variant.Filled"
-                   OnClick="CreateProduct"
-                   Disabled="@(!_isFormValid || _isLoading)">
+        </PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    StartIcon="@Icons.Material.Outlined.Save"
+                    OnClick="CreateProduct"
+                    Disabled="@(!_isFormValid || _isLoading)">
             @TranslationService.GetTranslation("common.save", "Salva")
-        </MudButton>
+        </PrymButton>
     </DialogActions>
 </EFDialog>
 

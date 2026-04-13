@@ -62,57 +62,73 @@
     @if (SelectedProduct == null && SearchMode != ProductSearchMode.None)
     {
         <!-- SEARCH MODE: Autocomplete for product search with barcode support -->
-        <MudAutocomplete T="ProductDto"
-                         @ref="_autocomplete"
-                         Value="SelectedProduct"
-                         ValueChanged="@OnProductSelectionChangedAsync"
-                         @bind-Text="_searchText"
-                         SearchFunc="@SearchProductsAsync"
-                         ToStringFunc="@(p => p?.Name ?? string.Empty)"
-                         Variant="Variant.Outlined"
-                         Dense="@Dense"
-                         Margin="Margin.Dense"
-                         MinCharacters="@MinSearchCharacters"
-                         DebounceInterval="@DebounceMs"
-                         ShowProgressIndicator="true"
-                         Clearable="@AllowClear"
-                         Disabled="@Disabled"
-                         Placeholder="@Placeholder"
-                         HelperText="@SearchHelperText"
-                         CoerceText="false"
-                         CoerceValue="false"
-                         Adornment="Adornment.Start"
-                         AdornmentIcon="@Icons.Material.Outlined.Search"
-                         AdornmentColor="Color.Primary"
-                         @onkeydown="@HandleSearchKeyDown">
-            <!-- ItemTemplate -->
-            <ItemTemplate Context="product">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
-                    <div>
-                        <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
-                        @if (!string.IsNullOrEmpty(product.Code))
-                        {
-                            <MudText Typo="Typo.caption" Class="text-secondary-color">
-                                @product.Code
-                            </MudText>
-                        }
-                    </div>
-                    @if (product.DefaultPrice.HasValue)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
-                            @product.DefaultPrice.Value.ToString("C2")
-                        </MudChip>
-                    }
-                </MudStack>
-            </ItemTemplate>
-            
-            <!-- NoItemsTemplate -->
-            <NoItemsTemplate>
-                <MudText Typo="Typo.body2" Class="text-disabled">
-                    @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
-                </MudText>
-            </NoItemsTemplate>
-        </MudAutocomplete>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            <div class="flex-1 min-w-0">
+                <MudAutocomplete T="ProductDto"
+                                 @ref="_autocomplete"
+                                 Value="SelectedProduct"
+                                 ValueChanged="@OnProductSelectionChangedAsync"
+                                 @bind-Text="_searchText"
+                                 SearchFunc="@SearchProductsAsync"
+                                 ToStringFunc="@(p => p?.Name ?? string.Empty)"
+                                 Variant="Variant.Outlined"
+                                 Dense="@Dense"
+                                 Margin="Margin.Dense"
+                                 MinCharacters="@MinSearchCharacters"
+                                 DebounceInterval="@DebounceMs"
+                                 ShowProgressIndicator="true"
+                                 Clearable="@AllowClear"
+                                 Disabled="@Disabled"
+                                 Placeholder="@Placeholder"
+                                 HelperText="@SearchHelperText"
+                                 CoerceText="false"
+                                 CoerceValue="false"
+                                 Adornment="Adornment.Start"
+                                 AdornmentIcon="@Icons.Material.Outlined.Search"
+                                 AdornmentColor="Color.Primary"
+                                 @onkeydown="@HandleSearchKeyDown">
+                    <!-- ItemTemplate -->
+                    <ItemTemplate Context="product">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div>
+                                <MudText Typo="Typo.body2"><strong>@product.Name</strong></MudText>
+                                @if (!string.IsNullOrEmpty(product.Code))
+                                {
+                                    <MudText Typo="Typo.caption" Class="text-secondary-color">
+                                        @product.Code
+                                    </MudText>
+                                }
+                            </div>
+                            @if (product.DefaultPrice.HasValue)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                                    @product.DefaultPrice.Value.ToString("C2")
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </ItemTemplate>
+                    
+                    <!-- NoItemsTemplate -->
+                    <NoItemsTemplate>
+                        <MudText Typo="Typo.body2" Class="text-disabled">
+                            @TranslationService.GetTranslation("documents.noProductsFound", "Nessun prodotto trovato")
+                        </MudText>
+                    </NoItemsTemplate>
+                </MudAutocomplete>
+            </div>
+
+            @if (ShowBarcodeScanner)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("camera.scanWithCamera", "Scansiona con la fotocamera")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera"
+                                   Color="Color.Secondary"
+                                   Variant="Variant.Outlined"
+                                   Size="Size.Small"
+                                   Disabled="@Disabled"
+                                   OnClick="@OpenCameraScannerAsync" />
+                </MudTooltip>
+            }
+        </MudStack>
     }
 
     @if (SelectedProduct != null && ShowProductInfo)

@@ -46,11 +46,18 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     [Parameter] public Guid DocumentHeaderId { get; set; }
     [Parameter] public Guid? RowId { get; set; }
 
+    /// <summary>
+    /// Initial dialog mode applied when opening in add mode.
+    /// Defaults to <see cref="DialogMode.ContinuousScan"/> so the operator can immediately
+    /// start scanning barcodes. Ignored in edit mode (always starts in Standard).
+    /// </summary>
+    [Parameter] public DialogMode InitialMode { get; set; } = DialogMode.ContinuousScan;
+
     #endregion
 
     #region Component References
 
-    private DocumentRowBarcodeScanner? _barcodeScannerRef;
+    private UnifiedProductScanner? _productScannerRef;
 
     #endregion
 
@@ -148,21 +155,6 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
 
     #endregion
 
-    #region Component Event Handlers
-
-    /// <summary>
-    /// Handles barcode scanned event from DocumentRowBarcodeScanner component
-    /// </summary>
-    private async Task HandleBarcodeScanned(string barcode)
-    {
-        if (!string.IsNullOrWhiteSpace(barcode))
-        {
-            await SearchByBarcode(barcode);
-        }
-    }
-
-    #endregion
-
     #region Lifecycle Methods
 
     /// <summary>
@@ -198,6 +190,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             if (_isEditMode && RowId.HasValue)
             {
                 await LoadRowForEdit(RowId.Value);
+            }
+
+            // Apply initial dialog mode. In edit mode always stay in Standard;
+            // in add mode use the caller-supplied InitialMode (default: ContinuousScan).
+            if (!_isEditMode)
+            {
+                SetDialogMode(InitialMode);
             }
         }
         catch (Exception ex)
@@ -239,7 +238,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     /// </summary>
     private async Task OnProductSelectedAsync(ProductDto? product)
     {
-        Logger.LogInformation("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}",
+        Logger.LogDebug("OnProductSelectedAsync called. Product: {ProductId} - {ProductName}",
             product?.Id, product?.Name ?? "NULL");
 
         try
@@ -302,15 +301,13 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
                 _dotNetRef = DotNetObjectReference.Create(this);
                 await JSRuntime.InvokeVoidAsync("KeyboardShortcuts.register", _dotNetRef);
 
-                // Focus barcode field in create mode
-                if (!_isEditMode)
+                // Focus the active input field in create mode.
+                // ContinuousScan: focus the dedicated barcode text field.
+                // Standard: UnifiedProductScanner handles its own autofocus via AutoFocus="!_isEditMode".
+                if (!_isEditMode && _dialogMode == DialogMode.ContinuousScan && _continuousScanField != null)
                 {
-                    // Try new component reference first
-                    if (_barcodeScannerRef != null)
-                    {
-                        await _barcodeScannerRef.FocusAsync();
-                    }
-                    // Fallback removed - _barcodeScannerRef is the primary reference
+                    await Task.Delay(100);
+                    await _continuousScanField.FocusAsync();
                 }
             }
             catch (Exception ex)
@@ -1943,19 +1940,24 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Focuses the barcode scanner after reset
+    /// Focuses the active product search field after a reset.
+    /// In ContinuousScan mode focuses the dedicated barcode text field;
+    /// in Standard mode delegates to UnifiedProductScanner.FocusAsync().
     /// </summary>
     private async Task FocusBarcodeField()
     {
         try
         {
-            // Try new component reference first
-            if (_barcodeScannerRef != null)
+            await Task.Delay(Delays.RenderDelayMs);
+
+            if (_dialogMode == DialogMode.ContinuousScan && _continuousScanField != null)
             {
-                await Task.Delay(Delays.RenderDelayMs);
-                await _barcodeScannerRef.FocusAsync();
+                await _continuousScanField.FocusAsync();
             }
-            // Fallback removed - _barcodeScannerRef is the primary reference
+            else if (_productScannerRef != null)
+            {
+                await _productScannerRef.FocusAsync();
+            }
         }
         catch (Exception ex)
         {
