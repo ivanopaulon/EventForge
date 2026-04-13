@@ -89,14 +89,18 @@
             async t =>
             {
                 if (t.IsCompletedSuccessfully)
-                    await InvokeAsync(async () =>
+                    try
                     {
-                        _longPressTriggered = true;
-                        if (OnLongPress.HasDelegate)
-                            await OnLongPress.InvokeAsync(Product);
-                        else
-                            StateHasChanged();
-                    });
+                        await InvokeAsync(async () =>
+                        {
+                            _longPressTriggered = true;
+                            if (OnLongPress.HasDelegate)
+                                await OnLongPress.InvokeAsync(Product);
+                            else
+                                StateHasChanged();
+                        });
+                    }
+                    catch (ObjectDisposedException) { /* component disposed — ignore */ }
             },
             TaskScheduler.Default);
     }

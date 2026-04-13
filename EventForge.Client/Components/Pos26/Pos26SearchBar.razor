@@ -85,11 +85,15 @@
             async t =>
             {
                 if (t.IsCompletedSuccessfully)
-                    await InvokeAsync(async () =>
+                    try
                     {
-                        await SearchTermChanged.InvokeAsync(value);
-                        StateHasChanged();
-                    });
+                        await InvokeAsync(async () =>
+                        {
+                            await SearchTermChanged.InvokeAsync(value);
+                            StateHasChanged();
+                        });
+                    }
+                    catch (ObjectDisposedException) { /* component disposed — ignore */ }
             },
             TaskScheduler.Default);
     }
