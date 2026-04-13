@@ -204,6 +204,8 @@
                                                AllowClear="true"
                                                ShowCurrentStock="false"
                                                AutoFocus="!_isEditMode"
+                                               AvailableUnits="@_state.Cache.AllUnitsOfMeasure"
+                                               AvailableVatRates="@_state.Cache.AllVatRates"
                                                OnProductWithCodeFound="@HandleProductWithCodeFound"
                                                OnProductNotFound="@ShowProductNotFoundDialog"
                                                OnProductUpdated="@HandleProductUpdated" />

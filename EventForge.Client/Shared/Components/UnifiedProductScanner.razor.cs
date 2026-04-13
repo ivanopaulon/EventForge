@@ -111,6 +111,22 @@ namespace EventForge.Client.Shared.Components
 
         #endregion
 
+        #region Parameters - Reference Data (optional pre-loaded)
+
+        /// <summary>
+        /// Optional pre-loaded units of measure. If provided, the component skips loading
+        /// units from the service (avoids a duplicate HTTP call when the parent already has them).
+        /// </summary>
+        [Parameter] public IEnumerable<UMDto>? AvailableUnits { get; set; }
+
+        /// <summary>
+        /// Optional pre-loaded VAT rates. If provided, the component skips loading VAT rates
+        /// from the service (avoids a duplicate HTTP call when the parent already has them).
+        /// </summary>
+        [Parameter] public IEnumerable<VatRateDto>? AvailableVatRates { get; set; }
+
+        #endregion
+
         #region Parameters - Two-Way Binding
 
         /// <summary>
@@ -174,6 +190,12 @@ namespace EventForge.Client.Shared.Components
 
         protected override void OnParametersSet()
         {
+            // Keep reference-data fields in sync when parent provides updated collections
+            if (AvailableUnits != null)
+                _availableUnits = AvailableUnits;
+            if (AvailableVatRates != null)
+                _availableVatRates = AvailableVatRates;
+
             // When parent resets SelectedProduct to null (e.g. product added to POS cart)
             // clear the search text and schedule autocomplete focus for next render
             if (_previousSelectedProduct != null && SelectedProduct == null)
@@ -217,10 +239,6 @@ namespace EventForge.Client.Shared.Components
         /// IMPORTANT: Uses the EXACT same pattern as SearchBusinessPartiesAsync in GenericDocumentProcedure.
         /// Simple, clean, NO StateHasChanged during search.
         /// </summary>
-        /// <remarks>
-        /// Note: CancellationToken is not passed to ProductService.SearchProductsAsync as the service
-        /// interface doesn't currently support cancellation. This is a known limitation.
-        /// </remarks>
         private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
             string searchTerm,
             CancellationToken cancellationToken)
@@ -231,7 +249,7 @@ namespace EventForge.Client.Shared.Components
 
             try
             {
-                var result = await ProductService.SearchProductsAsync(searchTerm, MaxResults);
+                var result = await ProductService.SearchProductsAsync(searchTerm, MaxResults, cancellationToken);
 
                 if (result == null)
                 {
@@ -249,6 +267,11 @@ namespace EventForge.Client.Shared.Components
                 }
 
                 return result.SearchResults;
+            }
+            catch (OperationCanceledException)
+            {
+                // Request was cancelled (e.g. user typed another character) — return empty silently
+                return Array.Empty<ProductDto>();
             }
             catch (Exception ex)
             {
@@ -391,16 +414,33 @@ namespace EventForge.Client.Shared.Components
         {
             try
             {
-                // Load units and VAT rates in parallel
-                var unitsTask = ProductService.GetUnitsOfMeasureAsync();
-                var vatRatesTask = FinancialService.GetVatRatesAsync(1, 100);
+                var needUnits = AvailableUnits == null;
+                var needVatRates = AvailableVatRates == null;
 
-                await Task.WhenAll(unitsTask, vatRatesTask);
+                // Use parent-provided data when available to avoid duplicate HTTP calls
+                if (!needUnits)
+                    _availableUnits = AvailableUnits;
+                if (!needVatRates)
+                    _availableVatRates = AvailableVatRates;
 
-                // Tasks are already completed — retrieve their results directly
-                _availableUnits = unitsTask.Result;
-                var vatRatesResult = vatRatesTask.Result;
-                _availableVatRates = vatRatesResult?.Items ?? Enumerable.Empty<VatRateDto>();
+                // Only fetch what the parent hasn't provided
+                if (needUnits && needVatRates)
+                {
+                    var unitsTask = ProductService.GetUnitsOfMeasureAsync();
+                    var vatRatesTask = FinancialService.GetVatRatesAsync(1, 100);
+                    await Task.WhenAll(unitsTask, vatRatesTask);
+                    _availableUnits = unitsTask.Result;
+                    _availableVatRates = vatRatesTask.Result?.Items ?? Enumerable.Empty<VatRateDto>();
+                }
+                else if (needUnits)
+                {
+                    _availableUnits = await ProductService.GetUnitsOfMeasureAsync();
+                }
+                else if (needVatRates)
+                {
+                    var vatRatesResult = await FinancialService.GetVatRatesAsync(1, 100);
+                    _availableVatRates = vatRatesResult?.Items ?? Enumerable.Empty<VatRateDto>();
+                }
             }
             catch (Exception ex)
             {
