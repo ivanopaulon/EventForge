@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;

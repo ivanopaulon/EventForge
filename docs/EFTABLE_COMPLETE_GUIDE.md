@@ -476,8 +476,8 @@ Enable multi-level grouping by dragging column headers to the grouping area.
 ```razor
 @page "/management/entity"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.YourNamespace
-@using EventForge.DTOs.Common
+@using Prym.DTOs.YourNamespace
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @attribute [Authorize]
 

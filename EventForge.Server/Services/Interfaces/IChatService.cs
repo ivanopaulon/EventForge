@@ -1,4 +1,4 @@
-using EventForge.DTOs.Chat;
+using Prym.DTOs.Chat;
 
 namespace EventForge.Server.Services.Interfaces;
 

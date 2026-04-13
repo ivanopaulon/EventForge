@@ -1,5 +1,5 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Common;
 
 namespace EventForge.Client.Shared.Management.Adapters;
 

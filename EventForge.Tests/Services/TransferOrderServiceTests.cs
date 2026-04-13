@@ -1,6 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;
 using Moq;
 

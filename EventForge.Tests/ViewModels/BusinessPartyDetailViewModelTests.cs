@@ -1,8 +1,8 @@
 using EventForge.Client.Services;
 using EventForge.Client.ViewModels;
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
 using Microsoft.Extensions.Logging;
 using Moq;
 

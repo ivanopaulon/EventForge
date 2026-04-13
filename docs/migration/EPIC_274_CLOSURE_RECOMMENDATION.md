@@ -9,7 +9,7 @@
 ### Core Requirements Delivered
 
 #### 1. DTO Review and Organization (✅ COMPLETE)
-- **Complete Migration**: All DTOs moved to EventForge.DTOs project
+- **Complete Migration**: All DTOs moved to Prym.DTOs project
 - **Domain Organization**: 88 DTO files organized in 20 domain folders
 - **Update Synchronization**: Create/Update DTOs properly aligned
 - **Validation Consistency**: Data annotations synchronized between DTOs and models

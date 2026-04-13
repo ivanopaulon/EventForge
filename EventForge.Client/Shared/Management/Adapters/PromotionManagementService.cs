@@ -1,6 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Promotions;
+using Prym.DTOs.Common;
+using Prym.DTOs.Promotions;
 
 namespace EventForge.Client.Shared.Management.Adapters;
 

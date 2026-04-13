@@ -27,8 +27,8 @@ Questo documento fornisce le istruzioni dettagliate per completare la conversion
 @page "/route-base/new"
 @page "/route-base/{EntityId:guid}"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.[Namespace]
-@using EventForge.DTOs.Common
+@using Prym.DTOs.[Namespace]
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject [IService] Service

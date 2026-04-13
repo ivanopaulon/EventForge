@@ -56,7 +56,7 @@ public class AuditLogModel : PageModel
         try
         {
             // Build search criteria
-            var searchDto = new EventForge.DTOs.Audit.AuditTrailSearchDto
+            var searchDto = new Prym.DTOs.Audit.AuditTrailSearchDto
             {
                 EntityName = EntityFilter,
                 OperationType = OperationFilter,
@@ -164,7 +164,7 @@ public class AuditLogModel : PageModel
     {
         try
         {
-            var searchDto = new EventForge.DTOs.Audit.AuditTrailSearchDto
+            var searchDto = new Prym.DTOs.Audit.AuditTrailSearchDto
             {
                 EntityName = EntityFilter,
                 OperationType = OperationFilter,

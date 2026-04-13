@@ -1,4 +1,4 @@
-using EventForge.DTOs.Dashboard;
+using Prym.DTOs.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using EntityDashboard = EventForge.Server.Data.Entities.Dashboard;
 
@@ -46,7 +46,7 @@ public class DashboardConfigurationService(
                         .Select(m => new DashboardMetricConfigDto
                         {
                             Title = m.Title,
-                            Type = (DTOs.Dashboard.MetricType)m.Type,
+                            Type = (Prym.DTOs.Dashboard.MetricType)m.Type,
                             FieldName = m.FieldName,
                             FilterCondition = m.FilterCondition,
                             Format = m.Format,
@@ -100,7 +100,7 @@ public class DashboardConfigurationService(
                         .Select(m => new DashboardMetricConfigDto
                         {
                             Title = m.Title,
-                            Type = (DTOs.Dashboard.MetricType)m.Type,
+                            Type = (Prym.DTOs.Dashboard.MetricType)m.Type,
                             FieldName = m.FieldName,
                             FilterCondition = m.FilterCondition,
                             Format = m.Format,
@@ -155,7 +155,7 @@ public class DashboardConfigurationService(
                         .Select(m => new DashboardMetricConfigDto
                         {
                             Title = m.Title,
-                            Type = (DTOs.Dashboard.MetricType)m.Type,
+                            Type = (Prym.DTOs.Dashboard.MetricType)m.Type,
                             FieldName = m.FieldName,
                             FilterCondition = m.FilterCondition,
                             Format = m.Format,
@@ -456,7 +456,7 @@ public class DashboardConfigurationService(
                 .Select(m => new DashboardMetricConfigDto
                 {
                     Title = m.Title,
-                    Type = (DTOs.Dashboard.MetricType)m.Type,
+                    Type = (Prym.DTOs.Dashboard.MetricType)m.Type,
                     FieldName = m.FieldName,
                     FilterCondition = m.FilterCondition,
                     Format = m.Format,

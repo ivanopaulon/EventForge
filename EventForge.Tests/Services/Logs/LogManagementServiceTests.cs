@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.SuperAdmin;
+using Prym.DTOs.Common;
+using Prym.DTOs.SuperAdmin;
 using EventForge.Server.Data;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Logs;

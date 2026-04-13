@@ -1,5 +1,5 @@
 using EventForge.Client.Services.Updates;
-using EventForge.DTOs.Health;
+using Prym.DTOs.Health;
 using System.Net.Http.Json;
 
 namespace EventForge.Client.Services

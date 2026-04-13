@@ -33,8 +33,8 @@ All management pages MUST follow this exact HTML structure:
 ```razor
 @page "/path/to/page"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.[Namespace]
-@using EventForge.DTOs.Common
+@using Prym.DTOs.[Namespace]
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]
@@ -574,8 +574,8 @@ This is the **gold standard** example to follow:
 ```razor
 @page "/warehouse/facilities"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.Warehouse
-@using EventForge.DTOs.Common
+@using Prym.DTOs.Warehouse
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dashboard
 @attribute [Authorize]

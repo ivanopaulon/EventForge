@@ -1,8 +1,8 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Common;
+using Prym.DTOs.Products;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;

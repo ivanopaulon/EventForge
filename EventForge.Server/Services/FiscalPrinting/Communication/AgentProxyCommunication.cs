@@ -10,7 +10,7 @@ namespace EventForge.Server.Services.FiscalPrinting.Communication;
 /// </summary>
 /// <remarks>
 /// Extends <see cref="AgentProxyBaseCommunication"/> with the USB-specific endpoint paths
-/// and request/response DTOs. Retries on transient HTTP errors (3 attempts, exponential back-off).
+/// and request/response Prym.DTOs. Retries on transient HTTP errors (3 attempts, exponential back-off).
 /// </remarks>
 public sealed class AgentProxyCommunication(
     string agentBaseUrl,

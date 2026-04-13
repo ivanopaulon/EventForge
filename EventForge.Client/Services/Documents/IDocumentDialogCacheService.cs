@@ -1,6 +1,6 @@
-using EventForge.DTOs.PriceLists;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.PriceLists;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Client.Services.Documents;
 

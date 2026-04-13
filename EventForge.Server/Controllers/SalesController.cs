@@ -1,4 +1,4 @@
-using EventForge.DTOs.Sales;
+using Prym.DTOs.Sales;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Sales;

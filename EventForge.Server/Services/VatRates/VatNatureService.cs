@@ -1,4 +1,4 @@
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.VatRates;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
 

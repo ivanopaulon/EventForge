@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Common;
+using Prym.DTOs.Notifications;
 
 namespace EventForge.Client.Services;
 

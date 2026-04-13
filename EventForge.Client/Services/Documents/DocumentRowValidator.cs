@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Client.Services.Documents;
 
@@ -43,14 +43,14 @@ public class DocumentRowValidator : IDocumentRowValidator
         }
 
         // Discount validations
-        if (model.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
+        if (model.DiscountType == Prym.DTOs.Common.DiscountType.Percentage)
         {
             if (model.LineDiscount < 0 || model.LineDiscount > 100)
             {
                 errors.Add("validation.discountPercentageInvalid");
             }
         }
-        else if (model.DiscountType == EventForge.DTOs.Common.DiscountType.Value)
+        else if (model.DiscountType == Prym.DTOs.Common.DiscountType.Value)
         {
             if (model.LineDiscountValue < 0)
             {

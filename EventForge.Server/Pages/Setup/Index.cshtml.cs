@@ -104,10 +104,10 @@ public class IndexModel : PageModel
 
         try
         {
-            var config = new DTOs.Setup.SetupConfiguration
+            var config = new Prym.DTOs.Setup.SetupConfiguration
             {
                 ServerAddress = SqlServerAddress,
-                Credentials = new DTOs.Setup.SqlCredentials
+                Credentials = new Prym.DTOs.Setup.SqlCredentials
                 {
                     AuthenticationType = AuthType == "windows" ? "Windows" : "SQL",
                     Username = SqlUsername,

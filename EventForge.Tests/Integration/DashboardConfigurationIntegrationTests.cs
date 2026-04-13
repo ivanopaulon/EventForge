@@ -1,4 +1,4 @@
-using EventForge.DTOs.Dashboard;
+using Prym.DTOs.Dashboard;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;

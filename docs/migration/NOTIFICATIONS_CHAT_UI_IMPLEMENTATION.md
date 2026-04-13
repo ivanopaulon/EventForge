@@ -118,7 +118,7 @@ EventForge.Client/
 ```
 
 ### Placeholder DTOs
-**Note:** Placeholder DTOs are defined in components for UI structure. These should be moved to EventForge.DTOs project when implementing business logic:
+**Note:** Placeholder DTOs are defined in components for UI structure. These should be moved to Prym.DTOs project when implementing business logic:
 
 - `NotificationDto`: Id, Title, Message, Type, Priority, IsRead, CreatedAt
 - `ChatDto`: Id, Name, IsGroup, UnreadCount, LastMessage, LastMessageTime

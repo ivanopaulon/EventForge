@@ -1,4 +1,4 @@
-using EventForge.DTOs.Business;
+using Prym.DTOs.Business;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -125,7 +125,7 @@ public class BusinessPartyService(
         }
     }
 
-    public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BusinessPartyDto>> GetBusinessPartiesByTypeAsync(Prym.DTOs.Common.BusinessPartyType partyType, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -153,7 +153,7 @@ public class BusinessPartyService(
         }
     }
 
-    public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, DTOs.Common.BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(string searchTerm, Prym.DTOs.Common.BusinessPartyType? partyType = null, int pageSize = 50, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -782,7 +782,7 @@ public class BusinessPartyService(
             return parties.Select(bp => new BusinessPartyDto
             {
                 Id = bp.Id,
-                PartyType = (EventForge.DTOs.Common.BusinessPartyType)bp.PartyType,
+                PartyType = (Prym.DTOs.Common.BusinessPartyType)bp.PartyType,
                 Name = bp.Name,
                 DateOfBirth = bp.DateOfBirth,
                 IsActive = bp.IsActive,
@@ -801,7 +801,7 @@ public class BusinessPartyService(
         return new BusinessPartyDto
         {
             Id = businessParty.Id,
-            PartyType = (EventForge.DTOs.Common.BusinessPartyType)businessParty.PartyType,
+            PartyType = (Prym.DTOs.Common.BusinessPartyType)businessParty.PartyType,
             Name = businessParty.Name,
             TaxCode = businessParty.TaxCode,
             VatNumber = businessParty.VatNumber,
@@ -816,14 +816,14 @@ public class BusinessPartyService(
             City = primaryAddress?.City,
             Province = primaryAddress?.Province,
             Country = primaryAddress?.Country,
-            Contacts = contacts.Select(c => new EventForge.DTOs.Common.ContactDto
+            Contacts = contacts.Select(c => new Prym.DTOs.Common.ContactDto
             {
                 Id = c.Id,
                 OwnerId = c.OwnerId,
                 OwnerType = c.OwnerType,
-                ContactType = (EventForge.DTOs.Common.ContactType)c.ContactType,
+                ContactType = (Prym.DTOs.Common.ContactType)c.ContactType,
                 Value = c.Value,
-                Purpose = (EventForge.DTOs.Common.ContactPurpose)c.Purpose,
+                Purpose = (Prym.DTOs.Common.ContactPurpose)c.Purpose,
                 Relationship = c.Relationship,
                 IsPrimary = c.IsPrimary,
                 Notes = c.Notes,
@@ -873,13 +873,13 @@ public class BusinessPartyService(
 
     #region Business Party Documents
 
-    public async Task<PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
+    public async Task<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>> GetBusinessPartyDocumentsAsync(
         Guid businessPartyId,
         DateTime? fromDate = null,
         DateTime? toDate = null,
         Guid? documentTypeId = null,
         string? searchNumber = null,
-        DTOs.Common.ApprovalStatus? approvalStatus = null,
+        Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
         PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {
@@ -931,7 +931,7 @@ public class BusinessPartyService(
                 .ThenByDescending(dh => dh.CreatedAt)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
-                .Select(dh => new EventForge.DTOs.Documents.DocumentHeaderDto
+                .Select(dh => new Prym.DTOs.Documents.DocumentHeaderDto
                 {
                     Id = dh.Id,
                     DocumentTypeId = dh.DocumentTypeId,
@@ -944,8 +944,8 @@ public class BusinessPartyService(
                     TotalNetAmount = dh.TotalNetAmount,
                     TotalGrossAmount = dh.TotalGrossAmount,
                     VatAmount = dh.VatAmount,
-                    ApprovalStatus = (DTOs.Common.ApprovalStatus)dh.ApprovalStatus,
-                    Status = (DTOs.Common.DocumentStatus)dh.Status,
+                    ApprovalStatus = (Prym.DTOs.Common.ApprovalStatus)dh.ApprovalStatus,
+                    Status = (Prym.DTOs.Common.DocumentStatus)dh.Status,
                     CreatedAt = dh.CreatedAt,
                     CreatedBy = dh.CreatedBy,
                     ModifiedAt = dh.ModifiedAt,
@@ -953,7 +953,7 @@ public class BusinessPartyService(
                 })
                 .ToListAsync(cancellationToken);
 
-            return new PagedResult<EventForge.DTOs.Documents.DocumentHeaderDto>
+            return new PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>
             {
                 Items = documents,
                 Page = pagination.Page,
@@ -1131,7 +1131,7 @@ public class BusinessPartyService(
 
         // Calculate per-unit discount
         decimal unitDiscount;
-        if (row.DiscountType == EventForge.DTOs.Common.DiscountType.Percentage)
+        if (row.DiscountType == Prym.DTOs.Common.DiscountType.Percentage)
         {
             unitDiscount = unitPriceNormalized * (row.LineDiscount / 100m);
         }
@@ -1307,7 +1307,7 @@ public class BusinessPartyService(
         return new BusinessPartyDto
         {
             Id = businessParty.Id,
-            PartyType = (EventForge.DTOs.Common.BusinessPartyType)businessParty.PartyType,
+            PartyType = (Prym.DTOs.Common.BusinessPartyType)businessParty.PartyType,
             Name = businessParty.Name,
             TaxCode = businessParty.TaxCode,
             VatNumber = businessParty.VatNumber,
@@ -1338,9 +1338,9 @@ public class BusinessPartyService(
     /// <summary>
     /// Maps Contact entity to DTO
     /// </summary>
-    private static EventForge.DTOs.Common.ContactDto MapToContactDto(Data.Entities.Common.Contact contact)
+    private static Prym.DTOs.Common.ContactDto MapToContactDto(Data.Entities.Common.Contact contact)
     {
-        return new EventForge.DTOs.Common.ContactDto
+        return new Prym.DTOs.Common.ContactDto
         {
             Id = contact.Id,
             OwnerId = contact.OwnerId,
@@ -1361,9 +1361,9 @@ public class BusinessPartyService(
     /// <summary>
     /// Maps Address entity to DTO
     /// </summary>
-    private static EventForge.DTOs.Common.AddressDto MapToAddressDto(Data.Entities.Common.Address address)
+    private static Prym.DTOs.Common.AddressDto MapToAddressDto(Data.Entities.Common.Address address)
     {
-        return new EventForge.DTOs.Common.AddressDto
+        return new Prym.DTOs.Common.AddressDto
         {
             Id = address.Id,
             OwnerId = address.OwnerId,
@@ -1385,9 +1385,9 @@ public class BusinessPartyService(
     /// <summary>
     /// Maps PriceList entity to DTO
     /// </summary>
-    private static EventForge.DTOs.PriceLists.PriceListDto MapToPriceListDto(Data.Entities.PriceList.PriceList priceList)
+    private static Prym.DTOs.PriceLists.PriceListDto MapToPriceListDto(Data.Entities.PriceList.PriceList priceList)
     {
-        return new EventForge.DTOs.PriceLists.PriceListDto
+        return new Prym.DTOs.PriceLists.PriceListDto
         {
             Id = priceList.Id,
             Name = priceList.Name,
@@ -1398,7 +1398,7 @@ public class BusinessPartyService(
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = (EventForge.DTOs.Common.PriceListStatus)priceList.Status,
+            Status = (Prym.DTOs.Common.PriceListStatus)priceList.Status,
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,
@@ -1415,7 +1415,7 @@ public class BusinessPartyService(
 
     #region Export Operations
 
-    public async Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
+    public async Task<IEnumerable<Prym.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
@@ -1449,7 +1449,7 @@ public class BusinessPartyService(
                 .Take(pagination.PageSize)
                 .ToListAsync(ct);
 
-            return items.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
+            return items.Select(bp => new Prym.DTOs.Export.BusinessPartyExportDto
             {
                 Id = bp.Id,
                 Code = bp.TaxCode ?? string.Empty,
@@ -1457,8 +1457,8 @@ public class BusinessPartyService(
                 PartyType = bp.PartyType.ToString(),
                 VatNumber = bp.VatNumber,
                 FiscalCode = bp.TaxCode,
-                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
-                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
+                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == Prym.DTOs.Common.ContactType.Email)?.Value,
+                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == Prym.DTOs.Common.ContactType.Phone)?.Value,
                 Address = bp.Addresses.FirstOrDefault()?.Street,
                 City = bp.Addresses.FirstOrDefault()?.City,
                 PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,
@@ -1473,12 +1473,12 @@ public class BusinessPartyService(
         }
     }
 
-    private async Task<IEnumerable<EventForge.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesInBatchesAsync(
+    private async Task<IEnumerable<Prym.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesInBatchesAsync(
         IQueryable<BusinessParty> query,
         CancellationToken ct)
     {
         const int batchSize = 5000;
-        var results = new List<EventForge.DTOs.Export.BusinessPartyExportDto>();
+        var results = new List<Prym.DTOs.Export.BusinessPartyExportDto>();
         var skip = 0;
 
         while (true)
@@ -1492,7 +1492,7 @@ public class BusinessPartyService(
 
             if (batch.Count == 0) break;
 
-            results.AddRange(batch.Select(bp => new EventForge.DTOs.Export.BusinessPartyExportDto
+            results.AddRange(batch.Select(bp => new Prym.DTOs.Export.BusinessPartyExportDto
             {
                 Id = bp.Id,
                 Code = bp.TaxCode ?? string.Empty,
@@ -1500,8 +1500,8 @@ public class BusinessPartyService(
                 PartyType = bp.PartyType.ToString(),
                 VatNumber = bp.VatNumber,
                 FiscalCode = bp.TaxCode,
-                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Email)?.Value,
-                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == DTOs.Common.ContactType.Phone)?.Value,
+                Email = bp.Contacts.FirstOrDefault(c => c.ContactType == Prym.DTOs.Common.ContactType.Email)?.Value,
+                Phone = bp.Contacts.FirstOrDefault(c => c.ContactType == Prym.DTOs.Common.ContactType.Phone)?.Value,
                 Address = bp.Addresses.FirstOrDefault()?.Street,
                 City = bp.Addresses.FirstOrDefault()?.City,
                 PostalCode = bp.Addresses.FirstOrDefault()?.ZipCode,

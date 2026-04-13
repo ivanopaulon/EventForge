@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -12,7 +12,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using DtoApprovalStatus = EventForge.DTOs.Common.ApprovalStatus;
+using DtoApprovalStatus = Prym.DTOs.Common.ApprovalStatus;
 using EntityApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus;
 using EntityBusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
 
@@ -740,7 +740,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         var updateDto = new UpdateDocumentRowDto
         {
-            RowType = EventForge.DTOs.Common.DocumentRowType.Product,
+            RowType = Prym.DTOs.Common.DocumentRowType.Product,
             Quantity = 15, // Changed from 10 to 15
             UnitPrice = 50,
             Description = "Test Product"
@@ -830,7 +830,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         var updateDto = new UpdateDocumentRowDto
         {
-            RowType = EventForge.DTOs.Common.DocumentRowType.Product,
+            RowType = Prym.DTOs.Common.DocumentRowType.Product,
             Quantity = 7, // Changed from 10 to 7
             UnitPrice = 50,
             Description = "Test Product"
@@ -975,7 +975,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "DDT-ACQ-001",
             Date = DateTime.UtcNow,
-            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1007,7 +1007,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(EventForge.DTOs.Common.DocumentStatus.Closed, result.Status);
+        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Closed, result.Status);
 
         // Check that stock movement was created
         var movements = await _context.StockMovements
@@ -1066,7 +1066,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "DDT-VEND-001",
             Date = DateTime.UtcNow,
-            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1098,7 +1098,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(EventForge.DTOs.Common.DocumentStatus.Closed, result.Status);
+        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Closed, result.Status);
 
         // Check that stock movement was created
         var movements = await _context.StockMovements
@@ -1156,7 +1156,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "INV-SRV-001",
             Date = DateTime.UtcNow,
-            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1184,7 +1184,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(EventForge.DTOs.Common.DocumentStatus.Closed, result.Status);
+        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Closed, result.Status);
 
         // Check that NO stock movement was created
         var movements = await _context.StockMovements
@@ -1220,7 +1220,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-002",
             Date = DateTime.UtcNow,
-            Status = EventForge.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1255,7 +1255,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
         var docToReclose = await _context.DocumentHeaders.FindAsync(documentHeader.Id);
         if (docToReclose != null)
         {
-            docToReclose.Status = EventForge.DTOs.Common.DocumentStatus.Open;
+            docToReclose.Status = Prym.DTOs.Common.DocumentStatus.Open;
             await _context.SaveChangesAsync();
         }
 

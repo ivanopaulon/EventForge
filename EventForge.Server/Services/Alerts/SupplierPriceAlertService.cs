@@ -1,4 +1,4 @@
-using EventForge.DTOs.Alerts;
+using Prym.DTOs.Alerts;
 using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;

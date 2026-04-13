@@ -309,8 +309,8 @@ public class MyService
 Create `IMyEntityService.cs` in `EventForge.Client/Services/`:
 
 ```csharp
-using EventForge.DTOs.Common;
-using EventForge.DTOs.MyEntity;
+using Prym.DTOs.Common;
+using Prym.DTOs.MyEntity;
 
 namespace EventForge.Client.Services
 {
@@ -330,8 +330,8 @@ namespace EventForge.Client.Services
 Create `MyEntityService.cs` in `EventForge.Client/Services/`:
 
 ```csharp
-using EventForge.DTOs.Common;
-using EventForge.DTOs.MyEntity;
+using Prym.DTOs.Common;
+using Prym.DTOs.MyEntity;
 
 namespace EventForge.Client.Services
 {

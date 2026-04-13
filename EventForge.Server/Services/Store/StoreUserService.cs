@@ -1,4 +1,4 @@
-using EventForge.DTOs.Store;
+using Prym.DTOs.Store;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Store;
@@ -965,7 +965,7 @@ public class StoreUserService(
             Username = storeUser.Username,
             Email = storeUser.Email,
             Role = storeUser.Role,
-            Status = (EventForge.DTOs.Common.CashierStatus)storeUser.Status,
+            Status = (Prym.DTOs.Common.CashierStatus)storeUser.Status,
             LastLoginAt = storeUser.LastLoginAt,
             Notes = storeUser.Notes,
             CashierGroupId = storeUser.CashierGroupId,
@@ -998,7 +998,7 @@ public class StoreUserService(
             Code = storeUserGroup.Code,
             Name = storeUserGroup.Name,
             Description = storeUserGroup.Description,
-            Status = (EventForge.DTOs.Common.CashierGroupStatus)storeUserGroup.Status,
+            Status = (Prym.DTOs.Common.CashierGroupStatus)storeUserGroup.Status,
             CashierCount = cashierCount,
             PrivilegeCount = privilegeCount,
             // Issue #315: Image Management & Branding Fields
@@ -1024,7 +1024,7 @@ public class StoreUserService(
             Name = storeUserPrivilege.Name,
             Category = storeUserPrivilege.Category,
             Description = storeUserPrivilege.Description,
-            Status = (EventForge.DTOs.Common.CashierPrivilegeStatus)storeUserPrivilege.Status,
+            Status = (Prym.DTOs.Common.CashierPrivilegeStatus)storeUserPrivilege.Status,
             SortOrder = storeUserPrivilege.SortOrder,
             GroupCount = groupCount,
             // Issue #315: Permission System Fields
@@ -1292,8 +1292,8 @@ public class StoreUserService(
                 OwnerId = storeUserId,
                 OwnerType = "StoreUser",
                 FileName = file.FileName,
-                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
-                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                Type = Prym.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = Prym.DTOs.Common.DocumentReferenceSubType.None,
                 MimeType = file.ContentType,
                 StorageKey = storageKey,
                 Url = storageKey,
@@ -1345,7 +1345,7 @@ public class StoreUserService(
         }
     }
 
-    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserPhotoDocumentAsync(Guid storeUserId, CancellationToken cancellationToken = default)
+    public async Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetStoreUserPhotoDocumentAsync(Guid storeUserId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -1465,8 +1465,8 @@ public class StoreUserService(
                 OwnerId = groupId,
                 OwnerType = "StoreUserGroup",
                 FileName = file.FileName,
-                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
-                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                Type = Prym.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = Prym.DTOs.Common.DocumentReferenceSubType.None,
                 MimeType = file.ContentType,
                 StorageKey = storageKey,
                 Url = storageKey,
@@ -1525,7 +1525,7 @@ public class StoreUserService(
         }
     }
 
-    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserGroupLogoDocumentAsync(Guid groupId, CancellationToken cancellationToken = default)
+    public async Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetStoreUserGroupLogoDocumentAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -1645,8 +1645,8 @@ public class StoreUserService(
                 OwnerId = storePosId,
                 OwnerType = "StorePos",
                 FileName = file.FileName,
-                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
-                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                Type = Prym.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = Prym.DTOs.Common.DocumentReferenceSubType.None,
                 MimeType = file.ContentType,
                 StorageKey = storageKey,
                 Url = storageKey,
@@ -1698,7 +1698,7 @@ public class StoreUserService(
         }
     }
 
-    public async Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStorePosImageDocumentAsync(Guid storePosId, CancellationToken cancellationToken = default)
+    public async Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetStorePosImageDocumentAsync(Guid storePosId, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -1774,9 +1774,9 @@ public class StoreUserService(
         }
     }
 
-    private static EventForge.DTOs.Teams.DocumentReferenceDto MapToDocumentReferenceDto(EventForge.Server.Data.Entities.Teams.DocumentReference documentReference)
+    private static Prym.DTOs.Teams.DocumentReferenceDto MapToDocumentReferenceDto(EventForge.Server.Data.Entities.Teams.DocumentReference documentReference)
     {
-        return new EventForge.DTOs.Teams.DocumentReferenceDto
+        return new Prym.DTOs.Teams.DocumentReferenceDto
         {
             Id = documentReference.Id,
             OwnerId = documentReference.OwnerId,
@@ -1806,7 +1806,7 @@ public class StoreUserService(
             Id = storePos.Id,
             Name = storePos.Name,
             Description = storePos.Description,
-            Status = (EventForge.DTOs.Common.CashRegisterStatus)storePos.Status,
+            Status = (Prym.DTOs.Common.CashRegisterStatus)storePos.Status,
             Location = storePos.Location,
             LastOpenedAt = storePos.LastOpenedAt,
             Notes = storePos.Notes,

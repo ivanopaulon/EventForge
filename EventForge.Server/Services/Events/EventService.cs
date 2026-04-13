@@ -1,4 +1,4 @@
-using EventForge.DTOs.Teams;
+using Prym.DTOs.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Events;
@@ -541,7 +541,7 @@ public class EventService(
             StartDate = eventEntity.StartDate,
             EndDate = eventEntity.EndDate,
             Capacity = eventEntity.Capacity,
-            Status = (EventForge.DTOs.Common.EventStatus)(int)eventEntity.Status,
+            Status = (Prym.DTOs.Common.EventStatus)(int)eventEntity.Status,
             Color = eventEntity.Color,
             AssignedToUserId = eventEntity.AssignedToUserId,
             Visibility = eventEntity.Visibility,
@@ -577,7 +577,7 @@ public class EventService(
             StartDate = eventEntity.StartDate,
             EndDate = eventEntity.EndDate,
             Capacity = eventEntity.Capacity,
-            Status = (EventForge.DTOs.Common.EventStatus)(int)eventEntity.Status,
+            Status = (Prym.DTOs.Common.EventStatus)(int)eventEntity.Status,
             Color = eventEntity.Color,
             AssignedToUserId = eventEntity.AssignedToUserId,
             Visibility = eventEntity.Visibility,

@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Client.Services;
 
@@ -160,12 +160,12 @@ public class DocumentHeaderService(
         }
     }
 
-    public async Task<EventForge.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default)
+    public async Task<Prym.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default)
     {
         try
         {
             logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
-            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkApprovalDto, EventForge.DTOs.Bulk.BulkApprovalResultDto>(
+            var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkApprovalDto, Prym.DTOs.Bulk.BulkApprovalResultDto>(
                 "api/v1/documents/bulk-approve",
                 bulkApprovalDto,
                 ct);
@@ -185,13 +185,13 @@ public class DocumentHeaderService(
         }
     }
 
-    public async Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto?> BulkStatusChangeAsync(EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto, CancellationToken ct = default)
+    public async Task<Prym.DTOs.Bulk.BulkStatusChangeResultDto?> BulkStatusChangeAsync(Prym.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto, CancellationToken ct = default)
     {
         try
         {
             logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'",
                 bulkStatusChangeDto.DocumentIds.Count, bulkStatusChangeDto.NewStatus);
-            var result = await httpClientService.PostAsync<EventForge.DTOs.Bulk.BulkStatusChangeDto, EventForge.DTOs.Bulk.BulkStatusChangeResultDto>(
+            var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkStatusChangeDto, Prym.DTOs.Bulk.BulkStatusChangeResultDto>(
                 "api/v1/documents/bulk-status-change",
                 bulkStatusChangeDto,
                 ct);

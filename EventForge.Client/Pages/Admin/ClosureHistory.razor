@@ -1,6 +1,6 @@
 @namespace EventForge.Client.Pages.FiscalAdmin
 @page "/admin/fiscal-printers/{PrinterId:guid}/closures"
-@using EventForge.DTOs.FiscalPrinting
+@using Prym.DTOs.FiscalPrinting
 @using EventForge.Client.Services
 @using EventForge.Client.Shared.Components.FiscalPrinting
 @using EventForge.Client.Shared.Components.Dialogs
@@ -176,7 +176,7 @@
         // Load printer name for breadcrumb/header
         try
         {
-            var printer = await HttpClientService.GetAsync<EventForge.DTOs.Station.PrinterDto>(
+            var printer = await HttpClientService.GetAsync<Prym.DTOs.Station.PrinterDto>(
                 $"api/v1/stations/printers/{PrinterId}");
             _printerName = printer?.Name;
         }

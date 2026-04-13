@@ -1,8 +1,8 @@
 using EventForge.Client.Services;
 using EventForge.Client.Shared.Components.Common;
 using EventForge.Client.Shared.Components.Dialogs.Business;
-using EventForge.DTOs.Business;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 

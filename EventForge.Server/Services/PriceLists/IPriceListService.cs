@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.PriceLists;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -9,7 +9,7 @@ namespace EventForge.Server.Services.PriceLists;
 public interface IPriceListService
 {
     // PriceList CRUD operations
-    Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, Prym.DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default);
     Task<IEnumerable<PriceListDto>> GetPriceListsByEventAsync(Guid eventId, CancellationToken cancellationToken = default);
     Task<PriceListDto?> GetPriceListByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<PriceListDetailDto?> GetPriceListDetailAsync(Guid id, CancellationToken cancellationToken = default);

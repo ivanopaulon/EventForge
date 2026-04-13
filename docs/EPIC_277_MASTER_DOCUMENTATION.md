@@ -148,7 +148,7 @@ Implementare un sistema completo di vendita multi-step per EventForge che suppor
 
 #### 1.2 API Contract Layer (DTOs)
 
-**Percorso**: `/EventForge.DTOs/Sales/`
+**Percorso**: `/Prym.DTOs/Sales/`
 
 ##### DTOs Implementati (8 files, ~320 righe)
 
@@ -554,7 +554,7 @@ EventForge/
 │   ├── Program.cs ✅ (aggiornato con registrazione servizi)
 │   └── Pages/Sales/ ❌ (DA CREARE - Fase 3)
 │       └── (wizard pages e componenti)
-├── EventForge.DTOs/Sales/ ✅ (8 file DTOs, ~320 righe)
+├── Prym.DTOs/Sales/ ✅ (8 file DTOs, ~320 righe)
 │   ├── SaleSessionDto.cs
 │   ├── CreateUpdateSaleSessionDto.cs
 │   ├── SaleItemDtos.cs

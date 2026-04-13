@@ -6,7 +6,7 @@ This document provides a comprehensive guide for implementing the backend refact
 
 The backend refactoring involves:
 1. **Model Review and Cleanup** - Remove redundant properties, ensure soft delete consistency
-2. **DTOs Review and Organization** - Consolidate DTOs in EventForge.DTOs, group by functionality
+2. **DTOs Review and Organization** - Consolidate DTOs in Prym.DTOs, group by functionality
 3. **Services Review and Refactoring** - Ensure proper async/await, exception handling, standardize methods
 4. **Controller Review and Endpoint Reorganization** - RESTful conventions, remove duplicates
 5. **Documentation and Final Cleanup** - Update documentation
@@ -22,7 +22,7 @@ The backend refactoring involves:
   - Pattern established: Remove state-related properties unless explicitly required by domain logic
 
 #### Phase 2: DTO Consolidation (Demo)
-- **Created**: `EventForge.DTOs/Products/ProductManagementDTOs.cs` as demonstration
+- **Created**: `Prym.DTOs/Products/ProductManagementDTOs.cs` as demonstration
 - **Approach**: Group related DTOs by functionality in single files
 - **Naming Convention**: Use descriptive names like `ProductManagementDTOs.cs`, `EventCRUDDTOs.cs`
 
@@ -85,11 +85,11 @@ Add comprehensive XML documentation following the established pattern:
 ### Phase 2: Complete DTO Consolidation
 
 #### 2.1 Group DTOs by Functionality
-Create consolidated DTO files in `EventForge.DTOs`:
+Create consolidated DTO files in `Prym.DTOs`:
 
 **Target Structure:**
 ```
-EventForge.DTOs/
+Prym.DTOs/
 ├── Auth/AuthenticationDTOs.cs
 ├── Business/BusinessPartyDTOs.cs  
 ├── Events/EventManagementDTOs.cs
@@ -104,7 +104,7 @@ For each functional group:
 
 1. **Create consolidated file**:
 ```csharp
-namespace EventForge.DTOs.[GroupName];
+namespace Prym.DTOs.[GroupName];
 
 /// <summary>
 /// DTO for [Entity] output/display operations.

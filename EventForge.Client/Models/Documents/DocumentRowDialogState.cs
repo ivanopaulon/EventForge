@@ -1,7 +1,7 @@
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Products;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Client.Models.Documents;
 

@@ -1,6 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Common;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Client.Shared.Management.Adapters;
 

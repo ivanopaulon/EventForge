@@ -8,7 +8,7 @@ Guida completa alla struttura del progetto EventForge e organizzazione del codic
 EventForge/
 ├── 📁 EventForge.Server/           # Backend Blazor Server application
 ├── 📁 EventForge.Client/           # Frontend client (se applicabile)
-├── 📁 EventForge.DTOs/             # Data Transfer Objects condivisi
+├── 📁 Prym.DTOs/             # Data Transfer Objects condivisi
 ├── 📁 EventForge.Tests/            # Test project unificato
 ├── 📁 docs/                        # Documentazione organizzata
 ├── 📁 audit/                       # Sistema audit automatizzato
@@ -81,11 +81,11 @@ EventForge.Server/
    - Localization
    - Exception handling
 
-## 📦 EventForge.DTOs - Data Transfer Objects
+## 📦 Prym.DTOs - Data Transfer Objects
 
 ### Organizzazione per Feature
 ```
-EventForge.DTOs/
+Prym.DTOs/
 ├── 📁 Core/                        # DTOs core
 │   ├── UserDto.cs
 │   ├── TenantDto.cs
@@ -271,12 +271,12 @@ Controllers → Services → Entities
 ### Project Dependencies
 ```
 EventForge.Server
-├── → EventForge.DTOs
+├── → Prym.DTOs
 └── → External packages (MudBlazor, EF Core, etc.)
 
 EventForge.Tests
 ├── → EventForge.Server
-├── → EventForge.DTOs
+├── → Prym.DTOs
 └── → Test packages (xUnit, Moq, etc.)
 ```
 

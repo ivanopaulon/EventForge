@@ -1,4 +1,4 @@
-using EventForge.DTOs.Alerts;
+using Prym.DTOs.Alerts;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.Alerts;
 using Microsoft.AspNetCore.Authorization;

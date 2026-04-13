@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 
@@ -43,7 +43,7 @@ public interface IStorageFacilityService
     /// <summary>
     /// Get storage facilities (warehouses) for export with batch processing support
     /// </summary>
-    Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesForExportAsync(
+    Task<IEnumerable<Prym.DTOs.Export.WarehouseExportDto>> GetWarehousesForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 }

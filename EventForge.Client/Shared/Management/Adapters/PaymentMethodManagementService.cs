@@ -1,6 +1,6 @@
 using EventForge.Client.Services.Sales;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Sales;
+using Prym.DTOs.Common;
+using Prym.DTOs.Sales;
 
 namespace EventForge.Client.Shared.Management.Adapters;
 

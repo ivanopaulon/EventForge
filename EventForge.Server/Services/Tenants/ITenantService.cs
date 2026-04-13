@@ -84,7 +84,7 @@ public interface ITenantService
     /// <param name="pageNumber">Page number for pagination</param>
     /// <param name="pageSize">Page size for pagination</param>
     /// <returns>Paginated audit trail entries</returns>
-    Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditTrailAsync(
+    Task<PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditTrailAsync(
         Guid? tenantId = null,
         AuditOperationType? operationType = null,
         int pageNumber = 1,
@@ -123,7 +123,7 @@ public interface ITenantService
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="updateDto">Updated limits data</param>
     /// <returns>Updated limits information</returns>
-    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, EventForge.DTOs.Tenants.UpdateTenantLimitsDto updateDto);
+    Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, Prym.DTOs.Tenants.UpdateTenantLimitsDto updateDto);
 
     /// <summary>
     /// Soft deletes a tenant.

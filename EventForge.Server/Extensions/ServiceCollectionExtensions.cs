@@ -728,9 +728,9 @@ public static class ServiceCollectionExtensions
             .AddPolicy("AdminOrSuperAdmin", policy =>
                 policy.RequireRole("Admin", "SuperAdmin")) // Explicit policy for Admin or SuperAdmin access
             .AddPolicy("RequireTenantAdmin", policy =>
-                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(EventForge.DTOs.Common.AdminAccessLevel.TenantAdmin)))
+                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.TenantAdmin)))
             .AddPolicy("RequireTenantFullAccess", policy =>
-                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(EventForge.DTOs.Common.AdminAccessLevel.FullAccess)));
+                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.FullAccess)));
     }
 
     /// <summary>

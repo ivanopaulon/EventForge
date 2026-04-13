@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceHistory;
+using Prym.DTOs.PriceHistory;
 
 namespace EventForge.Server.Services.PriceHistory;
 

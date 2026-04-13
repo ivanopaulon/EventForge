@@ -1,6 +1,6 @@
 using EventForge.Client.Services.Store;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.PaymentTerminal;
+using Prym.DTOs.Common;
+using Prym.DTOs.PaymentTerminal;
 
 namespace EventForge.Client.Shared.Management.Adapters;
 

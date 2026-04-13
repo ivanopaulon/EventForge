@@ -1,9 +1,9 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for DocumentType entity to DTOs.
+/// Static mapper for DocumentType entity to Prym.DTOs.
 /// </summary>
 public static class DocumentTypeMapper
 {
@@ -21,7 +21,7 @@ public static class DocumentTypeMapper
             DefaultWarehouseId = documentType.DefaultWarehouseId,
             DefaultWarehouseName = documentType.DefaultWarehouse?.Name,
             IsFiscal = documentType.IsFiscal,
-            RequiredPartyType = (EventForge.DTOs.Common.BusinessPartyType)documentType.RequiredPartyType,
+            RequiredPartyType = (Prym.DTOs.Common.BusinessPartyType)documentType.RequiredPartyType,
             Notes = documentType.Notes,
             IsInventoryDocument = documentType.IsInventoryDocument,
             CreatedAt = documentType.CreatedAt,

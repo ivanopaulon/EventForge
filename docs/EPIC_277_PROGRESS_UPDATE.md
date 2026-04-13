@@ -141,13 +141,13 @@ Caratteristiche:
 ### 10. DTOs Layer - Table Management (100% Completato) ✅ **NUOVO**
 
 #### Files Creati
-**File**: `EventForge.DTOs/Sales/TableSessionDtos.cs` (~80 righe)
+**File**: `Prym.DTOs/Sales/TableSessionDtos.cs` (~80 righe)
 - `TableSessionDto` - DTO completo tavolo
 - `CreateTableSessionDto` - Creazione tavolo
 - `UpdateTableSessionDto` - Aggiornamento tavolo
 - `UpdateTableStatusDto` - Aggiornamento stato
 
-**File**: `EventForge.DTOs/Sales/TableReservationDtos.cs` (~80 righe)
+**File**: `Prym.DTOs/Sales/TableReservationDtos.cs` (~80 righe)
 - `TableReservationDto` - DTO completo prenotazione
 - `CreateTableReservationDto` - Creazione prenotazione
 - `UpdateTableReservationDto` - Aggiornamento prenotazione
@@ -296,7 +296,7 @@ Caratteristiche:
 - ✅ Soft delete con tracking
 
 #### DTOs Created
-**File**: `EventForge.DTOs/Sales/SessionNoteDtos.cs` (aggiornato)
+**File**: `Prym.DTOs/Sales/SessionNoteDtos.cs` (aggiornato)
 
 - ✅ `CreateNoteFlagDto` - Creazione nuovo flag
 - ✅ `UpdateNoteFlagDto` - Aggiornamento flag esistente
@@ -472,7 +472,7 @@ EventForge/
 │   │   └── ServiceCollectionExtensions.cs ✅ (aggiornato)
 │   └── Migrations/
 │       └── 20251002141945_AddSalesEntities.cs ✅ (nuovo)
-├── EventForge.DTOs/Sales/ ✅ (6 file DTOs)
+├── Prym.DTOs/Sales/ ✅ (6 file DTOs)
 └── docs/
     ├── EPIC_277_SALES_UI_IMPLEMENTATION_STATUS.md ✅
     ├── EPIC_277_SALES_UI_FINAL_REPORT.md ✅

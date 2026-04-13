@@ -1,5 +1,5 @@
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Caching;
@@ -1309,7 +1309,7 @@ public class WarehouseManagementController(
             // Apply optional filters
             if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<DocumentStatus>(status, true, out var parsedStatus))
             {
-                queryParams.Status = (EventForge.DTOs.Common.DocumentStatus)(int)parsedStatus;
+                queryParams.Status = (Prym.DTOs.Common.DocumentStatus)(int)parsedStatus;
             }
 
             if (fromDate.HasValue)
@@ -1734,7 +1734,7 @@ public class WarehouseManagementController(
             }
 
             // Only allow updating Draft documents (status is Open in entity)
-            if (documentHeader.Status != DTOs.Common.DocumentStatus.Open)
+            if (documentHeader.Status != Prym.DTOs.Common.DocumentStatus.Open)
             {
                 return CreateValidationProblemDetails("Only Draft inventory documents can be updated. This document has already been finalized.");
             }
@@ -1968,7 +1968,7 @@ public class WarehouseManagementController(
             }
 
             // Validate document is in Open status
-            if (documentHeader.Status != EventForge.DTOs.Common.DocumentStatus.Open)
+            if (documentHeader.Status != Prym.DTOs.Common.DocumentStatus.Open)
             {
                 logger.LogWarning(
                     "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Open",
@@ -2371,7 +2371,7 @@ public class WarehouseManagementController(
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
+                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = true
@@ -2511,7 +2511,7 @@ public class WarehouseManagementController(
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
+                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
@@ -2727,7 +2727,7 @@ public class WarehouseManagementController(
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (EventForge.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
+                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
@@ -3282,11 +3282,11 @@ public class WarehouseManagementController(
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("bulk-transfer")]
     [Authorize(Roles = "Admin,Manager")]
-    [ProducesResponseType(typeof(EventForge.DTOs.Bulk.BulkTransferResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Prym.DTOs.Bulk.BulkTransferResultDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<EventForge.DTOs.Bulk.BulkTransferResultDto>> BulkTransfer(
-        [FromBody] EventForge.DTOs.Bulk.BulkTransferDto bulkTransferDto,
+    public async Task<ActionResult<Prym.DTOs.Bulk.BulkTransferResultDto>> BulkTransfer(
+        [FromBody] Prym.DTOs.Bulk.BulkTransferDto bulkTransferDto,
         CancellationToken cancellationToken = default)
     {
         if (!ModelState.IsValid)

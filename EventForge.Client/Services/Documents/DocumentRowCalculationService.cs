@@ -1,5 +1,5 @@
 using EventForge.Client.Models.Documents;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Common;
 
 namespace EventForge.Client.Services.Documents;
 

@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
@@ -1264,7 +1264,7 @@ public class PriceListGenerationService(
                 Code = newPriceList.Code,
                 Type = newPriceList.Type,
                 Direction = newPriceList.Direction,
-                Status = (EventForge.DTOs.Common.PriceListStatus)newPriceList.Status,
+                Status = (Prym.DTOs.Common.PriceListStatus)newPriceList.Status,
                 Priority = newPriceList.Priority,
                 ValidFrom = newPriceList.ValidFrom,
                 ValidTo = newPriceList.ValidTo,
@@ -1359,23 +1359,23 @@ public class PriceListGenerationService(
     /// <summary>
     /// Applica la strategia di arrotondamento al prezzo.
     /// </summary>
-    private static decimal ApplyRounding(decimal value, EventForge.DTOs.Common.RoundingStrategy strategy)
+    private static decimal ApplyRounding(decimal value, Prym.DTOs.Common.RoundingStrategy strategy)
     {
         return strategy switch
         {
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest5Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest5Cents =>
                 Math.Round(value * 20, MidpointRounding.AwayFromZero) / 20m,
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest10Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest10Cents =>
                 Math.Round(value * 10, MidpointRounding.AwayFromZero) / 10m,
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest50Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest50Cents =>
                 Math.Round(value * 2, MidpointRounding.AwayFromZero) / 2m,
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearestEuro =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearestEuro =>
                 Math.Round(value, MidpointRounding.AwayFromZero),
 
-            EventForge.DTOs.Common.RoundingStrategy.ToNearest99Cents =>
+            Prym.DTOs.Common.RoundingStrategy.ToNearest99Cents =>
                 Math.Floor(value) + 0.99m,
 
             _ => value

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Notifications;
 using EventForge.Server.Services.Alerts;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.Updates;

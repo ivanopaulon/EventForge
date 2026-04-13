@@ -426,7 +426,7 @@ L'implementazione supera significativamente i requisiti originali, includendo fe
 - `EventForge.Server/Data/Entities/Documents/*.cs` - 15 entità
 - `EventForge.Server/Services/Documents/*.cs` - 29 servizi
 - `EventForge.Server/Controllers/Documents*.cs` - 5 controller
-- `EventForge.DTOs/Documents/*.cs` - 20+ DTOs
+- `Prym.DTOs/Documents/*.cs` - 20+ DTOs
 
 ### Test
 - `EventForge.Tests/Integration/DocumentsControllerIntegrationTests.cs`

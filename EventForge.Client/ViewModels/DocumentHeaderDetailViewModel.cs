@@ -1,6 +1,6 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Client.ViewModels;
 
@@ -27,7 +27,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
 
     // Related entity collections
     public IEnumerable<DocumentTypeDto>? DocumentTypes { get; private set; }
-    public IEnumerable<EventForge.DTOs.Business.BusinessPartyDto>? BusinessParties { get; private set; }
+    public IEnumerable<Prym.DTOs.Business.BusinessPartyDto>? BusinessParties { get; private set; }
 
     protected override DocumentHeaderDto CreateNewEntity()
     {
@@ -108,7 +108,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
         if (IsNewEntity)
         {
             DocumentTypes = new List<DocumentTypeDto>();
-            BusinessParties = new List<EventForge.DTOs.Business.BusinessPartyDto>();
+            BusinessParties = new List<Prym.DTOs.Business.BusinessPartyDto>();
             return;
         }
 
@@ -120,7 +120,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
 
             // Load business parties for dropdown
             var businessPartiesResult = await _businessPartyService.GetBusinessPartiesAsync(1, 100);
-            BusinessParties = businessPartiesResult?.Items ?? new List<EventForge.DTOs.Business.BusinessPartyDto>();
+            BusinessParties = businessPartiesResult?.Items ?? new List<Prym.DTOs.Business.BusinessPartyDto>();
 
             Logger.LogInformation("Loaded {DocumentTypeCount} document types and {BusinessPartyCount} business parties for document header {Id}",
                 DocumentTypes.Count(), BusinessParties.Count(), entityId);
@@ -129,7 +129,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
         {
             Logger.LogError(ex, "Error loading related entities for document header {Id}", entityId);
             DocumentTypes = new List<DocumentTypeDto>();
-            BusinessParties = new List<EventForge.DTOs.Business.BusinessPartyDto>();
+            BusinessParties = new List<Prym.DTOs.Business.BusinessPartyDto>();
         }
     }
 

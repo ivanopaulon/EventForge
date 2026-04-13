@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
@@ -234,7 +234,7 @@ public class PriceListBusinessPartyService(
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = (EventForge.DTOs.Common.PriceListStatus)priceList.Status,
+            Status = (Prym.DTOs.Common.PriceListStatus)priceList.Status,
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,

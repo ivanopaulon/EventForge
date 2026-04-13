@@ -1,4 +1,4 @@
-using EventForge.DTOs.Promotions;
+using Prym.DTOs.Promotions;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Services.Audit;

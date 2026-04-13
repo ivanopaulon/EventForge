@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
-using PriceListDirection = EventForge.DTOs.Common.PriceListDirection;
+using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 using ProductStatus = EventForge.Server.Data.Entities.Products.ProductStatus;
 

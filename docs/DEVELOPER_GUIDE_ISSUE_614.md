@@ -84,7 +84,7 @@
 
 ### 1. AddInventoryDocumentRowDto
 
-**File:** `EventForge.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
+**File:** `Prym.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
 
 ```csharp
 public class AddInventoryDocumentRowDto
@@ -237,7 +237,7 @@ private void TrackBarcodeAssignment(
 **File:** `EventForge.Client/Shared/Components/Warehouse/InventoryBarcodeAuditPanel.razor`
 
 ```razor
-@using EventForge.DTOs.Products
+@using Prym.DTOs.Products
 @inject ITranslationService TranslationService
 @inject NavigationManager NavigationManager
 
@@ -1084,7 +1084,7 @@ INCLUDE (ProductId, Code, CodeType);
 ## References
 
 ### Code Files
-- `EventForge.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
+- `Prym.DTOs/Warehouse/AddInventoryDocumentRowDto.cs`
 - `EventForge.Client/Pages/Management/Warehouse/InventoryProcedure.razor`
 - `EventForge.Client/Shared/Components/Warehouse/InventoryBarcodeAuditPanel.razor`
 - `EventForge.Server/Services/Documents/DocumentHeaderService.cs`

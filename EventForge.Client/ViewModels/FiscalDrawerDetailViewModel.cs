@@ -1,5 +1,5 @@
 using EventForge.Client.Services.Store;
-using EventForge.DTOs.Store;
+using Prym.DTOs.Store;
 
 namespace EventForge.Client.ViewModels;
 

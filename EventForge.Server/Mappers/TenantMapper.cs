@@ -1,10 +1,10 @@
-using ServerTenantDtos = EventForge.DTOs.Tenants;
-using SharedTenantDtos = EventForge.DTOs.Tenants;
+using ServerTenantDtos = Prym.DTOs.Tenants;
+using SharedTenantDtos = Prym.DTOs.Tenants;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for Tenant entity to DTOs.
+/// Static mapper for Tenant entity to Prym.DTOs.
 /// </summary>
 public static class TenantMapper
 {

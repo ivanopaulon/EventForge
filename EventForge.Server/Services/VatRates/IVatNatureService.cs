@@ -1,4 +1,4 @@
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Server.Services.VatRates;
 

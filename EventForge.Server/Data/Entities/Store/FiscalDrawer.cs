@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using EventForge.DTOs.Store;
+using Prym.DTOs.Store;
 
 namespace EventForge.Server.Data.Entities.Store;
 

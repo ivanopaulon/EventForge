@@ -1,7 +1,7 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Client.ViewModels;
 

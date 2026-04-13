@@ -1,8 +1,8 @@
-using EventForge.DTOs.PriceLists;
+using Prym.DTOs.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
-using PriceListDirection = EventForge.DTOs.Common.PriceListDirection;
+using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
 using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Server.Services.PriceLists;
@@ -19,7 +19,7 @@ public class PriceListService(
 {
     private readonly IUnitConversionService _unitConversionService = unitConversionService;
 
-    public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, Prym.DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -38,9 +38,9 @@ public class PriceListService(
                 // Map DTO enum to entity enum by name (the two enums have different ordinal values)
                 var entityStatus = status.Value switch
                 {
-                    DTOs.Common.PriceListStatus.Active => PriceListStatus.Active,
-                    DTOs.Common.PriceListStatus.Suspended => PriceListStatus.Suspended,
-                    DTOs.Common.PriceListStatus.Deleted => PriceListStatus.Deleted,
+                    Prym.DTOs.Common.PriceListStatus.Active => PriceListStatus.Active,
+                    Prym.DTOs.Common.PriceListStatus.Suspended => PriceListStatus.Suspended,
+                    Prym.DTOs.Common.PriceListStatus.Deleted => PriceListStatus.Deleted,
                     _ => (PriceListStatus?)null
                 };
                 if (entityStatus.HasValue)
@@ -575,10 +575,10 @@ public class PriceListService(
             Notes = priceList.Notes,
             Status = priceList.Status switch
             {
-                PriceListStatus.Active => EventForge.DTOs.Common.PriceListStatus.Active,
-                PriceListStatus.Suspended => EventForge.DTOs.Common.PriceListStatus.Suspended,
-                PriceListStatus.Deleted => EventForge.DTOs.Common.PriceListStatus.Deleted,
-                _ => EventForge.DTOs.Common.PriceListStatus.Active
+                PriceListStatus.Active => Prym.DTOs.Common.PriceListStatus.Active,
+                PriceListStatus.Suspended => Prym.DTOs.Common.PriceListStatus.Suspended,
+                PriceListStatus.Deleted => Prym.DTOs.Common.PriceListStatus.Deleted,
+                _ => Prym.DTOs.Common.PriceListStatus.Active
             },
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,

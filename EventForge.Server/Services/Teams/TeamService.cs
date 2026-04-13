@@ -1,4 +1,4 @@
-using EventForge.DTOs.Teams;
+using Prym.DTOs.Teams;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Teams;

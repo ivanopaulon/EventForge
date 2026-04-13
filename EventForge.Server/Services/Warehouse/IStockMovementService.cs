@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 
@@ -156,7 +156,7 @@ public interface IStockMovementService
     /// <summary>
     /// Get inventory movements for export with batch processing support
     /// </summary>
-    Task<IEnumerable<EventForge.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
+    Task<IEnumerable<Prym.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 }

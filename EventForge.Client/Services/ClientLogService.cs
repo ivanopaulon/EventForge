@@ -1,4 +1,4 @@
-using EventForge.DTOs.Common;
+using Prym.DTOs.Common;
 using Microsoft.JSInterop;
 using System.Net.Http.Json;
 using System.Text.Json;

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Products;
+using Prym.DTOs.Products;
 
 namespace EventForge.Server.Services.Products;
 
@@ -270,7 +270,7 @@ public interface IProductService
     /// <param name="productId">Product ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>DocumentReference DTO or null if not found</returns>
-    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetProductImageDocumentAsync(Guid productId, CancellationToken cancellationToken = default);
+    Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetProductImageDocumentAsync(Guid productId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes the image DocumentReference for a product.
@@ -378,7 +378,7 @@ public interface IProductService
     /// <summary>
     /// Get products for export with batch processing support
     /// </summary>
-    Task<IEnumerable<EventForge.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
+    Task<IEnumerable<Prym.DTOs.Export.ProductExportDto>> GetProductsForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
 
@@ -389,8 +389,8 @@ public interface IProductService
     /// <param name="currentUser">Current user name</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Result of the bulk update operation</returns>
-    Task<EventForge.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
-        EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+    Task<Prym.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
+        Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
         string currentUser,
         CancellationToken cancellationToken = default);
 }

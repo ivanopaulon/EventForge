@@ -203,7 +203,7 @@ Manteniamo questi file per referenza storica e tracking evoluzione progetto:
 **Codice:**
 - Backend: `/EventForge.Server/`
 - Client Services: `/EventForge.Client/Services/Sales/`
-- DTOs: `/EventForge.DTOs/Sales/`
+- DTOs: `/Prym.DTOs/Sales/`
 
 **Swagger API Docs:**
 - Development: `https://localhost:5001/swagger`

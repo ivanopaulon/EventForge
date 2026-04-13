@@ -1,4 +1,4 @@
-using EventForge.DTOs.SuperAdmin;
+using Prym.DTOs.SuperAdmin;
 
 namespace EventForge.Client.Services;
 

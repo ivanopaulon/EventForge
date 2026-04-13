@@ -1,4 +1,4 @@
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Documents;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Documents;
@@ -1005,13 +1005,13 @@ public class DocumentFacade(
     #region Bulk Operations
 
     /// <inheritdoc />
-    public async Task<EventForge.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
-        EventForge.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
+    public async Task<Prym.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
+        Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
-        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var errors = new List<Prym.DTOs.Bulk.BulkItemError>();
         var successCount = 0;
 
         // Validate batch size
@@ -1041,7 +1041,7 @@ public class DocumentFacade(
             var missingIds = bulkApprovalDto.DocumentIds.Where(id => !foundIds.Contains(id)).ToList();
             foreach (var missingId in missingIds)
             {
-                errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                errors.Add(new Prym.DTOs.Bulk.BulkItemError
                 {
                     ItemId = missingId,
                     ErrorMessage = "Document not found or does not belong to the current tenant."
@@ -1085,7 +1085,7 @@ public class DocumentFacade(
                 }
                 catch (Exception ex)
                 {
-                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = document.Id,
                         ItemName = document.Number,
@@ -1101,7 +1101,7 @@ public class DocumentFacade(
                 "Bulk approval completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
-            return new EventForge.DTOs.Bulk.BulkApprovalResultDto
+            return new Prym.DTOs.Bulk.BulkApprovalResultDto
             {
                 TotalCount = bulkApprovalDto.DocumentIds.Count,
                 SuccessCount = successCount,
@@ -1117,14 +1117,14 @@ public class DocumentFacade(
             await transaction.RollbackAsync(cancellationToken);
             logger.LogError(ex, "Bulk approval failed and was rolled back");
 
-            return new EventForge.DTOs.Bulk.BulkApprovalResultDto
+            return new Prym.DTOs.Bulk.BulkApprovalResultDto
             {
                 TotalCount = bulkApprovalDto.DocumentIds.Count,
                 SuccessCount = 0,
                 FailedCount = bulkApprovalDto.DocumentIds.Count,
-                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                Errors = new List<Prym.DTOs.Bulk.BulkItemError>
                 {
-                    new EventForge.DTOs.Bulk.BulkItemError
+                    new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = Guid.Empty,
                         ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
@@ -1138,13 +1138,13 @@ public class DocumentFacade(
     }
 
     /// <inheritdoc />
-    public async Task<EventForge.DTOs.Bulk.BulkStatusChangeResultDto> BulkStatusChangeAsync(
-        EventForge.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
+    public async Task<Prym.DTOs.Bulk.BulkStatusChangeResultDto> BulkStatusChangeAsync(
+        Prym.DTOs.Bulk.BulkStatusChangeDto bulkStatusChangeDto,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
         var startTime = DateTime.UtcNow;
-        var errors = new List<EventForge.DTOs.Bulk.BulkItemError>();
+        var errors = new List<Prym.DTOs.Bulk.BulkItemError>();
         var successCount = 0;
 
         // Validate batch size
@@ -1180,7 +1180,7 @@ public class DocumentFacade(
             var missingIds = bulkStatusChangeDto.DocumentIds.Where(id => !foundIds.Contains(id)).ToList();
             foreach (var missingId in missingIds)
             {
-                errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                errors.Add(new Prym.DTOs.Bulk.BulkItemError
                 {
                     ItemId = missingId,
                     ErrorMessage = "Document not found or does not belong to the current tenant."
@@ -1195,7 +1195,7 @@ public class DocumentFacade(
                     // Check if status change is valid
                     if (document.Status == newStatus)
                     {
-                        errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                        errors.Add(new Prym.DTOs.Bulk.BulkItemError
                         {
                             ItemId = document.Id,
                             ItemName = document.Number,
@@ -1233,7 +1233,7 @@ public class DocumentFacade(
                 }
                 catch (Exception ex)
                 {
-                    errors.Add(new EventForge.DTOs.Bulk.BulkItemError
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = document.Id,
                         ItemName = document.Number,
@@ -1249,7 +1249,7 @@ public class DocumentFacade(
                 "Bulk status change completed: {SuccessCount} successful, {FailureCount} failed",
                 successCount, errors.Count);
 
-            return new EventForge.DTOs.Bulk.BulkStatusChangeResultDto
+            return new Prym.DTOs.Bulk.BulkStatusChangeResultDto
             {
                 TotalCount = bulkStatusChangeDto.DocumentIds.Count,
                 SuccessCount = successCount,
@@ -1265,14 +1265,14 @@ public class DocumentFacade(
             await transaction.RollbackAsync(cancellationToken);
             logger.LogError(ex, "Bulk status change failed and was rolled back");
 
-            return new EventForge.DTOs.Bulk.BulkStatusChangeResultDto
+            return new Prym.DTOs.Bulk.BulkStatusChangeResultDto
             {
                 TotalCount = bulkStatusChangeDto.DocumentIds.Count,
                 SuccessCount = 0,
                 FailedCount = bulkStatusChangeDto.DocumentIds.Count,
-                Errors = new List<EventForge.DTOs.Bulk.BulkItemError>
+                Errors = new List<Prym.DTOs.Bulk.BulkItemError>
                 {
-                    new EventForge.DTOs.Bulk.BulkItemError
+                    new Prym.DTOs.Bulk.BulkItemError
                     {
                         ItemId = Guid.Empty,
                         ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"

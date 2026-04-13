@@ -1,4 +1,4 @@
-using EventForge.DTOs.Dashboard;
+using Prym.DTOs.Dashboard;
 using System.Reflection;
 
 namespace EventForge.Client.Services.Schema
@@ -10,9 +10,9 @@ namespace EventForge.Client.Services.Schema
     {
         private readonly Dictionary<string, Type> _entityTypeMap = new()
         {
-            { "VatRate", typeof(EventForge.DTOs.VatRates.VatRateDto) },
-            { "Product", typeof(EventForge.DTOs.Products.ProductDto) },
-            { "BusinessParty", typeof(EventForge.DTOs.Business.BusinessPartyDto) },
+            { "VatRate", typeof(Prym.DTOs.VatRates.VatRateDto) },
+            { "Product", typeof(Prym.DTOs.Products.ProductDto) },
+            { "BusinessParty", typeof(Prym.DTOs.Business.BusinessPartyDto) },
         };
 
         public List<FieldMetadata> GetAvailableFields(string entityType, bool includeNested = false)

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Tests.DTOs;

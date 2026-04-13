@@ -1,6 +1,6 @@
 using EventForge.Client.Helpers;
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Products;
+using Prym.DTOs.Common;
+using Prym.DTOs.Products;
 using Microsoft.Extensions.Caching.Memory;
 using System.Net;
 

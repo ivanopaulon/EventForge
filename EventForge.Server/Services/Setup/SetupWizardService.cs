@@ -1,4 +1,4 @@
-using EventForge.DTOs.Setup;
+using Prym.DTOs.Setup;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;

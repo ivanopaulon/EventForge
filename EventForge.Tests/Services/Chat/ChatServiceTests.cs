@@ -1,4 +1,4 @@
-using EventForge.DTOs.Chat;
+using Prym.DTOs.Chat;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Auth;

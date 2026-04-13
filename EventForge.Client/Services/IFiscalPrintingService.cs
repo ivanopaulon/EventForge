@@ -1,4 +1,4 @@
-using EventForge.DTOs.FiscalPrinting;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Client.Services;
 
@@ -57,13 +57,13 @@ public interface IFiscalPrintingService
     Task<List<NetworkScanResultDto>?> ScanNetworkAsync(string subnetPrefix, int port = 9100, int timeoutMs = 300, CancellationToken ct = default);
 
     /// <summary>Saves the full wizard configuration (creates printer + associations).</summary>
-    Task<EventForge.DTOs.Station.PrinterDto?> SaveSetupAsync(FiscalPrinterSetupDto setup, CancellationToken ct = default);
+    Task<Prym.DTOs.Station.PrinterDto?> SaveSetupAsync(FiscalPrinterSetupDto setup, CancellationToken ct = default);
 
     /// <summary>Loads the wizard setup payload for an existing printer (edit mode).</summary>
     Task<FiscalPrinterSetupDto?> GetSetupAsync(Guid printerId, CancellationToken ct = default);
 
     /// <summary>Updates an existing printer's configuration from the wizard (edit mode).</summary>
-    Task<EventForge.DTOs.Station.PrinterDto?> UpdateSetupAsync(Guid printerId, FiscalPrinterSetupDto setup, CancellationToken ct = default);
+    Task<Prym.DTOs.Station.PrinterDto?> UpdateSetupAsync(Guid printerId, FiscalPrinterSetupDto setup, CancellationToken ct = default);
 
     // ── Daily closure workflow ────────────────────────────────────────────────
 

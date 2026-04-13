@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Documents;
+using Prym.DTOs.Common;
+using Prym.DTOs.Documents;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Services.Audit;

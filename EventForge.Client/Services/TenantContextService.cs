@@ -1,4 +1,4 @@
-using EventForge.DTOs.Tenants;
+using Prym.DTOs.Tenants;
 using Microsoft.JSInterop;
 
 namespace EventForge.Client.Services;

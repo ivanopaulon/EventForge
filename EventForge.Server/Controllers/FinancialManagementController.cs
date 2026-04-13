@@ -1,6 +1,6 @@
-using EventForge.DTOs.Banks;
-using EventForge.DTOs.Business;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Banks;
+using Prym.DTOs.Business;
+using Prym.DTOs.VatRates;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;

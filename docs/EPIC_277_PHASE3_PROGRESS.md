@@ -294,7 +294,7 @@ EventForge.Client/
 ├── wwwroot/
 │   └── css/
 │       └── sales.css ✅ (nuovo)
-└── _Imports.razor ✅ (aggiornato con EventForge.DTOs.Sales)
+└── _Imports.razor ✅ (aggiornato con Prym.DTOs.Sales)
 
 docs/
 └── EPIC_277_MASTER_DOCUMENTATION.md ✅ (nuovo)
@@ -308,7 +308,7 @@ docs/
 
 Aggiunto import per Sales DTOs:
 ```csharp
-@using EventForge.DTOs.Sales
+@using Prym.DTOs.Sales
 ```
 
 **File**: `EventForge.Client/wwwroot/index.html`

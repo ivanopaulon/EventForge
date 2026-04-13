@@ -1,5 +1,5 @@
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Services.Documents;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;

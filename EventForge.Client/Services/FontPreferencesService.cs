@@ -1,5 +1,5 @@
 using Blazored.LocalStorage;
-using EventForge.DTOs.Profile;
+using Prym.DTOs.Profile;
 using Microsoft.JSInterop;
 
 namespace EventForge.Client.Services;

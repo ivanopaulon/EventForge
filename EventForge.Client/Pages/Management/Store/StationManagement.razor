@@ -1,7 +1,7 @@
 @page "/admin/stations"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.Station
-@using EventForge.DTOs.Common
+@using Prym.DTOs.Station
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
 @inject EventForge.Client.Services.Station.IStationService StationService

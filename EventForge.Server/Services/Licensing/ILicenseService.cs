@@ -1,4 +1,4 @@
-using EventForge.DTOs.Licensing;
+using Prym.DTOs.Licensing;
 
 namespace EventForge.Server.Services.Licensing;
 

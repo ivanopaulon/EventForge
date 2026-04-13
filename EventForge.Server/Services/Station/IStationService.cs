@@ -1,4 +1,4 @@
-using EventForge.DTOs.Station;
+using Prym.DTOs.Station;
 
 namespace EventForge.Server.Services.Station;
 

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Store;
+using Prym.DTOs.Store;
 
 namespace EventForge.Server.Services.Store;
 
@@ -210,7 +210,7 @@ public interface IStoreUserService
     /// <param name="storeUserId">Store user ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Photo document reference or null if not found</returns>
-    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserPhotoDocumentAsync(Guid storeUserId, CancellationToken cancellationToken = default);
+    Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetStoreUserPhotoDocumentAsync(Guid storeUserId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes the photo for a store user.
@@ -235,7 +235,7 @@ public interface IStoreUserService
     /// <param name="groupId">Store user group ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Logo document reference or null if not found</returns>
-    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStoreUserGroupLogoDocumentAsync(Guid groupId, CancellationToken cancellationToken = default);
+    Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetStoreUserGroupLogoDocumentAsync(Guid groupId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes the logo for a store user group.
@@ -309,7 +309,7 @@ public interface IStoreUserService
     /// <param name="storePosId">Store POS ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Image document reference or null if not found</returns>
-    Task<EventForge.DTOs.Teams.DocumentReferenceDto?> GetStorePosImageDocumentAsync(Guid storePosId, CancellationToken cancellationToken = default);
+    Task<Prym.DTOs.Teams.DocumentReferenceDto?> GetStorePosImageDocumentAsync(Guid storePosId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes the image for a store POS.

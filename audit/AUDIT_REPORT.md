@@ -324,7 +324,7 @@ This automated audit verifies the completion status of three major refactoring P
 
 **File:** `EventForge.Server/Controllers/ChatController.cs`
 **Issue:** Inline DTO definition found in controller
-**Details:** Found 1 DTO class(es) defined inline. Should be moved to EventForge.DTOs project
+**Details:** Found 1 DTO class(es) defined inline. Should be moved to Prym.DTOs project
 
 ### Services Refactoring
 
@@ -372,399 +372,399 @@ This automated audit verifies the completion status of three major refactoring P
 
 #### 🟢 Low Priority
 
-**File:** `EventForge.DTOs/Products/ProductUnitDto.cs`
+**File:** `Prym.DTOs/Products/ProductUnitDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Products/ProductDto.cs`
+**File:** `Prym.DTOs/Products/ProductDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Products/ProductBundleItemDto.cs`
+**File:** `Prym.DTOs/Products/ProductBundleItemDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Products/ProductCodeDto.cs`
+**File:** `Prym.DTOs/Products/ProductCodeDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Products/ProductDetailDto.cs`
+**File:** `Prym.DTOs/Products/ProductDetailDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Printing/QzPrintingDto.cs`
+**File:** `Prym.DTOs/Printing/QzPrintingDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/UpdateStorageLocationDto.cs`
+**File:** `Prym.DTOs/Warehouse/UpdateStorageLocationDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/UpdateStockDto.cs`
+**File:** `Prym.DTOs/Warehouse/UpdateStockDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/CreateStorageFacilityDto.cs`
+**File:** `Prym.DTOs/Warehouse/CreateStorageFacilityDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/CreateStorageLocationDto.cs`
+**File:** `Prym.DTOs/Warehouse/CreateStorageLocationDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/CreateSerialDto.cs`
+**File:** `Prym.DTOs/Warehouse/CreateSerialDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/StorageLocationDto.cs`
+**File:** `Prym.DTOs/Warehouse/StorageLocationDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/MovementSummaryDto.cs`
+**File:** `Prym.DTOs/Warehouse/MovementSummaryDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/CreateStockAlertDto.cs`
+**File:** `Prym.DTOs/Warehouse/CreateStockAlertDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/UpdateSerialDto.cs`
+**File:** `Prym.DTOs/Warehouse/UpdateSerialDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/AlertCheckSummaryDto.cs`
+**File:** `Prym.DTOs/Warehouse/AlertCheckSummaryDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/CreateStockDto.cs`
+**File:** `Prym.DTOs/Warehouse/CreateStockDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/StorageFacilityDto.cs`
+**File:** `Prym.DTOs/Warehouse/StorageFacilityDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Warehouse/UpdateStorageFacilityDto.cs`
+**File:** `Prym.DTOs/Warehouse/UpdateStorageFacilityDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Promotions/UpdatePromotionDto.cs`
+**File:** `Prym.DTOs/Promotions/UpdatePromotionDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Promotions/PromotionDto.cs`
+**File:** `Prym.DTOs/Promotions/PromotionDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Promotions/PromotionRuleProductDto.cs`
+**File:** `Prym.DTOs/Promotions/PromotionRuleProductDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Promotions/PromotionRuleApplicationDto.cs`
+**File:** `Prym.DTOs/Promotions/PromotionRuleApplicationDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Promotions/PromotionRuleDto.cs`
+**File:** `Prym.DTOs/Promotions/PromotionRuleDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Promotions/CreatePromotionDto.cs`
+**File:** `Prym.DTOs/Promotions/CreatePromotionDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/PrecedenceValidationResultDto.cs`
+**File:** `Prym.DTOs/PriceLists/PrecedenceValidationResultDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/AppliedPriceDto.cs`
+**File:** `Prym.DTOs/PriceLists/AppliedPriceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/PriceListDetailDto.cs`
+**File:** `Prym.DTOs/PriceLists/PriceListDetailDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/ExportablePriceListEntryDto.cs`
+**File:** `Prym.DTOs/PriceLists/ExportablePriceListEntryDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/PriceListEntryDto.cs`
+**File:** `Prym.DTOs/PriceLists/PriceListEntryDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/BulkImportResultDto.cs`
+**File:** `Prym.DTOs/PriceLists/BulkImportResultDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/PriceHistoryDto.cs`
+**File:** `Prym.DTOs/PriceLists/PriceHistoryDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/PriceLists/PriceListDto.cs`
+**File:** `Prym.DTOs/PriceLists/PriceListDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Audit/AuditLogQueryParameters.cs`
+**File:** `Prym.DTOs/Audit/AuditLogQueryParameters.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Audit/EntityChangeLogDto.cs`
+**File:** `Prym.DTOs/Audit/EntityChangeLogDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Business/CreateBusinessPartyAccountingDto.cs`
+**File:** `Prym.DTOs/Business/CreateBusinessPartyAccountingDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Business/UpdateBusinessPartyAccountingDto.cs`
+**File:** `Prym.DTOs/Business/UpdateBusinessPartyAccountingDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Business/BusinessPartyAccountingDto.cs`
+**File:** `Prym.DTOs/Business/BusinessPartyAccountingDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Business/PaymentTermDto.cs`
+**File:** `Prym.DTOs/Business/PaymentTermDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Business/BusinessPartyDto.cs`
+**File:** `Prym.DTOs/Business/BusinessPartyDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentSummaryLinkDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentSummaryLinkDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentTypeDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentTypeDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentTemplateDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentTemplateDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/UpdateDocumentHeaderDto.cs`
+**File:** `Prym.DTOs/Documents/UpdateDocumentHeaderDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentRowDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentRowDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentHeaderQueryParameters.cs`
+**File:** `Prym.DTOs/Documents/DocumentHeaderQueryParameters.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentHeaderDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentHeaderDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/CreateDocumentRowDto.cs`
+**File:** `Prym.DTOs/Documents/CreateDocumentRowDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentRecurrenceDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentRecurrenceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentAttachmentDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentAttachmentDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentWorkflowDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentWorkflowDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/UpdateDocumentRowDto.cs`
+**File:** `Prym.DTOs/Documents/UpdateDocumentRowDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/CreateDocumentHeaderDto.cs`
+**File:** `Prym.DTOs/Documents/CreateDocumentHeaderDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Documents/DocumentCommentDto.cs`
+**File:** `Prym.DTOs/Documents/DocumentCommentDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Banks/CreateBankDto.cs`
+**File:** `Prym.DTOs/Banks/CreateBankDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Banks/BankDto.cs`
+**File:** `Prym.DTOs/Banks/BankDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Banks/UpdateBankDto.cs`
+**File:** `Prym.DTOs/Banks/UpdateBankDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Store/StoreUserGroupDto.cs`
+**File:** `Prym.DTOs/Store/StoreUserGroupDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Store/StoreUserPrivilegeDto.cs`
+**File:** `Prym.DTOs/Store/StoreUserPrivilegeDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Store/StoreUserDto.cs`
+**File:** `Prym.DTOs/Store/StoreUserDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Station/StationDto.cs`
+**File:** `Prym.DTOs/Station/StationDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Station/PrinterDto.cs`
+**File:** `Prym.DTOs/Station/PrinterDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Performance/PerformanceDtos.cs`
+**File:** `Prym.DTOs/Performance/PerformanceDtos.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Events/EventDto.cs`
+**File:** `Prym.DTOs/Events/EventDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Events/EventDetailDto.cs`
+**File:** `Prym.DTOs/Events/EventDetailDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/RetailCart/CreateCartSessionDto.cs`
+**File:** `Prym.DTOs/RetailCart/CreateCartSessionDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/RetailCart/UpdateCartItemDto.cs`
+**File:** `Prym.DTOs/RetailCart/UpdateCartItemDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/RetailCart/CartSessionDto.cs`
+**File:** `Prym.DTOs/RetailCart/CartSessionDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/RetailCart/CartSessionItemDto.cs`
+**File:** `Prym.DTOs/RetailCart/CartSessionItemDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/CreateClassificationNodeDto.cs`
+**File:** `Prym.DTOs/Common/CreateClassificationNodeDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/UpdateAddressDto.cs`
+**File:** `Prym.DTOs/Common/UpdateAddressDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/AddressDto.cs`
+**File:** `Prym.DTOs/Common/AddressDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/CreateAddressDto.cs`
+**File:** `Prym.DTOs/Common/CreateAddressDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/ReferenceDto.cs`
+**File:** `Prym.DTOs/Common/ReferenceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/ClassificationNodeDto.cs`
+**File:** `Prym.DTOs/Common/ClassificationNodeDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/CreateReferenceDto.cs`
+**File:** `Prym.DTOs/Common/CreateReferenceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/CreateContactDto.cs`
+**File:** `Prym.DTOs/Common/CreateContactDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/ContactDto.cs`
+**File:** `Prym.DTOs/Common/ContactDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/UpdateReferenceDto.cs`
+**File:** `Prym.DTOs/Common/UpdateReferenceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/UpdateClassificationNodeDto.cs`
+**File:** `Prym.DTOs/Common/UpdateClassificationNodeDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/UpdateContactDto.cs`
+**File:** `Prym.DTOs/Common/UpdateContactDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/ProblemDetailsDto.cs`
+**File:** `Prym.DTOs/Common/ProblemDetailsDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Common/BarcodeResponseDto.cs`
+**File:** `Prym.DTOs/Common/BarcodeResponseDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/UpdateMembershipCardDto.cs`
+**File:** `Prym.DTOs/Teams/UpdateMembershipCardDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/DocumentReferenceDto.cs`
+**File:** `Prym.DTOs/Teams/DocumentReferenceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/TeamDto.cs`
+**File:** `Prym.DTOs/Teams/TeamDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/UpdateDocumentReferenceDto.cs`
+**File:** `Prym.DTOs/Teams/UpdateDocumentReferenceDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/TeamDetailDto.cs`
+**File:** `Prym.DTOs/Teams/TeamDetailDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/EligibilityValidationResult.cs`
+**File:** `Prym.DTOs/Teams/EligibilityValidationResult.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/InsurancePolicyDto.cs`
+**File:** `Prym.DTOs/Teams/InsurancePolicyDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/MembershipCardDto.cs`
+**File:** `Prym.DTOs/Teams/MembershipCardDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/UpdateInsurancePolicyDto.cs`
+**File:** `Prym.DTOs/Teams/UpdateInsurancePolicyDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Teams/TeamMemberDto.cs`
+**File:** `Prym.DTOs/Teams/TeamMemberDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Tenants/TenantContextDtos.cs`
+**File:** `Prym.DTOs/Tenants/TenantContextDtos.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/UnitOfMeasures/UMDto.cs`
+**File:** `Prym.DTOs/UnitOfMeasures/UMDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/UnitOfMeasures/UpdateUMDto.cs`
+**File:** `Prym.DTOs/UnitOfMeasures/UpdateUMDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/UnitOfMeasures/CreateUMDto.cs`
+**File:** `Prym.DTOs/UnitOfMeasures/CreateUMDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/Health/HealthStatusDto.cs`
+**File:** `Prym.DTOs/Health/HealthStatusDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 
-**File:** `EventForge.DTOs/VatRates/VatRateDto.cs`
+**File:** `Prym.DTOs/VatRates/VatRateDto.cs`
 **Issue:** DTO properties without validation attributes
 **Details:** Consider adding [Required], [MaxLength], or other validation attributes
 

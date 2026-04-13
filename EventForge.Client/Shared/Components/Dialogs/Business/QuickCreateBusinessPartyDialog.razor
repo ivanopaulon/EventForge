@@ -1,6 +1,6 @@
-@using EventForge.DTOs.Business
-@using EventForge.DTOs.Common
-@using EventForge.DTOs.External
+@using Prym.DTOs.Business
+@using Prym.DTOs.Common
+@using Prym.DTOs.External
 @using EventForge.Client.Services.External
 @inject ITranslationService TranslationService
 @inject IBusinessPartyService BusinessPartyService
@@ -240,7 +240,7 @@
                     TaxCode = _model.TaxCode,
                     VatNumber = _model.VatNumber,
                     SdiCode = _model.SdiCode,
-                    DefaultPriceApplicationMode = ExistingBusinessParty?.DefaultPriceApplicationMode ?? EventForge.DTOs.Common.PriceApplicationMode.Automatic,
+                    DefaultPriceApplicationMode = ExistingBusinessParty?.DefaultPriceApplicationMode ?? Prym.DTOs.Common.PriceApplicationMode.Automatic,
                     ForcedPriceListId = ExistingBusinessParty?.ForcedPriceListId,
                     RowVersion = ExistingBusinessParty?.RowVersion
                 };

@@ -1,7 +1,7 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.Products;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;

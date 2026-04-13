@@ -1,9 +1,9 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for StockMovement entities and DTOs.
+/// Static mapper for StockMovement entities and Prym.DTOs.
 /// </summary>
 public static class StockMovementMapper
 {

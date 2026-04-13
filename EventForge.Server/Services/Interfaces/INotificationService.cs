@@ -1,4 +1,4 @@
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Notifications;
 
 namespace EventForge.Server.Services.Interfaces;
 

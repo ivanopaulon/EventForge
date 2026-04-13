@@ -1,4 +1,4 @@
-using EventForge.DTOs.Common;
+using Prym.DTOs.Common;
 using EventForge.Server.Configuration;
 using EventForge.Server.ModelBinders;
 using Microsoft.AspNetCore.Http;

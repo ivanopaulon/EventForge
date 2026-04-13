@@ -82,7 +82,7 @@ public class CalendarReminderService(
             var items = await context.CalendarReminders
                 .AsNoTracking()
                 .Where(r => r.TenantId == currentTenantId.Value
-                            && r.Status == DTOs.Common.ReminderStatus.Active
+                            && r.Status == Prym.DTOs.Common.ReminderStatus.Active
                             && !r.IsCompleted)
                 .OrderBy(r => r.DueDate)
                 .ThenBy(r => r.Priority)
@@ -263,7 +263,7 @@ public class CalendarReminderService(
             var originalEntity = (CalendarReminder)originalValues.ToObject();
 
             entity.IsCompleted = true;
-            entity.Status = DTOs.Common.ReminderStatus.Completed;
+            entity.Status = Prym.DTOs.Common.ReminderStatus.Completed;
             entity.CompletedAt = DateTime.UtcNow;
             entity.CompletedBy = currentUser;
             entity.CompletionNotes = completionNotes;

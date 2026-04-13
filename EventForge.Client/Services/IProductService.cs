@@ -1,8 +1,8 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Products;
-using EventForge.DTOs.Station;
-using EventForge.DTOs.UnitOfMeasures;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Products;
+using Prym.DTOs.Station;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.Warehouse;
 using Microsoft.AspNetCore.Components.Forms;
 
 namespace EventForge.Client.Services;
@@ -90,5 +90,5 @@ public interface IProductService
     Task<ProductSearchResultDto?> SearchProductsAsync(string query, int maxResults = 20, CancellationToken ct = default);
 
     // Bulk Operations
-    Task<EventForge.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(EventForge.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default);
+    Task<Prym.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default);
 }

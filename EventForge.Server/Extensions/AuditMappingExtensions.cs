@@ -1,7 +1,7 @@
 namespace EventForge.Server.Extensions;
 
 /// <summary>
-/// Extension methods for mapping between EntityChangeLog entity and DTOs.
+/// Extension methods for mapping between EntityChangeLog entity and Prym.DTOs.
 /// </summary>
 public static class AuditMappingExtensions
 {
@@ -26,7 +26,7 @@ public static class AuditMappingExtensions
     }
 
     /// <summary>
-    /// Converts a collection of EntityChangeLog entities to DTOs.
+    /// Converts a collection of EntityChangeLog entities to Prym.DTOs.
     /// </summary>
     public static IEnumerable<EntityChangeLogDto> ToDto(this IEnumerable<EntityChangeLog> entities)
     {

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
 
@@ -296,7 +296,7 @@ public class StorageFacilityService(
 
     #region Export Operations
 
-    public async Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesForExportAsync(
+    public async Task<IEnumerable<Prym.DTOs.Export.WarehouseExportDto>> GetWarehousesForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
@@ -328,7 +328,7 @@ public class StorageFacilityService(
                 .Take(pagination.PageSize)
                 .ToListAsync(ct);
 
-            return items.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
+            return items.Select(sf => new Prym.DTOs.Export.WarehouseExportDto
             {
                 Id = sf.Id,
                 Code = sf.Code,
@@ -347,12 +347,12 @@ public class StorageFacilityService(
         }
     }
 
-    private async Task<IEnumerable<EventForge.DTOs.Export.WarehouseExportDto>> GetWarehousesInBatchesAsync(
+    private async Task<IEnumerable<Prym.DTOs.Export.WarehouseExportDto>> GetWarehousesInBatchesAsync(
         IQueryable<StorageFacility> query,
         CancellationToken ct)
     {
         const int batchSize = 5000;
-        var results = new List<EventForge.DTOs.Export.WarehouseExportDto>();
+        var results = new List<Prym.DTOs.Export.WarehouseExportDto>();
         var skip = 0;
 
         while (true)
@@ -366,7 +366,7 @@ public class StorageFacilityService(
 
             if (batch.Count == 0) break;
 
-            results.AddRange(batch.Select(sf => new EventForge.DTOs.Export.WarehouseExportDto
+            results.AddRange(batch.Select(sf => new Prym.DTOs.Export.WarehouseExportDto
             {
                 Id = sf.Id,
                 Code = sf.Code,

@@ -1,4 +1,4 @@
-using EventForge.DTOs.PriceHistory;
+using Prym.DTOs.PriceHistory;
 using EventForge.Server.Services.Alerts;
 using Microsoft.EntityFrameworkCore;
 

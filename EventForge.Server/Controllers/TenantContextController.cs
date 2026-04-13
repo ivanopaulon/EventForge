@@ -133,10 +133,10 @@ public class TenantContextController(ITenantContext tenantContext, ITenantServic
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated audit trail entries</returns>
     [HttpGet("audit-trail")]
-    [ProducesResponseType(typeof(PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditTrail(
+    public async Task<ActionResult<PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>>> GetAuditTrail(
         [FromQuery] Guid? tenantId = null,
         [FromQuery] AuditOperationType? operationType = null,
         [FromQuery] int pageNumber = 1,

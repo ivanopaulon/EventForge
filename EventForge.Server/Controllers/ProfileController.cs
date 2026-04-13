@@ -1,4 +1,4 @@
-using EventForge.DTOs.Profile;
+using Prym.DTOs.Profile;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -253,8 +253,8 @@ public class ProfileController(
                 OwnerId = userId.Value,
                 OwnerType = "User",
                 FileName = file.FileName,
-                Type = EventForge.DTOs.Common.DocumentReferenceType.ProfilePhoto,
-                SubType = EventForge.DTOs.Common.DocumentReferenceSubType.None,
+                Type = Prym.DTOs.Common.DocumentReferenceType.ProfilePhoto,
+                SubType = Prym.DTOs.Common.DocumentReferenceSubType.None,
                 MimeType = file.ContentType,
                 StorageKey = storageKey,
                 Url = storageKey,

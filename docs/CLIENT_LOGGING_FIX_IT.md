@@ -223,6 +223,6 @@ Per miglioramenti futuri (non necessari ora):
 
 - Controller: `EventForge.Server/Controllers/ClientLogsController.cs`
 - Service: `EventForge.Client/Services/ClientLogService.cs`
-- DTO: `EventForge.DTOs/Common/ClientLogDto.cs`
+- DTO: `Prym.DTOs/Common/ClientLogDto.cs`
 - Tests: `EventForge.Tests/Integration/ClientLogsControllerIntegrationTests.cs`
 - Docs: `docs/migration/CLIENT_LOGGING_IMPLEMENTATION.md`

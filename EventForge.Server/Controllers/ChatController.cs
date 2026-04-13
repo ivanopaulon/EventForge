@@ -1,4 +1,4 @@
-using EventForge.DTOs.Chat;
+using Prym.DTOs.Chat;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Chat;
 using Microsoft.AspNetCore.Authorization;

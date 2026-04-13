@@ -1,5 +1,5 @@
-using EventForge.DTOs.Auth;
-using EventForge.DTOs.Tenants;
+using Prym.DTOs.Auth;
+using Prym.DTOs.Tenants;
 using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;

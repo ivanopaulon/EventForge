@@ -1,4 +1,4 @@
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.VatRates;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.VatRates;
@@ -233,7 +233,7 @@ public class VatRateService(
             Id = vatRate.Id,
             Name = vatRate.Name,
             Percentage = vatRate.Percentage,
-            Status = (EventForge.DTOs.Common.VatRateStatus)vatRate.Status,
+            Status = (Prym.DTOs.Common.VatRateStatus)vatRate.Status,
             ValidFrom = vatRate.ValidFrom,
             ValidTo = vatRate.ValidTo,
             Notes = vatRate.Notes,

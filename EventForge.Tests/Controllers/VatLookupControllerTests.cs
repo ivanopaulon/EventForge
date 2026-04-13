@@ -1,4 +1,4 @@
-using EventForge.DTOs.External;
+using Prym.DTOs.External;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.External;
 using Microsoft.AspNetCore.Http;

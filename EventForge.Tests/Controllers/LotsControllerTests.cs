@@ -1,5 +1,5 @@
-using EventForge.DTOs.Common;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Common;
+using Prym.DTOs.Warehouse;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Tenants;
 using EventForge.Server.Services.Warehouse;

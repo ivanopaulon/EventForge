@@ -1,4 +1,4 @@
-using EventForge.DTOs.Chat;
+using Prym.DTOs.Chat;
 using EventForge.Server.Data.Entities.Business;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;

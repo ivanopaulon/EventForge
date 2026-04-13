@@ -1,4 +1,4 @@
-using EventForge.DTOs.Dashboard;
+using Prym.DTOs.Dashboard;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 

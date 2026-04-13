@@ -423,7 +423,7 @@ public async Task<ActionResult<ProductDto>> UploadProductImage(
 
 ### Key Files to Reference
 - `/EventForge.Server/Data/Entities/Products/Product.cs` - Entity pattern
-- `/EventForge.DTOs/Products/ProductDto.cs` - DTO pattern
+- `/Prym.DTOs/Products/ProductDto.cs` - DTO pattern
 - `/EventForge.Server/Services/Products/ProductService.cs` - Service pattern
 - `/EventForge.Server/Controllers/ProductManagementController.cs` - API pattern
 - `/EventForge.Tests/Products/ProductImageTests.cs` - Test pattern

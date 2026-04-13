@@ -1,10 +1,10 @@
-using ServerSuperAdminDtos = EventForge.DTOs.SuperAdmin;
-using SharedSuperAdminDtos = EventForge.DTOs.SuperAdmin;
+using ServerSuperAdminDtos = Prym.DTOs.SuperAdmin;
+using SharedSuperAdminDtos = Prym.DTOs.SuperAdmin;
 
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for BackupOperation entity to DTOs.
+/// Static mapper for BackupOperation entity to Prym.DTOs.
 /// </summary>
 public static class BackupMapper
 {

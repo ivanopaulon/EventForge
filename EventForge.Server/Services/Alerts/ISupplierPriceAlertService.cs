@@ -1,4 +1,4 @@
-using EventForge.DTOs.Alerts;
+using Prym.DTOs.Alerts;
 using AlertConfiguration = EventForge.Server.Data.Entities.Alerts.AlertConfiguration;
 
 namespace EventForge.Server.Services.Alerts;

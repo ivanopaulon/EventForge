@@ -21,7 +21,7 @@ grep -r "operationId\|Name.*=" . | sort | uniq -d
 
 ### 2. Check for Circular References in DTOs
 ```bash
-cd ../EventForge.DTOs
+cd ../Prym.DTOs
 find . -name "*.cs" -exec grep -l "class.*Dto" {} \; | xargs grep -l "public.*Dto"
 ```
 
@@ -44,7 +44,7 @@ grep -r "\[Route(" . | grep -v "api/v1" | head -10
 
 ### 5. Check for Problematic Enums
 ```bash
-cd ../EventForge.DTOs
+cd ../Prym.DTOs
 grep -r "enum" . | grep -v "JsonConverter\|Newtonsoft"
 ```
 

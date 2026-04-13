@@ -1,5 +1,5 @@
-using EventForge.DTOs.Calendar;
-using EventForge.DTOs.Common;
+using Prym.DTOs.Calendar;
+using Prym.DTOs.Common;
 
 namespace EventForge.Client.Services;
 

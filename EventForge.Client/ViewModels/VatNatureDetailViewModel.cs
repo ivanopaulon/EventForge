@@ -1,5 +1,5 @@
 using EventForge.Client.Services;
-using EventForge.DTOs.VatRates;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Client.ViewModels;
 

@@ -117,8 +117,8 @@ Recent implementations use this cleaner pattern with MudTable instead of MudData
 ```razor
 @page "/management/my-entities"
 @using Microsoft.AspNetCore.Authorization
-@using EventForge.DTOs.MyEntity
-@using EventForge.DTOs.Common
+@using Prym.DTOs.MyEntity
+@using Prym.DTOs.Common
 @using EventForge.Client.Shared.Components
 @attribute [Authorize]
 @inject IAuthService AuthService
@@ -1028,7 +1028,7 @@ EventForge.Client/Shared/Components/
 ### Standard Template
 
 ```razor
-@using EventForge.DTOs.MyEntity
+@using Prym.DTOs.MyEntity
 @using EventForge.Client.Services
 @inject IMyEntityService MyEntityService
 @inject ISnackbar Snackbar

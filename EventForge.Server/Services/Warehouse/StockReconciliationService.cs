@@ -1,5 +1,5 @@
 using ClosedXML.Excel;
-using EventForge.DTOs.Warehouse;
+using Prym.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -88,7 +88,7 @@ public class StockReconciliationService(
                                 dr.DocumentHeader != null &&
                                 dr.DocumentHeader.DocumentType != null &&
                                 dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                                dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed);
+                                dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed);
 
                 if (request.FromDate.HasValue)
                     invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
@@ -114,8 +114,8 @@ public class StockReconciliationService(
                                 dr.DocumentHeader != null &&
                                 dr.DocumentHeader.DocumentType != null &&
                                 !dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                                (dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Open ||
-                                 dr.DocumentHeader.Status == EventForge.DTOs.Common.DocumentStatus.Closed));
+                                (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Open ||
+                                 dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed));
 
                 if (request.FromDate.HasValue)
                     docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
@@ -639,8 +639,8 @@ public class StockReconciliationService(
             : new List<Data.Entities.Documents.ApprovalStatus> { Data.Entities.Documents.ApprovalStatus.Approved };
 
         var documentStatusFilter = (request.DocumentStatuses is not null && request.DocumentStatuses.Count > 0)
-            ? request.DocumentStatuses.Select(v => (EventForge.DTOs.Common.DocumentStatus)v).ToList()
-            : new List<EventForge.DTOs.Common.DocumentStatus> { EventForge.DTOs.Common.DocumentStatus.Closed };
+            ? request.DocumentStatuses.Select(v => (Prym.DTOs.Common.DocumentStatus)v).ToList()
+            : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Closed };
 
         // Build query on DocumentHeaders
         var headersQuery = context.DocumentHeaders

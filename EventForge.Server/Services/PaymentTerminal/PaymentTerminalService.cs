@@ -1,4 +1,4 @@
-using EventForge.DTOs.PaymentTerminal;
+using Prym.DTOs.PaymentTerminal;
 using Prym.Hardware.Interfaces;
 using EventForge.Server.Services.PaymentTerminal.Communication;
 using Microsoft.EntityFrameworkCore;

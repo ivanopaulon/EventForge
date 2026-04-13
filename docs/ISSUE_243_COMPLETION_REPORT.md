@@ -477,9 +477,9 @@ Il sistema è **production-ready** per tutte le funzionalità core richieste. Gl
 - `EventForge.Server/Data/Entities/Warehouse/ProjectMaterialAllocation.cs`
 
 ### Nuovi DTOs (3 file, 12 classi)
-- `EventForge.DTOs/Warehouse/SustainabilityCertificateDto.cs` (3 classi)
-- `EventForge.DTOs/Warehouse/WasteManagementRecordDto.cs` (3 classi)
-- `EventForge.DTOs/Warehouse/ProjectOrderDto.cs` (6 classi)
+- `Prym.DTOs/Warehouse/SustainabilityCertificateDto.cs` (3 classi)
+- `Prym.DTOs/Warehouse/WasteManagementRecordDto.cs` (3 classi)
+- `Prym.DTOs/Warehouse/ProjectOrderDto.cs` (6 classi)
 
 ### File Modificati (2)
 - `EventForge.Server/Data/Entities/Warehouse/StockMovement.cs` (aggiunto ProjectOrderId)

@@ -1,4 +1,4 @@
-using EventForge.DTOs.Profile;
+using Prym.DTOs.Profile;
 
 namespace EventForge.Client.Services;
 

@@ -1,7 +1,7 @@
 namespace EventForge.Server.Mappers;
 
 /// <summary>
-/// Static mapper for Reference entity to DTOs.
+/// Static mapper for Reference entity to Prym.DTOs.
 /// </summary>
 public static class ReferenceMapper
 {

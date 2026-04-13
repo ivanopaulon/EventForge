@@ -1,5 +1,5 @@
 using Bogus;
-using EventForge.DTOs.DevTools;
+using Prym.DTOs.DevTools;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 

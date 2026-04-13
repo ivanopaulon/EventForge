@@ -1,4 +1,4 @@
-using EventForge.DTOs.Business;
+using Prym.DTOs.Business;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Business;

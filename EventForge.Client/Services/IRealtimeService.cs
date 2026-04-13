@@ -1,8 +1,8 @@
 using EventForge.Client.Services.Updates;
-using EventForge.DTOs.Chat;
-using EventForge.DTOs.Documents;
-using EventForge.DTOs.FiscalPrinting;
-using EventForge.DTOs.Notifications;
+using Prym.DTOs.Chat;
+using Prym.DTOs.Documents;
+using Prym.DTOs.FiscalPrinting;
+using Prym.DTOs.Notifications;
 
 namespace EventForge.Client.Services;
 
@@ -266,9 +266,9 @@ public interface IRealtimeService
     event Action<Guid, bool>? UserOnlineStatusChanged;
 
     // ── WhatsApp real-time events (routed through the existing ChatHub) ──
-    event Action<EventForge.DTOs.Chat.ChatMessageDto>? WhatsAppMessageReceived;
-    event Action<EventForge.DTOs.Chat.ChatResponseDto>? WhatsAppConversazioneAggiornata;
-    event Action<EventForge.DTOs.Chat.ChatResponseDto>? WhatsAppNumeroNonRiconosciuto;
+    event Action<Prym.DTOs.Chat.ChatMessageDto>? WhatsAppMessageReceived;
+    event Action<Prym.DTOs.Chat.ChatResponseDto>? WhatsAppConversazioneAggiornata;
+    event Action<Prym.DTOs.Chat.ChatResponseDto>? WhatsAppNumeroNonRiconosciuto;
 
     #endregion
 

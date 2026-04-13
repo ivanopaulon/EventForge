@@ -1,6 +1,6 @@
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
-using AuthAuditOperationType = EventForge.DTOs.Common.AuditOperationType;
+using AuthAuditOperationType = Prym.DTOs.Common.AuditOperationType;
 
 namespace EventForge.Server.Services.Tenants;
 
@@ -784,7 +784,7 @@ public class TenantService(
         }
     }
 
-    public async Task<PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditTrailAsync(
+    public async Task<PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>> GetAuditTrailAsync(
         Guid? tenantId = null,
         AuditOperationType? operationType = null,
         int pageNumber = 1,
@@ -822,7 +822,7 @@ public class TenantService(
                 .OrderByDescending(at => at.PerformedAt)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(at => new EventForge.DTOs.SuperAdmin.AuditTrailResponseDto
+                .Select(at => new Prym.DTOs.SuperAdmin.AuditTrailResponseDto
                 {
                     Id = at.Id,
                     OperationType = at.OperationType,
@@ -844,7 +844,7 @@ public class TenantService(
                 })
                 .ToListAsync();
 
-            return new PagedResult<EventForge.DTOs.SuperAdmin.AuditTrailResponseDto>
+            return new PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>
             {
                 Items = items,
                 TotalCount = totalCount,

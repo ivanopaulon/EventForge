@@ -1,4 +1,4 @@
-using EventForge.DTOs.Business;
+using Prym.DTOs.Business;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Business;
@@ -259,7 +259,7 @@ public class PaymentTermService(
             Name = paymentTerm.Name,
             Description = paymentTerm.Description,
             DueDays = paymentTerm.DueDays,
-            PaymentMethod = (EventForge.DTOs.Common.PaymentMethod)paymentTerm.PaymentMethod,
+            PaymentMethod = (Prym.DTOs.Common.PaymentMethod)paymentTerm.PaymentMethod,
             CreatedAt = paymentTerm.CreatedAt,
             CreatedBy = paymentTerm.CreatedBy,
             ModifiedAt = paymentTerm.ModifiedAt,
