@@ -153,7 +153,13 @@ namespace EventForge.Client.Services
                 var isAuthenticated = await authService.IsAuthenticatedAsync();
                 if (!isAuthenticated)
                 {
-                    logger.LogDebug("User not authenticated, skipping token refresh");
+                    // Token is expired or missing. The server's refresh-token endpoint requires
+                    // a valid token ([Authorize]), so refreshing is not possible here.
+                    // The user will need to log in again. Fire OnRefreshFailure so the UI can
+                    // prompt re-login if wired up to do so.
+                    logger.LogWarning("Session expired: token is no longer valid. User must log in again.");
+                    _consecutiveFailures++;
+                    OnRefreshFailure?.Invoke("Session expired. Please log in again.");
                     return;
                 }
 
