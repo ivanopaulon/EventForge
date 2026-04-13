@@ -745,6 +745,8 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             {
                 if (_state.SelectedProduct != null && _productScannerRef != null)
                     await _productScannerRef.TriggerEditAsync();
+                else if (_state.SelectedProduct == null)
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("products.noProductSelected", "Nessun prodotto selezionato"));
                 return;
             }
 
@@ -1966,7 +1968,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             _state.Model.Description = updatedProduct.Name;
             _state.Model.ProductCode = updatedProduct.Code;
 
-            // Sync DefaultPrice
+            // Sync DefaultPrice after product edit. The barcode/autocomplete selection path uses
+            // PriceResolutionService (price lists + promotions) via PopulateFromProductAsync, which
+            // is more accurate. Here we only apply the updated DefaultPrice directly because the user
+            // just changed it in the edit dialog — this is intentional and avoids a full repopulate.
             _state.Model.UnitPrice = updatedProduct.DefaultPrice ?? _state.Model.UnitPrice;
 
             // Update VAT if changed
