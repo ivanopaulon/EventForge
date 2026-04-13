@@ -9,7 +9,7 @@
 @implements IDisposable
 
 <EFSystemDialog Title="PRYM"
-                Subtitle="@_subtitle"
+                Subtitle="@(_isLoadingTenants ? null : _subtitle)"
                 TopBar="@_topBar"
                 ShowProgressBar="true"
                 ProgressColor="@_progressColor"

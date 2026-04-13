@@ -1595,19 +1595,19 @@ kbd {
 
 .plsd-log-text {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--mud-palette-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .plsd-log-text-active {
-    color: white;
+    color: var(--mud-palette-text-primary);
     font-weight: 600;
 }
 
 .plsd-elapsed {
-    color: rgba(255, 255, 255, 0.45);
+    color: var(--mud-palette-text-disabled);
     font-size: 0.72rem;
     margin-top: 2px;
 }
