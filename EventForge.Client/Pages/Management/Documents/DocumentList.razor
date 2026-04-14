@@ -18,8 +18,7 @@
                       @ref="_managementPage"
                       Config="_config"
                       Service="_service"
-                      OnCreateOverride="@(async () => NavigationManager.NavigateTo("/documents/create"))"
-                      OnViewEntity="@(async id => NavigationManager.NavigateTo($"/documents/edit/{id}"))">
+                      OnCreateOverride="@(async () => NavigationManager.NavigateTo("/documents/create"))">
     <AdditionalToolbarContent>
         <PrymSelect T="Guid?"
                     Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
@@ -187,7 +186,7 @@
             EntityTypeName = "Document",
             ShowToggleStatus = false,
             ShowAuditLog = false,
-            ShowView = true,
+            ShowView = false,
             ShowEdit = true,
             ShowDelete = true,
             CanEdit = d => d.Status == DocumentStatus.Draft,
