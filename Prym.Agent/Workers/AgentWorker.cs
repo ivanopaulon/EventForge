@@ -86,7 +86,15 @@ public class AgentWorker(
             {
                 agentStatus.HubConnectionState = "Disconnected";
                 agentStatus.LastHeartbeatError = ex.Message;
-                logger.LogError(ex, "Hub connection error. Reconnecting in {Delay}s...", options.ReconnectDelaySeconds);
+                // Connection-refused means ManagementHub is not running — log at Warning (not Error)
+                // to avoid flooding the log with stack traces during development.
+                if (IsConnectionRefused(ex))
+                    logger.LogWarning(
+                        "ManagementHub not reachable at {Url} (connection refused). " +
+                        "Make sure Prym.ManagementHub is running. Reconnecting in {Delay}s...",
+                        options.HubUrl, options.ReconnectDelaySeconds);
+                else
+                    logger.LogError(ex, "Hub connection error. Reconnecting in {Delay}s...", options.ReconnectDelaySeconds);
                 await Task.Delay(TimeSpan.FromSeconds(options.ReconnectDelaySeconds), stoppingToken);
             }
         }
@@ -757,5 +765,24 @@ public class AgentWorker(
             await _connection.DisposeAsync();
         }
         await base.StopAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns true when <paramref name="ex"/> (or any inner exception) is a TCP
+    /// connection-refused / host-unreachable error — i.e. the ManagementHub is simply not running.
+    /// </summary>
+    private static bool IsConnectionRefused(Exception? ex)
+    {
+        while (ex is not null)
+        {
+            if (ex is System.Net.Sockets.SocketException se &&
+                (se.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionRefused ||
+                 se.SocketErrorCode == System.Net.Sockets.SocketError.HostUnreachable ||
+                 se.SocketErrorCode == System.Net.Sockets.SocketError.NetworkUnreachable ||
+                 se.SocketErrorCode == System.Net.Sockets.SocketError.TimedOut))
+                return true;
+            ex = ex.InnerException;
+        }
+        return false;
     }
 }

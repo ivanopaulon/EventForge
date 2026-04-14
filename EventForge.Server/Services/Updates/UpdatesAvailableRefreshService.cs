@@ -70,11 +70,39 @@ public sealed class UpdatesAvailableRefreshService(
         {
             // Hub not configured — count stays at 0, no broadcast needed.
         }
+        catch (HttpRequestException ex) when (!ct.IsCancellationRequested && IsConnectionRefused(ex))
+        {
+            // ManagementHub is not reachable (connection refused / service not started).
+            // Log at Debug to avoid filling the logs during development when Hub is not running.
+            logger.LogDebug(
+                "UpdatesAvailableRefreshService: ManagementHub not reachable at configured URL ({Message}). " +
+                "Start Prym.ManagementHub or clear UpdateHub:BaseUrl to suppress this message.",
+                ex.Message);
+        }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
             logger.LogWarning(ex,
                 "UpdatesAvailableRefreshService: failed to fetch package count. {ExceptionType}: {ErrorMessage}",
                 ex.GetType().Name, ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Returns true when <paramref name="ex"/> (or any inner exception) represents a
+    /// TCP connection-refused / host-unreachable error — i.e. the remote service is simply not running.
+    /// </summary>
+    private static bool IsConnectionRefused(Exception? ex)
+    {
+        while (ex is not null)
+        {
+            if (ex is System.Net.Sockets.SocketException se &&
+                (se.SocketErrorCode == System.Net.Sockets.SocketError.ConnectionRefused ||
+                 se.SocketErrorCode == System.Net.Sockets.SocketError.HostUnreachable ||
+                 se.SocketErrorCode == System.Net.Sockets.SocketError.NetworkUnreachable ||
+                 se.SocketErrorCode == System.Net.Sockets.SocketError.TimedOut))
+                return true;
+            ex = ex.InnerException;
+        }
+        return false;
     }
 }
