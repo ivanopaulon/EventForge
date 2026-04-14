@@ -25,11 +25,12 @@ public class PackageCleanupService(
             "PackageCleanupService started. Interval={Interval}h Retention={Retention}d",
             hubOptions.PackageCleanupIntervalHours, hubOptions.PackageRetentionDays);
 
+        // Run the first pass after a short initial delay (5 minutes) so Hub startup
+        // isn't affected, then repeat every configured interval thereafter.
+        await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Run the first pass after a short initial delay so startup isn't affected.
-            await Task.Delay(TimeSpan.FromHours(hubOptions.PackageCleanupIntervalHours), stoppingToken);
-
             if (stoppingToken.IsCancellationRequested) break;
 
             try
@@ -44,6 +45,8 @@ public class PackageCleanupService(
             {
                 logger.LogError(ex, "PackageCleanupService encountered an error during cleanup.");
             }
+
+            await Task.Delay(TimeSpan.FromHours(hubOptions.PackageCleanupIntervalHours), stoppingToken);
         }
 
         logger.LogInformation("PackageCleanupService stopping.");
@@ -68,10 +71,7 @@ public class PackageCleanupService(
         {
             try
             {
-                var filePath = await packageService.GetDownloadPathAsync(pkg.Id, ct);
-                if (File.Exists(filePath))
-                    File.Delete(filePath);
-
+                // PackageService.DeleteAsync handles both DB record and disk file cleanup.
                 await packageService.DeleteAsync(pkg.Id, ct);
                 deleted++;
 

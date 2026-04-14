@@ -163,19 +163,18 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
     }
 
     public async Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
-        IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default)
+        IReadOnlyList<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default)
     {
-        var ids = installationIds.ToList();
-        if (ids.Count == 0) return [];
+        if (installationIds.Count == 0) return [];
 
         // Execute one parameterised query per installation so EF Core generates
         // "SELECT … WHERE InstallationId = @p0 ORDER BY StartedAt DESC LIMIT @p1",
         // which uses an index efficiently without a correlated subquery or full table scan.
         // Performance note: acceptable for typical hub deployments with up to ~1 000 installations.
         // At significantly larger scale, consider a single UNION or window-function query instead.
-        var result = new Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>(ids.Count);
+        var result = new Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>(installationIds.Count);
 
-        foreach (var id in ids)
+        foreach (var id in installationIds)
         {
             var rows = await db.UpdateHistories
                 .Include(h => h.Package)

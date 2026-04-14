@@ -128,13 +128,18 @@ public class InstallationsController(
             var connectionId = connectionTracker.GetConnectionId(id);
             if (connectionId is null) continue;
 
-            installationMap.TryGetValue(id, out var installation);
+            if (!installationMap.TryGetValue(id, out var installation))
+            {
+                logger.LogWarning("Broadcast: online installation {Id} not found in map — skipping.", id);
+                continue;
+            }
+
             await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
             var history = await installationService.StartUpdateHistoryAsync(
                 id, request.PackageId,
-                installation?.InstalledVersionServer,
-                installation?.InstalledVersionClient);
+                installation.InstalledVersionServer,
+                installation.InstalledVersionClient);
 
             var command = new StartUpdateCommand(
                 history.Id, package.Id, package.Version,

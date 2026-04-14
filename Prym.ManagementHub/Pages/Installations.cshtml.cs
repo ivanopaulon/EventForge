@@ -109,7 +109,7 @@ public class InstallationsModel(
         var online = connectionTracker.GetOnlineInstallationIds();
         ReadyPackages = await packageService.GetByStatusAsync(PackageStatus.ReadyToDeploy);
 
-        var installationIds = installs.Select(i => i.Id);
+        var installationIds = installs.Select(i => i.Id).ToList();
         var historyMap = await installationService.GetAllRecentHistoryAsync(installationIds, maxPerInstallation: 5);
 
         Installations = installs.Select(i =>

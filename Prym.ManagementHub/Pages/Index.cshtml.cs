@@ -100,11 +100,16 @@ public class IndexModel(
             var connectionId = connectionTracker.GetConnectionId(id);
             if (connectionId is null) continue;
 
-            installationMap.TryGetValue(id, out var installation);
+            if (!installationMap.TryGetValue(id, out var installation))
+            {
+                logger.LogWarning("Broadcast: online installation {Id} not found in map — skipping.", id);
+                continue;
+            }
+
             var history = await installationService.StartUpdateHistoryAsync(
                 id, packageId,
-                installation?.InstalledVersionServer,
-                installation?.InstalledVersionClient);
+                installation.InstalledVersionServer,
+                installation.InstalledVersionClient);
 
             await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 

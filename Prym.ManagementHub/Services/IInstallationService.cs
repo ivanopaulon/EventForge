@@ -63,7 +63,7 @@ public interface IInstallationService
     /// database round-trip, keyed by <c>InstallationId</c>.
     /// </summary>
     Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
-        IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
+        IReadOnlyList<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
     /// <summary>
     /// Returns package metadata associated with the given history record, or
     /// <see langword="null"/> if the record (or its package) cannot be found.
