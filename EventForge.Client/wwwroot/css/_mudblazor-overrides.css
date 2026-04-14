@@ -92,3 +92,44 @@
 [data-theme="carbon-neon-dark"] .mud-nav-link:not(.active):hover {
     background-color: rgba(0, 245, 255, 0.07) !important;
 }
+
+/* ─── 7. MudMainContent definite height ─────────────────────────────────────
+ * MudBlazor renders mud-layout as position:relative (NOT a flex container).
+ * Because of this, mud-main-content's "flex:1 1 auto" has no effect and its
+ * height resolves to "auto" (content height).  Page roots that use
+ * height:100% (gdp-page-root, customer-page-root, etc.) therefore inherit
+ * a 0/auto height and any child with flex:1 1 0 + overflow:hidden collapses
+ * to zero — making the page body invisible.
+ *
+ * Fix: give mud-main-content an explicit height equal to the viewport minus
+ * the fixed AppBar.  box-sizing:border-box ensures all internal paddings
+ * (padding-top from MudBlazor, pa-2/pa-sm-4, main-content-with-footer) are
+ * absorbed within that height instead of overflowing the viewport.
+ *
+ * The mt-12 (=48px=AppBar height) margin-top on MudMainContent pushes the
+ * element to start exactly below the fixed AppBar, so bottom edge lands at
+ * viewport bottom: 48px + (100% - 48px) = 100%.
+ */
+.mud-main-content {
+    height: calc(100% - var(--mud-appbar-height));
+    box-sizing: border-box;
+}
+
+/* ─── 8. EFTable / MudTable flex fill ──────────────────────────────────────
+ * MudBlazor's .mud-table element has no height or flex property. When EFTable
+ * is placed inside a flex-column container (eftable-wrapper on management pages,
+ * gdp-rows-area on the document page) with Height="100%" and FixedHeader="true",
+ * the MudTable needs to grow into the available space so that:
+ *   a) .mud-table-container { height: 100% } resolves to a finite value
+ *   b) { overflow-y: auto } on mud-table-container triggers → internal row scroll
+ *   c) { position: sticky; top: 0 } on thead th (added by MudBlazor for FixedHeader)
+ *      works correctly because the scroll container now has a finite height
+ *
+ * min-height: 0 is required on flex children to allow them to shrink below
+ * their intrinsic content size (default min-height: auto blocks shrinking).
+ */
+.eftable-wrapper .mud-table,
+.gdp-rows-area .mud-table {
+    flex: 1 1 0;
+    min-height: 0;
+}

@@ -42,6 +42,16 @@
 /* Global body font application */
 html, body {
     font-family: var(--font-family-body);
+    height: 100%;
+    overflow: hidden; /* Prevent browser scrollbar — all overflow is handled per-page */
+}
+
+/* Blazor WASM root — must have height:100% so that mud-layout { height:100% } resolves
+   to the full viewport height, enabling viewport-contained page layouts (height:100% on
+   page root divs like .gdp-page-root, .customer-page-root, etc.) */
+#app {
+    height: 100%;
+    overflow: hidden;
 }
 
 /* Apply headings font to all titles */
