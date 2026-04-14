@@ -593,7 +593,7 @@ public class UpdateExecutorService(
     /// <exception cref="System.Security.SecurityException">
     /// Thrown when at least one entry resolves to a path outside <paramref name="destDir"/>.
     /// </exception>
-    private static void ValidateZipPathTraversal(string zipPath, string destDir)
+    internal static void ValidateZipPathTraversal(string zipPath, string destDir)
     {
         var fullDest = Path.GetFullPath(destDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
@@ -706,7 +706,7 @@ public class UpdateExecutorService(
     /// <summary>
     /// Recursively merges two JsonElements. Target values win; template adds missing keys.
     /// </summary>
-    private static Dictionary<string, object?> MergeJsonElements(
+    internal static Dictionary<string, object?> MergeJsonElements(
         JsonElement target, JsonElement template)
     {
         var result = new Dictionary<string, object?>(StringComparer.Ordinal);

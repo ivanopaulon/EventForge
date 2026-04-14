@@ -1,8 +1,8 @@
 # Analisi approfondita — Prym.Agent
 
-> **Versione analisi:** 3 (Sprint 5 — post-fix)  
-> **Data:** 2026-04-13  
-> **Stato del codice:** post Sprint 5 (tutte le correzioni 5A + 5B + 5C applicate)  
+> **Versione analisi:** 4 (Sprint 6 — post-fix)  
+> **Data:** 2026-04-14  
+> **Stato del codice:** post Sprint 6 (SSRF TCP + unit tests Prym.Agent.Tests)  
 > **Autore:** Copilot SWE Agent
 
 ---
@@ -352,7 +352,8 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | Scrittura atomica configurazioni (pending.json, installationCode) | ✅ Risolto (S2.3, S3.3) |
 | Thread-safety AgentServerSink | ✅ Risolto (S1.3) |
 | Timeout appcmd.exe | ✅ Risolto (S2.1) |
-| SSRF printer proxy | ✅ Risolto (S4.4) |
+| SSRF printer proxy (http-forward) | ✅ Risolto (S4.4) |
+| SSRF printer proxy (tcp-send, tcp-test) | ✅ Risolto (S6.1) |
 | Hub DTOs in Prym.DTOs | ✅ Risolto (S4.3) |
 | Scrittura atomica PersistEnrollmentAsync | ✅ Risolto (S5A.1) |
 | Scrittura atomica MergeJsonFilesAsync | ✅ Risolto (S5A.2) |
@@ -367,4 +368,10 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | AgentPrinterService USB001–USB099 scan | ✅ Risolto (S5C.2) |
 | UpdateExecutorService IDisposable su HttpClient | ✅ Risolto (S5C.3) |
 | PruneOldBackupsAsync asincrono | ✅ Risolto (S5C.4) |
+| IsHostAllowed: bare-domain match bug (*.example.com) | ✅ Risolto (S6.2) |
+| Unit test PasswordHasher | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test PrinterProxyHostValidator (IsHostAllowed) | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test ZipPathTraversal | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test PendingInstallService (FIFO, block/unblock) | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test MergeJsonElements | ✅ Risolto (S6.3) — Prym.Agent.Tests |
 | Endpoint interni autenticati | ⚠️ **Aperta (R3)** — architettura trust-model localhost, da valutare in futuro |
