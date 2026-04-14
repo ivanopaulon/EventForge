@@ -35,7 +35,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     private readonly List<PendingUpdate> _queue = [];
     private readonly string _persistPath = Path.Combine(AppContext.BaseDirectory, "pending.json");
     private readonly Lock _lock = new();
-    private int _nextPosition = 0;
+    private int _nextPosition;
 
     // ── Blocked state ────────────────────────────────────────────────────────
     public bool IsBlocked { get; private set; }
@@ -129,28 +129,35 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     /// <summary>Returns the next entry to install (lowest QueuePosition), or null if queue is empty/blocked.</summary>
     public PendingUpdate? GetNext()
     {
+        PendingUpdate? head;
+        PendingUpdate? serverFirst = null;
+
         lock (_lock)
         {
             if (IsBlocked || _queue.Count == 0) return null;
-            var head = _queue[0];
+            head = _queue[0];
             // Server-before-Client: if the head is a Client package and a Server package
-            // for the same version is still queued (e.g. downloaded faster), install Server first.
+            // for the same version is still queued (e.g. downloaded faster), return the Server entry.
+            // File.Exists and logging are intentionally done OUTSIDE the lock below.
             if (head.Command.Component.Equals("Client", StringComparison.OrdinalIgnoreCase))
             {
-                var serverFirst = _queue.FirstOrDefault(p =>
+                var version = head.Command.Version;
+                serverFirst = _queue.FirstOrDefault(p =>
                     p.Command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase) &&
-                    p.Command.Version == head.Command.Version &&
-                    File.Exists(p.LocalZipPath));
-                if (serverFirst is not null)
-                {
-                    logger.LogInformation(
-                        "Deferring Client {Version} install — Server {Version} must be installed first.",
-                        head.Command.Version, serverFirst.Command.Version);
-                    return serverFirst;
-                }
+                    p.Command.Version == version);
             }
-            return head;
         }
+
+        // Perform file I/O and logging outside the lock to avoid blocking queue mutations.
+        if (serverFirst is not null && File.Exists(serverFirst.LocalZipPath))
+        {
+            logger.LogInformation(
+                "Deferring Client {Version} install — Server {Version} must be installed first.",
+                head.Command.Version, serverFirst.Command.Version);
+            return serverFirst;
+        }
+
+        return head;
     }
 
     public PendingUpdate? GetByPackageId(Guid packageId)

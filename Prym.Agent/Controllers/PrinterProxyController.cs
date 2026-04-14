@@ -120,13 +120,11 @@ public sealed class PrinterProxyController(
     /// </summary>
     /// <returns>200 OK with an array of accessible device identifiers.</returns>
     [HttpGet("devices")]
-    public Task<IActionResult> ListDevicesAsync()
+    public IActionResult ListDevices()
     {
         var devices = printerService.ListDevices();
-
         logger.LogDebug("PrinterProxy list devices: found {Count}", devices.Count);
-
-        return Task.FromResult<IActionResult>(Ok(new { devices }));
+        return Ok(new { devices });
     }
 
     /// <summary>

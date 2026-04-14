@@ -59,7 +59,7 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
         try
         {
             var prefix = $"{component}-";
-            var existing = Directory.GetDirectories(_backupRoot, $"{prefix}*")
+            var existing = Directory.EnumerateDirectories(_backupRoot, $"{prefix}*")
                 .OrderBy(d => Directory.GetCreationTimeUtc(d))
                 .ToList();
 
