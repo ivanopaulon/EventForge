@@ -48,13 +48,14 @@ public class MigrationRunnerService(AgentOptions options, ILogger<MigrationRunne
             try
             {
                 await using var cmd = conn.CreateCommand();
+                // Set timeout once — it is invariant across all GO batches in the same script.
+                cmd.CommandTimeout = options.Install.SqlCommandTimeoutSeconds;
                 // Support GO batch separators by splitting
                 foreach (var batch in sql.Split(["\nGO\n", "\r\nGO\r\n"], StringSplitOptions.RemoveEmptyEntries))
                 {
                     var trimmed = batch.Trim();
                     if (string.IsNullOrWhiteSpace(trimmed)) continue;
                     cmd.CommandText = trimmed;
-                    cmd.CommandTimeout = options.Install.SqlCommandTimeoutSeconds;
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
                 logger.LogInformation("Migration completed: {Script}", relativePath);

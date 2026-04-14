@@ -10,14 +10,11 @@ public class InstallationsController(
     IPackageService packageService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> hubContext,
-    ManagementHubOptions hubOptions,
+    IAdminAuthService adminAuth,
+    IUpdateThrottleService updateThrottle,
     ILogger<InstallationsController> logger) : ControllerBase
 {
-    private bool IsAdminAuthorized()
-    {
-        Request.Headers.TryGetValue("X-Admin-Key", out var key);
-        return !string.IsNullOrWhiteSpace(hubOptions.AdminApiKey) && key == hubOptions.AdminApiKey;
-    }
+    private bool IsAdminAuthorized() => adminAuth.IsAuthorized(Request.Headers);
 
     /// <summary>List all registered installations.</summary>
     [HttpGet]
@@ -77,6 +74,8 @@ public class InstallationsController(
         if (connectionId is null)
             return Conflict("Installation is not currently connected.");
 
+        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+
         var history = await installationService.StartUpdateHistoryAsync(
             id, request.PackageId,
             installation.InstalledVersionServer,
@@ -106,15 +105,51 @@ public class InstallationsController(
         var package = await packageService.GetByIdAsync(request.PackageId);
         if (package is null) return NotFound("Package not found.");
 
+        var onlineIds = connectionTracker.GetOnlineInstallationIds();
+        if (onlineIds.Count == 0)
+            return Accepted(new { PackageId = package.Id, package.Version, SentTo = 0 });
+
+        var installations = await installationService.GetByIdsAsync(onlineIds);
+        var installationMap = installations.ToDictionary(i => i.Id);
+
         var downloadUrl = $"{Request.Scheme}://{Request.Host}/api/v1/packages/{package.Id}/download";
         var notification = new UpdateAvailableMessage(
             package.Id, package.Version, package.Component.ToString(),
             downloadUrl, package.Checksum, package.ReleaseNotes);
 
         await hubContext.Clients.All.SendAsync("UpdateAvailable", notification);
-        logger.LogInformation("Update broadcast: Package={PackageId} Version={Version}", package.Id, package.Version);
 
-        return Accepted(new { PackageId = package.Id, package.Version });
+        // NOTE: throttle slots are acquired sequentially here — if MaxConcurrentUpdates is low
+        // and there are many online agents, this request will block until each slot is available.
+        // This is intentional per the throttling design and is acceptable for admin-triggered
+        // broadcasts. Consider a background queue if non-blocking dispatch is needed.
+        foreach (var id in onlineIds)
+        {
+            var connectionId = connectionTracker.GetConnectionId(id);
+            if (connectionId is null) continue;
+
+            if (!installationMap.TryGetValue(id, out var installation))
+            {
+                logger.LogWarning("Broadcast: online installation {Id} not found in map — skipping.", id);
+                continue;
+            }
+
+            await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+
+            var history = await installationService.StartUpdateHistoryAsync(
+                id, request.PackageId,
+                installation.InstalledVersionServer,
+                installation.InstalledVersionClient);
+
+            var command = new StartUpdateCommand(
+                history.Id, package.Id, package.Version,
+                package.Component.ToString(), downloadUrl, package.Checksum);
+
+            await hubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
+        }
+
+        logger.LogInformation("Update broadcast: Package={PackageId} Version={Version}", package.Id, package.Version);
+        return Accepted(new { PackageId = package.Id, package.Version, SentTo = onlineIds.Count });
     }
 
     /// <summary>Revoke an installation's API key. The agent will be blocked with 403 until reinstated.</summary>

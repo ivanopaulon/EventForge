@@ -17,6 +17,9 @@ public class ScheduleModel(
     private static readonly string AppSettingsPath =
         Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 
+    private static readonly JsonSerializerOptions _writeIndentOpts =
+        new() { WriteIndented = true };
+
     public List<MaintenanceWindowOptions> Windows { get; private set; } = [];
     public int ActiveWindowIndex { get; private set; } = -1;
 
@@ -104,8 +107,10 @@ public class ScheduleModel(
         agentSection["MaintenanceWindows"] = windowsArray;
         root[AgentOptions.SectionName] = agentSection;
 
-        var options2 = new JsonSerializerOptions { WriteIndented = true };
-        System.IO.File.WriteAllText(AppSettingsPath, root.ToJsonString(options2));
+        // Write atomically: .tmp first, then rename, to avoid corruption on crash.
+        var tmpPath = AppSettingsPath + ".tmp";
+        System.IO.File.WriteAllText(tmpPath, root.ToJsonString(_writeIndentOpts));
+        System.IO.File.Move(tmpPath, AppSettingsPath, overwrite: true);
     }
 
     private int FindActiveWindowIndex()

@@ -1,7 +1,5 @@
-﻿using System.Net.Http.Headers;
-using System.Security.Cryptography;
-using System.Text;
-using Prym.Agent.Security;
+﻿using System.Text;
+using Prym.UpdateShared.Auth;
 
 namespace Prym.Agent.Middleware;
 
@@ -46,7 +44,8 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
             return;
         }
 
-        if (!TryAuthenticate(context, username, password))
+        var authHeader = context.Request.Headers.Authorization.ToString();
+        if (!BasicAuthHelper.TryAuthenticate(authHeader, username, password))
         {
             context.Response.Headers.WWWAuthenticate = "Basic realm=\"Prym Agent\", charset=\"UTF-8\"";
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
@@ -54,31 +53,5 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
         }
 
         await next(context);
-    }
-
-    private static bool TryAuthenticate(HttpContext context, string expectedUser, string expectedPass)
-    {
-        if (!context.Request.Headers.TryGetValue("Authorization", out var headerValue))
-            return false;
-
-        try
-        {
-            var authHeader = AuthenticationHeaderValue.Parse(headerValue!);
-            if (!string.Equals(authHeader.Scheme, "Basic", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            var credentialBytes = Convert.FromBase64String(authHeader.Parameter ?? string.Empty);
-            var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
-            if (credentials.Length != 2) return false;
-
-            return CryptographicOperations.FixedTimeEquals(
-                       Encoding.UTF8.GetBytes(credentials[0]),
-                       Encoding.UTF8.GetBytes(expectedUser)) &&
-                   PasswordHasher.Verify(credentials[1], expectedPass);
-        }
-        catch
-        {
-            return false;
-        }
     }
 }

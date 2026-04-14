@@ -12,6 +12,7 @@ public class AgentHub(
     IInstallationService installationService,
     IPackageService packageService,
     IHttpClientFactory httpClientFactory,
+    IUpdateThrottleService updateThrottle,
     ManagementHubOptions hubOptions) : Hub
 {
     public override async Task OnConnectedAsync()
@@ -81,17 +82,18 @@ public class AgentHub(
             await installationService.UpdateRegistrationInfoAsync(
                 installationId.Value,
                 new RegistrationInfo(
-                    Name:          msg.InstallationName,
-                    Location:      msg.Location,
-                    VersionServer: msg.VersionServer,
-                    VersionClient: msg.VersionClient,
-                    MachineName:   msg.MachineName,
-                    OSVersion:     msg.OSVersion,
-                    DotNetVersion: msg.DotNetVersion,
-                    AgentVersion:  msg.AgentVersion,
-                    IpAddress:     ip,
-                    Tags:          msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
-                    Status:        InstallationStatus.Online));
+                    Name:           msg.InstallationName,
+                    Location:       msg.Location,
+                    VersionServer:  msg.VersionServer,
+                    VersionClient:  msg.VersionClient,
+                    MachineName:    msg.MachineName,
+                    OSVersion:      msg.OSVersion,
+                    DotNetVersion:  msg.DotNetVersion,
+                    AgentVersion:   msg.AgentVersion,
+                    IpAddress:      ip,
+                    LocalIpAddress: msg.LocalIpAddress,
+                    Tags:           msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                    Status:         InstallationStatus.Online));
 
             logger.LogInformation(
                 "Installation registered: {Name} Machine={Machine} OS={OS} Agent={AgentVer} IP={IP}",
@@ -121,17 +123,18 @@ public class AgentHub(
             await installationService.UpdateRegistrationInfoAsync(
                 installationId.Value,
                 new RegistrationInfo(
-                    Name:          null,
-                    Location:      msg.Location,
-                    VersionServer: msg.VersionServer,
-                    VersionClient: msg.VersionClient,
-                    MachineName:   null,
-                    OSVersion:     null,
-                    DotNetVersion: null,
-                    AgentVersion:  msg.AgentVersion,
-                    IpAddress:     ip,
-                    Tags:          msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
-                    Status:        status));
+                    Name:           null,
+                    Location:       msg.Location,
+                    VersionServer:  msg.VersionServer,
+                    VersionClient:  msg.VersionClient,
+                    MachineName:    null,
+                    OSVersion:      null,
+                    DotNetVersion:  null,
+                    AgentVersion:   msg.AgentVersion,
+                    IpAddress:      ip,
+                    LocalIpAddress: null,
+                    Tags:           msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                    Status:         status));
 
             logger.LogDebug("Heartbeat from Installation={InstallationId} Status={Status}", installationId, msg.Status);
         }
@@ -159,6 +162,9 @@ public class AgentHub(
                 var historyStatus = msg.IsSuccess ? UpdateHistoryStatus.Succeeded : UpdateHistoryStatus.Failed;
                 var packageId = await installationService.CompleteUpdateHistoryAsync(
                     msg.UpdateHistoryId, historyStatus, msg.ErrorMessage, !msg.IsSuccess && msg.Phase == "Rollback");
+
+                // Release the throttle slot now that this update is finished.
+                updateThrottle.Release();
 
                 // Mark the package as Deployed once any installation reports successful completion.
                 if (msg.IsSuccess && packageId.HasValue)
@@ -219,7 +225,10 @@ public class AgentHub(
             var history = await installationService.StartUpdateHistoryAsync(
                 installationId.Value, packageId,
                 installation.InstalledVersionServer,
-                installation.InstalledVersionClient);
+                installation.InstalledVersionClient,
+                fromVersionAgent: installation.AgentVersion);
+
+            await updateThrottle.AcquireAsync(Context.ConnectionAborted);
 
             var httpContext = Context.GetHttpContext();
             var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)

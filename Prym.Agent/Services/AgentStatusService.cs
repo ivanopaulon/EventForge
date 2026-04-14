@@ -8,8 +8,23 @@ public class AgentStatusService
 {
     private volatile bool _reRegisterRequested;
 
-    public string HubConnectionState { get; set; } = "Disconnected";
-    public string? LastHeartbeatError { get; set; }
+    /// <summary>Current SignalR Hub connection state string (e.g. "Connected", "Disconnected").</summary>
+    private volatile string _hubConnectionState = "Disconnected";
+
+    public string HubConnectionState
+    {
+        get => _hubConnectionState;
+        set => _hubConnectionState = value;
+    }
+
+    /// <summary>Error message from the last failed heartbeat, or null when the last heartbeat succeeded.</summary>
+    private volatile string? _lastHeartbeatError;
+
+    public string? LastHeartbeatError
+    {
+        get => _lastHeartbeatError;
+        set => _lastHeartbeatError = value;
+    }
 
     private readonly object _heartbeatLock = new();
     private DateTime? _lastHeartbeatAt;
@@ -21,7 +36,13 @@ public class AgentStatusService
     }
 
     /// <summary>Enrollment status: null = not attempted, "Enrolled" = success, "Failed" = error.</summary>
-    public string? EnrollmentStatus { get; set; }
+    private volatile string? _enrollmentStatus;
+
+    public string? EnrollmentStatus
+    {
+        get => _enrollmentStatus;
+        set => _enrollmentStatus = value;
+    }
 
     /// <summary>
     /// Request that the AgentWorker re-sends a RegisterInstallation message to the Hub

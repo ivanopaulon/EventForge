@@ -163,16 +163,9 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
         }
     }
 
-    private static string MapLevel(LogEventLevel level) => level switch
-    {
-        LogEventLevel.Verbose     => "Verbose",
-        LogEventLevel.Debug       => "Debug",
-        LogEventLevel.Information => "Information",
-        LogEventLevel.Warning     => "Warning",
-        LogEventLevel.Error       => "Error",
-        LogEventLevel.Fatal       => "Fatal",
-        _                         => "Information"
-    };
+    // LogEventLevel.ToString() already returns the human-readable name (Verbose, Debug,
+    // Information, Warning, Error, Fatal) that the Server log viewer expects.
+    private static string MapLevel(LogEventLevel level) => level.ToString();
 
     public async ValueTask DisposeAsync()
     {

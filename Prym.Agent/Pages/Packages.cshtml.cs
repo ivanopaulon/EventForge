@@ -29,7 +29,7 @@ public class PackagesModel(
     /// <summary>Currently installed Client version.</summary>
     public string? ClientVersion { get; private set; }
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
         var allTracked = commandTracking.GetAll();
         DownloadingPackages = allTracked
@@ -55,7 +55,7 @@ public class PackagesModel(
             .Where(n => !actionedIds.Contains(n.PackageId))
             .ToList();
 
-        ServerVersion = versionDetector.GetServerVersion();
-        ClientVersion = versionDetector.GetClientVersion();
+        ServerVersion = await versionDetector.GetServerVersionAsync();
+        ClientVersion = await versionDetector.GetClientVersionAsync();
     }
 }

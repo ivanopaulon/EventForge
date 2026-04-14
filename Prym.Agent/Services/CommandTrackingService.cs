@@ -108,17 +108,23 @@ public class CommandTrackingService
     private void TrimOldest()
     {
         if (_commands.Count <= MaxEntries) return;
-        // Remove oldest successfully-completed entries first
-        var toRemove = _commands
+
+        var excess = _commands.Count - MaxEntries;
+
+        // Prefer to evict the oldest successfully-installed entries first so that
+        // in-progress or failed entries remain visible for operator investigation.
+        var toEvict = _commands
             .Where(c => c.State == CommandState.Installed)
             .OrderBy(c => c.ReceivedAt)
-            .Take(_commands.Count - MaxEntries)
-            .ToList();
+            .Take(excess)
+            .Select(c => c.PackageId)
+            .ToHashSet();
 
-        foreach (var item in toRemove)
-            _commands.Remove(item);
+        // RemoveAll is a single O(n) pass; avoids the O(n²) cost of repeated List.Remove.
+        if (toEvict.Count > 0)
+            _commands.RemoveAll(c => toEvict.Contains(c.PackageId));
 
-        // If still over limit, remove oldest overall
+        // If still over limit (not enough Installed entries), evict the oldest overall.
         while (_commands.Count > MaxEntries)
             _commands.RemoveAt(0);
     }

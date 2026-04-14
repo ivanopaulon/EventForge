@@ -13,6 +13,7 @@ public class IndexModel(
     IPackageService packageService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> agentHubContext,
+    IUpdateThrottleService updateThrottle,
     ILogger<IndexModel> logger) : PageModel
 {
     public IReadOnlyList<Installation> Installations { get; private set; } = [];
@@ -30,7 +31,7 @@ public class IndexModel(
         TotalInstallations = Installations.Count;
         OnlineCount = onlineIds.Count;
         OfflineCount = TotalInstallations - OnlineCount;
-        PackageCount = (await packageService.GetAllAsync()).Count;
+        PackageCount = await packageService.CountAsync();
     }
 
     /// <summary>Send a specific package update to a single installation.</summary>
@@ -51,6 +52,8 @@ public class IndexModel(
             installationId, packageId,
             installation?.InstalledVersionServer,
             installation?.InstalledVersionClient);
+
+        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
@@ -81,19 +84,34 @@ public class IndexModel(
             return RedirectToPage();
         }
 
+        // Load all online installations in a single DB query (avoids N+1).
+        var installations = await installationService.GetByIdsAsync(onlineIds);
+        var installationMap = installations.ToDictionary(i => i.Id);
+
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var downloadUrl = $"{baseUrl}/api/v1/packages/{pkg.Id}/download";
 
+        // NOTE: throttle slots are acquired sequentially here — if MaxConcurrentUpdates is low
+        // and there are many online agents, this request will block until each slot is available.
+        // This is intentional per the throttling design; consider a background queue for
+        // non-blocking dispatch at large scale.
         foreach (var id in onlineIds)
         {
             var connectionId = connectionTracker.GetConnectionId(id);
             if (connectionId is null) continue;
 
-            var installation = await installationService.GetByIdAsync(id);
+            if (!installationMap.TryGetValue(id, out var installation))
+            {
+                logger.LogWarning("Broadcast: online installation {Id} not found in map — skipping.", id);
+                continue;
+            }
+
             var history = await installationService.StartUpdateHistoryAsync(
                 id, packageId,
-                installation?.InstalledVersionServer,
-                installation?.InstalledVersionClient);
+                installation.InstalledVersionServer,
+                installation.InstalledVersionClient);
+
+            await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
             var command = new StartUpdateCommand(
                 history.Id, pkg.Id, pkg.Version,

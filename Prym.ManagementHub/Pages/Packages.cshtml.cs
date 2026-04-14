@@ -16,6 +16,7 @@ public class PackagesModel(
     IInstallationService installationService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> agentHubContext,
+    IUpdateThrottleService updateThrottle,
     ManagementHubOptions hubOptions,
     ILogger<PackagesModel> logger) : PageModel
 {
@@ -62,7 +63,9 @@ public class PackagesModel(
 
         var storePath = hubOptions.PackageStorePath;
         Directory.CreateDirectory(storePath);
-        var fileName = $"{comp.ToString().ToLowerInvariant()}-{version}-{Guid.NewGuid():N}.zip";
+        // Sanitize version string to prevent path traversal in the generated filename.
+        var safeVersion = FileNameHelper.SanitizeForFileName(version);
+        var fileName = $"{comp.ToString().ToLowerInvariant()}-{safeVersion}-{Guid.NewGuid():N}.zip";
         var filePath = Path.Combine(storePath, fileName);
 
         string checksum;
@@ -320,6 +323,8 @@ public class PackagesModel(
             installation.InstalledVersionServer,
             installation.InstalledVersionClient);
 
+        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+
         var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
             ? hubOptions.BaseUrl.TrimEnd('/')
             : $"{Request.Scheme}://{Request.Host}";
@@ -384,4 +389,5 @@ public class PackagesModel(
                 i.Components == InstallationComponents.Client || i.Components == InstallationComponents.Both))
             .ToList();
     }
+
 }

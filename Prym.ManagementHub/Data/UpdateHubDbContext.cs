@@ -56,6 +56,7 @@ public class ManagementHubDbContext(DbContextOptions<ManagementHubDbContext> opt
                 ("DotNetVersion",    "TEXT NULL"),
                 ("AgentVersion",     "TEXT NULL"),
                 ("IpAddress",        "TEXT NULL"),
+                ("LocalIpAddress",   "TEXT NULL"),
                 ("Tags",             "TEXT NULL"),
                 ("UpdateMode",       "INTEGER NOT NULL DEFAULT 0")
             })

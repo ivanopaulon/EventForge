@@ -49,7 +49,7 @@ public class UpdatePackage
     public ICollection<UpdateHistory> UpdateHistory { get; set; } = [];
 }
 
-public enum PackageComponent { Server = 1, Client = 2 }
+public enum PackageComponent { Server = 1, Client = 2, Agent = 3 }
 
 public enum PackageStatus
 {

@@ -1,7 +1,8 @@
-﻿using System.IO.Compression;
+﻿using System.Buffers;
+using System.IO.Compression;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Prym.Agent.Extensions;
 
@@ -21,6 +22,7 @@ public class UpdateExecutorService(
     MigrationRunnerService migrationRunner,
     PendingInstallService pendingInstallService,
     DownloadProgressService downloadProgress,
+    IHostApplicationLifetime lifetime,
     ILogger<UpdateExecutorService> logger) : IDisposable
 {
     // Single long-lived HttpClient; per-request timeout is enforced via CancellationTokenSource.
@@ -107,10 +109,11 @@ public class UpdateExecutorService(
         try
         {
             var url = notificationBaseUrl.TrimEnd('/') + "/api/v1/system/maintenance";
-            var json = JsonSerializer.Serialize(payload);
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                // Payload uses PascalCase anonymous-type properties; default JsonSerializerOptions
+                // serialises with PascalCase — intentionally matching the Server endpoint contract.
+                Content = JsonContent.Create(payload)
             };
             request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -218,10 +221,155 @@ public class UpdateExecutorService(
     public async Task InstallFromZipAsync(StartUpdateCommand command, string zipPath, CancellationToken ct)
     {
         var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
+        var isAgent  = command.Component.Equals("Agent",  StringComparison.OrdinalIgnoreCase);
         var deployPath = isServer ? options.Components.Server.DeployPath : options.Components.Client.DeployPath;
         var workDir   = ResolveAndEnsureDir(options.WorkPath);
         var tempDir   = Path.Combine(workDir, $"ef-update-{command.PackageId:N}");
         string? backupPath = null;
+        // When true the finally block must not delete tempDir (Updater still needs it).
+        var keepTempForUpdater = false;
+
+        // ── Agent self-update path ──────────────────────────────────────────
+        if (isAgent)
+        {
+            try
+            {
+                // Extract to staging dir so the Updater can copy atomically.
+                Directory.CreateDirectory(tempDir);
+                ValidateZipPathTraversal(zipPath, tempDir);
+                NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
+                    detail: "Estrazione archivio aggiornamento Agent…");
+                ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
+
+                var binariesDir = Path.Combine(tempDir, "binaries");
+                if (!Directory.Exists(binariesDir))
+                    binariesDir = tempDir;
+
+                var installDir = AppContext.BaseDirectory;
+
+                // Resolve updater executable path.
+                var updaterRelative = options.SelfUpdate.UpdaterExecutable;
+                var updaterPath = Path.IsPathRooted(updaterRelative)
+                    ? updaterRelative
+                    : Path.Combine(installDir, updaterRelative);
+
+                if (!File.Exists(updaterPath))
+                    throw new FileNotFoundException(
+                        $"Prym.Agent.Updater non trovato in '{updaterPath}'. " +
+                        "Assicurarsi che Prym.Agent.Updater.exe sia incluso nell'installazione dell'Agent.");
+
+                // Copy the Updater executable to a unique temp directory before launching it.
+                //
+                // Rationale: Prym.Agent.Updater.exe lives in installDir (same folder that the
+                // Updater will overwrite with new binaries). On Windows, even a self-contained
+                // single-file exe holds a file handle while running; some AV tools and certain
+                // OS configurations will refuse File.Copy(overwrite:true) on a locked file.
+                // Running from a temp copy guarantees that the file in installDir is never locked,
+                // so the new Updater binary is always installed atomically alongside the Agent.
+                //
+                // Lifecycle: the temp directory (named prym-upd-{PackageId}) is small (one exe)
+                // and lives in %TEMP%. It is not explicitly deleted here because the Agent process
+                // stops immediately after launching the Updater. Stale directories from previous
+                // runs are cleaned up by the OS on the next %TEMP% purge and accumulate only on
+                // systems that never reboot. If explicit cleanup is desired, the Agent can scan
+                // Path.GetTempPath() for "prym-upd-*" directories on startup.
+                var updaterTempDir = Path.Combine(
+                    Path.GetTempPath(),
+                    $"prym-upd-{command.PackageId:N}");
+                Directory.CreateDirectory(updaterTempDir);
+                var updaterTempPath = Path.Combine(updaterTempDir, Path.GetFileName(updaterPath));
+                File.Copy(updaterPath, updaterTempPath, overwrite: true);
+
+                logger.LogInformation(
+                    "Updater copiato in temp: '{TempPath}'", updaterTempPath);
+
+                // Build preserve-patterns argument list.
+                var preserveArgs = string.Join(" ",
+                    options.SelfUpdate.PreserveFiles.Select(p => $"--preserve \"{p}\""));
+
+                // Write the self-update marker BEFORE stopping so the new process can
+                // detect the pending completion report on restart.
+                var markerPath = Path.Combine(installDir, "self-update.json");
+                var markerJson = JsonSerializer.Serialize(new SelfUpdateMarker(
+                    command.UpdateHistoryId,
+                    command.Version,
+                    DateTime.UtcNow));
+                var markerTmp = markerPath + ".tmp";
+                await File.WriteAllTextAsync(markerTmp, markerJson, ct);
+                File.Move(markerTmp, markerPath, overwrite: true);
+
+                logger.LogInformation(
+                    "Self-update marker written. Launching Updater for Agent v{Version}. Updater='{Updater}'",
+                    command.Version, updaterTempPath);
+
+                // Launch updater as a detached process. The SCM does NOT inherit job objects
+                // for Windows services, so the child process survives the service stopping.
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = updaterTempPath,
+                    Arguments = $"--service \"{options.SelfUpdate.ServiceName}\" " +
+                                $"--source \"{binariesDir}\" " +
+                                $"--target \"{installDir.TrimEnd(Path.DirectorySeparatorChar)}\" " +
+                                $"{preserveArgs} " +
+                                $"--cleanup \"{tempDir}\"",
+                    UseShellExecute      = false,
+                    CreateNoWindow       = true,
+                    WorkingDirectory     = installDir,
+                    RedirectStandardOutput = false,
+                    RedirectStandardError  = false
+                };
+
+                var updaterProcess = System.Diagnostics.Process.Start(psi)
+                    ?? throw new InvalidOperationException("Impossibile avviare Prym.Agent.Updater.");
+
+                logger.LogInformation(
+                    "Updater lanciato (PID={Pid}). Agent si arresta per consentire l'aggiornamento.",
+                    updaterProcess.Id);
+
+                // Report the initiation phase to the Hub so the history shows progress.
+                await ReportAsync(command, UpdatePhase.SelfUpdateInitiated, false, true, null, ct);
+                NotifyPhaseBackground(command, UpdatePhase.SelfUpdateInitiated.ToString(),
+                    detail: $"Updater avviato — Agent v{command.Version} in fase di sostituzione binari…");
+
+                // Give the Hub a moment to receive the progress message before we close the connection.
+                await Task.Delay(500, CancellationToken.None);
+
+                // Prevent the finally block from deleting tempDir — the Updater handles cleanup.
+                keepTempForUpdater = true;
+
+                // Stop the service. The SCM keeps the service registered; the Updater will restart it.
+                lifetime.StopApplication();
+
+                // Block here until cancellation fires (from StopApplication → stoppingToken).
+                // This prevents InstallFromZipAsync from returning and its caller from doing
+                // further work while the service is shutting down.
+                await Task.Delay(Timeout.Infinite, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Normal: the service is stopping. Re-throw so the caller sees a clean cancellation.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Self-update initiation failed for Agent v{Version}", command.Version);
+                // Try to clean up the marker so we don't report a phantom completion on next start.
+                var markerCleanup = Path.Combine(AppContext.BaseDirectory, "self-update.json");
+                try { if (File.Exists(markerCleanup)) File.Delete(markerCleanup); }
+                catch (Exception cleanupEx) { logger.LogWarning(cleanupEx, "Could not delete self-update marker at '{Path}'.", markerCleanup); }
+                await ReportAsync(command, UpdatePhase.Completed, true, false, ex.Message, CancellationToken.None);
+                throw;
+            }
+            finally
+            {
+                if (!keepTempForUpdater && Directory.Exists(tempDir))
+                    try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
+                if (zipPath is not null && File.Exists(zipPath))
+                    try { File.Delete(zipPath); } catch { /* best effort */ }
+            }
+        }
+
+        // ── Server / Client update path (original) ──────────────────────────
 
         try
         {
@@ -438,8 +586,6 @@ public class UpdateExecutorService(
             downloadUrl = hubBase + downloadUrl;
         }
 
-        var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
-
         var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
@@ -447,7 +593,17 @@ public class UpdateExecutorService(
 
         var maxAttempts = options.DownloadMaxRetries + 1;
 
-        downloadProgress.Start(packageId, component, version);
+        // Local helper — builds a GET request with the API key header and optional byte-range.
+        HttpRequestMessage CreateRequest(long rangeFrom)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+            req.Headers.Add("X-Api-Key", options.ApiKey);
+            if (rangeFrom > 0)
+                req.Headers.Range = new RangeHeaderValue(rangeFrom, null);
+            return req;
+        }
+
+        downloadProgress.Start(command.PackageId, component, version);
         try
         {
             for (var attempt = 0; attempt < maxAttempts; attempt++)
@@ -463,32 +619,27 @@ public class UpdateExecutorService(
                 {
                     long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
 
-                    using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                    request.Headers.Add("X-Api-Key", options.ApiKey);
-                    if (resumeFrom > 0)
-                        request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
-
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
                     using var linkedCts  = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
+                    using var request = CreateRequest(resumeFrom);
                     using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                     if (resumeFrom > 0 && response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
                     {
+                        // Server doesn't support resume for this resource — restart from byte 0.
                         logger.LogWarning("Server returned 416 — restarting download from byte 0.");
                         try { File.Delete(tmpPath); } catch { /* best effort */ }
-                        resumeFrom = 0;
 
-                        using var request2 = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                        request2.Headers.Add("X-Api-Key", options.ApiKey);
+                        using var request2 = CreateRequest(rangeFrom: 0);
                         using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
                         response2.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response2, tmpPath, append: false, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response2, tmpPath, append: false, resumeFrom: 0, command.PackageId, command, linkedCts.Token);
                     }
                     else
                     {
                         response.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, resumeFrom, command.PackageId, command, linkedCts.Token);
                     }
 
                     if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -511,13 +662,13 @@ public class UpdateExecutorService(
         }
         finally
         {
-            downloadProgress.Complete(packageId);
+            downloadProgress.Complete(command.PackageId);
         }
     }
 
     private async Task WriteResponseToFileAsync(
-        HttpResponseMessage response, string tmpPath, bool append, Guid packageId,
-        StartUpdateCommand command, CancellationToken ct)
+        HttpResponseMessage response, string tmpPath, bool append, long resumeFrom,
+        Guid packageId, StartUpdateCommand command, CancellationToken ct)
     {
         var totalBytes = response.Content.Headers.ContentLength;
         await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
@@ -526,13 +677,16 @@ public class UpdateExecutorService(
         var fileMode = append ? FileMode.Append : FileMode.Create;
         await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
 
-        var buffer    = new byte[bufferSize];
-        long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
+        // Rent a buffer from the shared pool to avoid a large heap allocation per download.
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+        long written  = append ? resumeFrom : 0;
         var lastLocalReport  = DateTime.UtcNow;
         var lastServerNotify = DateTime.UtcNow;
         int bytesRead;
 
-        while ((bytesRead = await responseStream.ReadAsync(buffer, ct)) > 0)
+        while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
         {
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
             written += bytesRead;
@@ -582,6 +736,11 @@ public class UpdateExecutorService(
                 detail: finalSnap.TotalBytes.HasValue
                     ? $"Download completato: {finalSnap.FormattedTotal}"
                     : "Download completato");
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -593,7 +752,7 @@ public class UpdateExecutorService(
     /// <exception cref="System.Security.SecurityException">
     /// Thrown when at least one entry resolves to a path outside <paramref name="destDir"/>.
     /// </exception>
-    private static void ValidateZipPathTraversal(string zipPath, string destDir)
+    internal static void ValidateZipPathTraversal(string zipPath, string destDir)
     {
         var fullDest = Path.GetFullPath(destDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
@@ -619,7 +778,8 @@ public class UpdateExecutorService(
             throw new InvalidOperationException($"Checksum mismatch. Expected: {expectedChecksum} Actual: {actual}");
     }
 
-    private static readonly JsonSerializerOptions _manifestOpts = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _manifestOpts    = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _writeIndentOpts = new() { WriteIndented = true };
 
     private static async Task<UpdateManifest> LoadManifestAsync(string extractedPath)
     {
@@ -647,7 +807,7 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
-        var files = Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories);
+        var files = Directory.EnumerateFiles(binariesPath, "*", SearchOption.AllDirectories);
         var parallelism = Math.Min(Environment.ProcessorCount, DeployMaxParallelism);
         await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism, CancellationToken = ct },
             async (file, fileCt) =>
@@ -696,8 +856,7 @@ public class UpdateExecutorService(
 
         var merged = MergeJsonElements(targetDoc.RootElement, templateDoc.RootElement);
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var mergedJson = JsonSerializer.Serialize(merged, options);
+        var mergedJson = JsonSerializer.Serialize(merged, _writeIndentOpts);
         var tmpPath = targetPath + ".tmp";
         await File.WriteAllTextAsync(tmpPath, mergedJson, ct);
         File.Move(tmpPath, targetPath, overwrite: true);
@@ -706,7 +865,7 @@ public class UpdateExecutorService(
     /// <summary>
     /// Recursively merges two JsonElements. Target values win; template adds missing keys.
     /// </summary>
-    private static Dictionary<string, object?> MergeJsonElements(
+    internal static Dictionary<string, object?> MergeJsonElements(
         JsonElement target, JsonElement template)
     {
         var result = new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -847,3 +1006,10 @@ public class UpdateExecutorService(
 
     public void Dispose() => _http.Dispose();
 }
+
+/// <summary>
+/// Written to <c>self-update.json</c> in <c>AppContext.BaseDirectory</c> just before
+/// the Agent stops itself for a self-update.  On next startup the Agent reads this marker,
+/// connects to the Hub, and reports the final <c>Completed</c> outcome.
+/// </summary>
+public record SelfUpdateMarker(Guid HistoryId, string NewVersion, DateTime InitiatedAt);

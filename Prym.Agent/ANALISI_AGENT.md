@@ -1,8 +1,8 @@
 # Analisi approfondita — Prym.Agent
 
-> **Versione analisi:** 3 (Sprint 5 — post-fix)  
-> **Data:** 2026-04-13  
-> **Stato del codice:** post Sprint 5 (tutte le correzioni 5A + 5B + 5C applicate)  
+> **Versione analisi:** 7 (Sprint 9 — terzo passaggio completo)  
+> **Data:** 2026-04-14  
+> **Stato del codice:** post Sprint 9 (VersionDetectorService cache 30s, InvalidateVersionCache post-install, Task.WhenAll versioni parallele, BackupRoot readonly field, MigrationRunnerService CommandTimeout hoisted, Program.cs scopes mergiati)  
 > **Autore:** Copilot SWE Agent
 
 ---
@@ -352,7 +352,8 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | Scrittura atomica configurazioni (pending.json, installationCode) | ✅ Risolto (S2.3, S3.3) |
 | Thread-safety AgentServerSink | ✅ Risolto (S1.3) |
 | Timeout appcmd.exe | ✅ Risolto (S2.1) |
-| SSRF printer proxy | ✅ Risolto (S4.4) |
+| SSRF printer proxy (http-forward) | ✅ Risolto (S4.4) |
+| SSRF printer proxy (tcp-send, tcp-test) | ✅ Risolto (S6.1) |
 | Hub DTOs in Prym.DTOs | ✅ Risolto (S4.3) |
 | Scrittura atomica PersistEnrollmentAsync | ✅ Risolto (S5A.1) |
 | Scrittura atomica MergeJsonFilesAsync | ✅ Risolto (S5A.2) |
@@ -367,4 +368,30 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | AgentPrinterService USB001–USB099 scan | ✅ Risolto (S5C.2) |
 | UpdateExecutorService IDisposable su HttpClient | ✅ Risolto (S5C.3) |
 | PruneOldBackupsAsync asincrono | ✅ Risolto (S5C.4) |
+| IsHostAllowed: bare-domain match bug (*.example.com) | ✅ Risolto (S6.2) |
+| Unit test PasswordHasher | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test PrinterProxyHostValidator (IsHostAllowed) | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test ZipPathTraversal | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test PendingInstallService (FIFO, block/unblock) | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| Unit test MergeJsonElements | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| VersionDetectorService codice duplicato (sync/async ×4 metodi) | ✅ Risolto (S7A.1) — refactored in ReadComponentVersionAsync |
+| DownloadPackageAsync: ridondante Guid.TryParseExact | ✅ Risolto (S7A.2) — usa command.PackageId direttamente |
+| WriteResponseToFileAsync: ridondante FileInfo().Length disk read | ✅ Risolto (S7A.3) — resumeFrom passato come parametro |
+| MergeJsonFilesAsync: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S7A.4) — static _writeIndentOpts |
+| IisManagerService: stdout+stderr letti sequenzialmente (rischio deadlock) | ✅ Risolto (S7B.1) — lettura in parallelo |
+| AgentPrinterService.TestConnectionAsync: await Task.CompletedTask inutile | ✅ Risolto (S7B.2) — rimosso, metodo sync |
+| AgentWorker.IsNewerVersion: commento duplicato | ✅ Risolto (S7C.1) |
+| PrinterProxyController.GetWindowsPrintersAsync: stderr non letto (deadlock) | ✅ Risolto (S8A.1) — stdout+stderr in parallelo |
+| PrinterProxyController.GetLinuxPrintersAsync: stderr non letto (deadlock) | ✅ Risolto (S8A.2) — stdout+stderr in parallelo |
+| ScheduleModel.PersistWindows: scrittura non atomica appsettings.json | ✅ Risolto (S8B.1) — .tmp + File.Move |
+| SettingsModel.PersistToAppSettings: scrittura non atomica appsettings.json | ✅ Risolto (S8B.2) — .tmp + File.Move |
+| ScheduleModel.PersistWindows: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.1) — static _writeIndentOpts |
+| SettingsModel.PersistToAppSettings: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.2) — static _writeIndentOpts |
+| InstallationCodeGenerator.PersistCode: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.3) — static _writeIndentOpts |
+| AgentStatusService: HubConnectionState/LastHeartbeatError senza volatile | ✅ Risolto (S8D.1) — backing field volatile |
+| VersionDetectorService: legge version.txt da disco ad ogni chiamata (heartbeat, pagine, UpdateAvailable) | ✅ Risolto (S9A.1) — cache 30s + InvalidateVersionCache() dopo install completato |
+| AgentWorker: GetServerVersionAsync + GetClientVersionAsync chiamate in sequenza (SendHeartbeat, RegisterInstallation, /health) | ✅ Risolto (S9B.1) — Task.WhenAll parallelizza le due letture indipendenti |
+| BackupService.BackupRoot: computed property, ricalcola stringa ad ogni accesso | ✅ Risolto (S9C.1) — private readonly _backupRoot impostato nel costruttore |
+| MigrationRunnerService: cmd.CommandTimeout impostato in ogni iterazione del GO-batch loop | ✅ Risolto (S9D.1) — hoisted fuori dal loop (invariante per script) |
+| Program.cs: due blocchi using (var scope = ...) in sequenza per startup | ✅ Risolto (S9E.1) — unificati in un singolo scope |
 | Endpoint interni autenticati | ⚠️ **Aperta (R3)** — architettura trust-model localhost, da valutare in futuro |
