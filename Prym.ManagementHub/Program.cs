@@ -63,7 +63,15 @@ builder.Services.AddControllers()
             new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c => c.SwaggerDoc("v1", new() { Title = "Prym ManagementHub API", Version = "v1" }));
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Prym ManagementHub API", Version = "v1" });
+    // Prefix each operationId with the controller name to avoid duplicates (e.g. GetAll in multiple controllers).
+    c.CustomOperationIds(d =>
+        $"{d.ActionDescriptor.RouteValues["controller"]}_{d.ActionDescriptor.RouteValues["action"]}");
+    // Use FullName as schema ID to prevent collisions between same-named types in different namespaces.
+    c.CustomSchemaIds(t => t.FullName?.Replace("+", ".") ?? t.Name);
+});
 
 builder.Services.AddDbContext<ManagementHubDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("ManagementHub")
@@ -80,6 +88,7 @@ builder.Services.AddSingleton<IUpdateThrottleService, UpdateThrottleService>();
 builder.Services.AddHostedService<PackageWatcherService>();
 builder.Services.AddHostedService<AgentStatusCheckService>();
 builder.Services.AddHostedService<PackageCleanupService>();
+builder.Services.AddHealthChecks();
 
 // Rate limiting: protect the self-enrollment endpoint from brute-force token guessing.
 builder.Services.AddRateLimiter(options =>
@@ -121,6 +130,7 @@ app.UseMiddleware<ApiKeyAuthMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();
+app.MapHealthChecks("/health");
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<AgentHub>("/hubs/update");

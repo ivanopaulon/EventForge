@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Prym.Agent.Workers;
 
@@ -74,6 +75,16 @@ public class AgentWorker(
                     options.ApiKey == "REPLACE_WITH_INSTALLATION_API_KEY")
                 {
                     await TryEnrollAsync(stoppingToken);
+
+                    // If enrollment failed (Hub down, 409, etc.) skip the doomed connection
+                    // attempt and wait before the next retry, rather than logging a
+                    // misleading 401/403 connection error.
+                    if (string.IsNullOrWhiteSpace(options.ApiKey) ||
+                        options.ApiKey == "REPLACE_WITH_INSTALLATION_API_KEY")
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(options.ReconnectDelaySeconds), stoppingToken);
+                        continue;
+                    }
                 }
 
                 await ConnectAndRunAsync(stoppingToken);
@@ -156,8 +167,24 @@ public class AgentWorker(
 
             if (!response.IsSuccessStatusCode)
             {
-                var err = await response.Content.ReadAsStringAsync(ct);
-                logger.LogError("Enrollment failed ({Status}): {Error}", response.StatusCode, err);
+                if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    // 409: Hub already has a record for this InstallationCode (idempotent re-enrollment).
+                    // This happens when the ApiKey was not persisted on a previous run (e.g. power loss
+                    // after enrollment but before PersistEnrollmentAsync completed).
+                    // The Hub never re-issues the ApiKey for security; an admin must reissue it via
+                    // POST /api/v1/enrollments/{id}/reissue, then set PrymAgent:ApiKey in appsettings.json.
+                    logger.LogWarning(
+                        "Enrollment conflict: InstallationCode {Code} is already registered on the Hub " +
+                        "but no ApiKey was found locally. Ask the Hub administrator to reissue the API key " +
+                        "via the Hub UI (Installations → Reissue Key), then restart this Agent.",
+                        options.InstallationCode);
+                }
+                else
+                {
+                    var err = await response.Content.ReadAsStringAsync(ct);
+                    logger.LogError("Enrollment failed ({Status}): {Error}", response.StatusCode, err);
+                }
                 return;
             }
 
@@ -181,61 +208,49 @@ public class AgentWorker(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Enrollment request failed.");
+            if (IsConnectionRefused(ex))
+                logger.LogWarning(
+                    "Hub not reachable at {Url} (connection refused) — enrollment skipped. " +
+                    "Make sure Prym.ManagementHub is running.",
+                    enrollUrl);
+            else
+                logger.LogError(ex, "Enrollment request failed.");
         }
     }
+
+    private static readonly string IdentityFilePath =
+        Path.Combine(AppContext.BaseDirectory, "agent-identity.json");
 
     private async Task PersistEnrollmentAsync(string apiKey, Guid installationId)
     {
         try
         {
-            var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-            if (!File.Exists(appSettingsPath)) return;
-
-            var json = await File.ReadAllTextAsync(appSettingsPath);
-            var doc = JsonDocument.Parse(json);
-
-            // Rebuild the JSON updating only ApiKey and InstallationId
-            using var stream = new MemoryStream();
-            var writerOpts = new JsonWriterOptions { Indented = true };
-            using (var writer = new Utf8JsonWriter(stream, writerOpts))
+            // agent-identity.json lives in AppContext.BaseDirectory (build output), never in the
+            // project source tree — so VS build never overwrites it on rebuild.
+            JsonNode root;
+            if (File.Exists(IdentityFilePath))
             {
-                writer.WriteStartObject();
-                foreach (var prop in doc.RootElement.EnumerateObject())
-                {
-                    if (prop.Name == "PrymAgent")
-                    {
-                        writer.WritePropertyName("PrymAgent");
-                        writer.WriteStartObject();
-                        foreach (var agentProp in prop.Value.EnumerateObject())
-                        {
-                            if (agentProp.Name == "ApiKey")
-                                writer.WriteString("ApiKey", apiKey);
-                            else if (agentProp.Name == "InstallationId")
-                                writer.WriteString("InstallationId", installationId.ToString());
-                            else
-                                agentProp.WriteTo(writer);
-                        }
-                        // Ensure EnrollmentToken is cleared after successful enrollment
-                        // (keeps it only if it was already absent — we don't clear it so re-enrollment stays possible)
-                        writer.WriteEndObject();
-                    }
-                    else
-                    {
-                        prop.WriteTo(writer);
-                    }
-                }
-                writer.WriteEndObject();
+                var existing = await File.ReadAllTextAsync(IdentityFilePath);
+                root = JsonNode.Parse(existing) ?? new JsonObject();
+            }
+            else
+            {
+                root = new JsonObject();
             }
 
-            var tmpPath = appSettingsPath + ".tmp";
-            await File.WriteAllBytesAsync(tmpPath, stream.ToArray());
-            File.Move(tmpPath, appSettingsPath, overwrite: true);
-            logger.LogInformation("Enrollment credentials persisted to appsettings.json.");
+            var section = root[AgentOptions.SectionName] as JsonObject ?? new JsonObject();
+            section["ApiKey"] = apiKey;
+            section["InstallationId"] = installationId.ToString();
+            root[AgentOptions.SectionName] = section;
+
+            var tmpPath = IdentityFilePath + ".tmp";
+            await File.WriteAllTextAsync(tmpPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            File.Move(tmpPath, IdentityFilePath, overwrite: true);
+            logger.LogInformation("Enrollment credentials persisted to agent-identity.json.");
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not persist enrollment credentials to appsettings.json.");
+            logger.LogWarning(ex, "Could not persist enrollment credentials to agent-identity.json.");
         }
     }
 
@@ -603,10 +618,48 @@ public class AgentWorker(
         if (!registeredForThisConnection)
         {
             registeredForThisConnection = true;
-            var serverVerTask = versionDetector.GetServerVersionAsync();
-            var clientVerTask = versionDetector.GetClientVersionAsync();
-            await Task.WhenAll(serverVerTask, clientVerTask, systemInfo.GetPublicIpAddressAsync());
-            await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
+            await SendRegisterInstallationAsync(ct);
+            // After registering, check if a previous self-update is pending completion.
+            await ProcessSelfUpdateMarkerAsync(ct);
+        }
+        else
+        {
+            // New connection after a full reconnect cycle: send heartbeat so Hub has fresh state.
+            await SendHeartbeatAsync(ct);
+        }
+
+        // Heartbeat loop
+        while (!ct.IsCancellationRequested && _connection.State == HubConnectionState.Connected)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(options.HeartbeatIntervalSeconds), ct);
+
+            // Reconnect requested from UI (HubUrl/ApiKey changed) — break to trigger new connection.
+            if (agentStatus.ConsumeReconnectRequest())
+            {
+                logger.LogInformation("Reconnect requested — dropping connection to apply updated settings.");
+                break;
+            }
+
+            // Re-registration requested from UI (name/location/tags changed) — send full identity.
+            if (agentStatus.ConsumeReRegisterRequest())
+                await SendRegisterInstallationAsync(ct);
+            else
+                await SendHeartbeatAsync(ct);
+        }
+    }
+
+    private async Task SendRegisterInstallationAsync(CancellationToken ct)
+    {
+        if (_connection?.State != HubConnectionState.Connected) return;
+
+        var serverVerTask = versionDetector.GetServerVersionAsync();
+        var clientVerTask = versionDetector.GetClientVersionAsync();
+        await Task.WhenAll(serverVerTask, clientVerTask, systemInfo.GetPublicIpAddressAsync());
+
+        agentStatus.LastKnownServerVersion = serverVerTask.Result ?? agentStatus.LastKnownServerVersion;
+        agentStatus.LastKnownClientVersion = clientVerTask.Result ?? agentStatus.LastKnownClientVersion;
+
+        await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
             VersionServer:    serverVerTask.Result,
@@ -621,43 +674,33 @@ public class AgentWorker(
             OSVersion:        systemInfo.OSVersion,
             DotNetVersion:    systemInfo.DotNetVersion,
             AgentVersion:     versionDetector.GetAgentVersion(),
-            LocalIpAddress:   systemInfo.LocalIpAddress),
+            LocalIpAddress:   systemInfo.LocalIpAddress,
+            PublicIpAddress:  await systemInfo.GetPublicIpAddressAsync()),
             ct);
-
-            // After registering, check if a previous self-update is pending completion.
-            await ProcessSelfUpdateMarkerAsync(ct);
-        }
-        else
-        {
-            // New connection after a full reconnect cycle: send heartbeat so Hub has fresh state.
-            await SendHeartbeatAsync(ct);
-        }
-
-        // Heartbeat loop
-        while (!ct.IsCancellationRequested && _connection.State == HubConnectionState.Connected)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(options.HeartbeatIntervalSeconds), ct);
-            await SendHeartbeatAsync(ct);
-        }
     }
 
     private async Task SendHeartbeatAsync(CancellationToken ct)
     {
         if (_connection?.State != HubConnectionState.Connected) return;
 
-        var serverVerTask = versionDetector.GetServerVersionAsync();
-        var clientVerTask = versionDetector.GetClientVersionAsync();
-        await Task.WhenAll(serverVerTask, clientVerTask);
+        var serverVerTask  = versionDetector.GetServerVersionAsync();
+        var clientVerTask  = versionDetector.GetClientVersionAsync();
+        var publicIpTask   = systemInfo.GetPublicIpAddressAsync();
+        await Task.WhenAll(serverVerTask, clientVerTask, publicIpTask);
+
+        agentStatus.LastKnownServerVersion = serverVerTask.Result ?? agentStatus.LastKnownServerVersion;
+        agentStatus.LastKnownClientVersion = clientVerTask.Result ?? agentStatus.LastKnownClientVersion;
 
         await _connection.InvokeAsync("Heartbeat", new HeartbeatMessage(
-            InstallationId: options.InstallationId,
-            VersionServer:  serverVerTask.Result,
-            VersionClient:  clientVerTask.Result,
-            Status:         "Online",
-            Timestamp:      DateTime.UtcNow,
-            AgentVersion:   versionDetector.GetAgentVersion(),
-            Location:       options.Location,
-            Tags:           options.Tags.Count > 0 ? options.Tags : null),
+            InstallationId:  options.InstallationId,
+            VersionServer:   serverVerTask.Result,
+            VersionClient:   clientVerTask.Result,
+            Status:          "Online",
+            Timestamp:       DateTime.UtcNow,
+            AgentVersion:    versionDetector.GetAgentVersion(),
+            Location:        options.Location,
+            Tags:            options.Tags.Count > 0 ? options.Tags : null,
+            PublicIpAddress: publicIpTask.Result),
             ct);
 
         agentStatus.LastHeartbeatAt = DateTime.UtcNow;

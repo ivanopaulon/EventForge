@@ -2,6 +2,7 @@
 using Prym.Agent.Workers;
 using Microsoft.Extensions.Options;
 using Serilog;
+using System.Text.Json.Nodes;
 
 // ── Read config early for Serilog + URL binding ───────────────────────────
 // Single-file config: base values from appsettings.json, then override with
@@ -244,6 +245,33 @@ try
     });
 
     Log.Information("Prym Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
+
+    // ── Restore persisted identity (survives project rebuilds) ───────────────
+    // agent-identity.json lives in AppContext.BaseDirectory (build output dir), NOT in the
+    // project source dir — VS build never touches it. Stores InstallationCode, ApiKey,
+    // InstallationId so the agent keeps its identity across rebuilds and restarts.
+    var agentOpts = app.Services.GetRequiredService<AgentOptions>();
+    var identityPath = Path.Combine(AppContext.BaseDirectory, "agent-identity.json");
+    if (File.Exists(identityPath))
+    {
+        try
+        {
+            var idSection = (JsonNode.Parse(File.ReadAllText(identityPath))
+                ?[AgentOptions.SectionName]) as JsonObject;
+            if (idSection is not null)
+            {
+                if (idSection["InstallationCode"]?.GetValue<string>() is { Length: > 0 } code)
+                    agentOpts.InstallationCode = code;
+                if (idSection["ApiKey"]?.GetValue<string>() is { Length: > 0 } key)
+                    agentOpts.ApiKey = key;
+                if (idSection["InstallationId"]?.GetValue<string>() is { Length: > 0 } installId
+                    && installId != "00000000-0000-0000-0000-000000000000")
+                    agentOpts.InstallationId = installId;
+                Log.Debug("Agent identity loaded from agent-identity.json. Code={Code}", agentOpts.InstallationCode);
+            }
+        }
+        catch (Exception ex) { Log.Warning(ex, "Could not load agent-identity.json — starting with empty identity."); }
+    }
 
     // ── Startup validation + InstallationCode generation ─────────────────
     // Both steps use the same DI scope — no need to create two separate scopes.

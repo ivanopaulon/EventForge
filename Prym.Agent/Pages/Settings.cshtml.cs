@@ -82,7 +82,10 @@ public class SettingsModel(AgentOptions options, AgentStatusService agentStatus,
             // Persist to appsettings.json
             PersistToAppSettings(options);
 
-            TempData["Success"] = "Configurazione salvata. Riavvia il servizio per applicare i parametri che richiedono riavvio.";
+            // Immediately push identity/tag changes to the Hub without waiting for restart.
+            agentStatus.RequestReRegister();
+
+            TempData["Success"] = "Configurazione salvata. Nome, posizione e tag aggiornati sull'Hub immediatamente. Per HubUrl/ApiKey usa \"Riconnetti\"; porta UI richiede riavvio servizio.";
         }
         catch (Exception ex)
         {
@@ -98,6 +101,13 @@ public class SettingsModel(AgentOptions options, AgentStatusService agentStatus,
         // Signal to AgentWorker to re-send RegisterInstallation
         agentStatus.RequestReRegister();
         TempData["Info"] = "Ri-registrazione inviata. L'agent invierà RegisterInstallation al prossimo ciclo heartbeat.";
+        return RedirectToPage();
+    }
+
+    public IActionResult OnPostReconnect()
+    {
+        agentStatus.RequestReconnect();
+        TempData["Info"] = "Riconnessione richiesta. L'agent si disconnetterà e si riconnetterà all'Hub con le nuove impostazioni entro il prossimo heartbeat.";
         return RedirectToPage();
     }
 
@@ -188,6 +198,56 @@ public class SettingsModel(AgentOptions options, AgentStatusService agentStatus,
         section["Components"] = new JsonObject { ["Server"] = server, ["Client"] = client };
 
         root[AgentOptions.SectionName] = section;
+
+        // Also update the env-specific section (Environments:{env}:PrymAgent) for any keys that
+        // are already overridden there, so they don't shadow the saved values on the next restart.
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+        var envSection = root["Environments"]?[env]?[AgentOptions.SectionName] as JsonObject;
+        if (envSection is not null)
+        {
+            if (envSection["InstallationName"]     is not null) envSection["InstallationName"]     = opts.InstallationName;
+            if (envSection["Location"]             is not null) envSection["Location"]             = opts.Location;
+            if (envSection["HubUrl"]               is not null) envSection["HubUrl"]               = opts.HubUrl;
+            if (envSection["HubBaseUrl"]           is not null) envSection["HubBaseUrl"]           = opts.HubBaseUrl;
+            if (envSection["EnrollmentToken"]      is not null) envSection["EnrollmentToken"]      = opts.EnrollmentToken;
+            if (envSection["HeartbeatIntervalSeconds"] is not null) envSection["HeartbeatIntervalSeconds"] = opts.HeartbeatIntervalSeconds;
+            if (envSection["ReconnectDelaySeconds"]    is not null) envSection["ReconnectDelaySeconds"]    = opts.ReconnectDelaySeconds;
+            if (envSection["Tags"] is not null)
+            {
+                var envTags = new JsonArray();
+                foreach (var t in opts.Tags) envTags.Add(t);
+                envSection["Tags"] = envTags;
+            }
+            var envInstall = envSection["Install"] as JsonObject;
+            if (envInstall is not null)
+            {
+                if (envInstall["HealthCheckMaxAttempts"]        is not null) envInstall["HealthCheckMaxAttempts"]        = opts.Install.HealthCheckMaxAttempts;
+                if (envInstall["HealthCheckDelaySeconds"]       is not null) envInstall["HealthCheckDelaySeconds"]       = opts.Install.HealthCheckDelaySeconds;
+                if (envInstall["IisWarmupDelaySeconds"]         is not null) envInstall["IisWarmupDelaySeconds"]         = opts.Install.IisWarmupDelaySeconds;
+                if (envInstall["SqlCommandTimeoutSeconds"]      is not null) envInstall["SqlCommandTimeoutSeconds"]      = opts.Install.SqlCommandTimeoutSeconds;
+                if (envInstall["ScheduledCheckIntervalSeconds"] is not null) envInstall["ScheduledCheckIntervalSeconds"] = opts.Install.ScheduledCheckIntervalSeconds;
+            }
+            var envComponents = envSection["Components"] as JsonObject;
+            if (envComponents is not null)
+            {
+                var envServer = envComponents["Server"] as JsonObject;
+                if (envServer is not null)
+                {
+                    if (envServer["Enabled"]          is not null) envServer["Enabled"]          = opts.Components.Server.Enabled;
+                    if (envServer["DeployPath"]        is not null) envServer["DeployPath"]        = opts.Components.Server.DeployPath;
+                    if (envServer["HealthCheckUrl"]    is not null) envServer["HealthCheckUrl"]    = opts.Components.Server.HealthCheckUrl;
+                    if (envServer["IISSiteName"]       is not null) envServer["IISSiteName"]       = opts.Components.Server.IISSiteName;
+                    if (envServer["AppPoolName"]       is not null) envServer["AppPoolName"]       = opts.Components.Server.AppPoolName;
+                    if (envServer["ConnectionString"]  is not null) envServer["ConnectionString"]  = opts.Components.Server.ConnectionString;
+                }
+                var envClient = envComponents["Client"] as JsonObject;
+                if (envClient is not null)
+                {
+                    if (envClient["Enabled"]    is not null) envClient["Enabled"]    = opts.Components.Client.Enabled;
+                    if (envClient["DeployPath"] is not null) envClient["DeployPath"] = opts.Components.Client.DeployPath;
+                }
+            }
+        }
 
         // Write atomically: .tmp first, then rename, to avoid corruption on crash.
         var tmpPath = AppSettingsPath + ".tmp";

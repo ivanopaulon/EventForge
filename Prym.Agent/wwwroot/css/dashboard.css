@@ -240,6 +240,9 @@ a:hover { color: #1d4ed8; }
   box-shadow: var(--ef-shadow);
   padding: 1.1rem 1.25rem;
   transition: box-shadow .2s, transform .2s;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .ef-kpi-card:hover { box-shadow: var(--ef-shadow-md); transform: translateY(-1px); }
@@ -277,6 +280,8 @@ a:hover { color: #1d4ed8; }
 .ef-kpi-sub {
   font-size: .72rem;
   color: var(--ef-text-muted);
+  margin-top: auto;
+  padding-top: .25rem;
 }
 
 /* ── Tables ──────────────────────────────────────────────────────────── */

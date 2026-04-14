@@ -13,10 +13,16 @@
         <div class="ef-page-title-icon settings"><i class="bi bi-sliders"></i></div>
         <div>
             <h1>Impostazioni</h1>
-            <p class="ef-page-subtitle">Configurazione dell'agent — le modifiche richiedono riavvio del servizio</p>
+            <p class="ef-page-subtitle">Configurazione dell'agent — identità e tag si applicano subito, Hub URL/ApiKey richiedono riconnessione, Porta UI riavvio</p>
         </div>
     </div>
     <div class="d-flex gap-2">
+        <form method="post" asp-page-handler="Reconnect">
+            <button type="submit" class="btn btn-outline-warning btn-sm"
+                    onclick="return confirm('Disconnettere e riconnettere l\'agent all\'Hub?\nUsare dopo aver cambiato HubUrl o ApiKey.')">
+                <i class="bi bi-arrow-clockwise me-1"></i>Riconnetti all'Hub
+            </button>
+        </form>
         <form method="post" asp-page-handler="ReRegister">
             <button type="submit" class="btn btn-outline-secondary btn-sm"
                     onclick="return confirm('Ri-registra questa installazione all\'Hub?\nVerrà inviata una nuova chiamata RegisterInstallation via SignalR.')">
@@ -26,9 +32,16 @@
     </div>
 </div>
 
-<div class="alert alert-info d-flex align-items-center gap-2 mb-4" style="font-size:.82rem">
-    <i class="bi bi-info-circle-fill fs-5 flex-shrink-0"></i>
-    <span>Le modifiche vengono scritte in <code>appsettings.json</code> e diventano effettive al <strong>prossimo riavvio</strong> del servizio Windows.</span>
+<div class="alert alert-info d-flex align-items-start gap-2 mb-4" style="font-size:.82rem">
+    <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
+    <div>
+        Le modifiche vengono sempre scritte in <code>appsettings.json</code>. Modalità di applicazione:
+        <ul class="mb-0 mt-1">
+            <li><strong>Immediata</strong> — Nome, Posizione, Tag, credenziali UI, soglie e percorsi.</li>
+            <li><strong>Riconnessione</strong> <span class="ef-badge ef-badge-warning">riconnetti</span> — Hub URL, Hub Base URL, API Key: salva e usa il bottone <em>Riconnetti all'Hub</em>.</li>
+            <li><strong>Riavvio</strong> <span class="ef-badge ef-badge-warning">riavvio</span> — Solo Porta UI (Kestrel).</li>
+        </ul>
+    </div>
 </div>
 
 @if (Model.Options.UI.Password == "Admin#123!")
@@ -83,17 +96,17 @@
     <div class="ef-card-body">
         <div class="row g-3">
             <div class="col-md-8">
-                <label class="form-label">Hub URL (SignalR) <span class="ef-badge ef-badge-warning">riavvio</span></label>
+                <label class="form-label">Hub URL (SignalR) <span class="ef-badge ef-badge-warning">riconnetti</span></label>
                 <input class="form-control" name="HubUrl" value="@Model.Options.HubUrl"
                        placeholder="https://updatehub.example.com/hubs/update" />
             </div>
             <div class="col-md-4">
-                <label class="form-label">Hub Base URL <span class="ef-badge ef-badge-warning">riavvio</span></label>
+                <label class="form-label">Hub Base URL <span class="ef-badge ef-badge-warning">riconnetti</span></label>
                 <input class="form-control" name="HubBaseUrl" value="@Model.Options.HubBaseUrl"
                        placeholder="https://updatehub.example.com" />
             </div>
             <div class="col-md-8">
-                <label class="form-label">API Key <span class="ef-badge ef-badge-warning">riavvio</span></label>
+                <label class="form-label">API Key <span class="ef-badge ef-badge-warning">riconnetti</span></label>
                 <input class="form-control" name="ApiKey" type="password" value="@Model.Options.ApiKey"
                        autocomplete="off" placeholder="Lasciare vuoto per auto-enrollment" />
                 <div class="form-text text-muted">Vuoto = l'agent richiederà automaticamente una chiave al prossimo avvio usando l'Enrollment Token.</div>

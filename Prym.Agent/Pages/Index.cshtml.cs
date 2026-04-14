@@ -14,6 +14,7 @@ public class IndexModel(
     PendingInstallService pendingInstallService,
     UpdateExecutorService updateExecutor,
     VersionDetectorService versionDetector,
+    SystemInfoService systemInfo,
     CommandTrackingService commandTracking,
     ILogger<IndexModel> logger) : PageModel
 {
@@ -34,6 +35,18 @@ public class IndexModel(
     public DateTime? NextWindow { get; private set; }
     public IReadOnlyList<TrackedCommand> TrackedCommands { get; private set; } = [];
 
+    // ── Dati inviati all'Hub (RegisterInstallationMessage) ───────────────────
+    public string? HubUrl { get; private set; }
+    public string? InstallationCode { get; private set; }
+    public string? Location { get; private set; }
+    public IReadOnlyList<string> Tags { get; private set; } = [];
+    public string MachineName { get; private set; } = string.Empty;
+    public string OSVersion { get; private set; } = string.Empty;
+    public string DotNetVersion { get; private set; } = string.Empty;
+    public string? AgentVersion { get; private set; }
+    public string? LocalIpAddress { get; private set; }
+    public string? PublicIpAddress { get; private set; }
+
     public async Task OnGetAsync()
     {
         InstallationId = agentOptions.InstallationId;
@@ -42,8 +55,8 @@ public class IndexModel(
         ClientEnabled = agentOptions.Components.Client.Enabled;
         HubState = agentStatus.HubConnectionState;
         LastHeartbeat = agentStatus.LastHeartbeatAt;
-        ServerVersion = await versionDetector.GetServerVersionAsync();
-        ClientVersion = await versionDetector.GetClientVersionAsync();
+        ServerVersion = await versionDetector.GetServerVersionAsync() ?? agentStatus.LastKnownServerVersion;
+        ClientVersion = await versionDetector.GetClientVersionAsync() ?? agentStatus.LastKnownClientVersion;
         QueueBlocked = pendingInstallService.IsBlocked;
         BlockedReason = pendingInstallService.BlockedReason;
         BlockedByPackageId = pendingInstallService.BlockedByPackageId;
@@ -52,6 +65,18 @@ public class IndexModel(
         PendingCount = PendingUpdates.Count;
         NextWindow = pendingInstallService.GetNextWindowStart();
         TrackedCommands = commandTracking.GetAll();
+
+        // Hub registration data
+        HubUrl = agentOptions.HubUrl;
+        InstallationCode = agentOptions.InstallationCode;
+        Location = agentOptions.Location;
+        Tags = agentOptions.Tags;
+        MachineName = systemInfo.MachineName;
+        OSVersion = systemInfo.OSVersion;
+        DotNetVersion = systemInfo.DotNetVersion;
+        AgentVersion = versionDetector.GetAgentVersion();
+        LocalIpAddress = systemInfo.LocalIpAddress;
+        PublicIpAddress = await systemInfo.GetPublicIpAddressAsync();
     }
 
     public IActionResult OnPostInstallNow(Guid packageId)

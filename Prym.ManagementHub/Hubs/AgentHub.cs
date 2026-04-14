@@ -75,7 +75,8 @@ public class AgentHub(
         var installationId = GetInstallationId();
         if (installationId is null) return;
 
-        var ip = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString();
+        var ip = msg.PublicIpAddress
+                 ?? Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString();
 
         try
         {
@@ -115,7 +116,13 @@ public class AgentHub(
         var installationId = GetInstallationId();
         if (installationId is null) return;
 
-        var ip = Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString();
+        // Prefer the public IP reported by the agent (resolved via api.ipify.org and cached);
+        // fall back to the TCP remote address only when the agent doesn't send one.
+        // Never use RemoteIpAddress alone: in local dev it is ::1, behind a reverse proxy it is
+        // the proxy's loopback — both would overwrite the correct value saved by RegisterInstallation.
+        var ip = msg.PublicIpAddress
+                 ?? Context.GetHttpContext()?.Connection.RemoteIpAddress?.ToString();
+
         var status = Enum.TryParse<InstallationStatus>(msg.Status, true, out var s) ? s : InstallationStatus.Online;
 
         try

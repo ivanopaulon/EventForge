@@ -57,9 +57,22 @@ public class EnrollmentsController(
                     $"This installation has been revoked. Reason: {existing.RevokedReason ?? "Not specified"}.");
             }
 
-            // Already enrolled — return existing record (idempotent re-enrollment)
-            // We do NOT return the ApiKey again for security; admin must reissue if key is lost
-            logger.LogInformation("Re-enrollment of existing installation. Code={Code} Id={Id}", request.InstallationCode, existing.Id);
+            // Already enrolled — behaviour depends on AllowAutoEnrollment:
+            //   • AllowAutoEnrollment=true  → reissue a new ApiKey so the agent can
+            //     recover automatically when its local key was lost (e.g. appsettings.json
+            //     was reset, output directory was cleaned, or the previous persisting step
+            //     failed).  The EnrollmentToken acts as the re-authorization secret.
+            //   • AllowAutoEnrollment=false → refuse; admin must reissue via the UI.
+            if (hubOptions.AllowAutoEnrollment)
+            {
+                var reissuedKey = await installationService.ReissueApiKeyAsync(existing.Id);
+                logger.LogInformation(
+                    "Re-enrollment with key reissue (AllowAutoEnrollment=true). Code={Code} Id={Id}",
+                    request.InstallationCode, existing.Id);
+                return Ok(new EnrollmentResponse(existing.Id, existing.InstallationCode!, reissuedKey!));
+            }
+
+            logger.LogInformation("Re-enrollment rejected (AllowAutoEnrollment=false). Code={Code} Id={Id}", request.InstallationCode, existing.Id);
             return Conflict(new
             {
                 Message = "This InstallationCode is already registered. The original ApiKey was issued at enrollment time. " +

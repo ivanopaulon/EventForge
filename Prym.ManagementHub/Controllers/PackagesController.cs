@@ -52,11 +52,12 @@ public class PackagesController(
     /// <summary>Upload a new update package.</summary>
     [HttpPost]
     [RequestSizeLimit(500_000_000)] // 500 MB
+    [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload(
         [FromQuery] string version,
         [FromQuery] string component,
         [FromQuery] string? releaseNotes,
-        IFormFile file)
+        [FromForm] IFormFile file)
     {
         if (!IsAdminAuthorized()) return Unauthorized();
         if (!Enum.TryParse<PackageComponent>(component, true, out var comp))

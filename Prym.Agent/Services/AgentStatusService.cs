@@ -35,6 +35,23 @@ public class AgentStatusService
         set { lock (_heartbeatLock) _lastHeartbeatAt = value; }
     }
 
+    private volatile string? _lastKnownServerVersion;
+    private volatile string? _lastKnownClientVersion;
+
+    /// <summary>Last version of the Server component successfully detected and sent to Hub.</summary>
+    public string? LastKnownServerVersion
+    {
+        get => _lastKnownServerVersion;
+        set => _lastKnownServerVersion = value;
+    }
+
+    /// <summary>Last version of the Client component successfully detected and sent to Hub.</summary>
+    public string? LastKnownClientVersion
+    {
+        get => _lastKnownClientVersion;
+        set => _lastKnownClientVersion = value;
+    }
+
     /// <summary>Enrollment status: null = not attempted, "Enrolled" = success, "Failed" = error.</summary>
     private volatile string? _enrollmentStatus;
 
@@ -55,6 +72,23 @@ public class AgentStatusService
     {
         if (!_reRegisterRequested) return false;
         _reRegisterRequested = false;
+        return true;
+    }
+
+    private volatile bool _reconnectRequested;
+
+    /// <summary>
+    /// Request that the AgentWorker drops and rebuilds the Hub connection so that
+    /// updated settings (HubUrl, ApiKey) take effect without a full process restart.
+    /// The flag is automatically cleared after the worker acts on it.
+    /// </summary>
+    public void RequestReconnect() => _reconnectRequested = true;
+
+    /// <summary>Consumes the reconnect request (returns true the first time, false thereafter).</summary>
+    public bool ConsumeReconnectRequest()
+    {
+        if (!_reconnectRequested) return false;
+        _reconnectRequested = false;
         return true;
     }
 }

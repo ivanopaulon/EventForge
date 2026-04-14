@@ -22,15 +22,15 @@ public class InstallationCodeGenerator(
     AgentOptions options,
     ILogger<InstallationCodeGenerator> logger)
 {
-    private static readonly string AppSettingsPath =
-        Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+    private static readonly string IdentityFilePath =
+        Path.Combine(AppContext.BaseDirectory, "agent-identity.json");
 
     private static readonly JsonSerializerOptions _writeIndentOpts =
         new() { WriteIndented = true };
 
     /// <summary>
     /// Ensures that <see cref="AgentOptions.InstallationCode"/> is populated.
-    /// If not set (empty or null), generates a new code and persists it to appsettings.json.
+    /// If not set (empty or null), generates a new code and persists it to agent-identity.json.
     /// </summary>
     public void EnsureInstallationCode()
     {
@@ -70,9 +70,9 @@ public class InstallationCodeGenerator(
         try
         {
             JsonNode root;
-            if (File.Exists(AppSettingsPath))
+            if (File.Exists(IdentityFilePath))
             {
-                var text = File.ReadAllText(AppSettingsPath);
+                var text = File.ReadAllText(IdentityFilePath);
                 root = JsonNode.Parse(text) ?? new JsonObject();
             }
             else
@@ -85,13 +85,13 @@ public class InstallationCodeGenerator(
             root[AgentOptions.SectionName] = section;
 
             // Write atomically: .tmp first, then rename, to avoid corruption on crash.
-            var tmpPath = AppSettingsPath + ".tmp";
+            var tmpPath = IdentityFilePath + ".tmp";
             File.WriteAllText(tmpPath, root.ToJsonString(_writeIndentOpts));
-            File.Move(tmpPath, AppSettingsPath, overwrite: true);
+            File.Move(tmpPath, IdentityFilePath, overwrite: true);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Could not persist InstallationCode to appsettings.json. Code is active in-memory.");
+            logger.LogWarning(ex, "Could not persist InstallationCode to agent-identity.json. Code is active in-memory.");
         }
     }
 }

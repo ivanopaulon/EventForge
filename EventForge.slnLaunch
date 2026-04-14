@@ -15,12 +15,12 @@
       {
         "Path": "Prym.ManagementHub\\Prym.ManagementHub.csproj",
         "Action": "StartWithoutDebugging",
-        "DebugTarget": "IIS Express"
+        "DebugTarget": "Prym.ManagementHub"
       },
       {
         "Path": "Prym.Agent\\Prym.Agent.csproj",
         "Action": "StartWithoutDebugging",
-        "DebugTarget": "IIS Express"
+        "DebugTarget": "Prym.Agent"
       }
     ]
   },
@@ -30,12 +30,12 @@
       {
         "Path": "Prym.ManagementHub\\Prym.ManagementHub.csproj",
         "Action": "Start",
-        "DebugTarget": "IIS Express"
+        "DebugTarget": "Prym.ManagementHub"
       },
       {
         "Path": "Prym.Agent\\Prym.Agent.csproj",
         "Action": "Start",
-        "DebugTarget": "IIS Express"
+        "DebugTarget": "Prym.Agent"
       }
     ]
   }

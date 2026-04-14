@@ -16,7 +16,8 @@ public record RegisterInstallationMessage(
     string? OSVersion         = null,
     string? DotNetVersion     = null,
     string? AgentVersion      = null,
-    string? LocalIpAddress    = null);
+    string? LocalIpAddress    = null,
+    string? PublicIpAddress   = null);
 
 public record HeartbeatMessage(
     string InstallationId,
@@ -26,7 +27,8 @@ public record HeartbeatMessage(
     DateTime Timestamp,
     string? AgentVersion           = null,
     string? Location               = null,
-    IReadOnlyList<string>? Tags    = null);
+    IReadOnlyList<string>? Tags    = null,
+    string? PublicIpAddress        = null);
 
 public record UpdateProgressMessage(
     string InstallationId,

@@ -122,6 +122,129 @@
     </div>
 </div>
 
+<!-- ── Dati inviati all'Hub (RegisterInstallationMessage) ──────────────── -->
+<div class="ef-card mb-4">
+    <div class="ef-card-header" style="cursor:pointer" data-bs-toggle="collapse" data-bs-target="#hubRegCard" aria-expanded="false">
+        <i class="bi bi-send-fill me-1"></i>Dati inviati all'Hub
+        <span class="ef-badge ef-badge-neutral ms-1">RegisterInstallationMessage</span>
+        <i class="bi bi-chevron-down ms-auto" style="font-size:.8rem"></i>
+    </div>
+    <div class="collapse" id="hubRegCard">
+        <div class="ef-card-body">
+            <div class="row g-2" style="font-size:.82rem">
+                <div class="col-md-6">
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">InstallationId</span>
+                            <code class="text-end" style="word-break:break-all">@(string.IsNullOrEmpty(Model.InstallationId) ? "—" : Model.InstallationId)</code>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">InstallationCode</span>
+                            <code class="text-end" style="font-size:.75rem;word-break:break-all">
+                                @if (string.IsNullOrEmpty(Model.InstallationCode))
+                                {
+                                    <span class="ef-badge ef-badge-danger">mancante</span>
+                                }
+                                else
+                                {
+                                    @Model.InstallationCode
+                                }
+                            </code>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">InstallationName</span>
+                            <span>@Model.InstallationName</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">Location</span>
+                            <span>@(string.IsNullOrEmpty(Model.Location) ? "—" : Model.Location)</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">Tags</span>
+                            <span>
+                                @if (Model.Tags.Count == 0)
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else
+                                {
+                                    @foreach (var tag in Model.Tags)
+                                    {
+                                        <span class="ef-badge ef-badge-neutral me-1">@tag</span>
+                                    }
+                                }
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">Components.Server</span>
+                            <span class="ef-badge @(Model.ServerEnabled ? "ef-badge-success" : "ef-badge-neutral")">@(Model.ServerEnabled ? "abilitato" : "disabilitato")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pb-1">
+                            <span class="text-muted">Components.Client</span>
+                            <span class="ef-badge @(Model.ClientEnabled ? "ef-badge-success" : "ef-badge-neutral")">@(Model.ClientEnabled ? "abilitato" : "disabilitato")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex flex-column gap-1">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">MachineName</span>
+                            <span>@Model.MachineName</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">OSVersion</span>
+                            <span class="text-end" style="max-width:55%;font-size:.75rem">@Model.OSVersion</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">DotNetVersion</span>
+                            <span>@Model.DotNetVersion</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">AgentVersion</span>
+                            <span>@(Model.AgentVersion ?? "—")</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">LocalIpAddress <small class="text-muted">(LAN)</small></span>
+                            @if (string.IsNullOrEmpty(Model.LocalIpAddress))
+                            {
+                                <span class="ef-badge ef-badge-warning">non rilevato</span>
+                            }
+                            else
+                            {
+                                <code>@Model.LocalIpAddress</code>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-1">
+                            <span class="text-muted">PublicIpAddress <small class="text-muted">(WAN)</small></span>
+                            @if (string.IsNullOrEmpty(Model.PublicIpAddress))
+                            {
+                                <span class="ef-badge ef-badge-warning" title="api.ipify.org non raggiungibile o timeout">non rilevato</span>
+                            }
+                            else
+                            {
+                                <code>@Model.PublicIpAddress</code>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pb-1">
+                            <span class="text-muted">HubUrl</span>
+                            <code class="text-end" style="font-size:.75rem;word-break:break-all">
+                                @if (string.IsNullOrEmpty(Model.HubUrl))
+                                {
+                                    <span class="ef-badge ef-badge-danger">non configurato</span>
+                                }
+                                else
+                                {
+                                    @Model.HubUrl
+                                }
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Pacchetti ricevuti dall'Hub -->
 @if (Model.TrackedCommands.Count > 0)
 {

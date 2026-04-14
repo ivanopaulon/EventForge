@@ -42,8 +42,21 @@
   if (statusDot) {
     fetch('/api/agent/status', { cache: 'no-store' })
       .then(r => {
-        if (r.ok) { statusDot.classList.remove('error', 'degraded'); }
-        else      { statusDot.classList.add('degraded'); }
+        if (!r.ok) { statusDot.classList.add('degraded'); return null; }
+        return r.json();
+      })
+      .then(data => {
+        if (!data) return;
+        const state = (data.hubConnectionState || '').toLowerCase();
+        if (state === 'connected') {
+          statusDot.classList.remove('error', 'degraded');
+        } else if (state === 'reconnecting') {
+          statusDot.classList.remove('error');
+          statusDot.classList.add('degraded');
+        } else {
+          statusDot.classList.remove('degraded');
+          statusDot.classList.add('error');
+        }
       })
       .catch(() => statusDot.classList.add('error'));
   }
