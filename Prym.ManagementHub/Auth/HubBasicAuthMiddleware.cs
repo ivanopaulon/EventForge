@@ -78,8 +78,19 @@ public class HubBasicAuthMiddleware(RequestDelegate next, ManagementHubOptions o
             var credentials = Encoding.UTF8.GetString(credentialBytes).Split(':', 2);
             if (credentials.Length != 2) return false;
 
-            return credentials[0] == expectedUser &&
-                   PasswordHasher.Verify(credentials[1], expectedPass);
+            // Timing-safe username comparison — prevents enumerating valid usernames via timing.
+            var suppliedUserBytes = Encoding.UTF8.GetBytes(credentials[0]);
+            var expectedUserBytes = Encoding.UTF8.GetBytes(expectedUser);
+            var userOk = suppliedUserBytes.Length == expectedUserBytes.Length
+                && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+                    suppliedUserBytes, expectedUserBytes);
+
+            // Always verify the password even when the username is wrong — this prevents a
+            // timing oracle that would allow an attacker to enumerate valid usernames by
+            // observing that bad-username responses arrive faster than bad-password responses.
+            var passOk = PasswordHasher.Verify(credentials[1], expectedPass);
+
+            return userOk && passOk;
         }
         catch (Exception ex) when (ex is FormatException or InvalidOperationException)
         {

@@ -144,7 +144,9 @@ public class PackageBuildService(
         var storePath = hubOptions.PackageStorePath;
         Directory.CreateDirectory(storePath);
 
-        var fileName = $"{component.ToString().ToLowerInvariant()}-{version}-{Guid.NewGuid():N}.zip";
+        // Sanitize version to prevent path traversal when embedding it in the filename.
+        var safeVersion = SanitizeForFileName(version);
+        var fileName = $"{component.ToString().ToLowerInvariant()}-{safeVersion}-{Guid.NewGuid():N}.zip";
         var zipPath = Path.Combine(storePath, fileName);
 
         logger.LogInformation("Building package {Component} {Version} from {Folder}",
@@ -334,4 +336,11 @@ public class PackageBuildService(
         public DateTime BuiltAt { get; init; }
         public string? GitCommit { get; init; }
     }
+
+    /// <summary>
+    /// Removes characters from a user-supplied version string that are not safe for use in filenames.
+    /// Allows alphanumeric characters, dots, hyphens, and underscores only.
+    /// </summary>
+    private static string SanitizeForFileName(string input) =>
+        System.Text.RegularExpressions.Regex.Replace(input, @"[^a-zA-Z0-9.\-_]", "_");
 }

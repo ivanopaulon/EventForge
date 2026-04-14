@@ -8,16 +8,13 @@ namespace Prym.ManagementHub.Controllers;
 [Route("api/v1/packages")]
 public class PackagesController(
     IPackageService packageService,
+    IAdminAuthService adminAuth,
     ManagementHubOptions hubOptions,
     ILogger<PackagesController> logger) : ControllerBase
 {
     private string PackageStorePath => hubOptions.PackageStorePath;
 
-    private bool IsAdminAuthorized()
-    {
-        Request.Headers.TryGetValue("X-Admin-Key", out var key);
-        return !string.IsNullOrWhiteSpace(hubOptions.AdminApiKey) && key == hubOptions.AdminApiKey;
-    }
+    private bool IsAdminAuthorized() => adminAuth.IsAuthorized(Request.Headers);
 
     /// <summary>Get all packages.</summary>
     [HttpGet]
@@ -68,7 +65,10 @@ public class PackagesController(
         if (file is null || file.Length == 0) return BadRequest("File is required.");
 
         Directory.CreateDirectory(PackageStorePath);
-        var fileName = $"{comp.ToString().ToLowerInvariant()}-{version}-{Guid.NewGuid():N}.zip";
+
+        // Sanitize version string to prevent path traversal in the generated filename.
+        var safeVersion = SanitizeForFileName(version);
+        var fileName = $"{comp.ToString().ToLowerInvariant()}-{safeVersion}-{Guid.NewGuid():N}.zip";
         var filePath = Path.Combine(PackageStorePath, fileName);
 
         // Write the file and compute SHA-256 in a single stream pass for efficiency.
@@ -116,10 +116,19 @@ public class PackagesController(
         var pkg = await packageService.GetByIdAsync(id);
         if (pkg is null) return NotFound();
 
-        var fullPath = Path.Combine(PackageStorePath, pkg.FilePath);
+        var storeRoot = Path.GetFullPath(PackageStorePath);
+        var fullPath  = Path.GetFullPath(Path.Combine(PackageStorePath, pkg.FilePath));
+
+        // Guard against path traversal in FilePath stored in the database.
+        if (!IsPathWithin(fullPath, storeRoot))
+        {
+            logger.LogWarning("Path containment violation for Package {Id}: {FilePath}", id, pkg.FilePath);
+            return BadRequest("Invalid package path.");
+        }
+
         if (!System.IO.File.Exists(fullPath)) return NotFound("Package file not found on disk.");
 
-        return PhysicalFile(Path.GetFullPath(fullPath), "application/zip", $"{pkg.Component}-{pkg.Version}.zip");
+        return PhysicalFile(fullPath, "application/zip", $"{pkg.Component}-{pkg.Version}.zip");
     }
 
     /// <summary>Update the status of a package (admin only).</summary>
@@ -167,5 +176,23 @@ public class PackagesController(
 
         var suggested = await packageService.GetSuggestedNextVersionAsync(comp, type);
         return Ok(new { version = suggested, component = comp.ToString(), type });
+    }
+
+    /// <summary>
+    /// Removes characters from a user-supplied version string that are not safe for use in filenames.
+    /// Allows alphanumeric characters, dots, hyphens, and underscores only.
+    /// </summary>
+    private static string SanitizeForFileName(string input) =>
+        System.Text.RegularExpressions.Regex.Replace(input, @"[^a-zA-Z0-9.\-_]", "_");
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="filePath"/> is located inside
+    /// <paramref name="rootPath"/> (both resolved to absolute paths), preventing path-traversal attacks.
+    /// </summary>
+    private static bool IsPathWithin(string filePath, string rootPath)
+    {
+        // Ensure rootPath ends with a separator so "/packages_extra/…" doesn't pass "/packages" check.
+        var root = rootPath.EndsWith(Path.DirectorySeparatorChar) ? rootPath : rootPath + Path.DirectorySeparatorChar;
+        return filePath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
     }
 }

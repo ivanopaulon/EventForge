@@ -13,6 +13,7 @@ public class InstallationsModel(
     IConnectionTracker connectionTracker,
     IPackageService packageService,
     IHubContext<AgentHub> agentHubContext,
+    IUpdateThrottleService updateThrottle,
     ILogger<InstallationsModel> logger) : PageModel
 {
     public IReadOnlyList<InstallationRow> Installations { get; private set; } = [];
@@ -75,6 +76,8 @@ public class InstallationsModel(
             installationId, packageId,
             installation?.InstalledVersionServer,
             installation?.InstalledVersionClient);
+
+        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
