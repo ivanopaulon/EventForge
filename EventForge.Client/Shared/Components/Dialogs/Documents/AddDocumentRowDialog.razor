@@ -348,10 +348,10 @@
                     {
                         <MudPaper Elevation="1" Class="pa-3 bg-grey">
                             <MudCheckBox T="bool"
-                                         @bind-Checked="_model.MergeDuplicateProducts"
-                                         Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")"
+                                         @bind-Value="_model.MergeDuplicateProducts"
                                          Color="Color.Primary"
                                          Disabled="@(_selectedProduct == null)">
+                                @TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")
                                 @if (_selectedProduct == null)
                                 {
                                     <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesDisabledHelp", "Seleziona un prodotto dall'autocomplete per abilitare la fusione")">

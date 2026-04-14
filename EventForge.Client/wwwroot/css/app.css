@@ -624,8 +624,8 @@ kbd {
      - .gdp-page-root  → height:100% fill column (no page scroll)
      - .gdp-title-bar  → shrink: 0; title + back button + alerts
      - .gdp-body       → flex: 1; flex-row; gap; overflow hidden
-     - .gdp-left-col   → ~25%; flex column; gap; internal scroll
-     - .gdp-right-col  → ~75%; flex column; overflow hidden
+     - .gdp-left-col   → ~33%; flex column; gap; internal scroll
+     - .gdp-right-col  → ~67%; flex column; overflow hidden
      - .gdp-panel      → scrollable panel inside left col
      - .gdp-rows-area  → flex:1; overflow hidden; right col table wrapper
    ============================================ */
@@ -658,9 +658,8 @@ kbd {
 }
 
 .gdp-left-col {
-    width: 25%;
+    width: calc(100% / 3);
     min-width: 240px;
-    max-width: 340px;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -733,6 +732,21 @@ kbd {
     .gdp-rows-area {
         min-height: 320px;
     }
+}
+
+/* ============================================
+   DocumentDetailDialog Full-Screen Layout
+   Ensures the gdp-* layout fills the dialog
+   content area when opened as full-screen.
+   ============================================ */
+.doc-detail-fs-dialog .mud-dialog-content {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.mud-dialog-fullscreen.doc-detail-fs-dialog .mud-dialog-content {
+    height: 100% !important;
+    max-height: none !important;
 }
 
 /* ============================================
