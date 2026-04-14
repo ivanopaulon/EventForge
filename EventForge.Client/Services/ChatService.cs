@@ -378,7 +378,7 @@ public class ChatService : IChatService
     {
         try
         {
-            return await _httpClientService.GetAsync<ChatStatsDto>("api/v1/chat/stats", cancellationToken) ?? new ChatStatsDto();
+            return await _httpClientService.GetAsync<ChatStatsDto>("api/v1/chat/statistics", cancellationToken) ?? new ChatStatsDto();
         }
         catch (Exception ex)
         {

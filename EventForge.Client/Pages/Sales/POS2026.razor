@@ -38,6 +38,7 @@
 @inject ITableManagementService TableManagementService
 @inject EventForge.Client.Services.Sales.INoteFlagService NoteFlagService
 @inject ILogger<POS2026> Logger
+@inject NavigationManager NavigationManager
 
 <PageTitle>POS 2026</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading || _isLoadingProducts"
