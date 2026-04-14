@@ -195,16 +195,18 @@ public interface IDocumentHeaderService
     /// <param name="documentId">Document ID</param>
     /// <param name="userName">User acquiring the lock</param>
     /// <param name="connectionId">SignalR connection ID</param>
+    /// <param name="tenantId">Optional tenant ID from hub claims (bypasses request-scoped tenant context which is unavailable during SignalR hub calls)</param>
     /// <returns>True if lock acquired, false if already locked by another user</returns>
-    Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId);
+    Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId, Guid? tenantId = null);
 
     /// <summary>
     /// Releases an edit lock for a document.
     /// </summary>
     /// <param name="documentId">Document ID</param>
     /// <param name="userName">User releasing the lock</param>
+    /// <param name="tenantId">Optional tenant ID from hub claims (bypasses request-scoped tenant context which is unavailable during SignalR hub calls)</param>
     /// <returns>True if lock released, false if user doesn't hold the lock</returns>
-    Task<bool> ReleaseLockAsync(Guid documentId, string userName);
+    Task<bool> ReleaseLockAsync(Guid documentId, string userName, Guid? tenantId = null);
 
     /// <summary>
     /// Releases all locks held by a specific SignalR connection.
@@ -218,8 +220,9 @@ public interface IDocumentHeaderService
     /// Gets lock information for a document.
     /// </summary>
     /// <param name="documentId">Document ID</param>
+    /// <param name="tenantId">Optional tenant ID from hub claims (bypasses request-scoped tenant context which is unavailable during SignalR hub calls)</param>
     /// <returns>Lock information or null if document not found</returns>
-    Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId);
+    Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId, Guid? tenantId = null);
 
     /// <summary>
     /// Get documents for export with batch processing support

@@ -120,7 +120,8 @@ public class DocumentCollaborationHub : Hub
             var lockAcquired = await _documentHeaderService.AcquireLockAsync(
                 documentId,
                 userName,
-                Context.ConnectionId);
+                Context.ConnectionId,
+                tenantId);
 
             if (lockAcquired)
             {
@@ -145,7 +146,7 @@ public class DocumentCollaborationHub : Hub
                     "❌ AcquireLockAsync returned FALSE for document {DocumentId}, user {UserName}",
                     documentId, userName);
 
-                var lockInfo = await _documentHeaderService.GetLockInfoAsync(documentId);
+                var lockInfo = await _documentHeaderService.GetLockInfoAsync(documentId, tenantId);
 
                 if (lockInfo != null)
                 {
@@ -195,10 +196,11 @@ public class DocumentCollaborationHub : Hub
     public async Task ReleaseEditLock(Guid documentId)
     {
         var userName = Context.User?.Identity?.Name ?? "Unknown";
+        var tenantId = GetCurrentTenantId();
 
         try
         {
-            var released = await _documentHeaderService.ReleaseLockAsync(documentId, userName);
+            var released = await _documentHeaderService.ReleaseLockAsync(documentId, userName, tenantId);
 
             if (released)
             {
