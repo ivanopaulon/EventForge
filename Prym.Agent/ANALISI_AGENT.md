@@ -1,8 +1,8 @@
 # Analisi approfondita — Prym.Agent
 
-> **Versione analisi:** 5 (Sprint 7 — performance + cleanliness pass)  
+> **Versione analisi:** 6 (Sprint 8 — secondo passaggio completo)  
 > **Data:** 2026-04-14  
-> **Stato del codice:** post Sprint 7 (deduplicazione VersionDetector, IIS deadlock fix, perf micro-ottimizzazioni)  
+> **Stato del codice:** post Sprint 8 (deadlock printer-proxy, scritture atomiche appsettings, volatile AgentStatusService)  
 > **Autore:** Copilot SWE Agent
 
 ---
@@ -381,4 +381,12 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | IisManagerService: stdout+stderr letti sequenzialmente (rischio deadlock) | ✅ Risolto (S7B.1) — lettura in parallelo |
 | AgentPrinterService.TestConnectionAsync: await Task.CompletedTask inutile | ✅ Risolto (S7B.2) — rimosso, metodo sync |
 | AgentWorker.IsNewerVersion: commento duplicato | ✅ Risolto (S7C.1) |
+| PrinterProxyController.GetWindowsPrintersAsync: stderr non letto (deadlock) | ✅ Risolto (S8A.1) — stdout+stderr in parallelo |
+| PrinterProxyController.GetLinuxPrintersAsync: stderr non letto (deadlock) | ✅ Risolto (S8A.2) — stdout+stderr in parallelo |
+| ScheduleModel.PersistWindows: scrittura non atomica appsettings.json | ✅ Risolto (S8B.1) — .tmp + File.Move |
+| SettingsModel.PersistToAppSettings: scrittura non atomica appsettings.json | ✅ Risolto (S8B.2) — .tmp + File.Move |
+| ScheduleModel.PersistWindows: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.1) — static _writeIndentOpts |
+| SettingsModel.PersistToAppSettings: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.2) — static _writeIndentOpts |
+| InstallationCodeGenerator.PersistCode: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.3) — static _writeIndentOpts |
+| AgentStatusService: HubConnectionState/LastHeartbeatError senza volatile | ✅ Risolto (S8D.1) — backing field volatile |
 | Endpoint interni autenticati | ⚠️ **Aperta (R3)** — architettura trust-model localhost, da valutare in futuro |

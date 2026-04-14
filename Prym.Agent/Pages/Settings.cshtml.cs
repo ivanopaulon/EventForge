@@ -104,6 +104,9 @@ public class SettingsModel(AgentOptions options, AgentStatusService agentStatus,
     private static readonly string AppSettingsPath =
         Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 
+    private static readonly JsonSerializerOptions _writeIndentOpts =
+        new() { WriteIndented = true };
+
     private static void PersistToAppSettings(AgentOptions opts)
     {
         JsonNode root;
@@ -186,7 +189,9 @@ public class SettingsModel(AgentOptions options, AgentStatusService agentStatus,
 
         root[AgentOptions.SectionName] = section;
 
-        var writeOptions = new JsonSerializerOptions { WriteIndented = true };
-        System.IO.File.WriteAllText(AppSettingsPath, root.ToJsonString(writeOptions));
+        // Write atomically: .tmp first, then rename, to avoid corruption on crash.
+        var tmpPath = AppSettingsPath + ".tmp";
+        System.IO.File.WriteAllText(tmpPath, root.ToJsonString(_writeIndentOpts));
+        System.IO.File.Move(tmpPath, AppSettingsPath, overwrite: true);
     }
 }

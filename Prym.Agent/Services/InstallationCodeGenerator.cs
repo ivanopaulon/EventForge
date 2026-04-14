@@ -25,6 +25,9 @@ public class InstallationCodeGenerator(
     private static readonly string AppSettingsPath =
         Path.Combine(AppContext.BaseDirectory, "appsettings.json");
 
+    private static readonly JsonSerializerOptions _writeIndentOpts =
+        new() { WriteIndented = true };
+
     /// <summary>
     /// Ensures that <see cref="AgentOptions.InstallationCode"/> is populated.
     /// If not set (empty or null), generates a new code and persists it to appsettings.json.
@@ -81,10 +84,9 @@ public class InstallationCodeGenerator(
             section["InstallationCode"] = code;
             root[AgentOptions.SectionName] = section;
 
-            var writeOptions = new JsonSerializerOptions { WriteIndented = true };
-            // Write to a temp file first, then atomically rename to avoid corruption on crash.
+            // Write atomically: .tmp first, then rename, to avoid corruption on crash.
             var tmpPath = AppSettingsPath + ".tmp";
-            File.WriteAllText(tmpPath, root.ToJsonString(writeOptions));
+            File.WriteAllText(tmpPath, root.ToJsonString(_writeIndentOpts));
             File.Move(tmpPath, AppSettingsPath, overwrite: true);
         }
         catch (Exception ex)

@@ -347,8 +347,14 @@ public sealed class PrinterProxyController(
         if (proc is not null)
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+
+            // Read stdout and stderr concurrently to prevent a pipe-buffer deadlock
+            // if PowerShell writes enough to either stream to fill its OS buffer.
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
             await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask; // discard, but must be consumed
 
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -377,8 +383,13 @@ public sealed class PrinterProxyController(
         if (proc is not null)
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            var output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+
+            // Read stdout and stderr concurrently to prevent a pipe-buffer deadlock.
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
             await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask; // discard, but must be consumed
 
             // lpstat -a format: "PrinterName accepting requests since ..."
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
