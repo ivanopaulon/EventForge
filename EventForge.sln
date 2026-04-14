@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.UI", "Prym.UI\Prym.UI.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Agent.Tests", "Prym.Agent.Tests\Prym.Agent.Tests.csproj", "{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.UpdateShared", "Prym.UpdateShared\Prym.UpdateShared.csproj", "{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -139,6 +141,18 @@ Global
 		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x64.Build.0 = Release|Any CPU
 		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x86.ActiveCfg = Release|Any CPU
 		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x86.Build.0 = Release|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Debug|x64.Build.0 = Debug|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Debug|x86.Build.0 = Debug|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Release|x64.ActiveCfg = Release|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Release|x64.Build.0 = Release|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Release|x86.ActiveCfg = Release|Any CPU
+		{D1E2F3A4-B5C6-7D8E-9F0A-1B2C3D4E5F6A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,63 +1,24 @@
-using System.Security.Cryptography;
+// This file is kept for source-compatibility only.
+// The canonical implementation now lives in Prym.UpdateShared.Security.PasswordHasher.
+// Both Agent and Hub reference that shared copy — no behaviour change.
 
 namespace Prym.ManagementHub.Security;
 
 /// <summary>
-/// PBKDF2-SHA256 password hashing utility for the Hub UI credentials.
-/// Stored format: <c>v1:{base64salt}:{base64hash}</c> (100 000 iterations, 32-byte key).
-/// Legacy plaintext values (no <c>v1:</c> prefix) are accepted during verification
-/// to allow a transparent migration when the admin next saves the Settings page.
+/// Forwards all calls to <see cref="Prym.UpdateShared.Security.PasswordHasher"/>.
+/// Kept so existing callers within <c>Prym.ManagementHub</c> compile without changes.
 /// </summary>
 public static class PasswordHasher
 {
-    private const int Iterations = 100_000;
-    private const int KeyLength  = 32; // 256 bits
-    private const int SaltLength = 16; // 128 bits
-    private const string Prefix  = "v1:";
-
-    /// <summary>Returns <see langword="true"/> if <paramref name="stored"/> looks like a hashed value.</summary>
+    /// <inheritdoc cref="Prym.UpdateShared.Security.PasswordHasher.IsHashed"/>
     public static bool IsHashed(string stored) =>
-        !string.IsNullOrEmpty(stored) && stored.StartsWith(Prefix, StringComparison.Ordinal);
+        Prym.UpdateShared.Security.PasswordHasher.IsHashed(stored);
 
-    /// <summary>
-    /// Hashes <paramref name="password"/> with a fresh random salt and returns the stored string.
-    /// </summary>
-    public static string Hash(string password)
-    {
-        var salt = RandomNumberGenerator.GetBytes(SaltLength);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, KeyLength);
-        return $"{Prefix}{Convert.ToBase64String(salt)}:{Convert.ToBase64String(hash)}";
-    }
+    /// <inheritdoc cref="Prym.UpdateShared.Security.PasswordHasher.Hash"/>
+    public static string Hash(string password) =>
+        Prym.UpdateShared.Security.PasswordHasher.Hash(password);
 
-    /// <summary>
-    /// Verifies <paramref name="password"/> against <paramref name="stored"/>.
-    /// Accepts both hashed (<c>v1:…</c>) and legacy plaintext values.
-    /// </summary>
-    public static bool Verify(string password, string stored)
-    {
-        if (string.IsNullOrEmpty(stored))
-            return false;
-
-        // Legacy plaintext — transparent migration path until admin re-saves Settings.
-        if (!stored.StartsWith(Prefix, StringComparison.Ordinal))
-            return password == stored;
-
-        var rest  = stored[Prefix.Length..];
-        var colon = rest.IndexOf(':');
-        if (colon < 0) return false;
-
-        byte[] salt, expectedHash;
-        try
-        {
-            salt         = Convert.FromBase64String(rest[..colon]);
-            expectedHash = Convert.FromBase64String(rest[(colon + 1)..]);
-        }
-        catch (FormatException)
-        {
-            return false;
-        }
-
-        var actualHash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, KeyLength);
-        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
-    }
+    /// <inheritdoc cref="Prym.UpdateShared.Security.PasswordHasher.Verify"/>
+    public static bool Verify(string password, string stored) =>
+        Prym.UpdateShared.Security.PasswordHasher.Verify(password, stored);
 }
