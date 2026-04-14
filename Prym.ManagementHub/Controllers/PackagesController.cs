@@ -188,11 +188,21 @@ public class PackagesController(
     /// <summary>
     /// Returns <see langword="true"/> when <paramref name="filePath"/> is located inside
     /// <paramref name="rootPath"/> (both resolved to absolute paths), preventing path-traversal attacks.
+    /// Uses OS-appropriate case comparison (<see cref="StringComparison.OrdinalIgnoreCase"/> on
+    /// Windows/macOS, <see cref="StringComparison.Ordinal"/> on case-sensitive Linux filesystems).
     /// </summary>
     private static bool IsPathWithin(string filePath, string rootPath)
     {
-        // Ensure rootPath ends with a separator so "/packages_extra/…" doesn't pass "/packages" check.
-        var root = rootPath.EndsWith(Path.DirectorySeparatorChar) ? rootPath : rootPath + Path.DirectorySeparatorChar;
-        return filePath.StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        // Re-resolve to absolute paths so this helper is safe even if the caller hasn't done so.
+        var root = Path.GetFullPath(rootPath);
+        if (!root.EndsWith(Path.DirectorySeparatorChar))
+            root += Path.DirectorySeparatorChar;
+
+        var comparison = System.Runtime.InteropServices.RuntimeInformation
+            .IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux)
+            ? StringComparison.Ordinal
+            : StringComparison.OrdinalIgnoreCase;
+
+        return filePath.StartsWith(root, comparison);
     }
 }

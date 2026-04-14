@@ -171,8 +171,8 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         // Execute one parameterised query per installation so EF Core generates
         // "SELECT … WHERE InstallationId = @p0 ORDER BY StartedAt DESC LIMIT @p1",
         // which uses an index efficiently without a correlated subquery or full table scan.
-        // The number of installations in a typical deployment hub is small (dozens to hundreds),
-        // making this approach both simple and fast.
+        // Performance note: acceptable for typical hub deployments with up to ~1 000 installations.
+        // At significantly larger scale, consider a single UNION or window-function query instead.
         var result = new Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>(ids.Count);
 
         foreach (var id in ids)

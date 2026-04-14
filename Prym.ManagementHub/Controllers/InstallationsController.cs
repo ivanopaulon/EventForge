@@ -119,6 +119,10 @@ public class InstallationsController(
 
         await hubContext.Clients.All.SendAsync("UpdateAvailable", notification);
 
+        // NOTE: throttle slots are acquired sequentially here — if MaxConcurrentUpdates is low
+        // and there are many online agents, this request will block until each slot is available.
+        // This is intentional per the throttling design and is acceptable for admin-triggered
+        // broadcasts. Consider a background queue if non-blocking dispatch is needed.
         foreach (var id in onlineIds)
         {
             var connectionId = connectionTracker.GetConnectionId(id);

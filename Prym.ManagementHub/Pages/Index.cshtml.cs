@@ -91,6 +91,10 @@ public class IndexModel(
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var downloadUrl = $"{baseUrl}/api/v1/packages/{pkg.Id}/download";
 
+        // NOTE: throttle slots are acquired sequentially here — if MaxConcurrentUpdates is low
+        // and there are many online agents, this request will block until each slot is available.
+        // This is intentional per the throttling design; consider a background queue for
+        // non-blocking dispatch at large scale.
         foreach (var id in onlineIds)
         {
             var connectionId = connectionTracker.GetConnectionId(id);

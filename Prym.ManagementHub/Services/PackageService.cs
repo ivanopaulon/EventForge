@@ -91,8 +91,18 @@ public class PackageService(ManagementHubDbContext db, ManagementHubOptions hubO
 
     public async Task DeleteAsync(Guid packageId, CancellationToken ct = default)
     {
+        // Load the file path before deleting the record so we can clean up disk afterwards.
+        var pkg = await db.UpdatePackages.FindAsync([packageId], ct);
+        if (pkg is null) return;
+
         await db.UpdatePackages
             .Where(p => p.Id == packageId)
             .ExecuteDeleteAsync(ct);
+
+        // Remove the zip from disk after the DB record is gone (best-effort; a pre-existing
+        // File.Delete by the caller — e.g. PackageCleanupService — is handled gracefully).
+        var filePath = Path.Combine(PackageStorePath, pkg.FilePath);
+        if (File.Exists(filePath))
+            try { File.Delete(filePath); } catch { /* orphan is preferable to a broken state */ }
     }
 }
