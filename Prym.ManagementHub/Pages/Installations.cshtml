@@ -515,16 +515,9 @@ function openMergeModal(btn) {
 
 // Auto-refresh every 60 seconds to pick up online/offline status changes without manual reload.
 (function() {
-    let countdown = 60;
-    const timer = setInterval(() => {
-        countdown--;
-        if (countdown <= 0) {
-            clearInterval(timer);
-            window.location.reload();
-        }
-    }, 1000);
+    const timer = setTimeout(() => window.location.reload(), 60000);
     // Cancel auto-refresh if the user opens a modal to prevent data loss.
-    document.addEventListener('show.bs.modal', () => clearInterval(timer));
+    document.addEventListener('show.bs.modal', () => clearTimeout(timer));
 })();
 </script>
 }

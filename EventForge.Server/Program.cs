@@ -280,6 +280,19 @@ builder.Services.AddCors(options =>
             // Default to localhost dev ports when no origins are configured
             allowedOrigins = ["https://localhost:7009", "http://localhost:5048"];
         }
+
+        // Warn if the production placeholder was not replaced. This prevents silent CORS failures.
+        var placeholder = "REPLACE_WITH_CLIENT_ORIGIN";
+        if (Array.Exists(allowedOrigins, o => o.Contains(placeholder, StringComparison.OrdinalIgnoreCase)))
+        {
+            var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(
+                "CORS configuration contains the placeholder '{Placeholder}'. " +
+                "Replace it with the actual Client origin in appsettings.json or an environment override " +
+                "before deploying to production — otherwise SignalR connections from the browser will be blocked.",
+                placeholder);
+        }
+
         _ = policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()

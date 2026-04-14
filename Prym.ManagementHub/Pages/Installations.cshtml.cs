@@ -44,8 +44,9 @@ public class InstallationsModel(
             var existing = await installationService.FindByNameAsync(name);
             if (existing.Count > 0)
             {
-                var names = string.Join(", ", existing.Select(e => $"\"{e.Name}\" ({e.Id})"));
-                TempData["DuplicateWarning"] = $"Esiste già un'installazione con il nome \"{name}\": {names}. Se vuoi comunque creare una nuova installazione con lo stesso nome, conferma di seguito.";
+            var shown  = existing.Take(3).Select(e => $"\"{e.Name}\" ({e.Id})");
+            var suffix = existing.Count > 3 ? $" e altre {existing.Count - 3} installazioni" : "";
+            TempData["DuplicateWarning"] = $"Esiste già un'installazione con il nome \"{name}\": {string.Join(", ", shown)}{suffix}. Se vuoi comunque creare una nuova installazione con lo stesso nome, conferma di seguito.";
                 TempData["PendingName"] = name;
                 TempData["PendingLocation"] = location;
                 TempData["PendingComponents"] = components.ToString();

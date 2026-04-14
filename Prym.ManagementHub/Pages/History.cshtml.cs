@@ -36,8 +36,11 @@ public class HistoryModel(ManagementHubDbContext db) : PageModel
             query = query.Where(h => h.Status == parsedStatus);
 
         if (!string.IsNullOrWhiteSpace(installation))
+        {
+            var lowerFilter = installation.ToLowerInvariant();
             query = query.Where(h => h.Installation != null &&
-                                     h.Installation.Name.ToLower().Contains(installation.ToLower()));
+                                     h.Installation.Name.ToLower().Contains(lowerFilter));
+        }
 
         TotalCount = await query.CountAsync();
 

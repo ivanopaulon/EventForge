@@ -243,9 +243,9 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
 
     public async Task<IReadOnlyList<Installation>> FindByNameAsync(string name, Guid? excludeId = null, CancellationToken ct = default)
     {
-        var normalised = name.Trim();
+        var lower = name.Trim().ToLowerInvariant();
         var query = db.Installations
-            .Where(i => i.Name.ToLower() == normalised.ToLower());
+            .Where(i => i.Name.ToLower() == lower);
         if (excludeId.HasValue)
             query = query.Where(i => i.Id != excludeId.Value);
         return await query.ToListAsync(ct);
