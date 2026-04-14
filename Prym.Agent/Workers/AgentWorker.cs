@@ -311,6 +311,25 @@ public class AgentWorker(
                     // Notify connected clients that the package is queued so the snackbar updates.
                     await updateExecutor.NotifyAwaitingInstallAsync(command);
                 }
+                else if (command.Component.Equals("Agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Agent self-update: ALWAYS route through the queue (never direct-install).
+                    //
+                    // Rationale:
+                    //   • The ScheduledInstallWorker processes the queue sequentially — this guarantees
+                    //     the Agent install never races with a concurrently running Server/Client install.
+                    //   • GetNext() gives Agent packages absolute priority, so even if Server/Client
+                    //     packages are already queued, the Agent update goes first.
+                    //   • TriggerImmediateInstall bypasses the maintenance-window wait so the Agent
+                    //     update runs as soon as any in-progress install finishes.
+                    pendingInstallService.Enqueue(command, zipPath);
+                    pendingInstallService.TriggerImmediateInstall(command.PackageId);
+                    logger.LogInformation(
+                        "Agent self-update v{Version} enqueued with priority trigger — will run after any in-progress install.",
+                        command.Version);
+                    await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
+                    await updateExecutor.NotifyAwaitingInstallAsync(command);
+                }
                 else if (pendingInstallService.IsInMaintenanceWindow())
                 {
                     // Auto mode within window: install immediately
