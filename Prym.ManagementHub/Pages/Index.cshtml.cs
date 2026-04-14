@@ -14,6 +14,7 @@ public class IndexModel(
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> agentHubContext,
     IUpdateThrottleService updateThrottle,
+    ManagementHubOptions hubOptions,
     ILogger<IndexModel> logger) : PageModel
 {
     public IReadOnlyList<Installation> Installations { get; private set; } = [];
@@ -55,7 +56,9 @@ public class IndexModel(
 
         await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
             history.Id, pkg.Id, pkg.Version,
             pkg.Component.ToString(),
@@ -88,7 +91,9 @@ public class IndexModel(
         var installations = await installationService.GetByIdsAsync(onlineIds);
         var installationMap = installations.ToDictionary(i => i.Id);
 
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
         var downloadUrl = $"{baseUrl}/api/v1/packages/{pkg.Id}/download";
 
         // NOTE: throttle slots are acquired sequentially here — if MaxConcurrentUpdates is low

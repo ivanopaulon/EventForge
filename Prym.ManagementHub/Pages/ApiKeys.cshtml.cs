@@ -6,7 +6,7 @@ namespace Prym.ManagementHub.Pages;
 /// <summary>
 /// API Keys management page model for the Hub web UI.
 /// Displays all registered installations with their masked API keys,
-/// online status, and allows revoke / reinstate / reissue operations.
+/// online status, and allows revoke / reinstate / reissue / delete operations.
 /// </summary>
 public class ApiKeysModel(
     IInstallationService installationService,
@@ -58,6 +58,21 @@ public class ApiKeysModel(
         TempData["NewKey"] = newKey;
         TempData["NewKeyInstallationId"] = id.ToString();
         TempData["Success"] = "Nuova chiave API generata. Copiala subito — non sarà più visibile.";
+        return RedirectToPage();
+    }
+
+    // ── Elimina installazione ─────────────────────────────────────────────
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    {
+        var (ok, error) = await installationService.DeleteAsync(id);
+        if (!ok)
+        {
+            TempData["Error"] = error ?? "Impossibile eliminare l'installazione.";
+            return RedirectToPage();
+        }
+
+        logger.LogWarning("Installation deleted via ApiKeys UI: Id={Id}", id);
+        TempData["Success"] = "Installazione eliminata definitivamente.";
         return RedirectToPage();
     }
 

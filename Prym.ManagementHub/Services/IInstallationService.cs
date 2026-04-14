@@ -90,6 +90,28 @@ public interface IInstallationService
     /// Used to batch-load installation data for a set of online connection IDs without N+1 queries.
     /// </summary>
     Task<IReadOnlyList<Installation>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns all installations whose <see cref="Installation.Name"/> matches <paramref name="name"/>
+    /// (case-insensitive), excluding the installation with <paramref name="excludeId"/> if provided.
+    /// Used to detect potential duplicates before creating a new installation.
+    /// </summary>
+    Task<IReadOnlyList<Installation>> FindByNameAsync(string name, Guid? excludeId = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Merges <paramref name="sourceId"/> into <paramref name="targetId"/>:
+    /// copies non-null runtime fields from source to target (choosing the more-recent LastSeen),
+    /// re-assigns all <see cref="UpdateHistory"/> records from source to target, then deletes source.
+    /// Returns <see langword="false"/> if either installation cannot be found.
+    /// </summary>
+    Task<bool> MergeAsync(Guid targetId, Guid sourceId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Permanently removes the installation and all its history records.
+    /// Returns <see langword="false"/> if the installation does not exist or has
+    /// active (InProgress) history records that have not yet completed.
+    /// </summary>
+    Task<(bool Success, string? Error)> DeleteAsync(Guid id, CancellationToken ct = default);
 }
 
 /// <summary>Lightweight package metadata resolved from an <see cref="UpdateHistory"/> record.</summary>

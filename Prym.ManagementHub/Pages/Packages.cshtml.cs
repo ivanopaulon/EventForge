@@ -374,6 +374,24 @@ public class PackagesModel(
         return RedirectToPage();
     }
 
+    // ── Elimina pacchetto ─────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    {
+        var pkg = await packageService.GetByIdAsync(id);
+        if (pkg is null) { TempData["Error"] = "Pacchetto non trovato."; return RedirectToPage(); }
+
+        if (pkg.Status != PackageStatus.Archived)
+        {
+            TempData["Error"] = $"Il pacchetto {pkg.Component} {pkg.Version} non è archiviato. Archivialo prima di eliminarlo.";
+            return RedirectToPage();
+        }
+
+        await packageService.DeleteAsync(id);
+        logger.LogInformation("Package deleted via UI: {Component} {Version} Id={Id}", pkg.Component, pkg.Version, id);
+        TempData["Success"] = $"Pacchetto {pkg.Component} {pkg.Version} eliminato definitivamente.";
+        return RedirectToPage();
+    }
+
     private async Task LoadAsync()
     {
         Packages = await packageService.GetAllAsync();

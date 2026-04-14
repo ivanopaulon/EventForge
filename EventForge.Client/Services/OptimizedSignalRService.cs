@@ -284,11 +284,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 // Use a dynamic provider so every reconnect attempt fetches the latest valid token
                 // instead of reusing the token captured at connection-creation time.
                 options.AccessTokenProvider = () => _authService.GetAccessTokenAsync();
-                // Optimize for mobile and high-load scenarios
-                options.SkipNegotiation = true;
-                options.Transports = Microsoft.AspNetCore.Http.Connections.HttpTransportType.WebSockets;
-                // Note: WebSocketConfiguration (including KeepAliveInterval) is not supported in Blazor WebAssembly 
-                // as it runs in browser environment. The browser handles WebSocket keep-alive automatically.
+                // Do NOT set SkipNegotiation or force WebSockets-only: environments with proxies,
+                // IIS, or firewalls that block WebSocket upgrades will silently fail. Let SignalR
+                // negotiate the best available transport (WebSocket → SSE → Long Polling).
             })
             .WithAutomaticReconnect(new OptimizedRetryPolicy(new OptimizedRetryPolicy.RetryConfiguration()))
             .ConfigureLogging(logging =>
@@ -1741,8 +1739,10 @@ public class OptimizedRetryPolicy : IRetryPolicy
     public class RetryConfiguration
     {
         public TimeSpan InitialDelay { get; set; } = TimeSpan.FromSeconds(2);
-        public TimeSpan MaxDelay { get; set; } = TimeSpan.FromSeconds(30);
-        public int MaxRetries { get; set; } = 5;
+        public TimeSpan MaxDelay { get; set; } = TimeSpan.FromSeconds(60);
+        // High MaxRetries so the client keeps trying indefinitely in environments
+        // where the server restarts or WebSocket negotiation takes multiple attempts.
+        public int MaxRetries { get; set; } = int.MaxValue;
         public double BackoffMultiplier { get; set; } = 2.0;
     }
 }
