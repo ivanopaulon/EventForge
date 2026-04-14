@@ -3,14 +3,14 @@
 /// <summary>Creates and restores file-system backups before deployment.</summary>
 public class BackupService(AgentOptions options, ILogger<BackupService> logger)
 {
-    private string BackupRoot => !string.IsNullOrWhiteSpace(options.Backup.RootPath)
+    private readonly string _backupRoot = !string.IsNullOrWhiteSpace(options.Backup.RootPath)
         ? options.Backup.RootPath
         : Path.Combine(AppContext.BaseDirectory, "backups");
 
     public async Task<string> CreateBackupAsync(string deployPath, string component, string version, CancellationToken ct)
     {
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var backupPath = Path.Combine(BackupRoot, $"{component}-{version}-{timestamp}");
+        var backupPath = Path.Combine(_backupRoot, $"{component}-{version}-{timestamp}");
         Directory.CreateDirectory(backupPath);
 
         logger.LogInformation("Creating backup of {DeployPath} -> {BackupPath}", deployPath, backupPath);
@@ -59,7 +59,7 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
         try
         {
             var prefix = $"{component}-";
-            var existing = Directory.GetDirectories(BackupRoot, $"{prefix}*")
+            var existing = Directory.GetDirectories(_backupRoot, $"{prefix}*")
                 .OrderBy(d => Directory.GetCreationTimeUtc(d))
                 .ToList();
 

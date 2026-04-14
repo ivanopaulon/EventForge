@@ -1,8 +1,8 @@
 # Analisi approfondita — Prym.Agent
 
-> **Versione analisi:** 6 (Sprint 8 — secondo passaggio completo)  
+> **Versione analisi:** 7 (Sprint 9 — terzo passaggio completo)  
 > **Data:** 2026-04-14  
-> **Stato del codice:** post Sprint 8 (deadlock printer-proxy, scritture atomiche appsettings, volatile AgentStatusService)  
+> **Stato del codice:** post Sprint 9 (VersionDetectorService cache 30s, InvalidateVersionCache post-install, Task.WhenAll versioni parallele, BackupRoot readonly field, MigrationRunnerService CommandTimeout hoisted, Program.cs scopes mergiati)  
 > **Autore:** Copilot SWE Agent
 
 ---
@@ -389,4 +389,9 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | SettingsModel.PersistToAppSettings: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.2) — static _writeIndentOpts |
 | InstallationCodeGenerator.PersistCode: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S8C.3) — static _writeIndentOpts |
 | AgentStatusService: HubConnectionState/LastHeartbeatError senza volatile | ✅ Risolto (S8D.1) — backing field volatile |
+| VersionDetectorService: legge version.txt da disco ad ogni chiamata (heartbeat, pagine, UpdateAvailable) | ✅ Risolto (S9A.1) — cache 30s + InvalidateVersionCache() dopo install completato |
+| AgentWorker: GetServerVersionAsync + GetClientVersionAsync chiamate in sequenza (SendHeartbeat, RegisterInstallation, /health) | ✅ Risolto (S9B.1) — Task.WhenAll parallelizza le due letture indipendenti |
+| BackupService.BackupRoot: computed property, ricalcola stringa ad ogni accesso | ✅ Risolto (S9C.1) — private readonly _backupRoot impostato nel costruttore |
+| MigrationRunnerService: cmd.CommandTimeout impostato in ogni iterazione del GO-batch loop | ✅ Risolto (S9D.1) — hoisted fuori dal loop (invariante per script) |
+| Program.cs: due blocchi using (var scope = ...) in sequenza per startup | ✅ Risolto (S9E.1) — unificati in un singolo scope |
 | Endpoint interni autenticati | ⚠️ **Aperta (R3)** — architettura trust-model localhost, da valutare in futuro |

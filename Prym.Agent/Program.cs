@@ -150,13 +150,16 @@ try
     // binds to localhost only; external requests cannot reach this endpoint.
     app.MapGet("/api/agent/health", async (AgentStatusService svc, AgentOptions opts, VersionDetectorService versionDetector) =>
     {
+        var serverVerTask = versionDetector.GetServerVersionAsync();
+        var clientVerTask = versionDetector.GetClientVersionAsync();
+        await Task.WhenAll(serverVerTask, clientVerTask);
         return Results.Ok(new
         {
             Status = "Online",
             InstallationName = opts.InstallationName,
             AgentVersion = versionDetector.GetAgentVersion(),
-            ServerVersion = await versionDetector.GetServerVersionAsync(),
-            ClientVersion = await versionDetector.GetClientVersionAsync(),
+            ServerVersion = serverVerTask.Result,
+            ClientVersion = clientVerTask.Result,
             svc.HubConnectionState,
             svc.LastHeartbeatAt,
             ProbeTime = DateTime.UtcNow
@@ -242,18 +245,13 @@ try
 
     Log.Information("Prym Agent starting. UI at http://localhost:{Port}", earlyAgent.UI.Port);
 
-    // ── Startup validation (folders + config checks) ──────────────────────
+    // ── Startup validation + InstallationCode generation ─────────────────
+    // Both steps use the same DI scope — no need to create two separate scopes.
     using (var scope = app.Services.CreateScope())
     {
-        var validatorLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        var agentOpts       = scope.ServiceProvider.GetRequiredService<AgentOptions>();
-        StartupValidator.Run(agentOpts, validatorLogger);
-    }
-
-    // ── Generate InstallationCode on first startup (before workers start) ──
-    using (var scope = app.Services.CreateScope())
-    {
-        scope.ServiceProvider.GetRequiredService<InstallationCodeGenerator>().EnsureInstallationCode();
+        var sp = scope.ServiceProvider;
+        StartupValidator.Run(sp.GetRequiredService<AgentOptions>(), sp.GetRequiredService<ILogger<Program>>());
+        sp.GetRequiredService<InstallationCodeGenerator>().EnsureInstallationCode();
     }
 
     await app.RunAsync();

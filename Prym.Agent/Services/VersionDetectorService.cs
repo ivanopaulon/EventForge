@@ -3,19 +3,93 @@
 /// <summary>Detects the currently installed versions of Server and Client.</summary>
 public class VersionDetectorService(AgentOptions options, ILogger<VersionDetectorService> logger)
 {
+    // ── Version cache ─────────────────────────────────────────────────────────
+    // version.txt is read on every heartbeat, every dashboard page-load, and on
+    // every UpdateAvailable check.  A short TTL avoids repeated disk I/O while
+    // keeping values fresh enough for the automatic update channel.
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
+    private readonly Lock _cacheLock = new();
+    // Async locks ensure only one thread reads from disk per cache miss (double-check
+    // lock pattern for async code).
+    private readonly SemaphoreSlim _serverReadLock = new(1, 1);
+    private readonly SemaphoreSlim _clientReadLock = new(1, 1);
+    private (string? Version, DateTime CachedAt) _serverCache;
+    private (string? Version, DateTime CachedAt) _clientCache;
+
     // ── Public API ────────────────────────────────────────────────────────────
 
-    public Task<string?> GetServerVersionAsync() =>
-        ReadComponentVersionAsync(
-            options.Components.Server.Enabled,
-            options.Components.Server.DeployPath,
-            serverExeFallback: true);
+    public async Task<string?> GetServerVersionAsync()
+    {
+        lock (_cacheLock)
+        {
+            if (DateTime.UtcNow - _serverCache.CachedAt < CacheTtl)
+                return _serverCache.Version;
+        }
+        // Async double-check: acquire the semaphore, then re-check before reading disk.
+        // Only one thread reads at a time; subsequent waiters find a warm cache.
+        await _serverReadLock.WaitAsync();
+        try
+        {
+            lock (_cacheLock)
+            {
+                if (DateTime.UtcNow - _serverCache.CachedAt < CacheTtl)
+                    return _serverCache.Version;
+            }
+            var version = await ReadComponentVersionAsync(
+                options.Components.Server.Enabled,
+                options.Components.Server.DeployPath,
+                serverExeFallback: true);
+            lock (_cacheLock) { _serverCache = (version, DateTime.UtcNow); }
+            return version;
+        }
+        finally
+        {
+            _serverReadLock.Release();
+        }
+    }
 
-    public Task<string?> GetClientVersionAsync() =>
-        ReadComponentVersionAsync(
-            options.Components.Client.Enabled,
-            options.Components.Client.DeployPath,
-            serverExeFallback: false);
+    public async Task<string?> GetClientVersionAsync()
+    {
+        lock (_cacheLock)
+        {
+            if (DateTime.UtcNow - _clientCache.CachedAt < CacheTtl)
+                return _clientCache.Version;
+        }
+        await _clientReadLock.WaitAsync();
+        try
+        {
+            lock (_cacheLock)
+            {
+                if (DateTime.UtcNow - _clientCache.CachedAt < CacheTtl)
+                    return _clientCache.Version;
+            }
+            var version = await ReadComponentVersionAsync(
+                options.Components.Client.Enabled,
+                options.Components.Client.DeployPath,
+                serverExeFallback: false);
+            lock (_cacheLock) { _clientCache = (version, DateTime.UtcNow); }
+            return version;
+        }
+        finally
+        {
+            _clientReadLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Forces the next calls to <see cref="GetServerVersionAsync"/> and
+    /// <see cref="GetClientVersionAsync"/> to re-read from disk, bypassing the cache.
+    /// Call after a successful component deployment so the new version is reported
+    /// to the Hub on the next heartbeat.
+    /// </summary>
+    public void InvalidateVersionCache()
+    {
+        lock (_cacheLock)
+        {
+            _serverCache = default;
+            _clientCache = default;
+        }
+    }
 
     /// <summary>Returns the version of the running UpdateAgent process itself.</summary>
     public string GetAgentVersion()

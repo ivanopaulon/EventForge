@@ -48,6 +48,11 @@ public class AgentWorker(
 
         updateExecutor.OnProgress += async msg =>
         {
+            // Invalidate the version cache on successful install so the next heartbeat
+            // reports the freshly deployed version without waiting for the 30 s TTL.
+            if (msg.Phase == UpdatePhase.Completed.ToString() && msg.IsSuccess)
+                versionDetector.InvalidateVersionCache();
+
             if (_connection?.State != HubConnectionState.Connected) return;
             try
             {
@@ -529,11 +534,14 @@ public class AgentWorker(
         if (!registeredForThisConnection)
         {
             registeredForThisConnection = true;
+            var serverVerTask = versionDetector.GetServerVersionAsync();
+            var clientVerTask = versionDetector.GetClientVersionAsync();
+            await Task.WhenAll(serverVerTask, clientVerTask);
             await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
-            VersionServer:    await versionDetector.GetServerVersionAsync(),
-            VersionClient:    await versionDetector.GetClientVersionAsync(),
+            VersionServer:    serverVerTask.Result,
+            VersionClient:    clientVerTask.Result,
             Components:       new InstallationComponentsDto(
                                   options.Components.Server.Enabled,
                                   options.Components.Client.Enabled),
@@ -564,10 +572,14 @@ public class AgentWorker(
     {
         if (_connection?.State != HubConnectionState.Connected) return;
 
+        var serverVerTask = versionDetector.GetServerVersionAsync();
+        var clientVerTask = versionDetector.GetClientVersionAsync();
+        await Task.WhenAll(serverVerTask, clientVerTask);
+
         await _connection.InvokeAsync("Heartbeat", new HeartbeatMessage(
             InstallationId: options.InstallationId,
-            VersionServer:  await versionDetector.GetServerVersionAsync(),
-            VersionClient:  await versionDetector.GetClientVersionAsync(),
+            VersionServer:  serverVerTask.Result,
+            VersionClient:  clientVerTask.Result,
             Status:         "Online",
             Timestamp:      DateTime.UtcNow,
             AgentVersion:   versionDetector.GetAgentVersion(),
