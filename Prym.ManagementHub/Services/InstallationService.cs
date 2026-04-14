@@ -165,28 +165,30 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
     public async Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
         IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default)
     {
-        var ids = installationIds.ToHashSet();
+        var ids = installationIds.ToList();
         if (ids.Count == 0) return [];
 
-        // Limit rows per installation at the DB level using a correlated COUNT subquery,
-        // avoiding a full table scan followed by in-memory grouping.
-        var rows = await db.UpdateHistories
-            .Include(h => h.Package)
-            .Where(h => ids.Contains(h.InstallationId)
-                        && db.UpdateHistories.Count(
-                               h2 => h2.InstallationId == h.InstallationId
-                                     && h2.StartedAt > h.StartedAt)
-                           < maxPerInstallation)
-            .OrderByDescending(h => h.StartedAt)
-            .ToListAsync(ct);
+        // Execute one parameterised query per installation so EF Core generates
+        // "SELECT … WHERE InstallationId = @p0 ORDER BY StartedAt DESC LIMIT @p1",
+        // which uses an index efficiently without a correlated subquery or full table scan.
+        // The number of installations in a typical deployment hub is small (dozens to hundreds),
+        // making this approach both simple and fast.
+        var result = new Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>(ids.Count);
 
-        return rows
-            .GroupBy(h => h.InstallationId)
-            .ToDictionary(
-                g => g.Key,
-                g => (IReadOnlyList<UpdateHistorySummary>)g
-                    .Select(ToSummary)
-                    .ToList());
+        foreach (var id in ids)
+        {
+            var rows = await db.UpdateHistories
+                .Include(h => h.Package)
+                .Where(h => h.InstallationId == id)
+                .OrderByDescending(h => h.StartedAt)
+                .Take(maxPerInstallation)
+                .ToListAsync(ct);
+
+            if (rows.Count > 0)
+                result[id] = rows.Select(ToSummary).ToList();
+        }
+
+        return result;
     }
 
     private static UpdateHistorySummary ToSummary(UpdateHistory h) =>

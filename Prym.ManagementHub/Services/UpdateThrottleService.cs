@@ -24,7 +24,7 @@ public interface IUpdateThrottleService
 }
 
 /// <inheritdoc />
-public class UpdateThrottleService : IUpdateThrottleService
+public sealed class UpdateThrottleService : IUpdateThrottleService, IDisposable
 {
     private readonly SemaphoreSlim? _semaphore;
 
@@ -41,4 +41,7 @@ public class UpdateThrottleService : IUpdateThrottleService
 
     public void Release()
         => _semaphore?.Release();
+
+    public void Dispose()
+        => _semaphore?.Dispose();
 }
