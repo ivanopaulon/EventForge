@@ -60,7 +60,10 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
         {
             var prefix = $"{component}-";
             var existing = Directory.EnumerateDirectories(_backupRoot, $"{prefix}*")
-                .OrderBy(d => Directory.GetCreationTimeUtc(d))
+                // Project the creation time once to avoid repeated syscalls inside OrderBy.
+                .Select(d => (Path: d, Created: Directory.GetCreationTimeUtc(d)))
+                .OrderBy(x => x.Created)
+                .Select(x => x.Path)
                 .ToList();
 
             var toDelete = existing.Count - max;

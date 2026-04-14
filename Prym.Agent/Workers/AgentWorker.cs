@@ -252,6 +252,14 @@ public class AgentWorker(
 
     private async Task ConnectAndRunAsync(CancellationToken ct)
     {
+        // Dispose any HubConnection left over from a previous failed iteration.
+        // Without this, the old connection continues to hold resources and may keep
+        // attempting automatic reconnects while the new one is being created.
+        var previous = _connection;
+        _connection = null;
+        if (previous is not null)
+            await previous.DisposeAsync();
+
         // Reset per-connection registration flag so RegisterInstallation is re-sent
         // on every new outer-loop reconnection (not just the very first lifetime start).
         var registeredForThisConnection = false;

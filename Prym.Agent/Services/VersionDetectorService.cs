@@ -91,21 +91,25 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
         }
     }
 
+    // Cached agent version — reflection is only needed once; the value never changes at runtime.
+    private readonly Lazy<string> _agentVersion = new(ReadAgentVersion, LazyThreadSafetyMode.PublicationOnly);
+
     /// <summary>Returns the version of the running UpdateAgent process itself.</summary>
-    public string GetAgentVersion()
+    public string GetAgentVersion() => _agentVersion.Value;
+
+    private static string ReadAgentVersion()
     {
         try
         {
-            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var asm = typeof(VersionDetectorService).Assembly;
             var infoAttr = System.Reflection.CustomAttributeExtensions
                 .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(asm);
             return infoAttr?.InformationalVersion
                    ?? asm.GetName().Version?.ToString()
                    ?? "unknown";
         }
-        catch (Exception ex)
+        catch
         {
-            logger.LogDebug(ex, "Could not determine agent version from assembly.");
             return "unknown";
         }
     }
@@ -146,14 +150,14 @@ public class VersionDetectorService(AgentOptions options, ILogger<VersionDetecto
 
             if (serverExeFallback)
             {
-                var exeFiles = Directory.GetFiles(deployPath, "EventForge.Server.exe",
-                    SearchOption.TopDirectoryOnly);
-                if (exeFiles.Length > 0)
+                var exePath = Directory.EnumerateFiles(deployPath, "EventForge.Server.exe",
+                    SearchOption.TopDirectoryOnly).FirstOrDefault();
+                if (exePath is not null)
                 {
                     var fileVersion = System.Diagnostics.FileVersionInfo
-                        .GetVersionInfo(exeFiles[0]).FileVersion;
+                        .GetVersionInfo(exePath).FileVersion;
                     if (!string.IsNullOrWhiteSpace(fileVersion)) return fileVersion;
-                    logger.LogDebug("FileVersion is empty for {Exe}", exeFiles[0]);
+                    logger.LogDebug("FileVersion is empty for {Exe}", exePath);
                 }
             }
         }

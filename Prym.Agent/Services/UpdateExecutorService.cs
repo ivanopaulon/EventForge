@@ -1,4 +1,5 @@
-﻿using System.IO.Compression;
+﻿using System.Buffers;
+using System.IO.Compression;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -530,13 +531,16 @@ public class UpdateExecutorService(
         var fileMode = append ? FileMode.Append : FileMode.Create;
         await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
 
-        var buffer    = new byte[bufferSize];
+        // Rent a buffer from the shared pool to avoid a large heap allocation per download.
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
         long written  = append ? resumeFrom : 0;
         var lastLocalReport  = DateTime.UtcNow;
         var lastServerNotify = DateTime.UtcNow;
         int bytesRead;
 
-        while ((bytesRead = await responseStream.ReadAsync(buffer, ct)) > 0)
+        while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
         {
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
             written += bytesRead;
@@ -586,6 +590,11 @@ public class UpdateExecutorService(
                 detail: finalSnap.TotalBytes.HasValue
                     ? $"Download completato: {finalSnap.FormattedTotal}"
                     : "Download completato");
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
