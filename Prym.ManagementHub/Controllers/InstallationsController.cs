@@ -12,6 +12,7 @@ public class InstallationsController(
     IHubContext<AgentHub> hubContext,
     IAdminAuthService adminAuth,
     IUpdateThrottleService updateThrottle,
+    ManagementHubOptions hubOptions,
     ILogger<InstallationsController> logger) : ControllerBase
 {
     private bool IsAdminAuthorized() => adminAuth.IsAuthorized(Request.Headers);
@@ -81,7 +82,10 @@ public class InstallationsController(
             installation.InstalledVersionServer,
             installation.InstalledVersionClient);
 
-        var downloadUrl = $"{Request.Scheme}://{Request.Host}/api/v1/packages/{package.Id}/download";
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
+        var downloadUrl = $"{baseUrl}/api/v1/packages/{package.Id}/download";
         var command = new StartUpdateCommand(
             history.Id,
             package.Id,
@@ -112,7 +116,10 @@ public class InstallationsController(
         var installations = await installationService.GetByIdsAsync(onlineIds);
         var installationMap = installations.ToDictionary(i => i.Id);
 
-        var downloadUrl = $"{Request.Scheme}://{Request.Host}/api/v1/packages/{package.Id}/download";
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
+        var downloadUrl = $"{baseUrl}/api/v1/packages/{package.Id}/download";
         var notification = new UpdateAvailableMessage(
             package.Id, package.Version, package.Component.ToString(),
             downloadUrl, package.Checksum, package.ReleaseNotes);

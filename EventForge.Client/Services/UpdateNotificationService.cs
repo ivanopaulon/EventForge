@@ -15,6 +15,12 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private readonly IRealtimeService _realtime;
     private readonly ILogger<UpdateNotificationService> _logger;
 
+    // ── Phase name constants — must match UpdatePhase.ToString() in Prym.UpdateShared ──
+    private const string PhasePackageReceived        = "PackageReceived";
+    private const string PhaseAwaitingMaintenanceWindow = "AwaitingMaintenanceWindow";
+    private const string PhaseCompleted              = "Completed";
+    private const string PhaseRollback               = "Rollback";
+
     // ── Maintenance state ────────────────────────────────────────────────────
     private bool _isServerMaintenance;
     private string? _maintenanceComponent;
@@ -34,14 +40,14 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     /// </summary>
     public bool IsActiveUpdate =>
         _currentProgress is not null &&
-        !string.Equals(_currentProgress.Phase, "PackageReceived", StringComparison.OrdinalIgnoreCase) &&
-        !string.Equals(_currentProgress.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase);
+        !string.Equals(_currentProgress.Phase, PhasePackageReceived, StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(_currentProgress.Phase, PhaseAwaitingMaintenanceWindow, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>True when a package has been received and is about to be downloaded or is awaiting install.</summary>
     public bool HasDownloadNotification =>
         _currentProgress is not null &&
-        (string.Equals(_currentProgress.Phase, "PackageReceived", StringComparison.OrdinalIgnoreCase) ||
-         string.Equals(_currentProgress.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase));
+        (string.Equals(_currentProgress.Phase, PhasePackageReceived, StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(_currentProgress.Phase, PhaseAwaitingMaintenanceWindow, StringComparison.OrdinalIgnoreCase));
 
     public string? MaintenanceComponent => _maintenanceComponent;
     public string? MaintenanceVersion => _maintenanceVersion;
@@ -109,13 +115,14 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
         // Track packages awaiting manual install so PendingManualInstallsCount stays accurate.
         if (payload.PackageId.HasValue)
         {
-            var isAwaiting = string.Equals(payload.Phase, "AwaitingMaintenanceWindow", StringComparison.OrdinalIgnoreCase)
+            var isAwaiting = string.Equals(payload.Phase, PhaseAwaitingMaintenanceWindow, StringComparison.OrdinalIgnoreCase)
                           && payload.IsManualInstall == true;
 
-            // Remove from pending once the install completes (any terminal phase clears it).
-            var isTerminal = string.Equals(payload.Phase, "Completed", StringComparison.OrdinalIgnoreCase)
-                          || string.Equals(payload.Phase, "Rollback", StringComparison.OrdinalIgnoreCase)
-                          || string.Equals(payload.Phase, "Failed", StringComparison.OrdinalIgnoreCase);
+            // Remove from pending once the install reaches a terminal phase (Completed or Rollback).
+            // Note: there is no "Failed" phase — a failed install is always reported as Completed
+            // (with IsSuccess=false) or as Rollback when the rollback path ran.
+            var isTerminal = string.Equals(payload.Phase, PhaseCompleted, StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(payload.Phase, PhaseRollback, StringComparison.OrdinalIgnoreCase);
 
             if (isAwaiting)
                 _pendingManualInstallIds.Add(payload.PackageId.Value);

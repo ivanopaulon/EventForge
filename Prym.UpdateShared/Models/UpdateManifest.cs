@@ -47,6 +47,11 @@ public class UpdateManifest
 /// <summary>Represents the phases an update goes through, reported to the Hub.</summary>
 public enum UpdatePhase
 {
+    /// <summary>
+    /// Fired before download begins so the client snackbar shows the incoming package details.
+    /// Not persisted to Hub history — it is a client-only notification phase.
+    /// </summary>
+    PackageReceived,
     Downloading,
     VerifyingChecksum,
     /// <summary>Download completed; waiting for an allowed maintenance window before installing.</summary>

@@ -161,7 +161,7 @@ public class UpdateExecutorService(
 
         return NotifyPhaseAsync(
             command,
-            currentPhase: "PackageReceived",
+            currentPhase: UpdatePhase.PackageReceived.ToString(),
             isManualInstall: command.IsManualInstall,
             packageId: command.PackageId,
             nextWindowAt: nextWindowAt);
@@ -577,15 +577,6 @@ public class UpdateExecutorService(
         var component = command.Component;
         var version = command.Version;
 
-        // Defensive fix: if Hub sent a relative URL, prepend the hub base URL
-        if (downloadUrl.StartsWith('/'))
-        {
-            var hubBase = string.IsNullOrWhiteSpace(options.HubBaseUrl)
-                ? options.HubUrl.Replace("/hubs/update", "").TrimEnd('/')
-                : options.HubBaseUrl.TrimEnd('/');
-            downloadUrl = hubBase + downloadUrl;
-        }
-
         var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
@@ -982,7 +973,7 @@ public class UpdateExecutorService(
         throw new InvalidOperationException($"Health check failed after {maxAttempts} attempts. Triggering rollback.");
     }
 
-    private async Task ReportAsync(StartUpdateCommand command, UpdatePhase phase, bool isCompleted, bool isSuccess, string? errorMessage, CancellationToken ct)
+    public async Task ReportAsync(StartUpdateCommand command, UpdatePhase phase, bool isCompleted, bool isSuccess, string? errorMessage, CancellationToken ct)
     {
         var msg = new UpdateProgressMessage(
             options.InstallationId,
@@ -1000,6 +991,24 @@ public class UpdateExecutorService(
                 logger.LogWarning(ex,
                     "Failed to report update progress to Hub (phase={Phase}, component={Component}, version={Version}) — install continues.",
                     phase, command.Component, command.Version);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Fires <see cref="OnProgress"/> with a pre-built message.
+    /// Use when the caller already has a fully-constructed <see cref="UpdateProgressMessage"/>
+    /// (e.g. the self-update completion report built from the marker file).
+    /// </summary>
+    public async Task ReportAsync(UpdateProgressMessage msg)
+    {
+        if (OnProgress is not null)
+        {
+            try { await OnProgress(msg); }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Failed to report update progress to Hub (phase={Phase}) — operation continues.", msg.Phase);
             }
         }
     }

@@ -7,6 +7,14 @@ namespace EventForge.Server.Services.Updates;
 /// <summary>
 /// Calls the UpdateAgent REST API directly at the configured <c>Agent:LocalUrl</c>.
 /// Throws <see cref="AgentNotConfiguredException"/> when LocalUrl is empty.
+///
+/// <para>
+/// Authentication: the Agent's <c>BasicAuthMiddleware</c> explicitly excludes the
+/// <c>/api/agent/pending-installs</c>, <c>/api/agent/install-now</c>, and
+/// <c>/api/agent/unblock-queue</c> endpoints from authentication because the Agent
+/// binds to localhost only and these endpoints are consumed exclusively by the
+/// co-located EventForge.Server. No credentials are therefore sent by this proxy.
+/// </para>
 /// </summary>
 public sealed class AgentUpdateProxyService : IAgentUpdateProxyService
 {
