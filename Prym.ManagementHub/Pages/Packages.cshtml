@@ -220,6 +220,14 @@
                                             <i class="bi bi-arrow-counterclockwise me-1"></i>Ripristina
                                         </button>
                                     </form>
+                                    <!-- Elimina definitivamente -->
+                                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                                        <input type="hidden" name="id" value="@pkg.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Eliminare definitivamente il pacchetto @pkg.Component @pkg.Version?\nIl file ZIP e il record nel database saranno rimossi. Operazione irreversibile.')">
+                                            <i class="bi bi-trash me-1"></i>Elimina
+                                        </button>
+                                    </form>
                                 }
                                 else if (pkg.Status == PackageStatus.Deploying || pkg.Status == PackageStatus.Deployed)
                                 {

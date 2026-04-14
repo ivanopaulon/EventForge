@@ -210,6 +210,15 @@
                                         </button>
                                     </form>
                                 }
+                                <!-- Elimina — sempre visibile -->
+                                <form method="post" asp-page-handler="Delete" class="d-inline">
+                                    <input type="hidden" name="id" value="@i.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Eliminare definitivamente l\'installazione \"@i.Name\" e tutta la sua cronologia?\nQuesta operazione non è reversibile.')"
+                                            title="Elimina (solo se nessun aggiornamento è in corso)">
+                                        <i class="bi bi-trash me-1"></i>Elimina
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

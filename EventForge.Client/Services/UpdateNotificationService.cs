@@ -200,7 +200,8 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     {
         try
         {
-            await _http.PostAsync("api/v1/agent-proxy/install-now", new { PackageId = packageId }, ct);
+            await _http.PostAsync("api/v1/agent-proxy/install-now",
+                new { InstallationId = installationId, PackageId = packageId }, ct);
         }
         catch (Exception ex)
         {
@@ -237,6 +238,22 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
             _availableUpdatesCount = 0;
         }
     }
+
+    public async Task<string> GetHubUrlAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await _http.GetAsync<HubUrlResponse>("api/v1/updatehub-proxy/hub-url", ct);
+            return result?.HubUrl ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error fetching Hub URL");
+            return string.Empty;
+        }
+    }
+
+    private record HubUrlResponse(string HubUrl);
 
     public void Dispose()
     {

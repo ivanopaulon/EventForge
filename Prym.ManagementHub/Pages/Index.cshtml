@@ -208,3 +208,19 @@
         </div>
     </div>
 </div>
+
+
+@section Scripts {
+<script>
+// Auto-refresh dashboard every 60 seconds to pick up online/offline status changes.
+(function() {
+    let countdown = 60;
+    const timer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) { clearInterval(timer); window.location.reload(); }
+    }, 1000);
+    // Cancel auto-refresh if the user opens a modal to prevent data loss.
+    document.addEventListener('show.bs.modal', () => clearInterval(timer));
+})();
+</script>
+}

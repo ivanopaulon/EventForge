@@ -77,4 +77,7 @@ public interface IUpdateNotificationService
 
     /// <summary>Refreshes <see cref="AvailableUpdatesCount"/> from the UpdateHub (SuperAdmin only).</summary>
     Task RefreshAvailableUpdatesCountAsync(CancellationToken ct = default);
+
+    /// <summary>Returns the UpdateHub base URL configured on the server, or an empty string if not configured.</summary>
+    Task<string> GetHubUrlAsync(CancellationToken ct = default);
 }

@@ -1,6 +1,7 @@
 using EventForge.Server.Services.Updates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 
 namespace EventForge.Server.Controllers;
 
@@ -14,8 +15,16 @@ namespace EventForge.Server.Controllers;
 [Authorize(Roles = "SuperAdmin")]
 public class UpdateHubProxyController(
     IUpdateHubProxyService proxy,
+    IConfiguration configuration,
     ILogger<UpdateHubProxyController> logger) : ControllerBase
 {
+    /// <summary>Returns the configured UpdateHub base URL (empty string when not configured).</summary>
+    [HttpGet("hub-url")]
+    public IActionResult GetHubUrl()
+    {
+        var url = (configuration["UpdateHub:BaseUrl"] ?? string.Empty).TrimEnd('/');
+        return Ok(new { HubUrl = url });
+    }
     /// <summary>Returns all packages stored in the UpdateHub.</summary>
     [HttpGet("packages")]
     public async Task<IActionResult> GetPackages(CancellationToken ct)
