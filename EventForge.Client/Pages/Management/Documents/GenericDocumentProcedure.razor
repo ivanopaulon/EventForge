@@ -48,7 +48,11 @@
         </div>
 
         <PageLoadingOverlay Visible="_isLoading"
-                            Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
+                            Message="@_loadingMessage"
+                            ShowProgressLog="true"
+                            ProgressMessages="@_documentLoadingProgressMessages"
+                            ShowElapsedTime="true"
+                            ProgressIntervalMs="2500" />
 
         @if (_isReadOnly)
         {
@@ -486,7 +490,17 @@
     [Parameter] public Guid? DocumentId { get; set; }
 
     private bool _isLoading = false;
+    private string _loadingMessage = string.Empty;
     private bool _isSavingHeader = false;
+
+    private static readonly IReadOnlyList<string> _documentLoadingProgressMessages = new[]
+    {
+        "Caricamento testata documento...",
+        "Caricamento righe documento...",
+        "Caricamento anagrafica...",
+        "Calcolo totali e riepilogo IVA...",
+        "Preparazione interfaccia...",
+    };
     private bool _isEditMode => DocumentId.HasValue;
     private string _pageTitle = "";
     private CreateDocumentHeaderDto _model = new();
@@ -670,6 +684,7 @@
 
     private async Task LoadDocumentAsync(Guid documentId)
     {
+        _loadingMessage = TranslationService.GetTranslation("documents.loadingDocument", "Caricamento documento...");
         _isLoading = true;
         try
         {
@@ -828,6 +843,7 @@
         
         try
         {
+            _loadingMessage = TranslationService.GetTranslation("documents.changingStatus", "Cambio stato documento...");
             _isLoading = true;
             var previousStatus = _currentDocument.Status;
             
@@ -999,6 +1015,7 @@
 
         if (confirmed == true)
         {
+            _loadingMessage = TranslationService.GetTranslation("documents.deletingRow", "Eliminazione riga...");
             _isLoading = true;
             try
             {
@@ -1056,6 +1073,7 @@
 
         if (confirmed == true)
         {
+            _loadingMessage = TranslationService.GetTranslation("documents.deletingRows", "Eliminazione righe selezionate...");
             _isLoading = true;
             try
             {
@@ -1163,6 +1181,7 @@
 
         if (confirmed == true)
         {
+            _loadingMessage = TranslationService.GetTranslation("documents.mergingRows", "Unione righe...");
             _isLoading = true;
             try
             {
