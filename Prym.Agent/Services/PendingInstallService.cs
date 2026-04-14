@@ -149,6 +149,10 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         }
 
         // Perform file I/O and logging outside the lock to avoid blocking queue mutations.
+        // TOCTOU note: serverFirst could be removed from the queue in the gap between here and
+        // the caller's install attempt. That is acceptable: ScheduledInstallWorker.TryInstallNextAsync
+        // guards against missing zip files by calling File.Exists again before installing, and
+        // removes the entry if the file is gone — so the install fails gracefully.
         if (serverFirst is not null && File.Exists(serverFirst.LocalZipPath))
         {
             logger.LogInformation(

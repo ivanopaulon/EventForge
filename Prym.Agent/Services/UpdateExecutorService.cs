@@ -109,6 +109,8 @@ public class UpdateExecutorService(
             var url = notificationBaseUrl.TrimEnd('/') + "/api/v1/system/maintenance";
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
+                // Payload uses PascalCase anonymous-type properties; default JsonSerializerOptions
+                // serialises with PascalCase — intentionally matching the Server endpoint contract.
                 Content = JsonContent.Create(payload)
             };
             request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
