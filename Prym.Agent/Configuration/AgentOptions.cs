@@ -295,8 +295,10 @@ public class UiOptions
 public class PrinterProxyAgentOptions
 {
     /// <summary>
-    /// When non-empty, the HTTP forward endpoint (<c>/api/printer-proxy/http-forward</c>)
-    /// only allows requests whose target host matches one of these patterns.
+    /// When non-empty, the TCP send (<c>/api/printer-proxy/tcp-send</c>),
+    /// TCP test (<c>/api/printer-proxy/tcp-test</c>), and HTTP forward
+    /// (<c>/api/printer-proxy/http-forward</c>) endpoints only allow requests
+    /// whose target host matches one of these patterns.
     /// Supports exact hostnames (e.g. <c>192.168.1.100</c>) and wildcard suffixes
     /// (e.g. <c>*.local</c>, <c>192.168.1.*</c>).
     /// Empty list = no host restriction (allow all — not recommended for internet-facing agents).

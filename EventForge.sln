@@ -1,3 +1,4 @@
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.0.11018.127
@@ -17,6 +18,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Hardware", "Prym.Hardware\Prym.Hardware.csproj", "{F6490D37-FEF6-4E49-8F61-7AE3777D79F7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.UI", "Prym.UI\Prym.UI.csproj", "{C5D6E7F8-A9B0-1C2D-3E4F-5A6B7C8D9E0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Agent.Tests", "Prym.Agent.Tests\Prym.Agent.Tests.csproj", "{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -124,6 +127,18 @@ Global
 		{C5D6E7F8-A9B0-1C2D-3E4F-5A6B7C8D9E0F}.Release|x64.Build.0 = Release|Any CPU
 		{C5D6E7F8-A9B0-1C2D-3E4F-5A6B7C8D9E0F}.Release|x86.ActiveCfg = Release|Any CPU
 		{C5D6E7F8-A9B0-1C2D-3E4F-5A6B7C8D9E0F}.Release|x86.Build.0 = Release|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Debug|x64.Build.0 = Debug|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Debug|x86.Build.0 = Debug|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x64.ActiveCfg = Release|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x64.Build.0 = Release|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x86.ActiveCfg = Release|Any CPU
+		{5BFD72A2-1EC8-499F-95E3-AD7789E9E0C7}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

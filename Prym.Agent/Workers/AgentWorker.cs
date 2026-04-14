@@ -48,6 +48,11 @@ public class AgentWorker(
 
         updateExecutor.OnProgress += async msg =>
         {
+            // Invalidate the version cache on successful install so the next heartbeat
+            // reports the freshly deployed version without waiting for the 30 s TTL.
+            if (msg.Phase == UpdatePhase.Completed.ToString() && msg.IsSuccess)
+                versionDetector.InvalidateVersionCache();
+
             if (_connection?.State != HubConnectionState.Connected) return;
             try
             {
@@ -247,6 +252,14 @@ public class AgentWorker(
 
     private async Task ConnectAndRunAsync(CancellationToken ct)
     {
+        // Dispose any HubConnection left over from a previous failed iteration.
+        // Without this, the old connection continues to hold resources and may keep
+        // attempting automatic reconnects while the new one is being created.
+        var previous = _connection;
+        _connection = null;
+        if (previous is not null)
+            await previous.DisposeAsync();
+
         // Reset per-connection registration flag so RegisterInstallation is re-sent
         // on every new outer-loop reconnection (not just the very first lifetime start).
         var registeredForThisConnection = false;
@@ -447,8 +460,8 @@ public class AgentWorker(
 
             // Compare the offered version with the currently installed version.
             var installedVersion = isServer
-                ? versionDetector.GetServerVersion()
-                : versionDetector.GetClientVersion();
+                ? await versionDetector.GetServerVersionAsync()
+                : await versionDetector.GetClientVersionAsync();
 
             if (!IsNewerVersion(msg.Version, installedVersion))
             {
@@ -529,11 +542,14 @@ public class AgentWorker(
         if (!registeredForThisConnection)
         {
             registeredForThisConnection = true;
+            var serverVerTask = versionDetector.GetServerVersionAsync();
+            var clientVerTask = versionDetector.GetClientVersionAsync();
+            await Task.WhenAll(serverVerTask, clientVerTask);
             await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
-            VersionServer:    await versionDetector.GetServerVersionAsync(),
-            VersionClient:    await versionDetector.GetClientVersionAsync(),
+            VersionServer:    serverVerTask.Result,
+            VersionClient:    clientVerTask.Result,
             Components:       new InstallationComponentsDto(
                                   options.Components.Server.Enabled,
                                   options.Components.Client.Enabled),
@@ -564,10 +580,14 @@ public class AgentWorker(
     {
         if (_connection?.State != HubConnectionState.Connected) return;
 
+        var serverVerTask = versionDetector.GetServerVersionAsync();
+        var clientVerTask = versionDetector.GetClientVersionAsync();
+        await Task.WhenAll(serverVerTask, clientVerTask);
+
         await _connection.InvokeAsync("Heartbeat", new HeartbeatMessage(
             InstallationId: options.InstallationId,
-            VersionServer:  await versionDetector.GetServerVersionAsync(),
-            VersionClient:  await versionDetector.GetClientVersionAsync(),
+            VersionServer:  serverVerTask.Result,
+            VersionClient:  clientVerTask.Result,
             Status:         "Online",
             Timestamp:      DateTime.UtcNow,
             AgentVersion:   versionDetector.GetAgentVersion(),
@@ -605,7 +625,6 @@ public class AgentWorker(
     {
         if (string.IsNullOrWhiteSpace(installed)) return true;
 
-        // Nerdbank.GitVersioning may emit "1.2.3+g1a2b3c4" — strip the build metadata.
         // Strip Nerdbank.GitVersioning build metadata (e.g. "1.2.3+g1a2b3c4" → "1.2.3")
         // so that Version.TryParse can handle the string correctly.
         static string Strip(string v)

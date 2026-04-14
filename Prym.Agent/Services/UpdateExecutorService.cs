@@ -1,7 +1,8 @@
-﻿using System.IO.Compression;
+﻿using System.Buffers;
+using System.IO.Compression;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Prym.Agent.Extensions;
 
@@ -107,10 +108,11 @@ public class UpdateExecutorService(
         try
         {
             var url = notificationBaseUrl.TrimEnd('/') + "/api/v1/system/maintenance";
-            var json = JsonSerializer.Serialize(payload);
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                // Payload uses PascalCase anonymous-type properties; default JsonSerializerOptions
+                // serialises with PascalCase — intentionally matching the Server endpoint contract.
+                Content = JsonContent.Create(payload)
             };
             request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -438,8 +440,6 @@ public class UpdateExecutorService(
             downloadUrl = hubBase + downloadUrl;
         }
 
-        var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
-
         var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
@@ -447,7 +447,17 @@ public class UpdateExecutorService(
 
         var maxAttempts = options.DownloadMaxRetries + 1;
 
-        downloadProgress.Start(packageId, component, version);
+        // Local helper — builds a GET request with the API key header and optional byte-range.
+        HttpRequestMessage CreateRequest(long rangeFrom)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+            req.Headers.Add("X-Api-Key", options.ApiKey);
+            if (rangeFrom > 0)
+                req.Headers.Range = new RangeHeaderValue(rangeFrom, null);
+            return req;
+        }
+
+        downloadProgress.Start(command.PackageId, component, version);
         try
         {
             for (var attempt = 0; attempt < maxAttempts; attempt++)
@@ -463,32 +473,27 @@ public class UpdateExecutorService(
                 {
                     long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
 
-                    using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                    request.Headers.Add("X-Api-Key", options.ApiKey);
-                    if (resumeFrom > 0)
-                        request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
-
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
                     using var linkedCts  = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
+                    using var request = CreateRequest(resumeFrom);
                     using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                     if (resumeFrom > 0 && response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
                     {
+                        // Server doesn't support resume for this resource — restart from byte 0.
                         logger.LogWarning("Server returned 416 — restarting download from byte 0.");
                         try { File.Delete(tmpPath); } catch { /* best effort */ }
-                        resumeFrom = 0;
 
-                        using var request2 = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                        request2.Headers.Add("X-Api-Key", options.ApiKey);
+                        using var request2 = CreateRequest(rangeFrom: 0);
                         using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
                         response2.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response2, tmpPath, append: false, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response2, tmpPath, append: false, resumeFrom: 0, command.PackageId, command, linkedCts.Token);
                     }
                     else
                     {
                         response.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, resumeFrom, command.PackageId, command, linkedCts.Token);
                     }
 
                     if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -511,13 +516,13 @@ public class UpdateExecutorService(
         }
         finally
         {
-            downloadProgress.Complete(packageId);
+            downloadProgress.Complete(command.PackageId);
         }
     }
 
     private async Task WriteResponseToFileAsync(
-        HttpResponseMessage response, string tmpPath, bool append, Guid packageId,
-        StartUpdateCommand command, CancellationToken ct)
+        HttpResponseMessage response, string tmpPath, bool append, long resumeFrom,
+        Guid packageId, StartUpdateCommand command, CancellationToken ct)
     {
         var totalBytes = response.Content.Headers.ContentLength;
         await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
@@ -526,13 +531,16 @@ public class UpdateExecutorService(
         var fileMode = append ? FileMode.Append : FileMode.Create;
         await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
 
-        var buffer    = new byte[bufferSize];
-        long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
+        // Rent a buffer from the shared pool to avoid a large heap allocation per download.
+        var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        try
+        {
+        long written  = append ? resumeFrom : 0;
         var lastLocalReport  = DateTime.UtcNow;
         var lastServerNotify = DateTime.UtcNow;
         int bytesRead;
 
-        while ((bytesRead = await responseStream.ReadAsync(buffer, ct)) > 0)
+        while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
         {
             await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
             written += bytesRead;
@@ -582,6 +590,11 @@ public class UpdateExecutorService(
                 detail: finalSnap.TotalBytes.HasValue
                     ? $"Download completato: {finalSnap.FormattedTotal}"
                     : "Download completato");
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -593,7 +606,7 @@ public class UpdateExecutorService(
     /// <exception cref="System.Security.SecurityException">
     /// Thrown when at least one entry resolves to a path outside <paramref name="destDir"/>.
     /// </exception>
-    private static void ValidateZipPathTraversal(string zipPath, string destDir)
+    internal static void ValidateZipPathTraversal(string zipPath, string destDir)
     {
         var fullDest = Path.GetFullPath(destDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 
@@ -619,7 +632,8 @@ public class UpdateExecutorService(
             throw new InvalidOperationException($"Checksum mismatch. Expected: {expectedChecksum} Actual: {actual}");
     }
 
-    private static readonly JsonSerializerOptions _manifestOpts = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _manifestOpts    = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _writeIndentOpts = new() { WriteIndented = true };
 
     private static async Task<UpdateManifest> LoadManifestAsync(string extractedPath)
     {
@@ -647,7 +661,7 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
-        var files = Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories);
+        var files = Directory.EnumerateFiles(binariesPath, "*", SearchOption.AllDirectories);
         var parallelism = Math.Min(Environment.ProcessorCount, DeployMaxParallelism);
         await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism, CancellationToken = ct },
             async (file, fileCt) =>
@@ -696,8 +710,7 @@ public class UpdateExecutorService(
 
         var merged = MergeJsonElements(targetDoc.RootElement, templateDoc.RootElement);
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var mergedJson = JsonSerializer.Serialize(merged, options);
+        var mergedJson = JsonSerializer.Serialize(merged, _writeIndentOpts);
         var tmpPath = targetPath + ".tmp";
         await File.WriteAllTextAsync(tmpPath, mergedJson, ct);
         File.Move(tmpPath, targetPath, overwrite: true);
@@ -706,7 +719,7 @@ public class UpdateExecutorService(
     /// <summary>
     /// Recursively merges two JsonElements. Target values win; template adds missing keys.
     /// </summary>
-    private static Dictionary<string, object?> MergeJsonElements(
+    internal static Dictionary<string, object?> MergeJsonElements(
         JsonElement target, JsonElement template)
     {
         var result = new Dictionary<string, object?>(StringComparer.Ordinal);

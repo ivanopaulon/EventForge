@@ -120,13 +120,11 @@ public sealed class PrinterProxyController(
     /// </summary>
     /// <returns>200 OK with an array of accessible device identifiers.</returns>
     [HttpGet("devices")]
-    public Task<IActionResult> ListDevicesAsync()
+    public IActionResult ListDevices()
     {
         var devices = printerService.ListDevices();
-
         logger.LogDebug("PrinterProxy list devices: found {Count}", devices.Count);
-
-        return Task.FromResult<IActionResult>(Ok(new { devices }));
+        return Ok(new { devices });
     }
 
     /// <summary>
@@ -181,6 +179,16 @@ public sealed class PrinterProxyController(
         if (request.Port is < 1 or > 65535)
             return BadRequest("port must be between 1 and 65535.");
 
+        // SSRF protection: enforce host allowlist when configured.
+        var allowedPatternsTcp = agentOptions.PrinterProxy.AllowedHostPatterns;
+        if (allowedPatternsTcp.Count > 0 && !PrinterProxyHostValidator.IsHostAllowed(request.Host, allowedPatternsTcp))
+        {
+            logger.LogWarning(
+                "PrinterProxy tcp-send blocked: host '{Host}' is not in AllowedHostPatterns.", request.Host);
+            return StatusCode(StatusCodes.Status403Forbidden,
+                $"Host '{request.Host}' is not permitted by the agent's printer-proxy allowlist.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Command))
             return BadRequest("command is required.");
 
@@ -233,6 +241,16 @@ public sealed class PrinterProxyController(
         if (port is < 1 or > 65535)
             return BadRequest("port must be between 1 and 65535.");
 
+        // SSRF protection: enforce host allowlist when configured.
+        var allowedPatternsTest = agentOptions.PrinterProxy.AllowedHostPatterns;
+        if (allowedPatternsTest.Count > 0 && !PrinterProxyHostValidator.IsHostAllowed(host, allowedPatternsTest))
+        {
+            logger.LogWarning(
+                "PrinterProxy tcp-test blocked: host '{Host}' is not in AllowedHostPatterns.", host);
+            return StatusCode(StatusCodes.Status403Forbidden,
+                $"Host '{host}' is not permitted by the agent's printer-proxy allowlist.");
+        }
+
         logger.LogDebug("PrinterProxy tcp-test: {Host}:{Port}", host, port);
 
         try
@@ -276,7 +294,7 @@ public sealed class PrinterProxyController(
 
         // SSRF protection: enforce host allowlist when configured.
         var allowedPatterns = agentOptions.PrinterProxy.AllowedHostPatterns;
-        if (allowedPatterns.Count > 0 && !IsHostAllowed(uri.Host, allowedPatterns))
+        if (allowedPatterns.Count > 0 && !PrinterProxyHostValidator.IsHostAllowed(uri.Host, allowedPatterns))
         {
             logger.LogWarning(
                 "PrinterProxy http-forward blocked: host '{Host}' is not in AllowedHostPatterns.", uri.Host);
@@ -306,43 +324,6 @@ public sealed class PrinterProxyController(
         }
     }
 
-    /// <summary>
-    /// Returns <see langword="true"/> when <paramref name="host"/> matches at least one
-    /// entry in <paramref name="patterns"/>.
-    /// Supports exact matches and wildcard-prefix patterns (e.g. <c>*.local</c>, <c>192.168.1.*</c>).
-    /// </summary>
-    private static bool IsHostAllowed(string host, IEnumerable<string> patterns)
-    {
-        foreach (var pattern in patterns)
-        {
-            if (pattern.StartsWith("*.", StringComparison.OrdinalIgnoreCase))
-            {
-                // *.example.com should match sub.example.com but NOT notexample.com.
-                // The suffix includes the leading dot (e.g. ".example.com"), so we also
-                // accept an exact match with the part after the asterisk stripped of the dot
-                // (i.e. the host IS example.com itself).
-                var suffix = pattern[1..]; // ".example.com"
-                if (host.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) &&
-                    (host.Length == suffix.Length - 1 ||          // exact: host == "example.com"
-                     host[^suffix.Length] == '.'))                // subdomain: "sub.example.com"
-                    return true;
-            }
-            else if (pattern.EndsWith(".*", StringComparison.OrdinalIgnoreCase))
-            {
-                // 192.168.1.* matches 192.168.1.100 but not 192.168.10.5
-                var prefix = pattern[..^1]; // "192.168.1."
-                if (host.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) &&
-                    !host[prefix.Length..].Contains('.')) // no further dots = single octet
-                    return true;
-            }
-            else if (host.Equals(pattern, StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static async Task<List<string>> GetWindowsPrintersAsync()
     {
         var printers = new List<string>();
@@ -364,8 +345,14 @@ public sealed class PrinterProxyController(
         if (proc is not null)
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+
+            // Read stdout and stderr concurrently to prevent a pipe-buffer deadlock
+            // if PowerShell writes enough to either stream to fill its OS buffer.
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
             await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask; // discard, but must be consumed
 
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -394,8 +381,13 @@ public sealed class PrinterProxyController(
         if (proc is not null)
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-            var output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+
+            // Read stdout and stderr concurrently to prevent a pipe-buffer deadlock.
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
             await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask; // discard, but must be consumed
 
             // lpstat -a format: "PrinterName accepting requests since ..."
             foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))

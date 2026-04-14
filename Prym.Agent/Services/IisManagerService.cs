@@ -58,9 +58,13 @@ public class IisManagerService(AgentOptions options, ILogger<IisManagerService> 
 
         try
         {
-            var output = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
-            var error  = await process.StandardError.ReadToEndAsync(timeoutCts.Token);
+            // Read stdout and stderr concurrently to avoid a deadlock where one buffer
+            // fills before the other has been consumed, causing appcmd.exe to block.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            var stderrTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
             await process.WaitForExitAsync(timeoutCts.Token);
+            var output = await stdoutTask;
+            var error  = await stderrTask;
 
             if (process.ExitCode != 0)
                 // Non-zero exit is a warning, not an exception — the site may already be in the desired
