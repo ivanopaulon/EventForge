@@ -82,17 +82,18 @@ public class AgentHub(
             await installationService.UpdateRegistrationInfoAsync(
                 installationId.Value,
                 new RegistrationInfo(
-                    Name:          msg.InstallationName,
-                    Location:      msg.Location,
-                    VersionServer: msg.VersionServer,
-                    VersionClient: msg.VersionClient,
-                    MachineName:   msg.MachineName,
-                    OSVersion:     msg.OSVersion,
-                    DotNetVersion: msg.DotNetVersion,
-                    AgentVersion:  msg.AgentVersion,
-                    IpAddress:     ip,
-                    Tags:          msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
-                    Status:        InstallationStatus.Online));
+                    Name:           msg.InstallationName,
+                    Location:       msg.Location,
+                    VersionServer:  msg.VersionServer,
+                    VersionClient:  msg.VersionClient,
+                    MachineName:    msg.MachineName,
+                    OSVersion:      msg.OSVersion,
+                    DotNetVersion:  msg.DotNetVersion,
+                    AgentVersion:   msg.AgentVersion,
+                    IpAddress:      ip,
+                    LocalIpAddress: msg.LocalIpAddress,
+                    Tags:           msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                    Status:         InstallationStatus.Online));
 
             logger.LogInformation(
                 "Installation registered: {Name} Machine={Machine} OS={OS} Agent={AgentVer} IP={IP}",
@@ -122,17 +123,18 @@ public class AgentHub(
             await installationService.UpdateRegistrationInfoAsync(
                 installationId.Value,
                 new RegistrationInfo(
-                    Name:          null,
-                    Location:      msg.Location,
-                    VersionServer: msg.VersionServer,
-                    VersionClient: msg.VersionClient,
-                    MachineName:   null,
-                    OSVersion:     null,
-                    DotNetVersion: null,
-                    AgentVersion:  msg.AgentVersion,
-                    IpAddress:     ip,
-                    Tags:          msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
-                    Status:        status));
+                    Name:           null,
+                    Location:       msg.Location,
+                    VersionServer:  msg.VersionServer,
+                    VersionClient:  msg.VersionClient,
+                    MachineName:    null,
+                    OSVersion:      null,
+                    DotNetVersion:  null,
+                    AgentVersion:   msg.AgentVersion,
+                    IpAddress:      ip,
+                    LocalIpAddress: null,
+                    Tags:           msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                    Status:         status));
 
             logger.LogDebug("Heartbeat from Installation={InstallationId} Status={Status}", installationId, msg.Status);
         }

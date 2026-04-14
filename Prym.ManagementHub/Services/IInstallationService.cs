@@ -132,5 +132,6 @@ public record RegistrationInfo(
     string? DotNetVersion,
     string? AgentVersion,
     string? IpAddress,
+    string? LocalIpAddress,
     string? Tags,
     InstallationStatus Status = InstallationStatus.Online);

@@ -140,6 +140,7 @@ public class AgentWorker(
                 OSVersion     = systemInfo.OSVersion,
                 DotNetVersion = systemInfo.DotNetVersion,
                 AgentVersion  = versionDetector.GetAgentVersion(),
+                LocalIpAddress = systemInfo.LocalIpAddress,
                 Tags          = options.Tags
             };
 
@@ -544,7 +545,7 @@ public class AgentWorker(
             registeredForThisConnection = true;
             var serverVerTask = versionDetector.GetServerVersionAsync();
             var clientVerTask = versionDetector.GetClientVersionAsync();
-            await Task.WhenAll(serverVerTask, clientVerTask);
+            await Task.WhenAll(serverVerTask, clientVerTask, systemInfo.GetPublicIpAddressAsync());
             await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
@@ -559,7 +560,8 @@ public class AgentWorker(
             MachineName:      systemInfo.MachineName,
             OSVersion:        systemInfo.OSVersion,
             DotNetVersion:    systemInfo.DotNetVersion,
-            AgentVersion:     versionDetector.GetAgentVersion()),
+            AgentVersion:     versionDetector.GetAgentVersion(),
+            LocalIpAddress:   systemInfo.LocalIpAddress),
             ct);
         }
         else

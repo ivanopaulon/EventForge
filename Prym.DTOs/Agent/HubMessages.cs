@@ -15,7 +15,8 @@ public record RegisterInstallationMessage(
     string? MachineName       = null,
     string? OSVersion         = null,
     string? DotNetVersion     = null,
-    string? AgentVersion      = null);
+    string? AgentVersion      = null,
+    string? LocalIpAddress    = null);
 
 public record HeartbeatMessage(
     string InstallationId,

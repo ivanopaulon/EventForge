@@ -33,6 +33,7 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         if (info.DotNetVersion is not null)   installation.DotNetVersion = info.DotNetVersion;
         if (info.AgentVersion is not null)    installation.AgentVersion = info.AgentVersion;
         if (info.IpAddress is not null)       installation.IpAddress = info.IpAddress;
+        if (info.LocalIpAddress is not null)  installation.LocalIpAddress = info.LocalIpAddress;
         if (info.Tags is not null)            installation.Tags = info.Tags;
 
         await db.SaveChangesAsync(ct);
