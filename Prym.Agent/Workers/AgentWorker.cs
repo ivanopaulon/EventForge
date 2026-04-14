@@ -703,7 +703,7 @@ public class AgentWorker(
         finally
         {
             // Always delete the marker so we don't reprocess it on the next restart.
-            try { File.Delete(markerPath); } catch (Exception ex) { logger.LogWarning(ex, "Could not delete self-update marker."); }
+            try { File.Delete(markerPath); } catch (Exception ex) { logger.LogWarning(ex, "Could not delete self-update marker at '{Path}'.", markerPath); }
         }
 
         if (marker is null) return;

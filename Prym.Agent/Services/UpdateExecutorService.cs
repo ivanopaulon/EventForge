@@ -330,7 +330,8 @@ public class UpdateExecutorService(
                 logger.LogError(ex, "Self-update initiation failed for Agent v{Version}", command.Version);
                 // Try to clean up the marker so we don't report a phantom completion on next start.
                 var markerCleanup = Path.Combine(AppContext.BaseDirectory, "self-update.json");
-                try { if (File.Exists(markerCleanup)) File.Delete(markerCleanup); } catch { /* best effort */ }
+                try { if (File.Exists(markerCleanup)) File.Delete(markerCleanup); }
+                catch (Exception cleanupEx) { logger.LogWarning(cleanupEx, "Could not delete self-update marker at '{Path}'.", markerCleanup); }
                 await ReportAsync(command, UpdatePhase.Completed, true, false, ex.Message, CancellationToken.None);
                 throw;
             }

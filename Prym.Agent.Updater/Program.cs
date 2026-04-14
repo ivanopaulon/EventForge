@@ -50,8 +50,12 @@ for (var i = 0; i < args.Length; i++)
             cleanupDir = args[++i]; break;
         case "--preserve":
             // Collect all following non-flag tokens as preserve patterns.
+            // Use a local index to avoid the outer for-loop's i++ skipping the next flag.
             while (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
-                preservePatterns.Add(args[++i]);
+            {
+                i++;
+                preservePatterns.Add(args[i]);
+            }
             break;
     }
 }
@@ -73,7 +77,15 @@ void Log(string level, string message)
 {
     var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {message}";
     Console.WriteLine(line);
-    try { File.AppendAllText(logPath, line + Environment.NewLine); } catch { /* best effort */ }
+    try
+    {
+        File.AppendAllText(logPath, line + Environment.NewLine);
+    }
+    catch (Exception logEx)
+    {
+        // Log file write failed — write to stderr so the operator can diagnose the problem.
+        Console.Error.WriteLine($"[WARN] Could not write to log file '{logPath}': {logEx.Message}");
+    }
 }
 
 Log("INFO", $"Prym.Agent.Updater started. Service='{serviceName}' Source='{sourceDir}' Target='{targetDir}'");
