@@ -26,6 +26,17 @@
   },
   {
     "Name": "Hub + Agent",
-    "Projects": []
+    "Projects": [
+      {
+        "Path": "Prym.ManagementHub\\Prym.ManagementHub.csproj",
+        "Action": "Start",
+        "DebugTarget": "IIS Express"
+      },
+      {
+        "Path": "Prym.Agent\\Prym.Agent.csproj",
+        "Action": "Start",
+        "DebugTarget": "IIS Express"
+      }
+    ]
   }
 ]
