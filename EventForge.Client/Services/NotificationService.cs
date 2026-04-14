@@ -195,7 +195,7 @@ public class NotificationService : INotificationService
     {
         try
         {
-            return await _httpClientService.GetAsync<NotificationStatsDto>("api/v1/notifications/stats", cancellationToken) ?? new NotificationStatsDto();
+            return await _httpClientService.GetAsync<NotificationStatsDto>("api/v1/notifications/statistics", cancellationToken) ?? new NotificationStatsDto();
         }
         catch (Exception ex)
         {
