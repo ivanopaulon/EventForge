@@ -169,6 +169,8 @@ public class DocumentCollaborationHub : Hub
                         documentId);
                 }
 
+                // Both branches above result in the same outcome: the caller could not
+                // acquire the lock. Return false in both cases.
                 return false;
             }
         }

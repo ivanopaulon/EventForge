@@ -721,7 +721,9 @@
                         _isReadOnly = true;
                         // If the connection is not available, treat as a connection error.
                         // If the connection IS available, the lock is held by another user:
-                        // the DocumentLocked event sent by the hub will populate _lockHolderName.
+                        // the DocumentLocked event sent by the hub will populate _lockHolderName
+                        // and the correct "locked by user" alert is shown automatically –
+                        // no additional notification toast is needed here.
                         if (!RealtimeService.IsDocumentCollaborationConnected)
                         {
                             _isReadOnlyDueToError = true;
