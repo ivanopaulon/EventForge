@@ -614,8 +614,8 @@ kbd {
      - .gdp-page-root  → height:100% fill column (no page scroll)
      - .gdp-title-bar  → shrink: 0; title + back button + alerts
      - .gdp-body       → flex: 1; flex-row; gap; overflow hidden
-     - .gdp-left-col   → ~25%; flex column; gap; internal scroll
-     - .gdp-right-col  → ~75%; flex column; overflow hidden
+     - .gdp-left-col   → ~33%; flex column; gap; internal scroll
+     - .gdp-right-col  → ~67%; flex column; overflow hidden
      - .gdp-panel      → scrollable panel inside left col
      - .gdp-rows-area  → flex:1; overflow hidden; right col table wrapper
    ============================================ */
