@@ -34,7 +34,7 @@ public class IndexModel(
     public DateTime? NextWindow { get; private set; }
     public IReadOnlyList<TrackedCommand> TrackedCommands { get; private set; } = [];
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
         InstallationId = agentOptions.InstallationId;
         InstallationName = agentOptions.InstallationName;
@@ -42,8 +42,8 @@ public class IndexModel(
         ClientEnabled = agentOptions.Components.Client.Enabled;
         HubState = agentStatus.HubConnectionState;
         LastHeartbeat = agentStatus.LastHeartbeatAt;
-        ServerVersion = versionDetector.GetServerVersion();
-        ClientVersion = versionDetector.GetClientVersion();
+        ServerVersion = await versionDetector.GetServerVersionAsync();
+        ClientVersion = await versionDetector.GetClientVersionAsync();
         QueueBlocked = pendingInstallService.IsBlocked;
         BlockedReason = pendingInstallService.BlockedReason;
         BlockedByPackageId = pendingInstallService.BlockedByPackageId;

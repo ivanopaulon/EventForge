@@ -447,8 +447,8 @@ public class AgentWorker(
 
             // Compare the offered version with the currently installed version.
             var installedVersion = isServer
-                ? versionDetector.GetServerVersion()
-                : versionDetector.GetClientVersion();
+                ? await versionDetector.GetServerVersionAsync()
+                : await versionDetector.GetClientVersionAsync();
 
             if (!IsNewerVersion(msg.Version, installedVersion))
             {
@@ -605,7 +605,6 @@ public class AgentWorker(
     {
         if (string.IsNullOrWhiteSpace(installed)) return true;
 
-        // Nerdbank.GitVersioning may emit "1.2.3+g1a2b3c4" — strip the build metadata.
         // Strip Nerdbank.GitVersioning build metadata (e.g. "1.2.3+g1a2b3c4" → "1.2.3")
         // so that Version.TryParse can handle the string correctly.
         static string Strip(string v)

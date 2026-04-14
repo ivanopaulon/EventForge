@@ -438,7 +438,7 @@ public class UpdateExecutorService(
             downloadUrl = hubBase + downloadUrl;
         }
 
-        var packageId = Guid.TryParseExact(packageIdHex, "N", out var g) ? g : Guid.NewGuid();
+        var packageId = command.PackageId;
 
         var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
@@ -483,12 +483,12 @@ public class UpdateExecutorService(
                         request2.Headers.Add("X-Api-Key", options.ApiKey);
                         using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
                         response2.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response2, tmpPath, append: false, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response2, tmpPath, append: false, resumeFrom: 0, packageId, command, linkedCts.Token);
                     }
                     else
                     {
                         response.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, resumeFrom, packageId, command, linkedCts.Token);
                     }
 
                     if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -516,8 +516,8 @@ public class UpdateExecutorService(
     }
 
     private async Task WriteResponseToFileAsync(
-        HttpResponseMessage response, string tmpPath, bool append, Guid packageId,
-        StartUpdateCommand command, CancellationToken ct)
+        HttpResponseMessage response, string tmpPath, bool append, long resumeFrom,
+        Guid packageId, StartUpdateCommand command, CancellationToken ct)
     {
         var totalBytes = response.Content.Headers.ContentLength;
         await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
@@ -527,7 +527,7 @@ public class UpdateExecutorService(
         await using var fileStream = new FileStream(tmpPath, fileMode, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
 
         var buffer    = new byte[bufferSize];
-        long written  = append && File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
+        long written  = append ? resumeFrom : 0;
         var lastLocalReport  = DateTime.UtcNow;
         var lastServerNotify = DateTime.UtcNow;
         int bytesRead;
@@ -619,7 +619,8 @@ public class UpdateExecutorService(
             throw new InvalidOperationException($"Checksum mismatch. Expected: {expectedChecksum} Actual: {actual}");
     }
 
-    private static readonly JsonSerializerOptions _manifestOpts = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _manifestOpts    = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _writeIndentOpts = new() { WriteIndented = true };
 
     private static async Task<UpdateManifest> LoadManifestAsync(string extractedPath)
     {
@@ -696,8 +697,7 @@ public class UpdateExecutorService(
 
         var merged = MergeJsonElements(targetDoc.RootElement, templateDoc.RootElement);
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var mergedJson = JsonSerializer.Serialize(merged, options);
+        var mergedJson = JsonSerializer.Serialize(merged, _writeIndentOpts);
         var tmpPath = targetPath + ".tmp";
         await File.WriteAllTextAsync(tmpPath, mergedJson, ct);
         File.Move(tmpPath, targetPath, overwrite: true);

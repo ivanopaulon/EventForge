@@ -51,18 +51,19 @@ public sealed class AgentPrinterService(
     }
 
     /// <inheritdoc />
-    public async Task TestConnectionAsync(string deviceId, CancellationToken ct = default)
+    public Task TestConnectionAsync(string deviceId, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
 
         var path = BuildDevicePath(deviceId);
 
         // Attempt to open the device; if it throws, the device is not accessible.
-        await using var stream = OpenDeviceStream(path);
+        // OpenDeviceStream is synchronous — dispose immediately after the check.
+        OpenDeviceStream(path).Dispose();
 
         logger.LogInformation("[AgentPrinterService] USB connection test OK | {Path}", path);
 
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

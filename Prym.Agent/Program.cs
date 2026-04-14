@@ -148,15 +148,15 @@ try
     // Lightweight unauthenticated health probe — used by EventForge.Server to include
     // Agent status in its own /api/v1/health/detailed response. Safe because the Agent
     // binds to localhost only; external requests cannot reach this endpoint.
-    app.MapGet("/api/agent/health", (AgentStatusService svc, AgentOptions opts, VersionDetectorService versionDetector) =>
+    app.MapGet("/api/agent/health", async (AgentStatusService svc, AgentOptions opts, VersionDetectorService versionDetector) =>
     {
         return Results.Ok(new
         {
             Status = "Online",
             InstallationName = opts.InstallationName,
             AgentVersion = versionDetector.GetAgentVersion(),
-            ServerVersion = versionDetector.GetServerVersion(),
-            ClientVersion = versionDetector.GetClientVersion(),
+            ServerVersion = await versionDetector.GetServerVersionAsync(),
+            ClientVersion = await versionDetector.GetClientVersionAsync(),
             svc.HubConnectionState,
             svc.LastHeartbeatAt,
             ProbeTime = DateTime.UtcNow

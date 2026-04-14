@@ -1,8 +1,8 @@
 # Analisi approfondita — Prym.Agent
 
-> **Versione analisi:** 4 (Sprint 6 — post-fix)  
+> **Versione analisi:** 5 (Sprint 7 — performance + cleanliness pass)  
 > **Data:** 2026-04-14  
-> **Stato del codice:** post Sprint 6 (SSRF TCP + unit tests Prym.Agent.Tests)  
+> **Stato del codice:** post Sprint 7 (deduplicazione VersionDetector, IIS deadlock fix, perf micro-ottimizzazioni)  
 > **Autore:** Copilot SWE Agent
 
 ---
@@ -374,4 +374,11 @@ Aggiungere `GetServerVersionAsync` / `GetClientVersionAsync` con `File.ReadAllTe
 | Unit test ZipPathTraversal | ✅ Risolto (S6.3) — Prym.Agent.Tests |
 | Unit test PendingInstallService (FIFO, block/unblock) | ✅ Risolto (S6.3) — Prym.Agent.Tests |
 | Unit test MergeJsonElements | ✅ Risolto (S6.3) — Prym.Agent.Tests |
+| VersionDetectorService codice duplicato (sync/async ×4 metodi) | ✅ Risolto (S7A.1) — refactored in ReadComponentVersionAsync |
+| DownloadPackageAsync: ridondante Guid.TryParseExact | ✅ Risolto (S7A.2) — usa command.PackageId direttamente |
+| WriteResponseToFileAsync: ridondante FileInfo().Length disk read | ✅ Risolto (S7A.3) — resumeFrom passato come parametro |
+| MergeJsonFilesAsync: JsonSerializerOptions allocata ad ogni chiamata | ✅ Risolto (S7A.4) — static _writeIndentOpts |
+| IisManagerService: stdout+stderr letti sequenzialmente (rischio deadlock) | ✅ Risolto (S7B.1) — lettura in parallelo |
+| AgentPrinterService.TestConnectionAsync: await Task.CompletedTask inutile | ✅ Risolto (S7B.2) — rimosso, metodo sync |
+| AgentWorker.IsNewerVersion: commento duplicato | ✅ Risolto (S7C.1) |
 | Endpoint interni autenticati | ⚠️ **Aperta (R3)** — architettura trust-model localhost, da valutare in futuro |
