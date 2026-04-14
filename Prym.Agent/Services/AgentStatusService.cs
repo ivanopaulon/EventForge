@@ -36,7 +36,13 @@ public class AgentStatusService
     }
 
     /// <summary>Enrollment status: null = not attempted, "Enrolled" = success, "Failed" = error.</summary>
-    public string? EnrollmentStatus { get; set; }
+    private volatile string? _enrollmentStatus;
+
+    public string? EnrollmentStatus
+    {
+        get => _enrollmentStatus;
+        set => _enrollmentStatus = value;
+    }
 
     /// <summary>
     /// Request that the AgentWorker re-sends a RegisterInstallation message to the Hub

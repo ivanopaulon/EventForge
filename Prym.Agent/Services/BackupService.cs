@@ -80,7 +80,7 @@ public class BackupService(AgentOptions options, ILogger<BackupService> logger)
 
     private static async Task CopyDirectoryAsync(string source, string destination, CancellationToken ct)
     {
-        var files = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
+        var files = Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories);
 
         await Parallel.ForEachAsync(files,
             new ParallelOptions { MaxDegreeOfParallelism = Math.Min(Environment.ProcessorCount, 8), CancellationToken = ct },

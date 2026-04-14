@@ -1,7 +1,7 @@
 ﻿using System.IO.Compression;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using Prym.Agent.Extensions;
 
@@ -107,10 +107,9 @@ public class UpdateExecutorService(
         try
         {
             var url = notificationBaseUrl.TrimEnd('/') + "/api/v1/system/maintenance";
-            var json = JsonSerializer.Serialize(payload);
             using var request = new HttpRequestMessage(HttpMethod.Post, url)
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                Content = JsonContent.Create(payload)
             };
             request.Headers.Add("X-Maintenance-Secret", maintenanceSecret);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
@@ -438,8 +437,6 @@ public class UpdateExecutorService(
             downloadUrl = hubBase + downloadUrl;
         }
 
-        var packageId = command.PackageId;
-
         var downloadDir = ResolveAndEnsureDir(options.WorkPath);
 
         var zipPath = Path.Combine(downloadDir, $"ef-pkg-{packageIdHex}.zip");
@@ -447,7 +444,17 @@ public class UpdateExecutorService(
 
         var maxAttempts = options.DownloadMaxRetries + 1;
 
-        downloadProgress.Start(packageId, component, version);
+        // Local helper — builds a GET request with the API key header and optional byte-range.
+        HttpRequestMessage CreateRequest(long rangeFrom)
+        {
+            var req = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
+            req.Headers.Add("X-Api-Key", options.ApiKey);
+            if (rangeFrom > 0)
+                req.Headers.Range = new RangeHeaderValue(rangeFrom, null);
+            return req;
+        }
+
+        downloadProgress.Start(command.PackageId, component, version);
         try
         {
             for (var attempt = 0; attempt < maxAttempts; attempt++)
@@ -463,32 +470,27 @@ public class UpdateExecutorService(
                 {
                     long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
 
-                    using var request = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                    request.Headers.Add("X-Api-Key", options.ApiKey);
-                    if (resumeFrom > 0)
-                        request.Headers.Range = new RangeHeaderValue(resumeFrom, null);
-
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
                     using var linkedCts  = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
+                    using var request = CreateRequest(resumeFrom);
                     using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
 
                     if (resumeFrom > 0 && response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
                     {
+                        // Server doesn't support resume for this resource — restart from byte 0.
                         logger.LogWarning("Server returned 416 — restarting download from byte 0.");
                         try { File.Delete(tmpPath); } catch { /* best effort */ }
-                        resumeFrom = 0;
 
-                        using var request2 = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
-                        request2.Headers.Add("X-Api-Key", options.ApiKey);
+                        using var request2 = CreateRequest(rangeFrom: 0);
                         using var response2 = await _http.SendAsync(request2, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
                         response2.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response2, tmpPath, append: false, resumeFrom: 0, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response2, tmpPath, append: false, resumeFrom: 0, command.PackageId, command, linkedCts.Token);
                     }
                     else
                     {
                         response.EnsureSuccessStatusCode();
-                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, resumeFrom, packageId, command, linkedCts.Token);
+                        await WriteResponseToFileAsync(response, tmpPath, append: resumeFrom > 0, resumeFrom, command.PackageId, command, linkedCts.Token);
                     }
 
                     if (File.Exists(zipPath)) File.Delete(zipPath);
@@ -511,7 +513,7 @@ public class UpdateExecutorService(
         }
         finally
         {
-            downloadProgress.Complete(packageId);
+            downloadProgress.Complete(command.PackageId);
         }
     }
 
@@ -648,7 +650,7 @@ public class UpdateExecutorService(
             .Select(f => f.Replace('/', Path.DirectorySeparatorChar).ToLowerInvariant())
             .ToHashSet();
 
-        var files = Directory.GetFiles(binariesPath, "*", SearchOption.AllDirectories);
+        var files = Directory.EnumerateFiles(binariesPath, "*", SearchOption.AllDirectories);
         var parallelism = Math.Min(Environment.ProcessorCount, DeployMaxParallelism);
         await Parallel.ForEachAsync(files, new ParallelOptions { MaxDegreeOfParallelism = parallelism, CancellationToken = ct },
             async (file, fileCt) =>
