@@ -725,6 +725,21 @@ kbd {
 }
 
 /* ============================================
+   DocumentDetailDialog Full-Screen Layout
+   Ensures the gdp-* layout fills the dialog
+   content area when opened as full-screen.
+   ============================================ */
+.doc-detail-fs-dialog .mud-dialog-content {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+.mud-dialog-fullscreen.doc-detail-fs-dialog .mud-dialog-content {
+    height: 100% !important;
+    max-height: none !important;
+}
+
+/* ============================================
    ManagementPageHeader Component Styles
    ============================================ */
 
