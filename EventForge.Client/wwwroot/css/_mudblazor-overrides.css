@@ -115,21 +115,42 @@
     box-sizing: border-box;
 }
 
-/* ─── 8. EFTable / MudTable flex fill ──────────────────────────────────────
- * MudBlazor's .mud-table element has no height or flex property. When EFTable
- * is placed inside a flex-column container (eftable-wrapper on management pages,
- * gdp-rows-area on the document page) with Height="100%" and FixedHeader="true",
- * the MudTable needs to grow into the available space so that:
- *   a) .mud-table-container { height: 100% } resolves to a finite value
- *   b) { overflow-y: auto } on mud-table-container triggers → internal row scroll
- *   c) { position: sticky; top: 0 } on thead th (added by MudBlazor for FixedHeader)
- *      works correctly because the scroll container now has a finite height
+/* ─── 8. EFTable / MudTable flex fill with visible pagination ───────────────
+ * MudBlazor renders .mud-table with two children:
+ *   1. .mud-table-container  — the scrollable area (gets inline style="height:100%")
+ *   2. .mud-table-pagination — the pager toolbar (~52-100px, OUTSIDE the scroll area)
  *
- * min-height: 0 is required on flex children to allow them to shrink below
- * their intrinsic content size (default min-height: auto blocks shrinking).
+ * Problem: without intervention, .mud-table has no height. After giving it
+ * flex:1 1 0, .mud-table-container { height:100% } fills the ENTIRE parent,
+ * pushing .mud-table-pagination below the bottom edge where it is clipped
+ * by the overflow:hidden on the wrapper.
+ *
+ * Fix: make .mud-table itself a flex column so its two children stack vertically.
+ * .mud-table-container gets flex:1 1 0 (flex-basis:0 overrides the inline
+ * height:100% for the main axis per CSS Flexbox spec) and fills all space
+ * except what .mud-table-pagination needs. overflow-y:auto on the container
+ * then triggers correctly, and position:sticky on thead th (FixedHeader) works
+ * because the scroll container now has a finite, computed height.
+ *
+ * min-height:0 on flex children prevents the default min-height:auto from
+ * blocking shrink.
  */
 .eftable-wrapper .mud-table,
 .gdp-rows-area .mud-table {
     flex: 1 1 0;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.eftable-wrapper .mud-table-container,
+.gdp-rows-area .mud-table-container {
+    flex: 1 1 0;
+    min-height: 0;
+    /* flex-basis:0 takes precedence over the inline height:100% (main axis) */
+}
+
+.eftable-wrapper .mud-table-pagination,
+.gdp-rows-area .mud-table-pagination {
+    flex-shrink: 0; /* keep pager at its natural height, never compress it */
 }
