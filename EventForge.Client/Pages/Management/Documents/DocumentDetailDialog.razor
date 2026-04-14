@@ -637,7 +637,7 @@
     {
         try
         {
-            var result = await PriceListService.GetPagedAsync(1, 200, direction: null, status: PriceListStatus.Active);
+            var result = await PriceListService.GetPagedAsync(1, 1000, direction: null, status: PriceListStatus.Active);
             _priceLists = result?.Items?.ToList() ?? new List<PriceListDto>();
         }
         catch (Exception ex)
@@ -765,13 +765,12 @@
     {
         _selectedBusinessParty = party;
         // Reset price list selection when business party changes
-        if (_selectedBusinessParty == null)
-        {
-            _model.PriceListId = null;
-        }
-        // Optionally reload price lists filtered to this business party
+        _model.PriceListId = null;
+
         if (party != null)
         {
+            // Reload general lists and merge BP-specific ones
+            await LoadPriceListsAsync();
             try
             {
                 var bpLists = await PriceListService.GetPriceListsByBusinessPartyAsync(party.Id);
@@ -790,6 +789,11 @@
             {
                 Logger.LogWarning(ex, "Error loading price lists for business party {BusinessPartyId}", party.Id);
             }
+        }
+        else
+        {
+            // Restore the general list when no BP is selected
+            await LoadPriceListsAsync();
         }
         StateHasChanged();
     }
@@ -1104,10 +1108,20 @@
             try
             {
                 var rowsToDelete = _selectedRows.ToList();
-                // ✅ PERFORMANCE: parallel bulk delete
-                var deleteTasks = rowsToDelete.Select(row =>
-                    DocumentHeaderService.DeleteDocumentRowAsync(row.Id).ContinueWith(t => (row.Id, Success: t.IsCompletedSuccessfully && t.Result))
-                );
+                // ✅ PERFORMANCE: parallel bulk delete with safe exception handling
+                var deleteTasks = rowsToDelete.Select(async row =>
+                {
+                    try
+                    {
+                        bool ok = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                        return (row.Id, Success: ok);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error deleting row {RowId} during bulk delete", row.Id);
+                        return (row.Id, Success: false);
+                    }
+                });
                 var results = await Task.WhenAll(deleteTasks);
 
                 var successIds = results.Where(r => r.Success).Select(r => r.Id).ToHashSet();
