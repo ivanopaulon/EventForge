@@ -1598,7 +1598,7 @@ public class DocumentHeaderService(
     /// Lock expires after 1 hour of inactivity.
     /// Uses optimistic concurrency control via RowVersion to prevent race conditions.
     /// </summary>
-    public async Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId)
+    public async Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId, Guid? tenantId = null)
     {
         logger.LogDebug(
             "AcquireLockAsync called: DocumentId={DocumentId}, UserName={UserName}, ConnectionId={ConnectionId}",
@@ -1606,8 +1606,8 @@ public class DocumentHeaderService(
 
         try
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
+            var effectiveTenantId = tenantId ?? tenantContext.CurrentTenantId;
+            if (!effectiveTenantId.HasValue)
             {
                 logger.LogWarning(
                     "❌ Lock acquisition FAILED: TenantId is NULL. DocumentId={DocumentId}, UserName={UserName}",
@@ -1617,7 +1617,7 @@ public class DocumentHeaderService(
 
             logger.LogDebug(
                 "TenantId retrieved: {TenantId} for document {DocumentId}",
-                tenantId.Value, documentId);
+                effectiveTenantId.Value, documentId);
 
             // Use a retry pattern for optimistic concurrency
             const int maxRetries = 3;
@@ -1630,13 +1630,13 @@ public class DocumentHeaderService(
                         attempt + 1, maxRetries, documentId);
 
                     var document = await context.DocumentHeaders
-                        .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
+                        .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == effectiveTenantId.Value && !d.IsDeleted);
 
                     if (document is null)
                     {
                         logger.LogWarning(
                             "❌ Lock acquisition FAILED: Document NOT FOUND. DocumentId={DocumentId}, TenantId={TenantId}, UserName={UserName}",
-                            documentId, tenantId.Value, userName);
+                            documentId, effectiveTenantId.Value, userName);
                         return false;
                     }
 
@@ -1765,19 +1765,19 @@ public class DocumentHeaderService(
     /// Releases an edit lock for a document.
     /// Only the user who holds the lock can release it.
     /// </summary>
-    public async Task<bool> ReleaseLockAsync(Guid documentId, string userName)
+    public async Task<bool> ReleaseLockAsync(Guid documentId, string userName, Guid? tenantId = null)
     {
         try
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
+            var effectiveTenantId = tenantId ?? tenantContext.CurrentTenantId;
+            if (!effectiveTenantId.HasValue)
             {
                 logger.LogWarning("Cannot release lock without a tenant context.");
                 return false;
             }
 
             var document = await context.DocumentHeaders
-                .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted);
+                .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == effectiveTenantId.Value && !d.IsDeleted);
 
             if (document is null)
             {
@@ -1861,12 +1861,12 @@ public class DocumentHeaderService(
     /// <summary>
     /// Gets lock information for a document.
     /// </summary>
-    public async Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId)
+    public async Task<DocumentLockInfo?> GetLockInfoAsync(Guid documentId, Guid? tenantId = null)
     {
         try
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
+            var effectiveTenantId = tenantId ?? tenantContext.CurrentTenantId;
+            if (!effectiveTenantId.HasValue)
             {
                 logger.LogWarning("Cannot get lock info without a tenant context.");
                 return null;
@@ -1874,7 +1874,7 @@ public class DocumentHeaderService(
 
             var lockInfo = await context.DocumentHeaders
                 .AsNoTracking()
-                .Where(d => d.Id == documentId && d.TenantId == tenantId.Value && !d.IsDeleted)
+                .Where(d => d.Id == documentId && d.TenantId == effectiveTenantId.Value && !d.IsDeleted)
                 .Select(d => new DocumentLockInfo
                 {
                     DocumentId = d.Id,
