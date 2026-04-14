@@ -51,15 +51,34 @@
         <PageLoadingOverlay Visible="_isLoading"
                             Message="@(_isLoading ? TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina...") : TranslationService.GetTranslation("common.loading", "Caricamento..."))" />
 
-        @if (_isReadOnly && !string.IsNullOrEmpty(_lockHolderName))
+        @if (_isReadOnly)
         {
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Lock" Dense="true">
-                <MudText Typo="Typo.body2">
-                    @TranslationService.GetTranslation("documents.lockedByUser", "Documento in modifica da")
-                    <strong>@_lockHolderName</strong>.
-                    @TranslationService.GetTranslation("documents.readOnlyMode", "Modalità sola lettura")
-                </MudText>
-            </MudAlert>
+            @if (!string.IsNullOrEmpty(_lockHolderName))
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Lock" Dense="true">
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("documents.lockedByUser", "Documento in modifica da")
+                        <strong>@_lockHolderName</strong>.
+                        @TranslationService.GetTranslation("documents.readOnlyMode", "Modalità sola lettura")
+                    </MudText>
+                </MudAlert>
+            }
+            else if (_isReadOnlyDueToError)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.WifiOff" Dense="true">
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("documents.readOnlyConnectionError", "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura.")
+                    </MudText>
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Lock" Dense="true">
+                    <MudText Typo="Typo.body2">
+                        @TranslationService.GetTranslation("documents.readOnlyMode", "Modalità sola lettura")
+                    </MudText>
+                </MudAlert>
+            }
         }
     </div>
 
@@ -93,7 +112,8 @@
                             <MudTextField @bind-Value="_model.Series"
                                           Label="@TranslationService.GetTranslation("documents.series", "Serie")"
                                           Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"/>
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isReadOnly"/>
                         </MudItem>
                         <MudItem xs="6">
                             <MudTextField Value="@_model.Number"
@@ -112,6 +132,7 @@
                                            Variant="Variant.Outlined"
                                            Margin="Margin.Dense"
                                            DateFormat="dd/MM/yyyy"
+                                           Disabled="@_isReadOnly"
                                            Editable="true"/>
                         </MudItem>
                         <MudItem xs="5">
@@ -145,6 +166,7 @@
                                       Variant="Variant.Outlined"
                                       Margin="Margin.Dense"
                                       Lines="2"
+                                      Disabled="@_isReadOnly"
                                       Placeholder="@TranslationService.GetTranslation("documents.notesPlaceholder", "Note opzionali per il documento...")"/>
                     }
                     <!-- Action Buttons -->
@@ -190,6 +212,7 @@
                     ShowLocation="true"
                     AllowClear="true"
                     AutoFocus="false"
+                    Disabled="@_isReadOnly"
                     Dense="true" />
             </MudPaper>
 
@@ -536,7 +559,7 @@
     private string _pageTitle = "";
     private CreateDocumentHeaderDto _model = new();
     private DocumentHeaderDto? _currentDocument = null;
-    private DateTime? _documentDate = DateTime.Now;
+    private DateTime? _documentDate = DateTime.UtcNow;
     private List<DocumentTypeDto> _documentTypes = new();
     private BusinessPartyDto? _selectedBusinessParty = null;
     
@@ -546,6 +569,7 @@
     // Lock management state
     private bool _hasEditLock = false;
     private bool _isReadOnly = false;
+    private bool _isReadOnlyDueToError = false;
     private string? _lockHolderName = null;
     
     // Selection management for rows
@@ -679,6 +703,7 @@
             }
 
             // Setup SignalR for document collaboration
+            try
             {
                 RealtimeService.DocumentLocked += OnDocumentLocked;
                 RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
@@ -702,16 +727,26 @@
                 catch (HubException hex)
                 {
                     _isReadOnly = true;
+                    _isReadOnlyDueToError = true;
                     Logger.LogWarning(hex, "Lock acquisition failed - HubException for document {DocumentId}", DocumentId.Value);
                     AppNotification.ShowWarning(hex.Message);
                 }
                 catch (Exception ex)
                 {
                     _isReadOnly = true;
+                    _isReadOnlyDueToError = true;
                     Logger.LogWarning(ex, "Lock acquisition failed for document {DocumentId}", DocumentId.Value);
                     AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError", 
                             "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
                 }
+            }
+            catch (Exception ex)
+            {
+                _isReadOnly = true;
+                _isReadOnlyDueToError = true;
+                Logger.LogError(ex, "SignalR collaboration setup failed for document {DocumentId}", DocumentId.Value);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError", 
+                        "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
             }
         }
         else
@@ -1024,7 +1059,14 @@
         if (result is { Canceled: false } && result.Data is DocumentRowDto updatedRow)
         {
             // Update only the modified row in the local collection
-            var rowIndex = _currentDocument!.Rows!.FindIndex(r => r.Id == updatedRow.Id);
+            if (_currentDocument?.Rows == null)
+            {
+                Logger.LogWarning("_currentDocument or Rows is null for incremental update of row {RowId}, reloading document", updatedRow.Id);
+                if (_currentDocument != null)
+                    await LoadDocumentAsync(_currentDocument.Id);
+                return;
+            }
+            var rowIndex = _currentDocument.Rows.FindIndex(r => r.Id == updatedRow.Id);
             if (rowIndex >= 0)
             {
                 _currentDocument.Rows[rowIndex] = updatedRow;

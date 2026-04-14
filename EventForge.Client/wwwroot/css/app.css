@@ -75,16 +75,6 @@ code, pre, kbd, samp,
     font-family: var(--font-family-content);
 }
 
-/* Global body padding for universal footer */
-body {
-    padding-bottom: 80px !important; /* Account for fixed universal footer */
-}
-
-/* Layout adjustments for main content with footer */
-.main-content-with-footer {
-    padding-bottom: 80px; /* Additional padding for content */
-}
-
 /* Accessibility improvements - .sr-only is defined in mud-components.css */
 
 /* Enhanced focus styles for better accessibility */
