@@ -76,6 +76,20 @@ public interface IInstallationService
     /// ordered by start time ascending (oldest = head of queue first).
     /// </summary>
     Task<IReadOnlyList<PendingInstallSummary>> GetPendingInstallsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the IDs of installations whose <see cref="Installation.Status"/> is not
+    /// <see cref="InstallationStatus.Offline"/> and whose <see cref="Installation.LastSeen"/>
+    /// is older than <paramref name="cutoff"/>.
+    /// Used by <see cref="AgentStatusCheckService"/> to mark stale agents offline.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetStaleInstallationsAsync(DateTime cutoff, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns installations whose IDs are in <paramref name="ids"/>.
+    /// Used to batch-load installation data for a set of online connection IDs without N+1 queries.
+    /// </summary>
+    Task<IReadOnlyList<Installation>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
 }
 
 /// <summary>Lightweight package metadata resolved from an <see cref="UpdateHistory"/> record.</summary>

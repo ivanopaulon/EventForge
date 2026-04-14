@@ -12,6 +12,6 @@
     "^refs/tags/updatehub-v\\d+\\.\\d+"
   ],
   "pathFilters": [
-    "./EventForge.UpdateHub"
+    "./Prym.ManagementHub"
   ]
 }

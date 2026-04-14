@@ -22,7 +22,7 @@ $SITE_NAME          = "EventForge UpdateHub"
 $POOL_NAME          = "EventForgeHub"
 $SITE_PORT          = 7244   # HTTPS IIS port; overridden below from UpdateHub.UI.HttpsPort in appsettings.json
 $SITE_CERT_FRIENDLY = "EventForge UpdateHub IIS"
-$APP_DLL            = "EventForge.UpdateHub.dll"
+$APP_DLL            = "Prym.ManagementHub.dll"
 $PACKAGES_PATH      = "$DEPLOY_PATH\packages"
 $DB_FILE            = "$DEPLOY_PATH\updatehub.db"
 

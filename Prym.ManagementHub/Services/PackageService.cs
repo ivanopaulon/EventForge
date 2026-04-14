@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Prym.ManagementHub.Services;
 
-public class PackageService(ManagementHubDbContext db, IConfiguration configuration) : IPackageService
+public class PackageService(ManagementHubDbContext db, ManagementHubOptions hubOptions) : IPackageService
 {
-    private string PackageStorePath => configuration["ManagementHub:PackageStorePath"] ?? "packages";
+    private string PackageStorePath => hubOptions.PackageStorePath;
 
     public Task<UpdatePackage?> GetLatestAsync(PackageComponent component, CancellationToken ct = default)
         => db.UpdatePackages
@@ -78,5 +78,21 @@ public class PackageService(ManagementHubDbContext db, IConfiguration configurat
 
         // Fallback: cannot parse — return unchanged with a "-next" suffix.
         return raw + "-next";
+    }
+
+    public Task<int> CountAsync(CancellationToken ct = default)
+        => db.UpdatePackages.CountAsync(ct);
+
+    public async Task<IReadOnlyList<UpdatePackage>> GetExpiredPackagesAsync(DateTime cutoff, CancellationToken ct = default)
+        => await db.UpdatePackages
+            .Where(p => (p.Status == PackageStatus.Archived || p.Status == PackageStatus.Deployed)
+                        && p.UploadedAt < cutoff)
+            .ToListAsync(ct);
+
+    public async Task DeleteAsync(Guid packageId, CancellationToken ct = default)
+    {
+        await db.UpdatePackages
+            .Where(p => p.Id == packageId)
+            .ExecuteDeleteAsync(ct);
     }
 }

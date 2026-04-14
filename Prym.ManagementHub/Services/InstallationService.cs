@@ -168,9 +168,15 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         var ids = installationIds.ToHashSet();
         if (ids.Count == 0) return [];
 
+        // Limit rows per installation at the DB level using a correlated COUNT subquery,
+        // avoiding a full table scan followed by in-memory grouping.
         var rows = await db.UpdateHistories
             .Include(h => h.Package)
-            .Where(h => ids.Contains(h.InstallationId))
+            .Where(h => ids.Contains(h.InstallationId)
+                        && db.UpdateHistories.Count(
+                               h2 => h2.InstallationId == h.InstallationId
+                                     && h2.StartedAt > h.StartedAt)
+                           < maxPerInstallation)
             .OrderByDescending(h => h.StartedAt)
             .ToListAsync(ct);
 
@@ -179,7 +185,6 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             .ToDictionary(
                 g => g.Key,
                 g => (IReadOnlyList<UpdateHistorySummary>)g
-                    .Take(maxPerInstallation)
                     .Select(ToSummary)
                     .ToList());
     }
@@ -210,5 +215,22 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             Version:         h.Package?.Version,
             IsManualInstall: h.Package?.IsManualInstall ?? false,
             QueuedAt:        h.StartedAt)).ToList();
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetStaleInstallationsAsync(DateTime cutoff, CancellationToken ct = default)
+        => await db.Installations
+            .Where(i => i.Status != InstallationStatus.Offline
+                        && i.LastSeen.HasValue
+                        && i.LastSeen.Value < cutoff)
+            .Select(i => i.Id)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Installation>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idSet = ids.ToHashSet();
+        if (idSet.Count == 0) return [];
+        return await db.Installations
+            .Where(i => idSet.Contains(i.Id))
+            .ToListAsync(ct);
     }
 }

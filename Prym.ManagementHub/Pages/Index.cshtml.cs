@@ -13,6 +13,7 @@ public class IndexModel(
     IPackageService packageService,
     IConnectionTracker connectionTracker,
     IHubContext<AgentHub> agentHubContext,
+    IUpdateThrottleService updateThrottle,
     ILogger<IndexModel> logger) : PageModel
 {
     public IReadOnlyList<Installation> Installations { get; private set; } = [];
@@ -30,7 +31,7 @@ public class IndexModel(
         TotalInstallations = Installations.Count;
         OnlineCount = onlineIds.Count;
         OfflineCount = TotalInstallations - OnlineCount;
-        PackageCount = (await packageService.GetAllAsync()).Count;
+        PackageCount = await packageService.CountAsync();
     }
 
     /// <summary>Send a specific package update to a single installation.</summary>
@@ -51,6 +52,8 @@ public class IndexModel(
             installationId, packageId,
             installation?.InstalledVersionServer,
             installation?.InstalledVersionClient);
+
+        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
@@ -81,6 +84,10 @@ public class IndexModel(
             return RedirectToPage();
         }
 
+        // Load all online installations in a single DB query (avoids N+1).
+        var installations = await installationService.GetByIdsAsync(onlineIds);
+        var installationMap = installations.ToDictionary(i => i.Id);
+
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var downloadUrl = $"{baseUrl}/api/v1/packages/{pkg.Id}/download";
 
@@ -89,11 +96,13 @@ public class IndexModel(
             var connectionId = connectionTracker.GetConnectionId(id);
             if (connectionId is null) continue;
 
-            var installation = await installationService.GetByIdAsync(id);
+            installationMap.TryGetValue(id, out var installation);
             var history = await installationService.StartUpdateHistoryAsync(
                 id, packageId,
                 installation?.InstalledVersionServer,
                 installation?.InstalledVersionClient);
+
+            await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
             var command = new StartUpdateCommand(
                 history.Id, pkg.Id, pkg.Version,

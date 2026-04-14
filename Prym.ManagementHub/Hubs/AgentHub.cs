@@ -12,6 +12,7 @@ public class AgentHub(
     IInstallationService installationService,
     IPackageService packageService,
     IHttpClientFactory httpClientFactory,
+    IUpdateThrottleService updateThrottle,
     ManagementHubOptions hubOptions) : Hub
 {
     public override async Task OnConnectedAsync()
@@ -160,6 +161,9 @@ public class AgentHub(
                 var packageId = await installationService.CompleteUpdateHistoryAsync(
                     msg.UpdateHistoryId, historyStatus, msg.ErrorMessage, !msg.IsSuccess && msg.Phase == "Rollback");
 
+                // Release the throttle slot now that this update is finished.
+                updateThrottle.Release();
+
                 // Mark the package as Deployed once any installation reports successful completion.
                 if (msg.IsSuccess && packageId.HasValue)
                     await packageService.SetStatusAsync(packageId.Value, PackageStatus.Deployed);
@@ -220,6 +224,8 @@ public class AgentHub(
                 installationId.Value, packageId,
                 installation.InstalledVersionServer,
                 installation.InstalledVersionClient);
+
+            await updateThrottle.AcquireAsync(Context.ConnectionAborted);
 
             var httpContext = Context.GetHttpContext();
             var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)

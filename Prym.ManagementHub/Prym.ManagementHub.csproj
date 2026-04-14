@@ -23,4 +23,7 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Settings.Configuration" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Prym.DTOs/Prym.DTOs.csproj" />
+  </ItemGroup>
 </Project>
