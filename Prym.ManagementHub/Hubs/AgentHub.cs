@@ -225,7 +225,8 @@ public class AgentHub(
             var history = await installationService.StartUpdateHistoryAsync(
                 installationId.Value, packageId,
                 installation.InstalledVersionServer,
-                installation.InstalledVersionClient);
+                installation.InstalledVersionClient,
+                fromVersionAgent: installation.AgentVersion);
 
             await updateThrottle.AcquireAsync(Context.ConnectionAborted);
 

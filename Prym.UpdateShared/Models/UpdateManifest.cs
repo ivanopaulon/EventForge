@@ -60,6 +60,12 @@ public enum UpdatePhase
     VerifyingHealth,
     /// <summary>Post-deploy check: <c>version.txt</c> and key files verified on disk.</summary>
     VerifyingDeploy,
+    /// <summary>
+    /// Agent self-update only: the Updater process has been launched and the Agent service
+    /// is about to stop.  The update is considered in-progress until the Agent restarts
+    /// and reports <see cref="Completed"/>.
+    /// </summary>
+    SelfUpdateInitiated,
     Rollback,
     Completed
 }

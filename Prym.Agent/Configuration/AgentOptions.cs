@@ -109,6 +109,7 @@ public class AgentOptions
     public BackupAgentOptions Backup { get; set; } = new();
     public LoggingAgentOptions Logging { get; set; } = new();
     public PrinterProxyAgentOptions PrinterProxy { get; set; } = new();
+    public SelfUpdateOptions SelfUpdate { get; set; } = new();
 
     /// <summary>Local web UI (Razor Pages served on localhost).</summary>
     public UiOptions UI { get; set; } = new();
@@ -304,4 +305,36 @@ public class PrinterProxyAgentOptions
     /// Empty list = no host restriction (allow all — not recommended for internet-facing agents).
     /// </summary>
     public List<string> AllowedHostPatterns { get; set; } = [];
+}
+
+// ── Self-update ────────────────────────────────────────────────────────────
+
+/// <summary>Controls how Prym.Agent updates itself silently as a Windows service.</summary>
+public class SelfUpdateOptions
+{
+    /// <summary>
+    /// Name of the Windows service to stop/start during self-update.
+    /// Must match the service name set in <c>UseWindowsService(o => o.ServiceName = ...)</c>.
+    /// </summary>
+    public string ServiceName { get; set; } = "Prym Agent";
+
+    /// <summary>
+    /// File name of the external updater executable, resolved relative to
+    /// <c>AppContext.BaseDirectory</c>.  The updater is responsible for stopping the service,
+    /// copying new binaries, and restarting the service.
+    /// Default: <c>Prym.Agent.Updater.exe</c>.
+    /// </summary>
+    public string UpdaterExecutable { get; set; } = "Prym.Agent.Updater.exe";
+
+    /// <summary>
+    /// Files (relative to the Agent install directory) that must NOT be overwritten
+    /// when the Updater copies new binaries.  Glob patterns with <c>*</c> are supported.
+    /// The default set preserves live credentials and the pending-update queue.
+    /// </summary>
+    public List<string> PreserveFiles { get; set; } =
+    [
+        "appsettings.json",
+        "appsettings.*.json",
+        "pending.json"
+    ];
 }

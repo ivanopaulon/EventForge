@@ -28,7 +28,7 @@ public interface IInstallationService
     Task<Installation> CreateAsync(Installation installation, CancellationToken ct = default);
 
     /// <summary>Creates an <see cref="UpdateHistory"/> record in <c>InProgress</c> state and returns it.</summary>
-    Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default);
+    Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, string? fromVersionAgent = null, CancellationToken ct = default);
 
     /// <summary>
     /// Marks an existing <see cref="UpdateHistory"/> record as completed (success or failure).

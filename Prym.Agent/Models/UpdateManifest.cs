@@ -27,6 +27,7 @@ public enum UpdatePhase
     RunningPostMigrations      = Prym.UpdateShared.Models.UpdatePhase.RunningPostMigrations,
     VerifyingHealth            = Prym.UpdateShared.Models.UpdatePhase.VerifyingHealth,
     VerifyingDeploy            = Prym.UpdateShared.Models.UpdatePhase.VerifyingDeploy,
+    SelfUpdateInitiated        = Prym.UpdateShared.Models.UpdatePhase.SelfUpdateInitiated,
     Rollback                   = Prym.UpdateShared.Models.UpdatePhase.Rollback,
     Completed                  = Prym.UpdateShared.Models.UpdatePhase.Completed
 }

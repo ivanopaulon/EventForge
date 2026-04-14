@@ -57,7 +57,7 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         return installation;
     }
 
-    public async Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default)
+    public async Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, string? fromVersionAgent = null, CancellationToken ct = default)
     {
         var pkg = await db.UpdatePackages.FindAsync([packageId], ct);
         var history = new UpdateHistory
@@ -66,7 +66,12 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             PackageId = packageId,
             Status = UpdateHistoryStatus.InProgress,
             StartedAt = DateTime.UtcNow,
-            FromVersion = pkg?.Component == PackageComponent.Server ? fromVersionServer : fromVersionClient,
+            FromVersion = pkg?.Component switch
+            {
+                PackageComponent.Server => fromVersionServer,
+                PackageComponent.Agent  => fromVersionAgent,
+                _                       => fromVersionClient
+            },
             ToVersion = pkg?.Version,
             PhaseDescription = "Starting"
         };

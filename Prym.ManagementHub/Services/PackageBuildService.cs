@@ -59,6 +59,10 @@ public class PackageBuildService(
             Directory.Exists(Path.Combine(folderPath, "wwwroot")))
             return PackageComponent.Client;
 
+        if (File.Exists(Path.Combine(folderPath, "Prym.Agent.exe")) ||
+            File.Exists(Path.Combine(folderPath, "Prym.Agent.dll")))
+            return PackageComponent.Agent;
+
         return null;
     }
 
@@ -90,7 +94,8 @@ public class PackageBuildService(
         {
             PackageComponent.Server => ["EventForge.Server.dll", "EventForge.Server.exe"],
             PackageComponent.Client => ["EventForge.Client.dll"],
-            _ => ["EventForge.Server.dll", "EventForge.Server.exe", "EventForge.Client.dll"]
+            PackageComponent.Agent  => ["Prym.Agent.exe", "Prym.Agent.dll"],
+            _ => ["EventForge.Server.dll", "EventForge.Server.exe", "EventForge.Client.dll", "Prym.Agent.exe"]
         };
 
         foreach (var name in candidates)
