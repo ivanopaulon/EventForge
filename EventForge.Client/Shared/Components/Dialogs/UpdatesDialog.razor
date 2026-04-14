@@ -157,6 +157,49 @@
                                        Title="Aggiorna" />
                     </MudStack>
 
+                    <!-- Inline package selector so the user can choose the package without switching tab -->
+                    @if (_packages.Count > 0)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudText Typo="Typo.body2" Style="white-space:nowrap">Pacchetto:</MudText>
+                            <MudSelect T="PackageSummaryClientDto?"
+                                       Value="_selectedPackage"
+                                       ValueChanged="@((PackageSummaryClientDto? p) => _selectedPackage = p)"
+                                       Placeholder="— seleziona pacchetto —"
+                                       Dense="true"
+                                       Margin="Margin.Dense"
+                                       Style="min-width:280px"
+                                       Class="@(_selectedPackage is null ? "border-warning" : "")">
+                                @foreach (var pkg in _packages)
+                                {
+                                    <MudSelectItem T="PackageSummaryClientDto?" Value="@pkg">
+                                        @pkg.Component v@pkg.Version — @GetPackageStatusLabel(pkg.Status)
+                                    </MudSelectItem>
+                                }
+                            </MudSelect>
+                            @if (_selectedPackage is not null)
+                            {
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@GetPackageStatusColor(_selectedPackage.Status)"
+                                         Text="@($"{_selectedPackage.Component} v{_selectedPackage.Version}")" />
+                            }
+                        </MudStack>
+                    }
+
+                    @if (_selectedPackage is null)
+                    {
+                        <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Outlined.Warning">
+                            Nessun pacchetto selezionato. Scegli un pacchetto dal menu sopra o dalla tab <strong>Pacchetti</strong>.
+                        </MudAlert>
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info" Dense="true">
+                            Pacchetto selezionato: <strong>@_selectedPackage.Component v@_selectedPackage.Version</strong> —
+                            clicca "Aggiorna" sull'installazione desiderata.
+                        </MudAlert>
+                    }
+
                     @if (_isLoading)
                     {
                         <div class="text-center pa-4">
@@ -211,26 +254,12 @@
                                                StartIcon="@Icons.Material.Filled.SystemUpdate"
                                                Disabled="@(!context.IsConnected || _selectedPackage is null || _isSendingUpdate)"
                                                OnClick="@(() => ConfirmSendUpdateAsync(context))"
-                                               Title="@(_selectedPackage is null ? "Seleziona prima un pacchetto dalla tab Pacchetti" : "Invia aggiornamento")">
+                                               Title="@(_selectedPackage is null ? "Seleziona prima un pacchetto" : "Invia aggiornamento")">
                                         Aggiorna
                                     </MudButton>
                                 </MudTd>
                             </RowTemplate>
                         </MudTable>
-
-                        @if (_selectedPackage is not null)
-                        {
-                            <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info">
-                                Pacchetto selezionato: <strong>@_selectedPackage.Component v@(_selectedPackage.Version)</strong> —
-                                clicca "Aggiorna" sull'installazione desiderata.
-                            </MudAlert>
-                        }
-                        else
-                        {
-                            <MudAlert Severity="Severity.Warning">
-                                Nessun pacchetto selezionato. Vai alla tab <strong>Pacchetti</strong> e seleziona una riga.
-                            </MudAlert>
-                        }
                     }
                 </MudStack>
             </MudTabPanel>
@@ -341,6 +370,20 @@
             </MudTabPanel>
 
         </MudTabs>
+
+        <!-- Hub link footer -->
+        @if (!string.IsNullOrEmpty(_hubUrl))
+        {
+            <div class="d-flex justify-content-end px-3 pb-2">
+                <MudLink Href="@_hubUrl" Target="_blank"
+                         Typo="Typo.caption"
+                         Color="Color.Primary"
+                         Class="d-flex align-items-center gap-1">
+                    <MudIcon Icon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small" />
+                    Apri Management Hub
+                </MudLink>
+            </div>
+        }
     </ChildContent>
 </EFDialog>
 
@@ -361,6 +404,7 @@
     private string? _packagesError;
     private string? _installationsError;
     private string? _pendingError;
+    private string? _hubUrl;
 
     private List<PackageSummaryClientDto> _packages = [];
     private List<InstallationSummaryClientDto> _installations = [];
@@ -374,6 +418,7 @@
         try
         {
             await LoadDataAsync();
+            _hubUrl = await UpdateNotification.GetHubUrlAsync();
         }
         catch (Exception ex)
         {
@@ -478,7 +523,7 @@
         StateHasChanged();
         try
         {
-            await UpdateNotification.TriggerInstallNowAsync(default, item.PackageId);
+            await UpdateNotification.TriggerInstallNowAsync(item.InstallationId, item.PackageId);
             AppNotification.ShowSuccess($"Installazione avviata per {item.Component} v{item.Version}.");
             await LoadDataAsync();
         }

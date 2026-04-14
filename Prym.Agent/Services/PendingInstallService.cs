@@ -73,6 +73,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
 
             if (state is null) return;
 
+            PersistentState? snapshotToSave = null;
             lock (_lock)
             {
                 _queue.Clear();
@@ -91,8 +92,11 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
                     _queue.Remove(m);
                 }
                 if (missing.Count > 0)
-                    SaveToDisk();
+                    snapshotToSave = SnapshotState();
             }
+
+            if (snapshotToSave is not null)
+                SaveToDisk(snapshotToSave);
 
             logger.LogInformation("Restored {Count} pending update(s) from disk. Queue blocked={Blocked}", _queue.Count, IsBlocked);
         }
@@ -107,14 +111,17 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     /// <summary>Enqueue a downloaded + verified package for deferred installation.</summary>
     public void Enqueue(StartUpdateCommand command, string zipPath)
     {
+        PersistentState snapshot;
         lock (_lock)
         {
             // Replace if same PackageId already present (re-queued after a transient error)
             _queue.RemoveAll(p => p.PackageId == command.PackageId);
             _queue.Add(new PendingUpdate(command.PackageId, command, zipPath, DateTime.UtcNow, _nextPosition++, command.IsManualInstall));
             _queue.Sort((a, b) => a.QueuePosition.CompareTo(b.QueuePosition));
-            SaveToDisk();
+            snapshot = SnapshotState();
         }
+
+        SaveToDisk(snapshot);
 
         logger.LogInformation("Queued update {Component} {Version} (PackageId={PackageId}) at position {Pos}",
             command.Component, command.Version, command.PackageId, _nextPosition - 1);
@@ -191,11 +198,14 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     /// <summary>Remove an entry after successful installation (or explicit operator skip).</summary>
     public void Remove(Guid packageId)
     {
+        PersistentState snapshot;
         lock (_lock)
         {
             _queue.RemoveAll(p => p.PackageId == packageId);
-            SaveToDisk();
+            snapshot = SnapshotState();
         }
+
+        SaveToDisk(snapshot);
     }
 
     // ── Blocked state ────────────────────────────────────────────────────────
@@ -208,6 +218,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     public bool Block(Guid packageId, string reason)
     {
         bool downgradedToManual = false;
+        PersistentState snapshot;
         lock (_lock)
         {
             IsBlocked = true;
@@ -226,8 +237,10 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
                 downgradedToManual = becomeManual;
             }
 
-            SaveToDisk();
+            snapshot = SnapshotState();
         }
+
+        SaveToDisk(snapshot);
 
         logger.LogError("Install queue BLOCKED by failed update {PackageId}: {Reason}", packageId, reason);
         if (downgradedToManual)
@@ -245,6 +258,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     /// </summary>
     public void Unblock(bool skipAndRemove = false)
     {
+        PersistentState snapshot;
         lock (_lock)
         {
             if (skipAndRemove && BlockedByPackageId.HasValue)
@@ -264,8 +278,10 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
             IsBlocked = false;
             BlockedReason = null;
             BlockedByPackageId = null;
-            SaveToDisk();
+            snapshot = SnapshotState();
         }
+
+        SaveToDisk(snapshot);
 
         logger.LogInformation("Install queue unblocked (skipAndRemove={Skip})", skipAndRemove);
     }
@@ -332,11 +348,21 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
 
     // ── Persistence ──────────────────────────────────────────────────────────
 
-    private void SaveToDisk()
+    /// <summary>
+    /// Captures a snapshot of the current queue state.
+    /// <b>Must be called while holding <c>_lock</c>.</b>
+    /// </summary>
+    private PersistentState SnapshotState() =>
+        new(_queue.ToList(), IsBlocked, BlockedReason, BlockedByPackageId);
+
+    /// <summary>
+    /// Serializes <paramref name="state"/> and atomically writes it to disk.
+    /// <b>Must be called OUTSIDE <c>_lock</c></b> — file I/O should never block queue mutations.
+    /// </summary>
+    private void SaveToDisk(PersistentState state)
     {
         try
         {
-            var state = new PersistentState(_queue.ToList(), IsBlocked, BlockedReason, BlockedByPackageId);
             var json = JsonSerializer.Serialize(state, SerializeOptions);
             // Write to a temp file first, then atomically rename to avoid corruption on crash.
             var tmpPath = _persistPath + ".tmp";

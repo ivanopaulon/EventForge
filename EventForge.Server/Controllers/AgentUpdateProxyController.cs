@@ -36,5 +36,5 @@ public class AgentUpdateProxyController(
     }
 }
 
-public record AgentInstallNowProxyRequest(Guid PackageId);
+public record AgentInstallNowProxyRequest(Guid PackageId, Guid? InstallationId = null);
 public record AgentUnblockQueueProxyRequest(Guid PackageId, bool SkipAndRemove);

@@ -254,6 +254,30 @@ try
         sp.GetRequiredService<InstallationCodeGenerator>().EnsureInstallationCode();
     }
 
+    // ── Cleanup stale Updater temp directories from previous self-updates ──
+    // The Updater is launched from a copy in %TEMP%/prym-upd-{PackageId}/ so the original
+    // binary in the install directory can be overwritten while the Updater runs.
+    // The Agent stops immediately after launching the Updater, so cleanup must happen here.
+    try
+    {
+        foreach (var dir in Directory.EnumerateDirectories(Path.GetTempPath(), "prym-upd-*"))
+        {
+            try
+            {
+                Directory.Delete(dir, recursive: true);
+                Log.Debug("Deleted stale Updater temp directory: {Dir}", dir);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "Could not delete stale Updater temp directory: {Dir}", dir);
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Error enumerating prym-upd-* temp directories for cleanup.");
+    }
+
     await app.RunAsync();
 }
 catch (Exception ex)

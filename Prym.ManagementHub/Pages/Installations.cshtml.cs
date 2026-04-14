@@ -14,6 +14,7 @@ public class InstallationsModel(
     IPackageService packageService,
     IHubContext<AgentHub> agentHubContext,
     IUpdateThrottleService updateThrottle,
+    ManagementHubOptions hubOptions,
     ILogger<InstallationsModel> logger) : PageModel
 {
     public IReadOnlyList<InstallationRow> Installations { get; private set; } = [];
@@ -28,12 +29,30 @@ public class InstallationsModel(
 
     // ── Registra nuova installazione ──────────────────────────────────────
     public async Task<IActionResult> OnPostRegisterAsync(
-        string name, string? location, InstallationComponents components, string? notes)
+        string name, string? location, InstallationComponents components, string? notes,
+        bool confirmDuplicate = false)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             TempData["Error"] = "Il nome è obbligatorio.";
             return RedirectToPage();
+        }
+
+        // Warn about potential duplicates unless the operator explicitly confirmed.
+        if (!confirmDuplicate)
+        {
+            var existing = await installationService.FindByNameAsync(name);
+            if (existing.Count > 0)
+            {
+            var shown  = existing.Take(3).Select(e => $"\"{e.Name}\" ({e.Id})");
+            var suffix = existing.Count > 3 ? $" e altre {existing.Count - 3} installazioni" : "";
+            TempData["DuplicateWarning"] = $"Esiste già un'installazione con il nome \"{name}\": {string.Join(", ", shown)}{suffix}. Se vuoi comunque creare una nuova installazione con lo stesso nome, conferma di seguito.";
+                TempData["PendingName"] = name;
+                TempData["PendingLocation"] = location;
+                TempData["PendingComponents"] = components.ToString();
+                TempData["PendingNotes"] = notes;
+                return RedirectToPage();
+            }
         }
 
         var apiKey = Convert.ToHexStringLower(
@@ -79,7 +98,9 @@ public class InstallationsModel(
 
         await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
 
-        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+            ? hubOptions.BaseUrl.TrimEnd('/')
+            : $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
             history.Id, pkg.Id, pkg.Version,
             pkg.Component.ToString(),
@@ -100,6 +121,42 @@ public class InstallationsModel(
     {
         await installationService.SetUpdateModeAsync(installationId, mode);
         TempData["Success"] = $"Modalità aggiornamento aggiornata.";
+        return RedirectToPage();
+    }
+
+    // ── Merge installazioni ───────────────────────────────────────────────
+    public async Task<IActionResult> OnPostMergeAsync(Guid targetId, Guid sourceId)
+    {
+        if (targetId == sourceId)
+        {
+            TempData["Error"] = "Non puoi unire un'installazione con se stessa.";
+            return RedirectToPage();
+        }
+
+        var ok = await installationService.MergeAsync(targetId, sourceId);
+        if (!ok)
+        {
+            TempData["Error"] = "Merge non riuscito: installazione di origine o destinazione non trovata.";
+            return RedirectToPage();
+        }
+
+        logger.LogWarning("Installation merged via UI: source={SourceId} → target={TargetId}", sourceId, targetId);
+        TempData["Success"] = "Installazioni unite con successo. L'installazione di origine è stata eliminata.";
+        return RedirectToPage();
+    }
+
+    // ── Elimina installazione ─────────────────────────────────────────────
+    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    {
+        var (ok, error) = await installationService.DeleteAsync(id);
+        if (!ok)
+        {
+            TempData["Error"] = error ?? "Impossibile eliminare l'installazione.";
+            return RedirectToPage();
+        }
+
+        logger.LogWarning("Installation deleted via UI: Id={Id}", id);
+        TempData["Success"] = "Installazione eliminata definitivamente.";
         return RedirectToPage();
     }
 

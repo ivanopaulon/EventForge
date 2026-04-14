@@ -279,9 +279,11 @@ public class AgentHub(
             string.IsNullOrWhiteSpace(hubOptions.MaintenanceCallbackSecret))
             return;
 
-        var currentPhase = msg.IsCompleted
-            ? (msg.IsSuccess ? "Completed" : (msg.Phase == "Rollback" ? "Rollback" : "Failed"))
-            : msg.Phase;
+        // Forward the phase exactly as reported by the Agent.
+        // When IsCompleted=true, IsSuccess=false the Agent always reports either
+        // UpdatePhase.Completed (direct failure) or UpdatePhase.Rollback (rollback path) —
+        // never a synthetic "Failed" string. Forwarding msg.Phase keeps clients consistent.
+        var currentPhase = msg.Phase;
 
         var payload = new
         {

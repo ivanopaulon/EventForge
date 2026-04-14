@@ -8,6 +8,11 @@
     var newKey     = TempData["NewKey"]?.ToString();
     var newKeyId   = TempData["NewKeyInstallationId"]?.ToString();
     var newKeyName = TempData["NewKeyInstallationName"]?.ToString();
+    var dupWarning = TempData["DuplicateWarning"]?.ToString();
+    var pendingName  = TempData["PendingName"]?.ToString();
+    var pendingLoc   = TempData["PendingLocation"]?.ToString();
+    var pendingComp  = TempData["PendingComponents"]?.ToString() ?? "Both";
+    var pendingNotes = TempData["PendingNotes"]?.ToString();
     int online  = Model.Installations.Count(r => r.IsOnline);
     int offline = Model.Installations.Count(r => !r.IsOnline && !r.Installation.IsRevoked);
     int revoked = Model.Installations.Count(r => r.Installation.IsRevoked);
@@ -50,7 +55,31 @@
     </div>
 }
 
-<!-- KPI -->
+@if (dupWarning is not null)
+{
+    <div class="alert alert-warning border-0 mb-4" role="alert">
+        <div class="d-flex align-items-start gap-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4 text-warning mt-1"></i>
+            <div class="flex-grow-1">
+                <strong>Possibile duplicato rilevato</strong><br />
+                <span>@dupWarning</span>
+                <form method="post" asp-page-handler="Register" class="mt-3">
+                    <input type="hidden" name="name" value="@pendingName" />
+                    <input type="hidden" name="location" value="@pendingLoc" />
+                    <input type="hidden" name="components" value="@pendingComp" />
+                    <input type="hidden" name="notes" value="@pendingNotes" />
+                    <input type="hidden" name="confirmDuplicate" value="true" />
+                    <button type="submit" class="btn btn-warning btn-sm me-2">
+                        <i class="bi bi-plus-lg me-1"></i>Crea comunque
+                    </button>
+                    <a href="/installations" class="btn btn-secondary btn-sm">Annulla</a>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="ef-kpi-card blue">
@@ -319,6 +348,27 @@
                             {
                                 <span class="text-muted small"><i class="bi bi-wifi-off me-1"></i>Offline</span>
                             }
+                            <!-- Merge and Delete buttons — always visible -->
+                            <div class="d-flex gap-1 mt-1 flex-wrap">
+                                @if (Model.Installations.Count > 1)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="modal" data-bs-target="#mergeModal"
+                                            data-source-id="@i.Id" data-source-name="@i.Name"
+                                            onclick="openMergeModal(this)"
+                                            title="Unisci questa installazione con un'altra">
+                                        <i class="bi bi-diagram-2 me-1"></i>Merge
+                                    </button>
+                                }
+                                <form method="post" asp-page-handler="Delete" class="d-inline">
+                                    <input type="hidden" name="id" value="@i.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Eliminare definitivamente l\'installazione \"@i.Name\" e tutta la sua cronologia?\nQuesta operazione non è reversibile.')"
+                                            title="Elimina installazione (richiede che non ci siano aggiornamenti in corso)">
+                                        <i class="bi bi-trash me-1"></i>Elimina
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -338,6 +388,54 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ── Modal merge installazioni ─────────────────────────────────────── -->
+<div class="modal fade" id="mergeModal" tabindex="-1" aria-labelledby="mergeModalLabel">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" asp-page-handler="Merge">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="sourceId" id="mergeSourceId" value="" />
+            <div class="modal-content ef-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="mergeModalLabel">
+                        <i class="bi bi-diagram-2 me-2 text-warning"></i>Unisci installazioni
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        L'installazione di <strong>origine</strong> verrà eliminata. La sua cronologia aggiornamenti
+                        verrà trasferita sull'installazione di <strong>destinazione</strong>. L'operazione è irreversibile.
+                    </div>
+                    <p class="mb-2">Stai unendo: <strong><span id="mergeSourceName"></span></strong></p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Destinazione (la rimarrà) <span class="text-danger">*</span></label>
+                        <select name="targetId" class="form-select" required id="mergeTargetSelect">
+                            <option value="">— seleziona destinazione —</option>
+                            @foreach (var row in Model.Installations)
+                            {
+                                <option value="@row.Installation.Id"
+                                        data-id="@row.Installation.Id">
+                                    @row.Installation.Name
+                                    @(string.IsNullOrEmpty(row.Installation.Location) ? "" : $"— {row.Installation.Location}")
+                                    @(row.IsOnline ? "(Online)" : "(Offline)")
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                    <button type="submit" class="btn btn-warning"
+                            onclick="return confirm('Sei sicuro di voler unire le due installazioni? L\'origine verrà eliminata definitivamente.')">
+                        <i class="bi bi-diagram-2 me-1"></i>Unisci
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -402,5 +500,24 @@ function filterTable() {
         tr.style.display = (!q || val.includes(q)) ? '' : 'none';
     });
 }
+
+function openMergeModal(btn) {
+    const sourceId   = btn.getAttribute('data-source-id');
+    const sourceName = btn.getAttribute('data-source-name');
+    document.getElementById('mergeSourceId').value = sourceId;
+    document.getElementById('mergeSourceName').textContent = sourceName;
+    // Hide the source itself from the target dropdown
+    document.querySelectorAll('#mergeTargetSelect option').forEach(opt => {
+        opt.style.display = opt.getAttribute('data-id') === sourceId ? 'none' : '';
+    });
+    document.getElementById('mergeTargetSelect').value = '';
+}
+
+// Auto-refresh every 60 seconds to pick up online/offline status changes without manual reload.
+(function() {
+    const timer = setTimeout(() => window.location.reload(), 60000);
+    // Cancel auto-refresh if the user opens a modal to prevent data loss.
+    document.addEventListener('show.bs.modal', () => clearTimeout(timer));
+})();
 </script>
 }

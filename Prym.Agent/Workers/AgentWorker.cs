@@ -307,7 +307,7 @@ public class AgentWorker(
                     // Manual mode: always enqueue, never auto-install
                     pendingInstallService.Enqueue(command, zipPath);
                     logger.LogInformation("Manual mode: {Component} {Version} queued for operator approval.", command.Component, command.Version);
-                    await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
+                    await updateExecutor.ReportAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
                     // Notify connected clients that the package is queued so the snackbar updates.
                     await updateExecutor.NotifyAwaitingInstallAsync(command);
                 }
@@ -327,7 +327,7 @@ public class AgentWorker(
                     logger.LogInformation(
                         "Agent self-update v{Version} enqueued with priority trigger — will run after any in-progress install.",
                         command.Version);
-                    await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
+                    await updateExecutor.ReportAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
                     await updateExecutor.NotifyAwaitingInstallAsync(command);
                 }
                 else if (pendingInstallService.IsInMaintenanceWindow())
@@ -374,7 +374,7 @@ public class AgentWorker(
                         "Outside maintenance window — {Component} {Version} queued. Next window: {Next}",
                         command.Component, command.Version, nextWindow?.ToString("u") ?? "unknown");
 
-                    await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow,
+                    await updateExecutor.ReportAsync(command, UpdatePhase.AwaitingMaintenanceWindow,
                         isCompleted: false, isSuccess: true, errorMessage: null, ct);
                     // Notify connected clients that the package is queued so the snackbar updates.
                     await updateExecutor.NotifyAwaitingInstallAsync(command);
@@ -656,22 +656,6 @@ public class AgentWorker(
         agentStatus.LastHeartbeatError = null;
     }
 
-    private async Task ReportProgressAsync(StartUpdateCommand command, UpdatePhase phase,
-        bool isCompleted, bool isSuccess, string? errorMessage, CancellationToken ct)
-    {
-        if (_connection?.State != HubConnectionState.Connected) return;
-
-        var msg = new UpdateProgressMessage(
-            options.InstallationId,
-            command.UpdateHistoryId,
-            phase.ToString(),
-            isCompleted,
-            isSuccess,
-            errorMessage);
-
-        await _connection.InvokeAsync("ReportUpdateProgress", msg, ct);
-    }
-
     /// <summary>
     /// Returns <see langword="true"/> when <paramref name="offered"/> is strictly greater than
     /// <paramref name="installed"/>. Returns <see langword="true"/> when <paramref name="installed"/>
@@ -751,7 +735,7 @@ public class AgentWorker(
                     ? null
                     : $"Versione Agent dopo self-update non corrispondente: attesa {marker.NewVersion}, in esecuzione {runningSemVer}");
 
-            await _connection.InvokeAsync("ReportUpdateProgress", progressMsg, ct);
+            await updateExecutor.ReportAsync(progressMsg);
 
             if (isSuccess)
                 versionDetector.InvalidateVersionCache();

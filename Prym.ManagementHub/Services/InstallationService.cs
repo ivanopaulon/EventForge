@@ -240,4 +240,78 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             .Where(i => idSet.Contains(i.Id))
             .ToListAsync(ct);
     }
+
+    public async Task<IReadOnlyList<Installation>> FindByNameAsync(string name, Guid? excludeId = null, CancellationToken ct = default)
+    {
+        var lower = name.Trim().ToLowerInvariant();
+        var query = db.Installations
+            .Where(i => i.Name.ToLower() == lower);
+        if (excludeId.HasValue)
+            query = query.Where(i => i.Id != excludeId.Value);
+        return await query.ToListAsync(ct);
+    }
+
+    public async Task<bool> MergeAsync(Guid targetId, Guid sourceId, CancellationToken ct = default)
+    {
+        if (targetId == sourceId) return false;
+
+        var target = await db.Installations.FindAsync([targetId], ct);
+        var source = await db.Installations.FindAsync([sourceId], ct);
+        if (target is null || source is null) return false;
+
+        // Copy non-null fields from source; prefer the most-recent LastSeen.
+        if (source.LastSeen.HasValue && (!target.LastSeen.HasValue || source.LastSeen > target.LastSeen))
+            target.LastSeen = source.LastSeen;
+        if (source.InstalledVersionServer is not null && target.InstalledVersionServer is null)
+            target.InstalledVersionServer = source.InstalledVersionServer;
+        if (source.InstalledVersionClient is not null && target.InstalledVersionClient is null)
+            target.InstalledVersionClient = source.InstalledVersionClient;
+        if (source.MachineName is not null && target.MachineName is null)
+            target.MachineName = source.MachineName;
+        if (source.OSVersion is not null && target.OSVersion is null)
+            target.OSVersion = source.OSVersion;
+        if (source.DotNetVersion is not null && target.DotNetVersion is null)
+            target.DotNetVersion = source.DotNetVersion;
+        if (source.AgentVersion is not null && target.AgentVersion is null)
+            target.AgentVersion = source.AgentVersion;
+        if (source.IpAddress is not null && target.IpAddress is null)
+            target.IpAddress = source.IpAddress;
+        if (source.LocalIpAddress is not null && target.LocalIpAddress is null)
+            target.LocalIpAddress = source.LocalIpAddress;
+        if (source.Location is not null && target.Location is null)
+            target.Location = source.Location;
+        if (source.Tags is not null && target.Tags is null)
+            target.Tags = source.Tags;
+        if (source.Notes is not null && target.Notes is null)
+            target.Notes = source.Notes;
+
+        // Re-assign all UpdateHistory records from source → target in one query.
+        await db.UpdateHistories
+            .Where(h => h.InstallationId == sourceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(h => h.InstallationId, targetId), ct);
+
+        db.Installations.Remove(source);
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<(bool Success, string? Error)> DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var installation = await db.Installations.FindAsync([id], ct);
+        if (installation is null) return (false, "Installazione non trovata.");
+
+        var hasActive = await db.UpdateHistories
+            .AnyAsync(h => h.InstallationId == id && h.Status == UpdateHistoryStatus.InProgress, ct);
+        if (hasActive)
+            return (false, "Impossibile eliminare: ci sono aggiornamenti in corso per questa installazione.");
+
+        // Cascade-delete all history records first.
+        await db.UpdateHistories
+            .Where(h => h.InstallationId == id)
+            .ExecuteDeleteAsync(ct);
+
+        db.Installations.Remove(installation);
+        await db.SaveChangesAsync(ct);
+        return (true, null);
+    }
 }
