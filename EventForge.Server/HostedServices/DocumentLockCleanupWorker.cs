@@ -30,7 +30,6 @@ public class DocumentLockCleanupWorker : BackgroundService
         {
             try
             {
-                await Task.Delay(CleanupInterval, stoppingToken);
                 await CleanupExpiredLocksAsync(stoppingToken);
             }
             catch (OperationCanceledException)
@@ -41,6 +40,15 @@ public class DocumentLockCleanupWorker : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in DocumentLockCleanupWorker");
+            }
+
+            try
+            {
+                await Task.Delay(CleanupInterval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
             }
         }
 

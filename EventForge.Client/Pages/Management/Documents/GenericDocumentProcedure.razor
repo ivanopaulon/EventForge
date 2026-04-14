@@ -703,11 +703,10 @@
             }
 
             // Setup SignalR for document collaboration
+            RealtimeService.DocumentLocked += OnDocumentLocked;
+            RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
             try
             {
-                RealtimeService.DocumentLocked += OnDocumentLocked;
-                RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
-                
                 await RealtimeService.StartDocumentCollaborationConnectionAsync();
                 
                 await RealtimeService.JoinDocumentAsync(DocumentId.Value);
@@ -1062,8 +1061,8 @@
             if (_currentDocument?.Rows == null)
             {
                 Logger.LogWarning("_currentDocument or Rows is null for incremental update of row {RowId}, reloading document", updatedRow.Id);
-                if (_currentDocument != null)
-                    await LoadDocumentAsync(_currentDocument.Id);
+                if (_currentDocument?.Id is { } docId)
+                    await LoadDocumentAsync(docId);
                 return;
             }
             var rowIndex = _currentDocument.Rows.FindIndex(r => r.Id == updatedRow.Id);
