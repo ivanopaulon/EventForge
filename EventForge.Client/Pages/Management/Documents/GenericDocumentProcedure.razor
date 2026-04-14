@@ -1512,14 +1512,12 @@
         {
             try
             {
-                // Try to extract LockedBy from the data object dynamically
-                var dataType = data.GetType();
-                var lockedByProperty = dataType.GetProperty("LockedBy");
-                if (lockedByProperty != null)
+                if (data is System.Text.Json.JsonElement jsonElement &&
+                    jsonElement.TryGetProperty("LockedBy", out var lockedByProp))
                 {
-                    _lockHolderName = lockedByProperty.GetValue(data)?.ToString();
+                    _lockHolderName = lockedByProp.GetString();
                 }
-                
+
                 _isReadOnly = true;
                 StateHasChanged();
             }
@@ -1535,7 +1533,15 @@
         InvokeAsync(() =>
         {
             _lockHolderName = null;
-            // Don't automatically acquire lock - user needs to refresh or re-enter edit mode
+
+            if (!_isReadOnlyDueToError)
+            {
+                _isReadOnly = false;
+                AppNotification.ShowInfo(TranslationService.GetTranslation(
+                    "documents.documentUnlocked",
+                    "✅ Documento ora disponibile per la modifica."));
+            }
+
             StateHasChanged();
         });
     }
@@ -1549,14 +1555,12 @@
                 await RealtimeService.ReleaseDocumentEditLockAsync(DocumentId.Value);
             }
 
+            RealtimeService.DocumentLocked -= OnDocumentLocked;
+            RealtimeService.DocumentUnlocked -= OnDocumentUnlocked;
+
+            if (DocumentId.HasValue)
             {
-                RealtimeService.DocumentLocked -= OnDocumentLocked;
-                RealtimeService.DocumentUnlocked -= OnDocumentUnlocked;
-                
-                if (DocumentId.HasValue)
-                {
-                    await RealtimeService.LeaveDocumentAsync(DocumentId.Value);
-                }
+                await RealtimeService.LeaveDocumentAsync(DocumentId.Value);
             }
         }
         catch (Exception ex)

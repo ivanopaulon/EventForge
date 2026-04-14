@@ -1595,7 +1595,7 @@ public class DocumentHeaderService(
 
     /// <summary>
     /// Acquires an exclusive edit lock for a document.
-    /// Lock expires after 30 minutes of inactivity.
+    /// Lock expires after 1 hour of inactivity.
     /// Uses optimistic concurrency control via RowVersion to prevent race conditions.
     /// </summary>
     public async Task<bool> AcquireLockAsync(Guid documentId, string userName, string connectionId)
@@ -1651,7 +1651,7 @@ public class DocumentHeaderService(
                             "Document {DocumentId} has existing lock by different user. Current: {CurrentUser}, Requested: {RequestedUser}",
                             documentId, document.LockedBy, userName);
 
-                        // Check if lock is still valid (less than 30 minutes old)
+                        // Check if lock is still valid (less than 1 hour old)
                         if (document.LockedAt.HasValue)
                         {
                             var lockAge = DateTime.UtcNow - document.LockedAt.Value;
