@@ -50,7 +50,8 @@ for (var i = 0; i < args.Length; i++)
             cleanupDir = args[++i]; break;
         case "--preserve":
             // Collect all following non-flag tokens as preserve patterns.
-            // Use a local index to avoid the outer for-loop's i++ skipping the next flag.
+            // The while loop advances i to the last consumed pattern token;
+            // the outer for-loop's i++ then steps past it to the next flag.
             while (i + 1 < args.Length && !args[i + 1].StartsWith("--"))
             {
                 i++;

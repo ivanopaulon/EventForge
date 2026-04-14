@@ -258,6 +258,31 @@ public class UpdateExecutorService(
                         $"Prym.Agent.Updater non trovato in '{updaterPath}'. " +
                         "Assicurarsi che Prym.Agent.Updater.exe sia incluso nell'installazione dell'Agent.");
 
+                // Copy the Updater executable to a unique temp directory before launching it.
+                //
+                // Rationale: Prym.Agent.Updater.exe lives in installDir (same folder that the
+                // Updater will overwrite with new binaries). On Windows, even a self-contained
+                // single-file exe holds a file handle while running; some AV tools and certain
+                // OS configurations will refuse File.Copy(overwrite:true) on a locked file.
+                // Running from a temp copy guarantees that the file in installDir is never locked,
+                // so the new Updater binary is always installed atomically alongside the Agent.
+                //
+                // Lifecycle: the temp directory (named prym-upd-{PackageId}) is small (one exe)
+                // and lives in %TEMP%. It is not explicitly deleted here because the Agent process
+                // stops immediately after launching the Updater. Stale directories from previous
+                // runs are cleaned up by the OS on the next %TEMP% purge and accumulate only on
+                // systems that never reboot. If explicit cleanup is desired, the Agent can scan
+                // Path.GetTempPath() for "prym-upd-*" directories on startup.
+                var updaterTempDir = Path.Combine(
+                    Path.GetTempPath(),
+                    $"prym-upd-{command.PackageId:N}");
+                Directory.CreateDirectory(updaterTempDir);
+                var updaterTempPath = Path.Combine(updaterTempDir, Path.GetFileName(updaterPath));
+                File.Copy(updaterPath, updaterTempPath, overwrite: true);
+
+                logger.LogInformation(
+                    "Updater copiato in temp: '{TempPath}'", updaterTempPath);
+
                 // Build preserve-patterns argument list.
                 var preserveArgs = string.Join(" ",
                     options.SelfUpdate.PreserveFiles.Select(p => $"--preserve \"{p}\""));
@@ -275,13 +300,13 @@ public class UpdateExecutorService(
 
                 logger.LogInformation(
                     "Self-update marker written. Launching Updater for Agent v{Version}. Updater='{Updater}'",
-                    command.Version, updaterPath);
+                    command.Version, updaterTempPath);
 
                 // Launch updater as a detached process. The SCM does NOT inherit job objects
                 // for Windows services, so the child process survives the service stopping.
                 var psi = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = updaterPath,
+                    FileName = updaterTempPath,
                     Arguments = $"--service \"{options.SelfUpdate.ServiceName}\" " +
                                 $"--source \"{binariesDir}\" " +
                                 $"--target \"{installDir.TrimEnd(Path.DirectorySeparatorChar)}\" " +
