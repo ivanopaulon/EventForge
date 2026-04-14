@@ -149,14 +149,27 @@ public class DocumentCollaborationHub : Hub
 
                 if (lockInfo != null)
                 {
-                    throw new HubException(
-                        $"Documento in modifica da {lockInfo.LockedBy} dal {lockInfo.LockedAt:HH:mm}");
+                    _logger.LogInformation(
+                        "Document {DocumentId} is locked by {LockedBy} since {LockedAt} – informing caller",
+                        documentId, lockInfo.LockedBy, lockInfo.LockedAt);
+
+                    // Inform the caller of the current lock holder so the client can show
+                    // the correct "locked by user" UI instead of a generic error state.
+                    await Clients.Caller.SendAsync("DocumentLocked", new
+                    {
+                        DocumentId = documentId,
+                        LockedBy = lockInfo.LockedBy,
+                        LockedAt = lockInfo.LockedAt
+                    });
                 }
                 else
                 {
-                    throw new HubException(
-                        "Documento attualmente non disponibile per la modifica. Riprova tra qualche istante.");
+                    _logger.LogWarning(
+                        "Document {DocumentId} lock info not available after failed acquisition",
+                        documentId);
                 }
+
+                return false;
             }
         }
         catch (HubException)
