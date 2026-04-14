@@ -31,8 +31,6 @@ public class PackageCleanupService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            if (stoppingToken.IsCancellationRequested) break;
-
             try
             {
                 await CleanupAsync(stoppingToken);

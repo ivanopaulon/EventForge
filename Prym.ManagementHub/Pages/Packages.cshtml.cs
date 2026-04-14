@@ -64,7 +64,7 @@ public class PackagesModel(
         var storePath = hubOptions.PackageStorePath;
         Directory.CreateDirectory(storePath);
         // Sanitize version string to prevent path traversal in the generated filename.
-        var safeVersion = SanitizeForFileName(version);
+        var safeVersion = FileNameHelper.SanitizeForFileName(version);
         var fileName = $"{comp.ToString().ToLowerInvariant()}-{safeVersion}-{Guid.NewGuid():N}.zip";
         var filePath = Path.Combine(storePath, fileName);
 
@@ -390,10 +390,4 @@ public class PackagesModel(
             .ToList();
     }
 
-    /// <summary>
-    /// Removes characters that are not safe for use in filenames from a user-supplied version string.
-    /// Allows alphanumeric characters, dots, hyphens, and underscores only.
-    /// </summary>
-    private static string SanitizeForFileName(string input) =>
-        System.Text.RegularExpressions.Regex.Replace(input, @"[^a-zA-Z0-9.\-_]", "_");
 }
