@@ -1078,7 +1078,7 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             _fiscalHubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/fiscal-printer"))
                 .WithAutomaticReconnect()
                 .Build();
 
