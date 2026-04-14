@@ -719,8 +719,17 @@
                     if (!_hasEditLock)
                     {
                         _isReadOnly = true;
-                        AppNotification.ShowWarning(TranslationService.GetTranslation("documents.documentLockedWarning", 
-                                "⚠️ Documento aperto in sola lettura: già in modifica da altro utente"));
+                        // If the connection is not available, treat as a connection error.
+                        // If the connection IS available, the lock is held by another user:
+                        // the DocumentLocked event sent by the hub will populate _lockHolderName
+                        // and the correct "locked by user" alert is shown automatically –
+                        // no additional notification toast is needed here.
+                        if (!RealtimeService.IsDocumentCollaborationConnected)
+                        {
+                            _isReadOnlyDueToError = true;
+                            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError",
+                                    "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
+                        }
                     }
                 }
                 catch (HubException hex)
@@ -1530,19 +1539,37 @@
 
     private void OnDocumentUnlocked(object data)
     {
-        InvokeAsync(() =>
+        InvokeAsync(async () =>
         {
-            _lockHolderName = null;
-
-            if (!_isReadOnlyDueToError)
+            try
             {
-                _isReadOnly = false;
-                AppNotification.ShowInfo(TranslationService.GetTranslation(
-                    "documents.documentUnlocked",
-                    "✅ Documento ora disponibile per la modifica."));
-            }
+                _lockHolderName = null;
 
-            StateHasChanged();
+                if (!_isReadOnlyDueToError && DocumentId.HasValue)
+                {
+                    // Attempt to take ownership now that the lock has been released.
+                    // This prevents a window where two users can edit simultaneously.
+                    _hasEditLock = await RealtimeService.RequestDocumentEditLockAsync(DocumentId.Value);
+
+                    if (_hasEditLock)
+                    {
+                        _isReadOnly = false;
+                        AppNotification.ShowInfo(TranslationService.GetTranslation(
+                            "documents.documentUnlocked",
+                            "✅ Documento ora disponibile per la modifica."));
+                    }
+                    // If _hasEditLock is still false another user grabbed the lock first;
+                    // the incoming DocumentLocked event will populate _lockHolderName.
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to re-acquire lock after document unlock for {DocumentId}", DocumentId);
+            }
+            finally
+            {
+                StateHasChanged();
+            }
         });
     }
 
