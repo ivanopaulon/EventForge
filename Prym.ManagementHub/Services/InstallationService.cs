@@ -33,6 +33,7 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         if (info.DotNetVersion is not null)   installation.DotNetVersion = info.DotNetVersion;
         if (info.AgentVersion is not null)    installation.AgentVersion = info.AgentVersion;
         if (info.IpAddress is not null)       installation.IpAddress = info.IpAddress;
+        if (info.LocalIpAddress is not null)  installation.LocalIpAddress = info.LocalIpAddress;
         if (info.Tags is not null)            installation.Tags = info.Tags;
 
         await db.SaveChangesAsync(ct);
@@ -56,7 +57,7 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         return installation;
     }
 
-    public async Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default)
+    public async Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, string? fromVersionAgent = null, CancellationToken ct = default)
     {
         var pkg = await db.UpdatePackages.FindAsync([packageId], ct);
         var history = new UpdateHistory
@@ -65,7 +66,12 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             PackageId = packageId,
             Status = UpdateHistoryStatus.InProgress,
             StartedAt = DateTime.UtcNow,
-            FromVersion = pkg?.Component == PackageComponent.Server ? fromVersionServer : fromVersionClient,
+            FromVersion = pkg?.Component switch
+            {
+                PackageComponent.Server => fromVersionServer,
+                PackageComponent.Agent  => fromVersionAgent,
+                _                       => fromVersionClient
+            },
             ToVersion = pkg?.Version,
             PhaseDescription = "Starting"
         };
@@ -163,25 +169,31 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
     }
 
     public async Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
-        IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default)
+        IReadOnlyList<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default)
     {
-        var ids = installationIds.ToHashSet();
-        if (ids.Count == 0) return [];
+        if (installationIds.Count == 0) return [];
 
-        var rows = await db.UpdateHistories
-            .Include(h => h.Package)
-            .Where(h => ids.Contains(h.InstallationId))
-            .OrderByDescending(h => h.StartedAt)
-            .ToListAsync(ct);
+        // Execute one parameterised query per installation so EF Core generates
+        // "SELECT … WHERE InstallationId = @p0 ORDER BY StartedAt DESC LIMIT @p1",
+        // which uses an index efficiently without a correlated subquery or full table scan.
+        // Performance note: acceptable for typical hub deployments with up to ~1 000 installations.
+        // At significantly larger scale, consider a single UNION or window-function query instead.
+        var result = new Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>(installationIds.Count);
 
-        return rows
-            .GroupBy(h => h.InstallationId)
-            .ToDictionary(
-                g => g.Key,
-                g => (IReadOnlyList<UpdateHistorySummary>)g
-                    .Take(maxPerInstallation)
-                    .Select(ToSummary)
-                    .ToList());
+        foreach (var id in installationIds)
+        {
+            var rows = await db.UpdateHistories
+                .Include(h => h.Package)
+                .Where(h => h.InstallationId == id)
+                .OrderByDescending(h => h.StartedAt)
+                .Take(maxPerInstallation)
+                .ToListAsync(ct);
+
+            if (rows.Count > 0)
+                result[id] = rows.Select(ToSummary).ToList();
+        }
+
+        return result;
     }
 
     private static UpdateHistorySummary ToSummary(UpdateHistory h) =>
@@ -210,5 +222,22 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             Version:         h.Package?.Version,
             IsManualInstall: h.Package?.IsManualInstall ?? false,
             QueuedAt:        h.StartedAt)).ToList();
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetStaleInstallationsAsync(DateTime cutoff, CancellationToken ct = default)
+        => await db.Installations
+            .Where(i => i.Status != InstallationStatus.Offline
+                        && i.LastSeen.HasValue
+                        && i.LastSeen.Value < cutoff)
+            .Select(i => i.Id)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Installation>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+    {
+        var idSet = ids.ToHashSet();
+        if (idSet.Count == 0) return [];
+        return await db.Installations
+            .Where(i => idSet.Contains(i.Id))
+            .ToListAsync(ct);
     }
 }

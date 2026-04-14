@@ -140,6 +140,7 @@ public class AgentWorker(
                 OSVersion     = systemInfo.OSVersion,
                 DotNetVersion = systemInfo.DotNetVersion,
                 AgentVersion  = versionDetector.GetAgentVersion(),
+                LocalIpAddress = systemInfo.LocalIpAddress,
                 Tags          = options.Tags
             };
 
@@ -310,6 +311,25 @@ public class AgentWorker(
                     // Notify connected clients that the package is queued so the snackbar updates.
                     await updateExecutor.NotifyAwaitingInstallAsync(command);
                 }
+                else if (command.Component.Equals("Agent", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Agent self-update: ALWAYS route through the queue (never direct-install).
+                    //
+                    // Rationale:
+                    //   • The ScheduledInstallWorker processes the queue sequentially — this guarantees
+                    //     the Agent install never races with a concurrently running Server/Client install.
+                    //   • GetNext() gives Agent packages absolute priority, so even if Server/Client
+                    //     packages are already queued, the Agent update goes first.
+                    //   • TriggerImmediateInstall bypasses the maintenance-window wait so the Agent
+                    //     update runs as soon as any in-progress install finishes.
+                    pendingInstallService.Enqueue(command, zipPath);
+                    pendingInstallService.TriggerImmediateInstall(command.PackageId);
+                    logger.LogInformation(
+                        "Agent self-update v{Version} enqueued with priority trigger — will run after any in-progress install.",
+                        command.Version);
+                    await ReportProgressAsync(command, UpdatePhase.AwaitingMaintenanceWindow, false, true, null, ct);
+                    await updateExecutor.NotifyAwaitingInstallAsync(command);
+                }
                 else if (pendingInstallService.IsInMaintenanceWindow())
                 {
                     // Auto mode within window: install immediately
@@ -453,8 +473,41 @@ public class AgentWorker(
 
             if (!isServer && !isClient)
             {
-                logger.LogWarning("UpdateAvailable: Unknown component '{Component}' — skipping.", msg.Component);
-                commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
+                // Check if this is an Agent self-update.
+                var isAgent = msg.Component.Equals("Agent", StringComparison.OrdinalIgnoreCase);
+
+                if (!isAgent)
+                {
+                    logger.LogWarning("UpdateAvailable: Unknown component '{Component}' — skipping.", msg.Component);
+                    commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
+                    return;
+                }
+
+                // Agent self-update: compare offered version with our running version.
+                var runningVersion = versionDetector.GetAgentVersion();
+                if (!IsNewerVersion(msg.Version, runningVersion))
+                {
+                    logger.LogInformation(
+                        "UpdateAvailable (Agent): Already up-to-date (installed={Installed}, offered={Offered}) — skipping.",
+                        runningVersion, msg.Version);
+                    commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: false);
+                    return;
+                }
+
+                logger.LogInformation(
+                    "UpdateAvailable (Agent): Newer version detected (offered={Offered} > installed={Installed}). Requesting self-update from Hub.",
+                    msg.Version, runningVersion);
+
+                try
+                {
+                    await _connection.InvokeAsync("RequestStartUpdate", msg.PackageId, ct);
+                    commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: true);
+                }
+                catch (Exception ex) when (!ct.IsCancellationRequested)
+                {
+                    logger.LogError(ex, "UpdateAvailable (Agent): Failed to invoke RequestStartUpdate on Hub.");
+                    commandTracking.TrackNotified(msg.PackageId, msg.Component, msg.Version, msg.ReleaseNotes, wasNewer: true);
+                }
                 return;
             }
 
@@ -544,7 +597,7 @@ public class AgentWorker(
             registeredForThisConnection = true;
             var serverVerTask = versionDetector.GetServerVersionAsync();
             var clientVerTask = versionDetector.GetClientVersionAsync();
-            await Task.WhenAll(serverVerTask, clientVerTask);
+            await Task.WhenAll(serverVerTask, clientVerTask, systemInfo.GetPublicIpAddressAsync());
             await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
             InstallationId:   options.InstallationId,
             InstallationName: options.InstallationName,
@@ -559,8 +612,12 @@ public class AgentWorker(
             MachineName:      systemInfo.MachineName,
             OSVersion:        systemInfo.OSVersion,
             DotNetVersion:    systemInfo.DotNetVersion,
-            AgentVersion:     versionDetector.GetAgentVersion()),
+            AgentVersion:     versionDetector.GetAgentVersion(),
+            LocalIpAddress:   systemInfo.LocalIpAddress),
             ct);
+
+            // After registering, check if a previous self-update is pending completion.
+            await ProcessSelfUpdateMarkerAsync(ct);
         }
         else
         {
@@ -639,6 +696,73 @@ public class AgentWorker(
 
         // Fallback: ordinal string compare.
         return string.Compare(offered, installed, StringComparison.OrdinalIgnoreCase) > 0;
+    }
+
+    /// <summary>
+    /// Checks for a <c>self-update.json</c> marker written by a previous instance just before
+    /// it stopped itself to allow the external Updater to replace its binaries.
+    /// Reports the outcome (success/failure) to the Hub via <c>ReportUpdateProgress</c>,
+    /// then deletes the marker.
+    /// </summary>
+    private async Task ProcessSelfUpdateMarkerAsync(CancellationToken ct)
+    {
+        var markerPath = Path.Combine(AppContext.BaseDirectory, "self-update.json");
+        if (!File.Exists(markerPath)) return;
+
+        SelfUpdateMarker? marker = null;
+        try
+        {
+            var json = await File.ReadAllTextAsync(markerPath, ct);
+            marker = JsonSerializer.Deserialize<SelfUpdateMarker>(json);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not read self-update marker — deleting it to avoid repeat processing.");
+        }
+        finally
+        {
+            // Always delete the marker so we don't reprocess it on the next restart.
+            try { File.Delete(markerPath); } catch (Exception ex) { logger.LogWarning(ex, "Could not delete self-update marker at '{Path}'.", markerPath); }
+        }
+
+        if (marker is null) return;
+
+        // Determine success by comparing the running assembly version with the expected version.
+        var runningVersion = versionDetector.GetAgentVersion();
+        var plusIdx = runningVersion.IndexOf('+');
+        var runningSemVer = plusIdx >= 0 ? runningVersion[..plusIdx] : runningVersion;
+        var isSuccess = string.Equals(runningSemVer, marker.NewVersion, StringComparison.OrdinalIgnoreCase);
+
+        logger.LogInformation(
+            "Self-update marker found: expected v{Expected}, running v{Running} — success={Success}",
+            marker.NewVersion, runningSemVer, isSuccess);
+
+        if (_connection?.State != HubConnectionState.Connected) return;
+
+        try
+        {
+            var progressMsg = new UpdateProgressMessage(
+                options.InstallationId,
+                marker.HistoryId,
+                UpdatePhase.Completed.ToString(),
+                IsCompleted: true,
+                IsSuccess:   isSuccess,
+                ErrorMessage: isSuccess
+                    ? null
+                    : $"Versione Agent dopo self-update non corrispondente: attesa {marker.NewVersion}, in esecuzione {runningSemVer}");
+
+            await _connection.InvokeAsync("ReportUpdateProgress", progressMsg, ct);
+
+            if (isSuccess)
+                versionDetector.InvalidateVersionCache();
+
+            logger.LogInformation("Self-update completion reported to Hub (HistoryId={HistoryId} Success={Success}).",
+                marker.HistoryId, isSuccess);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to report self-update completion to Hub for HistoryId={HistoryId}.", marker.HistoryId);
+        }
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)

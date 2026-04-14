@@ -34,4 +34,17 @@ public interface IPackageService
     /// Returns a sensible default when no previous package exists.
     /// </summary>
     Task<string> GetSuggestedNextVersionAsync(PackageComponent component, string versionType, CancellationToken ct = default);
+
+    /// <summary>Returns the total count of all packages without loading entity data.</summary>
+    Task<int> CountAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns packages with <see cref="PackageStatus.Archived"/> or <see cref="PackageStatus.Deployed"/>
+    /// whose <see cref="UpdatePackage.UploadedAt"/> is older than <paramref name="cutoff"/>.
+    /// Used by <see cref="PackageCleanupService"/>.
+    /// </summary>
+    Task<IReadOnlyList<UpdatePackage>> GetExpiredPackagesAsync(DateTime cutoff, CancellationToken ct = default);
+
+    /// <summary>Permanently removes the package record from the database.</summary>
+    Task DeleteAsync(Guid packageId, CancellationToken ct = default);
 }

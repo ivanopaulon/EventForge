@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Prym.Agent\Prym.Agent.csproj" />
+    <ProjectReference Include="..\Prym.UpdateShared\Prym.UpdateShared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

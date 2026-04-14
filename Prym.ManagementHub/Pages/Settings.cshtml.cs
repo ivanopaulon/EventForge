@@ -38,6 +38,10 @@ public class SettingsModel(
     /// Never populated on GET — the current hash is never sent to the browser.
     /// </summary>
     [BindProperty] public string UiPassword { get; set; } = string.Empty;
+    [BindProperty] public string? ServerCallbackUrl { get; set; }
+    [BindProperty] public string MaintenanceCallbackSecret { get; set; } = string.Empty;
+    [BindProperty] public string? DefaultServerDeployPath { get; set; }
+    [BindProperty] public string? DefaultClientDeployPath { get; set; }
 
     public bool IsDefaultCredentials { get; private set; }
 
@@ -86,6 +90,10 @@ public class SettingsModel(
                 ? hubOptions.UI.Password   // keep existing (may already be hashed)
                 : PasswordHasher.Hash(UiPassword);
             hubOptions.UI.Password = newPasswordToStore;
+            hubOptions.ServerCallbackUrl = string.IsNullOrWhiteSpace(ServerCallbackUrl) ? null : ServerCallbackUrl;
+            hubOptions.MaintenanceCallbackSecret = MaintenanceCallbackSecret;
+            hubOptions.DefaultServerDeployPath = string.IsNullOrWhiteSpace(DefaultServerDeployPath) ? null : DefaultServerDeployPath;
+            hubOptions.DefaultClientDeployPath = string.IsNullOrWhiteSpace(DefaultClientDeployPath) ? null : DefaultClientDeployPath;
 
             logger.LogInformation("Hub settings saved via UI");
             TempData["Success"] = "Impostazioni salvate. Le credenziali UI sono attive immediatamente.";
@@ -117,6 +125,10 @@ public class SettingsModel(
         LogDirectoryPath = hubOptions.Logging.DirectoryPath;
         UiUsername = hubOptions.UI.Username;
         UiPassword = string.Empty; // never send the stored hash to the browser
+        ServerCallbackUrl = hubOptions.ServerCallbackUrl;
+        MaintenanceCallbackSecret = hubOptions.MaintenanceCallbackSecret;
+        DefaultServerDeployPath = hubOptions.DefaultServerDeployPath;
+        DefaultClientDeployPath = hubOptions.DefaultClientDeployPath;
         // "default credentials" = still the well-known plaintext sentinel (not yet changed/hashed)
         IsDefaultCredentials = hubOptions.UI.Username == "admin" &&
                                !PasswordHasher.IsHashed(hubOptions.UI.Password) &&
@@ -142,6 +154,10 @@ public class SettingsModel(
             ["EnrollmentToken"] = EnrollmentToken,
             ["AllowAutoEnrollment"] = AllowAutoEnrollment,
             ["BaseUrl"] = string.IsNullOrWhiteSpace(BaseUrl) ? null : BaseUrl,
+            ["ServerCallbackUrl"] = string.IsNullOrWhiteSpace(ServerCallbackUrl) ? null : ServerCallbackUrl,
+            ["MaintenanceCallbackSecret"] = MaintenanceCallbackSecret,
+            ["DefaultServerDeployPath"] = string.IsNullOrWhiteSpace(DefaultServerDeployPath) ? null : DefaultServerDeployPath,
+            ["DefaultClientDeployPath"] = string.IsNullOrWhiteSpace(DefaultClientDeployPath) ? null : DefaultClientDeployPath,
             ["HeartbeatTimeoutSeconds"] = HeartbeatTimeoutSeconds,
             ["AgentStatusCheckIntervalSeconds"] = AgentStatusCheckIntervalSeconds,
             ["MaxConcurrentUpdates"] = MaxConcurrentUpdates,

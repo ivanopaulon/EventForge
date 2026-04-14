@@ -13,6 +13,7 @@ public class InstallationsModel(
     IConnectionTracker connectionTracker,
     IPackageService packageService,
     IHubContext<AgentHub> agentHubContext,
+    IUpdateThrottleService updateThrottle,
     ILogger<InstallationsModel> logger) : PageModel
 {
     public IReadOnlyList<InstallationRow> Installations { get; private set; } = [];
@@ -76,6 +77,8 @@ public class InstallationsModel(
             installation?.InstalledVersionServer,
             installation?.InstalledVersionClient);
 
+        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
         var command = new StartUpdateCommand(
             history.Id, pkg.Id, pkg.Version,
@@ -106,7 +109,7 @@ public class InstallationsModel(
         var online = connectionTracker.GetOnlineInstallationIds();
         ReadyPackages = await packageService.GetByStatusAsync(PackageStatus.ReadyToDeploy);
 
-        var installationIds = installs.Select(i => i.Id);
+        var installationIds = installs.Select(i => i.Id).ToList();
         var historyMap = await installationService.GetAllRecentHistoryAsync(installationIds, maxPerInstallation: 5);
 
         Installations = installs.Select(i =>

@@ -130,16 +130,25 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     public PendingUpdate? GetNext()
     {
         PendingUpdate? head;
+        PendingUpdate? agentFirst  = null;
         PendingUpdate? serverFirst = null;
 
         lock (_lock)
         {
             if (IsBlocked || _queue.Count == 0) return null;
             head = _queue[0];
-            // Server-before-Client: if the head is a Client package and a Server package
-            // for the same version is still queued (e.g. downloaded faster), return the Server entry.
-            // File.Exists and logging are intentionally done OUTSIDE the lock below.
-            if (head.Command.Component.Equals("Client", StringComparison.OrdinalIgnoreCase))
+
+            // ── Agent-first: Agent self-update always takes absolute priority ──────────
+            // This ensures the Agent is never blocked by a queued Server or Client update.
+            // Rationale: the Agent must be up to date before it installs anything else.
+            // File.Exists is intentionally done OUTSIDE the lock below.
+            agentFirst = _queue.FirstOrDefault(p =>
+                p.Command.Component.Equals("Agent", StringComparison.OrdinalIgnoreCase));
+
+            // ── Server-before-Client: only evaluated when NO Agent update is pending ──
+            // If the head is a Client package and a same-version Server package is also
+            // queued (e.g. downloaded faster), return the Server entry first.
+            if (agentFirst is null && head.Command.Component.Equals("Client", StringComparison.OrdinalIgnoreCase))
             {
                 var version = head.Command.Version;
                 serverFirst = _queue.FirstOrDefault(p =>
@@ -149,10 +158,20 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
         }
 
         // Perform file I/O and logging outside the lock to avoid blocking queue mutations.
-        // TOCTOU note: serverFirst could be removed from the queue in the gap between here and
-        // the caller's install attempt. That is acceptable: ScheduledInstallWorker.TryInstallNextAsync
-        // guards against missing zip files by calling File.Exists again before installing, and
-        // removes the entry if the file is gone — so the install fails gracefully.
+        // TOCTOU note: agentFirst/serverFirst could be removed from the queue in the gap between
+        // here and the caller's install attempt. That is acceptable: ScheduledInstallWorker
+        // guards against missing zip files by calling File.Exists again before installing.
+
+        // Agent wins over everything else in the queue.
+        if (agentFirst is not null && File.Exists(agentFirst.LocalZipPath))
+        {
+            if (agentFirst.PackageId != head.PackageId)
+                logger.LogInformation(
+                    "Agent update v{AgentVersion} takes priority — deferring queued {Component} v{DeferredVersion}.",
+                    agentFirst.Command.Version, head.Command.Component, head.Command.Version);
+            return agentFirst;
+        }
+
         if (serverFirst is not null && File.Exists(serverFirst.LocalZipPath))
         {
             logger.LogInformation(

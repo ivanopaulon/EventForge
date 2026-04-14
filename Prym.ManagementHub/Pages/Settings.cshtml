@@ -163,6 +163,69 @@
             </div>
         </div>
 
+        <!-- ── Callback Server EventForge ────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-arrow-repeat me-2"></i>Callback Server EventForge
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label fw-semibold">URL Server Callback</label>
+                            <input asp-for="ServerCallbackUrl" class="form-control ef-form-input"
+                                   placeholder="https://app.example.com" />
+                            <div class="form-text">
+                                URL base di EventForge.Server a cui il Hub invia notifiche di progresso aggiornamento
+                                affinché i client Blazor ricevano eventi in tempo reale.
+                                Lasciare vuoto per disabilitare le callback.
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label fw-semibold">Segreto Callback Manutenzione</label>
+                            <input asp-for="MaintenanceCallbackSecret" class="form-control ef-form-input" type="password"
+                                   placeholder="Segreto condiviso X-Maintenance-Secret" autocomplete="new-password" />
+                            <div class="form-text">
+                                Segreto inviato come header <code>X-Maintenance-Secret</code> nelle callback al Server.
+                                Deve corrispondere al valore configurato su EventForge.Server.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Percorsi Deploy Default ────────────────────────────────── -->
+        <div class="col-12">
+            <div class="ef-card">
+                <div class="ef-card-header">
+                    <i class="bi bi-folder2-open me-2"></i>Percorsi Deploy Default
+                </div>
+                <div class="ef-card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Percorso Deploy Server (default)</label>
+                            <input asp-for="DefaultServerDeployPath" class="form-control ef-form-input"
+                                   placeholder="Es. C:\Prym\Server\publish" />
+                            <div class="form-text">
+                                Percorso predefinito della cartella di publish del Server mostrato nel form
+                                "Crea da cartella". Lasciare vuoto per non mostrare alcun default.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Percorso Deploy Client (default)</label>
+                            <input asp-for="DefaultClientDeployPath" class="form-control ef-form-input"
+                                   placeholder="Es. C:\Prym\Client\publish" />
+                            <div class="form-text">
+                                Percorso predefinito della cartella di publish del Client mostrato nel form
+                                "Crea da cartella". Lasciare vuoto per non mostrare alcun default.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ── Log ────────────────────────────────────────────────────── -->
         <div class="col-12">
             <div class="ef-card">

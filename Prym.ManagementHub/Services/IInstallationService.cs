@@ -28,7 +28,7 @@ public interface IInstallationService
     Task<Installation> CreateAsync(Installation installation, CancellationToken ct = default);
 
     /// <summary>Creates an <see cref="UpdateHistory"/> record in <c>InProgress</c> state and returns it.</summary>
-    Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, CancellationToken ct = default);
+    Task<UpdateHistory> StartUpdateHistoryAsync(Guid installationId, Guid packageId, string? fromVersionServer, string? fromVersionClient, string? fromVersionAgent = null, CancellationToken ct = default);
 
     /// <summary>
     /// Marks an existing <see cref="UpdateHistory"/> record as completed (success or failure).
@@ -63,7 +63,7 @@ public interface IInstallationService
     /// database round-trip, keyed by <c>InstallationId</c>.
     /// </summary>
     Task<Dictionary<Guid, IReadOnlyList<UpdateHistorySummary>>> GetAllRecentHistoryAsync(
-        IEnumerable<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
+        IReadOnlyList<Guid> installationIds, int maxPerInstallation = 5, CancellationToken ct = default);
     /// <summary>
     /// Returns package metadata associated with the given history record, or
     /// <see langword="null"/> if the record (or its package) cannot be found.
@@ -76,6 +76,20 @@ public interface IInstallationService
     /// ordered by start time ascending (oldest = head of queue first).
     /// </summary>
     Task<IReadOnlyList<PendingInstallSummary>> GetPendingInstallsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the IDs of installations whose <see cref="Installation.Status"/> is not
+    /// <see cref="InstallationStatus.Offline"/> and whose <see cref="Installation.LastSeen"/>
+    /// is older than <paramref name="cutoff"/>.
+    /// Used by <see cref="AgentStatusCheckService"/> to mark stale agents offline.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetStaleInstallationsAsync(DateTime cutoff, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns installations whose IDs are in <paramref name="ids"/>.
+    /// Used to batch-load installation data for a set of online connection IDs without N+1 queries.
+    /// </summary>
+    Task<IReadOnlyList<Installation>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
 }
 
 /// <summary>Lightweight package metadata resolved from an <see cref="UpdateHistory"/> record.</summary>
@@ -118,5 +132,6 @@ public record RegistrationInfo(
     string? DotNetVersion,
     string? AgentVersion,
     string? IpAddress,
+    string? LocalIpAddress,
     string? Tags,
     InstallationStatus Status = InstallationStatus.Online);

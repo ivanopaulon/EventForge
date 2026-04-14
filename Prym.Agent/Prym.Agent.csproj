@@ -20,5 +20,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Prym.DTOs\Prym.DTOs.csproj" />
     <ProjectReference Include="..\Prym.Hardware\Prym.Hardware.csproj" />
+    <ProjectReference Include="..\Prym.UpdateShared\Prym.UpdateShared.csproj" />
   </ItemGroup>
 </Project>

@@ -8,16 +8,13 @@ namespace Prym.ManagementHub.Controllers;
 [Route("api/v1/packages")]
 public class PackagesController(
     IPackageService packageService,
+    IAdminAuthService adminAuth,
     ManagementHubOptions hubOptions,
     ILogger<PackagesController> logger) : ControllerBase
 {
     private string PackageStorePath => hubOptions.PackageStorePath;
 
-    private bool IsAdminAuthorized()
-    {
-        Request.Headers.TryGetValue("X-Admin-Key", out var key);
-        return !string.IsNullOrWhiteSpace(hubOptions.AdminApiKey) && key == hubOptions.AdminApiKey;
-    }
+    private bool IsAdminAuthorized() => adminAuth.IsAuthorized(Request.Headers);
 
     /// <summary>Get all packages.</summary>
     [HttpGet]
@@ -68,7 +65,10 @@ public class PackagesController(
         if (file is null || file.Length == 0) return BadRequest("File is required.");
 
         Directory.CreateDirectory(PackageStorePath);
-        var fileName = $"{comp.ToString().ToLowerInvariant()}-{version}-{Guid.NewGuid():N}.zip";
+
+        // Sanitize version string to prevent path traversal in the generated filename.
+        var safeVersion = FileNameHelper.SanitizeForFileName(version);
+        var fileName = $"{comp.ToString().ToLowerInvariant()}-{safeVersion}-{Guid.NewGuid():N}.zip";
         var filePath = Path.Combine(PackageStorePath, fileName);
 
         // Write the file and compute SHA-256 in a single stream pass for efficiency.
@@ -116,10 +116,19 @@ public class PackagesController(
         var pkg = await packageService.GetByIdAsync(id);
         if (pkg is null) return NotFound();
 
-        var fullPath = Path.Combine(PackageStorePath, pkg.FilePath);
+        var storeRoot = Path.GetFullPath(PackageStorePath);
+        var fullPath  = Path.GetFullPath(Path.Combine(PackageStorePath, pkg.FilePath));
+
+        // Guard against path traversal in FilePath stored in the database.
+        if (!IsPathWithin(fullPath, storeRoot))
+        {
+            logger.LogWarning("Path containment violation for Package {Id}: {FilePath}", id, pkg.FilePath);
+            return BadRequest("Invalid package path.");
+        }
+
         if (!System.IO.File.Exists(fullPath)) return NotFound("Package file not found on disk.");
 
-        return PhysicalFile(Path.GetFullPath(fullPath), "application/zip", $"{pkg.Component}-{pkg.Version}.zip");
+        return PhysicalFile(fullPath, "application/zip", $"{pkg.Component}-{pkg.Version}.zip");
     }
 
     /// <summary>Update the status of a package (admin only).</summary>
@@ -167,5 +176,27 @@ public class PackagesController(
 
         var suggested = await packageService.GetSuggestedNextVersionAsync(comp, type);
         return Ok(new { version = suggested, component = comp.ToString(), type });
+    }
+
+
+    /// <summary>
+    /// Returns <see langword="true"/> when <paramref name="filePath"/> is located inside
+    /// <paramref name="rootPath"/> (both resolved to absolute paths), preventing path-traversal attacks.
+    /// Uses OS-appropriate case comparison (<see cref="StringComparison.OrdinalIgnoreCase"/> on
+    /// Windows/macOS, <see cref="StringComparison.Ordinal"/> on case-sensitive Linux filesystems).
+    /// </summary>
+    private static bool IsPathWithin(string filePath, string rootPath)
+    {
+        // Re-resolve to absolute paths so this helper is safe even if the caller hasn't done so.
+        var root = Path.GetFullPath(rootPath);
+        if (!root.EndsWith(Path.DirectorySeparatorChar))
+            root += Path.DirectorySeparatorChar;
+
+        var comparison = System.Runtime.InteropServices.RuntimeInformation
+            .IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Linux)
+            ? StringComparison.Ordinal
+            : StringComparison.OrdinalIgnoreCase;
+
+        return filePath.StartsWith(root, comparison);
     }
 }

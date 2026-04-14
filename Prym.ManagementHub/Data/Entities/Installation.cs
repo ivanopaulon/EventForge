@@ -62,9 +62,17 @@ public class Installation
     [MaxLength(50)]
     public string? AgentVersion { get; set; }
 
-    /// <summary>Last known IP address of the agent (set by Hub from HTTP context).</summary>
+    /// <summary>Last known IP address of the agent as observed by the Hub (public/WAN IP or LAN if co-located).</summary>
     [MaxLength(100)]
     public string? IpAddress { get; set; }
+
+    /// <summary>
+    /// Local (LAN) IPv4 address self-reported by the agent via the UDP-socket technique.
+    /// This is the address of the network interface the machine uses to reach the internet,
+    /// and is more reliable than <c>Dns.GetHostEntry</c> on multi-adapter machines (VPN, etc.).
+    /// </summary>
+    [MaxLength(100)]
+    public string? LocalIpAddress { get; set; }
 
     /// <summary>Comma-separated classification tags sent by the agent (e.g. "production,milan").</summary>
     [MaxLength(500)]

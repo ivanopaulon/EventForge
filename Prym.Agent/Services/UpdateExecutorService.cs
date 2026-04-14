@@ -22,6 +22,7 @@ public class UpdateExecutorService(
     MigrationRunnerService migrationRunner,
     PendingInstallService pendingInstallService,
     DownloadProgressService downloadProgress,
+    IHostApplicationLifetime lifetime,
     ILogger<UpdateExecutorService> logger) : IDisposable
 {
     // Single long-lived HttpClient; per-request timeout is enforced via CancellationTokenSource.
@@ -220,10 +221,155 @@ public class UpdateExecutorService(
     public async Task InstallFromZipAsync(StartUpdateCommand command, string zipPath, CancellationToken ct)
     {
         var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
+        var isAgent  = command.Component.Equals("Agent",  StringComparison.OrdinalIgnoreCase);
         var deployPath = isServer ? options.Components.Server.DeployPath : options.Components.Client.DeployPath;
         var workDir   = ResolveAndEnsureDir(options.WorkPath);
         var tempDir   = Path.Combine(workDir, $"ef-update-{command.PackageId:N}");
         string? backupPath = null;
+        // When true the finally block must not delete tempDir (Updater still needs it).
+        var keepTempForUpdater = false;
+
+        // ── Agent self-update path ──────────────────────────────────────────
+        if (isAgent)
+        {
+            try
+            {
+                // Extract to staging dir so the Updater can copy atomically.
+                Directory.CreateDirectory(tempDir);
+                ValidateZipPathTraversal(zipPath, tempDir);
+                NotifyPhaseBackground(command, UpdatePhase.BackingUp.ToString(),
+                    detail: "Estrazione archivio aggiornamento Agent…");
+                ZipFile.ExtractToDirectory(zipPath, tempDir, overwriteFiles: true);
+
+                var binariesDir = Path.Combine(tempDir, "binaries");
+                if (!Directory.Exists(binariesDir))
+                    binariesDir = tempDir;
+
+                var installDir = AppContext.BaseDirectory;
+
+                // Resolve updater executable path.
+                var updaterRelative = options.SelfUpdate.UpdaterExecutable;
+                var updaterPath = Path.IsPathRooted(updaterRelative)
+                    ? updaterRelative
+                    : Path.Combine(installDir, updaterRelative);
+
+                if (!File.Exists(updaterPath))
+                    throw new FileNotFoundException(
+                        $"Prym.Agent.Updater non trovato in '{updaterPath}'. " +
+                        "Assicurarsi che Prym.Agent.Updater.exe sia incluso nell'installazione dell'Agent.");
+
+                // Copy the Updater executable to a unique temp directory before launching it.
+                //
+                // Rationale: Prym.Agent.Updater.exe lives in installDir (same folder that the
+                // Updater will overwrite with new binaries). On Windows, even a self-contained
+                // single-file exe holds a file handle while running; some AV tools and certain
+                // OS configurations will refuse File.Copy(overwrite:true) on a locked file.
+                // Running from a temp copy guarantees that the file in installDir is never locked,
+                // so the new Updater binary is always installed atomically alongside the Agent.
+                //
+                // Lifecycle: the temp directory (named prym-upd-{PackageId}) is small (one exe)
+                // and lives in %TEMP%. It is not explicitly deleted here because the Agent process
+                // stops immediately after launching the Updater. Stale directories from previous
+                // runs are cleaned up by the OS on the next %TEMP% purge and accumulate only on
+                // systems that never reboot. If explicit cleanup is desired, the Agent can scan
+                // Path.GetTempPath() for "prym-upd-*" directories on startup.
+                var updaterTempDir = Path.Combine(
+                    Path.GetTempPath(),
+                    $"prym-upd-{command.PackageId:N}");
+                Directory.CreateDirectory(updaterTempDir);
+                var updaterTempPath = Path.Combine(updaterTempDir, Path.GetFileName(updaterPath));
+                File.Copy(updaterPath, updaterTempPath, overwrite: true);
+
+                logger.LogInformation(
+                    "Updater copiato in temp: '{TempPath}'", updaterTempPath);
+
+                // Build preserve-patterns argument list.
+                var preserveArgs = string.Join(" ",
+                    options.SelfUpdate.PreserveFiles.Select(p => $"--preserve \"{p}\""));
+
+                // Write the self-update marker BEFORE stopping so the new process can
+                // detect the pending completion report on restart.
+                var markerPath = Path.Combine(installDir, "self-update.json");
+                var markerJson = JsonSerializer.Serialize(new SelfUpdateMarker(
+                    command.UpdateHistoryId,
+                    command.Version,
+                    DateTime.UtcNow));
+                var markerTmp = markerPath + ".tmp";
+                await File.WriteAllTextAsync(markerTmp, markerJson, ct);
+                File.Move(markerTmp, markerPath, overwrite: true);
+
+                logger.LogInformation(
+                    "Self-update marker written. Launching Updater for Agent v{Version}. Updater='{Updater}'",
+                    command.Version, updaterTempPath);
+
+                // Launch updater as a detached process. The SCM does NOT inherit job objects
+                // for Windows services, so the child process survives the service stopping.
+                var psi = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = updaterTempPath,
+                    Arguments = $"--service \"{options.SelfUpdate.ServiceName}\" " +
+                                $"--source \"{binariesDir}\" " +
+                                $"--target \"{installDir.TrimEnd(Path.DirectorySeparatorChar)}\" " +
+                                $"{preserveArgs} " +
+                                $"--cleanup \"{tempDir}\"",
+                    UseShellExecute      = false,
+                    CreateNoWindow       = true,
+                    WorkingDirectory     = installDir,
+                    RedirectStandardOutput = false,
+                    RedirectStandardError  = false
+                };
+
+                var updaterProcess = System.Diagnostics.Process.Start(psi)
+                    ?? throw new InvalidOperationException("Impossibile avviare Prym.Agent.Updater.");
+
+                logger.LogInformation(
+                    "Updater lanciato (PID={Pid}). Agent si arresta per consentire l'aggiornamento.",
+                    updaterProcess.Id);
+
+                // Report the initiation phase to the Hub so the history shows progress.
+                await ReportAsync(command, UpdatePhase.SelfUpdateInitiated, false, true, null, ct);
+                NotifyPhaseBackground(command, UpdatePhase.SelfUpdateInitiated.ToString(),
+                    detail: $"Updater avviato — Agent v{command.Version} in fase di sostituzione binari…");
+
+                // Give the Hub a moment to receive the progress message before we close the connection.
+                await Task.Delay(500, CancellationToken.None);
+
+                // Prevent the finally block from deleting tempDir — the Updater handles cleanup.
+                keepTempForUpdater = true;
+
+                // Stop the service. The SCM keeps the service registered; the Updater will restart it.
+                lifetime.StopApplication();
+
+                // Block here until cancellation fires (from StopApplication → stoppingToken).
+                // This prevents InstallFromZipAsync from returning and its caller from doing
+                // further work while the service is shutting down.
+                await Task.Delay(Timeout.Infinite, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Normal: the service is stopping. Re-throw so the caller sees a clean cancellation.
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Self-update initiation failed for Agent v{Version}", command.Version);
+                // Try to clean up the marker so we don't report a phantom completion on next start.
+                var markerCleanup = Path.Combine(AppContext.BaseDirectory, "self-update.json");
+                try { if (File.Exists(markerCleanup)) File.Delete(markerCleanup); }
+                catch (Exception cleanupEx) { logger.LogWarning(cleanupEx, "Could not delete self-update marker at '{Path}'.", markerCleanup); }
+                await ReportAsync(command, UpdatePhase.Completed, true, false, ex.Message, CancellationToken.None);
+                throw;
+            }
+            finally
+            {
+                if (!keepTempForUpdater && Directory.Exists(tempDir))
+                    try { Directory.Delete(tempDir, recursive: true); } catch { /* best effort */ }
+                if (zipPath is not null && File.Exists(zipPath))
+                    try { File.Delete(zipPath); } catch { /* best effort */ }
+            }
+        }
+
+        // ── Server / Client update path (original) ──────────────────────────
 
         try
         {
@@ -860,3 +1006,10 @@ public class UpdateExecutorService(
 
     public void Dispose() => _http.Dispose();
 }
+
+/// <summary>
+/// Written to <c>self-update.json</c> in <c>AppContext.BaseDirectory</c> just before
+/// the Agent stops itself for a self-update.  On next startup the Agent reads this marker,
+/// connects to the Hub, and reports the final <c>Completed</c> outcome.
+/// </summary>
+public record SelfUpdateMarker(Guid HistoryId, string NewVersion, DateTime InitiatedAt);

@@ -2,8 +2,10 @@ using Prym.ManagementHub.Auth;
 using Prym.ManagementHub.Configuration;
 using Prym.ManagementHub.Hubs;
 using Prym.ManagementHub.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,7 +75,24 @@ builder.Services.AddScoped<IInstallationService, InstallationService>();
 builder.Services.AddScoped<IPackageService, PackageService>();
 builder.Services.AddScoped<IPackageBuildService, PackageBuildService>();
 builder.Services.AddSingleton<IConnectionTracker, ConnectionTracker>();
+builder.Services.AddSingleton<IAdminAuthService, AdminAuthService>();
+builder.Services.AddSingleton<IUpdateThrottleService, UpdateThrottleService>();
 builder.Services.AddHostedService<PackageWatcherService>();
+builder.Services.AddHostedService<AgentStatusCheckService>();
+builder.Services.AddHostedService<PackageCleanupService>();
+
+// Rate limiting: protect the self-enrollment endpoint from brute-force token guessing.
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("enrollment", limiterOptions =>
+    {
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 
 var app = builder.Build();
 
@@ -101,6 +120,7 @@ app.UseMiddleware<HubBasicAuthMiddleware>();
 app.UseMiddleware<ApiKeyAuthMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseRateLimiter();
 app.MapRazorPages();
 app.MapControllers();
 app.MapHub<AgentHub>("/hubs/update");

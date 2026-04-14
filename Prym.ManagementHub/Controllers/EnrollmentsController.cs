@@ -1,4 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Prym.ManagementHub.Controllers;
 
@@ -11,6 +14,7 @@ namespace Prym.ManagementHub.Controllers;
 [Route("api/v1/enrollments")]
 public class EnrollmentsController(
     IInstallationService installationService,
+    IAdminAuthService adminAuth,
     ManagementHubOptions hubOptions,
     ILogger<EnrollmentsController> logger) : ControllerBase
 {
@@ -22,6 +26,7 @@ public class EnrollmentsController(
     /// together with the confirmed InstallationId.
     /// </summary>
     [HttpPost]
+    [EnableRateLimiting("enrollment")]
     public async Task<IActionResult> Enroll([FromBody] EnrollmentRequest request)
     {
         if (!hubOptions.AllowAutoEnrollment || string.IsNullOrWhiteSpace(hubOptions.EnrollmentToken))
@@ -31,7 +36,8 @@ public class EnrollmentsController(
                 "Auto-enrollment is disabled on this Hub. Ask the administrator to register the installation manually.");
         }
 
-        if (request.EnrollmentToken != hubOptions.EnrollmentToken)
+        // Timing-safe comparison to prevent secret enumeration via response timing.
+        if (!TokenEquals(request.EnrollmentToken, hubOptions.EnrollmentToken))
         {
             logger.LogWarning("Enrollment attempt with invalid token. Code={Code}", request.InstallationCode);
             return Unauthorized("Invalid enrollment token.");
@@ -80,6 +86,7 @@ public class EnrollmentsController(
             DotNetVersion = request.DotNetVersion,
             AgentVersion = request.AgentVersion,
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            LocalIpAddress = request.LocalIpAddress,
             Tags = request.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
             Notes = $"Auto-enrolled via EnrollmentToken on {DateTime.UtcNow:u}"
         };
@@ -97,7 +104,7 @@ public class EnrollmentsController(
     [HttpPost("{id:guid}/reissue")]
     public async Task<IActionResult> ReissueKey(Guid id)
     {
-        if (!IsAdminAuthorized()) return Unauthorized();
+        if (!adminAuth.IsAuthorized(Request.Headers)) return Unauthorized();
 
         var newKey = await installationService.ReissueApiKeyAsync(id);
         if (newKey is null) return NotFound($"Installation {id} not found.");
@@ -106,10 +113,12 @@ public class EnrollmentsController(
         return Ok(new { InstallationId = id, ApiKey = newKey });
     }
 
-    private bool IsAdminAuthorized()
+    private static bool TokenEquals(string supplied, string expected)
     {
-        Request.Headers.TryGetValue("X-Admin-Key", out var key);
-        return !string.IsNullOrWhiteSpace(hubOptions.AdminApiKey) && key == hubOptions.AdminApiKey;
+        var suppliedBytes = Encoding.UTF8.GetBytes(supplied);
+        var expectedBytes = Encoding.UTF8.GetBytes(expected);
+        return suppliedBytes.Length == expectedBytes.Length
+            && CryptographicOperations.FixedTimeEquals(suppliedBytes, expectedBytes);
     }
 }
 
@@ -121,10 +130,11 @@ public record EnrollmentRequest(
     Guid? HintInstallationId,
     string? Location,
     InstallationComponents Components,
-    string? MachineName       = null,
-    string? OSVersion         = null,
-    string? DotNetVersion     = null,
-    string? AgentVersion      = null,
+    string? MachineName        = null,
+    string? OSVersion          = null,
+    string? DotNetVersion      = null,
+    string? AgentVersion       = null,
+    string? LocalIpAddress     = null,
     IReadOnlyList<string>? Tags = null);
 
 // Response returned to the Agent on successful enrollment
