@@ -20,7 +20,6 @@
 /* La card MudDialog: applica solo il border-radius globalmente */
 .mud-dialog {
     border-radius: 12px !important;
-    overflow: hidden;
 }
 
 /* Sfondo trasparente SOLO per dialog EFDialog/EFSystemDialog:
