@@ -1,0 +1,183 @@
+@page
+@model DevicesModel
+@{
+    ViewData["Title"] = "Dispositivi";
+    ViewData["PageSection"] = "Agent";
+    ViewData["InstallationId"] = Model.InstallationId;
+    ViewData["InstallationName"] = Model.InstallationName;
+}
+
+<!-- Page header -->
+<div class="ef-page-header">
+    <div class="ef-page-title">
+        <div class="ef-page-title-icon monitoring"><i class="bi bi-usb-symbol"></i></div>
+        <div>
+            <h1>Dispositivi</h1>
+            <p class="ef-page-subtitle">Dispositivi USB raw, stampanti installate e porte seriali (COM) rilevati sull'agent</p>
+        </div>
+    </div>
+    <a href="/devices" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-clockwise"></i>Aggiorna
+    </a>
+</div>
+
+<!-- ── KPI cards ──────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="ef-kpi-card blue">
+            <div class="ef-kpi-label"><i class="bi bi-usb-symbol me-1"></i>Dispositivi USB</div>
+            <div class="ef-kpi-value">@Model.UsbDevices.Count</div>
+            <div class="ef-kpi-sub">Porte USB raw accessibili</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="ef-kpi-card green">
+            <div class="ef-kpi-label"><i class="bi bi-printer-fill me-1"></i>Stampanti</div>
+            <div class="ef-kpi-value">@Model.SystemPrinters.Count</div>
+            <div class="ef-kpi-sub">Code di stampa installate</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="ef-kpi-card purple">
+            <div class="ef-kpi-label"><i class="bi bi-plug-fill me-1"></i>Porte seriali</div>
+            <div class="ef-kpi-value">@Model.SerialPorts.Count</div>
+            <div class="ef-kpi-sub">Porte COM / seriali rilevate</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Dispositivi USB raw ────────────────────────────────────────── -->
+<div class="ef-card mb-4">
+    <div class="ef-card-header">
+        <i class="bi bi-usb-symbol"></i>
+        Dispositivi USB raw
+        <span class="ef-badge ef-badge-neutral ms-1">@Model.UsbDevices.Count</span>
+        <span class="ms-auto text-muted" style="font-size:.75rem;font-weight:400">
+            Percorso: <code>\\.\USB001</code> – <code>\\.\USB099</code>
+        </span>
+    </div>
+    <div class="ef-card-body @(Model.UsbDevices.Count == 0 ? "" : "p-0")">
+        @if (Model.UsbDevices.Count == 0)
+        {
+            <div class="alert alert-secondary d-flex align-items-center gap-2 mb-0">
+                <i class="bi bi-info-circle fs-5"></i>
+                <span>Nessun dispositivo USB raw rilevato. Verificare che la stampante sia collegata e accesa.</span>
+            </div>
+        }
+        else
+        {
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px">#</th>
+                            <th>Identificatore dispositivo</th>
+                            <th>Percorso Windows</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.UsbDevices.Count; i++)
+                        {
+                            var dev = Model.UsbDevices[i];
+                            <tr>
+                                <td class="text-muted">@(i + 1)</td>
+                                <td>
+                                    <span class="ef-badge ef-badge-blue">
+                                        <i class="bi bi-usb-symbol me-1"></i>@dev
+                                    </span>
+                                </td>
+                                <td><code>\\.\@dev</code></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ── Stampanti installate ───────────────────────────────────────── -->
+<div class="ef-card mb-4">
+    <div class="ef-card-header">
+        <i class="bi bi-printer-fill"></i>
+        Stampanti installate
+        <span class="ef-badge ef-badge-neutral ms-1">@Model.SystemPrinters.Count</span>
+    </div>
+    <div class="ef-card-body @(Model.SystemPrinters.Count == 0 ? "" : "p-0")">
+        @if (Model.SystemPrinters.Count == 0)
+        {
+            <div class="alert alert-secondary d-flex align-items-center gap-2 mb-0">
+                <i class="bi bi-info-circle fs-5"></i>
+                <span>Nessuna stampante installata rilevata su questo sistema.</span>
+            </div>
+        }
+        else
+        {
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px">#</th>
+                            <th>Nome stampante</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.SystemPrinters.Count; i++)
+                        {
+                            <tr>
+                                <td class="text-muted">@(i + 1)</td>
+                                <td>
+                                    <i class="bi bi-printer me-1 text-success"></i>@Model.SystemPrinters[i]
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ── Porte seriali (COM) ────────────────────────────────────────── -->
+<div class="ef-card mb-4">
+    <div class="ef-card-header">
+        <i class="bi bi-plug-fill"></i>
+        Porte seriali (COM)
+        <span class="ef-badge ef-badge-neutral ms-1">@Model.SerialPorts.Count</span>
+    </div>
+    <div class="ef-card-body @(Model.SerialPorts.Count == 0 ? "" : "p-0")">
+        @if (Model.SerialPorts.Count == 0)
+        {
+            <div class="alert alert-secondary d-flex align-items-center gap-2 mb-0">
+                <i class="bi bi-info-circle fs-5"></i>
+                <span>Nessuna porta seriale (COM) rilevata su questo sistema.</span>
+            </div>
+        }
+        else
+        {
+            <div class="ef-table-wrap">
+                <table class="ef-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px">#</th>
+                            <th>Porta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.SerialPorts.Count; i++)
+                        {
+                            <tr>
+                                <td class="text-muted">@(i + 1)</td>
+                                <td>
+                                    <span class="ef-badge ef-badge-info">
+                                        <i class="bi bi-plug me-1"></i>@Model.SerialPorts[i]
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

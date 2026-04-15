@@ -54,6 +54,10 @@
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/logs", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-journals"></i>Log
                 </a>
+                <a href="/devices"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/devices", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-usb-symbol"></i>Dispositivi
+                </a>
                 <a href="/settings"
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/settings", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-sliders"></i>Impostazioni

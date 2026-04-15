@@ -2,7 +2,6 @@
 using Prym.Hardware.PrinterProxy;
 using Prym.Agent.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace Prym.Agent.Controllers;
@@ -135,23 +134,23 @@ public sealed class PrinterProxyController(
     /// </summary>
     /// <returns>200 OK with a <c>printers</c> array of display-name strings.</returns>
     [HttpGet("system-printers")]
-    public async Task<IActionResult> ListSystemPrintersAsync()
+    public async Task<IActionResult> ListSystemPrintersAsync(CancellationToken ct)
     {
-        var printerNames = new List<string>();
-
-        try
-        {
-            printerNames = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
-                ? await GetWindowsPrintersAsync()
-                : await GetLinuxPrintersAsync();
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "PrinterProxy: failed to enumerate system printers");
-        }
-
+        var printerNames = await printerService.ListSystemPrintersAsync(ct).ConfigureAwait(false);
         logger.LogDebug("PrinterProxy system-printers: found {Count}", printerNames.Count);
         return Ok(new { printers = printerNames });
+    }
+
+    /// <summary>
+    /// Returns all serial (COM) ports available on the machine running this agent.
+    /// </summary>
+    /// <returns>200 OK with a <c>ports</c> array of port name strings (e.g. <c>COM1</c>, <c>/dev/ttyUSB0</c>).</returns>
+    [HttpGet("serial-ports")]
+    public async Task<IActionResult> ListSerialPortsAsync(CancellationToken ct)
+    {
+        var ports = await printerService.ListSerialPortsAsync(ct).ConfigureAwait(false);
+        logger.LogDebug("PrinterProxy serial-ports: found {Count}", ports.Count);
+        return Ok(new { ports });
     }
 
     // ── TCP proxy (TcpViaAgent) ───────────────────────────────────────────────
@@ -322,82 +321,5 @@ public sealed class PrinterProxyController(
             logger.LogError(ex, "PrinterProxy http-forward failed for {Url}", request.TargetUrl);
             return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
         }
-    }
-
-    private static async Task<List<string>> GetWindowsPrintersAsync()
-    {
-        var printers = new List<string>();
-
-        // Use PowerShell to enumerate installed printer queues.
-        // Get-Printer returns rich objects; we only need the Name field.
-        var psi = new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            Arguments = "-NoProfile -NonInteractive -Command " +
-                        "\"Get-Printer | Select-Object -ExpandProperty Name\"",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var proc = System.Diagnostics.Process.Start(psi);
-        if (proc is not null)
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-
-            // Read stdout and stderr concurrently to prevent a pipe-buffer deadlock
-            // if PowerShell writes enough to either stream to fill its OS buffer.
-            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
-            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
-            await proc.WaitForExitAsync(cts.Token);
-            var output = await stdoutTask;
-            await stderrTask; // discard, but must be consumed
-
-            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var name = line.Trim();
-                if (!string.IsNullOrEmpty(name))
-                    printers.Add(name);
-            }
-        }
-
-        return printers;
-    }
-
-    private static async Task<List<string>> GetLinuxPrintersAsync()
-    {
-        var printers = new List<string>();
-
-        var psi = new System.Diagnostics.ProcessStartInfo("lpstat", "-a")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-
-        using var proc = System.Diagnostics.Process.Start(psi);
-        if (proc is not null)
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
-
-            // Read stdout and stderr concurrently to prevent a pipe-buffer deadlock.
-            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
-            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
-            await proc.WaitForExitAsync(cts.Token);
-            var output = await stdoutTask;
-            await stderrTask; // discard, but must be consumed
-
-            // lpstat -a format: "PrinterName accepting requests since ..."
-            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
-            {
-                var parts = line.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
-                    printers.Add(parts[0]);
-            }
-        }
-
-        return printers;
     }
 }

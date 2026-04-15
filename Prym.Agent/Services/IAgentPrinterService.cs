@@ -58,6 +58,28 @@ public interface IAgentPrinterService
     /// <param name="ct">Cancellation token.</param>
     Task TestTcpConnectionAsync(string host, int port, CancellationToken ct = default);
 
+    // ── OS-level device enumeration ───────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all printer queues installed at OS level on the machine running this agent.
+    /// On Windows this queries via PowerShell <c>Get-Printer</c>.
+    /// On Linux/macOS it uses <c>lpstat -a</c> (CUPS). Falls back to an empty list when
+    /// neither is available.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Read-only list of installed printer display names.</returns>
+    Task<IReadOnlyList<string>> ListSystemPrintersAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns all serial (COM) ports available on the machine running this agent.
+    /// On Windows this is equivalent to <c>[System.IO.Ports.SerialPort]::GetPortNames()</c>.
+    /// On Linux/macOS the <c>/dev/ttyS*</c>, <c>/dev/ttyUSB*</c> and <c>/dev/ttyACM*</c>
+    /// entries are enumerated.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Read-only list of serial port names (e.g. <c>COM1</c>, <c>/dev/ttyUSB0</c>).</returns>
+    Task<IReadOnlyList<string>> ListSerialPortsAsync(CancellationToken ct = default);
+
     // ── HTTP forward (TcpViaAgent – Epson WebAPI and similar) ─────────────────
 
     /// <summary>

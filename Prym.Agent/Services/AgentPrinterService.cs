@@ -1,5 +1,7 @@
 ﻿using Prym.Hardware.Exceptions;
+using System.IO.Ports;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 namespace Prym.Agent.Services;
 
@@ -97,6 +99,42 @@ public sealed class AgentPrinterService(
         });
 
         return found.OrderBy(x => x.Index).Select(x => x.Suffix).ToList().AsReadOnly();
+    }
+
+    // ── IAgentPrinterService – OS-level device enumeration ────────────────────
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> ListSystemPrintersAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? await GetWindowsPrintersAsync(ct).ConfigureAwait(false)
+                : await GetLinuxPrintersAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AgentPrinterService] Failed to enumerate system printers");
+            return [];
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ListSerialPortsAsync(CancellationToken ct = default)
+    {
+        IReadOnlyList<string> result;
+        try
+        {
+            result = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? SerialPort.GetPortNames().OrderBy(p => p).ToArray()
+                : GetLinuxSerialPorts();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AgentPrinterService] Failed to enumerate serial ports");
+            result = [];
+        }
+        return Task.FromResult(result);
     }
 
     // ── IAgentPrinterService – TCP (TcpViaAgent) ───────────────────────────────
@@ -332,5 +370,101 @@ public sealed class AgentPrinterService(
         }
 
         return bytesRead == 0 ? [] : buffer[..bytesRead];
+    }
+
+    // ── Private helpers – OS printer & serial enumeration ─────────────────────
+
+    private static async Task<IReadOnlyList<string>> GetWindowsPrintersAsync(CancellationToken ct)
+    {
+        var printers = new List<string>();
+
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            Arguments = "-NoProfile -NonInteractive -Command " +
+                        "\"Get-Printer | Select-Object -ExpandProperty Name\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            UseShellExecute        = false,
+            CreateNoWindow         = true
+        };
+
+        using var proc = System.Diagnostics.Process.Start(psi);
+        if (proc is not null)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask;
+
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var name = line.Trim();
+                if (!string.IsNullOrEmpty(name))
+                    printers.Add(name);
+            }
+        }
+
+        return printers;
+    }
+
+    private static async Task<IReadOnlyList<string>> GetLinuxPrintersAsync(CancellationToken ct)
+    {
+        var printers = new List<string>();
+
+        var psi = new System.Diagnostics.ProcessStartInfo("lpstat", "-a")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            UseShellExecute        = false,
+            CreateNoWindow         = true
+        };
+
+        using var proc = System.Diagnostics.Process.Start(psi);
+        if (proc is not null)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(3));
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask;
+
+            // lpstat -a format: "PrinterName accepting requests since ..."
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
+                    printers.Add(parts[0]);
+            }
+        }
+
+        return printers;
+    }
+
+    private static IReadOnlyList<string> GetLinuxSerialPorts()
+    {
+        // Enumerate well-known serial device patterns under /dev/:
+        // ttyS=standard serial, ttyUSB=USB-serial adapters, ttyACM=USB CDC ACM, ttyAMA=ARM UART.
+        var patterns = new[] { "ttyS", "ttyUSB", "ttyACM", "ttyAMA" };
+        var found = new List<string>();
+
+        foreach (var pattern in patterns)
+        {
+            var dir = new DirectoryInfo("/dev");
+            if (!dir.Exists) break;
+
+            foreach (var fi in dir.EnumerateFiles($"{pattern}*"))
+                found.Add(fi.FullName);
+        }
+
+        found.Sort(StringComparer.OrdinalIgnoreCase);
+        return found;
     }
 }
