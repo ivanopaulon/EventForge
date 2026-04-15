@@ -99,7 +99,7 @@
                             }
                         </div>
 
-                        @if (_currentDocument == null && !_isEditMode)
+                        @if (_currentDocument == null)
                         {
                             <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-2">
                                 <MudIcon Icon="@Icons.Material.Outlined.EditNote" Size="Size.Large" Color="Color.Primary" />
@@ -124,7 +124,7 @@
                                         @TranslationService.GetTranslation("documents.documentType", "Tipo Documento")
                                     </MudText>
                                     <MudText Typo="Typo.body2" Class="fw-medium">
-                                        @(_documentTypes.FirstOrDefault(t => t.Id == _model.DocumentTypeId)?.Name ?? "—")
+                                        @(_headerDocTypeName ?? "—")
                                     </MudText>
                                 </div>
                                 <!-- Numero / Serie -->
@@ -166,7 +166,7 @@
                                             @TranslationService.GetTranslation("documents.priceList", "Listino Prezzi")
                                         </MudText>
                                         <MudText Typo="Typo.body2">
-                                            @(_priceLists.FirstOrDefault(pl => pl.Id == _model.PriceListId)?.Name ?? "—")
+                                            @(_headerPriceListName ?? "—")
                                         </MudText>
                                     </div>
                                 }
@@ -520,6 +520,10 @@
     private List<PriceListDto> _priceLists = new();
     private BusinessPartyDto? _selectedBusinessParty = null;
 
+    // Cached display values for the left-column summary (avoids per-render LINQ)
+    private string? _headerDocTypeName;
+    private string? _headerPriceListName;
+
     // Document status binding
     private DocumentStatus _documentStatus = DocumentStatus.Draft;
 
@@ -737,6 +741,9 @@
                     }
                 }
 
+                // Refresh cached display values after loading
+                RefreshHeaderDisplayCache();
+
                 if (_currentDocument.Rows?.Any() == true && HasZeroTotals(_currentDocument))
                 {
                     Logger.LogInformation("Document {DocumentId} has rows but totals are zero. Recalculating...", documentId);
@@ -835,7 +842,22 @@
             };
         }
 
+        // Refresh cached display values for the header summary panel
+        RefreshHeaderDisplayCache();
+
         UpdateFilteredRows();
+    }
+
+    /// <summary>
+    /// Refreshes the cached display strings used by the left-column header summary,
+    /// so that the render path avoids repeated LINQ lookups on every re-render.
+    /// </summary>
+    private void RefreshHeaderDisplayCache()
+    {
+        _headerDocTypeName = _documentTypes.FirstOrDefault(t => t.Id == _model.DocumentTypeId)?.Name;
+        _headerPriceListName = _model.PriceListId.HasValue
+            ? _priceLists.FirstOrDefault(pl => pl.Id == _model.PriceListId)?.Name
+            : null;
     }
 
     /// <summary>
@@ -843,7 +865,7 @@
     /// </summary>
     private async Task OnStatusChanged(DocumentStatus newStatus)
     {
-        if (_currentDocument == null || !_isEditMode) return;
+        if (_currentDocument == null) return;
 
         try
         {

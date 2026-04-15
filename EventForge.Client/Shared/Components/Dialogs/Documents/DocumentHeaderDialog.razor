@@ -17,7 +17,7 @@
           OnClose="@Cancel"
           MinWidth="min(680px, 95vw)">
     <ChildContent>
-        <MudForm @ref="_form" Class="pa-4">
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="pa-4">
             <MudStack Spacing="3">
 
                 <!-- Tipo Documento -->
@@ -53,16 +53,19 @@
                 </MudGrid>
 
                 <!-- Controparte -->
+                @{
+                    var _bpTypeFilter = GetBusinessPartyTypeFilter();
+                }
                 <UnifiedBusinessPartySelector
                     SelectedBusinessParty="@_selectedBusinessParty"
                     SelectedBusinessPartyChanged="@OnBusinessPartyChanged"
                     Title="@TranslationService.GetTranslation("documents.businessPartner", "Controparte Commerciale")"
                     Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca per nome (min 2 caratteri)...")"
-                    FilterByType="@GetBusinessPartyTypeFilter()"
+                    FilterByType="@_bpTypeFilter"
                     EditMode="EntityEditMode.QuickDialog"
                     CreateMode="EntityCreateMode.QuickDialog"
                     DisplayMode="EntityDisplayMode.All"
-                    PreferredCreateType="@GetBusinessPartyTypeFilter()"
+                    PreferredCreateType="@_bpTypeFilter"
                     ShowGroups="true"
                     ShowFiscalInfo="true"
                     ShowLocation="true"
@@ -105,7 +108,7 @@
                    Color="Color.Primary"
                    Variant="Variant.Filled"
                    StartIcon="@Icons.Material.Outlined.Save"
-                   Disabled="@(!CanConfirm() || _isSaving)">
+                   Disabled="@(!CanConfirm() || !_isFormValid || _isSaving)">
             @if (_isSaving)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-1" />
@@ -133,7 +136,8 @@
     /// <summary>Available price lists (passed from parent to avoid re-loading).</summary>
     [Parameter] public List<PriceListDto> PriceLists { get; set; } = new();
 
-    private MudForm _form = null!;
+    private MudForm? _form;
+    private bool _isFormValid;
     private CreateDocumentHeaderDto _model = new();
     private DateTime? _documentDate;
     private BusinessPartyDto? _selectedBusinessParty;
@@ -210,6 +214,12 @@
     private async Task ConfirmAsync()
     {
         if (!CanConfirm()) return;
+
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid) return;
+        }
 
         _isSaving = true;
         try
