@@ -158,6 +158,8 @@ namespace EventForge.Client.Shared.Components
 
         #region Private Fields
 
+        private const int FocusDelayMs = 100; // DOM must be ready before focusing
+
         private MudAutocomplete<ProductDto>? _autocomplete;
         private string _searchText = string.Empty;
 
@@ -221,25 +223,26 @@ namespace EventForge.Client.Shared.Components
         {
             try
             {
-                const int FocusDelayMs = 100; // Small delay to ensure DOM is ready
-
                 if (firstRender && AutoFocus && _autocomplete != null && SelectedProduct == null)
-                {
-                    await Task.Delay(FocusDelayMs);
-                    await _autocomplete.FocusAsync();
-                }
+                    await FocusAutocompleteAsync();
 
                 if (_shouldFocusAfterProductAdded && _autocomplete != null && SelectedProduct == null)
                 {
                     _shouldFocusAfterProductAdded = false;
-                    await Task.Delay(FocusDelayMs);
-                    await _autocomplete.FocusAsync();
+                    await FocusAutocompleteAsync();
                 }
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error in OnAfterRenderAsync for UnifiedProductSelector.");
             }
+        }
+
+        private async Task FocusAutocompleteAsync()
+        {
+            await Task.Delay(FocusDelayMs);
+            if (_autocomplete != null)
+                await _autocomplete.FocusAsync();
         }
 
         #endregion
