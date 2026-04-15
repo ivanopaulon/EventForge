@@ -48,13 +48,13 @@ namespace EventForge.Client.Shared.Components
     /// Replaces the separate DocumentRowBarcodeScanner, MudAutocomplete, and ProductQuickInfo components.
     /// Product editing is done via the QuickCreateProductDialog.
     /// </summary>
-    public partial class UnifiedProductScanner : ComponentBase
+    public partial class UnifiedProductSelector : ComponentBase
     {
         [Inject] private IProductService ProductService { get; set; } = null!;
         [Inject] private IFinancialService FinancialService { get; set; } = null!;
         [Inject] private ITranslationService TranslationService { get; set; } = null!;
         [Inject] private IAppNotificationService AppNotification { get; set; } = null!;
-        [Inject] private ILogger<UnifiedProductScanner> Logger { get; set; } = null!;
+        [Inject] private ILogger<UnifiedProductSelector> Logger { get; set; } = null!;
         [Inject] private IDialogService DialogService { get; set; } = null!;
 
         #region Parameters - Appearance
@@ -191,7 +191,7 @@ namespace EventForge.Client.Shared.Components
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error initializing UnifiedProductScanner.");
+                Logger.LogError(ex, "Error initializing UnifiedProductSelector.");
             }
         }
 
@@ -211,29 +211,34 @@ namespace EventForge.Client.Shared.Components
                 _shouldFocusAfterProductAdded = true;
             }
             _previousSelectedProduct = SelectedProduct;
-            UpdateDisplayValues();
+
+            // UpdateDisplayValues only needs to run when the product info panel is visible
+            if (ShowCommercialInfo || ShowCurrentStock)
+                UpdateDisplayValues();
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
             try
             {
+                const int FocusDelayMs = 100; // Small delay to ensure DOM is ready
+
                 if (firstRender && AutoFocus && _autocomplete != null && SelectedProduct == null)
                 {
-                    await Task.Delay(100); // Small delay to ensure rendering is complete
+                    await Task.Delay(FocusDelayMs);
                     await _autocomplete.FocusAsync();
                 }
 
                 if (_shouldFocusAfterProductAdded && _autocomplete != null && SelectedProduct == null)
                 {
                     _shouldFocusAfterProductAdded = false;
-                    await Task.Delay(50);
+                    await Task.Delay(FocusDelayMs);
                     await _autocomplete.FocusAsync();
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error in OnAfterRenderAsync for UnifiedProductScanner.");
+                Logger.LogError(ex, "Error in OnAfterRenderAsync for UnifiedProductSelector.");
             }
         }
 
@@ -300,6 +305,15 @@ namespace EventForge.Client.Shared.Components
             }
         }
 
+        private void ResetForNextScan()
+        {
+            SelectedProduct = null;
+            _previousSelectedProduct = null;
+            _searchText = string.Empty;
+            _shouldFocusAfterProductAdded = true;
+            StateHasChanged();
+        }
+
         /// <summary>
         /// Called when a product is selected from the autocomplete dropdown.
         /// CRITICAL: This is the missing piece that propagates selection to parent components.
@@ -322,12 +336,7 @@ namespace EventForge.Client.Shared.Components
 
                 if (ContinuousReadMode)
                 {
-                    // Auto-reset: clear selection so component is immediately ready for next scan
-                    SelectedProduct = null;
-                    _previousSelectedProduct = null;
-                    _searchText = string.Empty;
-                    _shouldFocusAfterProductAdded = true;
-                    StateHasChanged();
+                    ResetForNextScan();
                 }
                 else
                 {
@@ -356,18 +365,16 @@ namespace EventForge.Client.Shared.Components
                 {
                     _previousSelectedProduct = productWithCode.Product;
                     SelectedProduct = productWithCode.Product;
-                    await SelectedProductChanged.InvokeAsync(SelectedProduct);
+
+                    if (SelectedProductChanged.HasDelegate)
+                        await SelectedProductChanged.InvokeAsync(SelectedProduct);
 
                     if (OnProductWithCodeFound.HasDelegate)
                         await OnProductWithCodeFound.InvokeAsync(productWithCode);
 
                     if (ContinuousReadMode)
                     {
-                        SelectedProduct = null;
-                        _previousSelectedProduct = null;
-                        _searchText = string.Empty;
-                        _shouldFocusAfterProductAdded = true;
-                        StateHasChanged();
+                        ResetForNextScan();
                     }
                     else
                     {
@@ -451,7 +458,7 @@ namespace EventForge.Client.Shared.Components
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error loading reference data for UnifiedProductScanner");
+                Logger.LogError(ex, "Error loading reference data for UnifiedProductSelector");
                 AppNotification.ShowError(TranslationService.GetTranslation("errors.loadingData", "Errore nel caricamento dei dati"));
             }
         }
@@ -554,18 +561,14 @@ namespace EventForge.Client.Shared.Components
 
                 if (result is { Canceled: false } && result.Data is ProductDto updatedProduct)
                 {
-                    // Update the selected product with the edited data
                     SelectedProduct = updatedProduct;
-                    await SelectedProductChanged.InvokeAsync(SelectedProduct);
+                    if (SelectedProductChanged.HasDelegate)
+                        await SelectedProductChanged.InvokeAsync(SelectedProduct);
 
-                    // Update display values
                     UpdateDisplayValues();
 
-                    // Notify parent that product was updated
                     if (OnProductUpdated.HasDelegate)
-                    {
                         await OnProductUpdated.InvokeAsync(updatedProduct);
-                    }
 
                     AppNotification.ShowSuccess(TranslationService.GetTranslation("products.updateSuccess", "Prodotto aggiornato con successo"));
                 }
@@ -606,22 +609,16 @@ namespace EventForge.Client.Shared.Components
 
                 if (result is { Canceled: false } && result.Data is ProductDto createdProduct)
                 {
-                    // Set the created product as selected
                     SelectedProduct = createdProduct;
-                    await SelectedProductChanged.InvokeAsync(SelectedProduct);
+                    if (SelectedProductChanged.HasDelegate)
+                        await SelectedProductChanged.InvokeAsync(SelectedProduct);
 
-                    // Update display values
                     UpdateDisplayValues();
 
-                    // Notify parent that product was created
                     if (OnProductCreated.HasDelegate)
-                    {
                         await OnProductCreated.InvokeAsync(createdProduct);
-                    }
 
-                    // Hide prompt if it was showing
                     _showNotFoundPrompt = false;
-
                     AppNotification.ShowSuccess(TranslationService.GetTranslation("products.createSuccess", "Prodotto creato con successo"));
                 }
             }
@@ -641,17 +638,16 @@ namespace EventForge.Client.Shared.Components
             try
             {
                 SelectedProduct = null;
-                await SelectedProductChanged.InvokeAsync(null);
+                if (SelectedProductChanged.HasDelegate)
+                    await SelectedProductChanged.InvokeAsync(null);
                 _searchText = string.Empty;
 
                 if (_autocomplete != null)
-                {
                     await _autocomplete.FocusAsync();
-                }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error in ClearSelection for UnifiedProductScanner.");
+                Logger.LogError(ex, "Error in ClearSelection for UnifiedProductSelector.");
             }
         }
 

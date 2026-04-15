@@ -89,7 +89,7 @@
                             "Scansiona i codici a barre — ogni scansione aggiunge automaticamente 1 unità. I prodotti già presenti vengono aggiornati automaticamente.")
                     </MudAlert>
 
-                    <UnifiedProductScanner @ref="_continuousScanRef"
+                    <UnifiedProductSelector @ref="_continuousScanRef"
                                            SelectedProductChanged="@HandleContinuousScanProductAsync"
                                            Title="@TranslationService.GetTranslation("documents.scanProduct", "Scansiona Prodotto")"
                                            Placeholder="@TranslationService.GetTranslation("documents.scanBarcode", "Scansiona codice a barre o cerca...")"
@@ -160,7 +160,7 @@
                         <MudStack Spacing="2">
 
                             <!-- Product Search -->
-                            <UnifiedProductScanner @ref="_productScannerRef"
+                            <UnifiedProductSelector @ref="_productScannerRef"
                                                    SelectedProduct="@_selectedProduct"
                                                    SelectedProductChanged="@OnProductSelectedAsync"
                                                    Title="@TranslationService.GetTranslation("documents.product", "Prodotto")"
