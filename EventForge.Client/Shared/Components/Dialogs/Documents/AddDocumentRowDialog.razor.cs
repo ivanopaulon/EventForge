@@ -57,7 +57,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     #region Component References
 
     private UnifiedProductScanner? _productScannerRef;
-    private UnifiedProductScanner? _continuousScannerRef;
+    private UnifiedProductScanner? _continuousScanRef;
 
     #endregion
 
@@ -241,10 +241,10 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             {
                 // In ContinuousScan mode, ensure the scanner is focused.
                 // Standard mode: UnifiedProductScanner handles its own autofocus via AutoFocus="!_isEditMode".
-                if (!_isEditMode && _dialogMode == DialogMode.ContinuousScan && _continuousScannerRef != null)
+                if (!_isEditMode && _dialogMode == DialogMode.ContinuousScan && _continuousScanRef != null)
                 {
                     await Task.Delay(100);
-                    await _continuousScannerRef.FocusAsync();
+                    await _continuousScanRef.FocusAsync();
                 }
             }
             catch (Exception ex)
@@ -1666,9 +1666,9 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         {
             await Task.Delay(Delays.RenderDelayMs);
 
-            if (_dialogMode == DialogMode.ContinuousScan && _continuousScannerRef != null)
+            if (_dialogMode == DialogMode.ContinuousScan && _continuousScanRef != null)
             {
-                await _continuousScannerRef.FocusAsync();
+                await _continuousScanRef.FocusAsync();
             }
             else if (_productScannerRef != null)
             {
