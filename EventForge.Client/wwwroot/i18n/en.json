@@ -1071,7 +1071,10 @@
   },
   "menu": {
     "adminDashboard": "Admin Dashboard",
-    "adminDashboardDescription": "Open admin dashboard"
+    "adminDashboardDescription": "Open admin dashboard",
+    "analytics": "Analytics",
+    "monitoring": "Monitoring",
+    "reports": "Reports"
   },
   "notificationPreferences": {
     "allowDataCollection": "Allow data collection",
@@ -3058,5 +3061,25 @@
       "lots": "Lot Expiries",
       "birthdays": "Birthdays"
     }
+  },
+  "reports": {
+    "title": "Report Management",
+    "newReport": "New Report",
+    "designer": "Report Designer",
+    "viewer": "View Report",
+    "save": "Save",
+    "saved": "Report saved successfully.",
+    "saveError": "Error saving the report.",
+    "export": "Export",
+    "category": "Category",
+    "categoryHint": "e.g. Sales, Warehouse, Fiscal",
+    "hasDesign": "Design",
+    "visibility": "Visibility",
+    "public": "Public",
+    "private": "Private",
+    "noReports": "No reports found.",
+    "loadError": "Error loading the report.",
+    "deleteConfirm": "Delete the selected report?",
+    "deleted": "Report deleted successfully."
   }
 }

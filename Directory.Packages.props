@@ -91,6 +91,8 @@
     <!-- Syncfusion Blazor Rich Text Editor and In-Place Editor for chat composition/editing -->
     <PackageVersion Include="Syncfusion.Blazor.RichTextEditor" Version="33.1.46" />
     <PackageVersion Include="Syncfusion.Blazor.InPlaceEditor" Version="33.1.46" />
+    <!-- Bold Reports - server-side RDLC report processing and export (Community License) -->
+    <PackageVersion Include="BoldReports.Net.Core" Version="13.1.27" />
     <!-- HTML sanitization for user-generated rich content -->
     <PackageVersion Include="HtmlSanitizer" Version="9.0.892" />
   </ItemGroup>

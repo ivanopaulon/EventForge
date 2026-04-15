@@ -1,0 +1,264 @@
+@page "/management/reports"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Reports
+@using Prym.DTOs.Common
+@attribute [Authorize]
+
+@inject IReportDefinitionService ReportService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject ILogger<ReportsList> Logger
+
+<PageTitle>@TranslationService.GetTranslation("reports.title", "Gestione Report")</PageTitle>
+<PageLoadingOverlay Visible="_isLoading"
+                    Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento...")" />
+
+@if (!_isLoading)
+{
+    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+            <MudIcon Icon="@Icons.Material.Outlined.Assessment" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h4" Class="ml-2">
+                @TranslationService.GetTranslation("reports.title", "Gestione Report")
+            </MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.Add"
+                       OnClick="OpenNewReportDialogAsync">
+                @TranslationService.GetTranslation("reports.newReport", "Nuovo Report")
+            </MudButton>
+        </MudStack>
+
+        <!-- Filter bar -->
+        <MudPaper Elevation="1" Class="pa-4 mb-4">
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudTextField @bind-Value="_searchTerm"
+                              Label="@TranslationService.GetTranslation("common.search", "Cerca")"
+                              Adornment="Adornment.End"
+                              AdornmentIcon="@Icons.Material.Outlined.Search"
+                              Immediate="true"
+                              OnKeyUp="@(e => { if (e.Key == "Enter") _ = LoadReportsAsync(); })"
+                              Style="min-width:220px;" />
+                <MudSelect @bind-Value="_filterCategory"
+                           Label="@TranslationService.GetTranslation("reports.category", "Categoria")"
+                           Clearable="true"
+                           Style="min-width:180px;">
+                    @foreach (var cat in _categories)
+                    {
+                        <MudSelectItem T="string?" Value="@cat">@cat</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Outlined.Search"
+                           OnClick="@(_ => LoadReportsAsync())">
+                    @TranslationService.GetTranslation("common.search", "Cerca")
+                </MudButton>
+                <MudButton Variant="Variant.Text"
+                           OnClick="ResetFiltersAsync">
+                    @TranslationService.GetTranslation("common.reset", "Reset")
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Data grid -->
+        <MudPaper Elevation="1">
+            <MudTable Items="@_reports"
+                      Hover="true"
+                      Dense="true"
+                      Loading="_isLoadingData"
+                      LoadingProgressColor="Color.Primary"
+                      SortLabel="@TranslationService.GetTranslation("common.sortBy", "Ordina per")">
+                <HeaderContent>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="@(new Func<ReportListItemDto, object>(x => x.Name))">
+                            @TranslationService.GetTranslation("field.name", "Nome")
+                        </MudTableSortLabel>
+                    </MudTh>
+                    <MudTh>@TranslationService.GetTranslation("reports.category", "Categoria")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("reports.hasDesign", "Design")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("reports.visibility", "Visibilità")</MudTh>
+                    <MudTh>
+                        <MudTableSortLabel SortBy="@(new Func<ReportListItemDto, object>(x => x.CreatedAt))">
+                            @TranslationService.GetTranslation("field.createdAt", "Creato il")
+                        </MudTableSortLabel>
+                    </MudTh>
+                    <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                            @if (!string.IsNullOrWhiteSpace(context.Description))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Description</MudText>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("reports.category", "Categoria")">
+                        @if (!string.IsNullOrWhiteSpace(context.Category))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Category</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("reports.hasDesign", "Design")">
+                        @if (context.HasDesign)
+                        {
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Outlined.RadioButtonUnchecked" Color="Color.Default" Size="Size.Small" />
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("reports.visibility", "Visibilità")">
+                        <MudChip T="string"
+                                 Size="Size.Small"
+                                 Color="@(context.IsPublic ? Color.Success : Color.Default)">
+                            @(context.IsPublic
+                                ? TranslationService.GetTranslation("reports.public", "Pubblico")
+                                : TranslationService.GetTranslation("reports.private", "Privato"))
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                        <MudText Typo="Typo.caption">@context.CreatedAt.ToString("dd/MM/yyyy")</MudText>
+                    </MudTd>
+                    <MudTd Class="text-center">
+                        <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           Title="@TranslationService.GetTranslation("reports.designer", "Apri Designer")"
+                                           OnClick="@(() => OpenDesigner(context.Id))" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                           Size="Size.Small"
+                                           Color="Color.Secondary"
+                                           Disabled="@(!context.HasDesign)"
+                                           Title="@TranslationService.GetTranslation("reports.viewer", "Visualizza Report")"
+                                           OnClick="@(() => OpenViewer(context.Id))" />
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           Title="@TranslationService.GetTranslation("common.delete", "Elimina")"
+                                           OnClick="@(() => ConfirmDeleteAsync(context))" />
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                        @TranslationService.GetTranslation("reports.noReports", "Nessun report trovato.")
+                    </MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudContainer>
+}
+
+@code {
+    private bool _isLoading = true;
+    private bool _isLoadingData = false;
+    private List<ReportListItemDto> _reports = [];
+    private List<string?> _categories = [];
+    private string? _searchTerm;
+    private string? _filterCategory;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.WhenAll(LoadReportsAsync(), LoadCategoriesAsync());
+        _isLoading = false;
+    }
+
+    private async Task LoadReportsAsync()
+    {
+        _isLoadingData = true;
+        try
+        {
+            var result = await ReportService.GetReportsAsync(
+                category:   _filterCategory,
+                searchTerm: _searchTerm,
+                page:       1,
+                pageSize:   100);
+            _reports = result?.Items.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reports");
+            AppNotification.ShowError(TranslationService.GetTranslation("reports.loadError", "Errore durante il caricamento dei report."));
+        }
+        finally
+        {
+            _isLoadingData = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCategoriesAsync()
+    {
+        try
+        {
+            var cats = await ReportService.GetCategoriesAsync();
+            _categories = cats?.Cast<string?>().ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading report categories");
+        }
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _searchTerm     = null;
+        _filterCategory = null;
+        await LoadReportsAsync();
+    }
+
+    private void OpenDesigner(Guid reportId)
+    {
+        Navigation.NavigateTo($"/management/reports/designer/{reportId}");
+    }
+
+    private void OpenViewer(Guid reportId)
+    {
+        Navigation.NavigateTo($"/management/reports/viewer/{reportId}");
+    }
+
+    private async Task OpenNewReportDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            ["OnReportCreated"] = EventCallback.Factory.Create<ReportDefinitionDto>(this, OnReportCreated),
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        await DialogService.ShowAsync<CreateReportDialog>(
+            TranslationService.GetTranslation("reports.newReport", "Nuovo Report"),
+            parameters,
+            options);
+    }
+
+    private async Task OnReportCreated(ReportDefinitionDto created)
+    {
+        await LoadReportsAsync();
+        Navigation.NavigateTo($"/management/reports/designer/{created.Id}");
+    }
+
+    private async Task ConfirmDeleteAsync(ReportListItemDto report)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirmDelete", "Conferma eliminazione"),
+            TranslationService.GetTranslation("reports.deleteConfirm", $"Eliminare il report «{report.Name}»?"),
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirmed == true)
+        {
+            await ReportService.DeleteReportAsync(report.Id);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.deleted", "Report eliminato."));
+            await LoadReportsAsync();
+        }
+    }
+}

@@ -23,6 +23,7 @@ using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.PriceLists.Strategies;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
+using EventForge.Server.Services.Reports;
 using EventForge.Server.Services.RetailCart;
 using EventForge.Server.Services.Sales;
 using EventForge.Server.Services.Station;
@@ -475,6 +476,9 @@ public static class ServiceCollectionExtensions
 
         // Register analytics services
         _ = services.AddScoped<EventForge.Server.Services.Analytics.IAnalyticsService, EventForge.Server.Services.Analytics.AnalyticsService>();
+
+        // Register Bold Reports report definition services
+        _ = services.AddScoped<IReportDefinitionService, ReportDefinitionService>();
 
         // Register monitoring services (Sprint 4 — Fase 6 Optimization)
         _ = services.AddScoped<EventForge.Server.Services.Monitoring.IMonitoringService, EventForge.Server.Services.Monitoring.MonitoringService>();
