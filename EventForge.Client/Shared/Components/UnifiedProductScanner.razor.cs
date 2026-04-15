@@ -79,6 +79,13 @@ namespace EventForge.Client.Shared.Components
         [Parameter] public bool ShowCurrentStock { get; set; } = false;
         [Parameter] public decimal? CurrentStockQuantity { get; set; }
 
+        /// <summary>
+        /// When true, the product info panel also shows commercial data: unit of measure,
+        /// VAT rate and default price. Set to false (default) when the parent dialog already
+        /// renders those fields as editable inputs to avoid duplication.
+        /// </summary>
+        [Parameter] public bool ShowCommercialInfo { get; set; } = false;
+
         #endregion
 
         #region Parameters - Search

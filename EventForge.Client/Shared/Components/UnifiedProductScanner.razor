@@ -159,6 +159,8 @@
                     @(string.IsNullOrWhiteSpace(SelectedProduct.Description) ? "-" : SelectedProduct.Description)
                 </MudText>
             </MudItem>
+            @if (ShowCommercialInfo)
+            {
             <MudItem xs="12" sm="6">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
                     @TranslationService.GetTranslation("products.unitOfMeasure", "Unità di Misura")
@@ -185,6 +187,7 @@
                         @SelectedProduct.DefaultPrice.Value.ToString("C2")
                     </MudText>
                 </MudItem>
+            }
             }
             @if (ShowCurrentStock && CurrentStockQuantity.HasValue)
             {
