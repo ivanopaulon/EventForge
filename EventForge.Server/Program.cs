@@ -225,6 +225,11 @@ builder.Services.AddSwaggerGen(c =>
         c.IncludeXmlComments(xmlPath);
     }
 
+    // Prefix each operationId with the controller name to avoid duplicates
+    // (e.g. GetAll in multiple controllers). Same fix as Prym.ManagementHub.
+    c.CustomOperationIds(d =>
+        $"{d.ActionDescriptor.RouteValues["controller"]}_{d.ActionDescriptor.RouteValues["action"]}");
+
     // Configure custom schema IDs - simplified for better Swagger UI readability
     // Uses simple class names for non-generic types; for generic types, creates
     // concatenated names from the generic type and its arguments (e.g., PagedResultOfProductDto)
