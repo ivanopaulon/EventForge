@@ -11,7 +11,7 @@
     <BodyContent>
         <MudForm @ref="_form" Class="pa-2">
             <MudTextField @bind-Value="_dto.Name"
-                          Label="@TranslationService.GetTranslation("field.name", "Nome") *"
+                          Label="@(TranslationService.GetTranslation("field.name", "Nome") + " *")"
                           Variant="Variant.Outlined"
                           Required="true"
                           RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
