@@ -119,6 +119,7 @@
                         <tr>
                             <th style="width:60px">#</th>
                             <th>Nome stampante</th>
+                            <th style="width:160px">Azioni</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -128,6 +129,17 @@
                                 <td class="text-muted">@(i + 1)</td>
                                 <td>
                                     <i class="bi bi-printer me-1 text-success"></i>@Model.SystemPrinters[i]
+                                </td>
+                                <td>
+                                    <form method="post" asp-page-handler="TestPrint">
+                                        <input type="hidden" name="printerName"
+                                               value="@Model.SystemPrinters[i]" />
+                                        <button type="submit"
+                                                class="btn btn-outline-primary btn-sm"
+                                                title="Invia una stampa di prova (scontrino) a questa stampante">
+                                            <i class="bi bi-printer-fill me-1"></i>Stampa di prova
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         }

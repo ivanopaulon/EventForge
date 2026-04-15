@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace Prym.Agent.Pages;
@@ -44,5 +45,28 @@ public class DevicesModel(
         {
             logger.LogWarning(ex, "Devices page: error enumerating devices");
         }
+    }
+
+    /// <summary>
+    /// Sends a sample receipt to the specified printer and redirects back with a toast message.
+    /// </summary>
+    public async Task<IActionResult> OnPostTestPrintAsync(string printerName, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(printerName))
+        {
+            TempData["Error"] = "Nome stampante non specificato.";
+            return RedirectToPage();
+        }
+
+        logger.LogInformation("Devices page: test print requested for '{Printer}'", printerName);
+
+        var ok = await printerService.SendTestPrintAsync(printerName, ct);
+
+        if (ok)
+            TempData["Success"] = $"Stampa di prova inviata a «{printerName}». Verificare che la pagina venga stampata correttamente.";
+        else
+            TempData["Error"] = $"Impossibile inviare la stampa di prova a «{printerName}». Verificare che la stampante sia online e il nome sia corretto.";
+
+        return RedirectToPage();
     }
 }

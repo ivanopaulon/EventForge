@@ -153,6 +153,37 @@ public sealed class PrinterProxyController(
         return Ok(new { ports });
     }
 
+    /// <summary>
+    /// Sends a sample receipt (stampa di prova) to the OS printer queue identified by
+    /// <paramref name="printerName"/>. Useful for verifying that a system printer is
+    /// correctly configured and reachable from the agent machine.
+    /// </summary>
+    /// <param name="printerName">Exact printer display name (from <c>GET system-printers</c>).</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>200 OK when the job was accepted; 400 on bad input; 500 on failure.</returns>
+    [HttpPost("test-print")]
+    public async Task<IActionResult> TestPrintAsync(
+        [FromQuery] string printerName,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(printerName))
+            return BadRequest("printerName query parameter is required.");
+
+        logger.LogDebug("PrinterProxy test-print: printer={Printer}", printerName);
+
+        var ok = await printerService.SendTestPrintAsync(printerName, ct).ConfigureAwait(false);
+
+        if (!ok)
+        {
+            logger.LogWarning("PrinterProxy test-print failed for '{Printer}'", printerName);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                $"Test print to '{printerName}' failed. Check the printer is online and the name is correct.");
+        }
+
+        logger.LogInformation("PrinterProxy test-print succeeded for '{Printer}'", printerName);
+        return Ok(new { printerName, status = "sent" });
+    }
+
     // ── TCP proxy (TcpViaAgent) ───────────────────────────────────────────────
 
     /// <summary>

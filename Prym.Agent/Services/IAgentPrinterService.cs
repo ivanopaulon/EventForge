@@ -80,6 +80,22 @@ public interface IAgentPrinterService
     /// <returns>Read-only list of serial port names (e.g. <c>COM1</c>, <c>/dev/ttyUSB0</c>).</returns>
     Task<IReadOnlyList<string>> ListSerialPortsAsync(CancellationToken ct = default);
 
+    // ── Test print ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sends a sample receipt (stampa di prova) to the OS printer queue identified by
+    /// <paramref name="printerName"/>. The content mirrors a minimal fiscal receipt so
+    /// the operator can verify that the printer is correctly configured and reachable.
+    /// On Windows this routes through <c>powershell.exe Out-Printer</c>;
+    /// on Linux through <c>lp -d</c> (CUPS).
+    /// </summary>
+    /// <param name="printerName">
+    /// Exact printer display name as returned by <see cref="ListSystemPrintersAsync"/>.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><see langword="true"/> when the print job was accepted; <see langword="false"/> on error.</returns>
+    Task<bool> SendTestPrintAsync(string printerName, CancellationToken ct = default);
+
     // ── HTTP forward (TcpViaAgent – Epson WebAPI and similar) ─────────────────
 
     /// <summary>
