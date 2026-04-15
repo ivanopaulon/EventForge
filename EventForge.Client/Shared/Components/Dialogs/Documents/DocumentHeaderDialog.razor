@@ -154,7 +154,8 @@
             Notes = InitialModel.Notes,
             PriceListId = InitialModel.PriceListId,
         };
-        _documentDate = _model.Date == default ? DateTime.Now : _model.Date.ToLocalTime();
+        // Convert UTC to local time for the date picker
+        _documentDate = _model.Date.ToLocalTime();
         _selectedBusinessParty = InitialBusinessParty;
         _effectivePriceLists = PriceLists.ToList();
     }

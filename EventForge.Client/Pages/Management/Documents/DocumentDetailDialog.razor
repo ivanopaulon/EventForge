@@ -794,9 +794,10 @@
 
         if (result is { Canceled: false } && result.Data is DocumentHeaderDto savedDoc)
         {
+            var isFirstSave = _currentDocument == null;
             ApplyHeaderDto(savedDoc);
 
-            if (_currentDocument != null && !_isEditMode)
+            if (isFirstSave)
             {
                 // First-time save: set up real-time collaboration
                 await SetupCollaborationAsync(savedDoc.Id);
@@ -824,7 +825,7 @@
         _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
             "Documento {0}", doc.Number ?? doc.Id.ToString()[..8]);
 
-        // Update selected business party display name
+        // Update selected business party display name (display-only stub; used only for the left-column summary label)
         if (_selectedBusinessParty == null || _selectedBusinessParty.Id != doc.BusinessPartyId)
         {
             _selectedBusinessParty = new BusinessPartyDto
