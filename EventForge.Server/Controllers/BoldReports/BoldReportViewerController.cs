@@ -74,11 +74,29 @@ public class BoldReportViewerController(
 
     /// <summary>
     /// Callback invoked before report options are initialised.
-    /// Override to customise the report path or parameters before loading.
+    /// Resolves the GUID-based report path to the stored RDLC content and
+    /// provides it as a <see cref="Stream"/> so Bold Reports uses it directly.
     /// </summary>
     public void OnInitReportOptions(ReportViewerOptions reportViewerOptions)
     {
-        // Resolve GUID-based report path to the stored RDLC content via the ReportHelper pipeline.
+        var reportPath = reportViewerOptions.ReportModel.ReportPath;
+        if (!Guid.TryParse(reportPath, out var reportId))
+            return;
+
+        try
+        {
+            var report = reportService.GetReportAsync(reportId).GetAwaiter().GetResult();
+            if (report?.ReportContent is { Length: > 0 })
+            {
+                var rdlcBytes = System.Text.Encoding.UTF8.GetBytes(report.ReportContent);
+                reportViewerOptions.ReportModel.Stream = new System.IO.MemoryStream(rdlcBytes);
+                reportViewerOptions.ReportModel.ReportPath = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading RDLC content for report {ReportId}", reportId);
+        }
     }
 
     /// <summary>
