@@ -10,7 +10,7 @@ namespace EventForge.Client.Shared.Components.Business
 {
     /// <summary>
     /// Unified component for Business Party search and display.
-    /// Follows the same pattern as UnifiedProductScanner.
+    /// Follows the same pattern as UnifiedProductSelector.
     /// Supports progressive enhancement for business party groups (badges).
     /// </summary>
     public partial class UnifiedBusinessPartySelector : ComponentBase
@@ -143,7 +143,7 @@ namespace EventForge.Client.Shared.Components.Business
 
         /// <summary>
         /// Search business parties by name, tax code, or VAT number.
-        /// IMPORTANT: Uses the EXACT same pattern as SearchProductsAsync in UnifiedProductScanner.
+        /// IMPORTANT: Uses the EXACT same pattern as SearchProductsAsync in UnifiedProductSelector.
         /// Simple, clean, NO StateHasChanged during search.
         /// </summary>
         private async Task<IEnumerable<BusinessPartyDto>> SearchBusinessPartiesAsync(
@@ -178,7 +178,7 @@ namespace EventForge.Client.Shared.Components.Business
 
         /// <summary>
         /// Called when a business party is selected from the autocomplete dropdown.
-        /// Pattern: Same as OnProductSelectionChangedAsync in UnifiedProductScanner.
+        /// Pattern: Same as OnProductSelectionChangedAsync in UnifiedProductSelector.
         /// </summary>
         private async Task OnBusinessPartySelectionChangedAsync(BusinessPartyDto? businessParty)
         {

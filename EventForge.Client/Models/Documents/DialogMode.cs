@@ -1,7 +1,7 @@
 namespace EventForge.Client.Models.Documents;
 
 /// <summary>
-/// Represents the operating mode of the AddDocumentRowDialog
+/// Represents the operating mode of the DocumentRowDialog
 /// </summary>
 public enum DialogMode
 {

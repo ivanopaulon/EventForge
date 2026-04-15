@@ -120,8 +120,8 @@
             {
                 <MudStack Spacing="2">
                     
-                    <!-- UnifiedProductScanner -->
-                    <UnifiedProductScanner 
+                    <!-- UnifiedProductSelector -->
+                    <UnifiedProductSelector 
                         SelectedProduct="@_currentProduct"
                         SelectedProductChanged="@OnProductSelectedAsync"
                         Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
@@ -397,7 +397,7 @@
 
     private Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
     {
-        // SelectedProductChanged has already been fired by UnifiedProductScanner before
+        // SelectedProductChanged has already been fired by UnifiedProductSelector before
         // OnProductWithCodeFound, so OnProductSelectedAsync was already called and the
         // product has been added to the cart. Do NOT call it again here to prevent double-add.
         return Task.CompletedTask;
