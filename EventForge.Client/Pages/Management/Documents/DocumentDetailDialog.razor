@@ -78,123 +78,141 @@
             <!-- ── Two-column body ───────────────────────────────────────── -->
             <div class="gdp-body">
 
-                <!-- Left column: header info + business party + summary/totals -->
+                <!-- Left column: header summary + status + totals -->
                 <div class="gdp-left-col">
 
-                    <!-- Dati Documento -->
+                    <!-- Testata Documento (summary + edit button) -->
                     <MudPaper Elevation="2" Class="gdp-panel pa-3">
-                        <MudText Typo="Typo.subtitle1" Class="mb-2 fw-medium">
-                            @TranslationService.GetTranslation("documents.documentData", "Dati Documento")
-                        </MudText>
-                        <MudStack Spacing="2">
-                            <!-- Tipo Documento -->
-                            <MudSelect @bind-Value="_model.DocumentTypeId"
-                                      Label="@TranslationService.GetTranslation("documents.documentType", "Tipo Documento")"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Required="true"
-                                      Disabled="@_isEditMode">
-                                @foreach (var type in _documentTypes ?? Enumerable.Empty<DocumentTypeDto>())
+                        <div class="d-flex align-center justify-space-between mb-2">
+                            <MudText Typo="Typo.subtitle1" Class="fw-medium">
+                                @TranslationService.GetTranslation("documents.documentData", "Dati Documento")
+                            </MudText>
+                            @if (!_isReadOnly)
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("documents.editHeader", "Modifica Testata")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                   Size="Size.Small"
+                                                   Color="Color.Primary"
+                                                   OnClick="@OpenHeaderDialogAsync"
+                                                   Disabled="@_isLoading" />
+                                </MudTooltip>
+                            }
+                        </div>
+
+                        @if (_currentDocument == null)
+                        {
+                            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.EditNote" Size="Size.Large" Color="Color.Primary" />
+                                <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("documents.headerNotYetFilled", "Testata non ancora compilata.")
+                                </MudText>
+                                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                                           Color="Color.Primary"
+                                           Variant="Variant.Outlined"
+                                           Size="Size.Small"
+                                           OnClick="@OpenHeaderDialogAsync">
+                                    @TranslationService.GetTranslation("documents.fillHeader", "Compila Testata")
+                                </MudButton>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="1">
+                                <!-- Tipo Documento -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.documentType", "Tipo Documento")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Class="fw-medium">
+                                        @(_headerDocTypeName ?? "—")
+                                    </MudText>
+                                </div>
+                                <!-- Numero / Serie -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.number", "Numero")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @if (!string.IsNullOrEmpty(_model.Series))
+                                        {
+                                            <span>@_model.Series /</span>
+                                        }
+                                        @(_model.Number ?? TranslationService.GetTranslation("documents.autoGenerated", "Auto-generato"))
+                                    </MudText>
+                                </div>
+                                <!-- Data -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.date", "Data Documento")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(_documentDate?.ToString("dd/MM/yyyy") ?? "—")
+                                    </MudText>
+                                </div>
+                                <!-- Controparte -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.businessPartner", "Controparte")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(_selectedBusinessParty?.Name ?? "—")
+                                    </MudText>
+                                </div>
+                                <!-- Listino -->
+                                @if (_model.PriceListId.HasValue)
                                 {
-                                    <MudSelectItem Value="@type.Id">@type.Name</MudSelectItem>
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @TranslationService.GetTranslation("documents.priceList", "Listino Prezzi")
+                                        </MudText>
+                                        <MudText Typo="Typo.body2">
+                                            @(_headerPriceListName ?? "—")
+                                        </MudText>
+                                    </div>
                                 }
-                            </MudSelect>
-                            <!-- Serie / Numero -->
-                            <MudGrid Spacing="2">
-                                <MudItem xs="6">
-                                    <MudTextField @bind-Value="_model.Series"
-                                                  Label="@TranslationService.GetTranslation("documents.series", "Serie")"
-                                                  Variant="Variant.Outlined"
-                                                  Margin="Margin.Dense"
-                                                  Disabled="@_isReadOnly"/>
-                                </MudItem>
-                                <MudItem xs="6">
-                                    <MudTextField Value="@_model.Number"
-                                                  Label="@TranslationService.GetTranslation("documents.number", "Numero")"
-                                                  Variant="Variant.Outlined"
-                                                  Margin="Margin.Dense"
-                                                  Disabled="true"
-                                                  HelperText="@TranslationService.GetTranslation("documents.autoGenerated", "Auto-generato")"/>
-                                </MudItem>
-                            </MudGrid>
-                            <!-- Data / Stato -->
-                            <MudGrid Spacing="2">
-                                <MudItem xs="7">
-                                    <MudDatePicker @bind-Date="_documentDate"
-                                                   Label="@TranslationService.GetTranslation("documents.date", "Data Documento")"
-                                                   Variant="Variant.Outlined"
-                                                   Margin="Margin.Dense"
-                                                   DateFormat="dd/MM/yyyy"
-                                                   Disabled="@_isReadOnly"
-                                                   Editable="true"/>
-                                </MudItem>
-                                <MudItem xs="5">
-                                    <MudSelect T="DocumentStatus"
-                                              Value="_documentStatus"
-                                              ValueChanged="@OnStatusChanged"
-                                              Label="@TranslationService.GetTranslation("documents.status", "Stato")"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense"
-                                              Disabled="@(!_isEditMode || _currentDocument == null || !IsDocumentEditable())">
-                                        <MudSelectItem Value="@DocumentStatus.Draft">
-                                            @TranslationService.GetTranslation("status.draft", "Bozza")
-                                        </MudSelectItem>
-                                        <MudSelectItem Value="@DocumentStatus.Open">
-                                            @TranslationService.GetTranslation("status.open", "Aperto")
-                                        </MudSelectItem>
-                                        <MudSelectItem Value="@DocumentStatus.Closed">
-                                            @TranslationService.GetTranslation("status.closed", "Chiuso")
-                                        </MudSelectItem>
-                                        <MudSelectItem Value="@DocumentStatus.Cancelled">
-                                            @TranslationService.GetTranslation("status.cancelled", "Annullato")
-                                        </MudSelectItem>
-                                    </MudSelect>
-                                </MudItem>
-                            </MudGrid>
-                            <!-- Listino Prezzi -->
-                            <MudSelect @bind-Value="_model.PriceListId"
-                                      T="Guid?"
-                                      Label="@TranslationService.GetTranslation("documents.priceList", "Listino Prezzi")"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
-                                      Clearable="true"
-                                      Disabled="@_isReadOnly">
-                                @foreach (var pl in _priceLists)
+                                <!-- Note -->
+                                @if (!string.IsNullOrWhiteSpace(_model.Notes))
                                 {
-                                    <MudSelectItem T="Guid?" Value="@((Guid?)pl.Id)">@pl.Name</MudSelectItem>
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @TranslationService.GetTranslation("documents.notes", "Note")
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="text-wrap">@_model.Notes</MudText>
+                                    </div>
                                 }
-                            </MudSelect>
-                            <!-- Note -->
-                            <MudTextField @bind-Value="_model.Notes"
-                                          Label="@TranslationService.GetTranslation("documents.notes", "Note")"
-                                          Variant="Variant.Outlined"
-                                          Margin="Margin.Dense"
-                                          Lines="2"
-                                          Disabled="@_isReadOnly"
-                                          Placeholder="@TranslationService.GetTranslation("documents.notesPlaceholder", "Note opzionali per il documento...")"/>
-                        </MudStack>
+                            </MudStack>
+                        }
                     </MudPaper>
 
-                    <!-- Controparte Commerciale -->
-                    <MudPaper Elevation="2" Class="gdp-panel pa-3">
-                        <UnifiedBusinessPartySelector
-                            SelectedBusinessParty="@_selectedBusinessParty"
-                            SelectedBusinessPartyChanged="@OnBusinessPartyChanged"
-                            Title="@TranslationService.GetTranslation("documents.businessPartner", "Controparte Commerciale")"
-                            Placeholder="@TranslationService.GetTranslation("documents.searchBusinessParty", "Cerca per nome (min 2 caratteri)...")"
-                            FilterByType="@GetBusinessPartyTypeFilter()"
-                            EditMode="EntityEditMode.QuickDialog"
-                            CreateMode="EntityCreateMode.QuickDialog"
-                            DisplayMode="EntityDisplayMode.All"
-                            PreferredCreateType="@GetBusinessPartyTypeFilter()"
-                            ShowGroups="true"
-                            ShowFiscalInfo="true"
-                            ShowLocation="true"
-                            AllowClear="true"
-                            AutoFocus="false"
-                            Disabled="@_isReadOnly"
-                            Dense="true" />
-                    </MudPaper>
+                    <!-- Stato Documento -->
+                    @if (_isEditMode && _currentDocument != null)
+                    {
+                        <MudPaper Elevation="2" Class="gdp-panel pa-3">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2 fw-medium">
+                                @TranslationService.GetTranslation("documents.status", "Stato")
+                            </MudText>
+                            <MudSelect T="DocumentStatus"
+                                       Value="_documentStatus"
+                                       ValueChanged="@OnStatusChanged"
+                                       Label="@TranslationService.GetTranslation("documents.status", "Stato")"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Disabled="@(!IsDocumentEditable() || _isReadOnly)">
+                                <MudSelectItem Value="@DocumentStatus.Draft">
+                                    @TranslationService.GetTranslation("status.draft", "Bozza")
+                                </MudSelectItem>
+                                <MudSelectItem Value="@DocumentStatus.Open">
+                                    @TranslationService.GetTranslation("status.open", "Aperto")
+                                </MudSelectItem>
+                                <MudSelectItem Value="@DocumentStatus.Closed">
+                                    @TranslationService.GetTranslation("status.closed", "Chiuso")
+                                </MudSelectItem>
+                                <MudSelectItem Value="@DocumentStatus.Cancelled">
+                                    @TranslationService.GetTranslation("status.cancelled", "Annullato")
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudPaper>
+                    }
 
                     <!-- Riepilogo e Totali (fills remaining left-column space) -->
                     <MudPaper Elevation="2" Class="gdp-panel-fill pa-3">
@@ -206,23 +224,6 @@
                             <DocumentTotalsCard Document="@_currentDocument" />
                         </MudStack>
                     </MudPaper>
-
-                    <!-- Pulsante Salva -->
-                    <MudButton StartIcon="@Icons.Material.Outlined.Save"
-                               Color="Color.Primary"
-                               Variant="Variant.Filled"
-                               FullWidth="true"
-                               OnClick="@SaveDocumentHeaderAsync"
-                               Disabled="@(_isReadOnly || !CanSaveHeader() || _isSavingHeader)">
-                        @if (_isSavingHeader)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
-                        }
-                        else
-                        {
-                            @TranslationService.GetTranslation("common.save", "Salva")
-                        }
-                    </MudButton>
 
                 </div> <!-- /gdp-left-col -->
 
@@ -498,7 +499,6 @@
 
     private bool _isLoading = false;
     private string _loadingMessage = string.Empty;
-    private bool _isSavingHeader = false;
     private bool _lockReleased = false;
 
     private static readonly IReadOnlyList<string> _documentLoadingProgressMessages = new[]
@@ -518,7 +518,14 @@
     private DateTime? _documentDate = DateTime.UtcNow;
     private List<DocumentTypeDto> _documentTypes = new();
     private List<PriceListDto> _priceLists = new();
+    // O(1) lookup maps built whenever the lists are (re)loaded
+    private Dictionary<Guid, string> _docTypeNames = new();
+    private Dictionary<Guid, string> _priceListNames = new();
     private BusinessPartyDto? _selectedBusinessParty = null;
+
+    // Cached display values for the left-column summary (avoids per-render lookup)
+    private string? _headerDocTypeName;
+    private string? _headerPriceListName;
 
     // Document status binding
     private DocumentStatus _documentStatus = DocumentStatus.Draft;
@@ -616,6 +623,9 @@
             {
                 _model.DocumentTypeId = defaultDocType.Id;
             }
+
+            // Auto-open the header dialog for new documents so the user fills in header data immediately
+            await OpenHeaderDialogAsync();
         }
     }
 
@@ -625,6 +635,7 @@
         {
             var types = await DocumentTypeService.GetAllDocumentTypesAsync();
             _documentTypes = types?.ToList() ?? new List<DocumentTypeDto>();
+            _docTypeNames = _documentTypes.ToDictionary(t => t.Id, t => t.Name ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -639,11 +650,13 @@
         {
             var result = await PriceListService.GetPagedAsync(1, 1000, direction: null, status: PriceListStatus.Active);
             _priceLists = result?.Items?.ToList() ?? new List<PriceListDto>();
+            _priceListNames = _priceLists.ToDictionary(pl => pl.Id, pl => pl.Name ?? string.Empty);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error loading price lists");
             _priceLists = new List<PriceListDto>();
+            _priceListNames = new Dictionary<Guid, string>();
         }
     }
 
@@ -734,6 +747,9 @@
                     }
                 }
 
+                // Refresh cached display values after loading
+                RefreshHeaderDisplayCache();
+
                 if (_currentDocument.Rows?.Any() == true && HasZeroTotals(_currentDocument))
                 {
                     Logger.LogInformation("Document {DocumentId} has rows but totals are zero. Recalculating...", documentId);
@@ -758,67 +774,10 @@
     }
 
     /// <summary>
-    /// Called when the business party selector value changes.
-    /// Updates the selected business party and refreshes the price list if available for the new BP.
+    /// Opens the DocumentHeaderDialog to create or edit the document header.
+    /// On success, updates the local state with the saved document header data.
     /// </summary>
-    private async Task OnBusinessPartyChanged(BusinessPartyDto? party)
-    {
-        _selectedBusinessParty = party;
-        // Reset price list selection when business party changes
-        _model.PriceListId = null;
-
-        if (party != null)
-        {
-            // Reload general lists and merge BP-specific ones
-            await LoadPriceListsAsync();
-            try
-            {
-                var bpLists = await PriceListService.GetPriceListsByBusinessPartyAsync(party.Id);
-                if (bpLists?.Any() == true)
-                {
-                    // Merge BP-specific lists with general ones, deduplicating by Id
-                    var merged = _priceLists.Concat(bpLists)
-                        .GroupBy(p => p.Id)
-                        .Select(g => g.First())
-                        .OrderBy(p => p.Name)
-                        .ToList();
-                    _priceLists = merged;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Error loading price lists for business party {BusinessPartyId}", party.Id);
-            }
-        }
-        else
-        {
-            // Restore the general list when no BP is selected
-            await LoadPriceListsAsync();
-        }
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// Gets the BusinessPartyType filter based on the selected document type.
-    /// </summary>
-    private BusinessPartyType? GetBusinessPartyTypeFilter()
-    {
-        var selectedDocType = _documentTypes.FirstOrDefault(dt => dt.Id == _model.DocumentTypeId);
-        if (selectedDocType != null && selectedDocType.RequiredPartyType != BusinessPartyType.Both)
-        {
-            return selectedDocType.RequiredPartyType;
-        }
-        return null;
-    }
-
-    private bool CanSaveHeader()
-    {
-        return _model.DocumentTypeId != Guid.Empty
-               && _selectedBusinessParty != null
-               && _documentDate.HasValue;
-    }
-
-    private async Task SaveDocumentHeaderAsync()
+    private async Task OpenHeaderDialogAsync()
     {
         if (_isEditMode && !IsDocumentEditable())
         {
@@ -826,56 +785,85 @@
             return;
         }
 
-        _isSavingHeader = true;
-        try
+        var parameters = new DialogParameters
         {
-            _model.BusinessPartyId = _selectedBusinessParty!.Id;
-            _model.Date = _documentDate!.Value.ToUniversalTime();
+            [nameof(DocumentHeaderDialog.DocumentId)] = _currentDocument?.Id,
+            [nameof(DocumentHeaderDialog.InitialModel)] = _model,
+            [nameof(DocumentHeaderDialog.InitialBusinessParty)] = _selectedBusinessParty,
+            [nameof(DocumentHeaderDialog.DocumentTypes)] = _documentTypes,
+            [nameof(DocumentHeaderDialog.PriceLists)] = _priceLists,
+        };
 
-            if (_isEditMode && _currentDocument != null)
-            {
-                var updateDto = new UpdateDocumentHeaderDto
-                {
-                    DocumentTypeId = _model.DocumentTypeId,
-                    Series = _model.Series,
-                    Number = _model.Number ?? string.Empty,
-                    Date = _model.Date,
-                    BusinessPartyId = _model.BusinessPartyId,
-                    Notes = _model.Notes,
-                    PriceListId = _model.PriceListId
-                };
-                var updated = await DocumentHeaderService.UpdateDocumentHeaderAsync(_currentDocument.Id, updateDto);
-                if (updated != null)
-                {
-                    _currentDocument = updated;
-                    UpdateFilteredRows();
-                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.updateSuccess", "Documento aggiornato con successo"));
-                }
-            }
-            else
-            {
-                var created = await DocumentHeaderService.CreateDocumentHeaderAsync(_model);
-                if (created != null)
-                {
-                    _currentDocument = created;
-                    UpdateFilteredRows();
-                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.createSuccess", "Documento creato con successo"));
-                    _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
-                        "Documento {0}", created.Number ?? created.Id.ToString()[..8]);
-                    // Set up real-time collaboration for the newly created document
-                    await SetupCollaborationAsync(created.Id);
-                }
-            }
-        }
-        catch (Exception ex)
+        var options = new DialogOptions
         {
-            Logger.LogError(ex, "Error saving document header");
-            AppNotification.ShowError(TranslationService.GetTranslation("documents.saveError", "Errore durante il salvataggio del documento"));
-        }
-        finally
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = false,
+            CloseOnEscapeKey = false,
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentHeaderDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is DocumentHeaderDto savedDoc)
         {
-            _isSavingHeader = false;
+            var isFirstSave = _currentDocument == null;
+            ApplyHeaderDto(savedDoc);
+
+            if (isFirstSave)
+            {
+                // First-time save: set up real-time collaboration
+                await SetupCollaborationAsync(savedDoc.Id);
+            }
+
+            StateHasChanged();
         }
+    }
+
+    /// <summary>
+    /// Applies a saved DocumentHeaderDto to the local model and selected party state.
+    /// </summary>
+    private void ApplyHeaderDto(DocumentHeaderDto doc)
+    {
+        _currentDocument = doc;
+        _model.DocumentTypeId = doc.DocumentTypeId;
+        _model.Series = doc.Series;
+        _model.Number = doc.Number;
+        _model.Date = doc.Date;
+        _model.BusinessPartyId = doc.BusinessPartyId;
+        _model.Notes = doc.Notes;
+        _model.PriceListId = doc.PriceListId;
+        _documentDate = doc.Date.ToLocalTime();
+        _documentStatus = doc.Status;
+        _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
+            "Documento {0}", doc.Number ?? doc.Id.ToString()[..8]);
+
+        // Update selected business party display name (display-only stub; used only for the left-column summary label)
+        if (_selectedBusinessParty == null || _selectedBusinessParty.Id != doc.BusinessPartyId)
+        {
+            _selectedBusinessParty = new BusinessPartyDto
+            {
+                Id = doc.BusinessPartyId,
+                Name = doc.BusinessPartyName ?? string.Empty,
+            };
+        }
+
+        // Refresh cached display values for the header summary panel
+        RefreshHeaderDisplayCache();
+
+        UpdateFilteredRows();
+    }
+
+    /// <summary>
+    /// Refreshes the cached display strings used by the left-column header summary
+    /// using O(1) dictionary lookups.
+    /// </summary>
+    private void RefreshHeaderDisplayCache()
+    {
+        _docTypeNames.TryGetValue(_model.DocumentTypeId, out _headerDocTypeName);
+        _headerPriceListName = _model.PriceListId.HasValue && _priceListNames.TryGetValue(_model.PriceListId.Value, out var plName)
+            ? plName
+            : null;
     }
 
     /// <summary>
@@ -883,7 +871,7 @@
     /// </summary>
     private async Task OnStatusChanged(DocumentStatus newStatus)
     {
-        if (_currentDocument == null || !_isEditMode) return;
+        if (_currentDocument == null) return;
 
         try
         {
