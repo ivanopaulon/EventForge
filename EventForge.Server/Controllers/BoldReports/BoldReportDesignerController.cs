@@ -106,7 +106,7 @@ public class BoldReportDesignerController(
         {
             try
             {
-                var report = reportService.GetReportAsync(reportId).GetAwaiter().GetResult();
+                var report = Task.Run(() => reportService.GetReportAsync(reportId)).GetAwaiter().GetResult();
                 if (report?.ReportContent is { Length: > 0 })
                 {
                     return new ResourceInfo
