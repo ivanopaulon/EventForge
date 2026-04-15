@@ -426,6 +426,13 @@ builder.Services.AddOutputCache(options =>
 
 var app = builder.Build();
 
+// Register Bold Reports Community License key at startup
+var boldReportsLicenseKey = builder.Configuration["BoldReportsLicenseKey"];
+if (!string.IsNullOrWhiteSpace(boldReportsLicenseKey))
+{
+    Bold.Licensing.BoldLicenseProvider.RegisterLicense(boldReportsLicenseKey);
+}
+
 // Validate DI configuration at startup
 using (var scope = app.Services.CreateScope())
 {

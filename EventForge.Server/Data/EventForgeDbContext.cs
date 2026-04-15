@@ -239,6 +239,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureEntityChangeLog(modelBuilder);
         ConfigureFiscalPrintingRelationships(modelBuilder);
         ConfigureWhatsAppRelationships(modelBuilder);
+        ConfigureReportRelationships(modelBuilder);
     }
 
     /// <summary>

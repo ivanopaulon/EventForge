@@ -56,6 +56,8 @@
     <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="System.IO.Ports" />
     <PackageReference Include="System.ServiceProcess.ServiceController" />
+    <!-- Bold Reports server-side RDLC processing, export (PDF, Excel, Word) - Community License -->
+    <PackageReference Include="BoldReports.Net.Core" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Prym.DTOs\Prym.DTOs.csproj" />
