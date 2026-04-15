@@ -4,7 +4,7 @@ using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
 using EventForge.Client.Shared.Components.Dialogs;
 using EventForge.Client.Shared.Components.Dialogs.Sales;
-using EventForge.Client.Shared.Components.FiscalPrinting;
+
 using EventForge.Client.ViewModels;
 using Prym.DTOs.Analytics;
 using Prym.DTOs.Business;
@@ -556,11 +556,11 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            var parameters = new DialogParameters<EventForge.Client.Pages.Management.Products.ProductDetailDialog>
+            var parameters = new DialogParameters<EventForge.Client.Shared.Components.Dialogs.Products.ProductDetailDialog>
             {
                 { p => p.EntityId, product.Id }
             };
-            await DialogService.ShowAsync<EventForge.Client.Pages.Management.Products.ProductDetailDialog>(
+            await DialogService.ShowAsync<EventForge.Client.Shared.Components.Dialogs.Products.ProductDetailDialog>(
                 product.Name, parameters, EFDialogDefaults.Options);
         }
         catch (Exception ex)
