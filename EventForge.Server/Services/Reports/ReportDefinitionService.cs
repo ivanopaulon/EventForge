@@ -156,6 +156,27 @@ public class ReportDefinitionService(
     }
 
     /// <inheritdoc/>
+    public async Task<bool> SaveReportContentAsync(Guid id, string rdlcContent, CancellationToken ct = default)
+    {
+        var tenantId   = GetTenantIdOrThrow();
+        var modifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
+
+        var report = await context.ReportDefinitions
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId && !r.IsDeleted, ct);
+
+        if (report is null) return false;
+
+        report.ReportContent = rdlcContent;
+        report.ModifiedAt    = DateTime.UtcNow;
+        report.ModifiedBy    = modifiedBy;
+
+        await context.SaveChangesAsync(ct);
+
+        logger.LogInformation("Saved RDLC content for ReportDefinition {ReportId} (tenant {TenantId})", id, tenantId);
+        return true;
+    }
+
+    /// <inheritdoc/>
     public async Task<bool> DeleteReportAsync(Guid id, CancellationToken ct = default)
     {
         var tenantId   = GetTenantIdOrThrow();

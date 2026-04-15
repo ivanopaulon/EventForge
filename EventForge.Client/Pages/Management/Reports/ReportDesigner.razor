@@ -17,39 +17,34 @@
 
 @if (!_isLoading)
 {
-    <MudContainer MaxWidth="MaxWidth.False" Class="pa-0" Style="height:100%;display:flex;flex-direction:column;">
-        <!-- Toolbar -->
-        <MudPaper Elevation="1" Class="pa-3 mb-1" Style="flex:0 0 auto;">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
-                               Size="Size.Small"
-                               Title="@TranslationService.GetTranslation("common.back", "Indietro")"
-                               OnClick="@(() => Navigation.NavigateTo("/management/reports"))" />
-                <MudIcon Icon="@Icons.Material.Outlined.Draw" Color="Color.Primary" />
-                <MudStack Spacing="0">
-                    <MudText Typo="Typo.subtitle1">
-                        @(_report?.Name ?? TranslationService.GetTranslation("reports.designer", "Report Designer"))
-                    </MudText>
-                    @if (!string.IsNullOrWhiteSpace(_report?.Category))
-                    {
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.Category</MudText>
-                    }
-                </MudStack>
-                <MudSpacer />
+    <div class="reports-designer-root ef-flex-col-fill">
+        <ManagementPageHeader Title="@(_report?.Name ?? TranslationService.GetTranslation("reports.designer", "Report Designer"))"
+                              Icon="@Icons.Material.Outlined.Draw"
+                              BreadcrumbItems="_breadcrumbs">
+            <ExtraActions>
+                @if (!string.IsNullOrWhiteSpace(_report?.Category))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mr-2">@_report.Category</MudChip>
+                }
                 @if (_isSaving)
                 {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" Class="mr-2" />
                 }
-            </MudStack>
-        </MudPaper>
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Outlined.ArrowBack"
+                           Size="Size.Small"
+                           OnClick="@(() => Navigation.NavigateTo("/management/reports"))">
+                    @TranslationService.GetTranslation("common.back", "Indietro")
+                </MudButton>
+            </ExtraActions>
+        </ManagementPageHeader>
 
-        <!-- Designer -->
-        <div style="flex:1 1 auto;overflow:hidden;">
+        <div class="ef-flex-child-fill" style="overflow:hidden;">
             <ReportDesignerComponent ReportId="@ReportId"
                                      Height="100%"
                                      OnSave="HandleDesignerSaveAsync" />
         </div>
-    </MudContainer>
+    </div>
 }
 
 @code {
@@ -58,6 +53,8 @@
     private ReportDefinitionDto? _report;
     private bool _isLoading = true;
     private bool _isSaving = false;
+
+    private List<BreadcrumbItem> _breadcrumbs = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -73,36 +70,38 @@
                 AppNotification.ShowError(TranslationService.GetTranslation("reports.loadError", "Errore durante il caricamento del report."));
             }
         }
+
+        _breadcrumbs =
+        [
+            new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+            new BreadcrumbItem("Gestione", null, disabled: true),
+            new BreadcrumbItem("Report", "/management/reports"),
+            new BreadcrumbItem(_report?.Name ?? "Designer", null, disabled: true)
+        ];
+
         _isLoading = false;
     }
 
-    private async Task HandleDesignerSaveAsync(string rdlcContent)
+    private async Task HandleDesignerSaveAsync(string reportPathOrContent)
     {
         if (!ReportId.HasValue || _report is null) return;
 
         _isSaving = true;
         try
         {
-            var dto = new UpdateReportDto
-            {
-                Name          = _report.Name,
-                Description   = _report.Description,
-                Category      = _report.Category,
-                IsPublic      = _report.IsPublic,
-                IsActive      = _report.IsActive,
-                ReportContent = rdlcContent,
-            };
-            var updated = await ReportService.UpdateReportAsync(ReportId.Value, dto);
-            if (updated is not null)
-            {
-                _report = updated;
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.saved", "Report salvato."));
-            }
+            // The Bold Reports designer persists the RDLC to the server via SetData.
+            // We receive the reportPath (GUID) here as a save-completed notification.
+            // Refresh the local report metadata from the API so the UI stays in sync.
+            var refreshed = await ReportService.GetReportAsync(ReportId.Value);
+            if (refreshed is not null)
+                _report = refreshed;
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.saved", "Report salvato."));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error saving report RDLC content for {ReportId}", ReportId);
-            AppNotification.ShowError(TranslationService.GetTranslation("reports.saveError", "Errore durante il salvataggio del report."));
+            Logger.LogError(ex, "Error refreshing report metadata after save for {ReportId}", ReportId);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.saved", "Report salvato."));
         }
         finally
         {
