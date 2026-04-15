@@ -6,7 +6,7 @@ using Prym.DTOs.VatRates;
 namespace EventForge.Client.Models.Documents;
 
 /// <summary>
-/// Unified state model for AddDocumentRowDialog
+/// Unified state model for DocumentRowDialog
 /// Consolidates ~40 scattered state variables into a structured object
 /// </summary>
 public class DocumentRowDialogState
