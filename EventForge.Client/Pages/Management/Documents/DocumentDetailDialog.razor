@@ -930,19 +930,20 @@
 
         var parameters = new DialogParameters
         {
-            { "DocumentHeaderId", _currentDocument!.Id },
-            { nameof(AddDocumentRowDialog.InitialMode), DialogMode.ContinuousScan }
+            { "DocumentHeaderId", _currentDocument!.Id }
         };
 
         var options = new DialogOptions
         {
             MaxWidth = MaxWidth.Large,
             FullWidth = true,
-            CloseButton = true
+            CloseButton = false,
+            BackdropClick = false,
+            CloseOnEscapeKey = false
         };
 
         var dialog = await DialogService.ShowAsync<AddDocumentRowDialog>(
-            TranslationService.GetTranslation("documents.addRow", "Aggiungi Riga"),
+            string.Empty, // EFDialog manages its own title internally via the Title parameter
             parameters,
             options);
 
@@ -978,11 +979,13 @@
         {
             MaxWidth = MaxWidth.Large,
             FullWidth = true,
-            CloseButton = true
+            CloseButton = false,
+            BackdropClick = false,
+            CloseOnEscapeKey = false
         };
 
         var dialog = await DialogService.ShowAsync<AddDocumentRowDialog>(
-            TranslationService.GetTranslation("documents.editRow", "Modifica Riga"),
+            string.Empty, // EFDialog manages its own title internally via the Title parameter
             parameters,
             options);
 
