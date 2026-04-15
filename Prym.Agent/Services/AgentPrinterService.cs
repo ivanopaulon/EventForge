@@ -1,5 +1,8 @@
 ﻿using Prym.Hardware.Exceptions;
+using System.IO.Ports;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Prym.Agent.Services;
 
@@ -97,6 +100,64 @@ public sealed class AgentPrinterService(
         });
 
         return found.OrderBy(x => x.Index).Select(x => x.Suffix).ToList().AsReadOnly();
+    }
+
+    // ── IAgentPrinterService – OS-level device enumeration ────────────────────
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<string>> ListSystemPrintersAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? await GetWindowsPrintersAsync(ct).ConfigureAwait(false)
+                : await GetLinuxPrintersAsync(ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AgentPrinterService] Failed to enumerate system printers");
+            return [];
+        }
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<string>> ListSerialPortsAsync(CancellationToken ct = default)
+    {
+        IReadOnlyList<string> result;
+        try
+        {
+            result = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? SerialPort.GetPortNames().OrderBy(p => p).ToArray()
+                : GetLinuxSerialPorts();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AgentPrinterService] Failed to enumerate serial ports");
+            result = [];
+        }
+        return Task.FromResult(result);
+    }
+
+    // ── IAgentPrinterService – Test print ─────────────────────────────────────
+
+    /// <inheritdoc />
+    public async Task<bool> SendTestPrintAsync(string printerName, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(printerName);
+
+        var receipt = BuildTestReceiptText(printerName);
+
+        try
+        {
+            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                ? await SendWindowsTestPrintAsync(printerName, receipt, ct).ConfigureAwait(false)
+                : await SendLinuxTestPrintAsync(printerName, receipt, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "[AgentPrinterService] Test print failed for '{Printer}'", printerName);
+            return false;
+        }
     }
 
     // ── IAgentPrinterService – TCP (TcpViaAgent) ───────────────────────────────
@@ -332,5 +393,244 @@ public sealed class AgentPrinterService(
         }
 
         return bytesRead == 0 ? [] : buffer[..bytesRead];
+    }
+
+    // ── Private helpers – OS printer & serial enumeration ─────────────────────
+
+    private static async Task<IReadOnlyList<string>> GetWindowsPrintersAsync(CancellationToken ct)
+    {
+        var printers = new List<string>();
+
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            Arguments = "-NoProfile -NonInteractive -Command " +
+                        "\"Get-Printer | Select-Object -ExpandProperty Name\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            UseShellExecute        = false,
+            CreateNoWindow         = true
+        };
+
+        using var proc = System.Diagnostics.Process.Start(psi);
+        if (proc is not null)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(5));
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask;
+
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var name = line.Trim();
+                if (!string.IsNullOrEmpty(name))
+                    printers.Add(name);
+            }
+        }
+
+        return printers;
+    }
+
+    private static async Task<IReadOnlyList<string>> GetLinuxPrintersAsync(CancellationToken ct)
+    {
+        var printers = new List<string>();
+
+        var psi = new System.Diagnostics.ProcessStartInfo("lpstat", "-a")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError  = true,
+            UseShellExecute        = false,
+            CreateNoWindow         = true
+        };
+
+        using var proc = System.Diagnostics.Process.Start(psi);
+        if (proc is not null)
+        {
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(3));
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token);
+            var output = await stdoutTask;
+            await stderrTask;
+
+            // lpstat -a format: "PrinterName accepting requests since ..."
+            foreach (var line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var parts = line.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 0 && !string.IsNullOrWhiteSpace(parts[0]))
+                    printers.Add(parts[0]);
+            }
+        }
+
+        return printers;
+    }
+
+    private static IReadOnlyList<string> GetLinuxSerialPorts()
+    {
+        // Enumerate well-known serial device patterns under /dev/:
+        // ttyS=standard serial, ttyUSB=USB-serial adapters, ttyACM=USB CDC ACM, ttyAMA=ARM UART.
+        var patterns = new[] { "ttyS", "ttyUSB", "ttyACM", "ttyAMA" };
+        var found = new List<string>();
+
+        foreach (var pattern in patterns)
+        {
+            var dir = new DirectoryInfo("/dev");
+            if (!dir.Exists) break;
+
+            foreach (var fi in dir.EnumerateFiles($"{pattern}*"))
+                found.Add(fi.FullName);
+        }
+
+        found.Sort(StringComparer.OrdinalIgnoreCase);
+        return found;
+    }
+
+    // ── Private helpers – Test print ──────────────────────────────────────────
+
+    private static string BuildTestReceiptText(string printerName)
+    {
+        var now = DateTime.Now;
+        var sb  = new StringBuilder();
+
+        sb.AppendLine("================================");
+        sb.AppendLine("       STAMPA DI PROVA");
+        sb.AppendLine("    EventForge Update Agent");
+        sb.AppendLine("================================");
+        sb.AppendLine();
+        sb.AppendLine($"Data:  {now:dd/MM/yyyy}");
+        sb.AppendLine($"Ora:   {now:HH:mm:ss}");
+        sb.AppendLine($"PC:    {Environment.MachineName}");
+        sb.AppendLine();
+        sb.AppendLine("--------------------------------");
+        sb.AppendLine("1x Prodotto Test A      € 10,00");
+        sb.AppendLine("1x Prodotto Test B      €  5,50");
+        sb.AppendLine("1x Prodotto Test C      €  3,00");
+        sb.AppendLine("--------------------------------");
+        sb.AppendLine("Subtotale:              € 18,50");
+        sb.AppendLine("  di cui IVA (22%):     €  3,34");
+        sb.AppendLine("================================");
+        sb.AppendLine("TOTALE:                 € 18,50");
+        sb.AppendLine("================================");
+        sb.AppendLine("Pagamento: CONTANTI     € 20,00");
+        sb.AppendLine("Resto:                  €  1,50");
+        sb.AppendLine("================================");
+        sb.AppendLine();
+        sb.AppendLine("Stampante:");
+        sb.AppendLine(printerName.Length > 32 ? printerName[..32] : printerName);
+        sb.AppendLine();
+        sb.AppendLine("  Stampa di prova riuscita!");
+        sb.AppendLine("================================");
+        sb.AppendLine();
+
+        return sb.ToString();
+    }
+
+    private async Task<bool> SendWindowsTestPrintAsync(
+        string printerName, string receipt, CancellationToken ct)
+    {
+        // Write the receipt to a unique temp file; pass both paths via environment variables
+        // so that neither the printer name nor the file path can cause shell injection.
+        var tempFile = Path.Combine(Path.GetTempPath(), $"ef-testprint-{Guid.NewGuid():N}.txt");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, receipt, Encoding.UTF8, ct).ConfigureAwait(false);
+
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName  = "powershell.exe",
+                Arguments = "-NoProfile -NonInteractive -Command " +
+                            "\"Get-Content -Path $env:EF_PRINT_FILE -Encoding UTF8 | " +
+                            "Out-Printer -Name $env:EF_PRINTER_NAME\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError  = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true
+            };
+            psi.Environment["EF_PRINT_FILE"]    = tempFile;
+            psi.Environment["EF_PRINTER_NAME"]  = printerName;
+
+            using var proc = System.Diagnostics.Process.Start(psi);
+            if (proc is null) return false;
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(15));
+
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+            var stderr = await stderrTask;
+            await stdoutTask;
+
+            if (proc.ExitCode != 0)
+            {
+                logger.LogWarning(
+                    "[AgentPrinterService] Test print failed for '{Printer}' (exit {Code}): {Stderr}",
+                    printerName, proc.ExitCode, stderr);
+                return false;
+            }
+
+            logger.LogInformation(
+                "[AgentPrinterService] Test print sent to '{Printer}'", printerName);
+            return true;
+        }
+        finally
+        {
+            try { File.Delete(tempFile); } catch { /* best-effort temp cleanup */ }
+        }
+    }
+
+    private async Task<bool> SendLinuxTestPrintAsync(
+        string printerName, string receipt, CancellationToken ct)
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"ef-testprint-{Guid.NewGuid():N}.txt");
+        try
+        {
+            await File.WriteAllTextAsync(tempFile, receipt, Encoding.UTF8, ct).ConfigureAwait(false);
+
+            var psi = new System.Diagnostics.ProcessStartInfo("lp")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError  = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true
+            };
+            psi.ArgumentList.Add("-d");
+            psi.ArgumentList.Add(printerName);
+            psi.ArgumentList.Add(tempFile);
+
+            using var proc = System.Diagnostics.Process.Start(psi);
+            if (proc is null) return false;
+
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(10));
+
+            var stderrTask = proc.StandardError.ReadToEndAsync(cts.Token);
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync(cts.Token);
+            await proc.WaitForExitAsync(cts.Token).ConfigureAwait(false);
+            var stderr = await stderrTask;
+            await stdoutTask;
+
+            if (proc.ExitCode != 0)
+            {
+                logger.LogWarning(
+                    "[AgentPrinterService] Test print (Linux) failed for '{Printer}' (exit {Code}): {Stderr}",
+                    printerName, proc.ExitCode, stderr);
+                return false;
+            }
+
+            logger.LogInformation(
+                "[AgentPrinterService] Test print sent to '{Printer}'", printerName);
+            return true;
+        }
+        finally
+        {
+            try { File.Delete(tempFile); } catch { /* best-effort temp cleanup */ }
+        }
     }
 }

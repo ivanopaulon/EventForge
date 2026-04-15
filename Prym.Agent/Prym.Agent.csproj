@@ -16,6 +16,7 @@
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Settings.Configuration" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
+    <PackageReference Include="System.IO.Ports" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Prym.DTOs\Prym.DTOs.csproj" />

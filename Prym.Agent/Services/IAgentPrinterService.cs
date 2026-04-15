@@ -58,6 +58,44 @@ public interface IAgentPrinterService
     /// <param name="ct">Cancellation token.</param>
     Task TestTcpConnectionAsync(string host, int port, CancellationToken ct = default);
 
+    // ── OS-level device enumeration ───────────────────────────────────────────
+
+    /// <summary>
+    /// Returns all printer queues installed at OS level on the machine running this agent.
+    /// On Windows this queries via PowerShell <c>Get-Printer</c>.
+    /// On Linux/macOS it uses <c>lpstat -a</c> (CUPS). Falls back to an empty list when
+    /// neither is available.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Read-only list of installed printer display names.</returns>
+    Task<IReadOnlyList<string>> ListSystemPrintersAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns all serial (COM) ports available on the machine running this agent.
+    /// On Windows this is equivalent to <c>[System.IO.Ports.SerialPort]::GetPortNames()</c>.
+    /// On Linux/macOS the <c>/dev/ttyS*</c>, <c>/dev/ttyUSB*</c> and <c>/dev/ttyACM*</c>
+    /// entries are enumerated.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Read-only list of serial port names (e.g. <c>COM1</c>, <c>/dev/ttyUSB0</c>).</returns>
+    Task<IReadOnlyList<string>> ListSerialPortsAsync(CancellationToken ct = default);
+
+    // ── Test print ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sends a sample receipt (stampa di prova) to the OS printer queue identified by
+    /// <paramref name="printerName"/>. The content mirrors a minimal fiscal receipt so
+    /// the operator can verify that the printer is correctly configured and reachable.
+    /// On Windows this routes through <c>powershell.exe Out-Printer</c>;
+    /// on Linux through <c>lp -d</c> (CUPS).
+    /// </summary>
+    /// <param name="printerName">
+    /// Exact printer display name as returned by <see cref="ListSystemPrintersAsync"/>.
+    /// </param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns><see langword="true"/> when the print job was accepted; <see langword="false"/> on error.</returns>
+    Task<bool> SendTestPrintAsync(string printerName, CancellationToken ct = default);
+
     // ── HTTP forward (TcpViaAgent – Epson WebAPI and similar) ─────────────────
 
     /// <summary>
