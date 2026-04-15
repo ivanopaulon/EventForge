@@ -29,8 +29,8 @@ window.boldReportsInterop = (function () {
                 return;
             }
 
-            if (typeof BoldReportDesignerComponent === 'undefined') {
-                console.error('[BoldReports] BoldReportDesignerComponent is not defined. ' +
+            if (typeof BoldReportDesigner === 'undefined') {
+                console.error('[BoldReports] BoldReportDesigner is not defined. ' +
                     'Ensure the Bold Reports CDN scripts are loaded in index.html.');
                 return;
             }
@@ -56,7 +56,8 @@ window.boldReportsInterop = (function () {
                 }
             };
 
-            const instance = new BoldReportDesignerComponent('#' + elementId, options);
+            const instance = new BoldReportDesigner(options);
+            instance.appendTo('#' + elementId);
             _instances[elementId] = instance;
         } catch (err) {
             console.error('[BoldReports] initReportDesigner error:', err);
@@ -79,8 +80,8 @@ window.boldReportsInterop = (function () {
                 return;
             }
 
-            if (typeof BoldReportViewerComponent === 'undefined') {
-                console.error('[BoldReports] BoldReportViewerComponent is not defined. ' +
+            if (typeof BoldReportViewer === 'undefined') {
+                console.error('[BoldReports] BoldReportViewer is not defined. ' +
                     'Ensure the Bold Reports CDN scripts are loaded in index.html.');
                 return;
             }
@@ -89,7 +90,7 @@ window.boldReportsInterop = (function () {
             _destroyInstance(elementId);
 
             const options = {
-                serviceUrl: serviceUrl,
+                reportServiceUrl: serviceUrl,
                 reportPath: reportPath,
                 width: '100%',
                 height: '100%',
@@ -102,7 +103,8 @@ window.boldReportsInterop = (function () {
                 }));
             }
 
-            const instance = new BoldReportViewerComponent('#' + elementId, options);
+            const instance = new BoldReportViewer(options);
+            instance.appendTo('#' + elementId);
             _instances[elementId] = instance;
         } catch (err) {
             console.error('[BoldReports] initReportViewer error:', err);

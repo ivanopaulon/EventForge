@@ -101,8 +101,27 @@ public class BoldReportDesignerController(
     /// </summary>
     public ResourceInfo GetData(string key, string resourceType)
     {
-        // Resources are stored as report definitions in the database.
-        // Return empty ResourceInfo — the designer will handle missing resources gracefully.
+        // The key is the report GUID when the designer loads an existing report.
+        if (Guid.TryParse(key, out var reportId))
+        {
+            try
+            {
+                var report = Task.Run(() => reportService.GetReportAsync(reportId)).GetAwaiter().GetResult();
+                if (report?.ReportContent is { Length: > 0 })
+                {
+                    return new ResourceInfo
+                    {
+                        Data = System.Text.Encoding.UTF8.GetBytes(report.ReportContent),
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error loading RDLC content for report {ReportId}", reportId);
+                return new ResourceInfo { ErrorMessage = "Failed to load report definition." };
+            }
+        }
+
         return new ResourceInfo();
     }
 
