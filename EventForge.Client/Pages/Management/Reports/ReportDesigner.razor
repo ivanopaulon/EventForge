@@ -2,7 +2,7 @@
 @page "/management/reports/designer"
 @using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Reports
-@using EventForge.Client.Components.Reports
+@using EventForge.Client.Shared.Components.Reports
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
 
 @inject IReportDefinitionService ReportService
@@ -45,7 +45,7 @@
 
         <!-- Designer -->
         <div style="flex:1 1 auto;overflow:hidden;">
-            <ReportDesignerComponent ReportId="@ReportId"
+            <ReportDesignerPanel ReportId="@ReportId"
                                      Height="100%"
                                      OnSave="HandleDesignerSaveAsync" />
         </div>

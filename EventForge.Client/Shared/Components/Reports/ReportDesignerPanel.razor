@@ -3,13 +3,13 @@
 
 @inject IJSRuntime JS
 @inject ITranslationService TranslationService
-@inject ILogger<ReportDesignerComponent> Logger
+@inject ILogger<ReportDesignerPanel> Logger
 
 <div id="@_containerId" style="width:100%;height:@Height;min-height:500px;"></div>
 
 @code {
     private string _containerId = $"report-designer-{Guid.NewGuid():N}";
-    private DotNetObjectReference<ReportDesignerComponent>? _selfRef;
+    private DotNetObjectReference<ReportDesignerPanel>? _selfRef;
     private bool _initialized = false;
 
     /// <summary>GUID of the existing report to load (null for a new report).</summary>

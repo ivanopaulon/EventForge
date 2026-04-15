@@ -1,7 +1,7 @@
 @page "/management/reports/viewer/{ReportId:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Reports
-@using EventForge.Client.Components.Reports
+@using EventForge.Client.Shared.Components.Reports
 @attribute [Authorize]
 
 @inject IReportDefinitionService ReportService
@@ -50,7 +50,7 @@
 
         <!-- Viewer -->
         <div style="flex:1 1 auto;overflow:hidden;">
-            <ReportViewerComponent ReportId="@ReportId" Height="100%" />
+            <ReportViewerPanel ReportId="@ReportId" Height="100%" />
         </div>
     </MudContainer>
 }

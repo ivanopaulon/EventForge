@@ -1,4 +1,4 @@
-using EventForge.Client.Components.Pos26;
+using EventForge.Client.Shared.Components.Sales.Pos26;
 using EventForge.Client.Models.Sales;
 using EventForge.Client.Services;
 using EventForge.Client.Services.Sales;
