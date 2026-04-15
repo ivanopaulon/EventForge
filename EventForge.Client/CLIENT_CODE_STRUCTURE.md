@@ -4,433 +4,378 @@
 This document describes the organization and architecture of the EventForge Blazor WebAssembly client application.
 
 ## Project Statistics
-- **Total Razor Components**: 142 (-13 from SuperAdmin cleanup)
-- **Total C# Files**: 103
-- **Total CSS Files**: 41
-- **Total JavaScript Files**: 4
+- **Total Razor Files**: ~230 (pages + components)
+- **Total C# Files**: ~130
 - **Build Status**: ✅ 0 Errors
-- **Last Cleanup**: February 2026 - PR #4: SuperAdmin Client Cleanup (removed all SuperAdmin pages and components)
+- **Last Reorganization**: April 2026 – Full project structure reorganization (Components/ consolidated into Shared/Components/, unused files deleted, Chat dialogs moved out of Pages/)
 
 ## Folder Structure
 
-### `/Pages` - Application Pages (51 pages)
-Pages are organized by feature domain with nested categorization:
+### `/Pages` — Application Pages
 
-#### Root Pages (5)
-- `Home.razor` - Landing page (requires authentication)
-- `Login.razor` - Authentication page
-- `Profile.razor` - User profile page
-- `Admin.razor` - Admin dashboard
-- `Error.razor` - Error handling page
+Pages are routable Blazor components (with `@page` directive), organized by feature domain.
 
-#### SuperAdmin Management
-❌ **REMOVED** - All SuperAdmin pages moved to Server Dashboard (EventForge.Server)
+#### Root Pages
+- `Home.razor` — Landing page (requires auth)
+- `Login.razor` — Authentication
+- `Profile.razor` — User profile
+- `Admin.razor` — Admin dashboard (`/admin`)
+- `Error.razor` — Error handling
 
-SuperAdmin functionality is now exclusively available at:
-- Server Dashboard: `/dashboard` (Razor Pages)
-  - Tenants: `/dashboard/tenants`
-  - Users: `/dashboard/users`
-  - Licenses: `/dashboard/licenses`
-  - Roles & Permissions: `/dashboard/roles`
+#### `/Pages/Admin`
+- `FiscalPrintersDashboard.razor` — `/admin/fiscal-printers`
+- `FiscalPrinterSetupWizard.razor` — `/admin/fiscal-printers/setup`
+- `ClosureHistory.razor` — `/admin/fiscal-printers/{id}/closures`
 
-The client Blazor app is now focused exclusively on tenant-specific functionality.
+#### `/Pages/Events`
+- `EventManagement.razor` — `/events/management`
 
-#### Management/Warehouse (3 pages)
-Warehouse and inventory management:
-- `WarehouseManagement.razor` / `WarehouseDetail.razor` - Warehouse facilities
-- `LotManagement.razor` - Lot tracking
-- `InventoryProcedure.razor` - Inventory process (classic implementation)
-- `InventoryList.razor` - Inventory document listing
+#### `/Pages/Management/Analytics`
+- `AnalyticsDashboard.razor` — `/management/analytics`
 
-**Note**: Fast Inventory implementations (MudBlazor and Syncfusion) have been removed. Use the classic `InventoryProcedure.razor` for all inventory operations.
+#### `/Pages/Management/Business`
+- `BusinessPartyManagement.razor` — `/business/parties`
+- `BusinessPartyGroupManagement.razor` — `/business/groups`
+- `CustomerManagement.razor` — `/business/customers`
+- `SupplierManagement.razor` — `/business/suppliers`
+- **Dialog components** (no `@page`, used via `DialogService`):
+  - `BusinessPartyDetailDialog.razor`
+  - `BusinessPartyGroupDetailDialog.razor`
+- **Tab sub-components** (`BusinessPartyDetailTabs/`):
+  - `GeneralInfoTab.razor`, `AddressesTab.razor`, `ContactsTab.razor`
+  - `RecapitiTab.razor`, `ReferencesTab.razor`, `AccountingTab.razor`
+  - `CommercialeTab.razor`, `OperativoTab.razor`
 
-#### Management/Products (17 pages)
-Product catalog and classification:
-- `ProductManagement.razor` / `ProductDetail.razor` - Product CRUD
-- `ProductDetailTabs/` - Tab components for product detail page:
-  - `GeneralInfoTab.razor` - Basic product information
-  - `ProductCodesTab.razor` - Barcode and SKU management
-  - `ProductUnitsTab.razor` - Unit of measure
-  - `ProductSuppliersTab.razor` - Supplier relationships
-  - `PricingFinancialTab.razor` - Pricing and financial data
-  - `ClassificationTab.razor` - Product categorization
-  - `BundleItemsTab.razor` - Product bundle management
-  - `StockInventoryTab.razor` - Stock levels and inventory
-- `BrandManagement.razor` / `BrandDetail.razor` - Brand management
-- `UnitOfMeasureManagement.razor` / `UnitOfMeasureDetail.razor` - UOM management
-- `ClassificationNodeManagement.razor` / `ClassificationNodeDetail.razor` - Category tree
+#### `/Pages/Management/Documents`
+- `DocumentList.razor` — `/documents/list`
+- `DocumentTypeManagement.razor` — `/documents/types`
+- `DocumentCounterManagement.razor` — `/documents/counters`
+- `GenericDocumentProcedure.razor` — `/documents/create`, `/documents/edit/{id}`
+- **Dialog component**: `DocumentDetailDialog.razor`
+- **Dialog component**: `DocumentTypeDetailDialog.razor`
 
-**Note**: `CreateProduct.razor` and `AssignBarcode.razor` pages have been removed. Use `ProductDetail.razor` with route `/products/new` for product creation. Barcode assignment is handled inline in `ProductNotFoundDialog.razor`.
+#### `/Pages/Management/Financial`
+- `VatRateManagement.razor` — `/financial/vat-rates`
+- `VatNatureManagement.razor` — `/financial/vat-natures`
+- **Dialog components**: `VatRateDetailDialog.razor`, `VatNatureDetailDialog.razor`
 
-#### Management/Documents (5 pages)
-Document management system:
-- `DocumentList.razor` - Document listing
-- `DocumentTypeManagement.razor` / `DocumentTypeDetail.razor` - Document type definitions
-- `DocumentCounterManagement.razor` - Document numbering
-- `GenericDocumentProcedure.razor` - Generic document workflow
+#### `/Pages/Management/Monitoring`
+- `MonitoringDashboard.razor` — `/management/monitoring`
 
-#### Management/Business (3 pages)
-Business partner management:
-- `SupplierManagement.razor` - Supplier CRUD
-- `CustomerManagement.razor` - Customer CRUD
-- `BusinessPartyDetail.razor` - Partner detail page
+#### `/Pages/Management/PriceLists`
+- `PriceListManagement.razor` — `/management/pricelists`
+- **Dialog component**: `PriceListDetailDialog.razor`
 
-#### Management/Financial (4 pages)
-Financial configuration:
-- `VatRateManagement.razor` / `VatRateDetail.razor` - VAT rate management
-- `VatNatureManagement.razor` / `VatNatureDetail.razor` - VAT nature codes
+#### `/Pages/Management/Products`
+- `ProductManagement.razor` — `/product-management/products`
+- `BrandManagement.razor` — `/product-management/brands`
+- `ClassificationNodeManagement.razor` — `/management/classification-nodes`
+- `UnitOfMeasureManagement.razor` — `/settings/unit-of-measures`
+- **Dialog components**: `ProductDetailDialog.razor`, `BrandDetailDialog.razor`, `ClassificationNodeDetailDialog.razor`, `UnitOfMeasureDetailDialog.razor`
+- **Tab sub-components** (`ProductDetailTabs/`):
+  - `GeneralInfoTab.razor`, `ProductCodesTab.razor`, `ProductUnitsTab.razor`
+  - `ProductSuppliersTab.razor`, `PricingFinancialTab.razor`, `ClassificationTab.razor`
+  - `BundleItemsTab.razor`, `StockInventoryTab.razor`
 
-#### Notifications (3 pages)
-Notification system:
-- `NotificationCenter.razor` - Notification hub
-- `ActivityFeed.razor` - Activity timeline
-- `NotificationPreferences.razor` - User preferences
+#### `/Pages/Management/Promotions`
+- `PromotionManagement.razor` — `/management/promotions`
+- `PromotionNew.razor` — `/management/promotions/new`
+- **Dialog component**: `PromotionDetailDialog.razor`
 
-#### Sales (2 pages)
-Point of sale functionality:
-- `SalesWizard.razor` - Sales transaction wizard
-- `TableManagementStep.razor` - Table management for restaurants
+#### `/Pages/Management/Reports`
+- `ReportsList.razor` — `/management/reports`
+- `ReportDesigner.razor` — `/management/reports/designer`
+- `ReportViewer.razor` — `/management/reports/viewer/{id}`
+- **Dialog component**: `CreateReportDialog.razor`
 
-#### Chat (1 page)
-- `ChatInterface.razor` - Real-time chat interface
+#### `/Pages/Management/Store`
+> All store-management pages are co-located here (including payment methods, moved here from `Pages/Store/` in April 2026).
+- `FiscalDrawerManagement.razor` / `FiscalDrawerDetailDialog.razor`
+- `OperatorManagement.razor` / `OperatorDetailDialog.razor`
+- `OperatorGroupManagement.razor` / `OperatorGroupDetailDialog.razor`
+- `PaymentMethodManagement.razor` / `PaymentMethodDetailDialog.razor`
+- `PaymentTerminalManagement.razor` / `PaymentTerminalDetailDialog.razor`
+- `PosManagement.razor` / `PosDetailDialog.razor`
+- `PrinterManagement.razor` / `PrinterDetailDialog.razor`
+- `StationManagement.razor` / `StationDetailDialog.razor`
 
-#### Printing (1 page)
-- `PrinterManagement.razor` - Printer configuration
+#### `/Pages/Management/Warehouse`
+- `WarehouseManagement.razor`, `LotManagement.razor`, `StockManagement.razor`
+- `StockOverview.razor`, `StockReconciliation.razor`
+- `InventoryProcedure.razor`, `InventoryDiagnostics.razor`, `InventoryMerge.razor`
+- `TransferOrderManagement.razor`
+- **Dialog components**: `WarehouseDetailDialog.razor`, `TransferOrderDetailDialog.razor`, `StockFiltersDialog.razor`
 
-### `/Shared/Components` - Reusable Components (48 components)
+#### `/Pages/Notifications`
+- `NotificationCenter.razor` — `/notifications`
+- `ActivityFeed.razor` — `/activity-feed`
+- `NotificationPreferences.razor` — `/notifications/preferences`
 
-#### Dialogs (22 components)
-Modal dialogs for user interaction:
-- **Product Management**: `AddProductCodeDialog`, `AddProductUnitDialog`, `AddProductSupplierDialog`, `AddBundleItemDialog`, `EditProductCodeDialog`, `EditProductUnitDialog`, `EditProductSupplierDialog`, `EditBundleItemDialog`
-- **Business**: `AddressDialog`, `ContactDialog`, `ReferenceDialog`
-- **Warehouse**: `InventoryEntryDialog`, `EditInventoryRowDialog`, `InventoryDocumentDetailsDialog`, `ProductNotFoundDialog`
-- **Documents**: `AddDocumentRowDialog`, `DocumentCounterDialog`
-- **System**: `ConfirmationDialog`, `LoadingDialog`, `GlobalLoadingDialog`, `HealthStatusDialog`, `ModelDialog`, `ManageSupplierProductsDialog`
+#### `/Pages/Sales`
+- `POS.razor` — `/sales/pos` (classic POS)
+- `POSTouch.razor` — `/sales/postouch` (touch-optimized POS)
+- `POS2026.razor` — `/sales/pos2026` (next-gen POS, uses `Shared/Components/Sales/Pos26/`)
+- `SalesDashboard.razor` — `/sales/dashboard`
 
-#### Drawers (1 component)
-Side panel components (streamlined after deprecation cleanup):
-- `EntityDrawer.razor` - Generic entity drawer base component
+---
 
-**Removed Components** (PR #4 - February 2026):
-- ~~`AuditLogDrawer.razor`~~ → Only used by SuperAdmin pages (removed)
-- ~~`RolePermissionsDialog.razor`~~ → Only used by SuperAdmin pages (removed)
+### `/Shared` — Shared Razor Infrastructure
 
-**Removed Deprecated Drawers** (November 2025):
-- ~~`BusinessPartyDrawer.razor`~~ → Replaced by `BusinessPartyDetail.razor` page
-- ~~`BrandDrawer.razor`~~ → Replaced by `BrandDetail.razor` page
-- ~~`StorageLocationDrawer.razor`~~ → Managed in `WarehouseDetail.razor`
-- ~~`AuditHistoryDrawer.razor`~~ → Replaced by `AuditHistoryDialog.razor` (fullscreen dialog)
-- ~~`ProductDrawer.razor`~~ → Replaced by `QuickCreateProductDialog.razor` and `AdvancedQuickCreateProductDialog.razor`
+#### `/Shared/Components` — Reusable Components
+All reusable, non-routable components live here, organized by feature.
 
-#### Sales Components (3)
-- `ProductSearch.razor` - Product search widget
-- `CartSummary.razor` - Shopping cart display
-- `PaymentPanel.razor` - Payment processing
+##### `/Shared/Components/Business`
+Business party selector, tabs and related dialogs (consolidated from former `Shared/BusinessParty/`):
+- `UnifiedBusinessPartySelector.razor` — Unified search/select with create and edit modes
+- `PriceListAssignmentCard.razor`, `PriceListPreviewDialog.razor`
+- `BusinessPartyDocumentsTab.razor`, `BusinessPartyProductsTab.razor`
+- `BusinessPartySuppliedProductsTab.razor`, `ProductDocumentsDialog.razor`
 
-#### Warehouse Components (3)
-Chart and trend visualization components:
-- `CommonTrendWrapper.razor` - Common wrapper for trend charts
-- `PriceTrendChart.razor` - Product price trend visualization
-- `StockTrendChart.razor` - Stock level trend visualization
+##### `/Shared/Components/Common`
+Cross-cutting atoms and enums:
+- `GroupBadge.razor` — Business party group badge chip
+- `SelectorBehaviorEnums.cs` — `EntityEditMode`, `EntityCreateMode`, `EntityDisplayMode` enums used by unified selectors
 
-**Removed Fast Inventory Components** (November 2025):
-~~Two implementations (MudBlazor and Syncfusion) have been removed~~
-- Fast Inventory implementations were deprecated and removed
-- Use classic `InventoryProcedure.razor` for all inventory operations
+##### `/Shared/Components/Dashboard`
+- `ManagementDashboard.razor` — Configurable widget dashboard
+- `DashboardModels.cs` — Dashboard configuration models
 
-#### Other Shared Components (17)
-- **Navigation**: `UserAccountMenu.razor`, `LanguageSelector.razor`, `ThemeSelector.razor`
-- **UI Elements**: `ActionButtonGroup.razor`, `ClassificationNodePicker.razor`, `ProductTabSection.razor`
-- **Help System**: `HelpTooltip.razor`, `InteractiveWalkthrough.razor`, `OnboardingModal.razor`
-- **Notifications**: `NotificationBadge.razor`, `NotificationGrouping.razor`, `RichNotificationCard.razor`
-- **Chat**: `EnhancedMessage.razor`, `EnhancedMessageComposer.razor`
-- **System**: `PageLoadingOverlay.razor`, `HealthFooter.razor`, `LazyAttachmentComponent.razor`
+##### `/Shared/Components/Dialogs`
+All modal dialogs organized by domain:
 
-**Removed SuperAdmin Components** (PR #4 - February 2026):
-- ~~`SuperAdminBanner.razor`~~ → SuperAdmin functionality moved to Server Dashboard
-- ~~`SuperAdminPageLayout.razor`~~ → SuperAdmin functionality moved to Server Dashboard
-- ~~`SuperAdminCollapsibleSection.razor`~~ → SuperAdmin functionality moved to Server Dashboard
+- **Root dialogs**: `EFDialog.razor` (base), `EFSystemDialog.razor`, `AddressDialog.razor`, `ContactDialog.razor`, `ReferenceDialog.razor`, `AuditHistoryDialog.razor`, `ErrorDetailDialog.razor`, `LogDetailDialog.razor`, `ExportDialog.razor`, `ImportCsvDialog.razor`, `ProfileDialog.razor`, `ChangePasswordForm.razor`, `UpdatesDialog.razor`, `HealthStatusDialog.razor`, `FiscalPrinterStatusDialog.razor`, `FontPreferencesDialog.razor`, `NotificationCenterDialog.razor`, `NotificationDetailDialog.razor`, `DocumentViewerDialog.razor`, `ModelDialog.razor`, `DashboardConfigurationDialog.razor`, `ColumnConfigurationDialog.razor`, `MetricEditorDialog.razor`, `ComposeMessageDialog.razor`, `NewChatDialog.razor`, `GlobalLoadingOverlay.razor`, `AutoRepairOptionsDialog.razor`
+- **Products**: `QuickCreateProductDialog.razor`, `AdvancedQuickCreateProductDialog.razor`, `EditProductCodeDialog.razor`, `EditProductSupplierDialog.razor`, `EditBundleItemDialog.razor`, `ProductUnitDialog.razor`, `ProductNotFoundDialog.razor`, `BulkVatUpdateDialog.razor`
+- **Price Lists**: `CreatePriceListDialog.razor`, `DuplicatePriceListDialog.razor`, `ImportPriceListDialog.razor`, `EditPriceListEntryDialog.razor`, `GenerateFromDefaultPricesDialog.razor`, `GeneratePriceListFromDocumentsDialog.razor`, `BulkUpdatePricesDialog.razor`
+- **Suppliers**: `AssignProductToSupplierDialog.razor`, `AssignBusinessPartyDialog.razor`, `EditBusinessPartyAssignmentDialog.razor`, `ManageSupplierProductsDialog.razor`, `BulkEditSupplierProductsDialog.razor`, `SupplierSuggestionDialog.razor`
+- **Warehouse**: `InventoryRowDialog.razor`, `StorageLocationDialog.razor`, `StockReconciliationConfirmDialog.razor`, `RebuildMovementsDialog.razor`, `ManageActiveInventoriesDialog.razor`
+- **`/Dialogs/Business`**: `QuickCreateBusinessPartyDialog.razor`, `ManageGroupMembersDialog.razor`, `EditGroupMemberDialog.razor`
+- **`/Dialogs/Chat`** *(moved from Pages/Chat/ in April 2026)*: `ChatDialog.razor`, `ChatSettingsDialog.razor`, `StartConversationDialog.razor`, `WhatsAppConfigDialog.razor`
+- **`/Dialogs/Documents`**: `DocumentHeaderDialog.razor`, `DocumentCounterDialog.razor`, `DocumentRowDialog.razor` (+panels: `DocumentRowDiscountsPanel.razor`, `DocumentRowNotesPanel.razor`, `DocumentRowQuantityPrice.razor`, `DocumentRowRecentTransactions.razor`, `DocumentRowSummary.razor`, `DocumentRowVatPanel.razor`)
+- **`/Dialogs/Events`**: `CreateEventDialog.razor`, `CreateCalendarReminderDialog.razor`
+- **`/Dialogs/Sales`**: `PaymentDialog.razor`, `SplitPaymentDialog.razor`, `GlobalDiscountDialog.razor`, `CouponInputDialog.razor`, `FiscalDrawerTransactionDialog.razor`, `ItemNotesDialog.razor`, `MergeSessionsDialog.razor`, `SessionNoteDialog.razor`, `POSTouchLineEditDialog.razor`
+- **`/Dialogs/SystemDialogs`**: `ConnectionLostSystemDialog.razor`, `LoginSystemDialog.razor`, `PageLoadingSystemDialog.razor`, `ServerConfigSystemDialog.razor`, `UpdateMaintenanceSystemDialog.razor`
+- **`/Dialogs/UnifiedInventoryDialog`**: `UnifiedInventoryDialog.razor` (+steps: `InventoryConfirmStep.razor`, `InventoryEditStep.razor`, `InventoryHistoryStep.razor`, `InventoryViewStep.razor`)
+- **`/Dialogs/Warehouse`**: `CreateTransferOrderDialog.razor`, `InventoryViewDialog.razor`, `MergeInventoriesDialog.razor`, `ReceiveTransferOrderDialog.razor`, `ShipTransferOrderDialog.razor`
 
-### `/Services` - Business Logic Layer (60 service files)
+##### `/Shared/Components/Documents`
+Display-only document components (consolidated from former `Shared/Documents/`):
+- `DocumentTotalsCard.razor` — Totals summary card
+- `DocumentVatSummary.razor` — VAT breakdown table
+
+##### `/Shared/Components/Drawers`
+- `EntityDrawer.razor` — Slide-in side panel base component
+
+##### `/Shared/Components/Export`
+- `ExportModels.cs` — `ExportColumnConfig`, `ExportFormat`, `ExportRequest` used by `EFTable.razor`
+
+##### `/Shared/Components/Fidelity`
+- `FidelityCardList.razor`, `FidelityCardItem.razor`
+- `CreateFidelityCardDialog.razor`, `EditFidelityCardDialog.razor`
+- `FidelityPointsHistoryDialog.razor`, `ManageFidelityPointsDialog.razor`
+
+##### `/Shared/Components/FiscalPrinting`
+- `DailyClosureDialog.razor`
+
+##### `/Shared/Components/MetricBuilder`
+- `FieldSelector.razor`, `FilterBuilder.razor`
+
+##### `/Shared/Components/PriceList`
+- `BusinessPartyAssignmentList.razor`
+
+##### `/Shared/Components/Products`
+- `ProductQuickInfo.razor`
+
+##### `/Shared/Components/Reports`
+Embeddable Syncfusion report viewer/designer components (renamed from `*Component` suffix in April 2026):
+- `ReportDesignerPanel.razor` — Embedded Syncfusion report designer
+- `ReportViewerPanel.razor` — Embedded Syncfusion report viewer
+
+##### `/Shared/Components/Sales`
+Sales UI components:
+- `CartSummary.razor`, `POSCartTable.razor`, `POSHeader.razor`, `POSReceipt.razor`
+- `POSActionButton.razor`, `POSScanModeToggle.razor`, `PaymentPanel.razor`
+- `POSTouchCartList.razor`, `POSTouchNumericKeypad.razor`, `POSTouchOperatorGrid.razor`
+- `ProductPreviewCard.razor`
+
+##### `/Shared/Components/Sales/Pos26`
+POS2026-specific UI components (consolidated from former root `Components/Pos26/` in April 2026):
+- `Pos26SearchBar.razor`, `Pos26SortBar.razor`, `Pos26CategoryBar.razor`, `Pos26ContextBanner.razor`
+- `Pos26ProductGrid.razor`, `Pos26ProductCard.razor`
+- `Pos26Receipt.razor`, `Pos26Numpad.razor`
+- `Pos26PaymentDialog.razor`, `Pos26PaymentMethodCard.razor`, `Pos26PaymentRow.razor`
+
+##### `/Shared/Components/Warehouse`
+Warehouse analytics and inventory management:
+- `ActiveInventoriesManager.razor`, `InventoryBarcodeAuditPanel.razor`
+- `CommonTrendWrapper.razor`, `PriceTrendChart.razor`, `StockTrendChart.razor`
+
+##### Top-level Shared Components
+General-purpose components at `Shared/Components/`:
+- **UI**: `EFTable.razor`, `EFTableColumnHeader.razor`, `EFDateTimeRangePicker.razor`, `EFOverlay.razor`
+- **Navigation/Actions**: `ActionButtonGroup.razor`, `ManagementTableToolbar.razor`, `QuickFilters.razor`, `ScrollToTop.razor`
+- **Product**: `UnifiedProductSelector.razor`, `ClassificationNodePicker.razor`, `ProductTabSection.razor`
+- **Notifications/Overlays**: `NotificationBadge.razor`, `NotificationGrouping.razor`, `RichNotificationCard.razor`, `ConnectionLostOverlay.razor`, `LoginOverlay.razor`, `ServerConfigOverlay.razor`, `PageLoadingOverlay.razor`, `UpdateMaintenanceOverlay.razor`, `GlobalErrorHandler.razor`
+- **Chat/Messaging**: `FloatingChat.razor`, `EnhancedMessage.razor`, `EnhancedMessageComposer.razor`
+- **Floating UI**: `FloatingFabMenu.razor`, `FloatingProfile.razor`
+- **Scanning**: `CameraBarcodeScannerDialog.razor`
+- **User/Preferences**: `UserAccountMenu.razor`, `ThemeSelector.razor`, `LanguageSelector.razor`, `FontPreferencesDialog.razor` (via Dialogs)
+- **Help/Onboarding**: `HelpTooltip.razor`, `InteractiveWalkthrough.razor`, `OnboardingModal.razor`
+- **Updates/Downloads**: `UpdateDownloadSnackbar.razor`, `DownloadProgressSnackbar.razor`, `LogCleanupNotificationSnackbar.razor`
+- **System**: `HealthFooter.razor`, `FiscalPrinterStatusIndicator.razor`, `LazyAttachmentComponent.razor`
+
+#### `/Shared/Management` — Generic CRUD Infrastructure
+- `EntityManagementPage.razor` — Generic management page base (table + toolbar + paging)
+- `ManagementPageHeader.razor` — Reusable page header with title and actions
+- `EntityManagementConfig.cs` — Configuration class for the generic page
+- `IEntityManagementService.cs` — Interface for management adapters
+- `/Adapters/` — 25 concrete adapters (one per entity: `ProductManagementService.cs`, `BusinessPartyManagementService.cs`, etc.)
+
+#### `/Shared/Helpers`
+Chat-related utility classes (used from both `Shared/Components/` and `Pages/Chat/`):
+- `ChatEditorConfig.cs` — Syncfusion rich-text editor toolbar configuration
+- `ChatMarkdownRenderer.cs` — Markdown-to-HTML renderer for chat messages
+
+#### `/Shared/BusinessParty` — ❌ DELETED (April 2026)
+Contents merged into `/Shared/Components/Business/`.
+
+#### `/Shared/Atoms` — ❌ DELETED (April 2026)
+- `GroupBadge.razor` → moved to `/Shared/Components/Common/`
+- `FidelityCardPlaceholder.razor` → deleted (unused placeholder)
+- `PriceListBadge.razor` → deleted (unused placeholder)
+
+---
+
+### `/Layout` — Application Shell
+- `MainLayout.razor` — Primary layout (contains `NavMenu`, `FloatingFabMenu`, system overlays)
+- `LoginLayout.razor` — Login page layout
+- `NavMenu.razor` — Role-based navigation sidebar
+
+---
+
+### `/Services` — Business Logic Layer
 
 #### Core Services
-- **Authentication**: `AuthService.cs`, `CustomAuthenticationStateProvider.cs`
-- **HTTP Communication**: `HttpClientService.cs`
-- **Real-time**: `OptimizedSignalRService.cs` (implementazione principale di `IRealtimeService`), `SignalRService.cs` (**⚠️ deprecato**, registrato solo per backward compatibility — da rimuovere in PR dedicata, ref issue #1095)
-- **System**: `HealthService.cs`, `ConfigurationService.cs`, `BackupService.cs`, `ThemeService.cs`
-- **Notifications**: `NotificationService.cs`, `ChatService.cs`
-- **Internationalization**: `TranslationService.cs`
+- **Auth**: `AuthService.cs`, `CustomAuthenticationStateProvider.cs`
+- **HTTP**: `HttpClientService.cs`
+- **Real-time**: `OptimizedSignalRService.cs`
+- **System**: `HealthService.cs`, `ConfigurationService.cs`, `BackupService.cs`, `ThemeService.cs`, `ServerConfigService.cs`
+- **Notifications**: `AppNotificationService.cs`, `NotificationService.cs`, `UpdateNotificationService.cs`
+- **Chat**: `ChatService.cs`
+- **i18n**: `TranslationService.cs`
 - **Context**: `TenantContextService.cs`, `InventorySessionService.cs`
-- **Logging**: `ClientLogService.cs`
-- **UI**: `HelpService.cs`, `LoadingDialogService.cs`, `PrintingService.cs`
-- **Optimization**: `PerformanceOptimizationService.cs`
+- **Logging**: `ClientLogService.cs`, `LogManagementService.cs`
+- **UI**: `HelpService.cs`, `LoadingDialogService.cs`, `FontPreferencesService.cs`, `FilterStateService.cs`, `TablePreferencesService.cs`
+- **Optimization**: `PerformanceOptimizationService.cs`, `LookupCacheService.cs`
 
-#### Domain Services
+#### Domain Services (by subdirectory)
+- **`/Documents`**: `DocumentRowCalculationService.cs`, `DocumentRowValidator.cs`, `DocumentDialogCacheService.cs`, `CsvImportService.cs`
+- **`/Sales`**: `SalesService.cs`, `PaymentMethodService.cs`, `NoteFlagService.cs`, `TableManagementService.cs`
+- **`/Store`**: `FiscalDrawerService.cs`, `StorePosService.cs`, `StoreUserService.cs`, `StoreUserGroupService.cs`, `PaymentTerminalService.cs`
+- **`/Station`**: `StationService.cs`
+- **`/WhatsApp`**: `WhatsAppClientService.cs`
+- **`/External`**: `VatLookupService.cs`
+- **`/Updates`**: `UpdateClientDtos.cs`
+- **`/Schema`**: `EntitySchemaProvider.cs`
+- **`/Common`**: `DebouncedAction.cs`
+- **`/Mock`**: `MockFidelityService.cs` — registered in production (placeholder for fidelity API integration)
 
-**Warehouse Management**:
-- `ILotService.cs` / `LotService.cs`
-- `IInventoryService.cs` / `InventoryService.cs`
-- ~~`IInventoryFastService.cs` / `InventoryFastService.cs`~~ — **rimossi** (cleanup novembre 2025; ref issue #1095)
-- `IWarehouseService.cs` / `WarehouseService.cs`
-- `IStorageLocationService.cs` / `StorageLocationService.cs`
-- `IStockService.cs` / `StockService.cs`
+#### Top-level Domain Services
+`ProductService.cs`, `BrandService.cs`, `BusinessPartyService.cs`, `BusinessPartyGroupService.cs`, `FinancialService.cs`, `WarehouseService.cs`, `InventoryService.cs`, `StockService.cs`, `LotService.cs`, `StorageLocationService.cs`, `TransferOrderService.cs`, `DocumentHeaderService.cs`, `DocumentTypeService.cs`, `DocumentCounterService.cs`, `PriceListService.cs`, `PromotionClientService.cs`, `AnalyticsService.cs`, `MonitoringClientService.cs`, `EventService.cs`, `ProfileService.cs`, `LicenseService.cs`, `UMService.cs`, `ModelService.cs`, `EntityManagementService.cs`, `PriceResolutionService.cs`, `StockReconciliationService.cs`, `SupplierSuggestionService.cs`, `CalendarReminderService.cs`, `ReportDefinitionService.cs`, `FiscalPrintingService.cs`, `DevToolsService.cs`, `BrandingService.cs`
 
-**Product Management**:
-- `IProductService.cs` / `ProductService.cs`
-- `IUMService.cs` / `UMService.cs` - Unit of Measure
-- `IBrandService.cs` / `BrandService.cs`
-- `IModelService.cs` / `ModelService.cs`
+---
 
-**Document Management**:
-- `IDocumentHeaderService.cs` / `DocumentHeaderService.cs`
-- `IDocumentTypeService.cs` / `DocumentTypeService.cs`
-- `IDocumentCounterService.cs` / `DocumentCounterService.cs`
+### `/Models` — Data and State Models
+- **`/Documents`**: `DocumentRowDialogState.cs`, `DocumentRowCalculationCache.cs`, `DocumentRowCalculationModels.cs`, `ContinuousScanEntry.cs`, `DialogMode.cs`
+- **`/Fidelity`**: `FidelityCardViewModel.cs`, `FidelityPointsTransactionViewModel.cs`
+- **`/Messaging`**: `MessagingModels.cs`
+- **`/Sales`**: `Pos26Models.cs`
 
-**Business & Financial**:
-- `BusinessPartyService.cs`
-- `FinancialService.cs`
-- `EntityManagementService.cs`
+### `/ViewModels` — Page/Dialog State ViewModels
+21 view models for entity detail forms:
+`BaseEntityDetailViewModel.cs`, `ProductDetailViewModel.cs`, `BusinessPartyDetailViewModel.cs`, `DocumentHeaderDetailViewModel.cs`, `DocumentTypeDetailViewModel.cs`, `DocumentCounterDetailViewModel.cs`, `VatRateDetailViewModel.cs`, `VatNatureDetailViewModel.cs`, `WarehouseDetailViewModel.cs`, `LotDetailViewModel.cs`, `InventoryDetailViewModel.cs`, `OperatorDetailViewModel.cs`, `OperatorGroupDetailViewModel.cs`, `FiscalDrawerDetailViewModel.cs`, `PaymentTerminalDetailViewModel.cs`, `PaymentTermDetailViewModel.cs`, `PosDetailViewModel.cs`, `PrinterDetailViewModel.cs`, `StationDetailViewModel.cs`, `StorageLocationDetailViewModel.cs`, `POSViewModel.cs`
 
-**Administration**:
-- `LogsService.cs`
-- `LicenseService.cs`
+### `/Constants`
+- `ButtonLabels.cs` — Centralized button label string constants
 
-**Removed SuperAdmin Services** (PR #4 - February 2026):
-- ~~`SuperAdmin/ISuperAdminService.cs`~~ → Functionality moved to Server Dashboard
-- ~~`SuperAdmin/SuperAdminService.cs`~~ → Functionality moved to Server Dashboard
+### `/Extensions`
+- `SearchExtensions.cs` — LINQ search helper extensions
 
-**Sales** (`Services/Sales/`):
-- `ISalesService.cs` / `SalesService.cs`
-- `IPaymentMethodService.cs` / `PaymentMethodService.cs`
-- `INoteFlagService.cs` / `NoteFlagService.cs`
-- `ITableManagementService.cs` / `TableManagementService.cs`
+### `/Helpers`
+- `CacheHelper.cs` — Cache key constants and options factory (used by service layer)
 
-**Events**:
-- `EventService.cs`
+### `/Scripts`
+- `Setup-EventForge-Client-IIS.ps1` — IIS deployment setup script
 
-### `/Layout` - Application Shell (5 files)
-- `MainLayout.razor` - Primary application layout
-- `MainLayout.razor.css` - Layout-specific styles
-- `NavMenu.razor` - Navigation menu with role-based rendering
-- `NavMenu.razor.css` - Navigation styles
-- `LoginLayout.razor` - Login page layout
+---
 
-### `/Constants` - Application Constants
-- `ButtonLabels.cs` - Centralized button label constants
+### `/wwwroot` — Static Assets
 
-### `/wwwroot` - Static Assets
+#### CSS
+- `app.css` — Main styles (includes `.plsd-*` progress-log classes for system dialogs)
+- `variables.css` — CSS custom properties
+- Feature styles: `sales.css`, `sidepanel.css`, `help-system.css`, `product.css`, `brand.css`, etc.
+- Component styles (`css/components/`): `entity-drawer.css`, `action-button-group.css`, `mud-components.css`, etc.
+- Themes (`css/themes/`): `carbon-neon-theme.css`
 
-#### CSS (16 files)
-**Core Styles**:
-- `app.css` - Main application styles
-- `variables.css` - CSS custom properties
+#### JavaScript
+- `js/` — helper JS files (component interop)
 
-**Feature Styles**:
-- `sales.css` - Sales module styles
-- `sidepanel.css` - Side panel styles
-- `help-system.css` - Help system styles
-- `icon-color-override.css` - Icon customization
-- `product.css` - Product management styles
-- `brand.css` - Brand management styles
-- `unit-of-measure.css` - Unit of measure styles
-- `vat-rate.css` - VAT rate management styles
+#### Internationalization
+- `i18n/en.json`, `i18n/it.json`
 
-**Component Styles** (`css/components/`):
-- `entity-drawer.css` - Entity drawer styles
-- `action-button-group.css` - Action button group styles
-- `mud-components.css` - MudBlazor overrides
-- `language-selector.css` - Language selector styles
-
-**Theme** (`css/themes/`):
-- `carbon-neon-theme.css` - Custom theme implementation
-
-**Bootstrap** (`css/bootstrap/`):
-- `bootstrap.min.css` - Bootstrap framework
-
-#### JavaScript (4 files)
-- `console-filter.js` - Console log filtering for Mono diagnostics
-- `help-system.js` - Help system interactivity
-
-#### Internationalization (`i18n/`)
-- `en.json` - English translations
-- `it.json` - Italian translations
-
-#### Images (6 files)
-- `EventForge.ico` - Application icon
-- `favicon.png` - Browser favicon
-- `icon-192.png` - PWA icon
-- `trace.svg` - Logo SVG
-- `login_background.jpg` - Login background
-- `login_panel_background.jpg` - Login panel background
-
-## Architecture Changes
-
-### PR #4: SuperAdmin Cleanup (February 2026)
-
-**Removed**:
-- All 13 SuperAdmin pages from client (`/Pages/SuperAdmin/`)
-- 3 SuperAdmin components (`SuperAdminBanner`, `SuperAdminPageLayout`, `SuperAdminCollapsibleSection`)
-- 2 SuperAdmin-only dialogs/drawers (`AuditLogDrawer`, `RolePermissionsDialog`)
-- SuperAdmin service layer (`ISuperAdminService`, `SuperAdminService`)
-- SuperAdmin navigation menu section
-
-**Rationale**:
-- Eliminates code duplication (Server Dashboard already provides full SuperAdmin functionality)
-- Improves security (SuperAdmin operations server-side only)
-- Reduces client bundle size (~5-10% reduction)
-- Simplifies architecture and maintenance
-- Clearer separation between client (tenant-specific) and server (system-wide) concerns
-
-**Migration**:
-SuperAdmin users should now access:
-- `/dashboard` - Server Dashboard (Razor Pages with sidebar navigation)
-- All tenant/user/license/role management available there
-
-**Files Removed**: 18 total files
-- 13 Razor pages (TenantManagement, UserManagement, LicenseManagement, etc.)
-- 3 Shared components (SuperAdminBanner, SuperAdminPageLayout, SuperAdminCollapsibleSection)
-- 2 Support components (AuditLogDrawer, RolePermissionsDialog)
-
-**Lines of Code Removed**: ~8,643 lines
+---
 
 ## Architecture Patterns
 
-### Service Registration
-Services follow a consistent pattern in `Program.cs`:
+### Component Location Rules
+| Type | Location |
+|---|---|
+| Routable pages (`@page`) | `/Pages/{domain}/` |
+| Dialog components (no `@page`, opened via `DialogService`) | `/Shared/Components/Dialogs/{domain}/` |
+| Tab sub-components of a dialog | `/Pages/{domain}/{Entity}DetailTabs/` (co-located with dialog) |
+| Reusable display/input components | `/Shared/Components/{domain}/` |
+| Feature-specific POS components | `/Shared/Components/Sales/Pos26/` |
+| Embedded third-party widgets | `/Shared/Components/Reports/` |
+| Generic management infrastructure | `/Shared/Management/` |
+
+### Service Registration (`Program.cs`)
 ```csharp
 builder.Services.AddScoped<IServiceName, ServiceImplementation>();
 ```
 
-All domain services use interface-based registration for testability and dependency injection.
-
 ### Authentication & Authorization
-- Role-based authorization using `[Authorize(Roles = "...")]` attribute
-- Custom authentication state provider: `CustomAuthenticationStateProvider`
-- Roles: SuperAdmin, Admin, Manager, Operator, Viewer
-
-### Component Communication
-- **SignalR**: Real-time updates (notifications, chat)
-- **Events**: Service-level event handlers
-- **Cascading Parameters**: State propagation
-- **Service Injection**: Shared state via services
-
-### State Management
-- `TenantContextService` - Multi-tenant context
-- `InventorySessionService` - Inventory session persistence
-- `TranslationService` - Language/locale management
-- `ThemeService` - UI theme management
-
-### Loading Patterns
-Three loading components for different use cases:
-1. **LoadingDialog** (509 lines) - Full-featured modal with progress, timing, and custom branding
-2. **GlobalLoadingDialog** (59 lines) - Service-controlled wrapper around LoadingDialog
-3. **PageLoadingOverlay** (45 lines) - Simple overlay for page-level loading states
-
-## Code Quality Standards
-
-### Compilation Status
-- ✅ **0 Errors**
-- ⚠️ **Warnings**: Primarily informational (RZ10012 for Syncfusion components, some CS1998 for async methods)
+- `[Authorize]` / `[Authorize(Roles = "...")]` on pages
+- Roles: Admin, Manager, Operator, Viewer
+- Custom state: `CustomAuthenticationStateProvider`
 
 ### Naming Conventions
-- **Pages**: PascalCase descriptive names (e.g., `ProductManagement.razor`)
-- **Components**: PascalCase with component type suffix (e.g., `LoadingDialog.razor`, `AuditLogDrawer.razor`)
-- **Services**: Interface-based (`IServiceName.cs` / `ServiceName.cs`)
-- **CSS Files**: kebab-case feature names (e.g., `inventory-fast.css`)
+- **Pages**: `{Entity}Management.razor`, `{Entity}DetailDialog.razor`
+- **Components**: `{Feature}{Type}.razor` (e.g., `DocumentTotalsCard.razor`, `PaymentDialog.razor`)
+- **Report widgets**: `{Report}Panel.razor` (not `*Component`)
+- **Services**: `I{Name}Service.cs` / `{Name}Service.cs`
+- **ViewModels**: `{Entity}DetailViewModel.cs`
 
-### File Size Guidelines
-- Pages: Average ~200-400 lines
-- Components: Average ~100-300 lines
-- Services: Average ~200-400 lines
+---
 
-**Notable Large Files** (candidates for future refactoring):
-- `InventoryProcedure.razor` - 1346 lines (complex inventory workflow)
-- `SignalRService.cs` - 1275 lines (**⚠️ deprecato** — da rimuovere in PR dedicata, ref issue #1095)
-- `UserManagement.razor` - 1112 lines (comprehensive user admin)
+## Architecture History
 
-These files are feature-rich and serve complex business needs. Refactoring should be done carefully with comprehensive testing.
+### April 2026 — Full Project Reorganization
+- **`Components/`** root folder eliminated; all contents moved under `Shared/Components/`:
+  - `Components/Pos26/` → `Shared/Components/Sales/Pos26/`
+  - `Components/Reports/ReportDesignerComponent.razor` → `Shared/Components/Reports/ReportDesignerPanel.razor`
+  - `Components/Reports/ReportViewerComponent.razor` → `Shared/Components/Reports/ReportViewerPanel.razor`
+  - `Components/ProductManagement/DevToolsButton.razor` → **deleted** (unused)
+- **`Shared/BusinessParty/`** merged into `Shared/Components/Business/`
+- **`Shared/Documents/`** merged into `Shared/Components/Documents/`
+- **`Pages/Store/`** merged into `Pages/Management/Store/` (consistent store admin path)
+- **`Pages/Chat/`** dialog components moved to `Shared/Components/Dialogs/Chat/`; dead redirect `ChatInterface.razor` deleted
+- **`Shared/Atoms/`** dissolved: `GroupBadge.razor` → `Shared/Components/Common/`; unused atoms deleted
+- **`Shared/Components/DevTools/`** deleted (unused components)
+- **6 unused files deleted**: `FidelityCardPlaceholder.razor`, `PriceListBadge.razor`, `DevToolsButton.razor`, `GenerateProductsButton.razor`, `GenerateProductsDialog.razor`, `ChatInterface.razor`
 
-## Recent Improvements (Current PR)
+### February 2026 — SuperAdmin Cleanup (PR #4)
+All SuperAdmin pages, components, and services removed from client. SuperAdmin functionality lives exclusively in the Server Dashboard (`EventForge.Server`, Razor Pages).
 
-### Phase 1: Compilation Warning Fixes
-- ✅ Removed duplicate `using` directives in Syncfusion components
-- ✅ Fixed nullable reference warnings (CS8602) in 4 files
-- ✅ Fixed async method warnings (CS1998) in 3 files
-- ✅ Fixed property hiding warnings (CS0114) in 2 files
+### November 2025 — Fast Inventory Cleanup
+Removed dual inventory implementations (`InventoryProcedureFast`, `InventoryProcedureSyncfusion`). Classic `InventoryProcedure.razor` is the sole implementation.
 
-### Phase 2: Code Cleanup
-- ✅ Removed unused files: `demo.html`, `weather.json`, `enhanced-chat.js`
-- ✅ Removed empty `sample-data` folder
-- ✅ Verified all CSS files are properly referenced
-- ✅ Verified all loading components are actively used
-- ✅ Reviewed TODO/FIXME comments (all are for planned features)
-
-## Best Practices
-
-### Adding New Pages
-1. Place in appropriate domain folder under `/Pages`
-2. Add `@page` directive with route
-3. Use `[Authorize]` attribute for protected pages
-4. Add navigation link to `NavMenu.razor` if accessible via menu
-5. Follow existing naming patterns
-
-### Adding New Components
-1. Place in `/Shared/Components` with appropriate subfolder
-2. Use component type suffix (Dialog, Drawer, etc.)
-3. Create accompanying CSS file if needed (`.razor.css`)
-4. Document parameters and usage
-
-### Adding New Services
-1. Create interface in `/Services` (e.g., `IMyService.cs`)
-2. Implement service (e.g., `MyService.cs`)
-3. Add `private const string BaseUrl` at the top of the class (e.g., `"api/v1/myservice"`)
-4. Register in `Program.cs` using `AddScoped`
-5. Follow constructor injection pattern
-
-**Note**: All services now include `BaseUrl` constants for consistent API endpoint management.
-
-### CSS Organization
-1. Feature-specific CSS in separate files
-2. Use CSS custom properties from `variables.css`
-3. Reference in `index.html` or dynamically load in component
-4. Use scoped CSS (`.razor.css`) for component-specific styles
-
-## Known Issues and Future Considerations
-
-### Pages Not in Navigation Menu
-- `CreateProduct.razor` (`/products/create`)
-- `AssignBarcode.razor` (`/products/assign-barcode`)
-
-These pages have routes but are not accessible via the navigation menu. They may be:
-- Legacy pages scheduled for removal
-- Admin-accessible via direct navigation
-- Feature pages accessed from other contexts
-
-**Recommendation**: Verify usage and either add to navigation or remove if obsolete.
-
-### Large File Refactoring
-The following files exceed 1000 lines and could benefit from refactoring:
-- `InventoryProcedure.razor` (1346 lines) - Evaluate state machine pattern
-- `SignalRService.cs` (1275 lines) - **⚠️ deprecato**, da rimuovere in PR dedicata (ref issue #1095)
-- `UserManagement.razor` (1112 lines) - Consider extracting tabs into separate components
-
-**Recommendation**: Refactor during dedicated maintenance sprints with comprehensive testing.
-
-### Dual Inventory Implementations
-~~Two parallel inventory implementations exist:~~
-- ~~MudBlazor-based (InventoryProcedureFast)~~
-- ~~Syncfusion-based (InventoryProcedureSyncfusion)~~
-
-**Nota**: Entrambe le pagine (`InventoryProcedureFast.razor`, `InventoryProcedureSyncfusion.razor`) e i relativi servizi (`IInventoryFastService.cs`, `InventoryFastService.cs`) sono stati rimossi nel cleanup di novembre 2025 (ref: `CLEANUP_SUMMARY.md`, issue #1095).
-
-## Conclusion
-
-The EventForge client codebase demonstrates:
-- ✅ Well-organized folder structure
-- ✅ Consistent naming conventions
-- ✅ Proper separation of concerns
-- ✅ Clean service architecture
-- ✅ Minimal technical debt
-- ✅ Zero compilation errors
-
-The structure supports maintainability, scalability, and team collaboration effectively.
