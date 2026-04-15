@@ -16,9 +16,9 @@ using static EventForge.Client.Shared.Components.Dialogs.Documents.DocumentRowDi
 namespace EventForge.Client.Shared.Components.Dialogs.Documents;
 
 /// <summary>
-/// Code-behind per AddDocumentRowDialog - Gestisce inserimento/modifica righe documento
+/// Code-behind per DocumentRowDialog - Gestisce inserimento/modifica righe documento
 /// </summary>
-public partial class AddDocumentRowDialog : IAsyncDisposable
+public partial class DocumentRowDialog : IAsyncDisposable
 {
     #region Injected Dependencies
 
@@ -30,7 +30,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
     [Inject] private IPriceResolutionService PriceResolutionService { get; set; } = null!;
     [Inject] private IAppNotificationService AppNotification { get; set; } = null!;
     [Inject] private ITranslationService TranslationService { get; set; } = null!;
-    [Inject] private ILogger<AddDocumentRowDialog> Logger { get; set; } = null!;
+    [Inject] private ILogger<DocumentRowDialog> Logger { get; set; } = null!;
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private IDocumentRowValidator Validator { get; set; } = null!;
@@ -142,7 +142,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error initializing AddDocumentRowDialog.");
+            Logger.LogError(ex, "Error initializing DocumentRowDialog.");
             AppNotification.ShowError(TranslationService.GetTranslation("documents.errorInitializing", "Errore durante l'inizializzazione del dialogo."));
         }
         finally
@@ -248,7 +248,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error during first render initialization in AddDocumentRowDialog.");
+                Logger.LogError(ex, "Error during first render initialization in DocumentRowDialog.");
             }
         }
     }
@@ -483,7 +483,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error applying recent price {Price} in AddDocumentRowDialog.", price);
+            Logger.LogError(ex, "Error applying recent price {Price} in DocumentRowDialog.", price);
             AppNotification.ShowError(TranslationService.GetTranslation("documents.errorApplyingPrice", "Errore durante l'applicazione del prezzo."));
         }
     }
@@ -578,7 +578,7 @@ public partial class AddDocumentRowDialog : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error handling keyboard shortcut '{Key}' in AddDocumentRowDialog.", e.Key);
+            Logger.LogError(ex, "Error handling keyboard shortcut '{Key}' in DocumentRowDialog.", e.Key);
         }
     }
 

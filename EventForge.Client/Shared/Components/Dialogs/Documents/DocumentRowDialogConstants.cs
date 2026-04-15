@@ -45,7 +45,7 @@ public static class DocumentRowDialogConstants
         /// <summary>
         /// Key for storing panel expansion states
         /// </summary>
-        public const string PanelStates = "EventForge.Documents.AddDocumentRowDialog.PanelStates";
+        public const string PanelStates = "EventForge.Documents.DocumentRowDialog.PanelStates";
     }
 
     /// <summary>
