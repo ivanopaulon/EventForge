@@ -518,9 +518,12 @@
     private DateTime? _documentDate = DateTime.UtcNow;
     private List<DocumentTypeDto> _documentTypes = new();
     private List<PriceListDto> _priceLists = new();
+    // O(1) lookup maps built whenever the lists are (re)loaded
+    private Dictionary<Guid, string> _docTypeNames = new();
+    private Dictionary<Guid, string> _priceListNames = new();
     private BusinessPartyDto? _selectedBusinessParty = null;
 
-    // Cached display values for the left-column summary (avoids per-render LINQ)
+    // Cached display values for the left-column summary (avoids per-render lookup)
     private string? _headerDocTypeName;
     private string? _headerPriceListName;
 
@@ -632,6 +635,7 @@
         {
             var types = await DocumentTypeService.GetAllDocumentTypesAsync();
             _documentTypes = types?.ToList() ?? new List<DocumentTypeDto>();
+            _docTypeNames = _documentTypes.ToDictionary(t => t.Id, t => t.Name ?? string.Empty);
         }
         catch (Exception ex)
         {
@@ -646,11 +650,13 @@
         {
             var result = await PriceListService.GetPagedAsync(1, 1000, direction: null, status: PriceListStatus.Active);
             _priceLists = result?.Items?.ToList() ?? new List<PriceListDto>();
+            _priceListNames = _priceLists.ToDictionary(pl => pl.Id, pl => pl.Name ?? string.Empty);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Error loading price lists");
             _priceLists = new List<PriceListDto>();
+            _priceListNames = new Dictionary<Guid, string>();
         }
     }
 
@@ -849,14 +855,14 @@
     }
 
     /// <summary>
-    /// Refreshes the cached display strings used by the left-column header summary,
-    /// so that the render path avoids repeated LINQ lookups on every re-render.
+    /// Refreshes the cached display strings used by the left-column header summary
+    /// using O(1) dictionary lookups.
     /// </summary>
     private void RefreshHeaderDisplayCache()
     {
-        _headerDocTypeName = _documentTypes.FirstOrDefault(t => t.Id == _model.DocumentTypeId)?.Name;
-        _headerPriceListName = _model.PriceListId.HasValue
-            ? _priceLists.FirstOrDefault(pl => pl.Id == _model.PriceListId)?.Name
+        _docTypeNames.TryGetValue(_model.DocumentTypeId, out _headerDocTypeName);
+        _headerPriceListName = _model.PriceListId.HasValue && _priceListNames.TryGetValue(_model.PriceListId.Value, out var plName)
+            ? plName
             : null;
     }
 
