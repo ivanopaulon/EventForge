@@ -1074,7 +1074,10 @@
   },
   "menu": {
     "adminDashboard": "Pannello Admin",
-    "adminDashboardDescription": "Apri pannello amministrazione"
+    "adminDashboardDescription": "Apri pannello amministrazione",
+    "analytics": "Analytics",
+    "monitoring": "Monitoring",
+    "reports": "Report"
   },
   "notificationPreferences": {
     "allowDataCollection": "Consenti raccolta dati",
@@ -3085,5 +3088,25 @@
       "lots": "Scadenze Lotti",
       "birthdays": "Compleanni"
     }
+  },
+  "reports": {
+    "title": "Gestione Report",
+    "newReport": "Nuovo Report",
+    "designer": "Report Designer",
+    "viewer": "Visualizza Report",
+    "save": "Salva",
+    "saved": "Report salvato con successo.",
+    "saveError": "Errore durante il salvataggio del report.",
+    "export": "Esporta",
+    "category": "Categoria",
+    "categoryHint": "es. Vendite, Magazzino, Fiscale",
+    "hasDesign": "Design",
+    "visibility": "Visibilità",
+    "public": "Pubblico",
+    "private": "Privato",
+    "noReports": "Nessun report trovato.",
+    "loadError": "Errore durante il caricamento del report.",
+    "deleteConfirm": "Eliminare il report selezionato?",
+    "deleted": "Report eliminato con successo."
   }
 }

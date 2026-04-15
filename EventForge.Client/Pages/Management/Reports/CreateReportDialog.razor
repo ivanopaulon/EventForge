@@ -1,0 +1,86 @@
+@using Prym.DTOs.Reports
+@inject IReportDefinitionService ReportService
+@inject ITranslationService TranslationService
+@inject ILogger<CreateReportDialog> Logger
+
+<EFDialog Title="@TranslationService.GetTranslation("reports.newReport", "Nuovo Report")"
+          Icon="@Icons.Material.Outlined.Assessment"
+          IsProcessing="_isSaving"
+          MinWidth="480px"
+          OnClose="@MudDialog.Cancel">
+    <BodyContent>
+        <MudForm @ref="_form" Class="pa-2">
+            <MudTextField @bind-Value="_dto.Name"
+                          Label="@TranslationService.GetTranslation("field.name", "Nome") *"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                          MaxLength="200"
+                          Class="mb-3"
+                          Immediate="true" />
+            <MudTextField @bind-Value="_dto.Description"
+                          Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                          Variant="Variant.Outlined"
+                          MaxLength="1000"
+                          Lines="2"
+                          Class="mb-3" />
+            <MudTextField @bind-Value="_dto.Category"
+                          Label="@TranslationService.GetTranslation("reports.category", "Categoria")"
+                          Variant="Variant.Outlined"
+                          MaxLength="100"
+                          HelperText="@TranslationService.GetTranslation("reports.categoryHint", "es. Vendite, Magazzino, Fiscale")"
+                          Class="mb-3" />
+            <MudSwitch @bind-Value="_dto.IsPublic"
+                       Label="@TranslationService.GetTranslation("reports.public", "Visibile a tutti i ruoli")"
+                       Color="Color.Primary" />
+        </MudForm>
+    </BodyContent>
+    <FooterContent>
+        <MudButton Variant="Variant.Text"
+                   Disabled="_isSaving"
+                   OnClick="@MudDialog.Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="_isSaving"
+                   OnClick="SaveAsync">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </FooterContent>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public EventCallback<ReportDefinitionDto> OnReportCreated { get; set; }
+
+    private MudForm? _form;
+    private bool _isSaving;
+    private readonly CreateReportDto _dto = new();
+
+    private async Task SaveAsync()
+    {
+        if (_form is not null) await _form.Validate();
+        if (_form?.IsValid != true) return;
+
+        _isSaving = true;
+        try
+        {
+            var created = await ReportService.CreateReportAsync(_dto);
+            if (created is not null)
+            {
+                await OnReportCreated.InvokeAsync(created);
+                MudDialog.Close(DialogResult.Ok(created));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating report");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

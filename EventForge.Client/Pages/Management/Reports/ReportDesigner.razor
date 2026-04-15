@@ -1,0 +1,113 @@
+@page "/management/reports/designer/{ReportId:guid}"
+@page "/management/reports/designer"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.Reports
+@using EventForge.Client.Components.Reports
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+
+@inject IReportDefinitionService ReportService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager Navigation
+@inject ILogger<ReportDesigner> Logger
+
+<PageTitle>@(_report?.Name ?? TranslationService.GetTranslation("reports.designer", "Report Designer"))</PageTitle>
+<PageLoadingOverlay Visible="_isLoading"
+                    Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento designer...")" />
+
+@if (!_isLoading)
+{
+    <MudContainer MaxWidth="MaxWidth.False" Class="pa-0" Style="height:100%;display:flex;flex-direction:column;">
+        <!-- Toolbar -->
+        <MudPaper Elevation="1" Class="pa-3 mb-1" Style="flex:0 0 auto;">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIconButton Icon="@Icons.Material.Outlined.ArrowBack"
+                               Size="Size.Small"
+                               Title="@TranslationService.GetTranslation("common.back", "Indietro")"
+                               OnClick="@(() => Navigation.NavigateTo("/management/reports"))" />
+                <MudIcon Icon="@Icons.Material.Outlined.Draw" Color="Color.Primary" />
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle1">
+                        @(_report?.Name ?? TranslationService.GetTranslation("reports.designer", "Report Designer"))
+                    </MudText>
+                    @if (!string.IsNullOrWhiteSpace(_report?.Category))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@_report.Category</MudText>
+                    }
+                </MudStack>
+                <MudSpacer />
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                }
+            </MudStack>
+        </MudPaper>
+
+        <!-- Designer -->
+        <div style="flex:1 1 auto;overflow:hidden;">
+            <ReportDesignerComponent ReportId="@ReportId"
+                                     Height="100%"
+                                     OnSave="HandleDesignerSaveAsync" />
+        </div>
+    </MudContainer>
+}
+
+@code {
+    [Parameter] public Guid? ReportId { get; set; }
+
+    private ReportDefinitionDto? _report;
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ReportId.HasValue)
+        {
+            try
+            {
+                _report = await ReportService.GetReportAsync(ReportId.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading report {ReportId}", ReportId);
+                AppNotification.ShowError(TranslationService.GetTranslation("reports.loadError", "Errore durante il caricamento del report."));
+            }
+        }
+        _isLoading = false;
+    }
+
+    private async Task HandleDesignerSaveAsync(string rdlcContent)
+    {
+        if (!ReportId.HasValue || _report is null) return;
+
+        _isSaving = true;
+        try
+        {
+            var dto = new UpdateReportDto
+            {
+                Name          = _report.Name,
+                Description   = _report.Description,
+                Category      = _report.Category,
+                IsPublic      = _report.IsPublic,
+                IsActive      = _report.IsActive,
+                ReportContent = rdlcContent,
+            };
+            var updated = await ReportService.UpdateReportAsync(ReportId.Value, dto);
+            if (updated is not null)
+            {
+                _report = updated;
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.saved", "Report salvato."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving report RDLC content for {ReportId}", ReportId);
+            AppNotification.ShowError(TranslationService.GetTranslation("reports.saveError", "Errore durante il salvataggio del report."));
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+}

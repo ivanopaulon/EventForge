@@ -174,6 +174,7 @@ builder.Services.AddScoped<IPriceListService, PriceListService>();
 builder.Services.AddScoped<IPriceResolutionService, PriceResolutionService>();
 builder.Services.AddScoped<IPromotionClientService, PromotionClientService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
+builder.Services.AddScoped<IReportDefinitionService, ReportDefinitionService>();
 builder.Services.AddScoped<IMonitoringClientService, MonitoringClientService>();
 
 // Add DevTools services

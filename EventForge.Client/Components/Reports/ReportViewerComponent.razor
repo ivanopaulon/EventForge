@@ -1,0 +1,76 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+@inject ILogger<ReportViewerComponent> Logger
+
+<div id="@_containerId" style="width:100%;height:@Height;min-height:400px;"></div>
+
+@code {
+    private string _containerId = $"report-viewer-{Guid.NewGuid():N}";
+    private bool _initialized = false;
+
+    /// <summary>GUID of the report to display.</summary>
+    [Parameter, EditorRequired] public Guid ReportId { get; set; }
+
+    /// <summary>
+    /// URL of the Bold Reports server-side viewer service.
+    /// Defaults to the standard EventForge endpoint.
+    /// </summary>
+    [Parameter] public string ServiceUrl { get; set; } = "/api/v1/boldreports/viewer";
+
+    /// <summary>Height of the viewer container (CSS value).</summary>
+    [Parameter] public string Height { get; set; } = "calc(100vh - 180px)";
+
+    /// <summary>
+    /// Optional report parameters as key-value pairs.
+    /// Keys must match the parameter names declared in the RDLC.
+    /// </summary>
+    [Parameter] public Dictionary<string, object>? Parameters { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Re-initialise the viewer if the report ID changes after first render.
+        if (_initialized)
+        {
+            await InitViewerAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized) return;
+        _initialized = true;
+        await InitViewerAsync();
+    }
+
+    private async Task InitViewerAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync(
+                "boldReportsInterop.initReportViewer",
+                _containerId,
+                ServiceUrl,
+                ReportId.ToString(),
+                Parameters);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Failed to initialise Bold Reports viewer in container {ContainerId}", _containerId);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("boldReportsInterop.destroyComponent", _containerId);
+        }
+        catch (JSDisconnectedException) { /* page navigation — ignore */ }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error destroying Bold Reports viewer component {ContainerId}", _containerId);
+        }
+    }
+}
