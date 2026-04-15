@@ -36,7 +36,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.5" />
     <PackageVersion Include="FreeSpire.Barcode" Version="6.6.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.2" />
-    <PackageVersion Include="System.IO.Ports" Version="9.0.5" />
+    <PackageVersion Include="System.IO.Ports" Version="10.0.1" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.5" />
     <PackageVersion Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
     <!-- Health Checks and Resiliency packages -->
@@ -93,6 +93,8 @@
     <PackageVersion Include="Syncfusion.Blazor.InPlaceEditor" Version="33.1.46" />
     <!-- Bold Reports - server-side RDLC report processing and export (Community License) -->
     <PackageVersion Include="BoldReports.Net.Core" Version="13.1.27" />
+    <!-- Roslyn CodeAnalysis: pin to highest version to resolve conflict between EF Core Design (5.0.0) and BoldReports (4.14.0) -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
     <!-- HTML sanitization for user-generated rich content -->
     <PackageVersion Include="HtmlSanitizer" Version="9.0.892" />
   </ItemGroup>
