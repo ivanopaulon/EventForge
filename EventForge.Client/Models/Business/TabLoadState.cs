@@ -1,4 +1,4 @@
-namespace EventForge.Client.Pages.Management.Business;
+namespace EventForge.Client.Models.Business;
 
 /// <summary>
 /// Enum per lo stato di caricamento delle tab.

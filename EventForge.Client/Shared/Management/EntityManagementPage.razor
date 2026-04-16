@@ -1,16 +1,9 @@
 @typeparam TEntity where TEntity : class
-@using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.Common
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dialogs
-@using EventForge.Client.Shared.Management
 @using EventForge.Client.Extensions
-@using MudBlazor
 @implements IDisposable
 @inject IAuthService AuthService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
-@inject IAppNotificationService AppNotification
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService

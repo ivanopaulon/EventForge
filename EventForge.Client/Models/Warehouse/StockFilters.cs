@@ -1,4 +1,4 @@
-namespace EventForge.Client.Pages.Management.Warehouse;
+namespace EventForge.Client.Models.Warehouse;
 
 /// <summary>
 /// Manages filter state for StockOverview page
