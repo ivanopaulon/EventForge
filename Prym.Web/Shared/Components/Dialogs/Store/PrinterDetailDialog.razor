@@ -1,0 +1,335 @@
+@using Prym.DTOs.Station
+@using Prym.Web.ViewModels
+@attribute [Authorize]
+@inject PrinterDetailViewModel ViewModel
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<PrinterDetailDialog> Logger
+@implements IDisposable
+
+<EFDialog Icon="@Icons.Material.Outlined.Print"
+          Title="@(ViewModel.IsNewEntity ? "Nuova Stampante" : (ViewModel.Entity?.Name ?? "Stampante"))"
+          IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        @if (ViewModel.IsLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (!ViewModel.IsNewEntity && ViewModel.Entity == null)
+        {
+            <MudAlert Severity="Severity.Error">Stampante non trovata.</MudAlert>
+        }
+        else if (ViewModel.Entity != null)
+        {
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
+
+                @* ─── Tab 1: Generale ─── *@
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    @if (!ViewModel.IsNewEntity)
+                    {
+                        <div class="d-flex align-center gap-4 flex-wrap mb-3">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="@GetStatusColor(ViewModel.Entity.Status)" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Print" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Class="fw-semibold">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        ID: @ViewModel.Entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="@GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
+                            </MudChip>
+                        </div>
+                        <MudDivider Class="mb-3" />
+                    }
+
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="8">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Name"
+                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                               Required="true"
+                                               RequiredError="Il nome è obbligatorio."
+                                               MaxLength="50"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Type"
+                                               Label="Tipo"
+                                               MaxLength="30"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Model"
+                                               Label="Modello"
+                                               MaxLength="50"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Location"
+                                               Label="Posizione"
+                                               MaxLength="50"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="8">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Address"
+                                               Label="Indirizzo IP / Porta seriale"
+                                               MaxLength="100"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <PrymSelect @bind-Value="ViewModel.Entity.Status"
+                                            Label="Stato"
+                                            @bind-Value:after="HandleEntityChanged">
+                                    @foreach (var s in Enum.GetValues<PrinterConfigurationStatus>())
+                                    {
+                                        <MudSelectItem Value="@s">@GetStatusText(s)</MudSelectItem>
+                                    }
+                                </PrymSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymSelect @bind-Value="ViewModel.Entity.Category"
+                                            Label="Categoria"
+                                            @bind-Value:after="HandleEntityChanged">
+                                    @foreach (var c in Enum.GetValues<PrinterCategory>())
+                                    {
+                                        <MudSelectItem Value="@c">@GetCategoryText(c)</MudSelectItem>
+                                    }
+                                </PrymSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymSelect @bind-Value="ViewModel.Entity.ConnectionType"
+                                            Label="Tipo connessione"
+                                            @bind-Value:after="HandleEntityChanged">
+                                    @foreach (var t in Enum.GetValues<PrinterConnectionType>())
+                                    {
+                                        <MudSelectItem Value="@t">@GetConnectionTypeText(t)</MudSelectItem>
+                                    }
+                                </PrymSelect>
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <PrymNullableNumericField T="int" @bind-Value="ViewModel.Entity.Port"
+                                                  Label="Porta TCP"
+                                                  Min="1" Max="65535"
+                                                  @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudSwitch @bind-Value="ViewModel.Entity.IsThermal"
+                                           Label="Stampante termica"
+                                           Color="Color.Primary"
+                                           @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudSwitch @bind-Value="ViewModel.Entity.IsFiscalPrinter"
+                                           Label="Stampante fiscale"
+                                           Color="Color.Warning"
+                                           @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+
+                @* ─── Tab 2: Avanzate ─── *@
+                <MudTabPanel Text="Avanzate" Icon="@Icons.Material.Outlined.Settings">
+                    <MudGrid>
+                        @if (ViewModel.Entity.IsFiscalPrinter)
+                        {
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.ProtocolType"
+                                               Label="Protocollo"
+                                               MaxLength="50"
+                                               HelperText="Es. Custom, Epson, RCH"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                        }
+                        <MudItem xs="12" md="6">
+                            <PrymTextField @bind-Value="ViewModel.Entity.SerialPortName"
+                                           Label="Porta seriale"
+                                           MaxLength="20"
+                                           HelperText="Es. COM1, /dev/ttyUSB0"
+                                           @bind-Value:after="HandleEntityChanged" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <PrymNullableNumericField T="int" @bind-Value="ViewModel.Entity.BaudRate"
+                                              Label="Baud Rate"
+                                              Min="300" Max="115200"
+                                              @bind-Value:after="HandleEntityChanged" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <PrymNullableNumericField T="int" @bind-Value="ViewModel.Entity.PrinterWidth"
+                                              Label="Larghezza stampa (caratteri)"
+                                              Min="10" Max="200"
+                                              @bind-Value:after="HandleEntityChanged" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <PrymSelect @bind-Value="ViewModel.Entity.PaperWidth"
+                                        Label="Larghezza carta"
+                                        Clearable="true"
+                                        @bind-Value:after="HandleEntityChanged">
+                                <MudSelectItem Value="@((PaperWidth?)PaperWidth.Mm57)">57 mm</MudSelectItem>
+                                <MudSelectItem Value="@((PaperWidth?)PaperWidth.Mm80)">80 mm</MudSelectItem>
+                            </PrymSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <PrymSelect @bind-Value="ViewModel.Entity.PrintLanguage"
+                                        Label="Linguaggio stampa"
+                                        Clearable="true"
+                                        @bind-Value:after="HandleEntityChanged">
+                                @foreach (var l in Enum.GetValues<PrintLanguage>())
+                                {
+                                    <MudSelectItem Value="@((PrintLanguage?)l)">@l.ToString()</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+                        @if (ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent || ViewModel.Entity.ConnectionType == PrinterConnectionType.TcpViaAgent)
+                        {
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="@_agentIdString"
+                                               Label="Agent ID"
+                                               HelperText="GUID dell'agente"
+                                               @bind-Value:after="@(() => { if (Guid.TryParse(_agentIdString, out var g)) ViewModel.Entity.AgentId = g; HandleEntityChanged(); })" />
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.UsbDeviceId"
+                                               Label="USB Device ID"
+                                               MaxLength="100"
+                                               Required="@(ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent)"
+                                               RequiredError="USB Device ID è obbligatorio per connessioni UsbViaAgent."
+                                               HelperText="@(ViewModel.Entity.ConnectionType == PrinterConnectionType.UsbViaAgent ? "Obbligatorio per USB via Agent" : null)"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudTabPanel>
+
+            </MudTabs>
+        }
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                    OnClick="Cancel"
+                    Disabled="@ViewModel.IsSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveAsync"
+                    Disabled="@(ViewModel.IsSaving || !ViewModel.HasUnsavedChanges())">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+    [Parameter] public Guid? EntityId { get; set; }
+
+    private MudForm? _form;
+    private string _agentIdString = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+            _agentIdString = ViewModel.Entity?.AgentId?.ToString() ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing PrinterDetailDialog for ID {EntityId}", EntityId);
+            AppNotification.ShowError("Errore durante il caricamento della stampante.");
+        }
+    }
+
+    private void OnViewModelStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void HandleEntityChanged()
+    {
+        ViewModel.NotifyEntityChanged();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form is not null)
+            await _form.ValidateAsync();
+        if (_form?.IsValid == false) return;
+
+        try
+        {
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                AppNotification.ShowSuccess(ViewModel.IsNewEntity
+                    ? "Stampante creata con successo."
+                    : "Stampante aggiornata con successo.");
+                MudDialog?.Close(DialogResult.Ok(ViewModel.Entity));
+            }
+            else
+            {
+                AppNotification.ShowError("Salvataggio non riuscito.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving printer");
+            AppNotification.ShowError($"Errore: {ex.Message}");
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
+
+    private static Color GetStatusColor(PrinterConfigurationStatus s) => s switch
+    {
+        PrinterConfigurationStatus.Active      => Color.Success,
+        PrinterConfigurationStatus.Offline     => Color.Default,
+        PrinterConfigurationStatus.Error       => Color.Error,
+        PrinterConfigurationStatus.Maintenance => Color.Warning,
+        PrinterConfigurationStatus.Suspended   => Color.Warning,
+        _                                       => Color.Default
+    };
+
+    private static string GetStatusText(PrinterConfigurationStatus s) => s switch
+    {
+        PrinterConfigurationStatus.Active      => "Attiva",
+        PrinterConfigurationStatus.Offline     => "Offline",
+        PrinterConfigurationStatus.Error       => "Errore",
+        PrinterConfigurationStatus.Maintenance => "Manutenzione",
+        PrinterConfigurationStatus.Suspended   => "Sospesa",
+        _                                       => s.ToString()
+    };
+
+    private static string GetCategoryText(PrinterCategory c) => c switch
+    {
+        PrinterCategory.Fiscal  => "Fiscale",
+        PrinterCategory.Receipt => "Scontrini",
+        PrinterCategory.KDS     => "Cucina (KDS)",
+        PrinterCategory.Label   => "Etichette",
+        PrinterCategory.Report  => "Report",
+        _                        => c.ToString()
+    };
+
+    private static string GetConnectionTypeText(PrinterConnectionType t) => t switch
+    {
+        PrinterConnectionType.Tcp          => "TCP diretto",
+        PrinterConnectionType.Serial       => "Seriale",
+        PrinterConnectionType.UsbViaAgent  => "USB via Agent",
+        PrinterConnectionType.NetworkShare => "Condivisione rete",
+        PrinterConnectionType.TcpViaAgent  => "TCP via Agent",
+        _                                   => t.ToString()
+    };
+}

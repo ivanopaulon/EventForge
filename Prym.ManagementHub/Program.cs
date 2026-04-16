@@ -10,7 +10,7 @@ using System.Threading.RateLimiting;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Apply environment-specific overrides from "Environments:{env}" in appsettings.json ──
-// Mirrors the same single-file pattern used by EventForge.Client.
+// Mirrors the same single-file pattern used by Prym.Web.
 var envSection = builder.Configuration.GetSection($"Environments:{builder.Environment.EnvironmentName}");
 if (envSection.Exists())
 {

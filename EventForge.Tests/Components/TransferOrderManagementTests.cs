@@ -1,5 +1,5 @@
-using EventForge.Client.Services;
-using EventForge.Client.Shared.Components;
+using Prym.Web.Services;
+using Prym.Web.Shared.Components;
 using Prym.DTOs.Common;
 using Prym.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;

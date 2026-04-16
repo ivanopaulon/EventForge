@@ -1,0 +1,402 @@
+@using Prym.DTOs.Store
+@using Prym.DTOs.Business
+@using Prym.Web.Shared.Components.Dialogs.Sales
+@using Prym.Web.Shared.Components.Business
+@using Prym.Web.Shared.Components.Common
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<POSHeader> Logger
+
+@{
+    var drawerOpen = FiscalDrawerSummary?.HasOpenSession == true;
+    var drawerClosed = FiscalDrawerSummary is not null && !drawerOpen;
+    var hasDrawer = FiscalDrawerSummary is not null;
+}
+
+<MudPaper Elevation="3" Class="pa-2 mb-2"
+          Style="border-radius: 0 0 12px 12px; position: sticky; top: 0; z-index: 10;">
+
+    @* ── Row 1: Operator · POS · Customer · Session · Actions ── *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+
+        @* ── Operator ── *@
+        @if (IsSessionActive && SelectedOperatorId.HasValue)
+        {
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary" />
+                <MudText Typo="Typo.body2" Class="text-nowrap">
+                    <strong>@SelectedOperatorName</strong>
+                </MudText>
+            </div>
+        }
+        else if (!IsSessionActive)
+        {
+            <MudSelect T="Guid?"
+                       Value="SelectedOperatorId"
+                       ValueChanged="@OnOperatorChanged"
+                       Label="@TranslationService.GetTranslation("sales.operator", "Operatore")"
+                       Variant="Variant.Outlined"
+                       Dense="true"
+                       Required="true"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.Person"
+                       Style="min-width:140px; max-width:180px;">
+                @if (AvailableOperators != null)
+                {
+                    @foreach (var op in AvailableOperators)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)op.Id)">@op.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        }
+
+        @* ── POS / Cassa ── *@
+        @if (IsSessionActive && SelectedPosId.HasValue)
+        {
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Size="Size.Small" Color="Color.Default" />
+                <MudText Typo="Typo.body2" Class="text-nowrap">
+                    @SelectedPosName
+                </MudText>
+            </div>
+        }
+        else if (!IsSessionActive)
+        {
+            <MudSelect T="Guid?"
+                       Value="SelectedPosId"
+                       ValueChanged="@OnPosChanged"
+                       Label="@TranslationService.GetTranslation("sales.pos", "Cassa")"
+                       Variant="Variant.Outlined"
+                       Dense="true"
+                       Required="true"
+                       Disabled="@(!SelectedOperatorId.HasValue)"
+                       Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.PointOfSale"
+                       Style="min-width:120px; max-width:160px;">
+                @if (AvailablePos != null)
+                {
+                    @foreach (var pos in AvailablePos)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)pos.Id)">@pos.Name</MudSelectItem>
+                    }
+                }
+            </MudSelect>
+        }
+
+        @* ── Loading spinner ── *@
+        @if (IsUpdatingItems)
+        {
+            <MudTooltip Text="@LoadingTooltipText">
+                <MudProgressCircular Size="Size.Small"
+                                     Color="@LoadingSpinnerColor"
+                                     Indeterminate="true" />
+            </MudTooltip>
+        }
+
+        <MudSpacer />
+
+        @* ── Customer selector (optional) ── *@
+        @if (SelectedCustomerChanged.HasDelegate)
+        {
+            <div style="max-width: 200px; min-width: 120px;">
+                <UnifiedBusinessPartySelector
+                    SelectedBusinessParty="SelectedCustomer"
+                    SelectedBusinessPartyChanged="@OnCustomerChanged"
+                    Title="@null"
+                    Placeholder="@TranslationService.GetTranslation("sales.searchCustomer", "Cliente...")"
+                    FilterByType="BusinessPartyType.Customer"
+                    EditMode="EntityEditMode.QuickDialog"
+                    CreateMode="EntityCreateMode.QuickDialog"
+                    DisplayMode="EntityDisplayMode.FiscalInfo | EntityDisplayMode.Contacts"
+                    Disabled="@(!SelectedOperatorId.HasValue || !SelectedPosId.HasValue)"
+                    Dense="true" />
+            </div>
+        }
+
+        @* ── Session number ── *@
+        @if (IsSessionActive && SessionNumber.HasValue)
+        {
+            var sessionStr = SessionNumber.Value.ToString();
+            var displayId = sessionStr.Length >= 8 ? sessionStr.Substring(0, 8) : sessionStr;
+            <div class="d-flex align-center gap-1">
+                <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" Color="Color.Info" />
+                <MudText Typo="Typo.caption" Color="Color.Info" Class="text-nowrap">#@displayId</MudText>
+            </div>
+        }
+
+        @* ── Park ── *@
+        <MudTooltip Text="@TranslationService.GetTranslation("sales.parkSession", "Parcheggia (F3)")">
+            <MudIconButton Icon="@Icons.Material.Outlined.Pause"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           OnClick="@OnParkClick"
+                           Disabled="@(!IsSessionActive)" />
+        </MudTooltip>
+
+        @* ── Cancel / Change ── *@
+        <MudTooltip Text="@TranslationService.GetTranslation("sales.cancelSession", "Annulla / Cambia operatore")">
+            <MudIconButton Icon="@Icons.Material.Outlined.SwitchAccount"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           OnClick="@OnCancelClick" />
+        </MudTooltip>
+
+    </MudStack>
+
+    @* ── Row 2: Fiscal Drawer info + actions (only when drawer is configured) ── *@
+    @if (hasDrawer)
+    {
+        <MudDivider Class="my-1" />
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+
+            @* ── Drawer icon + name + status ── *@
+            <MudIcon Icon="@Icons.Material.Outlined.Inbox"
+                     Size="Size.Small"
+                     Color="@(drawerOpen ? Color.Success : Color.Warning)" />
+            <MudText Typo="Typo.body2" Class="text-nowrap">
+                <strong>@FiscalDrawerSummary!.Name</strong>
+            </MudText>
+            <MudText Typo="Typo.caption"
+                     Color="@(drawerOpen ? Color.Success : Color.Warning)"
+                     Class="text-nowrap">
+                @(drawerOpen
+                    ? TranslationService.GetTranslation("sales.drawerOpen", "Aperto")
+                    : TranslationService.GetTranslation("sales.drawerClosed", "Chiuso"))
+            </MudText>
+
+            @* ── Balance + Sales (only when session open) ── *@
+            @if (drawerOpen)
+            {
+                <MudDivider Vertical="true" FlexItem="true" />
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-nowrap">
+                        @TranslationService.GetTranslation("sales.balance", "Saldo"):
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="text-nowrap">
+                        <strong>@($"€ {FiscalDrawerSummary!.CurrentBalance:N2}")</strong>
+                    </MudText>
+                </div>
+                <div class="d-flex align-center gap-1">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-nowrap">
+                        @TranslationService.GetTranslation("sales.sessionSales", "Vendite"):
+                    </MudText>
+                    <MudText Typo="Typo.body2" Class="text-nowrap">
+                        <strong>@($"€ {FiscalDrawerSummary!.SessionTotalSales:N2}")</strong>
+                    </MudText>
+                </div>
+            }
+
+            <MudSpacer />
+
+            @* ── Open drawer session (when closed) ── *@
+            @if (drawerClosed)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.openDrawerSession", "Apri sessione cassetto")">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Info"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.LockOpen"
+                               OnClick="@OnOpenDrawerSessionClick">
+                        @TranslationService.GetTranslation("sales.openSession", "Apri sessione")
+                    </MudButton>
+                </MudTooltip>
+            }
+
+            @* ── Deposit / Withdrawal (when session open) ── *@
+            @if (drawerOpen)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.deposit", "Versamento")">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Success"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.ArrowUpward"
+                               OnClick="@OnDepositClick">
+                        @TranslationService.GetTranslation("sales.deposit", "Versamento")
+                    </MudButton>
+                </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.withdrawal", "Prelievo")">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.ArrowDownward"
+                               OnClick="@OnWithdrawalClick">
+                        @TranslationService.GetTranslation("sales.withdrawal", "Prelievo")
+                    </MudButton>
+                </MudTooltip>
+            }
+
+            @* ── Open physical drawer via fiscal printer ── *@
+            @if (HasFiscalPrinter)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.openPhysicalDrawer", "Apri cassetto (stampante fiscale)")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.OpenInBrowser"
+                                   Color="Color.Info"
+                                   Size="Size.Small"
+                                   OnClick="@OnOpenPhysicalDrawerClick" />
+                </MudTooltip>
+            }
+
+            @* ── Daily closure required ── *@
+            @if (IsDailyClosureRequired)
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("sales.dailyClosureRequired", "Chiusura giornaliera richiesta — clicca per eseguire")">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.EventNote"
+                               OnClick="@OnDailyClosureClick">
+                        @TranslationService.GetTranslation("sales.dailyClosure", "Chiusura Z")
+                    </MudButton>
+                </MudTooltip>
+            }
+
+        </MudStack>
+    }
+
+</MudPaper>
+
+@code {
+    // ── Operator ────────────────────────────────────────────────────────────
+
+    [Parameter]
+    public List<StoreUserDto>? AvailableOperators { get; set; }
+
+    [Parameter]
+    public Guid? SelectedOperatorId { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> SelectedOperatorIdChanged { get; set; }
+
+    // ── POS ─────────────────────────────────────────────────────────────────
+
+    [Parameter]
+    public List<StorePosDto>? AvailablePos { get; set; }
+
+    [Parameter]
+    public Guid? SelectedPosId { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid?> SelectedPosIdChanged { get; set; }
+
+    // ── Customer ─────────────────────────────────────────────────────────────
+
+    [Parameter]
+    public BusinessPartyDto? SelectedCustomer { get; set; }
+
+    [Parameter]
+    public EventCallback<BusinessPartyDto?> SelectedCustomerChanged { get; set; }
+
+    // ── Session ──────────────────────────────────────────────────────────────
+
+    [Parameter]
+    public Guid? SessionNumber { get; set; }
+
+    [Parameter]
+    public bool IsSessionActive { get; set; }
+
+    [Parameter]
+    public EventCallback OnParkClick { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelClick { get; set; }
+
+    [Parameter]
+    public bool IsUpdatingItems { get; set; }
+
+    [Parameter]
+    public string LoadingTooltipText { get; set; } = string.Empty;
+
+    [Parameter]
+    public Color LoadingSpinnerColor { get; set; } = Color.Primary;
+
+    // ── Fiscal Drawer ────────────────────────────────────────────────────────
+
+    /// <summary>Summary of the fiscal drawer associated with the current POS. Null when none is configured.</summary>
+    [Parameter]
+    public FiscalDrawerSummaryDto? FiscalDrawerSummary { get; set; }
+
+    /// <summary>Fired when the operator clicks "Apri sessione cassetto".</summary>
+    [Parameter]
+    public EventCallback OnOpenDrawerSessionClick { get; set; }
+
+    /// <summary>Fired when the operator clicks the deposit (Versamento) icon button.</summary>
+    [Parameter]
+    public EventCallback OnDepositClick { get; set; }
+
+    /// <summary>Fired when the operator clicks the withdrawal (Prelievo) icon button.</summary>
+    [Parameter]
+    public EventCallback OnWithdrawalClick { get; set; }
+
+    // ── Fiscal Printer ───────────────────────────────────────────────────────
+
+    /// <summary>True when a fiscal printer is associated with the current POS, enabling the open-drawer button.</summary>
+    [Parameter]
+    public bool HasFiscalPrinter { get; set; }
+
+    /// <summary>True when the fiscal printer requires a daily closure (Z-report).</summary>
+    [Parameter]
+    public bool IsDailyClosureRequired { get; set; }
+
+    /// <summary>Fired when the operator clicks the "open physical drawer" icon button.</summary>
+    [Parameter]
+    public EventCallback OnOpenPhysicalDrawerClick { get; set; }
+
+    /// <summary>Fired when the operator clicks the daily-closure warning icon button.</summary>
+    [Parameter]
+    public EventCallback OnDailyClosureClick { get; set; }
+
+    // ── Computed ──────────────────────────────────────────────────────────────
+
+    private string SelectedOperatorName =>
+        AvailableOperators?.FirstOrDefault(o => o.Id == SelectedOperatorId)?.Name ?? "—";
+
+    private string SelectedPosName =>
+        AvailablePos?.FirstOrDefault(p => p.Id == SelectedPosId)?.Name ?? "—";
+
+    // ── Handlers ─────────────────────────────────────────────────────────────
+
+    private async Task OnOperatorChanged(Guid? value)
+    {
+        try
+        {
+            SelectedOperatorId = value;
+            await SelectedOperatorIdChanged.InvokeAsync(value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnOperatorChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task OnPosChanged(Guid? value)
+    {
+        try
+        {
+            SelectedPosId = value;
+            await SelectedPosIdChanged.InvokeAsync(value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnPosChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task OnCustomerChanged(BusinessPartyDto? value)
+    {
+        try
+        {
+            SelectedCustomer = value;
+            await SelectedCustomerChanged.InvokeAsync(value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnCustomerChanged));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+}

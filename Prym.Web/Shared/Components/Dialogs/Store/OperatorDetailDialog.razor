@@ -1,0 +1,271 @@
+@using Prym.DTOs.Store
+@using Prym.Web.ViewModels
+@attribute [Authorize]
+@inject OperatorDetailViewModel ViewModel
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<OperatorDetailDialog> Logger
+@inject IAppNotificationService AppNotification
+@implements IDisposable
+
+<EFDialog Icon="@Icons.Material.Outlined.Person"
+          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("store.newOperator", "Nuovo Operatore") : (ViewModel.Entity?.Name ?? string.Empty))"
+          IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        @if (ViewModel.IsLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (!ViewModel.IsNewEntity && ViewModel.Entity == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("store.operatorNotFound", "Operatore non trovato")
+            </MudAlert>
+        }
+        else if (ViewModel.Entity != null)
+        {
+            <MudTabs Elevation="0" Rounded="false" PanelClass="pa-4" Class="ef-tabs" ApplyEffectsToContainer="true">
+                <MudTabPanel Text="Generale" Icon="@Icons.Material.Outlined.Info">
+                    @if (!ViewModel.IsNewEntity)
+                    {
+                        <div class="d-flex align-center gap-4 flex-wrap mb-3">
+                            <div class="d-flex align-center gap-2">
+                                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.body1" Class="fw-semibold">@ViewModel.Entity.Name</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @@@ViewModel.Entity.Username - ID: @ViewModel.Entity.Id.ToString()[..8]...
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudChip T="string" Size="Size.Medium" Color="GetStatusColor(ViewModel.Entity.Status)">
+                                @GetStatusText(ViewModel.Entity.Status)
+                            </MudChip>
+                            @if (ViewModel.Entity.IsOnShift)
+                            {
+                                <MudChip T="string" Size="Size.Medium" Color="Color.Success" Icon="@Icons.Material.Outlined.CheckCircle">
+                                    @TranslationService.GetTranslation("status.onShift", "In Turno")
+                                </MudChip>
+                            }
+                        </div>
+                        <MudDivider Class="mb-3" />
+                    }
+
+                    <MudForm @ref="_form" Model="@ViewModel.Entity">
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Name"
+                                               Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                               Required="true"
+                                               MaxLength="100"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Username"
+                                               Label="@TranslationService.GetTranslation("field.username", "Username")"
+                                               Required="@ViewModel.IsNewEntity"
+                                               MaxLength="50"
+                                               Disabled="@(!ViewModel.IsNewEntity)"
+                                               HelperText="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("field.usernameRequired", "Username obbligatorio") : TranslationService.GetTranslation("field.usernameImmutable", "Username non può essere modificato dopo la creazione"))"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            @if (ViewModel.IsNewEntity)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <PrymTextField @bind-Value="ViewModel.Password"
+                                                   Label="@TranslationService.GetTranslation("field.password", "Password")"
+                                                   InputType="InputType.Password"
+                                                   Required="true"
+                                                   HelperText="@TranslationService.GetTranslation("field.passwordHelper", "Lascia vuoto per generare automaticamente")"
+                                                   @bind-Value:after="HandleEntityChanged" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Email"
+                                               Label="@TranslationService.GetTranslation("field.email", "Email")"
+                                               MaxLength="100"
+                                               InputType="InputType.Email"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Role"
+                                               Label="@TranslationService.GetTranslation("field.role", "Ruolo")"
+                                               MaxLength="50"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymSelect @bind-Value="ViewModel.Entity.Status"
+                                            Label="@TranslationService.GetTranslation("field.status", "Status")"
+                                            @bind-Value:after="HandleEntityChanged">
+                                    @foreach (CashierStatus status in Enum.GetValues(typeof(CashierStatus)))
+                                    {
+                                        <MudSelectItem Value="@status">@GetStatusText(status)</MudSelectItem>
+                                    }
+                                </PrymSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymSelect @bind-Value="ViewModel.Entity.CashierGroupId"
+                                            Label="@TranslationService.GetTranslation("field.cashierGroup", "Gruppo Cassieri")"
+                                            T="Guid?"
+                                            Clearable="true"
+                                            @bind-Value:after="HandleEntityChanged">
+                                    <MudSelectItem Value="@((Guid?)null)">
+                                        @TranslationService.GetTranslation("common.none", "None")
+                                    </MudSelectItem>
+                                    @foreach (var group in ViewModel.AvailableGroups)
+                                    {
+                                        <MudSelectItem Value="@((Guid?)group.Id)">@group.Name</MudSelectItem>
+                                    }
+                                </PrymSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="ViewModel.Entity.PhoneNumber"
+                                               Label="@TranslationService.GetTranslation("field.phoneNumber", "Numero di Telefono")"
+                                               MaxLength="20"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymDatePicker @bind-Date="ViewModel.DateOfBirth"
+                                                Label="@TranslationService.GetTranslation("field.dateOfBirth", "Data di Nascita")"
+                                                DateFormat="dd/MM/yyyy"
+                                                @bind-Date:after="HandleEntityChanged" />
+                            </MudItem>
+
+                            @if (ViewModel.IsNewEntity)
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudSwitch @bind-Value="ViewModel.PhotoConsent"
+                                               Label="@TranslationService.GetTranslation("field.photoConsent", "Consenso per la Foto (GDPR)")"
+                                               Color="Color.Primary"
+                                               @bind-Value:after="HandleEntityChanged" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12">
+                                <PrymTextField @bind-Value="ViewModel.Entity.Notes"
+                                               Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                               Lines="3"
+                                               MaxLength="200"
+                                               @bind-Value:after="HandleEntityChanged" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="ViewModel.IsSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Filled.Save"
+                    OnClick="SaveAsync" Disabled="ViewModel.IsSaving || ViewModel.IsLoading || ViewModel.Entity == null">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
+
+    private MudForm? _form;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            ViewModel.StateChanged += OnViewModelStateChanged;
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing OperatorDetailDialog.");
+        }
+    }
+
+    private void HandleEntityChanged()
+    {
+        ViewModel.NotifyEntityChanged();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid) return;
+        }
+
+        try
+        {
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving operator.");
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio.");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        if (ViewModel.HasUnsavedChanges())
+        {
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("common.unsavedChangesConfirm", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveAsync(); return; }
+        }
+        MudDialog.Close();
+    }
+
+    private void OnViewModelStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private Color GetStatusColor(CashierStatus status) => status switch
+    {
+        CashierStatus.Active => Color.Success,
+        CashierStatus.Suspended => Color.Warning,
+        CashierStatus.Deleted => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusText(CashierStatus status) => status switch
+    {
+        CashierStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        CashierStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        CashierStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
+}

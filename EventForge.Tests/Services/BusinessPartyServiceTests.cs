@@ -1,4 +1,4 @@
-using EventForge.Client.Services;
+using Prym.Web.Services;
 using Prym.DTOs.Business;
 using Prym.DTOs.Common;
 using Microsoft.Extensions.Logging;

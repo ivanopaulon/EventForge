@@ -55,7 +55,7 @@ public class PackageBuildService(
             File.Exists(Path.Combine(folderPath, "EventForge.Server.exe")))
             return PackageComponent.Server;
 
-        if (File.Exists(Path.Combine(folderPath, "EventForge.Client.dll")) ||
+        if (File.Exists(Path.Combine(folderPath, "Prym.Web.dll")) ||
             Directory.Exists(Path.Combine(folderPath, "wwwroot")))
             return PackageComponent.Client;
 
@@ -93,9 +93,9 @@ public class PackageBuildService(
         string[] candidates = component switch
         {
             PackageComponent.Server => ["EventForge.Server.dll", "EventForge.Server.exe"],
-            PackageComponent.Client => ["EventForge.Client.dll"],
+            PackageComponent.Client => ["Prym.Web.dll"],
             PackageComponent.Agent  => ["Prym.Agent.exe", "Prym.Agent.dll"],
-            _ => ["EventForge.Server.dll", "EventForge.Server.exe", "EventForge.Client.dll", "Prym.Agent.exe"]
+            _ => ["EventForge.Server.dll", "EventForge.Server.exe", "Prym.Web.dll", "Prym.Agent.exe"]
         };
 
         foreach (var name in candidates)

@@ -1,0 +1,73 @@
+@namespace Prym.Web.Shared.Components
+@inject IServerConfigOverlayService OverlayService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ServerConfigOverlay> Logger
+@implements IDisposable
+
+@code {
+    private static readonly DialogOptions _options = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
+
+    private IDialogReference? _dialogRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            OverlayService.OnVisibilityChanged += OnVisibilityChanged;
+
+            if (OverlayService.IsVisible)
+                await OpenDialogAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in {MethodName}.", nameof(OnInitializedAsync));
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private void OnVisibilityChanged()
+    {
+        InvokeAsync(async () =>
+        {
+            try
+            {
+                if (OverlayService.IsVisible)
+                    await OpenDialogAsync();
+                else
+                    await CloseDialogAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error in {MethodName}.", nameof(OnVisibilityChanged));
+                AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+            }
+        });
+    }
+
+    private async Task OpenDialogAsync()
+    {
+        if (_dialogRef is not null) return;
+        _dialogRef = await DialogService.ShowAsync<ServerConfigSystemDialog>(string.Empty, _options);
+        _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => _dialogRef = null));
+    }
+
+    private async Task CloseDialogAsync()
+    {
+        if (_dialogRef is null) return;
+        DialogService.Close(_dialogRef);
+        _ = await _dialogRef.Result;
+        _dialogRef = null;
+    }
+
+    public void Dispose()
+    {
+        OverlayService.OnVisibilityChanged -= OnVisibilityChanged;
+    }
+}

@@ -1,5 +1,5 @@
-using EventForge.Client.Services;
-using EventForge.Client.ViewModels;
+using Prym.Web.Services;
+using Prym.Web.ViewModels;
 using Prym.DTOs.VatRates;
 using Microsoft.Extensions.Logging;
 using Moq;

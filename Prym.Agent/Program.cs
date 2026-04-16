@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 
 // ── Read config early for Serilog + URL binding ───────────────────────────
 // Single-file config: base values from appsettings.json, then override with
-// "Environments:{env}" section — mirrors the same pattern used by EventForge.Client.
+// "Environments:{env}" section — mirrors the same pattern used by Prym.Web.
 var earlyEnv = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 
 var baseConfig = new ConfigurationBuilder()
