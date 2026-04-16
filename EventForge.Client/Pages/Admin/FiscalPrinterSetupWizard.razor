@@ -4,13 +4,8 @@
 @using Prym.DTOs.FiscalPrinting
 @using Prym.DTOs.Station
 @using Prym.DTOs.VatRates
-@using Prym.DTOs.Sales
 @using Prym.DTOs.Store
-@using Prym.DTOs.Common
-@using EventForge.Client.Services
 @using EventForge.Client.Services.Sales
-@using MudBlazor
-@using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "SuperAdmin,Admin")]
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IFinancialService FinancialService

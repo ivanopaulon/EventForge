@@ -2,10 +2,8 @@
 @using Prym.DTOs.Products
 @using Prym.DTOs.UnitOfMeasures
 @using Prym.DTOs.VatRates
-@using Prym.DTOs.Common
 @using EventForge.Client.Models.Documents
 @using EventForge.Client.Services.Documents
-@using MudBlazor
 
 <EFDialog Icon="@(_isEditMode ? Icons.Material.Outlined.Edit : Icons.Material.Outlined.PlaylistAdd)"
           Title="@TranslationService.GetTranslation(_isEditMode ? "documents.editRow" : "documents.addRow", _isEditMode ? "Modifica Riga" : "Aggiungi Riga")"

@@ -1,8 +1,5 @@
 @page "/management/monitoring"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Monitoring
-@using EventForge.Client.Shared.Components
-@using MudBlazor
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
 @inject IMonitoringClientService MonitoringService
 @inject IAuthService AuthService

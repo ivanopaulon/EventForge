@@ -1,10 +1,6 @@
 @page "/store/payment-terminals"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.PaymentTerminal
 @using EventForge.Client.Services.Store
-@using EventForge.Client.Shared.Management
-@using EventForge.Client.Shared.Management.Adapters
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IPaymentTerminalService PaymentTerminalService
 @inject ITranslationService TranslationService

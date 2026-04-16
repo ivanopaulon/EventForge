@@ -1,9 +1,5 @@
 @page "/notifications"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Notifications
-@using EventForge.Client.Services
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject INotificationService NotificationService

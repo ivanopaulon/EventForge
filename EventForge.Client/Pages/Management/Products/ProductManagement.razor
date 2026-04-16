@@ -1,10 +1,5 @@
 @page "/product-management/products"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Products
-@using Prym.DTOs.Common
-@using EventForge.Client.Shared.Management.Adapters
-@using EventForge.Client.Shared.Components.Dialogs
-@using MudBlazor
 @attribute [Authorize]
 @inject IProductService ProductService
 @inject ITranslationService TranslationService

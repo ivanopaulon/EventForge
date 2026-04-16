@@ -1,8 +1,6 @@
 @page "/store/pos"
 @page "/admin/store-pos"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Store
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject EventForge.Client.Services.Store.IStorePosService StorePosService
 @inject ITranslationService TranslationService

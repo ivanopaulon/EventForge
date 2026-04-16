@@ -1,12 +1,8 @@
 @page "/warehouse/inventory-procedure"
-@using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.Common
 @using Prym.DTOs.Warehouse
 @using Prym.DTOs.Products
-@using EventForge.Client.Shared.Components
 @using EventForge.Client.Shared.Components.Dialogs.UnifiedInventoryDialog
 @using EventForge.Client.Shared.Components.Warehouse
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IProductService ProductService
 @inject IInventoryService InventoryService

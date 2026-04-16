@@ -1,9 +1,5 @@
 @page "/store/payment-methods"
-@using Microsoft.AspNetCore.Authorization
-@using Prym.DTOs.Sales
-@using EventForge.Client.Shared.Management.Adapters
 @using EventForge.Client.Services.Sales
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize]
 @inject IPaymentMethodService PaymentMethodService
 @inject ITranslationService TranslationService

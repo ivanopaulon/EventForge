@@ -1,10 +1,7 @@
 @page "/warehouse/stock-reconciliation"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Warehouse
 @using Prym.DTOs.Products
 @using Prym.DTOs.Documents
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dialogs
 @using static EventForge.Client.Shared.Components.Dialogs.Warehouse.StockReconciliationConfirmDialog
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
 @inject IStockReconciliationService StockReconciliationService

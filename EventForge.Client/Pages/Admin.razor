@@ -1,5 +1,4 @@
 @page "/admin"
-@using Microsoft.AspNetCore.Authorization
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
 @inject IAuthService AuthService
 @inject IAuthenticationDialogService AuthenticationDialogService

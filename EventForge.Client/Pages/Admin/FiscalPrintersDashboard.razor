@@ -2,11 +2,6 @@
 @page "/admin/fiscal-printers"
 @using Prym.DTOs.FiscalPrinting
 @using Prym.DTOs.Station
-@using Prym.DTOs.Common
-@using EventForge.Client.Services
-@using EventForge.Client.Shared.Components.Dialogs
-@using MudBlazor
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
 @inject IFiscalPrintingService FiscalPrintingService

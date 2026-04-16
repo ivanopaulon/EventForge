@@ -1,6 +1,5 @@
 @page "/sales/postouch"
 @using EventForge.Client.ViewModels
-@using Prym.DTOs.Sales
 @using Prym.DTOs.Products
 @using Prym.DTOs.Store
 @using Prym.DTOs.Business
@@ -9,12 +8,8 @@
 @using EventForge.Client.Shared.Components.Common
 @using EventForge.Client.Shared.Components.Sales
 @using EventForge.Client.Shared.Components.Dialogs.Sales
-@using EventForge.Client.Shared.Components.Dialogs
-@using EventForge.Client.Shared.Components
 @using EventForge.Client.Services.Sales
 @using EventForge.Client.Services.Store
-@using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 @attribute [Authorize]

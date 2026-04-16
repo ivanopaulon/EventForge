@@ -1,11 +1,6 @@
 @page "/management/printers"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Station
-@using Prym.DTOs.Common
 @using EventForge.Client.Services.Station
-@using EventForge.Client.Shared.Management
-@using EventForge.Client.Shared.Management.Adapters
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
 @inject IStationService StationService
 @inject ITranslationService TranslationService

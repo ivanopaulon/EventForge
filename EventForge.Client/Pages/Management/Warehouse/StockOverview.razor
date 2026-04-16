@@ -1,11 +1,6 @@
 @page "/warehouse/stock-overview"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Warehouse
-@using Prym.DTOs.Common
-@using EventForge.Client.Shared.Components
-@using EventForge.Client.Shared.Components.Dialogs
 @using EventForge.Client.Extensions
-@using MudBlazor
 @attribute [Authorize]
 @inject IAuthService AuthService
 @inject IStockService StockService

@@ -1,8 +1,5 @@
 @page "/warehouse/inventory-diagnostics"
-@using Microsoft.AspNetCore.Authorization
 @using Prym.DTOs.Warehouse
-@using Prym.DTOs.Common
-@using EventForge.Client.Shared.Components.Dialogs
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IInventoryService InventoryService
 @inject ITranslationService TranslationService
