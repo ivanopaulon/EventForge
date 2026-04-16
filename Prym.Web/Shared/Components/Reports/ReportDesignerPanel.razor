@@ -1,0 +1,82 @@
+@implements IAsyncDisposable
+
+@inject IJSRuntime JS
+@inject ITranslationService TranslationService
+@inject ILogger<ReportDesignerPanel> Logger
+
+<div id="@_containerId" style="width:100%;height:@Height;min-height:500px;"></div>
+
+@code {
+    private string _containerId = $"report-designer-{Guid.NewGuid():N}";
+    private DotNetObjectReference<ReportDesignerPanel>? _selfRef;
+    private bool _initialized = false;
+
+    /// <summary>GUID of the existing report to load (null for a new report).</summary>
+    [Parameter] public Guid? ReportId { get; set; }
+
+    /// <summary>
+    /// URL of the Bold Reports server-side designer service.
+    /// Defaults to the standard EventForge endpoint.
+    /// </summary>
+    [Parameter] public string ServiceUrl { get; set; } = "/api/v1/boldreports/designer";
+
+    /// <summary>Height of the designer container (CSS value, e.g. "600px" or "calc(100vh - 160px)").</summary>
+    [Parameter] public string Height { get; set; } = "calc(100vh - 180px)";
+
+    /// <summary>
+    /// Callback invoked when the user saves the report from the designer toolbar.
+    /// The string argument contains the full RDLC XML.
+    /// </summary>
+    [Parameter] public EventCallback<string> OnSave { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _initialized) return;
+        _initialized = true;
+
+        _selfRef = DotNetObjectReference.Create(this);
+
+        try
+        {
+            var reportPath = ReportId.HasValue ? ReportId.Value.ToString() : null;
+            await JS.InvokeVoidAsync(
+                "boldReportsInterop.initReportDesigner",
+                _containerId,
+                ServiceUrl,
+                reportPath,
+                _selfRef);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Failed to initialise Bold Reports designer in container {ContainerId}", _containerId);
+        }
+    }
+
+    /// <summary>
+    /// Called by the JavaScript interop layer when the user saves the report.
+    /// Invokes the <see cref="OnSave"/> callback with the RDLC content.
+    /// </summary>
+    [JSInvokable]
+    public async Task OnReportSaved(string rdlcContent)
+    {
+        if (OnSave.HasDelegate)
+            await OnSave.InvokeAsync(rdlcContent);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("boldReportsInterop.destroyComponent", _containerId);
+        }
+        catch (JSDisconnectedException) { /* page navigation — ignore */ }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error destroying Bold Reports designer component {ContainerId}", _containerId);
+        }
+        finally
+        {
+            _selfRef?.Dispose();
+        }
+    }
+}

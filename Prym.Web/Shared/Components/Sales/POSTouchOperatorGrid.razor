@@ -1,0 +1,118 @@
+@using Prym.DTOs.Store
+@inject ITranslationService TranslationService
+
+<!-- Operator selection heading -->
+<div class="d-flex flex-column align-center mb-4">
+    <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
+             Style="font-size: 3rem; opacity: 0.25; margin-bottom: 8px;" />
+    <MudText Typo="Typo.h5" Class="mb-1">
+        @TranslationService.GetTranslation("sales.selectOperator", "Seleziona Operatore")
+    </MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        @TranslationService.GetTranslation("sales.selectOperatorHint", "Tocca il tuo nome per iniziare")
+    </MudText>
+</div>
+
+@if (Operators?.Any() == true)
+{
+    <MudGrid Spacing="3" Justify="Justify.Center">
+        @foreach (var op in Operators)
+        {
+            <MudItem xs="6" sm="4" md="3">
+                <MudPaper Elevation="@(SelectedOperatorId == op.Id ? 6 : 2)"
+                          Class="@($"{GetCardClass(op.Id)} ef-touch-card")"
+                          @onclick="@(() => SelectOperator(op))">
+                    <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-4">
+
+                        <!-- Avatar with initials -->
+                        <MudAvatar Color="@GetAvatarColor(op)"
+                                   Size="Size.Large" Class="avatar-64 fw-semibold"
+>
+                            @GetInitials(op.Name)
+                        </MudAvatar>
+
+                        <!-- Name -->
+                        <MudText Typo="Typo.subtitle1" Class="fw-semibold mt-2" Align="Align.Center">
+                            @op.Name
+                        </MudText>
+
+                        <!-- Role badge -->
+                        @if (!string.IsNullOrEmpty(op.Role))
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="Color.Default"
+                                     Variant="Variant.Text" Class="text-xs"
+>
+                                @op.Role
+                            </MudChip>
+                        }
+
+                        <!-- Selected checkmark -->
+                        @if (SelectedOperatorId == op.Id)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                     Color="Color.Primary"
+                                     Size="Size.Small" />
+                        }
+
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}
+else
+{
+    <MudAlert Severity="Severity.Warning" Class="mt-4">
+        @TranslationService.GetTranslation("sales.noOperatorsAvailable", "Nessun operatore disponibile. Contatta l'amministratore.")
+    </MudAlert>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<StoreUserDto>? Operators { get; set; }
+    [Parameter] public Guid? SelectedOperatorId { get; set; }
+    [Parameter] public EventCallback<StoreUserDto> OnOperatorSelected { get; set; }
+
+    private async Task SelectOperator(StoreUserDto op)
+    {
+        await OnOperatorSelected.InvokeAsync(op);
+    }
+
+    private string GetCardClass(Guid id) =>
+        SelectedOperatorId == id
+            ? "pos-touch-operator-card pos-touch-operator-card--selected"
+            : "pos-touch-operator-card";
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
+            : name[..Math.Min(2, name.Length)].ToUpperInvariant();
+    }
+
+    private static Color GetAvatarColor(StoreUserDto op)
+    {
+        // Deterministic color from operator name hash
+        var colors = new[] { Color.Primary, Color.Secondary, Color.Success, Color.Info, Color.Warning };
+        var index = Math.Abs((op.Name ?? string.Empty).GetHashCode()) % colors.Length;
+        return colors[index];
+    }
+}
+
+<style>
+    .pos-touch-operator-card {
+        border: 2px solid transparent;
+    }
+
+    .pos-touch-operator-card--selected {
+        border-color: var(--mud-palette-primary);
+        background: var(--mud-palette-primary-lighten) !important;
+    }
+
+    .pos-touch-operator-card:active {
+        transform: scale(0.96);
+    }
+</style>

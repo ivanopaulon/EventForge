@@ -1,0 +1,338 @@
+@using Prym.DTOs.Products
+@using Prym.DTOs.Business
+@inject IProductService ProductService
+@inject IBusinessPartyService BusinessPartyService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<EditProductSupplierDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.LocalShipping"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("product.editSupplier", "Modifica Fornitore Prodotto")
+              : TranslationService.GetTranslation("product.addSupplier", "Aggiungi Fornitore Prodotto"))"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12">
+                    @if (_isEditMode)
+                    {
+                        <MudTextField Value="@ProductSupplier?.SupplierName"
+                                      Label="@TranslationService.GetTranslation("field.supplier", "Fornitore")"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      ReadOnly="true"
+                                      Disabled="true" />
+                    }
+                    else
+                    {
+                        <MudAutocomplete T="BusinessPartyDto"
+                                         @bind-Value="_selectedSupplier"
+                                         SearchFunc="@SearchSuppliers"
+                                         Label="@($"{TranslationService.GetTranslation("field.supplier", "Fornitore")} *")"
+                                         Variant="Variant.Outlined"
+                                         ToStringFunc="@(s => s?.Name ?? string.Empty)"
+                                         Required="true"
+                                         RequiredError="@TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio")"
+                    Margin="Margin.Dense"/>
+                    }
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_supplierProductCode"
+                                  Label="@TranslationService.GetTranslation("field.supplierCode", "Codice Fornitore")"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="100" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_unitCost"
+                                     Label="@TranslationService.GetTranslation("field.unitCost", "Costo Unitario")"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0m"
+                                     Step="0.01m"
+                                     Format="N2" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_currency"
+                                  Label="@TranslationService.GetTranslation("field.currency", "Valuta")"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  MaxLength="10"
+                                  Placeholder="EUR" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_leadTimeDays"
+                                     Label="@TranslationService.GetTranslation("field.leadTimeDays", "Tempi di Consegna (giorni)")"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_minOrderQty"
+                                     Label="@TranslationService.GetTranslation("field.minOrderQty", "Quantità Minima Ordine")"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField @bind-Value="_incrementQty"
+                                     Label="@TranslationService.GetTranslation("field.incrementQty", "Incremento Quantità")"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0" />
+                </MudItem>
+
+                @if (_isEditMode)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_lastPurchasePrice"
+                                         Label="@TranslationService.GetTranslation("field.lastPurchasePrice", "Ultimo Prezzo di Acquisto")"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="0m"
+                                         Step="0.01m"
+                                         Format="N2" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_lastPurchaseDate"
+                                       Label="@TranslationService.GetTranslation("field.lastPurchaseDate", "Data Ultimo Acquisto")"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       DateFormat="dd/MM/yyyy" />
+                    </MudItem>
+                }
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_purchaseDescription"
+                                  Label="@TranslationService.GetTranslation("field.purchaseDescription", "Descrizione Acquisto")"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Lines="2"
+                                  MaxLength="500" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_notes"
+                                  Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Lines="3"
+                                  MaxLength="1000" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_preferred"
+                                 Label="@TranslationService.GetTranslation("field.preferred", "Fornitore Preferito")"
+                                 Color="Color.Primary" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("field.preferredHelp", "Solo un fornitore può essere marcato come preferito per prodotto")
+                    </MudText>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isSaving">
+            @TranslationService.GetTranslation("button.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_isValid || (!_isEditMode && _selectedSupplier == null) || _isSaving)"
+                   OnClick="Submit">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                @TranslationService.GetTranslation("button.save", "Salva")
+            }
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    /// <summary>When null the dialog operates in Add mode; when set it operates in Edit mode.</summary>
+    [Parameter] public ProductSupplierDto? ProductSupplier { get; set; }
+    /// <summary>Required in Add mode (when ProductSupplier is null).</summary>
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public string? ProductName { get; set; }
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _isSaving;
+    private bool _isEditMode;
+
+    // Add-mode fields
+    private BusinessPartyDto? _selectedSupplier;
+    private IEnumerable<BusinessPartyDto> _suppliers = new List<BusinessPartyDto>();
+
+    // Shared fields
+    private string? _supplierProductCode;
+    private decimal? _unitCost;
+    private string? _currency = "EUR";
+    private int? _leadTimeDays;
+    private int? _minOrderQty;
+    private int? _incrementQty;
+    private string? _purchaseDescription;
+    private string? _notes;
+    private bool _preferred;
+
+    // Edit-mode only fields
+    private decimal? _lastPurchasePrice;
+    private DateTime? _lastPurchaseDate;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isEditMode = ProductSupplier != null;
+            if (_isEditMode)
+            {
+                _supplierProductCode = ProductSupplier!.SupplierProductCode;
+                _purchaseDescription = ProductSupplier.PurchaseDescription;
+                _unitCost = ProductSupplier.UnitCost;
+                _currency = ProductSupplier.Currency;
+                _minOrderQty = ProductSupplier.MinOrderQty;
+                _incrementQty = ProductSupplier.IncrementQty;
+                _leadTimeDays = ProductSupplier.LeadTimeDays;
+                _lastPurchasePrice = ProductSupplier.LastPurchasePrice;
+                _preferred = ProductSupplier.Preferred;
+                _notes = ProductSupplier.Notes;
+                if (ProductSupplier.LastPurchaseDate.HasValue)
+                    _lastPurchaseDate = ProductSupplier.LastPurchaseDate.Value;
+            }
+            else
+            {
+                await LoadSuppliersAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing EditProductSupplierDialog.");
+        }
+    }
+
+    private async Task LoadSuppliersAsync()
+    {
+        try
+        {
+            var result = await BusinessPartyService.GetBusinessPartiesAsync();
+            if (result?.Items != null)
+            {
+                _suppliers = result.Items.Where(bp =>
+                    bp.PartyType == BusinessPartyType.Supplier ||
+                    bp.PartyType == BusinessPartyType.Both);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load suppliers");
+        }
+    }
+
+    private async Task<IEnumerable<BusinessPartyDto>> SearchSuppliers(string value, CancellationToken token)
+    {
+        await Task.Delay(50, token);
+        if (string.IsNullOrWhiteSpace(value))
+            return _suppliers;
+        return _suppliers.Where(s => s.Name.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task Submit()
+    {
+        _isSaving = true;
+        try
+        {
+            if (_isEditMode && ProductSupplier != null)
+            {
+                var updateDto = new UpdateProductSupplierDto
+                {
+                    ProductId = ProductSupplier.ProductId,
+                    SupplierId = ProductSupplier.SupplierId,
+                    SupplierProductCode = _supplierProductCode,
+                    PurchaseDescription = _purchaseDescription,
+                    UnitCost = _unitCost,
+                    Currency = _currency,
+                    MinOrderQty = _minOrderQty,
+                    IncrementQty = _incrementQty,
+                    LeadTimeDays = _leadTimeDays,
+                    LastPurchasePrice = _lastPurchasePrice,
+                    LastPurchaseDate = _lastPurchaseDate,
+                    Preferred = _preferred,
+                    Notes = _notes
+                };
+                var result = await ProductService.UpdateProductSupplierAsync(ProductSupplier.Id, updateDto);
+                if (result != null)
+                {
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.supplierUpdatedSuccessfully", "Fornitore aggiornato con successo"));
+                    MudDialog?.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore"));
+                }
+            }
+            else
+            {
+                if (_selectedSupplier == null)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("validation.supplierRequired", "Il fornitore è obbligatorio"));
+                    return;
+                }
+                var createDto = new CreateProductSupplierDto
+                {
+                    ProductId = ProductId,
+                    SupplierId = _selectedSupplier.Id,
+                    SupplierProductCode = _supplierProductCode,
+                    PurchaseDescription = _purchaseDescription,
+                    UnitCost = _unitCost,
+                    Currency = _currency,
+                    MinOrderQty = _minOrderQty,
+                    IncrementQty = _incrementQty,
+                    LeadTimeDays = _leadTimeDays,
+                    Preferred = _preferred,
+                    Notes = _notes
+                };
+                var result = await ProductService.CreateProductSupplierAsync(createDto);
+                if (result != null)
+                {
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("messages.supplierAddedSuccessfully", "Fornitore aggiunto con successo"));
+                    MudDialog?.Close(DialogResult.Ok(result));
+                }
+                else
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to save product supplier");
+            var errorMessage = _isEditMode
+                ? TranslationService.GetTranslation("messages.supplierUpdateFailed", "Errore durante l'aggiornamento del fornitore")
+                : TranslationService.GetTranslation("messages.supplierAddFailed", "Errore durante l'aggiunta del fornitore");
+            AppNotification.ShowError($"{errorMessage}: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog?.Cancel();
+}

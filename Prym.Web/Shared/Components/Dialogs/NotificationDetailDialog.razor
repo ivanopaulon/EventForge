@@ -1,0 +1,214 @@
+@using Prym.DTOs.Notifications
+@inject ILogger<NotificationDetailDialog> Logger
+@inject IAppNotificationService AppNotification
+
+<EFDialog Icon="@Icons.Material.Outlined.Notifications"
+          Title="@(Notification?.Payload?.Title ?? "Dettaglio notifica")"
+          OnClose="Cancel"
+          MinWidth="min(560px, 95vw)">
+    <ChildContent>
+        @if (Notification != null)
+        {
+            <div class="dlg-body-col">
+
+                @* Priority/Type badge row *@
+                <div class="nfd-chips-row">
+                    <MudChip T="string"
+                             Color="@GetPriorityColor(Notification.Priority)"
+                             Size="Size.Small"
+                             Icon="@GetPriorityIcon(Notification.Priority)">
+                        @GetPriorityLabel(Notification.Priority)
+                    </MudChip>
+                    <MudChip T="string"
+                             Color="Color.Default"
+                             Size="Size.Small"
+                             Icon="@GetTypeIcon(Notification.Type)">
+                        @GetTypeLabel(Notification.Type)
+                    </MudChip>
+                    <MudChip T="string"
+                             Color="@GetStatusColor(Notification.Status)"
+                             Size="Size.Small">
+                        @GetStatusLabel(Notification.Status)
+                    </MudChip>
+                </div>
+
+                @* Message body *@
+                @if (!string.IsNullOrWhiteSpace(Notification.Payload?.Message))
+                {
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Messaggio</MudText>
+                        <MudText Typo="Typo.body1" Class="text-white-87 mt-4-px">@Notification.Payload.Message</MudText>
+                    </div>
+                }
+
+                @* Sender *@
+                @if (!string.IsNullOrWhiteSpace(Notification.SenderName))
+                {
+                    <MudDivider Class="divider-dark" />
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Mittente</MudText>
+                        <MudText Typo="Typo.body2" Class="text-dark-secondary mt-1-px">@Notification.SenderName</MudText>
+                    </div>
+                }
+
+                @* Action URL *@
+                @if (!string.IsNullOrWhiteSpace(Notification.Payload?.ActionUrl))
+                {
+                    <MudDivider Class="divider-dark" />
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Collegamento</MudText>
+                        <MudLink Href="@Notification.Payload.ActionUrl"
+                                 Target="_blank"
+                                 Class="nfd-action-link">
+                            @Notification.Payload.ActionUrl
+                        </MudLink>
+                    </div>
+                }
+
+                @* Tags *@
+                @if (Notification.Payload?.Tags?.Any() == true)
+                {
+                    <MudDivider Class="divider-dark" />
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Tag</MudText>
+                        <div class="nfd-tags-row">
+                            @foreach (var tag in Notification.Payload.Tags)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@tag</MudChip>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @* Timestamps *@
+                <MudDivider Class="divider-dark" />
+                <div class="nfd-grid-2col">
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Ricevuta</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                    </div>
+                    @if (Notification.ReadAt.HasValue)
+                    {
+                        <div>
+                            <MudText Typo="Typo.caption" Class="text-section-label">Letta</MudText>
+                            <MudText Typo="Typo.body2" Class="text-code-muted">@Notification.ReadAt.Value.ToString("dd/MM/yyyy HH:mm")</MudText>
+                        </div>
+                    }
+                </div>
+
+            </div>
+        }
+    </ChildContent>
+    <DialogActions>
+        @if (Notification?.Status != NotificationStatus.Read && OnMarkAsRead.HasDelegate)
+        {
+            <MudButton OnClick="HandleMarkAsRead"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.MarkEmailRead">
+                Segna come letta
+            </MudButton>
+        }
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Size="Size.Small">
+            Chiudi
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public NotificationResponseDto? Notification { get; set; }
+    [Parameter] public EventCallback<NotificationResponseDto> OnMarkAsRead { get; set; }
+
+    private void Cancel() => MudDialog.Close(DialogResult.Cancel());
+
+    private async Task HandleMarkAsRead()
+    {
+        try
+        {
+            if (Notification != null)
+                await OnMarkAsRead.InvokeAsync(Notification);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la marcatura della notifica come letta");
+            AppNotification.ShowError("Errore durante l'aggiornamento della notifica.");
+        }
+    }
+
+    private Color GetPriorityColor(NotificationPriority priority) => priority switch
+    {
+        NotificationPriority.Critical => Color.Error,
+        NotificationPriority.High => Color.Warning,
+        NotificationPriority.Normal => Color.Primary,
+        NotificationPriority.Low => Color.Default,
+        _ => Color.Default
+    };
+
+    private string GetPriorityIcon(NotificationPriority priority) => priority switch
+    {
+        NotificationPriority.Critical => Icons.Material.Filled.PriorityHigh,
+        NotificationPriority.High => Icons.Material.Filled.ArrowUpward,
+        NotificationPriority.Normal => Icons.Material.Filled.Remove,
+        NotificationPriority.Low => Icons.Material.Filled.ArrowDownward,
+        _ => Icons.Material.Filled.Remove
+    };
+
+    private string GetPriorityLabel(NotificationPriority priority) => priority switch
+    {
+        NotificationPriority.Critical => "Critica",
+        NotificationPriority.High => "Alta",
+        NotificationPriority.Normal => "Normale",
+        NotificationPriority.Low => "Bassa",
+        _ => priority.ToString()
+    };
+
+    private string GetTypeIcon(NotificationTypes type) => type switch
+    {
+        NotificationTypes.System => Icons.Material.Filled.Settings,
+        NotificationTypes.Event => Icons.Material.Filled.Event,
+        NotificationTypes.User => Icons.Material.Filled.Person,
+        NotificationTypes.Security => Icons.Material.Filled.Security,
+        NotificationTypes.Audit => Icons.Material.Filled.Visibility,
+        NotificationTypes.Marketing => Icons.Material.Filled.Campaign,
+        _ => Icons.Material.Filled.Notifications
+    };
+
+    private string GetTypeLabel(NotificationTypes type) => type switch
+    {
+        NotificationTypes.System => "Sistema",
+        NotificationTypes.Event => "Evento",
+        NotificationTypes.User => "Utente",
+        NotificationTypes.Security => "Sicurezza",
+        NotificationTypes.Audit => "Audit",
+        NotificationTypes.Marketing => "Marketing",
+        _ => type.ToString()
+    };
+
+    private Color GetStatusColor(NotificationStatus status) => status switch
+    {
+        NotificationStatus.Read => Color.Success,
+        NotificationStatus.Archived => Color.Default,
+        NotificationStatus.Silenced => Color.Warning,
+        _ => Color.Info
+    };
+
+    private string GetStatusLabel(NotificationStatus status) => status switch
+    {
+        NotificationStatus.Pending => "In attesa",
+        NotificationStatus.Sent => "Inviata",
+        NotificationStatus.Delivered => "Consegnata",
+        NotificationStatus.Read => "Letta",
+        NotificationStatus.Acknowledged => "Confermata",
+        NotificationStatus.Silenced => "Silenziata",
+        NotificationStatus.Archived => "Archiviata",
+        NotificationStatus.Expired => "Scaduta",
+        _ => status.ToString()
+    };
+}

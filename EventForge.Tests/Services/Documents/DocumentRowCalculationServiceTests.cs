@@ -1,5 +1,5 @@
-using EventForge.Client.Models.Documents;
-using EventForge.Client.Services.Documents;
+using Prym.Web.Models.Documents;
+using Prym.Web.Services.Documents;
 using Prym.DTOs.Common;
 using Microsoft.Extensions.Logging;
 using Moq;

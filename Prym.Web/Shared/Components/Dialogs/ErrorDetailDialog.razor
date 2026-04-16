@@ -1,0 +1,73 @@
+
+<EFDialog Icon="@Icons.Material.Outlined.BugReport"
+          Title="Dettagli errore"
+          OnClose="Cancel"
+          MinWidth="min(560px, 95vw)">
+    <ChildContent>
+        @if (ErrorInfo != null)
+        {
+            <div class="dlg-body-col">
+
+                @* Main error message *@
+                <div>
+                    <MudText Typo="Typo.caption" Class="text-section-label">Messaggio</MudText>
+                    <MudText Typo="Typo.body1" Class="text-white-87 mt-4-px">@ErrorInfo.Message</MudText>
+                </div>
+
+                @* Technical details from server *@
+                @if (!string.IsNullOrWhiteSpace(ErrorInfo.Details) && ErrorInfo.Details != ErrorInfo.Message)
+                {
+                    <MudDivider Class="divider-dark" />
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Dettagli tecnici</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted text-breakword">@ErrorInfo.Details</MudText>
+                    </div>
+                }
+
+                @* Exception info *@
+                @if (!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionMessage))
+                {
+                    <MudDivider Class="divider-dark" />
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">Eccezione@(!string.IsNullOrWhiteSpace(ErrorInfo.ExceptionType) ? $" ({ErrorInfo.ExceptionType})" : "")</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted text-breakword">@ErrorInfo.ExceptionMessage</MudText>
+                    </div>
+                }
+
+                @* Correlation ID for server-side log tracing *@
+                @if (!string.IsNullOrWhiteSpace(ErrorInfo.CorrelationId))
+                {
+                    <MudDivider Class="divider-dark" />
+                    <div>
+                        <MudText Typo="Typo.caption" Class="text-section-label">ID Correlazione</MudText>
+                        <MudText Typo="Typo.body2" Class="text-code-muted">@ErrorInfo.CorrelationId</MudText>
+                    </div>
+                }
+
+                @* Timestamp *@
+                <MudDivider Class="divider-dark" />
+                <div>
+                    <MudText Typo="Typo.caption" Class="text-section-label">Timestamp</MudText>
+                    <MudText Typo="Typo.body2" Class="text-code-muted">@ErrorInfo.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</MudText>
+                </div>
+
+            </div>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   Size="Size.Small">
+            Chiudi
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public AppErrorInfo? ErrorInfo { get; set; }
+
+    private void Cancel() => MudDialog.Close(DialogResult.Cancel());
+}

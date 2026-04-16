@@ -1,0 +1,260 @@
+@*
+    LogCleanupNotificationSnackbar — fixed bottom-right banner shown to SuperAdmin users when
+    the server's LogCleanupService runs its scheduled cleanup.
+
+    Phases:
+      _phase = null           → cleanup started, waiting for first phase event
+      _phase = "Backup"       → backup in progress (spinner, blue border)
+      _phase = "Deleting"     → deletion in progress (spinner, blue border)
+      _running = false        → result card (success = green, error = red)
+
+    The backup phase always precedes the delete phase when backup is enabled.
+*@
+@namespace Prym.Web.Shared.Components
+@using Prym.Web.Services.Updates
+@inject IRealtimeService RealtimeService
+@inject ILogger<LogCleanupNotificationSnackbar> Logger
+@implements IDisposable
+
+@if (_visible)
+{
+    <div class="ef-logcleanup-snackbar @CssModifier">
+
+        @* ── Header ── *@
+        <div class="ef-logcleanup-snackbar__header">
+            @if (_running)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Info" Class="me-1" />
+            }
+            else if (_hasError)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Color="Color.Error" Size="Size.Small" Class="me-1" />
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="me-1" />
+            }
+            <MudText Typo="Typo.body2" Class="fw-semibold flex-grow-1">@HeaderText</MudText>
+            @if (!_running)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Dismiss"
+                               Class="ms-1" aria-label="Chiudi" />
+            }
+        </div>
+
+        @* ── Body ── *@
+        <div class="ef-logcleanup-snackbar__body">
+            @if (_running)
+            {
+                @* Show retention info always *@
+                @if (_started is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Ritenzione: @_started.RetentionDays giorni
+                    </MudText>
+                }
+
+                @* Backup-failed warning when we've moved to Deleting phase *@
+                @if (_phase == "Deleting" && _backupFailed)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                             Icon="@Icons.Material.Outlined.Warning"
+                             Text="Backup non riuscito — eliminazione in corso" />
+                }
+            }
+            else if (_completed is not null)
+            {
+                @if (_hasError)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Error">@_completed.Error</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">
+                        <strong>@_completed.TotalDeleted</strong> righe eliminate in @_completed.ElapsedSeconds.ToString("0.0")s
+                    </MudText>
+                    <div class="ef-logcleanup-snackbar__chips mt-1">
+                        @if (_completed.LoginAudits > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Text="@($"Login: {_completed.LoginAudits}")" />
+                        }
+                        @if (_completed.AuditTrails > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Text="@($"Audit: {_completed.AuditTrails}")" />
+                        }
+                        @if (_completed.OperationLogs > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Text="@($"Operazioni: {_completed.OperationLogs}")" />
+                        }
+                        @if (_completed.PerformanceLogs > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Text="@($"Performance: {_completed.PerformanceLogs}")" />
+                        }
+                        @if (_completed.SerilogLogs > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Text="@($"Serilog: {_completed.SerilogLogs}")" />
+                        }
+                    </div>
+                    @if (_completed.BackupFile != "none")
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+                            <MudIcon Icon="@Icons.Material.Outlined.FolderZip" Size="Size.Small" Class="me-1" />
+                            @System.IO.Path.GetFileName(_completed.BackupFile)
+                        </MudText>
+                    }
+                }
+            }
+        </div>
+    </div>
+}
+
+<style>
+    .ef-logcleanup-snackbar {
+        position: fixed;
+        bottom: 80px;
+        right: 16px;
+        z-index: 1300;
+        width: min(380px, calc(100vw - 32px));
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.18);
+        padding: 10px 12px;
+        animation: ef-logcleanup-in .2s ease-out;
+    }
+
+    .ef-logcleanup-snackbar--running  { border-left: 4px solid var(--mud-palette-info); }
+    .ef-logcleanup-snackbar--success  { border-left: 4px solid var(--mud-palette-success); }
+    .ef-logcleanup-snackbar--error    { border-left: 4px solid var(--mud-palette-error); }
+    .ef-logcleanup-snackbar--warning  { border-left: 4px solid var(--mud-palette-warning); }
+
+    .ef-logcleanup-snackbar__header {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin-bottom: 6px;
+    }
+
+    .ef-logcleanup-snackbar__body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .ef-logcleanup-snackbar__chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    @@keyframes ef-logcleanup-in {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+@code {
+    private bool _visible;
+    private bool _running;
+    private bool _hasError;
+    private bool _backupFailed;
+    private string? _phase;                    // "Backup" | "Deleting" | null
+    private LogCleanupStartedPayload? _started;
+    private LogCleanupCompletedPayload? _completed;
+
+    // Auto-dismiss the result banner after a fixed delay
+    private System.Threading.Timer? _dismissTimer;
+
+    // ── Computed display properties ──────────────────────────────────────────
+
+    private string CssModifier => _running
+        ? (_backupFailed && _phase == "Deleting" ? "ef-logcleanup-snackbar--warning" : "ef-logcleanup-snackbar--running")
+        : (_hasError ? "ef-logcleanup-snackbar--error" : "ef-logcleanup-snackbar--success");
+
+    private string HeaderText
+    {
+        get
+        {
+            if (_running)
+            {
+                return _phase switch
+                {
+                    "Backup"   => "Backup log in corso…",
+                    "Deleting" => _backupFailed
+                        ? "Eliminazione log in corso (backup fallito)…"
+                        : "Eliminazione log in corso…",
+                    _          => "Pulizia log in corso…"
+                };
+            }
+            return _hasError ? "Pulizia log fallita" : "Pulizia log completata";
+        }
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
+
+    protected override void OnInitialized()
+    {
+        RealtimeService.LogCleanupStarted      += OnCleanupStarted;
+        RealtimeService.LogCleanupPhaseChanged += OnPhaseChanged;
+        RealtimeService.LogCleanupCompleted    += OnCleanupCompleted;
+    }
+
+    private void OnCleanupStarted(LogCleanupStartedPayload payload)
+    {
+        _dismissTimer?.Dispose();
+        _dismissTimer  = null;
+        _started       = payload;
+        _completed     = null;
+        _running       = true;
+        _hasError      = false;
+        _backupFailed  = false;
+        _phase         = null;
+        _visible       = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnPhaseChanged(LogCleanupPhaseChangedPayload payload)
+    {
+        _phase = payload.Phase;
+
+        // Record backup failure when transitioning to the Deleting phase
+        if (payload.Phase == "Deleting" && payload.BackupSucceeded == false)
+            _backupFailed = true;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnCleanupCompleted(LogCleanupCompletedPayload payload)
+    {
+        _completed = payload;
+        _running   = false;
+        _hasError  = !payload.Success;
+        _visible   = true;
+
+        // Auto-dismiss after 10 s on success, 20 s on error
+        var delay = payload.Success ? 10_000 : 20_000;
+        _dismissTimer?.Dispose();
+        _dismissTimer = new System.Threading.Timer(_ =>
+        {
+            _visible = false;
+            InvokeAsync(StateHasChanged);
+        }, null, delay, System.Threading.Timeout.Infinite);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Dismiss()
+    {
+        _dismissTimer?.Dispose();
+        _dismissTimer = null;
+        _visible = false;
+    }
+
+    public void Dispose()
+    {
+        RealtimeService.LogCleanupStarted      -= OnCleanupStarted;
+        RealtimeService.LogCleanupPhaseChanged -= OnPhaseChanged;
+        RealtimeService.LogCleanupCompleted    -= OnCleanupCompleted;
+        _dismissTimer?.Dispose();
+    }
+}

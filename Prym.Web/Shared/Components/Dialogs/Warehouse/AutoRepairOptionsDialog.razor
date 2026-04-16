@@ -1,0 +1,71 @@
+@using Prym.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.BuildCircle"
+          Title="Opzioni Riparazione Automatica"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudStack Spacing="3">
+            <MudSwitch @bind-Value="_options.MergeDuplicates"
+                       Color="Color.Primary"
+                       Label="@TranslationService.GetTranslation("inventory.diagnostics.mergeDuplicates", "Unisci Duplicati")"
+                       ThumbIcon="@(_options.MergeDuplicates ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+
+            <MudSwitch @bind-Value="_options.FixMissingData"
+                       Color="Color.Primary"
+                       Label="@TranslationService.GetTranslation("inventory.diagnostics.fixMissingData", "Correggi Dati Mancanti")"
+                       ThumbIcon="@(_options.FixMissingData ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+
+            <MudSwitch @bind-Value="_options.ConvertNegativeQuantities"
+                       Color="Color.Primary"
+                       Label="@TranslationService.GetTranslation("inventory.diagnostics.convertNegativeQuantities", "Converti Quantità Negative")"
+                       ThumbIcon="@(_options.ConvertNegativeQuantities ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+
+            <MudSwitch @bind-Value="_options.RemoveInvalidReferences"
+                       Color="Color.Primary"
+                       Label="@TranslationService.GetTranslation("inventory.diagnostics.removeInvalidReferences", "Rimuovi Riferimenti Invalidi")"
+                       ThumbIcon="@(_options.RemoveInvalidReferences ? Icons.Material.Filled.Done : Icons.Material.Filled.Close)" />
+
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mt-2">
+                @TranslationService.GetTranslation("inventory.diagnostics.autoRepairNote", "Le opzioni selezionate verranno applicate al documento inventario.")
+            </MudAlert>
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="false">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   OnClick="Apply">
+            @TranslationService.GetTranslation("common.apply", "Applica")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private InventoryAutoRepairOptionsDto _options = new()
+    {
+        MergeDuplicates = true,
+        FixMissingData = true,
+        ConvertNegativeQuantities = true,
+        RemoveInvalidReferences = false
+    };
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private void Apply()
+    {
+        MudDialog.Close(DialogResult.Ok(_options));
+    }
+}

@@ -1,0 +1,224 @@
+@inject ITranslationService TranslationService
+@inject IHelpService HelpService
+@inject ILogger<OnboardingModal> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.HelpOutline"
+          Title="@CurrentStepTitle"
+          IsProcessing="false"
+          OnClose="SkipOnboardingAsync"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+
+        @* Progress indicator *@
+        <div class="mb-4">
+            <MudText Typo="Typo.body2" Class="mb-2">
+                @TranslationService.GetTranslation("onboarding.progress", "Step {0} of {1}", CurrentStep + 1, TotalSteps)
+            </MudText>
+            <MudProgressLinear Value="@ProgressPercentage"
+                               Color="Color.Primary"
+                               Striped="false"
+                               Size="Size.Medium" />
+        </div>
+
+        @* Step image *@
+        @if (!string.IsNullOrEmpty(CurrentStepImage))
+        {
+            <div class="text-center mb-3">
+                <MudImage Src="@CurrentStepImage"
+                          Alt="@CurrentStepImageAlt"
+                          Style="max-width:100%; height:auto; border-radius:8px;" />
+            </div>
+        }
+
+        @* Step body *@
+        <MudText Typo="Typo.body1" Class="line-height-normal mb-3">
+            @CurrentStepContent
+        </MudText>
+
+        @* Tips *@
+        @if (CurrentStepTips?.Any() == true)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-3" Icon="@Icons.Material.Filled.Lightbulb">
+                <MudText Typo="Typo.body2">
+                    <strong>@TranslationService.GetTranslation("onboarding.tips", "Tips:"):</strong>
+                </MudText>
+                <ul class="ma-0 pl-4">
+                    @foreach (var tip in CurrentStepTips)
+                    {
+                        <li>@tip</li>
+                    }
+                </ul>
+            </MudAlert>
+        }
+
+        @* Interactive slot *@
+        @if (ShowInteractiveElement && InteractiveContent is not null)
+        {
+            <div class="mb-4">
+                @InteractiveContent
+            </div>
+        }
+
+        @* Don't show again *@
+        <div class="mt-4 pt-3" style="border-top:1px solid rgba(255,255,255,0.10);">
+            <MudCheckBox T="bool" @bind-Value="@DontShowAgain"
+                         Label="@TranslationService.GetTranslation("onboarding.dontShowAgain", "Non mostrare più questo onboarding")"
+                         Color="Color.Primary" />
+            <MudText Typo="Typo.caption" Class="text-dark-muted">
+                @TranslationService.GetTranslation("onboarding.dontShowAgainHelp", "Puoi sempre accedere all'aiuto dal menu")
+            </MudText>
+        </div>
+
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="SkipOnboardingAsync">
+            @TranslationService.GetTranslation("onboarding.skip", "Salta")
+        </MudButton>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                   Disabled="@(CurrentStep == 0)"
+                   OnClick="PreviousStep">
+            @TranslationService.GetTranslation("common.previous", "Precedente")
+        </MudButton>
+        @if (CurrentStep < TotalSteps - 1)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NextStepAsync">
+                @TranslationService.GetTranslation("common.next", "Successivo")
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="CompleteOnboardingAsync">
+                @TranslationService.GetTranslation("onboarding.complete", "Completa")
+            </MudButton>
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Component ID, e.g. "notifications", "chat".</summary>
+    [Parameter] public string ComponentId { get; set; } = string.Empty;
+
+    /// <summary>Interactive content for the current step.</summary>
+    [Parameter] public RenderFragment? InteractiveContent { get; set; }
+
+    /// <summary>Whether to show the interactive element slot.</summary>
+    [Parameter] public bool ShowInteractiveElement { get; set; } = false;
+
+    private int CurrentStep { get; set; } = 0;
+    private bool DontShowAgain { get; set; } = false;
+
+    private List<OnboardingStep> Steps { get; set; } = new();
+    private int TotalSteps => Steps.Count;
+    private double ProgressPercentage => TotalSteps > 0 ? (double)(CurrentStep + 1) / TotalSteps * 100 : 0;
+
+    private string CurrentStepTitle => CurrentStep < Steps.Count
+        ? TranslationService.GetTranslation($"onboarding.{ComponentId}.{Steps[CurrentStep].Id}.title", Steps[CurrentStep].Title)
+        : string.Empty;
+
+    private string CurrentStepContent => CurrentStep < Steps.Count
+        ? TranslationService.GetTranslation($"onboarding.{ComponentId}.{Steps[CurrentStep].Id}.content", Steps[CurrentStep].Content)
+        : string.Empty;
+
+    private string? CurrentStepImage => CurrentStep < Steps.Count ? Steps[CurrentStep].ImagePath : null;
+
+    private string CurrentStepImageAlt => CurrentStep < Steps.Count
+        ? TranslationService.GetTranslation($"onboarding.{ComponentId}.{Steps[CurrentStep].Id}.imageAlt", Steps[CurrentStep].ImageAlt ?? "Step illustration")
+        : string.Empty;
+
+    private List<string>? CurrentStepTips => CurrentStep < Steps.Count ? Steps[CurrentStep].Tips : null;
+
+    protected override void OnInitialized()
+    {
+        LoadStepsForComponent();
+    }
+
+    private void LoadStepsForComponent()
+    {
+        Steps = ComponentId switch
+        {
+            "notifications" => new List<OnboardingStep>
+            {
+                new("welcome", "Benvenuto nelle Notifiche", "Scopri come gestire le tue notifiche in modo efficace.", "/images/onboarding/notifications-welcome.png"),
+                new("filters", "Filtra le Notifiche", "Usa i filtri per trovare esattamente quello che cerchi.", "/images/onboarding/notifications-filters.png",
+                    new List<string> { "Clicca sui pulsanti filtro per restringere i risultati", "Usa la ricerca per notifiche specifiche" }),
+                new("actions", "Azioni Disponibili", "Segna come letto, elimina o rispondi alle notifiche.", "/images/onboarding/notifications-actions.png"),
+                new("preferences", "Preferenze", "Personalizza quali notifiche ricevere.", "/images/onboarding/notifications-preferences.png")
+            },
+            "chat" => new List<OnboardingStep>
+            {
+                new("welcome", "Benvenuto nella Chat", "Inizia a comunicare con il tuo team.", "/images/onboarding/chat-welcome.png"),
+                new("channels", "Unisciti ai Canali", "Partecipa ai diversi canali di chat.", "/images/onboarding/chat-channels.png"),
+                new("messaging", "Invia Messaggi", "Scopri le funzionalità di messaggistica.", "/images/onboarding/chat-messaging.png"),
+                new("files", "Condividi File", "Carica e condividi file con il team.", "/images/onboarding/chat-files.png")
+            },
+            "superadmin" => new List<OnboardingStep>
+            {
+                new("welcome", "Panoramica SuperAdmin", "Strumenti avanzati per l'amministrazione del sistema.", "/images/onboarding/superadmin-welcome.png"),
+                new("users", "Gestione Utenti", "Aggiungi, modifica e gestisci gli account utente.", "/images/onboarding/superadmin-users.png"),
+                new("config", "Configurazione Sistema", "Configura le impostazioni e le preferenze.", "/images/onboarding/superadmin-config.png"),
+                new("audit", "Audit Trail", "Monitora l'attività e le modifiche al sistema.", "/images/onboarding/superadmin-audit.png")
+            },
+            _ => new List<OnboardingStep>
+            {
+                new("welcome", "Benvenuto", "Scopri come usare questa funzionalità.", null)
+            }
+        };
+    }
+
+    private async Task NextStepAsync()
+    {
+        if (CurrentStep < TotalSteps - 1)
+        {
+            CurrentStep++;
+            await MarkStepCompletedAsync();
+        }
+    }
+
+    private void PreviousStep()
+    {
+        if (CurrentStep > 0)
+            CurrentStep--;
+    }
+
+    private async Task CompleteOnboardingAsync()
+    {
+        await MarkStepCompletedAsync();
+
+        if (DontShowAgain)
+        {
+            try { await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_onboarding_completed"); }
+            catch (Exception ex) { Logger.LogError(ex, "Failed to persist DontShowAgain for {ComponentId}.", ComponentId); }
+        }
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task SkipOnboardingAsync()
+    {
+        if (DontShowAgain)
+        {
+            try { await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_onboarding_completed"); }
+            catch (Exception ex) { Logger.LogError(ex, "Failed to persist DontShowAgain for {ComponentId}.", ComponentId); }
+        }
+
+        MudDialog.Cancel();
+    }
+
+    private async Task MarkStepCompletedAsync()
+    {
+        if (CurrentStep < Steps.Count)
+        {
+            try { await HelpService.SetOnboardingStepCompletedAsync($"{ComponentId}_{Steps[CurrentStep].Id}"); }
+            catch (Exception ex) { Logger.LogError(ex, "Failed to mark onboarding step {StepId} completed.", Steps[CurrentStep].Id); }
+        }
+    }
+
+    private record OnboardingStep(string Id, string Title, string Content, string? ImagePath = null, List<string>? Tips = null)
+    {
+        public string? ImageAlt { get; init; }
+    }
+}

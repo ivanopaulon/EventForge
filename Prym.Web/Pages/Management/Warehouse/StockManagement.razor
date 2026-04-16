@@ -1,0 +1,5 @@
+@page "/warehouse/stock-management"
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+
+<PageTitle>Situazione Giacenze</PageTitle>
+<StockOverview IsEmbedded="true" />

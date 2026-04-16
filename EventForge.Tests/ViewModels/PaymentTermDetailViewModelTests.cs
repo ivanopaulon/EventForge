@@ -1,5 +1,5 @@
-using EventForge.Client.Services;
-using EventForge.Client.ViewModels;
+using Prym.Web.Services;
+using Prym.Web.ViewModels;
 using Prym.DTOs.Business;
 using Prym.DTOs.Common;
 using Microsoft.Extensions.Logging;

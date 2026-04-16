@@ -1,0 +1,459 @@
+@using Prym.DTOs.Products
+@inject IProductService ProductService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartySuppliedProductsTab> Logger
+
+<MudStack Spacing="3">
+    <!-- Toolbar -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h6">@TranslationService.GetTranslation("businessParty.suppliedProducts", "Prodotti Forniti")</MudText>
+            <MudSpacer />
+            @if (_selectedProducts.Count > 0)
+            {
+                <MudChip T="string" Color="Color.Primary" Size="Size.Small">
+                    @_selectedProducts.Count @TranslationService.GetTranslation("common.selected", "selezionati")
+                </MudChip>
+                <MudButton Variant="Variant.Filled"
+                          Color="Color.Secondary"
+                          StartIcon="@Icons.Material.Filled.Edit"
+                          OnClick="@OpenBulkEditDialog">
+                    @TranslationService.GetTranslation("productSupplier.bulkEdit", "Modifica Prezzi Multipla")
+                </MudButton>
+            }
+            <MudButton Variant="Variant.Outlined"
+                      Color="Color.Success"
+                      StartIcon="@Icons.Material.Filled.UploadFile"
+                      OnClick="@OpenImportCsvDialog">
+                @TranslationService.GetTranslation("productSupplier.importCsv", "Import CSV Listino")
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Checklist"
+                      OnClick="@OpenManageProductsDialog">
+                @TranslationService.GetTranslation("productSupplier.manageBulk", "Gestisci Catalogo")
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                      Color="Color.Primary"
+                      StartIcon="@Icons.Material.Filled.Add"
+                      OnClick="@OpenAssignProductDialog">
+                @TranslationService.GetTranslation("productSupplier.assign", "Assegna Prodotto")
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <!-- Products Table -->
+    <EFTable @ref="_efTable"
+             TItem="ProductSupplierDto"
+             ServerData="@(new Func<TableState, CancellationToken, Task<TableData<ProductSupplierDto>>>(LoadServerData))"
+             IsLoading="@_isLoading"
+             Hover="true"
+             Dense="true"
+             FixedHeader="true"
+             Height="calc(100vh - 350px)"
+             ShowInternalPager="true"
+             PageSizeOptions="new int[] { 10, 20, 50, 100 }">
+        <ToolBarContent>
+            <MudText Typo="Typo.body2" Class="mr-4">
+                @TranslationService.GetTranslation("common.total", "Totale"): @_totalCount
+            </MudText>
+        </ToolBarContent>
+        <HeaderContent Context="_">
+            <MudTh Class="ef-w-50">
+                <MudCheckBox T="bool" 
+                            Value="@_selectAll" 
+                            ValueChanged="@((bool val) => ToggleSelectAll(val))"
+                            Color="Color.Primary"
+                            Size="Size.Small" />
+            </MudTh>
+            <MudTh>@TranslationService.GetTranslation("product.code", "Codice")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("product.name", "Nome")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("productSupplier.supplierCode", "Codice Fornitore")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.lastPurchasePrice", "Ultimo Prezzo")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("productSupplier.lastPurchaseDate", "Ultima Data")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (gg)")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("productSupplier.preferred", "Preferito")</MudTh>
+            <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="context">
+            <MudTd Class="ef-w-50">
+                <MudCheckBox T="bool" 
+                            Value="@_selectedProducts.Contains(context.ProductId)" 
+                            ValueChanged="@((bool val) => ToggleSelection(context.ProductId, val))"
+                            Color="Color.Primary"
+                            Size="Size.Small" />
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("product.code", "Codice")">
+                @context.ProductName
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("product.name", "Nome")">
+                @context.ProductName
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.supplierCode", "Codice Fornitore")">
+                @context.SupplierProductCode
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.unitCost", "Costo Unitario")" >
+                @if (context.UnitCost.HasValue)
+                {
+                    <text>@context.UnitCost.Value.ToString("C2")</text>
+                }
+                else
+                {
+                    <text>-</text>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.lastPurchasePrice", "Ultimo Prezzo")" >
+                @if (context.LastPurchasePrice.HasValue)
+                {
+                    <text>@context.LastPurchasePrice.Value.ToString("C2")</text>
+                }
+                else
+                {
+                    <text>-</text>
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.lastPurchaseDate", "Ultima Data")">
+                @(context.LastPurchaseDate?.ToShortDateString() ?? "-")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.leadTime", "Lead Time (gg)")" >
+                @(context.LeadTimeDays?.ToString() ?? "-")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("productSupplier.preferred", "Preferito")" >
+                @if (context.Preferred)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
+                }
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" >
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                              Size="Size.Small"
+                              Color="Color.Primary"
+                              OnClick="@(() => EditProductSupplier(context))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                              Size="Size.Small"
+                              Color="Color.Error"
+                              OnClick="@(() => DeleteProductSupplier(context))" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText>@TranslationService.GetTranslation("productSupplier.noRecords", "Nessun prodotto trovato")</MudText>
+        </NoRecordsContent>
+    </EFTable>
+</MudStack>
+
+@code {
+    [Parameter] public Guid BusinessPartyId { get; set; }
+
+    private EFTable<ProductSupplierDto>? _efTable;
+    private bool _isLoading = false;
+    private int _totalCount = 0;
+    private HashSet<Guid> _selectedProducts = new();
+    private bool _selectAll = false;
+    private List<ProductSupplierDto> _currentPageProducts = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_efTable != null)
+        {
+            await _efTable!.ReloadServerDataAsync();
+        }
+    }
+
+    private async Task<TableData<ProductSupplierDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        _isLoading = true;
+        try
+        {
+            var page = (int)state.Page + 1;
+            var pageSize = (int)state.PageSize;
+
+            var result = await ProductService.GetProductsBySupplierAsync(
+                BusinessPartyId,
+                page,
+                pageSize);
+
+            if (result != null)
+            {
+                _totalCount = (int)result.TotalCount;
+                _currentPageProducts = result.Items.ToList();
+
+                return new TableData<ProductSupplierDto>
+                {
+                    Items = result.Items,
+                    TotalItems = (int)result.TotalCount
+                };
+            }
+
+            _currentPageProducts = new List<ProductSupplierDto>();
+            return new TableData<ProductSupplierDto> { Items = new List<ProductSupplierDto>(), TotalItems = 0 };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products for supplier {BusinessPartyId}", BusinessPartyId);
+            AppNotification.ShowError(TranslationService.GetTranslation("productSupplier.loadError", "Errore nel caricamento dei prodotti"));
+            _currentPageProducts = new List<ProductSupplierDto>();
+            return new TableData<ProductSupplierDto> { Items = new List<ProductSupplierDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ToggleSelection(Guid productId, bool isSelected)
+    {
+        if (isSelected)
+        {
+            _selectedProducts.Add(productId);
+        }
+        else
+        {
+            _selectedProducts.Remove(productId);
+            _selectAll = false;
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleSelectAll(bool selectAll)
+    {
+        _selectAll = selectAll;
+        
+        if (selectAll)
+        {
+            foreach (var product in _currentPageProducts)
+            {
+                _selectedProducts.Add(product.ProductId);
+            }
+        }
+        else
+        {
+            foreach (var product in _currentPageProducts)
+            {
+                _selectedProducts.Remove(product.ProductId);
+            }
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task OpenBulkEditDialog()
+    {
+        try
+        {
+            if (_selectedProducts.Count == 0)
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("productSupplier.noProductsSelected", "Seleziona almeno un prodotto"));
+                return;
+            }
+
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId },
+                { "SelectedProductIds", _selectedProducts.ToList() }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<BulkEditSupplierProductsDialog>(
+                TranslationService.GetTranslation("productSupplier.bulkEditTitle", "Modifica Multipla"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                _selectedProducts.Clear();
+                _selectAll = false;
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkEditSuccess", "Aggiornamento completato"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la modifica multipla dei prodotti fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la modifica multipla.");
+        }
+    }
+
+    private async Task OpenManageProductsDialog()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId },
+                { "SupplierName", string.Empty }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.ExtraExtraLarge,
+                FullWidth = true,
+                FullScreen = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<ManageSupplierProductsDialog>(
+                TranslationService.GetTranslation("supplier.manageProducts", "Gestisci Prodotti"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.bulkUpdateSuccess", "Catalogo aggiornato con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del catalogo prodotti fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante la gestione del catalogo.");
+        }
+    }
+
+    private async Task OpenAssignProductDialog()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<AssignProductToSupplierDialog>(
+                TranslationService.GetTranslation("productSupplier.assignTitle", "Assegna Prodotto"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.assignSuccess", "Prodotto associato con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'assegnazione del prodotto al fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'assegnazione del prodotto.");
+        }
+    }
+
+    private async Task EditProductSupplier(ProductSupplierDto productSupplier)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "ProductSupplierId", productSupplier.Id }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<EditProductSupplierDialog>(
+                TranslationService.GetTranslation("productSupplier.editTitle", "Modifica Associazione"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la modifica dell'associazione prodotto-fornitore {Id}.", productSupplier.Id);
+            AppNotification.ShowWarning("Si è verificato un errore durante la modifica dell'associazione.");
+        }
+    }
+
+    private async Task OpenImportCsvDialog()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "SupplierId", BusinessPartyId }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true
+            };
+
+            var dialog = await DialogService.ShowAsync<ImportCsvDialog>(
+                TranslationService.GetTranslation("csvImport.title", "Import CSV - Listino Fornitore"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && _efTable != null)
+            {
+                await _efTable!.ReloadServerDataAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("csvImport.importComplete", "Importazione completata"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'importazione CSV del listino fornitore.");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'importazione CSV.");
+        }
+    }
+
+    private async Task DeleteProductSupplier(ProductSupplierDto productSupplier)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("productSupplier.deleteConfirm", "Sei sicuro di voler eliminare questa associazione?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            try
+            {
+                await ProductService.RemoveProductSupplierAsync(productSupplier.Id);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("productSupplier.deleteSuccess", "Associazione eliminata con successo"));
+                
+                if (_efTable != null)
+                {
+                    await _efTable!.ReloadServerDataAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting product supplier {Id}", productSupplier.Id);
+                AppNotification.ShowError(TranslationService.GetTranslation("productSupplier.deleteError", "Errore nell'eliminazione"));
+            }
+        }
+    }
+}

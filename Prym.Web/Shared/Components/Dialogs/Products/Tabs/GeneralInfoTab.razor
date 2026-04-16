@@ -1,0 +1,327 @@
+@using Prym.DTOs.Products
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject IAppNotificationService AppNotification
+@inject ILogger<GeneralInfoTab> Logger
+@inject IHttpClientFactory HttpClientFactory
+@inject NavigationManager NavigationManager
+
+<MudStack Spacing="3">
+    <MudGrid Spacing="3">
+        <!-- Left: Basic Info wrapped in its own Paper -->
+        <MudItem xs="12" md="8">
+            <MudPaper Elevation="1" Class="pa-4 h-full">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.basicInfo", "Informazioni di Base")
+                </MudText>
+                <MudGrid Spacing="3">
+                    <!-- Code -->
+                    <MudItem xs="12">
+                        <PrymTextField @bind-Value="Product.Code"
+                                       Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                       ReadOnly="@(!IsEditMode)"
+                                       MaxLength="100"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.QrCode"
+                                       @bind-Value:after="NotifyUpdated"
+                                       HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                    </MudItem>
+
+                    <!-- Name -->
+                    <MudItem xs="12">
+                        <PrymTextField @bind-Value="Product.Name"
+                                       Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                       ReadOnly="@(!IsEditMode)"
+                                       MaxLength="100"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Label"
+                                       @bind-Value:after="NotifyUpdated" />
+                    </MudItem>
+
+                    <!-- Short description -->
+                    <MudItem xs="12">
+                        <PrymTextField @bind-Value="Product.ShortDescription"
+                                       Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                       ReadOnly="@(!IsEditMode)"
+                                       MaxLength="50"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Subject"
+                                       @bind-Value:after="NotifyUpdated" />
+                    </MudItem>
+
+                    <!-- Description -->
+                    <MudItem xs="12">
+                        <PrymTextField @bind-Value="Product.Description"
+                                       Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                       Lines="5"
+                                       ReadOnly="@(!IsEditMode)"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Filled.Description"
+                                       @bind-Value:after="NotifyUpdated" />
+                    </MudItem>
+
+                    <!-- Status and Bundle -->
+                    <MudItem xs="12" md="6">
+                        <PrymSelect T="ProductStatus"
+                                    @bind-Value="Product.Status"
+                                    Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                                    ReadOnly="@(!IsEditMode)"
+                                    @bind-Value:after="NotifyUpdated">
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.Suspended">@TranslationService.GetTranslation("status.suspended", "Sospeso")</MudSelectItem>
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.OutOfStock">@TranslationService.GetTranslation("status.outOfStock", "Esaurito")</MudSelectItem>
+                            <MudSelectItem T="ProductStatus" Value="@ProductStatus.Deleted">@TranslationService.GetTranslation("status.deleted", "Eliminato")</MudSelectItem>
+                        </PrymSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSwitch T="bool"
+                                   @bind-Checked="Product.IsBundle"
+                                   @bind-Checked:after="OnBundleChanged"
+                                   Label="@TranslationService.GetTranslation("product.isBundle", "È un Bundle")"
+                                   Color="Color.Primary"
+                                   ReadOnly="@(!IsEditMode)" />
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Right: Image section -->
+        <MudItem xs="12" md="4">
+            <MudPaper Elevation="1" Class="pa-4 h-full">
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
+                    @TranslationService.GetTranslation("product.productImage", "Immagine")
+                </MudText>
+                @if (!string.IsNullOrEmpty(Product.ThumbnailUrl))
+                {
+                    <MudImage Src="@_thumbnailAbsoluteUrl"
+                              Alt="@Product.Name"
+                              Class="mb-3"
+                              Style="height:200px; width:100%; object-fit:scale-down; background-color:rgba(0,0,0,0.03); border-radius:4px;" />
+                }
+                else
+                {
+                    <div class="mb-3" style="height:200px; display:flex; align-items:center; justify-content:center; background-color:rgba(0,0,0,0.03); border-radius:4px;">
+                        <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("product.noImage", "Nessuna immagine")
+                        </MudText>
+                    </div>
+                }
+
+                @if (IsEditMode)
+                {
+                    <MudStack Spacing="2">
+                        <MudFileUpload T="IBrowserFile"
+                                       Accept="image/*"
+                                       @bind-Files="_selectedImage"
+                                       MaximumFileCount="1">
+                            <CustomContent Context="fileUpload">
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CloudUpload"
+                                           FullWidth="true"
+                                           Disabled="_isUploadingImage"
+                                           OnClick="@fileUpload.OpenFilePickerAsync">
+                                    @TranslationService.GetTranslation("product.selectImage", "Seleziona Immagine")
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+
+                        <MudButton OnClick="@UploadImage"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   Disabled="_isUploadingImage || SelectedFile == null"
+                                   FullWidth="true">
+                            @TranslationService.GetTranslation("common.upload", "Carica")
+                        </MudButton>
+
+                        @if (Product.ImageDocumentId.HasValue)
+                        {
+                            <MudButton OnClick="@RemoveImage"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.Delete"
+                                       Disabled="_isUploadingImage"
+                                       FullWidth="true">
+                                @TranslationService.GetTranslation("common.remove", "Rimuovi")
+                            </MudButton>
+                        }
+
+                        @if (SelectedFile != null)
+                        {
+                            <MudChip T="string" Color="Color.Info" Icon="@Icons.Material.Filled.Image" OnClose="@ClearImage">
+                                @SelectedFile.Name
+                            </MudChip>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@FormatFileSize(SelectedFile.Size)</MudText>
+                        }
+                    </MudStack>
+
+                    <MudText Typo="Typo.caption" Class="mt-2 mud-text-secondary">
+                        @TranslationService.GetTranslation("product.imageHelp", "Formati supportati: JPEG, PNG, GIF, WebP. Dimensione massima: 5MB")
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("product.imageViewOnly", "Solo visualizzazione immagine (modalità lettura)")
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudStack>
+
+@code {
+ [Parameter, EditorRequired]
+ public ProductDto Product { get; set; } = default!;
+
+ [Parameter]
+ public bool IsEditMode { get; set; }
+
+ [Parameter]
+ public EventCallback OnProductUpdated { get; set; }
+
+ // Child calls this to indicate a persisted change (so parent updates snapshot)
+ [Parameter]
+ public EventCallback OnProductUpdatedPersisted { get; set; }
+
+ // Use single IBrowserFile as MudFileUpload expects a single file binding in this project
+ private IBrowserFile? _selectedImage;
+ private bool _isUploadingImage = false;
+
+ // helper to get selected file
+ private IBrowserFile? SelectedFile => _selectedImage;
+
+ // Absolute URL computed for display
+ private string? _thumbnailAbsoluteUrl;
+
+ protected override Task OnParametersSetAsync()
+ {
+ // Ensure we convert server-provided relative URL to an absolute URL using ApiClient base address
+ _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product?.ThumbnailUrl);
+ return base.OnParametersSetAsync();
+ }
+
+ private string? MakeAbsoluteUrl(string? url)
+ {
+ if (string.IsNullOrWhiteSpace(url)) return null;
+ if (Uri.IsWellFormedUriString(url, UriKind.Absolute)) return url;
+
+ try
+ {
+ var client = HttpClientFactory.CreateClient("ApiClient");
+ var baseAddress = client.BaseAddress ?? new Uri(NavigationManager.BaseUri);
+ // Uri(base, relative) handles leading/trailing slashes
+ return new Uri(baseAddress, url).ToString();
+ }
+ catch
+ {
+ // fallback: return original relative url
+ return url;
+ }
+ }
+
+ // ClearImage returns Task so it can be used as EventCallback target
+ private Task ClearImage()
+ {
+ _selectedImage = null;
+ _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product?.ThumbnailUrl);
+ return Task.CompletedTask;
+ }
+
+ private async Task RemoveImage()
+ {
+ Product.ImageDocumentId = null;
+ Product.ThumbnailUrl = null;
+ _thumbnailAbsoluteUrl = null;
+ await NotifyUpdated();
+ }
+
+ private async Task UploadImage()
+ {
+ var file = SelectedFile;
+ if (file == null || Product.Id == Guid.Empty)
+ return;
+
+ const long maxBytes =5 *1024 *1024;
+ var allowedTypes = new[] { "image/jpeg", "image/png", "image/gif", "image/webp" };
+
+ if (file.Size > maxBytes)
+ {
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageTooLarge", "Immagine troppo grande (max5MB)"));
+ return;
+ }
+
+ if (!string.IsNullOrWhiteSpace(file.ContentType) && !allowedTypes.Contains(file.ContentType))
+ {
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageTypeNotAllowed", "Formato immagine non supportato"));
+ return;
+ }
+
+ _isUploadingImage = true;
+ try
+ {
+ Logger.LogInformation("Uploading image for product {ProductId}", Product.Id);
+
+ var updatedProduct = await ProductService.UploadProductImageDocumentAsync(Product.Id, file);
+
+ if (updatedProduct != null)
+ {
+ Product.ImageDocumentId = updatedProduct.ImageDocumentId;
+ Product.ThumbnailUrl = updatedProduct.ThumbnailUrl;
+ _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product.ThumbnailUrl);
+
+ AppNotification.ShowSuccess(TranslationService.GetTranslation("product.imageUploadSuccess", "Immagine caricata con successo"));
+
+ _selectedImage = null;
+
+ if (OnProductUpdatedPersisted.HasDelegate)
+ await OnProductUpdatedPersisted.InvokeAsync();
+ else
+ await NotifyUpdated();
+ }
+ else
+ {
+ Logger.LogWarning("Image upload returned null for product {ProductId}", Product.Id);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"));
+ }
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error uploading image for product {ProductId}", Product.Id);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.imageUploadError", "Errore nel caricamento dell'immagine"));
+ }
+ finally
+ {
+ _isUploadingImage = false;
+ }
+ }
+
+ private async Task OnBundleChanged()
+ {
+ await NotifyUpdated();
+ }
+
+ private async Task NotifyUpdated()
+ {
+ try
+ {
+ if (OnProductUpdated.HasDelegate)
+ await OnProductUpdated.InvokeAsync();
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error invoking OnProductUpdated from GeneralInfoTab");
+ }
+ }
+
+ private static string FormatFileSize(long bytes)
+ {
+ if (bytes <1024) return bytes + " B";
+ if (bytes <1024 *1024) return (bytes /1024.0).ToString("N1") + " KB";
+ return (bytes / (1024.0 *1024.0)).ToString("N2") + " MB";
+ }
+}

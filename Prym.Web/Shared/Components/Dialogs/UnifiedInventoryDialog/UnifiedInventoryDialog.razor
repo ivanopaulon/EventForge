@@ -1,0 +1,413 @@
+@using Prym.DTOs.Products
+@using Prym.DTOs.Warehouse
+@inject ITranslationService TranslationService
+@inject IProductService ProductService
+@inject IInventoryService InventoryService
+@inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+@inject ILogger<UnifiedInventoryDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Inventory2"
+          Title="Inventario"
+          MinWidth="min(800px, 95vw)">
+    <ChildContent>
+        <MudStack Spacing="3" Class="unified-inventory-dialog-body">
+            @if (State.CurrentView == InventoryDialogView.View)
+            {
+                <InventoryViewStep State="@State" 
+                                   OnEdit="@(() => NavigateToView(InventoryDialogView.Edit))" 
+                                   OnViewHistory="@(() => NavigateToView(InventoryDialogView.History))" />
+            }
+            else if (State.CurrentView == InventoryDialogView.Edit)
+            {
+                <InventoryEditStep State="@State" 
+                                   Locations="@Locations"
+                                   Warehouses="@Warehouses"
+                                   OnDraftChanged="@HandleDraftChanged"
+                                   OnCancel="@HandleCancelEdit"
+                                   OnNext="@(() => NavigateToView(InventoryDialogView.Confirm))" />
+            }
+            else if (State.CurrentView == InventoryDialogView.Confirm)
+            {
+                <InventoryConfirmStep State="@State"
+                                      Locations="@Locations"
+                                      OnBack="@(() => NavigateToView(InventoryDialogView.Edit))"
+                                      OnConfirm="@HandleConfirmSave" />
+            }
+            else if (State.CurrentView == InventoryDialogView.History)
+            {
+                <InventoryHistoryStep ProductId="@(State.Product?.Id ?? Guid.Empty)"
+                                      OnBack="@(() => NavigateToView(InventoryDialogView.View))" />
+            }
+            
+            @if (!string.IsNullOrEmpty(State.ErrorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" CloseIcon="@Icons.Material.Filled.Close" OnClose="@(() => ClearError())">
+                    @State.ErrorMessage
+                </MudAlert>
+            }
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="w-full">
+            <div>
+                @if (State.CurrentView != InventoryDialogView.View && State.CurrentView != InventoryDialogView.History)
+                {
+                    <MudButton OnClick="@HandleBack" 
+                               Color="Color.Default" 
+                               StartIcon="@Icons.Material.Outlined.ArrowBack"
+                               Disabled="@State.IsSaving"
+                               Variant="Variant.Text">
+                        @TranslationService.GetTranslation("common.back", "Indietro")
+                    </MudButton>
+                }
+            </div>
+            <MudStack Row="true" Spacing="2">
+                <MudButton OnClick="@HandleClose" 
+                           Color="Color.Default"
+                           Disabled="@State.IsSaving"
+                               Variant="Variant.Text">
+                    @TranslationService.GetTranslation("common.close", "Chiudi")
+                </MudButton>
+                @if (State.CurrentView == InventoryDialogView.View)
+                {
+                    <MudButton OnClick="@(() => NavigateToView(InventoryDialogView.Edit))" 
+                               Color="Color.Primary" 
+                               Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Outlined.Edit">
+                        @TranslationService.GetTranslation("common.edit", "Modifica")
+                    </MudButton>
+                }
+                else if (State.CurrentView == InventoryDialogView.Edit)
+                {
+                    @if (StartInEditMode)
+                    {
+                        <!-- Fast inventory mode: Save directly without confirmation -->
+                        <MudButton OnClick="@HandleConfirmSave" 
+                                   Color="Color.Success" 
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Outlined.Save"
+                                   Disabled="@(!IsEditFormValid() || State.IsSaving)">
+                            @if (State.IsSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                @TranslationService.GetTranslation("common.saving", "Salvataggio...")
+                            }
+                            else
+                            {
+                                @TranslationService.GetTranslation("common.save", "Salva")
+                            }
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <!-- Normal mode: Go to confirmation step -->
+                        <MudButton OnClick="@(() => NavigateToView(InventoryDialogView.Confirm))" 
+                                   Color="Color.Primary" 
+                                   Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Outlined.CheckCircle"
+                                   Disabled="@(!IsEditFormValid())">
+                            @TranslationService.GetTranslation("warehouse.review", "Rivedi")
+                        </MudButton>
+                    }
+                }
+                else if (State.CurrentView == InventoryDialogView.Confirm)
+                {
+                    <MudButton OnClick="@HandleConfirmSave" 
+                               Color="Color.Success" 
+                               Variant="Variant.Filled"
+                               StartIcon="@Icons.Material.Outlined.Save"
+                               Disabled="@State.IsSaving">
+                        @if (State.IsSaving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            @TranslationService.GetTranslation("common.saving", "Salvataggio...")
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("common.save", "Salva")
+                        }
+                    </MudButton>
+                }
+            </MudStack>
+        </MudStack>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public ProductDto? InitialProduct { get; set; }
+
+    [Parameter]
+    public List<StorageLocationDto>? Locations { get; set; }
+
+    [Parameter]
+    public List<WarehouseDto>? Warehouses { get; set; }
+
+    [Parameter]
+    public decimal ConversionFactor { get; set; } = 1m;
+
+    [Parameter]
+    public ProductUnitDto? ProductUnit { get; set; }
+
+    [Parameter]
+    public bool IsEditMode { get; set; } = false;
+
+    [Parameter]
+    public Guid? ExistingStockId { get; set; }  // If present, this is an edit operation
+
+    [Parameter]
+    public Guid? ExistingWarehouseId { get; set; }  // Current warehouse of the stock
+
+    [Parameter]
+    public Guid? ExistingLocationId { get; set; }
+
+    [Parameter]
+    public decimal? ExistingQuantity { get; set; }
+
+    [Parameter]
+    public string? ExistingNotes { get; set; }
+
+    [Parameter]
+    public EventCallback<InventoryRowResult> OnSave { get; set; }
+
+    [Parameter]
+    public bool StartInEditMode { get; set; } = false;
+
+    private InventoryDialogState State { get; set; } = new();
+    private List<ViewItem> _viewItems = new();
+
+    protected override void OnInitialized()
+    {
+        // Initialize state
+        State.Product = InitialProduct;
+        State.ConversionFactor = ConversionFactor;
+        State.ProductUnit = ProductUnit;
+        State.IsEditMode = IsEditMode;
+        
+        // Initialize stock assignment tracking
+        // Stock is "already assigned" if we're editing an existing document row (IsEditMode = true)
+        // OR if there's an existing stock ID (modifying warehouse stock directly)
+        State.IsStockAlreadyAssigned = IsEditMode || (ExistingStockId.HasValue && ExistingStockId != Guid.Empty);
+        State.ExistingStockId = ExistingStockId;
+        State.ExistingWarehouseId = ExistingWarehouseId;
+        State.ExistingLocationId = ExistingLocationId;
+        
+        // Start in Edit mode if requested (for fast inventory entry)
+        State.CurrentView = StartInEditMode ? InventoryDialogView.Edit : InventoryDialogView.View;
+
+        if (IsEditMode)
+        {
+            State.DraftQuantity = ExistingQuantity ?? 0;
+            State.DraftLocationId = ExistingLocationId;
+            State.DraftNotes = ExistingNotes ?? string.Empty;
+            State.OriginalQuantity = ExistingQuantity;
+            State.OriginalLocationId = ExistingLocationId;
+            State.OriginalNotes = ExistingNotes;
+        }
+        else
+        {
+            // New insertion: pre-select warehouse and location if provided
+            State.DraftWarehouseId = ExistingWarehouseId;
+            State.DraftLocationId = ExistingLocationId;
+            State.DraftQuantity = ConversionFactor;
+        }
+
+        UpdateViewItems();
+    }
+
+    private void UpdateViewItems()
+    {
+        _viewItems = new List<ViewItem>
+        {
+            new ViewItem(InventoryDialogView.View, TranslationService.GetTranslation("warehouse.view", "Visualizza")),
+            new ViewItem(InventoryDialogView.Edit, TranslationService.GetTranslation("warehouse.edit", "Modifica")),
+            new ViewItem(InventoryDialogView.Confirm, TranslationService.GetTranslation("warehouse.confirm", "Conferma")),
+            new ViewItem(InventoryDialogView.History, TranslationService.GetTranslation("warehouse.history", "Storico"))
+        };
+    }
+
+    private class ViewItem
+    {
+        public InventoryDialogView View { get; set; }
+        public string Text { get; set; }
+
+        public ViewItem(InventoryDialogView view, string text)
+        {
+            View = view;
+            Text = text;
+        }
+    }
+
+    private string GetCurrentViewIcon()
+    {
+        return State.CurrentView switch
+        {
+            InventoryDialogView.View => Icons.Material.Outlined.Visibility,
+            InventoryDialogView.Edit => Icons.Material.Outlined.Edit,
+            InventoryDialogView.Confirm => Icons.Material.Outlined.CheckCircle,
+            InventoryDialogView.History => Icons.Material.Outlined.History,
+            _ => Icons.Material.Outlined.Inventory
+        };
+    }
+
+    private string GetCurrentViewTitle()
+    {
+        var baseTitle = State.CurrentView switch
+        {
+            InventoryDialogView.View => TranslationService.GetTranslation("warehouse.viewProduct", "Visualizza Prodotto"),
+            InventoryDialogView.Edit => TranslationService.GetTranslation("warehouse.editInventory", "Modifica Inventario"),
+            InventoryDialogView.Confirm => TranslationService.GetTranslation("warehouse.confirmChanges", "Conferma Modifiche"),
+            InventoryDialogView.History => TranslationService.GetTranslation("warehouse.inventoryHistory", "Storico Inventario"),
+            _ => TranslationService.GetTranslation("warehouse.inventory", "Inventario")
+        };
+
+        if (State.Product != null)
+        {
+            return $"{baseTitle} - {State.Product.Name}";
+        }
+
+        return baseTitle;
+    }
+
+    private bool CanNavigateToView(InventoryDialogView view)
+    {
+        // Can always go to View or History
+        if (view == InventoryDialogView.View || view == InventoryDialogView.History)
+            return true;
+
+        // Can go to Edit if we have a product
+        if (view == InventoryDialogView.Edit)
+            return State.Product != null;
+
+        // Can go to Confirm only if we've been to Edit and have valid data
+        if (view == InventoryDialogView.Confirm)
+            return State.HasUnsavedChanges && IsEditFormValid();
+
+        return false;
+    }
+
+    private void NavigateToView(InventoryDialogView view)
+    {
+        if (!CanNavigateToView(view))
+            return;
+
+        State.CurrentView = view;
+        StateHasChanged();
+    }
+
+    private void HandleDraftChanged()
+    {
+        // Check if there are changes
+        State.HasUnsavedChanges = 
+            State.DraftQuantity != State.OriginalQuantity ||
+            State.DraftLocationId != State.OriginalLocationId ||
+            State.DraftNotes != State.OriginalNotes;
+
+        StateHasChanged();
+    }
+
+    private bool IsEditFormValid()
+    {
+        return State.DraftLocationId.HasValue && 
+               State.DraftQuantity >= 0;
+    }
+
+    private void HandleCancelEdit()
+    {
+        // Reset to original values
+        State.DraftQuantity = State.OriginalQuantity ?? ConversionFactor;
+        State.DraftLocationId = State.OriginalLocationId;
+        State.DraftNotes = State.OriginalNotes ?? string.Empty;
+        State.HasUnsavedChanges = false;
+        
+        NavigateToView(InventoryDialogView.View);
+    }
+
+    private void HandleBack()
+    {
+        var previousView = State.CurrentView switch
+        {
+            InventoryDialogView.Edit => InventoryDialogView.View,
+            InventoryDialogView.Confirm => InventoryDialogView.Edit,
+            InventoryDialogView.History => InventoryDialogView.View,
+            _ => InventoryDialogView.View
+        };
+
+        NavigateToView(previousView);
+    }
+
+    private async Task HandleClose()
+    {
+        // Check for unsaved changes
+        if (State.HasUnsavedChanges)
+        {
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.unsavedChanges", "Modifiche Non Salvate"),
+                TranslationService.GetTranslation("warehouse.discardChangesMessage", "Ci sono modifiche non salvate. Vuoi uscire senza salvare?"),
+                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                cancelText: TranslationService.GetTranslation("common.no", "No")
+            );
+
+            if (confirmed != true)
+                return;
+        }
+
+        MudDialog.Cancel();
+    }
+
+    private async Task HandleConfirmSave()
+    {
+        if (!IsEditFormValid())
+            return;
+
+        State.IsSaving = true;
+        State.ErrorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var result = new InventoryRowResult
+            {
+                IsEditMode = State.IsEditMode,
+                LocationId = State.DraftLocationId!.Value,
+                Quantity = State.DraftQuantity,
+                Notes = State.DraftNotes
+            };
+
+            if (OnSave.HasDelegate)
+            {
+                await OnSave.InvokeAsync(result);
+            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving inventory data");
+            State.ErrorMessage = TranslationService.GetTranslation("warehouse.saveError", "Errore nel salvataggio: {0}", ex.Message);
+        }
+        finally
+        {
+            State.IsSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearError()
+    {
+        State.ErrorMessage = null;
+        StateHasChanged();
+    }
+
+    public class InventoryRowResult
+    {
+        public bool IsEditMode { get; set; }
+        public Guid LocationId { get; set; }
+        public decimal Quantity { get; set; }
+        public string Notes { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,127 @@
+@* Pos26Receipt — pannello scontrino scuro (colonna destra POS 2026) *@
+@using Prym.DTOs.Business
+
+<div class="pos26-receipt">
+    @* Header *@
+    <div class="pos26-receipt-header">
+        <div class="pos26-receipt-meta">
+            <span class="pos26-receipt-label">Ordine</span>
+            <span class="pos26-receipt-value">
+                @if (Session != null)
+                {
+                    @($"#{Session.Id.ToString("N")[..8]}")
+                }
+                else
+                {
+                    <span class="pos26-receipt-muted">–</span>
+                }
+            </span>
+        </div>
+        @if (Customer != null)
+        {
+            <div class="pos26-receipt-customer">
+                <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" />
+                @Customer.Name
+            </div>
+        }
+        @if (Session?.TableId != null)
+        {
+            <div class="pos26-receipt-table">
+                <MudIcon Icon="@Icons.Material.Outlined.TableRestaurant" Size="Size.Small" />
+                Tavolo @Session.TableNumber
+            </div>
+        }
+        <button class="pos26-receipt-clear"
+                @onclick="OnClearCart"
+                title="Svuota carrello"
+                disabled="@(!(Items?.Any() == true))">
+            <MudIcon Icon="@Icons.Material.Outlined.DeleteSweep" Size="Size.Small" />
+        </button>
+    </div>
+
+    @* Lista righe *@
+    <div class="pos26-receipt-items">
+        @if (Items?.Any() == true)
+        {
+            @foreach (var item in Items)
+            {
+                <div class="pos26-receipt-row">
+                    <div class="pos26-receipt-row-info">
+                        <span class="pos26-receipt-row-name">@TruncateName(item.ProductName ?? item.ProductCode ?? "Articolo")</span>
+                        @if (!string.IsNullOrEmpty(item.Notes))
+                        {
+                            <button class="pos26-receipt-note-icon"
+                                    @onclick="() => OnEditItemNotes.InvokeAsync(item)"
+                                    title="@item.Notes">
+                                <MudIcon Icon="@Icons.Material.Outlined.Note" Size="Size.Small" />
+                            </button>
+                        }
+                        <span class="pos26-receipt-row-detail">
+                            @item.Quantity.ToString("G") × €@item.UnitPrice.ToString("F2")
+                            @if (item.DiscountPercent > 0)
+                            {
+                                <span class="pos26-receipt-row-discount"> −@item.DiscountPercent.ToString("F1")%</span>
+                            }
+                        </span>
+                    </div>
+                    <div class="pos26-receipt-row-actions">
+                        <button class="pos26-receipt-qty-btn" @onclick="() => OnDecrease.InvokeAsync(item)">−</button>
+                        <span class="pos26-receipt-qty">@item.Quantity.ToString("G")</span>
+                        <button class="pos26-receipt-qty-btn" @onclick="() => OnIncrease.InvokeAsync(item)">+</button>
+                        <span class="pos26-receipt-row-total">€@item.TotalAmount.ToString("F2")</span>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="pos26-receipt-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.ShoppingCart" Size="Size.Medium" Class="opacity-30" />
+                <span>Carrello vuoto</span>
+            </div>
+        }
+    </div>
+
+    @* Footer totali *@
+    <div class="pos26-receipt-footer">
+        <div class="pos26-receipt-total-row">
+            <span>Subtotale</span>
+            <span>€@Subtotal.ToString("F2")</span>
+        </div>
+        @if (TotalDiscount > 0)
+        {
+            <div class="pos26-receipt-total-row pos26-receipt-total-row--discount">
+                <span>Sconto</span>
+                <span>−€@TotalDiscount.ToString("F2")</span>
+            </div>
+        }
+        @if (TotalVat > 0)
+        {
+            <div class="pos26-receipt-total-row pos26-receipt-total-row--vat">
+                <span>IVA</span>
+                <span>€@TotalVat.ToString("F2")</span>
+            </div>
+        }
+        <div class="pos26-receipt-total-row pos26-receipt-total-row--grand">
+            <span>Totale</span>
+            <span class="pos26-receipt-grand-total">€@GrandTotal.ToString("F2")</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public SaleSessionDto? Session { get; set; }
+    [Parameter] public BusinessPartyDto? Customer { get; set; }
+    [Parameter] public List<SaleItemDto>? Items { get; set; }
+    [Parameter] public decimal Subtotal { get; set; }
+    [Parameter] public decimal TotalDiscount { get; set; }
+    [Parameter] public decimal TotalVat { get; set; }
+    [Parameter] public decimal GrandTotal { get; set; }
+    [Parameter] public EventCallback OnClearCart { get; set; }
+    [Parameter] public EventCallback<SaleItemDto> OnIncrease { get; set; }
+    [Parameter] public EventCallback<SaleItemDto> OnDecrease { get; set; }
+    [Parameter] public EventCallback<SaleItemDto> OnEditItemNotes { get; set; }
+
+    private static string TruncateName(string name) =>
+        name.Length > 20 ? name[..18] + "…" : name;
+}

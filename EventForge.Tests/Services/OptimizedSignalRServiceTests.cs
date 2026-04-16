@@ -1,4 +1,4 @@
-using EventForge.Client.Services;
+using Prym.Web.Services;
 using Prym.DTOs.Chat;
 using Prym.DTOs.Notifications;
 using Microsoft.Extensions.Logging;

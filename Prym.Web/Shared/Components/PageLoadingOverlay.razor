@@ -1,0 +1,105 @@
+@inject IDialogService DialogService
+@inject ILogger<PageLoadingOverlay> Logger
+@implements IAsyncDisposable
+
+@code {
+    private static readonly DialogOptions _options = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
+
+    // ── Parameters (backward-compatible) ──
+    [Parameter] public bool Visible { get; set; }
+
+    [Parameter]
+    public bool IsVisible
+    {
+        get => Visible;
+        set => Visible = value;
+    }
+
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string IconPath { get; set; } = "trace.svg";
+    [Parameter] public int Size { get; set; } = 96;
+    [Parameter] public PageLoadingState.AnimationType Animation { get; set; } = PageLoadingState.AnimationType.Pulse;
+
+    [Parameter] public bool ShowProgressLog { get; set; } = false;
+    [Parameter] public IReadOnlyList<string>? ProgressMessages { get; set; }
+    [Parameter] public bool ShowElapsedTime { get; set; } = false;
+    [Parameter] public int ProgressIntervalMs { get; set; } = 2500;
+
+    /// <summary>null = indeterminate; 0–100 = determinate</summary>
+    [Parameter] public double? ProgressValue { get; set; } = null;
+    [Parameter] public Color ProgressColor { get; set; } = Color.Primary;
+
+    private IDialogReference? _dialogRef;
+    private PageLoadingState? _state;
+    private bool _wasVisible;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            if (Visible && !_wasVisible)
+            {
+                _state = BuildState();
+                var dp = new DialogParameters<PageLoadingSystemDialog>
+                {
+                    { x => x.State, _state }
+                };
+                _dialogRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _options);
+                _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => { _dialogRef = null; }));
+            }
+            else if (!Visible && _wasVisible)
+            {
+                _dialogRef?.Close();
+                _dialogRef = null;
+                _state = null;
+            }
+            else if (Visible && _wasVisible && _state is not null)
+            {
+                ApplyState(_state);
+                _state.Notify();
+            }
+
+            _wasVisible = Visible;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la gestione del dialogo di caricamento pagina");
+        }
+    }
+
+    private PageLoadingState BuildState()
+    {
+        var s = new PageLoadingState();
+        ApplyState(s);
+        return s;
+    }
+
+    private void ApplyState(PageLoadingState s)
+    {
+        s.Message = Message;
+        s.IconPath = IconPath;
+        s.ShowProgressLog = ShowProgressLog;
+        s.ProgressMessages = ProgressMessages;
+        s.ShowElapsedTime = ShowElapsedTime;
+        s.ProgressIntervalMs = ProgressIntervalMs;
+        s.ProgressValue = ProgressValue;
+        s.ProgressColor = ProgressColor;
+        s.Animation = Animation;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dialogRef is not null)
+        {
+            _dialogRef.Close();
+            _dialogRef = null;
+        }
+        await Task.CompletedTask;
+    }
+}

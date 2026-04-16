@@ -1,4 +1,4 @@
-using EventForge.Client.Services.Schema;
+using Prym.Web.Services.Schema;
 using Prym.DTOs.Dashboard;
 
 namespace EventForge.Tests.Services.Schema;

@@ -1,0 +1,47 @@
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.LocalOffer"
+          Title="@TranslationService.GetTranslation("sales.applyCoupon", "Applica Coupon")"
+          IsProcessing="false"
+          OnClose="Cancel">
+
+    <ChildContent>
+        <MudStack Spacing="3">
+            <MudTextField @bind-Value="_couponCode"
+                          Label="@TranslationService.GetTranslation("sales.couponCode", "Codice Coupon")"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Placeholder="@TranslationService.GetTranslation("sales.couponPlaceholder", "Inserisci codice coupon...")"
+                          Immediate="true"
+                          OnKeyDown="@HandleKeyDown" />
+        </MudStack>
+    </ChildContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Success"
+                   Variant="Variant.Filled"
+                   OnClick="Submit"
+                   Disabled="@string.IsNullOrWhiteSpace(_couponCode)">
+            @TranslationService.GetTranslation("sales.applyCouponBtn", "Applica")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private string _couponCode = string.Empty;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_couponCode.Trim().ToUpperInvariant()));
+    private void Cancel() => MudDialog.Cancel();
+
+    private void HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_couponCode))
+            Submit();
+    }
+}

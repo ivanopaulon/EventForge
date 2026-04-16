@@ -1,0 +1,144 @@
+@using Prym.DTOs.Store
+@using Prym.Web.Services.Store
+@inject IFiscalDrawerService FiscalDrawerService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FiscalDrawerTransactionDialog> Logger
+
+<EFDialog Icon="@(TransactionType == FiscalDrawerTransactionType.Deposit ? Icons.Material.Outlined.ArrowUpward : Icons.Material.Outlined.ArrowDownward)"
+          Title="@(TransactionType == FiscalDrawerTransactionType.Deposit ? "Versamento nel Cassetto" : "Prelievo dal Cassetto")"
+          IsProcessing="@_saving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <div class="pa-4">
+            <MudForm @ref="_form" Model="@_model">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudNumericField @bind-Value="_model.Amount"
+                                         Label="Importo"
+                                         Required="true"
+                                         Min="0.01m"
+                                         Format="N2"
+                                         Variant="Variant.Outlined"
+                                         Class="ef-input"
+                                         Adornment="Adornment.Start"
+                                         AdornmentText="@GetCurrencySymbol(CurrencyCode)"
+                    Margin="Margin.Dense"/>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudSelect @bind-Value="_model.PaymentType"
+                                   Label="Metodo"
+                                   Variant="Variant.Outlined"
+                                   Class="ef-select">
+                            <MudSelectItem Value="FiscalDrawerPaymentType.Cash">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.Money" Size="Size.Small" />
+                                    <span>Contanti</span>
+                                </MudStack>
+                            </MudSelectItem>
+                            <MudSelectItem Value="FiscalDrawerPaymentType.Card">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.CreditCard" Size="Size.Small" />
+                                    <span>Carta</span>
+                                </MudStack>
+                            </MudSelectItem>
+                            <MudSelectItem Value="FiscalDrawerPaymentType.Transfer">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.AccountBalance" Size="Size.Small" />
+                                    <span>Bonifico</span>
+                                </MudStack>
+                            </MudSelectItem>
+                            <MudSelectItem Value="FiscalDrawerPaymentType.Other">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
+                                    <span>Altro</span>
+                                </MudStack>
+                            </MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Description"
+                                      Label="Descrizione / Nota"
+                                      MaxLength="200"
+                                      Variant="Variant.Outlined"
+                                      Class="ef-input"
+                                      Lines="2"
+                    Margin="Margin.Dense"/>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_saving">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="SaveAsync"
+                   Variant="Variant.Filled"
+                   Color="@(TransactionType == FiscalDrawerTransactionType.Deposit ? Color.Success : Color.Warning)"
+                   Disabled="@_saving">
+            Conferma
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid DrawerId { get; set; }
+    [Parameter] public FiscalDrawerTransactionType TransactionType { get; set; } = FiscalDrawerTransactionType.Deposit;
+    [Parameter] public string CurrencyCode { get; set; } = "EUR";
+
+    private MudForm? _form;
+    private bool _saving;
+
+    private readonly CreateFiscalDrawerTransactionDto _model = new()
+    {
+        TransactionType = FiscalDrawerTransactionType.Deposit,
+        PaymentType = FiscalDrawerPaymentType.Cash,
+        Amount = 0
+    };
+
+    protected override void OnParametersSet() => _model.TransactionType = TransactionType;
+
+    private static string GetCurrencySymbol(string currencyCode) => currencyCode switch
+    {
+        "EUR" => "€", "USD" => "$", "GBP" => "£", "JPY" => "¥", "CNY" => "¥", _ => currencyCode
+    };
+
+    private async Task SaveAsync()
+    {
+        if (_form is null) return;
+        await _form.ValidateAsync();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            var result = await FiscalDrawerService.CreateTransactionAsync(DrawerId, _model);
+            if (result is not null)
+            {
+                var label = TransactionType == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo";
+                AppNotification.ShowSuccess($"{label} di {CurrencyCode} {_model.Amount:N2} registrato.");
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                AppNotification.ShowError("Errore durante la registrazione.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error recording fiscal drawer transaction");
+            AppNotification.ShowError("Errore imprevisto.");
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

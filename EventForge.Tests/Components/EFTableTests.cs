@@ -1,4 +1,4 @@
-using EventForge.Client.Shared.Components;
+using Prym.Web.Shared.Components;
 
 namespace EventForge.Tests.Components;
 

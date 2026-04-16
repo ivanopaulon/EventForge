@@ -1,6 +1,0 @@
-@page "/warehouse/stock-management"
-@using Microsoft.AspNetCore.Authorization
-@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
-
-<PageTitle>Situazione Giacenze</PageTitle>
-<StockOverview IsEmbedded="true" />

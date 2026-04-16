@@ -1,0 +1,386 @@
+@namespace Prym.Web.Shared.Components
+
+@if (Visible)
+{
+    <MudOverlay Visible="true" DarkBackground="true" AutoClose="false"
+                Style="@($"backdrop-filter: blur(3px); z-index: {ZIndex};")">
+
+        <div class="efo-card" style="@_cardStyle">
+
+            @* Top color strip *@
+            <div class="efo-topbar @TopBarClass"></div>
+
+            @* Optional progress bar (e.g. login state) *@
+            @if (ShowProgressBar)
+            {
+                <div class="efo-progress-wrap">
+                    <MudProgressLinear Class="progress-thin"
+                                       Color="@ProgressColor"
+                                       Indeterminate="@ProgressIndeterminate"
+                                       Value="@ProgressValue"
+                                       Max="100" />
+                </div>
+            }
+
+            @* Header: logo + title + optional subtitle *@
+            <div class="efo-header">
+                <div class="efo-logo-col">
+                    <img src="trace.svg" width="72" height="72"
+                         class="efo-logo @LogoClass" alt="PRYM logo" />
+                </div>
+                <div class="efo-title-col">
+                    <div class="efo-title">@Title</div>
+                    <div class="efo-hrdiv"></div>
+                    @if (!string.IsNullOrEmpty(Subtitle))
+                    {
+                        <div class="efo-subtitle">@Subtitle</div>
+                    }
+                </div>
+            </div>
+
+            @* Body content slot *@
+            @if (ChildContent is not null)
+            {
+                <div class="efo-body">
+                    @ChildContent
+                </div>
+            }
+
+        </div>
+    </MudOverlay>
+}
+
+@code {
+    public enum EFOverlayTopBar  { Default, Primary, Success, Error, Warning }
+    public enum EFOverlayLogoAnim { None, Pulse, PulseRed, PulseGreen }
+
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public int ZIndex { get; set; } = 9999;
+    [Parameter] public string Title { get; set; } = "PRYM";
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public EFOverlayTopBar TopBar { get; set; } = EFOverlayTopBar.Primary;
+    [Parameter] public bool ShowProgressBar { get; set; } = false;
+    [Parameter] public Color ProgressColor { get; set; } = Color.Primary;
+    [Parameter] public bool ProgressIndeterminate { get; set; } = true;
+    [Parameter] public double ProgressValue { get; set; } = 0;
+    [Parameter] public EFOverlayLogoAnim LogoAnim { get; set; } = EFOverlayLogoAnim.Pulse;
+    /// <summary>
+    /// Explicit card width (e.g. "420px"). When null the card uses min/max width only.
+    /// </summary>
+    [Parameter] public string? CardWidth { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string TopBarClass => TopBar switch
+    {
+        EFOverlayTopBar.Primary => "efo-tb-primary",
+        EFOverlayTopBar.Success => "efo-tb-success",
+        EFOverlayTopBar.Error   => "efo-tb-error",
+        EFOverlayTopBar.Warning => "efo-tb-warning",
+        _                       => "efo-tb-default"
+    };
+
+    private string LogoClass => LogoAnim switch
+    {
+        EFOverlayLogoAnim.Pulse      => "efo-logo-pulse",
+        EFOverlayLogoAnim.PulseRed   => "efo-logo-pulse-red",
+        EFOverlayLogoAnim.PulseGreen => "efo-logo-pulse-green",
+        _                            => string.Empty
+    };
+
+    private string _cardStyle => CardWidth is not null
+        ? $"width:{CardWidth};max-width:95vw;"
+        : string.Empty;
+}
+
+<style>
+    /* ══════════════════════════════════════════════════════════════════════
+       EFOverlay — shared dark glass-card shell for all full-screen overlays.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* ── Card container ── */
+    .efo-card {
+        /* MudBlazor dark-theme CSS variables — inherited by all child components */
+        --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
+        --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
+        --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
+        --mud-palette-background:           #12121f;
+        --mud-palette-surface:              #1c1c30;
+        --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
+        --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
+        --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
+        --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
+        --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
+        --mud-palette-divider:              rgba(255, 255, 255, 0.12);
+        --mud-palette-overlay-dark:         rgba(0, 0, 0, 0.5);
+        color: rgba(255, 255, 255, 0.87);
+
+        background: rgba(18, 18, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        min-width: 340px;
+        max-width: 95vw;
+    }
+
+    /* ── Top color strip ── */
+    .efo-topbar {
+        height: 4px;
+        width: 100%;
+        flex-shrink: 0;
+    }
+
+    .efo-tb-primary { background: #247BFF; }
+    .efo-tb-success { background: #66bb6a; }
+    .efo-tb-error   { background: #ef5350; }
+    .efo-tb-warning { background: #ff9800; }
+    .efo-tb-default { background: rgba(255, 255, 255, 0.12); }
+
+    /* ── Progress bar wrap ── */
+    .efo-progress-wrap {
+        line-height: 0;
+        font-size: 0;
+        flex-shrink: 0;
+    }
+
+    /* ── Header: logo (left) + title block (right) ── */
+    .efo-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 16px;
+        padding: 20px 24px 16px 20px;
+        flex-shrink: 0;
+    }
+
+    .efo-logo-col {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .efo-logo {
+        display: block;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+    }
+
+    .efo-title-col {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .efo-title {
+        color: white;
+        font-size: 1.35rem;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        line-height: 1.2;
+    }
+
+    .efo-hrdiv {
+        height: 1px;
+        background: rgba(255, 255, 255, 0.15);
+        margin: 5px 0 7px 0;
+    }
+
+    .efo-subtitle {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.88rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    /* ── Body slot ── */
+    .efo-body {
+        padding: 0 24px 22px 24px;
+        color: rgba(255, 255, 255, 0.87);
+        /* Reset MudBlazor surface so inputs don't get a solid dark box */
+        --mud-palette-surface: transparent;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    /* ════════════════════════════════════════════════════════════════════
+       Input overrides — make all MudBlazor form components render correctly
+       on the dark glass card background.
+       ════════════════════════════════════════════════════════════════════ */
+
+    .efo-body .mud-input,
+    .efo-body .mud-input-outlined,
+    .efo-body .mud-input-root,
+    .efo-body .mud-input-root-outlined,
+    .efo-body .mud-input-slot,
+    .efo-body .mud-input-control,
+    .efo-body .mud-input-control-input-container {
+        background-color: transparent !important;
+    }
+
+    .efo-body .mud-input-control,
+    .efo-body .mud-input-control-input-container,
+    .efo-body .mud-input,
+    .efo-body .mud-input-outlined {
+        overflow: visible !important;
+    }
+
+    .efo-body .mud-input-label {
+        z-index: 10 !important;
+        position: absolute !important;
+    }
+
+    .efo-body .mud-input-root input,
+    .efo-body .mud-input-root textarea,
+    .efo-body .mud-input input,
+    .efo-body .mud-input textarea {
+        color: rgba(255, 255, 255, 0.87) !important;
+        caret-color: white !important;
+        background-color: transparent !important;
+    }
+
+    .efo-body .mud-input-root,
+    .efo-body .mud-input-root-outlined {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .efo-body label.mud-input-label,
+    .efo-body .mud-input-label {
+        color: rgba(255, 255, 255, 0.85) !important;
+        background-color: transparent !important;
+    }
+
+    /* Shrunk/floating label — solid background to cover the fieldset border */
+    .efo-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+        background-color: #12121f !important;
+        padding: 0 6px !important;
+        border-radius: 2px;
+        color: rgba(100, 170, 255, 1) !important;
+        font-size: 0.75rem !important;
+    }
+
+    .efo-body .mud-input-outlined-border,
+    .efo-body fieldset.mud-input-outlined-border,
+    .efo-body .mud-input-outlined fieldset {
+        border-color: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .efo-body .mud-input-outlined:hover .mud-input-outlined-border,
+    .efo-body .mud-input-outlined:hover fieldset {
+        border-color: rgba(255, 255, 255, 0.70) !important;
+    }
+
+    .efo-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+    .efo-body .mud-input-outlined:focus-within fieldset {
+        border-color: rgba(100, 160, 255, 0.9) !important;
+        border-width: 2px !important;
+    }
+
+    .efo-body .mud-input-adornment .mud-icon-root,
+    .efo-body .mud-input-adornment .mud-icon-button {
+        color: rgba(255, 255, 255, 0.55) !important;
+    }
+
+    .efo-body .mud-select .mud-input-root,
+    .efo-body .mud-select-input {
+        color: rgba(255, 255, 255, 0.87) !important;
+        background-color: transparent !important;
+    }
+
+    .efo-body .mud-checkbox .mud-button-label,
+    .efo-body .mud-checkbox-label,
+    .efo-body span.mud-button-label {
+        color: rgba(255, 255, 255, 0.80) !important;
+    }
+
+    .efo-body .mud-checkbox .mud-svg-icon,
+    .efo-body .mud-checkbox .mud-icon-root {
+        color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    .efo-body .mud-alert {
+        background-color: rgba(255, 152, 0, 0.15) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+        border: 1px solid rgba(255, 152, 0, 0.4) !important;
+    }
+
+    .efo-body .mud-button-root.mud-button-text {
+        color: rgba(255, 255, 255, 0.60) !important;
+    }
+
+    .efo-body .mud-button-root.mud-button-text:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .efo-body .mud-button-root.mud-button-outlined {
+        border-color: rgba(255, 255, 255, 0.40) !important;
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+
+    /* ── Logo animations ── */
+    .efo-logo-pulse {
+        animation: efo-pulse-blue 1.8s infinite ease-in-out;
+    }
+
+    .efo-logo-pulse-red {
+        animation: efo-pulse-red 1.8s infinite ease-in-out;
+    }
+
+    .efo-logo-pulse-green {
+        animation: efo-pulse-green 1.2s ease-in-out;
+    }
+
+    @@keyframes efo-pulse-blue {
+        0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+        50%  { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(100, 160, 255, 0.6)); }
+        100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+    }
+
+    @@keyframes efo-pulse-red {
+        0%   { filter: drop-shadow(0 0 8px  rgba(239, 83, 80, 0.3)); transform: scale(1);    }
+        50%  { filter: drop-shadow(0 0 20px rgba(239, 83, 80, 0.7)); transform: scale(1.06); }
+        100% { filter: drop-shadow(0 0 8px  rgba(239, 83, 80, 0.3)); transform: scale(1);    }
+    }
+
+    @@keyframes efo-pulse-green {
+        0%   { filter: drop-shadow(0 0 8px  rgba(102, 187, 106, 0.3)); transform: scale(1);    }
+        50%  { filter: drop-shadow(0 0 24px rgba(102, 187, 106, 0.8)); transform: scale(1.08); }
+        100% { filter: drop-shadow(0 0 8px  rgba(102, 187, 106, 0.3)); transform: scale(1);    }
+    }
+
+    /* ── Mobile ── */
+    @@media (max-width: 480px) {
+        .efo-card {
+            min-width: unset;
+            max-width: 92vw;
+            width: 92vw !important;
+        }
+
+        .efo-header {
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 16px 16px 12px 16px;
+        }
+
+        .efo-body {
+            padding: 0 16px 18px 16px;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .efo-logo-pulse,
+        .efo-logo-pulse-red,
+        .efo-logo-pulse-green {
+            animation: none !important;
+        }
+    }
+</style>

@@ -1,0 +1,493 @@
+@namespace Prym.Web.Pages.FiscalAdmin
+@page "/admin/fiscal-printers"
+@using Prym.DTOs.FiscalPrinting
+@using Prym.DTOs.Station
+@using Microsoft.AspNetCore.SignalR.Client
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject IFiscalPrintingService FiscalPrintingService
+@inject IHttpClientService HttpClientService
+@inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ILogger<FiscalPrintersDashboard> Logger
+@implements IAsyncDisposable
+
+<PageTitle>Stampanti Fiscali – Dashboard</PageTitle>
+
+<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+
+<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h5">
+        <MudIcon Icon="@Icons.Material.Outlined.Print" Class="mr-2 mb-1 vertical-middle" />
+        Stampanti Fiscali
+    </MudText>
+    <MudStack Row="true" Spacing="2">
+        <MudTooltip Text="@($"Aggiornato {_lastRefresh:HH:mm:ss}")">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                           OnClick="RefreshAsync"
+                           Disabled="@_isLoading"
+                           Color="Color.Default" />
+        </MudTooltip>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => NavigationManager.NavigateTo("/admin/fiscal-printers/setup"))">
+            Nuova Stampante
+        </MudButton>
+    </MudStack>
+</MudStack>
+
+@* ──────────────────── OVERVIEW CARDS ──────────────────── *@
+<MudGrid Spacing="3" Class="mb-6">
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+            <MudIcon Icon="@Icons.Material.Filled.CloudDone" Color="Color.Success" Size="Size.Large" />
+            <MudText Typo="Typo.h4" Class="mt-2">@_onlineCount / @_totalCount</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Online</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+            <MudIcon Icon="@Icons.Material.Filled.Error" Color="@(_errorCount > 0 ? Color.Error : Color.Default)" Size="Size.Large" />
+            <MudText Typo="Typo.h4" Class="mt-2">@_errorCount</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Errori Attivi</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+            <MudIcon Icon="@Icons.Material.Filled.EventNote" Color="@(_closuresDueCount > 0 ? Color.Warning : Color.Default)" Size="Size.Large" />
+            <MudText Typo="Typo.h4" Class="mt-2">@_closuresDueCount</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Chiusure Mancanti</MudText>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex flex-column align-center" Elevation="1">
+            <MudIcon Icon="@Icons.Material.Filled.Receipt" Color="Color.Info" Size="Size.Large" />
+            <MudText Typo="Typo.h4" Class="mt-2">@_totalCount</MudText>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Stampanti Configurate</MudText>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@* ──────────────────── PRINTERS TABLE ──────────────────── *@
+<MudPaper Elevation="1">
+    <MudTable T="FiscalPrinterRow" Items="_printerRows"
+              Dense="true" Hover="true" Striped="true"
+              Loading="@_isLoading"
+              LoadingProgressColor="Color.Primary">
+        <ToolBarContent>
+            <MudText Typo="Typo.subtitle1">
+                <MudIcon Icon="@Icons.Material.Filled.Print" Class="mr-2" />
+                Stato Stampanti
+            </MudText>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Stato</MudTh>
+            <MudTh>Nome</MudTh>
+            <MudTh>Connessione</MudTh>
+            <MudTh>Carta</MudTh>
+            <MudTh>Memoria</MudTh>
+            <MudTh>Azioni</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudTooltip Text="@context.StatusTooltip">
+                    <MudIcon Icon="@context.StatusIcon" Color="@context.StatusColor" />
+                </MudTooltip>
+            </MudTd>
+            <MudTd>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body2"><b>@context.Printer.Name</b></MudText>
+                    @if (!string.IsNullOrEmpty(context.Printer.Location))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Printer.Location</MudText>
+                    }
+                </MudStack>
+            </MudTd>
+            <MudTd>
+                @if (!string.IsNullOrEmpty(context.Printer.Address))
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                        @context.Printer.Address@(context.Printer.Port.HasValue ? $":{context.Printer.Port}" : "")
+                    </MudChip>
+                }
+                else if (!string.IsNullOrEmpty(context.Printer.SerialPortName))
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                        @context.Printer.SerialPortName
+                    </MudChip>
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </MudTd>
+            <MudTd>
+                @{
+                    var paper = context.Status?.PaperStatus ?? "?";
+                    var paperColor = paper switch { "OK" => Color.Success, "LOW" => Color.Warning, "OUT" => Color.Error, _ => Color.Default };
+                    var paperIcon = paper switch { "OK" => Icons.Material.Filled.CheckCircle, "LOW" => Icons.Material.Filled.Warning, "OUT" => Icons.Material.Filled.Error, _ => Icons.Material.Filled.HelpOutline };
+                }
+                <MudChip T="string" Size="Size.Small" Color="@paperColor" Icon="@paperIcon">@paper</MudChip>
+            </MudTd>
+            <MudTd>
+                @{
+                    var memFull = context.Status?.IsFiscalMemoryFull ?? false;
+                    var memAlmost = context.Status?.IsFiscalMemoryAlmostFull ?? false;
+                    var memColor = memFull ? Color.Error : memAlmost ? Color.Warning : Color.Success;
+                    var memLabel = memFull ? "PIENA" : memAlmost ? ">90%" : "OK";
+                    var memIcon = memFull ? Icons.Material.Filled.Error : memAlmost ? Icons.Material.Filled.Warning : Icons.Material.Filled.CheckCircle;
+                }
+                <MudChip T="string" Size="Size.Small" Color="@memColor" Icon="@memIcon">@memLabel</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Info"
+                                 OnClick="@(() => ShowDetail(context.Printer.Id))">
+                        Dettagli
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.EventNote"
+                                 OnClick="@(() => OpenDailyClosureDialogAsync(context.Printer.Id, context.Printer.Name))"
+                                 Disabled="@(context.Status?.IsDailyClosureRequired != true)">
+                        Chiusura Giornaliera
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Print"
+                                 OnClick="@(() => PrintTestAsync(context.Printer.Id))">
+                        Stampa Test
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.OpenInBrowser"
+                                 OnClick="@(() => OpenDrawerAsync(context.Printer.Id))">
+                        Apri Cassetto
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.History"
+                                 OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers/{context.Printer.Id}/closures"))">
+                        Storico Chiusure
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                                 OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers-wizard/{context.Printer.Id}"))">
+                        Modifica
+                    </MudMenuItem>
+                </MudMenu>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
+                <MudIcon Icon="@Icons.Material.Outlined.Print" Size="Size.Large" Color="Color.Default" />
+                <MudText Typo="Typo.body1">Nessuna stampante fiscale configurata</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => NavigationManager.NavigateTo("/admin/fiscal-printers/setup"))">
+                    Configura Prima Stampante
+                </MudButton>
+            </MudStack>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    // ──────────────────────────────────────────────────────────
+    //  State
+    // ──────────────────────────────────────────────────────────
+
+    private bool _isLoading = true;
+    private DateTime _lastRefresh = DateTime.Now;
+    private List<FiscalPrinterRow> _printerRows = new();
+    private HubConnection? _hubConnection;
+    private System.Threading.Timer? _refreshTimer;
+
+    private int _onlineCount;
+    private int _totalCount;
+    private int _errorCount;
+    private int _closuresDueCount;
+
+    private readonly List<BreadcrumbItem> _breadcrumbs =
+    [
+        new BreadcrumbItem("Home", href: "/"),
+        new BreadcrumbItem("Stampanti Fiscali", href: null, disabled: true)
+    ];
+
+    // ──────────────────────────────────────────────────────────
+    //  Lifecycle
+    // ──────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing FiscalPrintersDashboard.");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Connect to SignalR hub and subscribe to all loaded printers
+        await ConnectToHubAsync();
+
+        // Auto-refresh every 10 seconds
+        _refreshTimer = new System.Threading.Timer(
+            async _ =>
+            {
+                try
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        await RefreshAsync();
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Auto-refresh timer failed.");
+                }
+            },
+            null,
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(10));
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Data loading
+    // ──────────────────────────────────────────────────────────
+
+    private async Task RefreshAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var printerPage = await HttpClientService.GetAsync<PagedResult<PrinterDto>>(
+                "api/v1/stations/printers?page=1&pageSize=100");
+
+            var printers = printerPage?.Items?
+                .Where(p => p.IsFiscalPrinter)
+                .ToList() ?? new();
+
+            // Fetch all statuses in parallel; individual failures return null (non-fatal)
+            var statusTasks = printers.Select(async p =>
+            {
+                try { return await FiscalPrintingService.GetStatusAsync(p.Id); }
+                catch (Exception ex) { Logger.LogWarning(ex, "Failed to fetch status for printer {PrinterId}.", p.Id); return null; }
+            }).ToList();
+            var statuses = await Task.WhenAll(statusTasks);
+
+            var newRows = printers
+                .Zip(statuses, (p, s) => new FiscalPrinterRow { Printer = p, Status = s })
+                .ToList();
+
+            // Subscribe newly loaded printers to SignalR
+            if (_hubConnection?.State == HubConnectionState.Connected)
+            {
+                foreach (var printer in printers)
+                {
+                    try { await _hubConnection.SendAsync("SubscribeToPrinter", printer.Id); }
+                    catch { /* non-fatal */ }
+                }
+            }
+
+            _printerRows = newRows;
+            _lastRefresh = DateTime.Now;
+            ComputeOverviewStats();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "RefreshAsync failed");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ComputeOverviewStats()
+    {
+        _totalCount = _printerRows.Count;
+        _onlineCount = _printerRows.Count(r => r.Status?.IsOnline == true);
+        _errorCount = _printerRows.Count(r =>
+            r.Status?.IsOnline == true &&
+            (r.Status.IsFiscalMemoryFull || r.Status.IsPaperOut ||
+             r.Status.IsCoverOpen || r.Status.IsHeadError || r.Status.IsCutterError));
+        _closuresDueCount = _printerRows.Count(r => r.Status?.IsDailyClosureRequired == true);
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  SignalR
+    // ──────────────────────────────────────────────────────────
+
+    private async Task ConnectToHubAsync()
+    {
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl("/hubs/fiscal-printer")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<Guid, FiscalPrinterStatus>("PrinterStatusUpdated", (printerId, status) =>
+            {
+                var row = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId);
+                if (row is not null)
+                {
+                    row.Status = status;
+                    ComputeOverviewStats();
+                    InvokeAsync(StateHasChanged);
+                }
+            });
+
+            _hubConnection.Reconnected += async _ =>
+            {
+                foreach (var row in _printerRows)
+                {
+                    try { await _hubConnection.SendAsync("SubscribeToPrinter", row.Printer.Id); }
+                    catch (Exception ex) { Logger.LogWarning(ex, "FiscalPrintersDashboard: failed to re-subscribe to printer {PrinterId} after reconnect", row.Printer.Id); }
+                }
+            };
+
+            await _hubConnection.StartAsync();
+
+            foreach (var row in _printerRows)
+                await _hubConnection.SendAsync("SubscribeToPrinter", row.Printer.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "FiscalPrintersDashboard: could not connect to SignalR hub");
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Actions
+    // ──────────────────────────────────────────────────────────
+
+    private void ShowDetail(Guid printerId)
+    {
+        var printer = _printerRows.FirstOrDefault(r => r.Printer.Id == printerId)?.Printer;
+        AppNotification.ShowInfo($"Stampante: {printer?.Name ?? printerId.ToString()}");
+    }
+
+    private async Task OpenDailyClosureDialogAsync(Guid printerId, string printerName)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(DailyClosureDialog.PrinterId)] = printerId,
+            [nameof(DailyClosureDialog.PrinterName)] = printerName
+        };
+
+        var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+            string.Empty, parameters, EFDialogDefaults.Options);
+
+        var result = await dialog.Result;
+        if (result?.Canceled == false)
+            await RefreshAsync();
+    }
+
+    private async Task PrintTestAsync(Guid printerId)
+    {
+        try
+        {
+            var testReceipt = new FiscalReceiptData
+            {
+                Items = [new FiscalReceiptItem { Description = "SCONTRINO DI PROVA", Quantity = 1, UnitPrice = 0.01m, VatCode = 1, Department = 1 }],
+                Payments = [new FiscalPayment { Amount = 0.01m, MethodCode = 1, Description = "Contanti" }]
+            };
+
+            var result = await FiscalPrintingService.PrintReceiptAsync(printerId, testReceipt);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Scontrino di test stampato.");
+            else
+                AppNotification.ShowError($"Stampa test fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la stampa del test per la stampante {PrinterId}.", printerId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task OpenDrawerAsync(Guid printerId)
+    {
+        try
+        {
+            var result = await FiscalPrintingService.OpenDrawerAsync(printerId);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Cassetto aperto.");
+            else
+                AppNotification.ShowError($"Apertura cassetto fallita: {result?.ErrorMessage ?? "errore"}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del cassetto per la stampante {PrinterId}.", printerId);
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  IAsyncDisposable
+    // ──────────────────────────────────────────────────────────
+
+    public async ValueTask DisposeAsync()
+    {
+        _refreshTimer?.Dispose();
+
+        if (_hubConnection is not null)
+        {
+            try
+            {
+                foreach (var row in _printerRows)
+                    await _hubConnection.SendAsync("UnsubscribeFromPrinter", row.Printer.Id);
+                await _hubConnection.DisposeAsync();
+            }
+            catch { /* intentionally swallowed */ }
+        }
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Inner row model
+    // ──────────────────────────────────────────────────────────
+
+    private sealed class FiscalPrinterRow
+    {
+        public PrinterDto Printer { get; set; } = null!;
+        public FiscalPrinterStatus? Status { get; set; }
+
+        public Color StatusColor => Status switch
+        {
+            null => Color.Default,
+            { IsOnline: false } => Color.Default,
+            { IsFiscalMemoryFull: true } or { IsPaperOut: true } or { IsCoverOpen: true }
+                or { IsHeadError: true } or { IsCutterError: true } => Color.Error,
+            { IsPaperLow: true } or { IsDailyClosureRequired: true }
+                or { IsFiscalMemoryAlmostFull: true } => Color.Warning,
+            _ => Color.Success
+        };
+
+        public string StatusIcon => Status switch
+        {
+            null => Icons.Material.Filled.HelpOutline,
+            { IsOnline: false } => Icons.Material.Filled.CloudOff,
+            { IsFiscalMemoryFull: true } or { IsPaperOut: true } or { IsCoverOpen: true }
+                or { IsHeadError: true } or { IsCutterError: true } => Icons.Material.Filled.Error,
+            { IsPaperLow: true } or { IsDailyClosureRequired: true }
+                or { IsFiscalMemoryAlmostFull: true } => Icons.Material.Filled.Warning,
+            _ => Icons.Material.Filled.CheckCircle
+        };
+
+        public string StatusTooltip => Status switch
+        {
+            null => "Stato non disponibile",
+            { IsOnline: false } => $"OFFLINE – {Status.LastError ?? "nessun dettaglio"}",
+            { IsFiscalMemoryFull: true } => "Memoria fiscale piena",
+            { IsPaperOut: true } => "Carta esaurita",
+            { IsCoverOpen: true } => "Coperchio aperto",
+            { IsHeadError: true } => "Errore testina",
+            { IsCutterError: true } => "Errore taglierina",
+            { IsDailyClosureRequired: true } => "Chiusura giornaliera richiesta",
+            { IsFiscalMemoryAlmostFull: true } => "Memoria fiscale quasi piena",
+            { IsPaperLow: true } => "Carta in esaurimento",
+            _ => "Operativo"
+        };
+    }
+}

@@ -17,7 +17,7 @@ public class TranslationFileTests
         _clientWwwRootPath = Path.Combine(
             Directory.GetCurrentDirectory(),
             "..", "..", "..", "..",
-            "EventForge.Client", "wwwroot"
+            "Prym.Web", "wwwroot"
         );
     }
 

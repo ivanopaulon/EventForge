@@ -1,0 +1,111 @@
+@page "/management/reports/designer/{ReportId:guid}"
+@page "/management/reports/designer"
+@using Prym.DTOs.Reports
+@using Prym.Web.Shared.Components.Reports
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+
+@inject IReportDefinitionService ReportService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager Navigation
+@inject ILogger<ReportDesigner> Logger
+
+<PageTitle>@(_report?.Name ?? TranslationService.GetTranslation("reports.designer", "Report Designer"))</PageTitle>
+<PageLoadingOverlay Visible="_isLoading"
+                    Message="@TranslationService.GetTranslation("messages.loadingPage", "Caricamento designer...")" />
+
+@if (!_isLoading)
+{
+    <div class="reports-designer-root ef-flex-col-fill">
+        <ManagementPageHeader Title="@(_report?.Name ?? TranslationService.GetTranslation("reports.designer", "Report Designer"))"
+                              Icon="@Icons.Material.Outlined.Draw"
+                              BreadcrumbItems="_breadcrumbs">
+            <ExtraActions>
+                @if (!string.IsNullOrWhiteSpace(_report?.Category))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mr-2">@_report.Category</MudChip>
+                }
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" Class="mr-2" />
+                }
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Outlined.ArrowBack"
+                           Size="Size.Small"
+                           OnClick="@(() => Navigation.NavigateTo("/management/reports"))">
+                    @TranslationService.GetTranslation("common.back", "Indietro")
+                </MudButton>
+            </ExtraActions>
+        </ManagementPageHeader>
+
+        <div class="ef-flex-child-fill" style="overflow:hidden;">
+            <ReportDesignerPanel ReportId="@ReportId"
+                                     Height="100%"
+                                     OnSave="HandleDesignerSaveAsync" />
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid? ReportId { get; set; }
+
+    private ReportDefinitionDto? _report;
+    private bool _isLoading = true;
+    private bool _isSaving = false;
+
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ReportId.HasValue)
+        {
+            try
+            {
+                _report = await ReportService.GetReportAsync(ReportId.Value);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading report {ReportId}", ReportId);
+                AppNotification.ShowError(TranslationService.GetTranslation("reports.loadError", "Errore durante il caricamento del report."));
+            }
+        }
+
+        _breadcrumbs =
+        [
+            new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+            new BreadcrumbItem("Gestione", null, disabled: true),
+            new BreadcrumbItem("Report", "/management/reports"),
+            new BreadcrumbItem(_report?.Name ?? "Designer", null, disabled: true)
+        ];
+
+        _isLoading = false;
+    }
+
+    private async Task HandleDesignerSaveAsync(string reportPathOrContent)
+    {
+        if (!ReportId.HasValue || _report is null) return;
+
+        _isSaving = true;
+        try
+        {
+            // The Bold Reports designer persists the RDLC to the server via SetData.
+            // We receive the reportPath (GUID) here as a save-completed notification.
+            // Refresh the local report metadata from the API so the UI stays in sync.
+            var refreshed = await ReportService.GetReportAsync(ReportId.Value);
+            if (refreshed is not null)
+                _report = refreshed;
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.saved", "Report salvato."));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error refreshing report metadata after save for {ReportId}", ReportId);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("reports.saved", "Report salvato."));
+        }
+        finally
+        {
+            _isSaving = false;
+            StateHasChanged();
+        }
+    }
+}

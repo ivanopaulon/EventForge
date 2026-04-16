@@ -1,0 +1,61 @@
+using Prym.DTOs.Products.SupplierSuggestion;
+
+namespace Prym.Web.Services;
+
+/// <summary>
+/// Implementation of supplier suggestion service.
+/// </summary>
+public class SupplierSuggestionService(
+    IHttpClientService httpClientService,
+    ILogger<SupplierSuggestionService> logger) : ISupplierSuggestionService
+{
+
+    public async Task<SupplierSuggestionResponse?> GetSupplierSuggestionsAsync(Guid productId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<SupplierSuggestionResponse>($"api/v1/supplier-suggestions/products/{productId}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting supplier suggestions for product {ProductId}", productId);
+            return null;
+        }
+    }
+
+    public async Task<bool> ApplySuggestedSupplierAsync(Guid productId, Guid supplierId, string? reason, CancellationToken ct = default)
+    {
+        try
+        {
+            var request = new ApplySuggestionRequest
+            {
+                ProductId = productId,
+                SupplierId = supplierId,
+                Reason = reason
+            };
+
+            await httpClientService.PostAsync<ApplySuggestionRequest, object>(
+                $"api/v1/supplier-suggestions/products/{productId}/apply", request);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error applying suggested supplier {SupplierId} for product {ProductId}",
+                supplierId, productId);
+            return false;
+        }
+    }
+
+    public async Task<SupplierReliabilityResponse?> GetSupplierReliabilityAsync(Guid supplierId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<SupplierReliabilityResponse>($"api/v1/supplier-suggestions/suppliers/{supplierId}/reliability", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting reliability for supplier {SupplierId}", supplierId);
+            return null;
+        }
+    }
+}

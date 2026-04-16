@@ -1,0 +1,158 @@
+@page "/financial/vat-natures"
+@using Prym.DTOs.VatRates
+@attribute [Authorize]
+@inject IFinancialService FinancialService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject ILogger<VatNatureManagement> Logger
+@inject IAppNotificationService AppNotification
+
+<PageTitle>@TranslationService.GetTranslation("financial.vatNatureManagement", "Gestione Nature IVA")</PageTitle>
+<EntityManagementPage TEntity="VatNatureDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="VatNatureDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<VatNatureDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="VatNatureDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<VatNatureDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Description")
+            {
+                <EFTableColumnHeader TItem="VatNatureDto" PropertyName="Description">
+                    <MudTableSortLabel SortBy="@(new Func<VatNatureDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <EFTableColumnHeader TItem="VatNatureDto" PropertyName="CreatedAt">
+                    <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatNatureDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                        @ctx.Item.Code
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Category" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Description")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                    <MudText Typo="Typo.body2" Class="text-truncate ef-max-400" >
+                        @(string.IsNullOrEmpty(ctx.Item.Description) ? "-" : ctx.Item.Description)
+                    </MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CreatedAt")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.createdAt", "Creato il")">
+                    <MudText Typo="Typo.body2">@ctx.Item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<VatNatureDto>? _entityPage;
+    private IEntityManagementService<VatNatureDto> _service = null!;
+    private EntityManagementConfig<VatNatureDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new VatNatureManagementService(FinancialService);
+        _config = new EntityManagementConfig<VatNatureDto>
+        {
+            ComponentKey = "VatNatureManagement",
+            PageTitleKey = "financial.vatNatureManagement",
+            PageTitleDefault = "Gestione Nature IVA",
+            EntityIcon = Icons.Material.Outlined.Category,
+            PageRootCssClass = "vat-nature-page-root",
+            BaseRoute = "/financial/vat-natures",
+            ExcelFileName = "NatureIVA",
+            SearchPlaceholderKey = "financial.searchVatNatures",
+            SearchPlaceholderDefault = "Cerca nature IVA",
+            CreateTooltip = "financial.createNewVatNature",
+            EntityTypeName = "VatNature",
+            ShowToggleStatus = false,
+            GetDisplayName = n => n.Name,
+            GetId = n => n.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Contabilità", null, disabled: true),
+                new BreadcrumbItem("Nature IVA", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = true, Order = 3, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutte le nature IVA" },
+                new() { Id = "exempt", Label = "Esenti", Predicate = v => v.Code != null && new[] { "N1", "N2", "N3", "N4" }.Any(prefix => v.Code.StartsWith(prefix)), Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Nature IVA esenti (N1-N4)" },
+                new() { Id = "non_taxable", Label = "Non Imponibili", Predicate = v => v.Code != null && new[] { "N5", "N6", "N7" }.Any(prefix => v.Code.StartsWith(prefix)), Color = Color.Info, Icon = Icons.Material.Outlined.Block, Description = "Nature IVA non imponibili (N5-N7)" },
+                new() { Id = "with_description", Label = "Con Descrizione", Predicate = v => !string.IsNullOrEmpty(v.Description), Color = Color.Primary, Icon = Icons.Material.Outlined.Description, Description = "Nature IVA con descrizione" },
+                new() { Id = "recent", Label = "Recenti", Predicate = v => v.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases, Description = "Nature IVA aggiunte negli ultimi 30 giorni" }
+            }
+        };
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(VatNatureDetailDialog.EntityId)] = id
+            };
+            var options = EFDialogDefaults.Options;
+            var dialog = await DialogService.ShowAsync<VatNatureDetailDialog>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening vat nature detail dialog.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
+    }
+}

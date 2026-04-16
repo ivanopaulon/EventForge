@@ -1,4 +1,4 @@
-using EventForge.Client.Services.Documents;
+using Prym.Web.Services.Documents;
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
 

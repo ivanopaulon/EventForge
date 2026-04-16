@@ -1,0 +1,304 @@
+@using Prym.DTOs.Events
+@inject IEventService EventService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<CreateEventDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.EventNote"
+          Title="@(_isEditMode
+              ? TranslationService.GetTranslation("events.editEvent", "Modifica Evento")
+              : TranslationService.GetTranslation("events.createEvent", "Nuovo Evento"))"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel">
+    <ChildContent>
+        <PageLoadingOverlay Visible="_isLoading" />
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudStack Spacing="3">
+
+                <!-- Informazioni principali -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("common.basicInfo", "Informazioni di Base")
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Name"
+                                          Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          Required="true" RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                          MaxLength="100" Counter="100"
+                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Label" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.ShortDescription"
+                                          Label="@($"{TranslationService.GetTranslation("field.shortDescription", "Descrizione breve")} *")"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          Required="true" RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
+                                          MaxLength="200" Counter="200"
+                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.ShortText" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.LongDescription"
+                                          Label="@TranslationService.GetTranslation("field.longDescription", "Descrizione estesa")"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Lines="3"
+                                          MaxLength="1000" Counter="1000"
+                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Description" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.Location"
+                                          Label="@TranslationService.GetTranslation("field.location", "Luogo")"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          MaxLength="200"
+                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.LocationOn" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Date, orari e capacità -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("events.dateCapacity", "Date e Capacità")
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <EFDateTimeRangePicker @ref="_dateRangePicker"
+                                                   @bind-DateRange="_dateRange"
+                                                   @bind-StartTime="_startTime"
+                                                   @bind-EndTime="_endTime"
+                                                   @bind-IsAllDay="_isAllDay"
+                                                   Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField @bind-Value="_model.Capacity"
+                                             Label="@TranslationService.GetTranslation("field.capacity", "Capienza")"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                                             Min="1" Max="999999"
+                                             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Group" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect @bind-Value="_model.Status"
+                                       Label="@($"{TranslationService.GetTranslation("common.status", "Stato")} *")"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.ToggleOn">
+                                <MudSelectItem Value="EventStatus.Planned">@TranslationService.GetTranslation("eventStatus.planned", "Pianificato")</MudSelectItem>
+                                <MudSelectItem Value="EventStatus.Ongoing">@TranslationService.GetTranslation("eventStatus.ongoing", "In corso")</MudSelectItem>
+                                <MudSelectItem Value="EventStatus.Completed">@TranslationService.GetTranslation("eventStatus.completed", "Completato")</MudSelectItem>
+                                <MudSelectItem Value="EventStatus.Cancelled">@TranslationService.GetTranslation("eventStatus.cancelled", "Annullato")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <!-- Colore, assegnazione e visibilità -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudText Typo="Typo.subtitle1" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Tune" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("events.displaySettings", "Visualizzazione e Accesso")
+                    </MudText>
+                    <MudGrid Spacing="2">
+                        <!-- Colore evento -->
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.caption" Class="mb-1">@TranslationService.GetTranslation("field.color", "Colore evento")</MudText>
+                            <MudStack Row AlignItems="AlignItems.Center" Spacing="2">
+                                <input type="color" value="@(_model.Color ?? "#4285F4")"
+                                       @onchange="OnColorChanged"
+                                       class="color-swatch-btn" />
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.caption">@TranslationService.GetTranslation("events.presetColors", "Colori rapidi")</MudText>
+                                    <MudStack Row Spacing="1">
+                                        @foreach (var color in _presetColors)
+                                        {
+                                            <div @onclick="() => _model.Color = color"
+                                                 class="color-swatch-20" style="background:@color;border:2px solid @(_model.Color==color?"white":"transparent");" />
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            </MudStack>
+                        </MudItem>
+
+                        <!-- Visibilità -->
+                        <MudItem xs="12" sm="6">
+                            <MudSelect @bind-Value="_model.Visibility"
+                                       Label="@TranslationService.GetTranslation("field.visibility", "Visibilità")"
+                                       Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Visibility">
+                                <MudSelectItem Value="CalendarVisibility.Public">
+                                    <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Public" Size="Size.Small" />
+                                        <MudText>@TranslationService.GetTranslation("events.visibility.public", "Pubblico")</MudText>
+                                    </MudStack>
+                                </MudSelectItem>
+                                <MudSelectItem Value="CalendarVisibility.Private">
+                                    <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" />
+                                        <MudText>@TranslationService.GetTranslation("events.visibility.private", "Privato")</MudText>
+                                    </MudStack>
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <!-- Assegna a utente -->
+                        <MudItem xs="12">
+                            <MudTextField @bind-Value="_model.AssignedToUserId"
+                                          Label="@TranslationService.GetTranslation("field.assignedTo", "Assegna a (username)")"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                                          MaxLength="100"
+                                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.PersonAdd"
+                                          HelperText="@TranslationService.GetTranslation("events.assignedToHelper", "Lascia vuoto per nessuna assegnazione")" />
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+            </MudStack>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="_isLoading">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(!_isFormValid || _isLoading || _dateRange?.Start == null)"
+                   StartIcon="@Icons.Material.Outlined.Save">
+            @(_isEditMode
+                ? TranslationService.GetTranslation("common.save", "Salva")
+                : TranslationService.GetTranslation("common.create", "Crea"))
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>When set, the dialog opens in edit mode for this event.</summary>
+    [Parameter] public EventDto? ExistingEvent { get; set; }
+
+    /// <summary>Optional pre-filled start/end (e.g. from scheduler slot click). Used in create mode only.</summary>
+    [Parameter] public DateTime? PrefilledStartDate { get; set; }
+    [Parameter] public DateTime? PrefilledEndDate { get; set; }
+
+    private bool _isEditMode => ExistingEvent != null;
+
+    private MudForm _form = null!;
+    private bool _isFormValid;
+    private bool _isLoading;
+
+    private EFDateTimeRangePicker _dateRangePicker = null!;
+    private DateRange? _dateRange;
+    private TimeSpan? _startTime = new TimeSpan(9, 0, 0);
+    private TimeSpan? _endTime   = new TimeSpan(18, 0, 0);
+    private bool _isAllDay;
+
+    private readonly string[] _presetColors = ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#9C27B0", "#FF5722", "#00BCD4", "#607D8B"];
+
+    // Internal model uses UpdateEventDto for both modes (superset of CreateEventDto fields).
+    private UpdateEventDto _model = new()
+    {
+        Status     = EventStatus.Planned,
+        Capacity   = 1,
+        Visibility = CalendarVisibility.Public,
+        Color      = "#4285F4"
+    };
+
+    protected override void OnInitialized()
+    {
+        if (_isEditMode)
+        {
+            // Populate form from existing event
+            var ev = ExistingEvent!;
+            _model = new UpdateEventDto
+            {
+                Name             = ev.Name,
+                ShortDescription = ev.ShortDescription,
+                LongDescription  = ev.LongDescription,
+                Location         = ev.Location,
+                StartDate        = ev.StartDate,
+                EndDate          = ev.EndDate,
+                Capacity         = ev.Capacity,
+                Status           = ev.Status,
+                Color            = ev.Color,
+                AssignedToUserId = ev.AssignedToUserId,
+                Visibility       = ev.Visibility,
+                RowVersion       = ev.RowVersion
+            };
+
+            var startLocal = ev.StartDate.ToLocalTime();
+            var endLocal   = (ev.EndDate ?? ev.StartDate).ToLocalTime();
+            _dateRange = new DateRange(startLocal.Date, endLocal.Date);
+            _isAllDay  = startLocal.TimeOfDay == TimeSpan.Zero && endLocal.TimeOfDay >= new TimeSpan(23, 59, 0);
+            _startTime = _isAllDay ? new TimeSpan(9, 0, 0)  : startLocal.TimeOfDay;
+            _endTime   = _isAllDay ? new TimeSpan(18, 0, 0) : endLocal.TimeOfDay;
+        }
+        else
+        {
+            // Pre-fill from scheduler slot click or defaults
+            var start = (PrefilledStartDate ?? DateTime.Now.AddHours(1)).Date;
+            var end   = PrefilledEndDate?.Date ?? start;
+            _dateRange = new DateRange(start, end);
+
+            if (PrefilledStartDate?.TimeOfDay != TimeSpan.Zero)
+                _startTime = PrefilledStartDate?.TimeOfDay ?? _startTime;
+            if (PrefilledEndDate?.TimeOfDay != TimeSpan.Zero)
+                _endTime = PrefilledEndDate?.TimeOfDay ?? _endTime;
+        }
+    }
+
+    private void OnColorChanged(ChangeEventArgs e)
+        => _model.Color = e.Value?.ToString() ?? "#4285F4";
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_isFormValid || _dateRange?.Start == null) return;
+
+        try
+        {
+            _isLoading = true;
+
+            _model.StartDate = (_dateRangePicker.GetStartDateTime() ?? _dateRange.Start.Value).ToUniversalTime();
+            _model.EndDate   = _dateRangePicker.GetEndDateTime()?.ToUniversalTime();
+
+            EventDto result;
+            if (_isEditMode)
+            {
+                result = await EventService.UpdateEventAsync(ExistingEvent!.Id, _model);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("events.updated", "Evento aggiornato con successo"));
+            }
+            else
+            {
+                var createDto = new CreateEventDto
+                {
+                    Name             = _model.Name,
+                    ShortDescription = _model.ShortDescription,
+                    LongDescription  = _model.LongDescription,
+                    Location         = _model.Location,
+                    StartDate        = _model.StartDate,
+                    EndDate          = _model.EndDate,
+                    Capacity         = _model.Capacity,
+                    Status           = _model.Status,
+                    Color            = _model.Color,
+                    AssignedToUserId = _model.AssignedToUserId,
+                    Visibility       = _model.Visibility
+                };
+                result = await EventService.CreateEventAsync(createDto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("events.created", "Evento creato con successo"));
+            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving event (edit={IsEdit}).", _isEditMode);
+            AppNotification.ShowError(_isEditMode
+                    ? TranslationService.GetTranslation("events.updateError", "Errore durante l'aggiornamento dell'evento")
+                    : TranslationService.GetTranslation("events.createError", "Errore durante la creazione dell'evento"));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

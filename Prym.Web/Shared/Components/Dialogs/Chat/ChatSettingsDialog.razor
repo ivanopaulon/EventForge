@@ -1,0 +1,212 @@
+@using Prym.DTOs.External.WhatsApp
+@using Prym.Web.Services.WhatsApp
+@inject IWhatsAppClientService WhatsAppClientService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<ChatSettingsDialog> Logger
+
+<EFDialog Title="@TranslationService.GetTranslation("chat.settings.title", "Impostazioni Chat")"
+          Icon="@Icons.Material.Filled.Settings"
+          MinWidth="min(600px, 95vw)"
+          IsProcessing="@_isProcessing"
+          OnClose="@HandleClose">
+    <ChildContent>
+        <div class="pa-4">
+            @if (_loadError != null)
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4">@_loadError</MudAlert>
+            }
+
+            @* ═══════ WhatsApp Business Configuration ═══════ *@
+            <MudExpansionPanels MultiExpansion="true" Elevation="0">
+                <MudExpansionPanel @bind-Expanded="@_waExpanded">
+                    <TitleContent>
+                        <div class="d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Custom.Brands.WhatsApp" Color="Color.Success" Size="Size.Small" />
+                            <MudText Typo="Typo.subtitle2">
+                                @TranslationService.GetTranslation("chat.settings.whatsapp", "WhatsApp Business")
+                            </MudText>
+                            @if (_waConfig.IsEnabled)
+                            {
+                                <MudChip T="string" Label="true" Size="Size.Small" Color="Color.Success" Class="chip-xxs"
+>
+                                    Attivo
+                                </MudChip>
+                            }
+                        </div>
+                    </TitleContent>
+                    <ChildContent>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3">
+                            Credenziali Meta Business Cloud API
+                        </MudText>
+
+                        <MudStack Spacing="3">
+                            <MudSwitch @bind-Value="_waConfig.IsEnabled"
+                                       Label="@TranslationService.GetTranslation("chat.settings.whatsapp.enabled", "Integrazione WhatsApp abilitata")"
+                                       Color="Color.Success"
+                                       Disabled="@_isProcessing" />
+
+                            <MudTextField T="string"
+                                          @bind-Value="_waConfig.PhoneNumberId"
+                                          Label="Phone Number ID"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isProcessing"
+                                          HelperText="ID numerico del numero di telefono Business nella dashboard Meta"
+                                          Required="true"
+                                          Counter="30" />
+
+                            <MudTextField T="string"
+                                          @bind-Value="_waConfig.AccessToken"
+                                          Label="Access Token"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          InputType="@(_showToken ? InputType.Text : InputType.Password)"
+                                          Disabled="@_isProcessing"
+                                          HelperText="Token permanente (System User) dell'account WhatsApp Business"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@(_showToken ? Icons.Material.Filled.Visibility : Icons.Material.Filled.VisibilityOff)"
+                                          OnAdornmentClick="@(() => _showToken = !_showToken)" />
+
+                            <MudTextField T="string"
+                                          @bind-Value="_waConfig.VerifyToken"
+                                          Label="Verify Token"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isProcessing"
+                                          HelperText="Token di verifica webhook configurato nel portale Meta" />
+
+                            <MudTextField T="string"
+                                          @bind-Value="_waConfig.ApiVersion"
+                                          Label="API Version"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          Disabled="@_isProcessing"
+                                          HelperText="Versione Meta Graph API (es. v19.0)" />
+                        </MudStack>
+
+                        @* Test connection result *@
+                        @if (_waTestResult != null)
+                        {
+                            <MudAlert Severity="@(_waTestSuccess ? Severity.Success : Severity.Warning)"
+                                      Class="mt-4" Dense="true">
+                                @_waTestResult
+                            </MudAlert>
+                        }
+
+                        <div class="d-flex justify-end mt-3">
+                            <MudButton Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.NetworkCheck"
+                                       OnClick="@TestWhatsAppConnection"
+                                       Disabled="@_isProcessing"
+                                       Color="Color.Info"
+                                       Size="Size.Small">
+                                Testa connessione
+                            </MudButton>
+                        </div>
+                    </ChildContent>
+                </MudExpansionPanel>
+            </MudExpansionPanels>
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   OnClick="@HandleClose"
+                   Disabled="@_isProcessing">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="@SaveAll"
+                   Disabled="@_isProcessing">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance? MudDialog { get; set; }
+
+    private bool _isProcessing;
+    private string? _loadError;
+
+    // ── WhatsApp ──
+    private WhatsAppConfigDto _waConfig = new();
+    private bool _waExpanded = true;
+    private bool _showToken;
+    private string? _waTestResult;
+    private bool _waTestSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isProcessing = true;
+            var loaded = await WhatsAppClientService.GetConfigAsync();
+            if (loaded != null) _waConfig = loaded;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading chat settings");
+            _loadError = "Impossibile caricare la configurazione. Riprova.";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private async Task SaveAll()
+    {
+        try
+        {
+            _isProcessing = true;
+            _waTestResult = null;
+
+            // Save WhatsApp config
+            await WhatsAppClientService.SaveConfigAsync(_waConfig);
+
+            AppNotification.ShowSuccess(
+                TranslationService.GetTranslation("chat.settings.saved", "Impostazioni chat salvate con successo."));
+            MudDialog?.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving chat settings");
+            AppNotification.ShowError(
+                TranslationService.GetTranslation("chat.settings.saveError", "Errore durante il salvataggio delle impostazioni."));
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private async Task TestWhatsAppConnection()
+    {
+        try
+        {
+            _isProcessing = true;
+            _waTestResult = null;
+            var (success, message) = await WhatsAppClientService.TestConnectionAsync();
+            _waTestSuccess = success;
+            _waTestResult = message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error testing WhatsApp connection");
+            _waTestSuccess = false;
+            _waTestResult = $"Errore durante il test: {ex.Message}";
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void HandleClose()
+    {
+        MudDialog?.Cancel();
+    }
+}

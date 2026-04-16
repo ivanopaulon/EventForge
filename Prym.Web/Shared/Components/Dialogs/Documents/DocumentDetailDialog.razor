@@ -1,0 +1,1427 @@
+@using Microsoft.AspNetCore.SignalR
+@using Prym.DTOs.Documents
+@using Prym.DTOs.Business
+@using Prym.DTOs.Products
+@using Prym.DTOs.PriceLists
+@using Prym.Web.Shared.Components.Documents
+@using Prym.Web.Shared.Components.Business
+@using Prym.Web.Shared.Components.Common
+@using Prym.Web.Models.Documents
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@implements IAsyncDisposable
+@inject IDocumentHeaderService DocumentHeaderService
+@inject IDocumentStatusService DocumentStatusService
+@inject IDocumentTypeService DocumentTypeService
+@inject IBusinessPartyService BusinessPartyService
+@inject IPriceListService PriceListService
+@inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentDetailDialog> Logger
+@inject IRealtimeService RealtimeService
+
+<MudDialog Class="doc-detail-fs-dialog">
+    <DialogContent>
+        <div class="gdp-page-root">
+
+            <!-- ── Title bar ─────────────────────────────────────────────── -->
+            <div class="gdp-title-bar">
+                <div class="d-flex align-center justify-space-between flex-wrap gap-2">
+                    <MudText Typo="Typo.h5">
+                        <MudIcon Icon="@Icons.Material.Outlined.Description" Class="mr-2" Size="Size.Small" />
+                        @_pageTitle
+                    </MudText>
+                    <MudButton StartIcon="@Icons.Material.Outlined.Close"
+                               Color="Color.Default"
+                               Variant="Variant.Outlined"
+                               Size="Size.Small"
+                               OnClick="@CloseDialogAsync">
+                        @TranslationService.GetTranslation("common.close", "Chiudi")
+                    </MudButton>
+                </div>
+
+                <PageLoadingOverlay Visible="_isLoading"
+                                    Message="@_loadingMessage"
+                                    ShowProgressLog="true"
+                                    ProgressMessages="@_documentLoadingProgressMessages"
+                                    ShowElapsedTime="true"
+                                    ProgressIntervalMs="2500" />
+
+                @if (_isReadOnly)
+                {
+                    @if (!string.IsNullOrEmpty(_lockHolderName))
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("documents.lockedBy", "Documento bloccato da")
+                                <strong>@_lockHolderName</strong>
+                                @TranslationService.GetTranslation("documents.lockedBySuffix", " — apertura in sola lettura.")
+                            </MudText>
+                        </MudAlert>
+                    }
+                    else if (_isReadOnlyDueToError)
+                    {
+                        <MudAlert Severity="Severity.Warning" Dense="true">
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("documents.readOnlyMode", "Modalità sola lettura")
+                            </MudText>
+                        </MudAlert>
+                    }
+                }
+            </div>
+
+            <!-- ── Two-column body ───────────────────────────────────────── -->
+            <div class="gdp-body">
+
+                <!-- Left column: header summary + status + totals -->
+                <div class="gdp-left-col">
+
+                    <!-- Testata Documento (summary + edit button) -->
+                    <MudPaper Elevation="2" Class="gdp-panel pa-3">
+                        <div class="d-flex align-center justify-space-between mb-2">
+                            <MudText Typo="Typo.subtitle1" Class="fw-medium">
+                                @TranslationService.GetTranslation("documents.documentData", "Dati Documento")
+                            </MudText>
+                            @if (!_isReadOnly)
+                            {
+                                <MudTooltip Text="@TranslationService.GetTranslation("documents.editHeader", "Modifica Testata")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                   Size="Size.Small"
+                                                   Color="Color.Primary"
+                                                   OnClick="@OpenHeaderDialogAsync"
+                                                   Disabled="@_isLoading" />
+                                </MudTooltip>
+                            }
+                        </div>
+
+                        @if (_currentDocument == null)
+                        {
+                            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="py-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.EditNote" Size="Size.Large" Color="Color.Primary" />
+                                <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("documents.headerNotYetFilled", "Testata non ancora compilata.")
+                                </MudText>
+                                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                                           Color="Color.Primary"
+                                           Variant="Variant.Outlined"
+                                           Size="Size.Small"
+                                           OnClick="@OpenHeaderDialogAsync">
+                                    @TranslationService.GetTranslation("documents.fillHeader", "Compila Testata")
+                                </MudButton>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="1">
+                                <!-- Tipo Documento -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.documentType", "Tipo Documento")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2" Class="fw-medium">
+                                        @(_headerDocTypeName ?? "—")
+                                    </MudText>
+                                </div>
+                                <!-- Numero / Serie -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.number", "Numero")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @if (!string.IsNullOrEmpty(_model.Series))
+                                        {
+                                            <span>@_model.Series /</span>
+                                        }
+                                        @(_model.Number ?? TranslationService.GetTranslation("documents.autoGenerated", "Auto-generato"))
+                                    </MudText>
+                                </div>
+                                <!-- Data -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.date", "Data Documento")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(_documentDate?.ToString("dd/MM/yyyy") ?? "—")
+                                    </MudText>
+                                </div>
+                                <!-- Controparte -->
+                                <div>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @TranslationService.GetTranslation("documents.businessPartner", "Controparte")
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @(_selectedBusinessParty?.Name ?? "—")
+                                    </MudText>
+                                </div>
+                                <!-- Listino -->
+                                @if (_model.PriceListId.HasValue)
+                                {
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @TranslationService.GetTranslation("documents.priceList", "Listino Prezzi")
+                                        </MudText>
+                                        <MudText Typo="Typo.body2">
+                                            @(_headerPriceListName ?? "—")
+                                        </MudText>
+                                    </div>
+                                }
+                                <!-- Note -->
+                                @if (!string.IsNullOrWhiteSpace(_model.Notes))
+                                {
+                                    <div>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @TranslationService.GetTranslation("documents.notes", "Note")
+                                        </MudText>
+                                        <MudText Typo="Typo.body2" Class="text-wrap">@_model.Notes</MudText>
+                                    </div>
+                                }
+                            </MudStack>
+                        }
+                    </MudPaper>
+
+                    <!-- Stato Documento -->
+                    @if (_isEditMode && _currentDocument != null)
+                    {
+                        <MudPaper Elevation="2" Class="gdp-panel pa-3">
+                            <MudText Typo="Typo.subtitle1" Class="mb-2 fw-medium">
+                                @TranslationService.GetTranslation("documents.status", "Stato")
+                            </MudText>
+                            <MudSelect T="DocumentStatus"
+                                       Value="_documentStatus"
+                                       ValueChanged="@OnStatusChanged"
+                                       Label="@TranslationService.GetTranslation("documents.status", "Stato")"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Disabled="@(!IsDocumentEditable() || _isReadOnly)">
+                                <MudSelectItem Value="@DocumentStatus.Draft">
+                                    @TranslationService.GetTranslation("status.draft", "Bozza")
+                                </MudSelectItem>
+                                <MudSelectItem Value="@DocumentStatus.Open">
+                                    @TranslationService.GetTranslation("status.open", "Aperto")
+                                </MudSelectItem>
+                                <MudSelectItem Value="@DocumentStatus.Closed">
+                                    @TranslationService.GetTranslation("status.closed", "Chiuso")
+                                </MudSelectItem>
+                                <MudSelectItem Value="@DocumentStatus.Cancelled">
+                                    @TranslationService.GetTranslation("status.cancelled", "Annullato")
+                                </MudSelectItem>
+                            </MudSelect>
+                        </MudPaper>
+                    }
+
+                    <!-- Riepilogo e Totali (fills remaining left-column space) -->
+                    <MudPaper Elevation="2" Class="gdp-panel-fill pa-3">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2 fw-medium">
+                            @TranslationService.GetTranslation("documents.summary", "Riepilogo e Totali")
+                        </MudText>
+                        <MudStack Spacing="2">
+                            <DocumentVatSummary Rows="@_currentDocument?.Rows" />
+                            <DocumentTotalsCard Document="@_currentDocument" />
+                        </MudStack>
+                    </MudPaper>
+
+                </div> <!-- /gdp-left-col -->
+
+                <!-- Right column: document rows (full-height table) -->
+                <div class="gdp-right-col">
+
+                    <!-- Toolbar: pinned, always visible -->
+                    <div class="gdp-rows-toolbar">
+                        @if (_currentDocument == null)
+                        {
+                            <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.Info">
+                                <MudStack Spacing="1">
+                                    <MudText>
+                                        <strong>@TranslationService.GetTranslation("documents.saveFirstTitle", "Salva prima il documento")</strong>
+                                    </MudText>
+                                    <MudText Typo="Typo.body2">
+                                        @TranslationService.GetTranslation("documents.saveFirstMessage", "Per poter aggiungere righe al documento, è necessario salvarlo prima compilando i campi della testata (Tipo Documento, Cliente, Data) e cliccando su 'Salva'.")
+                                    </MudText>
+                                </MudStack>
+                            </MudAlert>
+                        }
+                    </div>
+
+                    <!-- Table area: fills remaining height, scrolls internally -->
+                    <div class="gdp-rows-area">
+                        @if (_currentDocument != null)
+                        {
+                            <EFTable @ref="_efTable"
+                                     TItem="DocumentRowDto"
+                                     Items="@_filteredRows"
+                                     ComponentKey="GenericDocumentRows"
+                                     InitialColumnConfigurations="@_documentRowColumns"
+                                     MultiSelection="true"
+                                     @bind-SelectedItems="_selectedRows"
+                                     AllowDragDropGrouping="true"
+                                     ShowColumnConfiguration="true"
+                                     ShowExport="true"
+                                     ShowExportDialog="true"
+                                     ExcelFileName="@GetDocumentExcelFileName()"
+                                     IsDataFiltered="@(!string.IsNullOrEmpty(_searchQuery))"
+                                     TotalItemsCount="@(_currentDocument.Rows?.Count ?? 0)"
+                                     Dense="true"
+                                     Hover="true"
+                                     Striped="true"
+                                     FixedHeader="true"
+                                     FixedFooter="true"
+                                     Height="100%"
+                                     Virtualize="@(_currentDocument.Rows?.Count > 100)"
+                                     ShowSearch="true"
+                                     OnSearch="@OnTableSearch"
+                                     SearchPlaceholder="@TranslationService.GetTranslation("documents.searchArticles", "Cerca articolo")"
+                                     ShowCreate="true"
+                                     OnCreate="@AddRowAsync"
+                                     CreateTooltip="documents.addRowTooltip"
+                                     ShowSelectionBadge="true"
+                                     ShowBulkDelete="true"
+                                     OnBulkDelete="@DeleteSelectedRowsAsync"
+                                     IsToolbarDisabled="@_isLoading">
+                                <AdditionalToolbarContent>
+                                    @if (_selectedRows.Count >= 2 && CanMergeSelectedRows())
+                                    {
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Outlined.MergeType"
+                                                   OnClick="@MergeSelectedRowsAsync"
+                                                   Disabled="@_isLoading"
+                                                   Size="Size.Small">
+                                            @TranslationService.GetTranslation("documents.mergeRows", "Unisci Righe")
+                                        </MudButton>
+                                    }
+                                </AdditionalToolbarContent>
+                                <HeaderContent Context="columnConfigurations">
+                                    @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                                    {
+                                        <EFTableColumnHeader TItem="DocumentRowDto"
+                                                           PropertyName="@column.PropertyName"
+                                                           OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                            <MudTableSortLabel T="DocumentRowDto">@column.DisplayName</MudTableSortLabel>
+                                        </EFTableColumnHeader>
+                                    }
+                                    <!-- Actions column - always visible -->
+                                    <MudTh Class="text-right text-nowrap ef-min-120">
+                                        @TranslationService.GetTranslation("common.actions", "Azioni")
+                                    </MudTh>
+                                </HeaderContent>
+                                <RowTemplate Context="row">
+                                    @{
+                                        var visibleCols = _efTable?.ColumnConfigurations
+                                            ?.Where(c => c.IsVisible)
+                                            .OrderBy(c => c.Order)
+                                            .ToList() ?? _documentRowColumns.Where(c => c.IsVisible).OrderBy(c => c.Order).ToList();
+
+                                        var grossTotal = row.LineTotal + row.VatTotal;
+                                    }
+
+                                    @foreach (var column in visibleCols)
+                                    {
+                                        @if (column.PropertyName == "ProductCode")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2">@row.ProductCode</MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "Description")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                @if (!string.IsNullOrWhiteSpace(_searchQuery))
+                                                {
+                                                    <MudHighlighter Text="@row.Description"
+                                                                   HighlightedText="@_searchQuery"
+                                                                   CaseSensitive="false" />
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body2">@row.Description</MudText>
+                                                }
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "Quantity")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2">@row.Quantity.ToString("N2")</MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "UnitOfMeasure")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                                    @row.UnitOfMeasure
+                                                </MudChip>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "UnitPrice")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2">@row.UnitPrice.ToString("C2")</MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "VatRate")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Percent">
+                                                    @row.VatRate.ToString("N0")%
+                                                </MudChip>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "UnitPriceGross")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2" Color="Color.Primary">
+                                                    @((row.UnitPrice * (1 + row.VatRate / 100)).ToString("C2"))
+                                                </MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "DiscountTotal")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                @if (row.DiscountTotal > 0)
+                                                {
+                                                    <MudText Typo="Typo.body2" Color="Color.Success">
+                                                        -@row.DiscountTotal.ToString("C2")
+                                                    </MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="text-disabled">—</MudText>
+                                                }
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "LineTotal")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2" Class="fw-medium">
+                                                    @row.LineTotal.ToString("C2")
+                                                </MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "VatTotal")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2" Color="Color.Info">
+                                                    @row.VatTotal.ToString("C2")
+                                                </MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "GrossTotal")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.body2" Color="Color.Primary" Class="fw-semibold">
+                                                    @grossTotal.ToString("C2")
+                                                </MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "VatDescription")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                <MudText Typo="Typo.caption">@row.VatDescription</MudText>
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "LineDiscount")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                @if (row.LineDiscount > 0)
+                                                {
+                                                    <MudText Typo="Typo.body2">@row.LineDiscount.ToString("N2")%</MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="text-disabled">—</MudText>
+                                                }
+                                            </MudTd>
+                                        }
+                                        else if (column.PropertyName == "LineDiscountValue")
+                                        {
+                                            <MudTd DataLabel="@column.DisplayName">
+                                                @if (row.LineDiscountValue > 0)
+                                                {
+                                                    <MudText Typo="Typo.body2">@row.LineDiscountValue.ToString("C2")</MudText>
+                                                }
+                                                else
+                                                {
+                                                    <MudText Typo="Typo.body2" Class="text-disabled">—</MudText>
+                                                }
+                                            </MudTd>
+                                        }
+                                    }
+
+                                    <!-- Actions cell -->
+                                    <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                        <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                          Size="Size.Small"
+                                                          Color="Color.Primary"
+                                                          OnClick="@(() => EditRow(row))" />
+                                        </MudTooltip>
+                                        <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                          Size="Size.Small"
+                                                          Color="Color.Error"
+                                                          OnClick="@(() => DeleteRow(row))" />
+                                        </MudTooltip>
+                                    </MudTd>
+                                </RowTemplate>
+                            </EFTable>
+
+                            @* Info badge when virtualization is active *@
+                            @if (_currentDocument.Rows?.Count > 100)
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mt-1" Variant="Variant.Outlined">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudIcon Icon="@Icons.Material.Outlined.Speed" Size="Size.Small" />
+                                        <MudText Typo="Typo.caption">
+                                            <strong>@TranslationService.GetTranslation("documents.virtualizedMode", "Modalità Virtualizzata")</strong>:
+                                            @TranslationService.GetTranslationFormatted("documents.virtualizedModeDesc", "Rendering ottimizzato per {0} righe", _currentDocument.Rows.Count)
+                                        </MudText>
+                                    </MudStack>
+                                </MudAlert>
+                            }
+                        }
+                    </div> <!-- /gdp-rows-area -->
+
+                </div> <!-- /gdp-right-col -->
+
+            </div> <!-- /gdp-body -->
+
+        </div> <!-- /gdp-page-root -->
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? DocumentId { get; set; }
+
+    private bool _isLoading = false;
+    private string _loadingMessage = string.Empty;
+    private bool _lockReleased = false;
+
+    private static readonly IReadOnlyList<string> _documentLoadingProgressMessages = new[]
+    {
+        "Caricamento testata documento...",
+        "Caricamento righe documento...",
+        "Caricamento anagrafica...",
+        "Calcolo totali e riepilogo IVA...",
+        "Preparazione interfaccia...",
+    };
+
+    // _isEditMode is true once a document has been saved (either loaded from server or just created)
+    private bool _isEditMode => _currentDocument != null;
+    private string _pageTitle = "";
+    private CreateDocumentHeaderDto _model = new();
+    private DocumentHeaderDto? _currentDocument = null;
+    private DateTime? _documentDate = DateTime.UtcNow;
+    private List<DocumentTypeDto> _documentTypes = new();
+    private List<PriceListDto> _priceLists = new();
+    // O(1) lookup maps built whenever the lists are (re)loaded
+    private Dictionary<Guid, string> _docTypeNames = new();
+    private Dictionary<Guid, string> _priceListNames = new();
+    private BusinessPartyDto? _selectedBusinessParty = null;
+
+    // Cached display values for the left-column summary (avoids per-render lookup)
+    private string? _headerDocTypeName;
+    private string? _headerPriceListName;
+
+    // Document status binding
+    private DocumentStatus _documentStatus = DocumentStatus.Draft;
+
+    // Lock management state
+    private bool _hasEditLock = false;
+    private bool _isReadOnly = false;
+    private bool _isReadOnlyDueToError = false;
+    private string? _lockHolderName = null;
+
+    // Selection management for rows
+    private HashSet<DocumentRowDto> _selectedRows = new();
+
+    // Search functionality
+    private string _searchQuery = string.Empty;
+    private List<DocumentRowDto>? _filteredRows;
+
+    private void UpdateFilteredRows()
+    {
+        if (_currentDocument?.Rows == null)
+        {
+            _filteredRows = null;
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            _filteredRows = _currentDocument.Rows;
+            return;
+        }
+        _filteredRows = _currentDocument.Rows.Where(row =>
+            (!string.IsNullOrEmpty(row.ProductCode) &&
+             row.ProductCode.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+            (!string.IsNullOrEmpty(row.Description) &&
+             row.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+    }
+
+    // EFTable reference
+    private EFTable<DocumentRowDto> _efTable = null!;
+
+    // Column configuration for EFTable
+    private List<EFTableColumnConfiguration> _documentRowColumns = new();
+
+    /// <summary>
+    /// Checks if the document can be modified (not closed or cancelled)
+    /// </summary>
+    private bool IsDocumentEditable()
+    {
+        return _currentDocument?.Status != DocumentStatus.Closed &&
+               _currentDocument?.Status != DocumentStatus.Cancelled;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _documentRowColumns = new List<EFTableColumnConfiguration>
+        {
+            new() { PropertyName = "ProductCode", DisplayName = TranslationService.GetTranslation("documents.column.productcode", "Codice"), IsVisible = true, Order = 0 },
+            new() { PropertyName = "Description", DisplayName = TranslationService.GetTranslation("documents.column.description", "Descrizione"), IsVisible = true, Order = 1 },
+            new() { PropertyName = "Quantity", DisplayName = TranslationService.GetTranslation("documents.column.quantity", "Quantità"), IsVisible = true, Order = 2 },
+            new() { PropertyName = "UnitOfMeasure", DisplayName = TranslationService.GetTranslation("documents.column.unitofmeasure", "UM"), IsVisible = true, Order = 3 },
+            new() { PropertyName = "UnitPrice", DisplayName = TranslationService.GetTranslation("documents.column.unitprice", "Prezzo Unit. Netto"), IsVisible = true, Order = 4 },
+            new() { PropertyName = "VatRate", DisplayName = TranslationService.GetTranslation("documents.column.vatrate", "IVA %"), IsVisible = true, Order = 5 },
+            new() { PropertyName = "UnitPriceGross", DisplayName = TranslationService.GetTranslation("documents.column.unitpricegross", "Prezzo Unit. Lordo"), IsVisible = true, Order = 6 },
+            new() { PropertyName = "DiscountTotal", DisplayName = TranslationService.GetTranslation("documents.column.discounttotal", "Sconto"), IsVisible = true, Order = 7 },
+            new() { PropertyName = "LineTotal", DisplayName = TranslationService.GetTranslation("documents.column.linetotal", "Imponibile"), IsVisible = true, Order = 8 },
+            new() { PropertyName = "VatTotal", DisplayName = TranslationService.GetTranslation("documents.column.vattotal", "Imposta"), IsVisible = true, Order = 9 },
+            new() { PropertyName = "GrossTotal", DisplayName = TranslationService.GetTranslation("documents.column.grosstotal", "Totale Lordo"), IsVisible = true, Order = 10 },
+            new() { PropertyName = "VatDescription", DisplayName = TranslationService.GetTranslation("documents.column.vatdescription", "Desc. IVA"), IsVisible = false, Order = 11 },
+            new() { PropertyName = "LineDiscount", DisplayName = TranslationService.GetTranslation("documents.column.linediscount", "Sconto %"), IsVisible = false, Order = 12 },
+            new() { PropertyName = "LineDiscountValue", DisplayName = TranslationService.GetTranslation("documents.column.linediscountvalue", "Valore Sconto"), IsVisible = false, Order = 13 },
+        };
+
+        _pageTitle = DocumentId.HasValue
+            ? TranslationService.GetTranslation("documents.editDocument", "Modifica Documento")
+            : TranslationService.GetTranslation("documents.createDocument", "Nuovo Documento");
+
+        // Load document types and price lists in parallel
+        await Task.WhenAll(
+            LoadDocumentTypesAsync(),
+            LoadPriceListsAsync()
+        );
+
+        if (DocumentId.HasValue)
+        {
+            await LoadDocumentAsync(DocumentId.Value);
+            await SetupCollaborationAsync(DocumentId.Value);
+        }
+        else
+        {
+            _model.Date = DateTime.UtcNow;
+            _documentStatus = DocumentStatus.Draft;
+
+            var defaultDocType = _documentTypes.FirstOrDefault(dt => dt.Code == "DDT_VEND");
+            if (defaultDocType != null)
+            {
+                _model.DocumentTypeId = defaultDocType.Id;
+            }
+
+            // Auto-open the header dialog for new documents so the user fills in header data immediately
+            await OpenHeaderDialogAsync();
+        }
+    }
+
+    private async Task LoadDocumentTypesAsync()
+    {
+        try
+        {
+            var types = await DocumentTypeService.GetAllDocumentTypesAsync();
+            _documentTypes = types?.ToList() ?? new List<DocumentTypeDto>();
+            _docTypeNames = _documentTypes.ToDictionary(t => t.Id, t => t.Name ?? string.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document types");
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoadingTypes", "Errore durante il caricamento dei tipi di documento"));
+        }
+    }
+
+    private async Task LoadPriceListsAsync()
+    {
+        try
+        {
+            var result = await PriceListService.GetPagedAsync(1, 1000, direction: null, status: PriceListStatus.Active);
+            _priceLists = result?.Items?.ToList() ?? new List<PriceListDto>();
+            _priceListNames = _priceLists.ToDictionary(pl => pl.Id, pl => pl.Name ?? string.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error loading price lists");
+            _priceLists = new List<PriceListDto>();
+            _priceListNames = new Dictionary<Guid, string>();
+        }
+    }
+
+    private async Task SetupCollaborationAsync(Guid documentId)
+    {
+        RealtimeService.DocumentLocked += OnDocumentLocked;
+        RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
+        try
+        {
+            await RealtimeService.StartDocumentCollaborationConnectionAsync();
+            await RealtimeService.JoinDocumentAsync(documentId);
+
+            try
+            {
+                _hasEditLock = await RealtimeService.RequestDocumentEditLockAsync(documentId);
+
+                if (!_hasEditLock)
+                {
+                    _isReadOnly = true;
+                    if (!RealtimeService.IsDocumentCollaborationConnected)
+                    {
+                        _isReadOnlyDueToError = true;
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError",
+                                "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
+                    }
+                }
+            }
+            catch (HubException hex)
+            {
+                _isReadOnly = true;
+                _isReadOnlyDueToError = true;
+                Logger.LogWarning(hex, "Lock acquisition failed - HubException for document {DocumentId}", documentId);
+                AppNotification.ShowWarning(hex.Message);
+            }
+            catch (Exception ex)
+            {
+                _isReadOnly = true;
+                _isReadOnlyDueToError = true;
+                Logger.LogWarning(ex, "Lock acquisition failed for document {DocumentId}", documentId);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError",
+                        "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
+            }
+        }
+        catch (Exception ex)
+        {
+            _isReadOnly = true;
+            _isReadOnlyDueToError = true;
+            Logger.LogError(ex, "SignalR collaboration setup failed for document {DocumentId}", documentId);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError",
+                    "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
+        }
+    }
+
+    private async Task LoadDocumentAsync(Guid documentId)
+    {
+        _loadingMessage = TranslationService.GetTranslation("documents.loadingDocument", "Caricamento documento...");
+        _isLoading = true;
+        try
+        {
+            Logger.LogInformation("Loading document {DocumentId} with includeRows=true", documentId);
+
+            _currentDocument = await DocumentHeaderService.GetDocumentHeaderByIdAsync(documentId, includeRows: true);
+
+            if (_currentDocument != null)
+            {
+                Logger.LogInformation("Document loaded successfully. Id={Id}, Status={Status}, RowsCount={RowsCount}",
+                    _currentDocument.Id, _currentDocument.Status, _currentDocument.Rows?.Count ?? 0);
+
+                _model.DocumentTypeId = _currentDocument.DocumentTypeId;
+                _model.Series = _currentDocument.Series;
+                _model.Number = _currentDocument.Number;
+                _model.Date = _currentDocument.Date;
+                _model.BusinessPartyId = _currentDocument.BusinessPartyId;
+                _model.Notes = _currentDocument.Notes;
+                _model.PriceListId = _currentDocument.PriceListId;
+                _documentDate = _currentDocument.Date.ToLocalTime();
+                _documentStatus = _currentDocument.Status;
+                _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
+                    "Documento {0}", _currentDocument.Number ?? _currentDocument.Id.ToString()[..8]);
+
+                if (_currentDocument.BusinessPartyId != Guid.Empty)
+                {
+                    _selectedBusinessParty = await BusinessPartyService.GetBusinessPartyAsync(_currentDocument.BusinessPartyId);
+                    if (_selectedBusinessParty == null)
+                    {
+                        Logger.LogWarning("Business party with ID {BusinessPartyId} not found for document {DocumentId}",
+                            _currentDocument.BusinessPartyId, documentId);
+                    }
+                }
+
+                // Refresh cached display values after loading
+                RefreshHeaderDisplayCache();
+
+                if (_currentDocument.Rows?.Any() == true && HasZeroTotals(_currentDocument))
+                {
+                    Logger.LogInformation("Document {DocumentId} has rows but totals are zero. Recalculating...", documentId);
+                    await RecalculateDocumentTotalsAsync();
+                }
+            }
+            else
+            {
+                Logger.LogWarning("Document {DocumentId} not found or failed to load", documentId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading document {DocumentId}", documentId);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.errorLoading", "Errore durante il caricamento del documento"));
+        }
+        finally
+        {
+            _isLoading = false;
+            UpdateFilteredRows();
+        }
+    }
+
+    /// <summary>
+    /// Opens the DocumentHeaderDialog to create or edit the document header.
+    /// On success, updates the local state with the saved document header data.
+    /// </summary>
+    private async Task OpenHeaderDialogAsync()
+    {
+        if (_isEditMode && !IsDocumentEditable())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"));
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(DocumentHeaderDialog.DocumentId)] = _currentDocument?.Id,
+            [nameof(DocumentHeaderDialog.InitialModel)] = _model,
+            [nameof(DocumentHeaderDialog.InitialBusinessParty)] = _selectedBusinessParty,
+            [nameof(DocumentHeaderDialog.DocumentTypes)] = _documentTypes,
+            [nameof(DocumentHeaderDialog.PriceLists)] = _priceLists,
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true,
+            CloseButton = false,
+            CloseOnEscapeKey = false,
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentHeaderDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is DocumentHeaderDto savedDoc)
+        {
+            var isFirstSave = _currentDocument == null;
+            ApplyHeaderDto(savedDoc);
+
+            if (isFirstSave)
+            {
+                // First-time save: set up real-time collaboration
+                await SetupCollaborationAsync(savedDoc.Id);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Applies a saved DocumentHeaderDto to the local model and selected party state.
+    /// </summary>
+    private void ApplyHeaderDto(DocumentHeaderDto doc)
+    {
+        _currentDocument = doc;
+        _model.DocumentTypeId = doc.DocumentTypeId;
+        _model.Series = doc.Series;
+        _model.Number = doc.Number;
+        _model.Date = doc.Date;
+        _model.BusinessPartyId = doc.BusinessPartyId;
+        _model.Notes = doc.Notes;
+        _model.PriceListId = doc.PriceListId;
+        _documentDate = doc.Date.ToLocalTime();
+        _documentStatus = doc.Status;
+        _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
+            "Documento {0}", doc.Number ?? doc.Id.ToString()[..8]);
+
+        // Update selected business party display name (display-only stub; used only for the left-column summary label)
+        if (_selectedBusinessParty == null || _selectedBusinessParty.Id != doc.BusinessPartyId)
+        {
+            _selectedBusinessParty = new BusinessPartyDto
+            {
+                Id = doc.BusinessPartyId,
+                Name = doc.BusinessPartyName ?? string.Empty,
+            };
+        }
+
+        // Refresh cached display values for the header summary panel
+        RefreshHeaderDisplayCache();
+
+        UpdateFilteredRows();
+    }
+
+    /// <summary>
+    /// Refreshes the cached display strings used by the left-column header summary
+    /// using O(1) dictionary lookups.
+    /// </summary>
+    private void RefreshHeaderDisplayCache()
+    {
+        _docTypeNames.TryGetValue(_model.DocumentTypeId, out _headerDocTypeName);
+        _headerPriceListName = _model.PriceListId.HasValue && _priceListNames.TryGetValue(_model.PriceListId.Value, out var plName)
+            ? plName
+            : null;
+    }
+
+    /// <summary>
+    /// Called when the user changes the document status from the selector
+    /// </summary>
+    private async Task OnStatusChanged(DocumentStatus newStatus)
+    {
+        if (_currentDocument == null) return;
+
+        try
+        {
+            _loadingMessage = TranslationService.GetTranslation("documents.changingStatus", "Cambio stato documento...");
+            _isLoading = true;
+            var previousStatus = _currentDocument.Status;
+
+            var result = await DocumentStatusService.ChangeStatusAsync(
+                _currentDocument.Id,
+                newStatus,
+                reason: null);
+
+            if (result != null)
+            {
+                _currentDocument = result;
+                _documentStatus = result.Status;
+
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.statusUpdatedSuccess",
+                        "Stato aggiornato con successo"));
+
+                Logger.LogInformation("Document {DocumentId} status changed from {OldStatus} to {NewStatus}",
+                    _currentDocument.Id, previousStatus, newStatus);
+            }
+            else
+            {
+                _documentStatus = previousStatus;
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.statusUpdateError",
+                        "Errore nell'aggiornamento dello stato"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating document status for document {DocumentId}", _currentDocument?.Id);
+
+            if (_currentDocument != null)
+            {
+                _documentStatus = _currentDocument.Status;
+            }
+
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task AddRowAsync()
+    {
+        if (!IsDocumentEditable())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { "DocumentHeaderId", _currentDocument!.Id }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = false,
+            BackdropClick = false,
+            CloseOnEscapeKey = false
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentRowDialog>(
+            string.Empty,
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: true } || result?.Data == null)
+        {
+            // Reload to get any rows that were added during the session
+            await LoadDocumentAsync(_currentDocument.Id);
+        }
+        else
+        {
+            // Single row returned: recalculate totals without a full reload
+            await RecalculateDocumentTotalsAsync();
+        }
+    }
+
+    private async Task EditRow(DocumentRowDto row)
+    {
+        if (!IsDocumentEditable())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { "DocumentHeaderId", _currentDocument!.Id },
+            { "RowId", row.Id }
+        };
+
+        var options = new DialogOptions
+        {
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true,
+            CloseButton = false,
+            BackdropClick = false,
+            CloseOnEscapeKey = false
+        };
+
+        var dialog = await DialogService.ShowAsync<DocumentRowDialog>(
+            string.Empty,
+            parameters,
+            options);
+
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is DocumentRowDto updatedRow)
+        {
+            if (_currentDocument?.Rows == null)
+            {
+                Logger.LogWarning("_currentDocument or Rows is null for incremental update of row {RowId}, reloading document", updatedRow.Id);
+                if (_currentDocument?.Id is { } docId)
+                    await LoadDocumentAsync(docId);
+                return;
+            }
+            var rowIndex = _currentDocument.Rows.FindIndex(r => r.Id == updatedRow.Id);
+            if (rowIndex >= 0)
+            {
+                _currentDocument.Rows[rowIndex] = updatedRow;
+                Logger.LogInformation("Updated row {RowId} incrementally (index: {Index})", updatedRow.Id, rowIndex);
+            }
+            else
+            {
+                Logger.LogWarning("Could not find row {RowId} for incremental update, reloading document", updatedRow.Id);
+                await LoadDocumentAsync(_currentDocument.Id);
+            }
+        }
+        else if (result is { Canceled: false })
+        {
+            Logger.LogWarning("Edit dialog completed but no row data returned, reloading document");
+            await LoadDocumentAsync(_currentDocument.Id);
+        }
+
+        await RecalculateDocumentTotalsAsync();
+        StateHasChanged();
+    }
+
+    private async Task DeleteRow(DocumentRowDto row)
+    {
+        if (!IsDocumentEditable())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
+            return;
+        }
+
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("documents.confirmDeleteRow", "Conferma Eliminazione"),
+            TranslationService.GetTranslation("documents.confirmDeleteRowMessage", "Sei sicuro di voler eliminare questa riga?"),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _loadingMessage = TranslationService.GetTranslation("documents.deletingRow", "Eliminazione riga...");
+            _isLoading = true;
+            try
+            {
+                bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                if (success)
+                {
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.deleteRowSuccess", "Riga eliminata con successo"));
+
+                    var rowToRemove = _currentDocument!.Rows!.FirstOrDefault(r => r.Id == row.Id);
+                    if (rowToRemove != null)
+                    {
+                        _currentDocument.Rows!.Remove(rowToRemove);
+                        Logger.LogInformation("Removed row {RowId} from local collection", row.Id);
+                    }
+
+                    await RecalculateDocumentTotalsAsync();
+                    StateHasChanged();
+                }
+                else
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document row");
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowError", "Errore durante l'eliminazione della riga"));
+            }
+            finally
+            {
+                _isLoading = false;
+                UpdateFilteredRows();
+            }
+        }
+    }
+
+    private async Task DeleteSelectedRowsAsync()
+    {
+        if (_selectedRows.Count == 0)
+            return;
+
+        if (!IsDocumentEditable())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
+            return;
+        }
+
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("documents.confirmDeleteRows", "Conferma Eliminazione"),
+            TranslationService.GetTranslationFormatted("documents.confirmDeleteRowsMessage", "Sei sicuro di voler eliminare {0} righe?", _selectedRows.Count),
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _loadingMessage = TranslationService.GetTranslation("documents.deletingRows", "Eliminazione righe selezionate...");
+            _isLoading = true;
+            try
+            {
+                var rowsToDelete = _selectedRows.ToList();
+                // ✅ PERFORMANCE: parallel bulk delete with safe exception handling
+                var deleteTasks = rowsToDelete.Select(async row =>
+                {
+                    try
+                    {
+                        bool ok = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                        return (row.Id, Success: ok);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error deleting row {RowId} during bulk delete", row.Id);
+                        return (row.Id, Success: false);
+                    }
+                });
+                var results = await Task.WhenAll(deleteTasks);
+
+                var successIds = results.Where(r => r.Success).Select(r => r.Id).ToHashSet();
+                int successCount = successIds.Count;
+
+                if (successCount > 0)
+                {
+                    AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("documents.deleteRowsSuccess", "{0} righe eliminate con successo", successCount));
+
+                    _currentDocument!.Rows!.RemoveAll(r => successIds.Contains(r.Id));
+                    Logger.LogInformation("Removed {Count} rows from local collection", successCount);
+
+                    _selectedRows.Clear();
+
+                    await RecalculateDocumentTotalsAsync();
+                    StateHasChanged();
+                }
+
+                if (successCount < rowsToDelete.Count)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting document rows");
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteRowsError", "Errore durante l'eliminazione delle righe"));
+            }
+            finally
+            {
+                _isLoading = false;
+                UpdateFilteredRows();
+            }
+        }
+    }
+
+    private bool CanMergeSelectedRows()
+    {
+        if (_selectedRows.Count < 2)
+            return false;
+
+        var firstProductId = _selectedRows.First().ProductId;
+        if (!firstProductId.HasValue)
+            return false;
+
+        if (!_selectedRows.All(r => r.ProductId == firstProductId))
+            return false;
+
+        var firstUoM = _selectedRows.First().UnitOfMeasure;
+        if (!_selectedRows.All(r => r.UnitOfMeasure == firstUoM))
+            return false;
+
+        return true;
+    }
+
+    private async Task MergeSelectedRowsAsync()
+    {
+        if (!CanMergeSelectedRows())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotMergeRows", "Impossibile unire le righe selezionate. Assicurati che abbiano lo stesso prodotto e unità di misura."));
+            return;
+        }
+
+        if (!IsDocumentEditable())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotModifyRows", "Impossibile modificare righe di un documento chiuso"));
+            return;
+        }
+
+        var rowsToMerge = _selectedRows.OrderBy(r => r.CreatedAt).ToList();
+        var mainRow = rowsToMerge.First();
+
+        var confirmMessage = $"{TranslationService.GetTranslation("documents.mergeRowsConfirmMessage", "Verranno unite {0} righe del prodotto {1}:", rowsToMerge.Count, mainRow.Description)}\n\n";
+        confirmMessage += string.Join("\n", rowsToMerge.Select(r => $"- {r.Quantity} x {r.UnitPrice:C2} = {(r.Quantity * r.UnitPrice):C2}"));
+        confirmMessage += $"\n\n{TranslationService.GetTranslation("documents.mergeRowsResult", "Risultato: Quantità totale = {0}", rowsToMerge.Sum(r => r.Quantity))}";
+
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("documents.confirmMergeRows", "Conferma Unione Righe"),
+            confirmMessage,
+            yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+            noText: TranslationService.GetTranslation("common.no", "No"));
+
+        if (confirmed == true)
+        {
+            _loadingMessage = TranslationService.GetTranslation("documents.mergingRows", "Unione righe...");
+            _isLoading = true;
+            try
+            {
+                decimal totalQuantity = rowsToMerge.Sum(r => r.Quantity);
+                decimal maxPrice = rowsToMerge.Max(r => r.UnitPrice);
+                var mergedNotes = string.Join(" | ", rowsToMerge.Where(r => !string.IsNullOrWhiteSpace(r.Notes)).Select(r => r.Notes));
+
+                var updateDto = new UpdateDocumentRowDto
+                {
+                    RowType = mainRow.RowType,
+                    ParentRowId = mainRow.ParentRowId,
+                    ProductCode = mainRow.ProductCode,
+                    Description = mainRow.Description,
+                    UnitOfMeasure = mainRow.UnitOfMeasure,
+                    UnitOfMeasureId = mainRow.UnitOfMeasureId,
+                    UnitPrice = maxPrice,
+                    Quantity = totalQuantity,
+                    LineDiscount = mainRow.LineDiscount,
+                    VatRate = mainRow.VatRate,
+                    VatDescription = mainRow.VatDescription,
+                    IsGift = mainRow.IsGift,
+                    IsManual = mainRow.IsManual,
+                    SourceWarehouseId = mainRow.SourceWarehouseId,
+                    DestinationWarehouseId = mainRow.DestinationWarehouseId,
+                    Notes = string.IsNullOrWhiteSpace(mergedNotes) ? null : mergedNotes,
+                    SortOrder = mainRow.SortOrder,
+                    StationId = mainRow.StationId
+                };
+
+                var updated = await DocumentHeaderService.UpdateDocumentRowAsync(mainRow.Id, updateDto);
+                if (updated != null)
+                {
+                    int deletedCount = 0;
+                    var deletedRowIds = new List<Guid>();
+
+                    foreach (var row in rowsToMerge.Skip(1))
+                    {
+                        bool success = await DocumentHeaderService.DeleteDocumentRowAsync(row.Id);
+                        if (success)
+                        {
+                            deletedCount++;
+                            deletedRowIds.Add(row.Id);
+                        }
+                    }
+
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.mergeRowsSuccess", "Righe unite con successo"));
+
+                    var mainRowIndex = _currentDocument!.Rows!.FindIndex(r => r.Id == updated.Id);
+                    if (mainRowIndex >= 0)
+                    {
+                        _currentDocument.Rows[mainRowIndex] = updated;
+                    }
+
+                    _currentDocument.Rows!.RemoveAll(r => deletedRowIds.Contains(r.Id));
+                    Logger.LogInformation("Merged {MergedCount} rows into row {MainRowId}, removed {DeletedCount} rows locally",
+                        rowsToMerge.Count, updated.Id, deletedRowIds.Count);
+
+                    _selectedRows.Clear();
+
+                    await RecalculateDocumentTotalsAsync();
+                    StateHasChanged();
+                }
+                else
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"));
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error merging document rows");
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.mergeRowsError", "Errore durante l'unione delle righe"));
+            }
+            finally
+            {
+                _isLoading = false;
+                UpdateFilteredRows();
+            }
+        }
+    }
+
+    private static bool HasZeroTotals(DocumentHeaderDto document)
+    {
+        return document.TotalNetAmount == 0m &&
+               document.VatAmount == 0m &&
+               document.TotalGrossAmount == 0m;
+    }
+
+    private async Task RecalculateDocumentTotalsAsync()
+    {
+        if (_currentDocument?.Id == Guid.Empty || _currentDocument == null)
+        {
+            Logger.LogWarning("Cannot recalculate totals: document is null or ID is empty");
+            return;
+        }
+
+        try
+        {
+            var updated = await DocumentHeaderService.CalculateDocumentTotalsAsync(_currentDocument.Id);
+
+            if (updated != null)
+            {
+                _currentDocument.TotalNetAmount = updated.TotalNetAmount;
+                _currentDocument.VatAmount = updated.VatAmount;
+                _currentDocument.TotalGrossAmount = updated.TotalGrossAmount;
+
+                Logger.LogInformation("Recalculated document totals: Net={Net}, VAT={VAT}, Gross={Gross}",
+                    updated.TotalNetAmount, updated.VatAmount, updated.TotalGrossAmount);
+
+                UpdateFilteredRows();
+                StateHasChanged();
+            }
+            else
+            {
+                Logger.LogWarning("Calculate totals returned null for document {DocumentId}", _currentDocument.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error recalculating document totals for document {DocumentId}", _currentDocument.Id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.totalsCalculationError", "Errore nel calcolo dei totali"));
+        }
+    }
+
+    private string GetDocumentExcelFileName()
+    {
+        if (_currentDocument == null) return "Righe_Documento";
+        var parts = new[] { _currentDocument.DocumentTypeName, _currentDocument.Series, _currentDocument.Number }
+            .Where(p => !string.IsNullOrWhiteSpace(p));
+        return string.Join("_", parts).Replace("/", "-").Replace(" ", "_");
+    }
+
+    private void OnTableSearch(string value)
+    {
+        _searchQuery = value ?? string.Empty;
+        UpdateFilteredRows();
+        StateHasChanged();
+    }
+
+    private async Task CloseDialogAsync()
+    {
+        await ReleaseLockInternalAsync();
+        MudDialog.Close(DialogResult.Ok(_currentDocument != null));
+    }
+
+    private async Task ReleaseLockInternalAsync()
+    {
+        if (_lockReleased) return;
+        _lockReleased = true;
+
+        try
+        {
+            if (_hasEditLock && _currentDocument?.Id is { } docId && docId != Guid.Empty)
+            {
+                await RealtimeService.ReleaseDocumentEditLockAsync(docId);
+                _hasEditLock = false;
+            }
+            if (_currentDocument?.Id is { } leaveId && leaveId != Guid.Empty)
+            {
+                await RealtimeService.LeaveDocumentAsync(leaveId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error releasing document lock on close");
+        }
+    }
+
+    #region SignalR Lock Management
+
+    private void OnDocumentLocked(object data)
+    {
+        InvokeAsync(() =>
+        {
+            try
+            {
+                if (data is System.Text.Json.JsonElement jsonElement &&
+                    jsonElement.TryGetProperty("LockedBy", out var lockedByProp))
+                {
+                    _lockHolderName = lockedByProp.GetString();
+                }
+
+                _isReadOnly = true;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error processing DocumentLocked event");
+            }
+        });
+    }
+
+    private void OnDocumentUnlocked(object data)
+    {
+        InvokeAsync(async () =>
+        {
+            try
+            {
+                _lockHolderName = null;
+
+                if (!_isReadOnlyDueToError && _currentDocument?.Id is { } docId && docId != Guid.Empty)
+                {
+                    _hasEditLock = await RealtimeService.RequestDocumentEditLockAsync(docId);
+
+                    if (_hasEditLock)
+                    {
+                        _isReadOnly = false;
+                        AppNotification.ShowInfo(TranslationService.GetTranslation(
+                            "documents.documentUnlocked",
+                            "✅ Documento ora disponibile per la modifica."));
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Failed to re-acquire lock after document unlock for {DocumentId}", _currentDocument?.Id);
+            }
+            finally
+            {
+                StateHasChanged();
+            }
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        RealtimeService.DocumentLocked -= OnDocumentLocked;
+        RealtimeService.DocumentUnlocked -= OnDocumentUnlocked;
+        await ReleaseLockInternalAsync();
+    }
+
+    #endregion
+}

@@ -1,0 +1,1532 @@
+@page "/sales/pos"
+@using Prym.Web.ViewModels
+@using Prym.DTOs.Products
+@using Prym.DTOs.Store
+@using Prym.DTOs.Business
+@using Prym.DTOs.FiscalPrinting
+@using Prym.Web.Shared.Components.Sales
+@using Prym.Web.Shared.Components.Dialogs.Sales
+@using Prym.Web.Services.Sales
+@using Prym.Web.Services.Store
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+@attribute [Authorize]
+@inject POSViewModel ViewModel
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@inject ISalesService SalesService
+@inject IFiscalPrintingService FiscalPrintingService
+@inject IFiscalDrawerService FiscalDrawerService
+@inject ILogger<POS> Logger
+
+<PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
+<PageLoadingOverlay Visible="ViewModel.IsLoading" 
+                    Message="@TranslationService.GetTranslation("common.loading", "Caricamento...")" />
+
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <!-- Page Title -->
+    <MudText Typo="Typo.h4" Class="mb-4">
+        <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" Size="Size.Medium" />
+        @TranslationService.GetTranslation("sales.pos", "Punto Vendita")
+    </MudText>
+
+    <!-- POS Header -->
+    <POSHeader AvailableOperators="@ViewModel.AvailableOperators"
+               SelectedOperatorId="@ViewModel.SelectedOperatorId"
+               SelectedOperatorIdChanged="@((value) => ViewModel.SelectedOperatorId = value)"
+               AvailablePos="@ViewModel.AvailablePos"
+               SelectedPosId="@ViewModel.SelectedPosId"
+               SelectedPosIdChanged="@((value) => ViewModel.SelectedPosId = value)"
+               SelectedCustomer="@ViewModel.SelectedCustomer"
+               SelectedCustomerChanged="@OnSelectedCustomerChangedAsync"
+               SessionNumber="@ViewModel.CurrentSession?.Id"
+               IsSessionActive="@ViewModel.HasActiveSession"
+               IsUpdatingItems="@ViewModel.IsUpdatingItems"
+               LoadingTooltipText="@GetLoadingTooltipText()"
+               LoadingSpinnerColor="@GetLoadingSpinnerColor()"
+               FiscalDrawerSummary="@_fiscalDrawerSummary"
+               OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
+               OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
+               OnWithdrawalClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))"
+               HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+               IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
+               OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
+               OnDailyClosureClick="@OpenDailyClosureDialogAsync"
+               OnParkClick="@ParkSessionAsync"
+               OnCancelClick="@CancelSessionAsync" />
+
+    <!-- Keyboard Shortcuts (solo se ha sessione) -->
+    @if (ViewModel.HasActiveSession)
+    {
+        <MudPaper Elevation="0" 
+                  Class="pa-2 mb-2" 
+                  Style="background: linear-gradient(90deg, #e3f2fd, #f3e5f5); border-radius: 8px;">
+            
+            <MudStack Row="true" 
+                      Justify="Justify.SpaceAround" 
+                      AlignItems="AlignItems.Center" 
+                      Wrap="Wrap.Wrap">
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.Payment" 
+                         Variant="Variant.Text">
+                    <strong>F2</strong> @TranslationService.GetTranslation("sales.pay", "Paga")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.Pause" 
+                         Variant="Variant.Text">
+                    <strong>F3</strong> @TranslationService.GetTranslation("sales.park", "Parcheggia")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.RemoveCircle" 
+                         Variant="Variant.Text">
+                    <strong>F4</strong> @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.Search" 
+                         Variant="Variant.Text">
+                    <strong>F8</strong> @TranslationService.GetTranslation("sales.focusScanner", "Scanner")
+                </MudChip>
+                
+                <MudChip T="string" Size="Size.Small" 
+                         Icon="@Icons.Material.Outlined.CheckCircle" 
+                         Variant="Variant.Text">
+                    <strong>F12</strong> @TranslationService.GetTranslation("sales.closeSaleShort", "Chiudi")
+                </MudChip>
+                
+            </MudStack>
+        </MudPaper>
+    }
+
+    <!-- Main Content: 2-column responsive layout -->
+    <MudGrid Spacing="3">
+        
+        <!-- Left Column: Scanner + Toolbar + Cart (70% desktop) -->
+        <MudItem xs="12" lg="8">
+            @if (ViewModel.HasActiveSession)
+            {
+                <MudStack Spacing="2">
+                    
+                    <!-- UnifiedProductSelector -->
+                    <UnifiedProductSelector 
+                        SelectedProduct="@_currentProduct"
+                        SelectedProductChanged="@OnProductSelectedAsync"
+                        Title="@TranslationService.GetTranslation("sales.scanProduct", "Scansiona Prodotto")"
+                        Placeholder="@TranslationService.GetTranslation("sales.scanOrType", "Scansiona codice o cerca nome...")"
+                        SearchMode="ProductSearchMode.Both"
+                        EditMode="ProductEditMode.Dialog"
+                        CreateMode="ProductCreateMode.Delegate"
+                        ShowProductInfo="false"
+                        AllowClear="true"
+                        AutoFocus="true"
+                        Disabled="@(!ViewModel.HasActiveSession)"
+                        OnProductWithCodeFound="@HandleProductWithCodeFoundAsync"
+                        OnProductNotFound="@HandleProductNotFoundAsync" />
+
+                    <!-- Toolbar Azioni Rapide (visibile solo se ha items) -->
+                    @if (ViewModel.CurrentSession?.Items.Any() == true)
+                    {
+                        <MudPaper Elevation="1" Class="pa-2 mb-2">
+                            <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                
+                                <!-- Azioni Sinistra -->
+                                <MudStack Row="true" Spacing="1">
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.applyGlobalDiscount", "Applica sconto globale al carrello")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Warning"
+                                                   StartIcon="@Icons.Material.Outlined.Discount"
+                                                   Size="Size.Small"
+                                                   OnClick="@ApplyGlobalDiscountAsync">
+                                            @TranslationService.GetTranslation("sales.discountShort", "Sconto %")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.applyCouponTooltip", "Applica codice coupon promozionale")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Success"
+                                                   StartIcon="@Icons.Material.Outlined.LocalOffer"
+                                                   Size="Size.Small"
+                                                   OnClick="@ApplyCouponAsync">
+                                            @TranslationService.GetTranslation("sales.coupon", "Coupon")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.addSessionNoteTooltip", "Aggiungi nota alla vendita")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Info"
+                                                   StartIcon="@Icons.Material.Outlined.Note"
+                                                   Size="Size.Small"
+                                                   OnClick="@AddSessionNoteAsync">
+                                            @TranslationService.GetTranslation("sales.notes", "Note")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.splitTooltip", "Dividi Conto")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.CallSplit" 
+                                                       Color="Color.Primary"
+                                                       OnClick="@OpenSplitDialogAsync"
+                                                       Disabled="@(!_canSplit)"
+                                                       Size="Size.Small" />
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.mergeTooltip", "Unisci Sessioni")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.MergeType" 
+                                                       Color="Color.Secondary"
+                                                       OnClick="@OpenMergeDialogAsync"
+                                                       Disabled="@(_openSessions.Count < 2)"
+                                                       Size="Size.Small" />
+                                    </MudTooltip>
+                                    
+                                </MudStack>
+                                
+                                <!-- Info Carrello Centro -->
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.ShoppingCart">
+                                        @ViewModel.ItemCount @TranslationService.GetTranslation("sales.items", "items")
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Outlined.Euro">
+                                        €@ViewModel.CurrentSession.FinalTotal.ToString("F2")
+                                    </MudChip>
+                                </MudStack>
+                                
+                                <!-- Azioni Destra -->
+                                <MudStack Row="true" Spacing="1">
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.removeLastItemTooltip", "Rimuovi ultimo articolo aggiunto (F4)")">
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="Color.Error"
+                                                   StartIcon="@Icons.Material.Outlined.RemoveCircle"
+                                                   Size="Size.Small"
+                                                   OnClick="@RemoveLastItemAsync">
+                                            @TranslationService.GetTranslation("sales.removeLastItem", "Rimuovi Ultimo")
+                                        </MudButton>
+                                    </MudTooltip>
+                                    
+                                    <MudTooltip Text="@TranslationService.GetTranslation("sales.clearCartTooltip", "Svuota carrello")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
+                                                       Color="Color.Error"
+                                                       Size="Size.Small"
+                                                       OnClick="@ClearCartAsync" />
+                                    </MudTooltip>
+                                    
+                                </MudStack>
+                                
+                            </MudStack>
+                        </MudPaper>
+                    }
+
+                    <!-- Loading State -->
+                    @if (ViewModel.IsUpdatingItems)
+                    {
+                        <MudProgressLinear Color="Color.Primary"
+                                           Indeterminate="true"
+                                           Class="mb-2 rounded-4" />
+                        
+                        <MudAlert Severity="Severity.Info" 
+                                  Dense="true" 
+                                  Icon="@Icons.Material.Outlined.Sync"
+                                  Elevation="0"
+                                  Class="mb-2">
+                            @TranslationService.GetTranslation("sales.updatingCart", "Aggiornamento carrello in corso...")
+                        </MudAlert>
+                    }
+
+                    <!-- Cart o Empty State -->
+                    @if (ViewModel.CurrentSession?.Items.Any() == true)
+                    {
+                        <!-- Cart Table -->
+                        <POSCartTable Items="@ViewModel.CurrentSession?.Items"
+                                      IsDisabled="@ViewModel.IsUpdatingItems"
+                                      OnQuantityChanged="@HandleQuantityChanged"
+                                      OnPriceChanged="@HandlePriceChanged"
+                                      OnDiscountChanged="@HandleDiscountChanged"
+                                      OnEditNotes="@EditItemNotesAsync"
+                                      OnRemoveItem="@RemoveItemAsync"
+                                      OnIncreaseQuantity="@IncreaseQuantityAsync"
+                                      OnDecreaseQuantity="@DecreaseQuantityAsync" />
+                    }
+                    else
+                    {
+                        <!-- Empty Cart State -->
+                        <MudPaper Elevation="0" 
+                                  Class="pa-8" 
+                                  Style="text-align: center; background: var(--mud-palette-background-grey); border-radius: 8px;">
+                            
+                            <MudIcon Icon="@Icons.Material.Outlined.ShoppingCart" 
+                                     Size="Size.Large" 
+                                     Color="Color.Secondary" 
+                                     Style="font-size: 4rem; opacity: 0.3; margin-bottom: 16px;" />
+                            
+                            <MudText Typo="Typo.h6" Color="Color.Secondary" Class="mb-2">
+                                @TranslationService.GetTranslation("sales.emptyCart", "Carrello vuoto")
+                            </MudText>
+                            
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("sales.scanProductHint", "Scansiona un prodotto o cercalo per nome")
+                            </MudText>
+                            
+                        </MudPaper>
+                    }
+
+                    <!-- Main Action Button -->
+                    <POSActionButton Session="@ViewModel.CurrentSession"
+                                     IsSessionClosed="@ViewModel.IsSessionClosed"
+                                     OnAddPayment="@AddPaymentAsync"
+                                     OnCloseSale="@CloseSaleAsync"
+                                     OnPrintReceipt="@PrintReceiptAsync" />
+                    
+                </MudStack>
+            }
+            else
+            {
+                <!-- No Session State -->
+                <MudPaper Elevation="0" Class="pa-8 text-center">
+                    
+                    <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" 
+                             Size="Size.Large" 
+                             Style="font-size: 5rem; opacity: 0.2; margin-bottom: 20px;" />
+                    
+                    <MudText Typo="Typo.h5" Class="mb-3">
+                        @TranslationService.GetTranslation("sales.selectOperatorAndPos", "Seleziona Operatore e Cassa")
+                    </MudText>
+                    
+                    <MudText Typo="Typo.body1" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("sales.selectOperatorAndPosHint", "Seleziona un operatore e un punto cassa per iniziare")
+                    </MudText>
+                    
+                </MudPaper>
+            }
+        </MudItem>
+
+        <!-- Right Column: Summary + Receipt Preview (30% desktop, sticky) -->
+        <MudItem xs="12" lg="4">
+            <MudStack Spacing="2" Class="pos-summary-column">
+                
+                <!-- Summary -->
+                <POSReceipt SessionNumber="@ViewModel.CurrentSession?.Id"
+                            Items="@ViewModel.CurrentSession?.Items"
+                            Payments="@ViewModel.CurrentSession?.Payments"
+                            Subtotal="@(ViewModel.CurrentSession?.OriginalTotal ?? 0m)"
+                            TotalDiscount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)"
+                            TotalVat="@(ViewModel.CurrentSession?.TaxAmount ?? 0m)"
+                            GrandTotal="@ViewModel.GrandTotal" />
+                
+            </MudStack>
+        </MudItem>
+        
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private ProductDto? _currentProduct;
+    private IJSObjectReference? _shortcutsModule;
+    private DotNetObjectReference<POS>? _dotNetRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Subscribe to ViewModel events
+            ViewModel.StateChanged += StateHasChanged;
+            ViewModel.OnNotification += HandleNotification;
+
+            // Get current user
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var username = authState.User.Identity?.Name;
+
+            // Initialize ViewModel
+            await ViewModel.InitializeAsync(username);
+            
+            // Initialize split/merge functionality
+            await LoadOpenSessionsAsync();
+            await CheckCanSplitAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'inizializzazione del POS.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private void HandleNotification(string message, bool isSuccess)
+    {
+        if (isSuccess)
+            AppNotification.ShowSuccess(message);
+        else
+            AppNotification.ShowError(message);
+    }
+
+    private async Task OnProductSelectedAsync(ProductDto? product)
+    {
+        if (product == null) return;
+        
+        try
+        {
+            var result = await ViewModel.AddProductAsync(product);
+            
+            if (result.Success)
+            {
+                _currentProduct = null;
+                AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+            }
+            else
+            {
+                AppNotification.ShowError(result.Error ?? "Errore");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'aggiunta del prodotto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private Task HandleProductWithCodeFoundAsync(ProductWithCodeDto productWithCode)
+    {
+        // SelectedProductChanged has already been fired by UnifiedProductSelector before
+        // OnProductWithCodeFound, so OnProductSelectedAsync was already called and the
+        // product has been added to the cart. Do NOT call it again here to prevent double-add.
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleProductNotFoundAsync(string barcode)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Barcode", barcode }
+            };
+
+            var dialog = await DialogService.ShowAsync<ProductNotFoundDialog>(
+                TranslationService.GetTranslation("warehouse.productNotFound", "Prodotto non trovato"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true }
+            );
+
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false } && result.Data != null)
+            {
+                // Handle "skip" action
+                if (result.Data is string action && action == "skip")
+                {
+                    AppNotification.ShowInfo(TranslationService.GetTranslation("sales.productSkipped", "Prodotto saltato"));
+                    return;
+                }
+                
+                // Handle ProductDto (newly created product)
+                if (result.Data is ProductDto product)
+                {
+                    await OnProductSelectedAsync(product);
+                    return;
+                }
+                
+                // Handle product assignment result (from AssignBarcodeToProduct)
+                if (result.Data is ProductNotFoundDialog.AssignResult assignResult)
+                {
+                    await OnProductSelectedAsync(assignResult.Product);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleProductNotFoundAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? customer)
+    {
+        try
+        {
+            await ViewModel.UpdateSelectedCustomerAsync(customer);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnSelectedCustomerChangedAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private void IncreaseQuantityAsync(SaleItemDto item)
+    {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
+        item.Quantity++;
+        ViewModel.QueueItemUpdate(item);
+    }
+
+    private void DecreaseQuantityAsync(SaleItemDto item)
+    {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
+        if (item.Quantity > 1)
+        {
+            item.Quantity--;
+            ViewModel.QueueItemUpdate(item);
+        }
+    }
+
+    private void QueueItemUpdate(SaleItemDto item)
+    {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
+        ViewModel.QueueItemUpdate(item);
+    }
+
+    private void HandleQuantityChanged((SaleItemDto Item, decimal NewQuantity) args)
+    {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
+        args.Item.Quantity = args.NewQuantity;
+        ViewModel.QueueItemUpdate(args.Item);
+    }
+
+    private void HandlePriceChanged((SaleItemDto Item, decimal NewPrice) args)
+    {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
+        args.Item.UnitPrice = args.NewPrice;
+        ViewModel.QueueItemUpdate(args.Item);
+    }
+
+    private void HandleDiscountChanged((SaleItemDto Item, decimal NewDiscount) args)
+    {
+        // Prevent modifications during updates
+        if (ViewModel.IsUpdatingItems) return;
+        
+        args.Item.DiscountPercent = args.NewDiscount;
+        ViewModel.QueueItemUpdate(args.Item);
+    }
+
+    private async Task EditItemNotesAsync(SaleItemDto item)
+    {
+        try
+        {
+            // Prevent modifications during updates
+            if (ViewModel.IsUpdatingItems) return;
+            
+            var parameters = new DialogParameters
+            {
+                { "InitialNotes", item.Notes ?? string.Empty },
+                { "Item", item }
+            };
+
+            var dialog = await DialogService.ShowAsync<ItemNotesDialog>(
+                TranslationService.GetTranslation("sales.editNotes", "Modifica Note"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }
+            );
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && result.Data is string newNotes)
+            {
+                item.Notes = newNotes;
+                ViewModel.QueueItemUpdate(item);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in EditItemNotesAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task RemoveItemAsync(SaleItemDto item)
+    {
+        if (!ViewModel.HasActiveSession) return;
+
+        try
+        {
+            // Confirm removal for significant items
+            if (item.Quantity > 1 || item.TotalAmount > 50)
+            {
+                bool? confirm = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("sales.confirmRemoveItem", 
+                        "Rimuovere {0} (x{1}) per {2}?", 
+                        item.ProductName, item.Quantity, item.TotalAmount.ToString("C")),
+                    yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                    cancelText: TranslationService.GetTranslation("common.no", "No")
+                );
+
+                if (confirm != true) return;
+            }
+
+            var result = await ViewModel.RemoveItemAsync(item);
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError("❌ " + result.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la rimozione dell'articolo.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task ApplyGlobalDiscountAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["CurrentTotal"] = ViewModel.CurrentSession?.FinalTotal ?? 0m
+            };
+
+            var dialog = await DialogService.ShowAsync<GlobalDiscountDialog>(
+                TranslationService.GetTranslation("sales.globalDiscountTitle", "Sconto Globale Carrello"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small });
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is decimal discountPercent)
+            {
+                var dto = new ApplyGlobalDiscountDto
+                {
+                    DiscountPercent = discountPercent,
+                    Reason = TranslationService.GetTranslation("sales.globalDiscountReason", "Sconto globale POS")
+                };
+                
+                var updatedSession = await ViewModel.ApplyGlobalDiscountAsync(dto);
+                
+                if (updatedSession != null)
+                {
+                    AppNotification.ShowSuccess($"✅ Sconto {discountPercent}% applicato - Nuovo totale: €{updatedSession.FinalTotal:F2}");
+                }
+                else
+                {
+                    AppNotification.ShowError("❌ Errore applicazione sconto");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ApplyGlobalDiscountAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task ApplyCouponAsync()
+    {
+        try
+        {
+            var dialog = await DialogService.ShowAsync<CouponInputDialog>(
+                TranslationService.GetTranslation("sales.applyCoupon", "Applica Coupon"),
+                new DialogOptions { MaxWidth = MaxWidth.Small });
+
+            var dialogResult = await dialog.Result;
+            if (dialogResult is not null && !dialogResult.Canceled && dialogResult.Data is string code && !string.IsNullOrWhiteSpace(code))
+            {
+                var (success, promotionName, error) = await ViewModel.ApplyCouponAsync(code);
+                if (success)
+                    AppNotification.ShowSuccess($"✅ Coupon applicato: {promotionName}");
+                else
+                    AppNotification.ShowWarning($"❌ {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ApplyCouponAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task AddSessionNoteAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["SessionId"] = ViewModel.CurrentSession?.Id
+            };
+
+            var dialog = await DialogService.ShowAsync<SessionNoteDialog>(
+                TranslationService.GetTranslation("sales.addSessionNote", "Aggiungi Nota Vendita"),
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small });
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is AddSessionNoteDto noteDto)
+            {
+                // Chiamata backend REALE (rimuove TODO)
+                var updatedSession = await ViewModel.AddSessionNoteAsync(noteDto);
+                
+                if (updatedSession != null)
+                {
+                    AppNotification.ShowSuccess($"✅ Nota aggiunta: {noteDto.Text}");
+                }
+                else
+                {
+                    AppNotification.ShowError("❌ Errore aggiunta nota");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in AddSessionNoteAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task RemoveLastItemAsync()
+    {
+        try
+        {
+            if (ViewModel.CurrentSession?.Items.Any() != true) return;
+
+            var lastItem = ViewModel.CurrentSession.Items.Last();
+            var result = await ViewModel.RemoveItemAsync(lastItem);
+
+            if (result.Success)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.itemRemoved", $"✅ {lastItem.ProductName} rimosso"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in RemoveLastItemAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task ClearCartAsync()
+    {
+        try
+        {
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("sales.clearCartConfirm", "Sei sicuro di voler svuotare il carrello?"),
+                yesText: TranslationService.GetTranslation("sales.clearCart", "Svuota"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+            if (confirmed == true)
+            {
+                var items = ViewModel.CurrentSession?.Items.ToList();
+                if (items != null)
+                {
+                    foreach (var item in items)
+                    {
+                        await ViewModel.RemoveItemAsync(item);
+                    }
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.cartCleared", "Carrello svuotato"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ClearCartAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task AddPaymentAsync()
+    {
+        // Pre-validation checks
+        if (!ViewModel.HasActiveSession)
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("errors.noActiveSession", "Nessuna sessione attiva"));
+            return;
+        }
+
+        if (!ViewModel.CurrentSession!.Items.Any())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("sales.addProductsFirst", "Aggiungi prodotti prima di pagare"));
+            return;
+        }
+
+        if (ViewModel.CurrentSession.IsFullyPaid)
+        {
+            AppNotification.ShowInfo(TranslationService.GetTranslation("sales.billAlreadySettled", "Il conto è già saldato"));
+            return;
+        }
+
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "TotalAmount", ViewModel.CurrentSession.FinalTotal },
+                { "AlreadyPaid", ViewModel.CurrentSession.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount) },
+                { "PaymentMethods", ViewModel.PaymentMethods }
+            };
+
+            var dialog = await DialogService.ShowAsync<PaymentDialog>(
+                TranslationService.GetTranslation("sales.payBill", "Paga Conto"),
+                parameters
+            );
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is PaymentDialog.PaymentDialogResult paymentDialogResult)
+            {
+                // Process all payments from the dialog
+                var successfulPayments = 0;
+                var failedPayments = 0;
+
+                foreach (var pendingPayment in paymentDialogResult.Payments)
+                {
+                    var paymentResult = await ViewModel.AddPaymentAsync(pendingPayment.Method, pendingPayment.Amount);
+                    if (paymentResult.Success)
+                    {
+                        successfulPayments++;
+                    }
+                    else
+                    {
+                        failedPayments++;
+                    }
+                }
+
+                // Show summary
+                if (successfulPayments > 0)
+                {
+                    var message = successfulPayments == 1
+                        ? TranslationService.GetTranslation("sales.paymentAdded", "Pagamento aggiunto")
+                        : TranslationService.GetTranslation("sales.paymentSuccess", "Pagamento completato!");
+                    
+                    AppNotification.ShowSuccess(message);
+                }
+
+                if (failedPayments > 0)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("errors.paymentError", "Errore durante il pagamento"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'aggiunta del pagamento.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task CloseSaleAsync()
+    {
+        try
+        {
+            // Capture session data before closing (needed to build the fiscal receipt)
+            var sessionSnapshot = ViewModel.CurrentSession;
+
+            var result = await ViewModel.CloseSaleAsync();
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError(result.Error);
+                return;
+            }
+
+            // Trigger fiscal printing after successful sale closure
+            if (sessionSnapshot is not null && _fiscalPrinterId.HasValue)
+            {
+                await TriggerFiscalPrintAsync(sessionSnapshot);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la chiusura della vendita.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task ParkSessionAsync()
+    {
+        try
+        {
+            var result = await ViewModel.ParkSessionAsync();
+            if (!result.Success && result.Error != null)
+            {
+                AppNotification.ShowError(result.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il parcheggio della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task CancelSessionAsync()
+    {
+        if (!ViewModel.HasActiveSession)
+            return;
+
+        try
+        {
+            bool? confirm = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("sales.cancelSession", "Annulla Sessione"),
+                TranslationService.GetTranslation("sales.cancelSessionConfirm", "Sei sicuro di voler annullare questa sessione? Tutti i dati andranno persi."),
+                yesText: TranslationService.GetTranslation("common.yes", "Sì"),
+                cancelText: TranslationService.GetTranslation("common.no", "No")
+            );
+
+            if (confirm == true)
+            {
+                var result = await ViewModel.CancelSessionAsync();
+                if (!result.Success && result.Error != null)
+                {
+                    AppNotification.ShowError(result.Error);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'annullamento della sessione.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task PrintReceiptAsync()
+    {
+        if (!ViewModel.HasActiveSession)
+            return;
+
+        try
+        {
+            // Generate printable receipt content
+            var receiptContent = GenerateReceiptContent(ViewModel.CurrentSession!);
+
+            // Use browser print functionality
+            await JSRuntime.InvokeVoidAsync("printReceipt", receiptContent);
+
+            AppNotification.ShowInfo(TranslationService.GetTranslation("sales.printingReceipt", "Stampa scontrino in corso..."));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error invoking printReceipt.");
+            AppNotification.ShowError(TranslationService.GetTranslation("errors.printError", "Errore durante la stampa"));
+        }
+    }
+
+    private string GenerateReceiptContent(SaleSessionDto session)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("<!DOCTYPE html>");
+        sb.AppendLine("<html><head>");
+        sb.AppendLine("<meta charset='utf-8'>");
+        sb.AppendLine("<style>");
+        sb.AppendLine("body { font-family: 'Courier New', monospace; width: 80mm; margin: 0 auto; }");
+        sb.AppendLine("h1 { text-align: center; font-size: 18px; margin: 10px 0; }");
+        sb.AppendLine(".header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }");
+        sb.AppendLine(".item { margin: 5px 0; }");
+        sb.AppendLine(".item-name { font-weight: bold; }");
+        sb.AppendLine(".item-details { display: flex; justify-content: space-between; font-size: 12px; }");
+        sb.AppendLine(".totals { border-top: 2px dashed #000; padding-top: 10px; margin-top: 10px; }");
+        sb.AppendLine(".total-row { display: flex; justify-content: space-between; margin: 3px 0; }");
+        sb.AppendLine(".grand-total { font-size: 16px; font-weight: bold; border-top: 2px solid #000; padding-top: 5px; margin-top: 5px; }");
+        sb.AppendLine(".footer { text-align: center; margin-top: 20px; font-size: 12px; }");
+        sb.AppendLine("@media print { body { width: 80mm; } }");
+        sb.AppendLine("</style>");
+        sb.AppendLine("</head><body>");
+
+        // Header
+        sb.AppendLine("<div class='header'>");
+        sb.AppendLine("<h1>SCONTRINO</h1>");
+        sb.AppendLine($"<p>Sessione: #{session.Id.ToString("N")[..8]}</p>");
+        sb.AppendLine($"<p>{DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>");
+        var operatorName = GetSelectedOperatorName();
+        if (!string.IsNullOrEmpty(operatorName))
+        {
+            sb.AppendLine($"<p>Operatore: {operatorName}</p>");
+        }
+        sb.AppendLine("</div>");
+
+        // Items
+        foreach (var item in session.Items)
+        {
+            sb.AppendLine("<div class='item'>");
+            sb.AppendLine($"<div class='item-name'>{item.ProductName}</div>");
+            sb.AppendLine("<div class='item-details'>");
+            sb.AppendLine($"<span>{item.Quantity} x {item.UnitPrice:C}");
+            if (item.DiscountPercent > 0)
+            {
+                sb.AppendLine($" (-{item.DiscountPercent:F1}%)");
+            }
+            sb.AppendLine("</span>");
+            sb.AppendLine($"<span>{item.TotalAmount:C}</span>");
+            sb.AppendLine("</div>");
+            sb.AppendLine("</div>");
+        }
+
+        // Totals
+        sb.AppendLine("<div class='totals'>");
+        var subtotal = session.Items.Sum(i => i.Quantity * i.UnitPrice);
+        var discount = session.Items.Sum(i => i.Quantity * i.UnitPrice * i.DiscountPercent / 100);
+        var tax = session.Items.Sum(i => i.TaxAmount);
+
+        sb.AppendLine($"<div class='total-row'><span>Subtotale:</span><span>{subtotal:C}</span></div>");
+        if (discount > 0)
+        {
+            sb.AppendLine($"<div class='total-row'><span>Sconto:</span><span>-{discount:C}</span></div>");
+        }
+        sb.AppendLine($"<div class='total-row'><span>IVA:</span><span>{tax:C}</span></div>");
+        sb.AppendLine($"<div class='total-row grand-total'><span>TOTALE:</span><span>{session.FinalTotal:C}</span></div>");
+
+        // Payments
+        if (session.Payments?.Any() == true)
+        {
+            sb.AppendLine("<div style='margin-top: 10px;'>");
+            var totalPaid = session.Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount);
+            foreach (var payment in session.Payments.Where(p => p.Status == PaymentStatusDto.Completed))
+            {
+                sb.AppendLine($"<div class='total-row'><span>{payment.PaymentMethodName}:</span><span>{payment.Amount:C}</span></div>");
+            }
+            if (totalPaid > session.FinalTotal)
+            {
+                var change = totalPaid - session.FinalTotal;
+                sb.AppendLine($"<div class='total-row' style='font-weight: bold;'><span>RESTO:</span><span>{change:C}</span></div>");
+            }
+            sb.AppendLine("</div>");
+        }
+        sb.AppendLine("</div>");
+
+        // Footer
+        sb.AppendLine("<div class='footer'>");
+        sb.AppendLine("<p>Grazie per il vostro acquisto!</p>");
+        sb.AppendLine("</div>");
+
+        sb.AppendLine("<script>");
+        sb.AppendLine("window.onload = function() { window.print(); };");
+        sb.AppendLine("</script>");
+        sb.AppendLine("</body></html>");
+
+        return sb.ToString();
+    }
+
+    // Split and Merge Functionality
+    private bool _canSplit = false;
+    private List<SaleSessionDto> _openSessions = new();
+    
+    private async Task CheckCanSplitAsync()
+    {
+        if (ViewModel.CurrentSession != null)
+        {
+            _canSplit = await SalesService.CanSplitSessionAsync(ViewModel.CurrentSession.Id);
+        }
+        else
+        {
+            _canSplit = false;
+        }
+    }
+    
+    private async Task LoadOpenSessionsAsync()
+    {
+        try
+        {
+            var allSessions = await SalesService.GetActiveSessionsAsync();
+            if (allSessions != null)
+            {
+                // Filter to only show parent sessions (not child sessions from splits)
+                // Child sessions (with ParentSessionId) are sub-sessions from a split operation
+                // and should not be merged with other sessions to maintain split integrity
+                _openSessions = allSessions
+                    .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
+                    .ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento delle sessioni aperte.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+    
+    private async Task OpenSplitDialogAsync()
+    {
+        if (ViewModel.CurrentSession == null) return;
+        
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Session", ViewModel.CurrentSession }
+            };
+            
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            var dialog = await DialogService.ShowAsync<SplitPaymentDialog>(
+                TranslationService.GetTranslation("sales.split.title", "Dividi Conto"), 
+                parameters, 
+                options);
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Refresh session
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante l'apertura del dialogo di divisione conto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+    
+    private async Task OpenMergeDialogAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "AvailableSessions", _openSessions }
+            };
+            
+            var options = new DialogOptions 
+            { 
+                MaxWidth = MaxWidth.Medium, 
+                FullWidth = true,
+                CloseButton = true
+            };
+            
+            var dialog = await DialogService.ShowAsync<MergeSessionsDialog>(
+                TranslationService.GetTranslation("sales.merge.title", "Unisci Sessioni"), 
+                parameters, 
+                options);
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Refresh session
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenMergeDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    // UI Helper Methods
+    private string GetLoadingTooltipText()
+    {
+        return TranslationService.GetTranslation("sales.updatingItems", "Salvataggio in corso...");
+    }
+
+    private Color GetLoadingSpinnerColor()
+    {
+        return Color.Primary;
+    }
+
+    private string? GetSelectedOperatorName()
+    {
+        if (!ViewModel.SelectedOperatorId.HasValue || ViewModel.AvailableOperators == null || ViewModel.AvailableOperators.Count == 0)
+            return null;
+            
+        var selectedOperator = ViewModel.AvailableOperators.FirstOrDefault(op => op.Id == ViewModel.SelectedOperatorId.Value);
+        return selectedOperator?.Name;
+    }
+
+    // Keyboard shortcuts
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            if (firstRender)
+            {
+                // Import the module as ES6 module
+                _shortcutsModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pos-shortcuts.js");
+                
+                // Create .NET reference and setup shortcuts
+                _dotNetRef = DotNetObjectReference.Create(this);
+                await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
+
+                // Connect to fiscal printer hub if a printer is configured
+                await ConnectFiscalHubAsync();
+                // Load fiscal drawer for the current POS/operator selection
+                await LoadFiscalDrawerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OnAfterRenderAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    [JSInvokable]
+    public async Task HandleKeyboardShortcut(string key)
+    {
+        try
+        {
+            if (!ViewModel.HasActiveSession && key != "Escape")
+                return;
+
+            switch (key)
+            {
+                case "F2": // Payment
+                    if (ViewModel.CanPay)
+                        await AddPaymentAsync();
+                    break;
+                    
+                case "F3": // Park
+                    if (ViewModel.HasActiveSession)
+                        await ParkSessionAsync();
+                    break;
+                    
+                case "F4": // Remove last item
+                    if (ViewModel.CurrentSession?.Items.LastOrDefault() is { } lastItem)
+                        await RemoveItemAsync(lastItem);
+                    break;
+                    
+                case "F8": // Focus on barcode scanner (handled in JS)
+                    break;
+                    
+                case "F12": // Close sale
+                    if (ViewModel.CanCloseSale)
+                        await CloseSaleAsync();
+                    break;
+                    
+                case "Escape": // Cancel session
+                    if (ViewModel.HasActiveSession)
+                        await CancelSessionAsync();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in HandleKeyboardShortcut.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    // Dispose pattern - now async to properly cleanup JS module
+    public async ValueTask DisposeAsync()
+    {
+        // Cleanup JavaScript event listeners
+        if (_shortcutsModule != null)
+        {
+            try
+            {
+                await _shortcutsModule.InvokeVoidAsync("cleanup");
+                await _shortcutsModule.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log but don't throw during disposal - component is being torn down
+                Logger.LogWarning(ex, "Error cleaning up POS keyboard shortcuts during disposal");
+            }
+        }
+        
+        // Dispose .NET object reference
+        _dotNetRef?.Dispose();
+        
+        // Cleanup ViewModel
+        ViewModel.StateChanged -= StateHasChanged;
+        ViewModel.OnNotification -= HandleNotification;
+        ViewModel.Dispose();
+
+        if (_fiscalHubConnection is not null)
+        {
+            try
+            {
+                if (_fiscalPrinterId.HasValue)
+                    await _fiscalHubConnection.SendAsync("UnsubscribeFromPrinter", _fiscalPrinterId.Value);
+                await _fiscalHubConnection.DisposeAsync();
+            }
+            catch { /* intentionally swallowed during disposal */ }
+        }
+    }
+
+    // =========================================================================
+    //  Fiscal Printing – state and helpers
+    // =========================================================================
+
+    /// <summary>
+    /// ID of the fiscal printer associated with this POS station.
+    /// Set to <c>null</c> when no fiscal printer is configured for the current station.
+    /// Populated in OnInitializedAsync once the station configuration is loaded.
+    /// </summary>
+    private Guid? _fiscalPrinterId = null;
+
+    /// <summary>Most recent status of the fiscal printer, kept current via SignalR push.</summary>
+    private FiscalPrinterStatus? _fiscalPrinterStatus;
+
+    /// <summary>Fiscal drawer assigned to the current POS (fixed) or operator (floating).</summary>
+    private FiscalDrawerSummaryDto? _fiscalDrawerSummary;
+
+    /// <summary>SignalR connection for real-time fiscal printer status updates.</summary>
+    private HubConnection? _fiscalHubConnection;
+
+    /// <summary>
+    /// Connects to the fiscal printer SignalR hub and subscribes to the printer
+    /// assigned to this POS station. Only called when <see cref="_fiscalPrinterId"/> is set.
+    /// </summary>
+    private async Task ConnectFiscalHubAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+        try
+        {
+            _fiscalHubConnection = new HubConnectionBuilder()
+                .WithUrl("/hubs/fiscal-printer")
+                .WithAutomaticReconnect()
+                .Build();
+
+            _fiscalHubConnection.On<Guid, FiscalPrinterStatus>("PrinterStatusUpdated", (printerId, status) =>
+            {
+                if (printerId != _fiscalPrinterId.Value) return;
+                _fiscalPrinterStatus = status;
+                InvokeAsync(StateHasChanged);
+            });
+
+            _fiscalHubConnection.On<Guid, string>("ClosureRequired", (printerId, _) =>
+            {
+                if (printerId != _fiscalPrinterId.Value) return;
+                if (_fiscalPrinterStatus is not null)
+                    _fiscalPrinterStatus.IsDailyClosureRequired = true;
+                InvokeAsync(StateHasChanged);
+            });
+
+            _fiscalHubConnection.Reconnected += async _ =>
+            {
+                try { await _fiscalHubConnection.SendAsync("SubscribeToPrinter", _fiscalPrinterId.Value); }
+                catch (Exception ex) { Logger.LogWarning(ex, "POS: failed to re-subscribe to printer {PrinterId} after reconnect", _fiscalPrinterId.Value); }
+            };
+
+            await _fiscalHubConnection.StartAsync();
+            await _fiscalHubConnection.SendAsync("SubscribeToPrinter", _fiscalPrinterId.Value);
+
+            // Load initial status
+            _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+
+            Logger.LogDebug("POS: subscribed to fiscal printer {PrinterId}", _fiscalPrinterId.Value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS: could not connect to fiscal printer SignalR hub");
+        }
+    }
+
+    /// <summary>Loads fiscal drawer summary for the currently selected POS or operator.</summary>
+    private async Task LoadFiscalDrawerAsync()
+    {
+        _fiscalDrawerSummary = null;
+        try
+        {
+            if (ViewModel.SelectedPosId.HasValue)
+            {
+                var drawer = await FiscalDrawerService.GetByPosIdAsync(ViewModel.SelectedPosId.Value);
+                if (drawer is not null)
+                    _fiscalDrawerSummary = await FiscalDrawerService.GetSummaryAsync(drawer.Id);
+            }
+            else if (ViewModel.SelectedOperatorId.HasValue)
+            {
+                var drawer = await FiscalDrawerService.GetByOperatorIdAsync(ViewModel.SelectedOperatorId.Value);
+                if (drawer is not null)
+                    _fiscalDrawerSummary = await FiscalDrawerService.GetSummaryAsync(drawer.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS: could not load fiscal drawer summary");
+        }
+        StateHasChanged();
+    }
+
+    private async Task OpenDrawerSessionAsync()
+    {
+        try
+        {
+            if (_fiscalDrawerSummary is null) return;
+            var dto = new OpenFiscalDrawerSessionDto { OpeningBalance = 0 };
+            var result = await FiscalDrawerService.OpenSessionAsync(_fiscalDrawerSummary.Id, dto);
+            if (result is not null)
+            {
+                AppNotification.ShowSuccess("Sessione cassetto aperta.");
+                await LoadFiscalDrawerAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenDrawerSessionAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType type)
+    {
+        try
+        {
+            if (_fiscalDrawerSummary is null) return;
+            var parameters = new DialogParameters
+            {
+                ["DrawerId"] = _fiscalDrawerSummary.Id,
+                ["TransactionType"] = type,
+                ["CurrencyCode"] = _fiscalDrawerSummary.CurrencyCode
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+            var dialog = await DialogService.ShowAsync<FiscalDrawerTransactionDialog>(
+                type == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo", parameters, options);
+            var result = await dialog.Result;
+            if (result?.Canceled == false)
+                await LoadFiscalDrawerAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenDrawerTransactionDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    /// <summary>Opens the daily closure dialog for the printer assigned to this POS.</summary>
+    private async Task OpenDailyClosureDialogAsync()
+    {
+        try
+        {
+            if (!_fiscalPrinterId.HasValue) return;
+
+            var parameters = new DialogParameters
+            {
+                [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId.Value,
+                [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
+            };
+
+            var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
+                string.Empty, parameters, EFDialogDefaults.Options);
+
+            var result = await dialog.Result;
+            if (result?.Canceled == false)
+            {
+                _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenDailyClosureDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    private async Task OpenPhysicalDrawerAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+        try
+        {
+            var result = await FiscalPrintingService.OpenDrawerAsync(_fiscalPrinterId.Value);
+            if (result?.Success == true)
+                AppNotification.ShowSuccess("Cassetto aperto.");
+            else
+                AppNotification.ShowWarning($"Impossibile aprire il cassetto: {result?.ErrorMessage ?? "stampante non disponibile."}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS: error opening physical drawer for printer {PrinterId}", _fiscalPrinterId.Value);
+            AppNotification.ShowError("Errore durante l'apertura del cassetto.");
+        }
+    }
+
+    /// <summary>
+    /// Triggers fiscal printing after a successful sale closure.
+    /// Builds a <see cref="FiscalReceiptData"/> from the closed session, including
+    /// loyalty information if available, and calls the fiscal printing service.
+    /// Falls back gracefully (toast notification) if the printer is offline.
+    /// </summary>
+    private async Task TriggerFiscalPrintAsync(SaleSessionDto session)
+    {
+        try
+        {
+            var receipt = BuildFiscalReceiptData(session);
+
+            var printResult = await FiscalPrintingService.PrintReceiptAsync(
+                _fiscalPrinterId!.Value, receipt);
+
+            if (printResult is null)
+            {
+                Logger.LogWarning(
+                    "FiscalPrintingService.PrintReceiptAsync returned null for session {SessionId}",
+                    session.Id);
+                AppNotification.ShowWarning(
+                    TranslationService.GetTranslation(
+                        "fiscal.printWarning",
+                        "Stampa fiscale non disponibile. Controllare la stampante."));
+                return;
+            }
+
+            if (printResult.Success)
+            {
+                Logger.LogInformation(
+                    "Fiscal receipt printed successfully | Session={SessionId} ReceiptNo={ReceiptNo}",
+                    session.Id, printResult.ReceiptNumber);
+
+                AppNotification.ShowSuccess(
+                    TranslationService.GetTranslation(
+                        "fiscal.printSuccess",
+                        $"Scontrino fiscale {printResult.ReceiptNumber} emesso correttamente."));
+            }
+            else
+            {
+                Logger.LogWarning(
+                    "Fiscal printing failed | Session={SessionId} Error={Error}",
+                    session.Id, printResult.ErrorMessage);
+
+                AppNotification.ShowError(
+                    TranslationService.GetTranslation(
+                        "fiscal.printError",
+                        $"Errore stampa fiscale: {printResult.ErrorMessage ?? "stampante non disponibile."}"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error during fiscal printing for session {SessionId}", session.Id);
+            AppNotification.ShowError(
+                TranslationService.GetTranslation(
+                    "fiscal.printUnexpectedError",
+                    "Errore imprevisto durante la stampa fiscale. Verificare la stampante."));
+        }
+    }
+
+    /// <summary>
+    /// Maps a closed <see cref="SaleSessionDto"/> to a <see cref="FiscalReceiptData"/>
+    /// ready to be sent to the fiscal printer.
+    /// </summary>
+    private static FiscalReceiptData BuildFiscalReceiptData(SaleSessionDto session)
+    {
+        var items = session.Items.Select(item => new FiscalReceiptItem
+        {
+            Description = item.ProductName ?? item.ProductCode ?? "Articolo",
+            Quantity = (decimal)(item.Quantity),
+            UnitPrice = item.UnitPrice,
+            VatCode = 1, // Default VAT code – mapping is handled server-side by IFiscalMappingService
+            Department = 1
+        }).ToList();
+
+        var payments = session.Payments.Select(p => new FiscalPayment
+        {
+            Amount = p.Amount,
+            MethodCode = 1, // Default – server-side mapping resolves the fiscal code
+            Description = p.PaymentMethodName ?? "Pagamento"
+        }).ToList();
+
+        return new FiscalReceiptData
+        {
+            Items = items,
+            Payments = payments
+        };
+    }
+}

@@ -1,0 +1,384 @@
+@inject ILogger<EFDialog> Logger
+
+<MudDialog CloseButton="false"
+           CloseOnEscapeKey="@(!IsProcessing)"
+           Class="efd-dialog-root"
+           Position="DialogPosition.Center"
+           Style="background:transparent !important; box-shadow:none !important; padding:0 !important; overflow:visible !important;">
+    <DialogContent>
+        <div class="efd-card" style="min-width:@MinWidth; max-height:@MaxHeight; width:@MinWidth; @HeightStyle" @onkeydown="@OnKeyDown">
+
+            @* Barra progress 3px in cima *@
+            <div class="efd-progress">
+                @if (IsProcessing)
+                {
+                    <MudProgressLinear Class="progress-thin-rounded-top" Color="Color.Primary"
+ Indeterminate="true"
+ />
+                }
+                else
+                {
+                    <MudProgressLinear Class="progress-thin-rounded-top" Color="Color.Primary"
+ Value="100"
+ Max="100"
+ />
+                }
+            </div>
+
+            @* TitleContent inline *@
+            <div class="efd-title">
+                <MudIcon Icon="@Icon" Color="Color.Primary" Class="flex-no-shrink" />
+                <MudText Typo="Typo.h6" Class="text-header-dark">
+                    @Title
+                </MudText>
+                <MudSpacer />
+                <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                               Size="Size.Small"
+                               Disabled="@IsProcessing"
+                               OnClick="HandleClose"
+                               Class="icon-btn-muted"
+                               title="Chiudi" />
+            </div>
+
+            @* Body *@
+            <div class="efd-body" style="min-height:@MinHeight;">
+                @ChildContent
+            </div>
+
+            @* Actions *@
+            @if (DialogActions != null)
+            {
+                <div class="efd-actions">
+                    @DialogActions
+                </div>
+            }
+
+        </div>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [Parameter] public string Icon { get; set; } = Icons.Material.Outlined.Edit;
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public bool IsProcessing { get; set; } = false;
+    [Parameter] public string MinWidth { get; set; } = "min(600px, 95vw)";
+    [Parameter] public string MaxHeight { get; set; } = "calc(100vh - 48px)";
+    [Parameter] public string MinHeight { get; set; } = EFDialogDefaults.MinHeightSimple;
+    /// <summary>When set, gives the dialog card a fixed height (e.g. "calc(100dvh - 48px)").
+    /// Also overrides max-height so the card actually reaches that size.</summary>
+    [Parameter] public string Height { get; set; } = string.Empty;
+
+    private string HeightStyle => string.IsNullOrEmpty(Height)
+        ? string.Empty
+        : $"height:{Height}; max-height:{Height};";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? DialogActions { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
+
+    private async Task HandleClose()
+    {
+        try
+        {
+            if (!IsProcessing)
+            {
+                await OnClose.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la chiusura del dialogo");
+        }
+    }
+}
+
+<style>
+    /* ═══════════════════════════════════════════════════════════
+       EFDialog — Dark card wrapper
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Ensure the MudDialog overlay centres its child */
+    .efd-dialog-root,
+    .mud-dialog.efd-dialog-root {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* Dark card */
+    .efd-card {
+        --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
+        --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
+        --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
+        --mud-palette-background:           #12121f;
+        --mud-palette-surface:              #1c1c30;
+        --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
+        --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
+        --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
+        --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
+        --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
+        --mud-palette-divider:              rgba(255, 255, 255, 0.12);
+        --mud-palette-overlay-dark:         rgba(0, 0, 0, 0.5);
+        --efd-color-primary-light:          rgba(100, 170, 255, 1);
+        --efd-color-primary-focus:          rgba(100, 160, 255, 0.9);
+        color: rgba(255, 255, 255, 0.87);
+
+        background: rgba(18, 18, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+    }
+
+    /* Progress bar strip */
+    .efd-progress {
+        line-height: 0;
+        font-size: 0;
+    }
+
+    /* Title bar */
+    .efd-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px 14px 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        min-width: 0;
+    }
+
+    /* Body */
+    .efd-body {
+        padding: 20px 24px;
+        color: rgba(255, 255, 255, 0.87);
+        --mud-palette-surface: transparent;
+        overflow-y: auto;
+        overflow-x: hidden;
+        flex: 1 1 auto;
+        min-height: 0;
+        box-sizing: border-box;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       VERTICAL TABS — unified style inside EFDialog
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Left-tab strip: narrower, no border between panel and tab strip */
+    .efd-body .mud-tabs.mud-tabs-left .mud-tab-slider {
+        background-color: var(--efd-color-primary-light) !important;
+    }
+
+    /* Tab panel content: remove default internal padding that can cause horizontal scroll */
+    .efd-body .mud-tabs .mud-tab-panel {
+        padding: 0 16px;
+        overflow-x: hidden;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+    }
+
+    /* Tab label: left-aligned, lighter weight */
+    .efd-body .mud-tabs .mud-tab {
+        text-align: left;
+        justify-content: flex-start !important;
+        font-weight: 400;
+        font-size: 0.85rem;
+        letter-spacing: 0;
+        opacity: 0.75;
+        padding: 10px 14px !important;
+        min-height: 40px;
+        border-radius: 6px;
+        margin: 2px 4px;
+        transition: background 0.15s ease, opacity 0.15s ease;
+    }
+
+    .efd-body .mud-tabs .mud-tab:hover {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+        opacity: 0.90;
+    }
+
+    .efd-body .mud-tabs .mud-tab.mud-tab-active {
+        opacity: 1;
+        font-weight: 600;
+        background-color: rgba(100, 160, 255, 0.10) !important;
+        color: var(--efd-color-primary-light) !important;
+    }
+
+    /* Tab icon: align nicely with label */
+    .efd-body .mud-tabs .mud-tab .mud-icon-root {
+        font-size: 1.1rem;
+        margin-right: 8px;
+        flex-shrink: 0;
+    }
+
+    /* Tab panel text: ensure it fills available width */
+    .efd-body .mud-tab-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    /* MudGrid inside tab: prevent overflow */
+    .efd-body .mud-grid {
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       INPUT FIELDS — fix background trasparente + colori testo.
+       ═══════════════════════════════════════════════════════════ */
+
+    .efd-body .mud-input,
+    .efd-body .mud-input-outlined,
+    .efd-body .mud-input-root,
+    .efd-body .mud-input-root-outlined,
+    .efd-body .mud-input-slot,
+    .efd-body .mud-input-control,
+    .efd-body .mud-input-control-input-container {
+        background-color: transparent !important;
+    }
+
+    .efd-body .mud-input-control,
+    .efd-body .mud-input-control-input-container,
+    .efd-body .mud-input,
+    .efd-body .mud-input-outlined {
+        overflow: visible !important;
+    }
+
+    .efd-body .mud-input-label {
+        z-index: 10 !important;
+        position: absolute !important;
+    }
+
+    .efd-body .mud-input-root input,
+    .efd-body .mud-input-root textarea,
+    .efd-body .mud-input input,
+    .efd-body .mud-input textarea {
+        color: rgba(255, 255, 255, 0.87) !important;
+        caret-color: white !important;
+        background-color: transparent !important;
+    }
+
+    .efd-body .mud-input-root,
+    .efd-body .mud-input-root-outlined {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    .efd-body label.mud-input-label,
+    .efd-body .mud-input-label {
+        color: rgba(255, 255, 255, 0.85) !important;
+        background-color: transparent !important;
+    }
+
+    .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+        background-color: #12121f !important;
+        padding: 0 6px !important;
+        border-radius: 2px;
+        color: var(--efd-color-primary-light) !important;
+        font-size: 0.75rem !important;
+    }
+
+    .efd-body .mud-input-outlined-border,
+    .efd-body fieldset.mud-input-outlined-border,
+    .efd-body .mud-input-outlined fieldset {
+        border-color: rgba(255, 255, 255, 0.35) !important;
+    }
+
+    .efd-body .mud-input-outlined:hover .mud-input-outlined-border,
+    .efd-body .mud-input-outlined:hover fieldset {
+        border-color: rgba(255, 255, 255, 0.70) !important;
+    }
+
+    .efd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+    .efd-body .mud-input-outlined:focus-within fieldset {
+        border-color: var(--efd-color-primary-focus) !important;
+        border-width: 2px !important;
+    }
+
+    .efd-body .mud-input-adornment .mud-icon-root,
+    .efd-body .mud-input-adornment .mud-icon-button {
+        color: rgba(255, 255, 255, 0.55) !important;
+    }
+
+    .efd-body .mud-select .mud-input-root,
+    .efd-body .mud-select-input {
+        color: rgba(255, 255, 255, 0.87) !important;
+        background-color: transparent !important;
+    }
+
+    .efd-body .mud-checkbox .mud-button-label,
+    .efd-body .mud-checkbox-label,
+    .efd-body span.mud-button-label {
+        color: rgba(255, 255, 255, 0.80) !important;
+    }
+
+    .efd-body .mud-checkbox .mud-svg-icon,
+    .efd-body .mud-checkbox .mud-icon-root {
+        color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    .efd-body .mud-switch-label {
+        color: rgba(255, 255, 255, 0.80) !important;
+    }
+
+    /* Actions area */
+    .efd-actions {
+        border-top: 1px solid rgba(255, 255, 255, 0.10);
+        padding: 12px 16px;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .efd-actions .mud-button-root.mud-button-text {
+        color: rgba(255, 255, 255, 0.65) !important;
+    }
+
+    .efd-actions .mud-button-root.mud-button-text:hover {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    /* Dialog title text — ensure visibility on dark background */
+    .text-header-dark {
+        color: rgba(255, 255, 255, 0.87) !important;
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 480px) {
+        .efd-card {
+            min-width: 92vw !important;
+            width: 92vw !important;
+        }
+
+        .efd-title {
+            padding: 14px 16px 12px 16px;
+        }
+
+        .efd-body {
+            padding: 16px;
+        }
+
+        .efd-actions {
+            padding: 10px 12px;
+            flex-direction: column-reverse;
+            gap: 6px;
+        }
+
+        .efd-actions .mud-button-root {
+            width: 100%;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .efd-card * {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+</style>
+

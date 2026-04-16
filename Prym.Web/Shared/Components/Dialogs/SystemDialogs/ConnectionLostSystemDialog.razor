@@ -1,0 +1,320 @@
+@namespace Prym.Web.Shared.Components.Dialogs.SystemDialogs
+@inject IConnectionMonitorService ConnectionMonitor
+@inject IServerConfigOverlayService ServerConfigOverlayService
+@inject IHealthService HealthService
+@inject ILogger<ConnectionLostSystemDialog> Logger
+@implements IDisposable
+
+<EFSystemDialog Title="PRYM"
+                Subtitle="@(_restored ? "Connessione ripristinata" : null)"
+                TopBar="@_efTopBar"
+                LogoAnim="@_efLogoAnim"
+                CardWidth="380px">
+
+    @* API status row *@
+    <div class="clsd-status-row">
+        <span class="clsd-dot @(_apiOk ? "clsd-dot-green" : "clsd-dot-red")"></span>
+        <span class="clsd-label">API</span>
+        <span class="clsd-value @(_apiOk ? "clsd-ok" : "clsd-err")">
+            @(_apiOk ? "Raggiungibile" : "Non raggiungibile")
+        </span>
+    </div>
+
+    @* SignalR status row *@
+    <div class="clsd-status-row">
+        <span class="clsd-dot @(_signalrOk ? "clsd-dot-green" : "clsd-dot-red")"></span>
+        <span class="clsd-label">Real-time</span>
+        <span class="clsd-value @(_signalrOk ? "clsd-ok" : "clsd-err")">
+            @(_signalrOk ? "Connesso" : "Disconnesso")
+        </span>
+    </div>
+
+    @* Agent status row *@
+    <div class="clsd-status-row">
+        <span class="clsd-dot @(_agentOk ? "clsd-dot-green" : "clsd-dot-amber")"></span>
+        <span class="clsd-label">Agent</span>
+        <span class="clsd-value @(_agentOk ? "clsd-ok" : "clsd-warn")">
+            @(_agentStatus ?? "Verifica in corso…")
+        </span>
+    </div>
+    @if (_restored)
+    {
+        <div class="clsd-restored">✓ Connessione ripristinata</div>
+    }
+    else if (!string.IsNullOrEmpty(_statusMessage))
+    {
+        <div class="clsd-message">@_statusMessage</div>
+    }
+
+    @if (_disconnectedSince.HasValue && !_restored)
+    {
+        var elapsed = (int)(DateTimeOffset.UtcNow - _disconnectedSince.Value).TotalSeconds;
+        <div class="clsd-elapsed">⏱ @elapsed@(elapsed == 1 ? "s trascorso" : "s trascorsi")</div>
+    }
+
+    @if (!_restored)
+    {
+        <div class="clsd-action-row">
+            <MudButton Variant="Variant.Outlined"
+                       Size="Size.Small"
+                       Color="Color.Warning"
+                       OnClick="@RetryNowAsync"
+                       Disabled="@_retrying"
+                       StartIcon="@Icons.Material.Outlined.Refresh"
+                       Class="clsd-retry-btn">
+                @(_retrying ? "Verifica in corso…" : "Riprova ora")
+            </MudButton>
+            <MudTooltip Text="Configura URL Server">
+                <MudIconButton Icon="@Icons.Material.Outlined.Settings"
+                               Size="Size.Small"
+                               Color="Color.Default"
+                               OnClick="@OpenServerConfig"
+                               Class="clsd-settings-btn"
+                               aria-label="Configura URL Server" />
+            </MudTooltip>
+        </div>
+    }
+
+</EFSystemDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private bool _restored = false;
+    private bool _retrying = false;
+
+    private bool _apiOk = true;
+    private bool _signalrOk = true;
+    private bool _agentOk = false;
+    private string? _agentStatus;
+    private string? _statusMessage;
+    private DateTimeOffset? _disconnectedSince;
+
+    private System.Threading.Timer? _elapsedTimer;
+    private System.Threading.Timer? _restoredHideTimer;
+
+    private EFSystemDialog.EFTopBar _efTopBar => _restored
+        ? EFSystemDialog.EFTopBar.Success
+        : ConnectionMonitor.Status == ConnectionStatus.Disconnected
+            ? EFSystemDialog.EFTopBar.Error
+            : EFSystemDialog.EFTopBar.Warning;
+
+    private EFSystemDialog.EFLogoAnim _efLogoAnim => _restored
+        ? EFSystemDialog.EFLogoAnim.PulseGreen
+        : EFSystemDialog.EFLogoAnim.PulseRed;
+
+    protected override void OnInitialized()
+    {
+        ConnectionMonitor.StatusChanged += OnStatusChanged;
+        SyncFromMonitor(ConnectionMonitor.Status);
+        StartElapsedTimer();
+        _ = FetchAgentStatusAsync();
+    }
+
+    private async Task FetchAgentStatusAsync()
+    {
+        try
+        {
+            var agent = await HealthService.GetAgentStatusAsync();
+            _agentOk = agent?.Reachable == true;
+
+            if (agent is null)
+            {
+                _agentStatus = "Non configurato";
+            }
+            else if (agent.Reachable)
+            {
+                _agentStatus = $"Online — Hub: {agent.HubConnectionState ?? "?"}";
+            }
+            else
+            {
+                var mins = agent.UnreachableSinceUtc.HasValue
+                    ? (int)(DateTime.UtcNow - agent.UnreachableSinceUtc.Value).TotalMinutes
+                    : 0;
+                _agentStatus = mins > 0
+                    ? $"Non raggiungibile da {mins} min"
+                    : "Non raggiungibile";
+            }
+        }
+        catch
+        {
+            _agentOk = false;
+            _agentStatus = "Non raggiungibile";
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnStatusChanged(ConnectionStatus newStatus)
+    {
+        InvokeAsync(() =>
+        {
+            SyncFromMonitor(newStatus);
+            StateHasChanged();
+        });
+    }
+
+    private void SyncFromMonitor(ConnectionStatus status)
+    {
+        _apiOk = ConnectionMonitor.IsApiReachable;
+        _signalrOk = ConnectionMonitor.IsSignalRConnected;
+        _statusMessage = ConnectionMonitor.StatusMessage;
+        _disconnectedSince = ConnectionMonitor.DisconnectedSince;
+
+        if (status == ConnectionStatus.Connected)
+        {
+            if (!_restored)
+            {
+                _restored = true;
+                StopRestoredHideTimer();
+                StartRestoredHideTimer();
+            }
+        }
+        else
+        {
+            _restored = false;
+            StopRestoredHideTimer();
+        }
+    }
+
+    private void StartRestoredHideTimer()
+    {
+        StopRestoredHideTimer();
+        _restoredHideTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                MudDialog.Close();
+            });
+        }, null, TimeSpan.FromSeconds(2), Timeout.InfiniteTimeSpan);
+    }
+
+    private void StartElapsedTimer()
+    {
+        StopElapsedTimer();
+        _elapsedTimer = new System.Threading.Timer(_ =>
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }, null, 1000, 1000);
+    }
+
+    private void StopRestoredHideTimer()
+    {
+        _restoredHideTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _restoredHideTimer?.Dispose();
+        _restoredHideTimer = null;
+    }
+
+    private void StopElapsedTimer()
+    {
+        _elapsedTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _elapsedTimer?.Dispose();
+        _elapsedTimer = null;
+    }
+
+    private async Task RetryNowAsync()
+    {
+        try
+        {
+            _retrying = true;
+            StateHasChanged();
+            await ConnectionMonitor.CheckNowAsync();
+            _retrying = false;
+            SyncFromMonitor(ConnectionMonitor.Status);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il tentativo di riconnessione");
+            _retrying = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenServerConfig()
+    {
+        ServerConfigOverlayService.Show();
+    }
+
+    public void Dispose()
+    {
+        ConnectionMonitor.StatusChanged -= OnStatusChanged;
+        StopElapsedTimer();
+        StopRestoredHideTimer();
+    }
+}
+
+<style>
+    .clsd-status-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.85rem;
+    }
+
+    .clsd-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .clsd-dot-green {
+        background: #66bb6a;
+        box-shadow: 0 0 6px rgba(102, 187, 106, 0.7);
+    }
+
+    .clsd-dot-red {
+        background: #ef5350;
+        box-shadow: 0 0 6px rgba(239, 83, 80, 0.7);
+    }
+
+    .clsd-dot-amber {
+        background: #ffa726;
+        box-shadow: 0 0 6px rgba(255, 167, 38, 0.7);
+    }
+
+    .clsd-label {
+        color: rgba(255, 255, 255, 0.55);
+        min-width: 60px;
+    }
+
+    .clsd-value { font-weight: 600; }
+    .clsd-ok    { color: #66bb6a; }
+    .clsd-err   { color: #ef5350; }
+    .clsd-warn  { color: #ffa726; }
+
+    .clsd-message {
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 1.4;
+    }
+
+    .clsd-restored {
+        color: #66bb6a;
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .clsd-elapsed {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.72rem;
+    }
+
+    .clsd-action-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+    }
+
+    .clsd-retry-btn { font-size: 0.8rem !important; }
+
+    .clsd-settings-btn        { opacity: 0.65; }
+    .clsd-settings-btn:hover  { opacity: 1; }
+
+    @@media (max-width: 480px) {
+        .clsd-status-row { justify-content: center; }
+        .clsd-action-row { justify-content: center; }
+    }
+</style>

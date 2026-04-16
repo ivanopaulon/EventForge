@@ -1,0 +1,75 @@
+using Prym.Web.Services;
+using Prym.DTOs.VatRates;
+
+namespace Prym.Web.ViewModels;
+
+/// <summary>
+/// ViewModel for VatNature detail page
+/// </summary>
+public class VatNatureDetailViewModel : BaseEntityDetailViewModel<VatNatureDto, CreateVatNatureDto, UpdateVatNatureDto>
+{
+    private readonly IFinancialService _financialService;
+
+    public VatNatureDetailViewModel(
+        IFinancialService financialService,
+        ILogger<VatNatureDetailViewModel> logger)
+        : base(logger)
+    {
+        _financialService = financialService;
+    }
+
+    protected override VatNatureDto CreateNewEntity()
+    {
+        return new VatNatureDto
+        {
+            Id = Guid.Empty,
+            Code = string.Empty,
+            Name = string.Empty,
+            Description = null,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = null,
+            ModifiedAt = null,
+            ModifiedBy = null
+        };
+    }
+
+    protected override async Task<VatNatureDto?> LoadEntityFromServiceAsync(Guid entityId, CancellationToken ct = default)
+    {
+        return await _financialService.GetVatNatureAsync(entityId, ct);
+    }
+
+    protected override CreateVatNatureDto MapToCreateDto(VatNatureDto entity)
+    {
+        return new CreateVatNatureDto
+        {
+            Code = entity.Code,
+            Name = entity.Name,
+            Description = entity.Description
+        };
+    }
+
+    protected override UpdateVatNatureDto MapToUpdateDto(VatNatureDto entity)
+    {
+        return new UpdateVatNatureDto
+        {
+            Code = entity.Code,
+            Name = entity.Name,
+            Description = entity.Description
+        };
+    }
+
+    protected override async Task<VatNatureDto?> CreateEntityAsync(CreateVatNatureDto createDto, CancellationToken ct = default)
+    {
+        return await _financialService.CreateVatNatureAsync(createDto, ct);
+    }
+
+    protected override async Task<VatNatureDto?> UpdateEntityAsync(Guid entityId, UpdateVatNatureDto updateDto, CancellationToken ct = default)
+    {
+        return await _financialService.UpdateVatNatureAsync(entityId, updateDto, ct);
+    }
+
+    protected override Guid GetEntityId(VatNatureDto entity)
+    {
+        return entity.Id;
+    }
+}

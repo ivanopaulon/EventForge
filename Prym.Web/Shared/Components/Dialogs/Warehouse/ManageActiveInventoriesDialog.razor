@@ -1,0 +1,631 @@
+@using Prym.DTOs.Warehouse
+@inject ITranslationService TranslationService
+@inject IInventoryService InventoryService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ManageActiveInventoriesDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Inventory"
+          Title="Gestione Inventari Attivi"
+          OnClose="Cancel"
+          MinWidth="min(750px, 95vw)">
+    <ChildContent>
+        @if (Mode == InventoryDialogMode.InitialCheck)
+        {
+            <!-- InitialCheck Mode: Lista completa inventari aperti -->
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                <MudText Typo="Typo.body1" Class="fw-semibold">
+                    @TranslationService.GetTranslation("warehouse.openInventoriesFound", "Ci sono {0} inventari non finalizzati.", AllOpenInventories.Count)
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("warehouse.openInventoriesFoundMessage", "Riprendi una sessione esistente o gestiscili.")
+                </MudText>
+            </MudAlert>
+
+            <!-- Lista completa inventari -->
+            <MudDataGrid T="InventoryDocumentDto"
+                         Items="@AllOpenInventories"
+                         Dense="true"
+                         Hover="true"
+                         MultiSelection="true"
+                         @bind-SelectedItems="_selectedInventories"
+                         ReadOnly="true"
+                         Class="mb-4">
+                <Columns>
+                    <SelectColumn T="InventoryDocumentDto" />
+                    <PropertyColumn Property="x => x.Number" Title="@TranslationService.GetTranslation("warehouse.documentNumber", "Numero")" />
+                    <PropertyColumn Property="x => x.WarehouseName" Title="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")" />
+                    <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.items", "Articoli")">
+                        <CellTemplate>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Item.TotalItems</MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.openSince", "Aperto da")">
+                        <CellTemplate>
+                            <MudText Typo="Typo.body2">@GetSessionDuration(context.Item.CreatedAt)</MudText>
+                        </CellTemplate>
+                    </TemplateColumn>
+                    <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")" Sortable="false">
+                        <CellTemplate>
+                            <MudStack Row="true" Spacing="1">
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                   Color="Color.Info"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ViewInventory(context.Item))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.resumeInventory", "Riprendi")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.PlayArrow"
+                                                   Color="Color.Primary"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => ResumeInventory(context.Item))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Check"
+                                                   Color="Color.Success"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => FinalizeInventory(context.Item))" />
+                                </MudTooltip>
+                                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.closeWithoutSaving", "Chiudi senza salvare")">
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => CancelInventory(context.Item))" />
+                                </MudTooltip>
+                            </MudStack>
+                        </CellTemplate>
+                    </TemplateColumn>
+                </Columns>
+            </MudDataGrid>
+        }
+        else if (Mode == InventoryDialogMode.SwitchInventory && CurrentDocument != null)
+        {
+            <!-- SwitchInventory Mode: Focus su inventario corrente + azioni rapide -->
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                <MudText Typo="Typo.body1" Class="fw-semibold">
+                    @TranslationService.GetTranslation("warehouse.switchInventoryWarning", "Stai per cambiare inventario")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    @TranslationService.GetTranslation("warehouse.switchInventoryMessage", "Prima di procedere, scegli cosa fare con l'inventario corrente")
+                </MudText>
+            </MudAlert>
+
+            <!-- Inventario Corrente evidenziato -->
+            <MudPaper Elevation="3" Class="pa-4 mb-4 border-warning-2">
+                <MudText Typo="Typo.h6" Class="mb-3" Color="Color.Warning">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.currentInventory", "Inventario Corrente")
+                </MudText>
+                
+                <MudGrid Spacing="2" Class="mb-3">
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.documentNumber", "Numero"):</MudText>
+                        <MudText Typo="Typo.body1" Class="fw-semibold">#@CurrentDocument.Number</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino"):</MudText>
+                        <MudText Typo="Typo.body1" Class="fw-semibold">@CurrentDocument.WarehouseName</MudText>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.items", "Articoli"):</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@CurrentDocument.TotalItems</MudChip>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("warehouse.openSince", "Aperto da"):</MudText>
+                        <MudText Typo="Typo.body1">@GetSessionDuration(CurrentDocument.CreatedAt)</MudText>
+                    </MudItem>
+                </MudGrid>
+
+                <!-- 4 Azioni Rapide -->
+                <MudText Typo="Typo.subtitle2" Class="mb-2" Color="Color.Warning">
+                    @TranslationService.GetTranslation("warehouse.whatToDoBeforeSwitch", "Prima di cambiare, cosa vuoi fare?")
+                </MudText>
+                <MudGrid Spacing="2">
+                    <MudItem xs="6">
+                        <MudButton StartIcon="@Icons.Material.Outlined.SaveAlt"
+                                   Color="Color.Success"
+                                   Variant="Variant.Filled"
+                                   FullWidth="true"
+                                   OnClick="@FinalizeCurrentAndClose">
+                            @TranslationService.GetTranslation("warehouse.finalizeAndClose", "Finalizza e Chiudi")
+                        </MudButton>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudButton StartIcon="@Icons.Material.Outlined.PauseCircle"
+                                   Color="Color.Info"
+                                   Variant="Variant.Filled"
+                                   FullWidth="true"
+                                   OnClick="@PauseAndSwitch">
+                            @TranslationService.GetTranslation("warehouse.pauseAndSwitch", "Metti in Pausa")
+                        </MudButton>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudButton StartIcon="@Icons.Material.Outlined.DeleteForever"
+                                   Color="Color.Error"
+                                   Variant="Variant.Filled"
+                                   FullWidth="true"
+                                   OnClick="@CloseWithoutSaving">
+                            @TranslationService.GetTranslation("warehouse.closeWithoutSaving", "Chiudi Senza Salvare")
+                        </MudButton>
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudButton StartIcon="@Icons.Material.Outlined.ArrowBack"
+                                   Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   FullWidth="true"
+                                   OnClick="@ContinueWorking">
+                            @TranslationService.GetTranslation("warehouse.continueWorking", "Continua a Lavorare")
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudDivider Class="my-4" />
+
+            <!-- Lista Altri Inventari -->
+            @if (OtherInventories.Count > 0)
+            {
+                <MudText Typo="Typo.h6" Class="mb-3">
+                    <MudIcon Icon="@Icons.Material.Outlined.FolderOpen" Class="mr-2" />
+                    @TranslationService.GetTranslation("warehouse.otherOpenInventories", "Altri Inventari Aperti") (@OtherInventories.Count)
+                </MudText>
+
+                <MudDataGrid T="InventoryDocumentDto"
+                             Items="@OtherInventories"
+                             Dense="true"
+                             Hover="true"
+                             ReadOnly="true">
+                    <Columns>
+                        <PropertyColumn Property="x => x.Number" Title="@TranslationService.GetTranslation("warehouse.documentNumber", "Numero")" />
+                        <PropertyColumn Property="x => x.WarehouseName" Title="@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")" />
+                        <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.items", "Articoli")">
+                            <CellTemplate>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.Item.TotalItems</MudChip>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="@TranslationService.GetTranslation("warehouse.openSince", "Aperto da")">
+                            <CellTemplate>
+                                <MudText Typo="Typo.body2">@GetSessionDuration(context.Item.CreatedAt)</MudText>
+                            </CellTemplate>
+                        </TemplateColumn>
+                        <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")" Sortable="false">
+                            <CellTemplate>
+                                <MudStack Row="true" Spacing="1">
+                                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.viewInventory", "Visualizza")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Visibility"
+                                                       Color="Color.Info"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => ViewInventory(context.Item))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.switchTo", "Passa a Questo")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz"
+                                                       Color="Color.Primary"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => ResumeInventory(context.Item))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Check"
+                                                       Color="Color.Success"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => FinalizeInventory(context.Item))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("warehouse.closeWithoutSaving", "Chiudi senza salvare")">
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                                       Color="Color.Error"
+                                                       Size="Size.Small"
+                                                       OnClick="@(() => CancelInventory(context.Item))" />
+                                    </MudTooltip>
+                                </MudStack>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    </Columns>
+                </MudDataGrid>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    @TranslationService.GetTranslation("warehouse.noOtherInventories", "Nessun altro inventario aperto")
+                </MudAlert>
+            }
+        }
+    </ChildContent>
+    
+    <DialogActions>
+        @if (Mode == InventoryDialogMode.InitialCheck)
+        {
+            @if (_selectedInventories.Count >= 2)
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.MergeType"
+                           Color="Color.Warning"
+                           Variant="Variant.Outlined"
+                           OnClick="OpenMergeDialog">
+                    @TranslationService.GetTranslation("warehouse.mergeSelected", "Accorpa {0} Inventari", _selectedInventories.Count)
+                </MudButton>
+            }
+            <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                       Color="Color.Primary"
+                       Variant="Variant.Filled"
+                       OnClick="@StartNewInventory">
+                @TranslationService.GetTranslation("warehouse.startNewInventory", "Avvia Nuovo Inventario")
+            </MudButton>
+            <MudSpacer />
+            <MudButton StartIcon="@Icons.Material.Outlined.DoneAll"
+                       Color="Color.Success"
+                       Variant="Variant.Outlined"
+                       OnClick="@FinalizeAll">
+                @TranslationService.GetTranslation("warehouse.finalizeAll", "Finalizza Tutti")
+            </MudButton>
+            <MudButton StartIcon="@Icons.Material.Outlined.CancelPresentation"
+                       Color="Color.Error"
+                       Variant="Variant.Outlined"
+                       OnClick="@CancelAll">
+                @TranslationService.GetTranslation("warehouse.closeAllWithoutSaving", "Chiudi Tutti")
+            </MudButton>
+        }
+        else if (Mode == InventoryDialogMode.SwitchInventory)
+        {
+            <MudButton Color="Color.Default"
+                       Variant="Variant.Text"
+                       OnClick="@Cancel">
+                @TranslationService.GetTranslation("common.cancel", "Annulla")
+            </MudButton>
+            <MudSpacer />
+            @if (OtherInventories.Count > 0)
+            {
+                <MudButton StartIcon="@Icons.Material.Outlined.DoneAll"
+                           Color="Color.Success"
+                           Variant="Variant.Outlined"
+                           OnClick="@FinalizeAll">
+                    @TranslationService.GetTranslation("warehouse.finalizeAll", "Finalizza Tutti")
+                </MudButton>
+            }
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public InventoryDialogMode Mode { get; set; } = InventoryDialogMode.InitialCheck;
+
+    [Parameter]
+    public InventoryDocumentDto? CurrentDocument { get; set; }
+
+    [Parameter]
+    public List<InventoryDocumentDto> AllOpenInventories { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnInventoryResumed { get; set; }
+
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnInventoryFinalized { get; set; }
+
+    [Parameter]
+    public EventCallback<InventoryDocumentDto> OnInventoryCancelled { get; set; }
+
+    [Parameter]
+    public EventCallback OnFinalizeAllRequested { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelAllRequested { get; set; }
+
+    // Cache for other inventories to avoid recreating list on every access
+    private List<InventoryDocumentDto>? _cachedOtherInventories;
+    
+    // Multi-selection support for merge functionality
+    private HashSet<InventoryDocumentDto> _selectedInventories = new();
+    
+    /// <summary>
+    /// Lista inventari escluso quello corrente (cached for performance)
+    /// </summary>
+    private List<InventoryDocumentDto> OtherInventories
+    {
+        get
+        {
+            // Recalculate if not cached yet
+            if (_cachedOtherInventories == null)
+            {
+                _cachedOtherInventories = AllOpenInventories
+                    .Where(i => CurrentDocument == null || i.Id != CurrentDocument.Id)
+                    .ToList();
+            }
+            return _cachedOtherInventories;
+        }
+    }
+
+    /// <summary>
+    /// Calcola la durata della sessione in formato leggibile
+    /// </summary>
+    private string GetSessionDuration(DateTime startTime)
+    {
+        var duration = DateTime.UtcNow - startTime;
+        
+        if (duration.TotalDays >= 1)
+        {
+            int days = (int)duration.TotalDays;
+            int hours = duration.Hours;
+            // Use 'd' for days abbreviation (more universal than 'g')
+            return $"{days}d {hours}h";
+        }
+        else if (duration.TotalHours >= 1)
+        {
+            int hours = (int)duration.TotalHours;
+            int minutes = duration.Minutes;
+            return $"{hours}h {minutes}m";
+        }
+        else
+        {
+            int minutes = (int)duration.TotalMinutes;
+            // Show at least 1m for very recent sessions
+            return minutes > 0 ? $"{minutes}m" : "<1m";
+        }
+    }
+
+    // ========== Azioni per InitialCheck Mode ==========
+    
+    private async Task ViewInventory(InventoryDocumentDto inventory)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "DocumentId", inventory.Id }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<InventoryViewDialog>(
+                TranslationService.GetTranslation("warehouse.inventoryDetails", "Dettagli Inventario"),
+                parameters,
+                options
+            );
+
+            var result = await dialog.Result;
+            
+            // Se l'inventario è stato finalizzato dal dialog di visualizzazione
+            if (result?.Data is bool finalized && finalized)
+            {
+                await OnInventoryFinalized.InvokeAsync(inventory);
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in ViewInventory.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+    
+    private async Task ResumeInventory(InventoryDocumentDto inventory)
+    {
+        try
+        {
+            await OnInventoryResumed.InvokeAsync(inventory);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error resuming inventory {InventoryId}.", inventory.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.resumeInventoryFailed", "Errore nel riprendere l'inventario"));
+        }
+    }
+
+    private async Task FinalizeInventory(InventoryDocumentDto inventory)
+    {
+        try
+        {
+            await OnInventoryFinalized.InvokeAsync(inventory);
+            
+            // Rimuovi dalla lista locale
+            if (Mode == InventoryDialogMode.InitialCheck)
+            {
+                AllOpenInventories.Remove(inventory);
+            }
+            else if (Mode == InventoryDialogMode.SwitchInventory)
+            {
+                OtherInventories.Remove(inventory);
+                _cachedOtherInventories = null; // Invalida cache
+            }
+            
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing inventory {InventoryId}.", inventory.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.finalizeInventoryFailed", "Errore nel finalizzare l'inventario"));
+        }
+    }
+
+    private async Task CancelInventory(InventoryDocumentDto inventory)
+    {
+        try
+        {
+            await OnInventoryCancelled.InvokeAsync(inventory);
+            
+            // Rimuovi dalla lista locale
+            if (Mode == InventoryDialogMode.InitialCheck)
+            {
+                AllOpenInventories.Remove(inventory);
+            }
+            else if (Mode == InventoryDialogMode.SwitchInventory)
+            {
+                OtherInventories.Remove(inventory);
+                _cachedOtherInventories = null; // Invalida cache
+            }
+            
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling inventory {InventoryId}.", inventory.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.cancelInventoryFailed", "Errore nell'annullare l'inventario"));
+        }
+    }
+
+    private async Task FinalizeAll()
+    {
+        try
+        {
+            await OnFinalizeAllRequested.InvokeAsync();
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing all inventories.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.finalizeAllFailed", "Errore nel finalizzare tutti gli inventari"));
+        }
+    }
+
+    private async Task CancelAll()
+    {
+        try
+        {
+            await OnCancelAllRequested.InvokeAsync();
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling all inventories.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.cancelAllFailed", "Errore nell'annullare tutti gli inventari"));
+        }
+    }
+
+    private void StartNewInventory()
+    {
+        // Chiude il dialog senza azione, permettendo all'utente di avviare nuovo inventario
+        MudDialog.Close(DialogResult.Ok(false));
+    }
+    
+    private async Task OpenMergeDialog()
+    {
+        if (_selectedInventories.Count < 2)
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("warehouse.mergeMinimumError", 
+                    "Seleziona almeno 2 inventari da accorpare"));
+            return;
+        }
+
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "SelectedInventories", _selectedInventories.ToList() }
+            };
+
+            var options = new DialogOptions
+            {
+                MaxWidth = MaxWidth.Medium,
+                CloseButton = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<MergeInventoriesDialog>(
+                TranslationService.GetTranslation("warehouse.mergeInventories", "Accorpa Inventari"),
+                parameters,
+                options
+            );
+
+            var result = await dialog.Result;
+            
+            if (result is { Canceled: false })
+            {
+                // Rimuovi inventari accorpati dalla lista
+                foreach (var inv in _selectedInventories.ToList())
+                {
+                    AllOpenInventories.Remove(inv);
+                }
+                
+                _selectedInventories.Clear();
+                StateHasChanged();
+                
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.mergeSuccess", 
+                        "Inventari accorpati con successo"));
+                
+                // Notifica parent per ricaricare dati
+                await OnFinalizeAllRequested.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenMergeDialog.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    // ========== Azioni Rapide per SwitchInventory Mode ==========
+    
+    private async Task FinalizeCurrentAndClose()
+    {
+        try
+        {
+            if (CurrentDocument != null)
+            {
+                await OnInventoryFinalized.InvokeAsync(CurrentDocument);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error finalizing current inventory and closing.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.finalizeCurrentFailed", "Errore nel finalizzare l'inventario corrente"));
+        }
+    }
+
+    private void PauseAndSwitch()
+    {
+        // Chiude il dialog senza fare nulla (pausa implicita)
+        MudDialog.Close(DialogResult.Ok(false));
+    }
+
+    private async Task CloseWithoutSaving()
+    {
+        try
+        {
+            if (CurrentDocument != null)
+            {
+                await OnInventoryCancelled.InvokeAsync(CurrentDocument);
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error closing without saving.");
+            AppNotification.ShowError(TranslationService.GetTranslation("error.closeWithoutSavingFailed", "Errore nella chiusura senza salvataggio"));
+        }
+    }
+
+    private void ContinueWorking()
+    {
+        // Annulla e chiude il dialog
+        MudDialog.Cancel();
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    /// <summary>
+    /// Enum per le modalità di utilizzo del dialog
+    /// </summary>
+    public enum InventoryDialogMode
+    {
+        /// <summary>
+        /// Primo accesso - nessun inventario corrente
+        /// </summary>
+        InitialCheck,
+        
+        /// <summary>
+        /// Cambio inventario - inventario corrente attivo
+        /// </summary>
+        SwitchInventory
+    }
+}

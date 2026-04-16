@@ -1,0 +1,268 @@
+@page "/store/payment-methods"
+@using Prym.Web.Services.Sales
+@attribute [Authorize]
+@inject IPaymentMethodService PaymentMethodService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject ILogger<PaymentMethodManagement> Logger
+@inject IAppNotificationService AppNotification
+
+<PageTitle>@TranslationService.GetTranslation("paymentMethod.management", "Gestione Metodi di Pagamento")</PageTitle>
+<EntityManagementPage TEntity="PaymentMethodDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      AdditionalFilter="@(p => _statusFilter == "All" || (_statusFilter == "Active" && p.IsActive) || (_statusFilter == "Inactive" && !p.IsActive))">
+    <AdditionalToolbarContent>
+        <MudSelect @bind-Value="_statusFilter"
+                   Label="@TranslationService.GetTranslation("common.status", "Stato")"
+                   Variant="Variant.Outlined"
+                   Class="ml-2 min-width-150"
+>
+            <MudSelectItem Value="@("All")">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+            <MudSelectItem Value="@("Active")">@TranslationService.GetTranslation("common.active", "Attivi")</MudSelectItem>
+            <MudSelectItem Value="@("Inactive")">@TranslationService.GetTranslation("common.inactive", "Inattivi")</MudSelectItem>
+        </MudSelect>
+    </AdditionalToolbarContent>
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Icon")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Icon">
+                    <MudText>@TranslationService.GetTranslation("field.icon", "Icona")</MudText>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Code">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Name">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Description")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Description">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "IsActive")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="IsActive">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.isActive", "Attivo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "DisplayOrder")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="DisplayOrder">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.DisplayOrder))">@TranslationService.GetTranslation("field.displayOrder", "Ordine")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "AllowsChange")
+            {
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="AllowsChange">
+                    <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.AllowsChange))">@TranslationService.GetTranslation("field.allowsChange", "Permette Resto")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120" >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Icon")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.icon", "Icona")">
+                    @if (!string.IsNullOrEmpty(ctx.Item.Icon))
+                    {
+                        <MudIcon Icon="@GetMaterialIcon(ctx.Item.Icon)" Color="Color.Primary" />
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">-</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "Code")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.code", "Codice")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Payment" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.Code</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Description")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                    <MudText Typo="Typo.body2" Class="text-truncate ef-max-400" >
+                        @(string.IsNullOrEmpty(ctx.Item.Description) ? "-" : ctx.Item.Description)
+                    </MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "IsActive")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.isActive", "Attivo")">
+                    <MudChip T="string" Size="Size.Small" Color="@(ctx.Item.IsActive ? Color.Success : Color.Default)">
+                        @(ctx.Item.IsActive ? TranslationService.GetTranslation("common.active", "Attivo") : TranslationService.GetTranslation("common.inactive", "Inattivo"))
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "DisplayOrder")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.displayOrder", "Ordine")">
+                    <MudText Typo="Typo.body2">@ctx.Item.DisplayOrder</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "AllowsChange")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.allowsChange", "Permette Resto")">
+                    <MudIcon Icon="@(ctx.Item.AllowsChange ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
+                             Color="@(ctx.Item.AllowsChange ? Color.Success : Color.Default)" />
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="item">
+        <MudTooltip Text="@TranslationService.GetTranslation("audit.viewHistory", "Cronologia Modifiche")">
+            <MudIconButton Icon="@Icons.Material.Outlined.History"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           Class="ef-row-actionbutton"
+                           OnClick="@(() => ViewPaymentMethodAuditLog(item))" />
+        </MudTooltip>
+    </AdditionalRowActions>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<PaymentMethodDto>? _entityPage;
+    private readonly DialogOptions _auditDialogOptions = new()
+    {
+        FullScreen = true,
+        CloseButton = true,
+        MaxWidth = MaxWidth.False
+    };
+
+    private string _statusFilter = "All";
+    private IEntityManagementService<PaymentMethodDto> _service = null!;
+    private EntityManagementConfig<PaymentMethodDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new PaymentMethodManagementService(PaymentMethodService);
+        _config = new EntityManagementConfig<PaymentMethodDto>
+        {
+            ComponentKey = "PaymentMethodManagement",
+            PageTitleKey = "paymentMethod.management",
+            PageTitleDefault = "Gestione Metodi di Pagamento",
+            EntityIcon = Icons.Material.Outlined.Payment,
+            PageRootCssClass = "management-page-root",
+            BaseRoute = "/store/payment-methods",
+            ExcelFileName = "MetodiPagamento",
+            SearchPlaceholderKey = "paymentMethod.search",
+            SearchPlaceholderDefault = "Cerca metodi di pagamento",
+            CreateTooltip = "paymentMethod.createNew",
+            EntityTypeName = "PaymentMethod",
+            ShowToggleStatus = false,
+            ShowAuditLog = false,
+            GetDisplayName = p => p.Name,
+            GetId = p => p.Id,
+            DeleteConfirmMessageKey = "paymentMethod.confirmDelete",
+            BulkDeleteConfirmMessageKey = "paymentMethod.confirmDeleteMultiple",
+            DeleteSuccessMessageKey = "paymentMethod.paymentMethodDeleted",
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Configurazione Store", null, disabled: true),
+                new BreadcrumbItem("Metodi di Pagamento", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "Icon", DisplayName = "Icona", IsVisible = true, Order = 0 },
+                new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 3, IsSearchable = true },
+                new() { PropertyName = "IsActive", DisplayName = "Attivo", IsVisible = true, Order = 4 },
+                new() { PropertyName = "DisplayOrder", DisplayName = "Ordine", IsVisible = true, Order = 5 },
+                new() { PropertyName = "AllowsChange", DisplayName = "Permette Resto", IsVisible = true, Order = 6 }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true },
+                new() { Id = "active", Label = "Attivi", Predicate = p => p.IsActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
+                new() { Id = "allows_change", Label = "Con Resto", Predicate = p => p.AllowsChange, Color = Color.Warning, Icon = Icons.Material.Outlined.Money }
+            }
+        };
+    }
+
+    private async Task ViewPaymentMethodAuditLog(PaymentMethodDto paymentMethod)
+    {
+        try
+        {
+            var parameters = new DialogParameters<AuditHistoryDialog>
+            {
+                { x => x.EntityType, "PaymentMethod" },
+                { x => x.EntityId, paymentMethod.Id },
+                { x => x.EntityName, paymentMethod.Name }
+            };
+
+            await DialogService.ShowAsync<AuditHistoryDialog>(
+                TranslationService.GetTranslation("audit.historyDialog.title", "Cronologia Modifiche"),
+                parameters,
+                _auditDialogOptions);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening audit log for payment method {Id}.", paymentMethod.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del registro modifiche.");
+        }
+    }
+
+    private string GetMaterialIcon(string? iconName) => iconName switch
+    {
+        "AttachMoney" => Icons.Material.Filled.AttachMoney,
+        "CreditCard" => Icons.Material.Filled.CreditCard,
+        "Payment" => Icons.Material.Filled.Payment,
+        "AccountBalance" => Icons.Material.Filled.AccountBalance,
+        "Money" => Icons.Material.Filled.Money,
+        "LocalAtm" => Icons.Material.Filled.LocalAtm,
+        _ => Icons.Material.Filled.Payment
+    };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters { [nameof(PaymentMethodDetailDialog.EntityId)] = id };
+            var dialog = await DialogService.ShowAsync<PaymentMethodDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening payment method detail dialog.");
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
+    }
+}
