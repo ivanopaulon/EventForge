@@ -1,6 +1,7 @@
 using BoldReports.Web;
 using BoldReports.Web.ReportDesigner;
 using BoldReports.Web.ReportViewer;
+using EventForge.Server.Helpers;
 using EventForge.Server.Services.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,7 +37,8 @@ public class BoldReportDesignerController(
     {
         try
         {
-            return ReportDesignerHelper.ProcessDesigner(jsonResult, this, null, memoryCache);
+            var normalised = BoldReportsJsonHelper.NormaliseJsonElements(jsonResult);
+            return ReportDesignerHelper.ProcessDesigner(normalised, this, null, memoryCache);
         }
         catch (Exception ex)
         {
@@ -126,12 +128,40 @@ public class BoldReportDesignerController(
     }
 
     /// <summary>
-    /// Writes a resource to storage. Report RDLC saving is delegated to PUT /api/v1/reports/{id}.
+    /// Writes a resource to storage. When the key is a valid report GUID and the
+    /// payload contains RDLC bytes the content is persisted to the database.
     /// </summary>
     public bool SetData(string key, string resourceType, ItemInfo itemContent, out string errMsg)
     {
         errMsg = string.Empty;
-        return true;
+
+        if (itemContent?.Data == null || itemContent.Data.Length == 0)
+            return true;
+
+        if (!Guid.TryParse(key, out var reportId))
+            return true;
+
+        try
+        {
+            var rdlcContent = System.Text.Encoding.UTF8.GetString(itemContent.Data);
+            var saved = Task.Run(() => reportService.SaveReportContentAsync(reportId, rdlcContent))
+                            .GetAwaiter().GetResult();
+
+            if (!saved)
+            {
+                errMsg = $"Report {reportId} not found or not accessible.";
+                logger.LogWarning("SetData: report {ReportId} not found for tenant", reportId);
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "SetData failed for report {ReportId}", reportId);
+            errMsg = ex.Message;
+            return false;
+        }
     }
 
     // ── IReportController (required by IReportDesignerController) ────────────
@@ -143,7 +173,8 @@ public class BoldReportDesignerController(
     {
         try
         {
-            return ReportHelper.ProcessReport(jsonResult, this, memoryCache);
+            var normalised = BoldReportsJsonHelper.NormaliseJsonElements(jsonResult);
+            return ReportHelper.ProcessReport(normalised, this, memoryCache);
         }
         catch (Exception ex)
         {

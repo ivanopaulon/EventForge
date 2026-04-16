@@ -40,6 +40,12 @@ public interface IReportDefinitionService
     Task<ReportDefinitionDto?> UpdateReportAsync(Guid id, UpdateReportDto dto, CancellationToken ct = default);
 
     /// <summary>
+    /// Persists raw RDLC content for an existing report definition.
+    /// Used by the Bold Reports designer service (SetData) to store the design bytes.
+    /// </summary>
+    Task<bool> SaveReportContentAsync(Guid id, string rdlcContent, CancellationToken ct = default);
+
+    /// <summary>
     /// Soft-deletes a report definition.
     /// </summary>
     Task<bool> DeleteReportAsync(Guid id, CancellationToken ct = default);

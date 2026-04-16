@@ -1,5 +1,6 @@
 using BoldReports.Web;
 using BoldReports.Web.ReportViewer;
+using EventForge.Server.Helpers;
 using EventForge.Server.Services.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -33,7 +34,8 @@ public class BoldReportViewerController(
     {
         try
         {
-            return ReportHelper.ProcessReport(jsonResult, this, memoryCache);
+            var normalised = BoldReportsJsonHelper.NormaliseJsonElements(jsonResult);
+            return ReportHelper.ProcessReport(normalised, this, memoryCache);
         }
         catch (Exception ex)
         {
