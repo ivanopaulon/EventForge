@@ -13,7 +13,7 @@ public class ReportManagementService(IReportDefinitionService reportService) : I
         var result = await reportService.GetReportsAsync(
             searchTerm: searchTerm,
             page: page,
-            pageSize: pageSize,
+            pageSize: Math.Clamp(pageSize, 1, 10_000),
             ct: ct);
         return result ?? new PagedResult<ReportListItemDto>();
     }
