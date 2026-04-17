@@ -33,6 +33,7 @@ public class BoldReportDesignerController(
     /// Called by the Bold Reports JavaScript ReportDesigner on every interaction.
     /// </summary>
     [HttpPost]
+    [HttpPost("PostDesignerAction")]
     public object PostDesignerAction([FromBody] Dictionary<string, object> jsonResult)
     {
         try

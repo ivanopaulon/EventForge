@@ -51,8 +51,8 @@ public class PromotionClientService(
     {
         try
         {
-            var result = await httpClientService.GetAsync<IEnumerable<PromotionDto>>($"{BaseUrl}/active", ct);
-            return result ?? Enumerable.Empty<PromotionDto>();
+            var result = await httpClientService.GetAsync<PagedResult<PromotionDto>>($"{BaseUrl}?page=1&pageSize=1000", ct);
+            return result?.Items?.Where(p => p.IsCurrentlyActive) ?? Enumerable.Empty<PromotionDto>();
         }
         catch (Exception ex)
         {

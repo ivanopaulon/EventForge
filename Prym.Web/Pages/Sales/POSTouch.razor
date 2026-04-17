@@ -23,6 +23,7 @@
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IFiscalDrawerService FiscalDrawerService
 @inject ILogger<POSTouch> Logger
+@inject NavigationManager NavigationManager
 
 <PageTitle>@TranslationService.GetTranslation("sales.postouch", "Cassa Touch")</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading"
@@ -1131,7 +1132,7 @@ else
         try
         {
             _fiscalHubConnection = new HubConnectionBuilder()
-                .WithUrl(FiscalPrinterHubUrl)
+                .WithUrl(NavigationManager.ToAbsoluteUri(FiscalPrinterHubUrl))
                 .WithAutomaticReconnect()
                 .Build();
 

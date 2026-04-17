@@ -18,24 +18,6 @@ public class StorePosService(
     {
         try
         {
-            // Try non-paginated endpoint first for better performance
-            try
-            {
-                var activeEndpoint = ApiBase.Replace("/pos", "") + "/active";
-                var activeResponse = await httpClient.GetAsync(activeEndpoint, ct);
-                if (activeResponse.IsSuccessStatusCode)
-                {
-                    var activePosResult = await activeResponse.Content.ReadFromJsonAsync<List<StorePosDto>>();
-                    logger.LogDebug("Successfully fetched POS terminals from /active endpoint");
-                    return activePosResult ?? [];
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogDebug(ex, "Non-paginated /active endpoint not available, falling back to paginated endpoint");
-            }
-
-            // Fallback to paginated endpoint with reduced pageSize
             var response = await httpClient.GetAsync($"{ApiBase}?page=1&pageSize=100", ct);
 
             if (!response.IsSuccessStatusCode)

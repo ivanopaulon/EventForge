@@ -61,7 +61,7 @@ public class ProductService(
     {
         try
         {
-            return await httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}/detail", ct);
+            return await httpClientService.GetAsync<ProductDto>($"{BaseUrl}/{id}", ct);
         }
         catch (HttpRequestException)
         {

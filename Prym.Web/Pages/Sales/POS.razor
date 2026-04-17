@@ -21,6 +21,7 @@
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IFiscalDrawerService FiscalDrawerService
 @inject ILogger<POS> Logger
+@inject NavigationManager NavigationManager
 
 <PageTitle>@TranslationService.GetTranslation("sales.pos", "Punto Vendita")</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading" 
@@ -1283,7 +1284,7 @@
         try
         {
             _fiscalHubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/fiscal-printer"))
                 .WithAutomaticReconnect()
                 .Build();
 

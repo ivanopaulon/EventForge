@@ -43,9 +43,7 @@ public class NoteFlagService(
 
         try
         {
-            var pagedResult = await httpClientService.GetAsync<PagedResult<NoteFlagDto>>($"{BaseUrl}/active", ct);
-
-            var activeNoteFlags = pagedResult?.Items?.ToList() ?? [];
+            var activeNoteFlags = await httpClientService.GetAsync<List<NoteFlagDto>>($"{BaseUrl}/active", ct) ?? [];
 
             // Store in cache (60 minutes - LongCache)
             cache.Set(

@@ -305,7 +305,7 @@ public class ChatService : IChatService
     {
         try
         {
-            _ = await _httpClientService.PatchAsync<object, object>($"api/v1/chat/{chatId}/read", new { }, cancellationToken);
+            _ = await _httpClientService.PostAsync<object, object>($"api/v1/chat/{chatId}/messages/read-all", new { }, cancellationToken);
             return true;
         }
         catch (Exception ex)
