@@ -8,7 +8,7 @@
         "DebugTarget": "https"
       },
       {
-        "Path": "EventForge.Client\\EventForge.Client.csproj",
+        "Path": "Prym.Web\\Prym.Web.csproj",
         "Action": "Start",
         "DebugTarget": "https"
       },
