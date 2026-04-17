@@ -176,8 +176,14 @@
 
     private async Task Submit()
     {
+        if (_form == null)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
         await _form.ValidateAsync();
-        if (_form == null || !_form.IsValid)
+        if (!_form.IsValid)
         {
             AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
             return;
