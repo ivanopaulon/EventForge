@@ -154,6 +154,15 @@ public interface IFiscalPrinterService
     // ── Daily closure workflow ────────────────────────────────────────────────
 
     /// <summary>
+    /// Lightweight "morning check": returns whether the previous business day's closure
+    /// was performed. This is a DB-only query (no printer hardware communication) and
+    /// is safe to call even when the printer is offline.
+    /// </summary>
+    Task<PreviousDayClosureStatusDto> GetPreviousDayClosureStatusAsync(
+        Guid printerId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Checks whether it is safe to execute the daily fiscal closure for the specified printer.
     /// Returns a summary of today's receipts and warns if an open receipt exists.
     /// </summary>

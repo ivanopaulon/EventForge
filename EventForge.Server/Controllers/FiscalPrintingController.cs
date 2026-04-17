@@ -860,6 +860,33 @@ public class FiscalPrintingController(
     // -------------------------------------------------------------------------
 
     /// <summary>
+    /// Lightweight "morning check": returns whether the previous business day's daily
+    /// closure was performed. DB-only — safe to call even when the printer is offline.
+    /// </summary>
+    [HttpGet("daily-closure/morning-check/{printerId:guid}")]
+    [ProducesResponseType(typeof(PreviousDayClosureStatusDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PreviousDayClosureStatusDto>> GetPreviousDayClosureStatusAsync(
+        Guid printerId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogDebug(
+                "GetPreviousDayClosureStatusAsync | PrinterId={PrinterId} User={User}",
+                printerId, GetCurrentUser());
+
+            var status = await fiscalPrinterService.GetPreviousDayClosureStatusAsync(printerId, cancellationToken);
+            return Ok(status);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                $"Unexpected error checking previous-day closure status for printer {printerId}.", ex);
+        }
+    }
+
+    /// <summary>
     /// Returns a pre-check summary for the daily fiscal closure of the specified printer.
     /// Includes whether there is an open receipt (blocks closure), drawer state, and
     /// today's receipt/total summary.

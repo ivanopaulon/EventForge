@@ -70,6 +70,12 @@ public interface IFiscalPrintingService
     /// <summary>Returns pre-check data before executing the daily closure.</summary>
     Task<DailyClosurePreCheckDto?> GetDailyClosurePreCheckAsync(Guid printerId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Lightweight "morning check": returns whether the previous business day's daily closure
+    /// was performed. DB-only — safe to call even when the printer is offline.
+    /// </summary>
+    Task<PreviousDayClosureStatusDto?> GetPreviousDayClosureStatusAsync(Guid printerId, CancellationToken ct = default);
+
     /// <summary>Executes the daily fiscal closure (Z-report) for the specified printer.</summary>
     Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(Guid printerId, CancellationToken ct = default);
 

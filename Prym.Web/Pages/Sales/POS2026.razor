@@ -39,6 +39,36 @@
 
 <div class="pos2026-wrap">
 
+    @* ===== BANNER AVVISO CHIUSURA GIORNALIERA MANCANTE ===== *@
+    @if (_previousDayClosureMissing && _fiscalPrinterId.HasValue)
+    {
+        <MudAlert Severity="Severity.Error"
+                  Icon="@Icons.Material.Filled.Warning"
+                  Class="pos2026-closure-banner"
+                  ShowCloseIcon="false"
+                  Dense="false">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2">
+                        ⛔ Chiusura Giornaliera Mancante
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        La chiusura fiscale del giorno precedente
+                        @(_lastClosureDate.HasValue
+                            ? $"(ultima: {_lastClosureDate.Value.ToLocalTime():dd/MM/yyyy})"
+                            : "(nessuna chiusura registrata)")
+                        non è stata eseguita. Eseguire la chiusura prima di iniziare nuove vendite.
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                           OnClick="@OpenDailyClosureDialogAsync"
+                           StartIcon="@Icons.Material.Filled.EventNote">
+                    Esegui Chiusura
+                </MudButton>
+            </MudStack>
+        </MudAlert>
+    }
+
     @* ===== COLONNA SINISTRA ===== *@
     <div class="pos2026-left">
 

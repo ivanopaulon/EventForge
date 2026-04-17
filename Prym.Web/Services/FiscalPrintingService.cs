@@ -338,6 +338,22 @@ public class FiscalPrintingService(
     }
 
     /// <inheritdoc />
+    public async Task<PreviousDayClosureStatusDto?> GetPreviousDayClosureStatusAsync(
+        Guid printerId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<PreviousDayClosureStatusDto>(
+                $"{BaseUrl}/daily-closure/morning-check/{printerId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetPreviousDayClosureStatusAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(
         Guid printerId, CancellationToken ct = default)
     {

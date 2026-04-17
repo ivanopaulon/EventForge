@@ -200,6 +200,31 @@ public sealed class FiscalPrinterServiceRouter(
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// DB-only check – implemented directly in the router; does not delegate to
+    /// printer-protocol-specific implementations.
+    /// </remarks>
+    public async Task<PreviousDayClosureStatusDto> GetPreviousDayClosureStatusAsync(
+        Guid printerId, CancellationToken ct = default)
+    {
+        var previousDay = DateTime.UtcNow.Date.AddDays(-1);
+
+        var lastClosure = await context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.PrinterId == printerId && !r.IsDeleted)
+            .OrderByDescending(r => r.ClosedAt)
+            .Select(r => (DateTime?)r.ClosedAt)
+            .FirstOrDefaultAsync(ct);
+
+        return new PreviousDayClosureStatusDto
+        {
+            PreviousBusinessDay = previousDay,
+            LastClosureDate = lastClosure,
+            IsPreviousDayClosureMissing = lastClosure == null || lastClosure.Value.Date < previousDay
+        };
+    }
+
+    /// <inheritdoc />
     public async Task<DailyClosurePreCheckDto> GetDailyClosurePreCheckAsync(
         Guid printerId, CancellationToken ct = default)
     {

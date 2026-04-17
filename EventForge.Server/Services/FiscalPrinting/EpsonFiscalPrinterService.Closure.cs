@@ -13,6 +13,13 @@ public partial class EpsonFiscalPrinterService
     // -------------------------------------------------------------------------
 
     /// <inheritdoc />
+    /// <remarks>DB-only operation – implemented in <see cref="FiscalPrinterServiceRouter"/>; not delegated here.</remarks>
+    public Task<PreviousDayClosureStatusDto> GetPreviousDayClosureStatusAsync(
+        Guid printerId, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException(
+            "GetPreviousDayClosureStatusAsync must be called through FiscalPrinterServiceRouter.");
+
+    /// <inheritdoc />
     /// <remarks>
     /// For Epson TM-series receipt printers there is no hardware Z-closure command.
     /// <see cref="DailyClosureAsync"/> prints a Z-report summary document on the

@@ -28,6 +28,34 @@
 
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    @* Banner avviso chiusura giornaliera del giorno precedente mancante *@
+    @if (_previousDayClosureMissing && _fiscalPrinterId.HasValue)
+    {
+        <MudAlert Severity="Severity.Error"
+                  Icon="@Icons.Material.Filled.Warning"
+                  Class="mb-3"
+                  ShowCloseIcon="false">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2">⛔ Chiusura Giornaliera Mancante</MudText>
+                    <MudText Typo="Typo.body2">
+                        La chiusura fiscale del giorno precedente
+                        @(_lastClosureDate.HasValue
+                            ? $"(ultima: {_lastClosureDate.Value.ToLocalTime():dd/MM/yyyy})"
+                            : "(nessuna chiusura registrata)")
+                        non è stata eseguita. Eseguire la chiusura prima di iniziare nuove vendite.
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                           OnClick="@OpenDailyClosureDialogAsync"
+                           StartIcon="@Icons.Material.Filled.EventNote">
+                    Esegui Chiusura
+                </MudButton>
+            </MudStack>
+        </MudAlert>
+    }
+
     <!-- Page Title -->
     <MudText Typo="Typo.h4" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" Size="Size.Medium" />
@@ -1160,6 +1188,8 @@
                 await ConnectFiscalHubAsync();
                 // Load fiscal drawer for the current POS/operator selection
                 await LoadFiscalDrawerAsync();
+                // Controllo mattutino: verifica che la chiusura del giorno precedente sia stata eseguita.
+                await CheckPreviousDayClosureAsync();
             }
         }
         catch (Exception ex)
@@ -1273,6 +1303,10 @@
     /// <summary>SignalR connection for real-time fiscal printer status updates.</summary>
     private HubConnection? _fiscalHubConnection;
 
+    /// <summary>Set to <c>true</c> when the DB check at startup detects a missing previous-day closure.</summary>
+    private bool _previousDayClosureMissing = false;
+    private DateTime? _lastClosureDate = null;
+
     /// <summary>
     /// Connects to the fiscal printer SignalR hub and subscribes to the printer
     /// assigned to this POS station. Only called when <see cref="_fiscalPrinterId"/> is set.
@@ -1346,6 +1380,38 @@
             Logger.LogWarning(ex, "POS: could not load fiscal drawer summary");
         }
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Controllo mattutino: verifica via DB (nessuna comunicazione hardware) se la chiusura
+    /// del giorno precedente è stata eseguita.
+    /// </summary>
+    private async Task CheckPreviousDayClosureAsync()
+    {
+        if (!_fiscalPrinterId.HasValue) return;
+        try
+        {
+            var status = await FiscalPrintingService.GetPreviousDayClosureStatusAsync(_fiscalPrinterId.Value);
+            if (status != null)
+            {
+                _previousDayClosureMissing = status.IsPreviousDayClosureMissing;
+                _lastClosureDate = status.LastClosureDate;
+
+                if (_previousDayClosureMissing)
+                {
+                    Logger.LogWarning(
+                        "POS: chiusura mancante per il {PreviousDay} | Ultima chiusura: {LastClosure} | PrinterId={PrinterId}",
+                        status.PreviousBusinessDay.ToString("dd/MM/yyyy"),
+                        status.LastClosureDate?.ToString("dd/MM/yyyy HH:mm") ?? "mai",
+                        _fiscalPrinterId.Value);
+                }
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS: impossibile verificare la chiusura del giorno precedente.");
+        }
     }
 
     private async Task OpenDrawerSessionAsync()

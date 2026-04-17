@@ -9,6 +9,13 @@ namespace EventForge.Server.Services.FiscalPrinting;
 public partial class CustomFiscalPrinterService
 {
     /// <inheritdoc />
+    /// <remarks>DB-only operation – implemented in <see cref="FiscalPrinterServiceRouter"/>; not delegated here.</remarks>
+    public Task<PreviousDayClosureStatusDto> GetPreviousDayClosureStatusAsync(
+        Guid printerId, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException(
+            "GetPreviousDayClosureStatusAsync must be called through FiscalPrinterServiceRouter.");
+
+    /// <inheritdoc />
     public async Task<FiscalPrintResult> DailyClosureAsync(
         Guid printerId,
         CancellationToken cancellationToken = default)
