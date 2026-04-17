@@ -374,6 +374,68 @@ public sealed class FiscalReceiptBuilder
             .StartCommand(CustomProtocolCommands.CMD_READ_STATUS)
             .Build();
 
+    /// <summary>
+    /// Builds the <c>CMD_SUBTOTAL</c> ("03") command frame.
+    /// Instructs the printer to compute and display the running subtotal of items printed so far.
+    /// Send this after all items and before <c>CMD_PAYMENT</c> when a printed subtotal is required.
+    /// </summary>
+    public byte[] BuildSubtotalCommand()
+        => new CustomCommandBuilder()
+            .StartCommand(CustomProtocolCommands.CMD_SUBTOTAL)
+            .Build();
+
+    /// <summary>
+    /// Builds the <c>CMD_READ_DAILY_CLOSURE</c> ("51") command frame.
+    /// Reads back the daily totals stored in the printer's fiscal memory (non-destructive).
+    /// Use this to retrieve Z-report data without performing a new closure.
+    /// </summary>
+    public byte[] BuildReadDailyClosureCommand()
+        => new CustomCommandBuilder()
+            .StartCommand(CustomProtocolCommands.CMD_READ_DAILY_CLOSURE)
+            .Build();
+
+    /// <summary>
+    /// Builds the <c>CMD_READ_DATETIME</c> ("11") command frame.
+    /// Requests the current date/time as stored by the printer's real-time clock.
+    /// The printer returns a data frame whose payload contains the date and time string.
+    /// </summary>
+    public byte[] BuildReadDateTimeCommand()
+        => new CustomCommandBuilder()
+            .StartCommand(CustomProtocolCommands.CMD_READ_DATETIME)
+            .Build();
+
+    /// <summary>
+    /// Builds the sequence of <c>CMD_PRINT_DESCRIPTIVE</c> ("20") frames that print
+    /// a Z-report summary document on the Custom printer without triggering a new hardware
+    /// Z-closure. Use this for reprint operations (<c>ReprintZReportAsync</c>).
+    /// </summary>
+    /// <param name="closure">Closure data to render.</param>
+    /// <returns>Ordered list of <c>CMD_PRINT_DESCRIPTIVE</c> frames ready for transmission.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="closure"/> is null.</exception>
+    public IReadOnlyList<byte[]> BuildPrintZReportSummarySequence(DailyClosureResultDto closure)
+    {
+        ArgumentNullException.ThrowIfNull(closure);
+
+        var lines = new List<string>
+        {
+            "*** RISTAMPA CHIUSURA GIORNALIERA ***",
+            $"Data:      {closure.ClosedAt:dd/MM/yyyy HH:mm}",
+            $"Operatore: {Truncate(closure.Operator ?? "-", 30)}",
+        };
+
+        if (closure.ZReportNumber > 0)
+            lines.Add($"Numero Z:  {closure.ZReportNumber:D4}");
+
+        lines.Add(new string('-', MaxDescriptiveLineLength));
+        lines.Add(PadRight("N. scontrini:", $"{closure.ReceiptCount}"));
+        lines.Add(PadRight("Totale:", $"EUR {closure.TotalAmount:F2}"));
+        lines.Add(PadRight("di cui contanti:", $"EUR {closure.CashAmount:F2}"));
+        lines.Add(PadRight("di cui elettronico:", $"EUR {closure.TotalAmount - closure.CashAmount:F2}"));
+        lines.Add(new string('-', MaxDescriptiveLineLength));
+
+        return BuildDescriptiveLines(lines);
+    }
+
     // -------------------------------------------------------------------------
     //  Private helpers
     // -------------------------------------------------------------------------
@@ -393,5 +455,23 @@ public sealed class FiscalReceiptBuilder
                 .Build());
         }
         return frames;
+    }
+
+    /// <summary>Truncates <paramref name="text"/> to at most <paramref name="maxLength"/> characters.</summary>
+    private static string Truncate(string? text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return text.Length > maxLength ? text[..maxLength] : text;
+    }
+
+    /// <summary>
+    /// Formats a two-column label+value line padded to <see cref="MaxDescriptiveLineLength"/> characters.
+    /// </summary>
+    private static string PadRight(string label, string value)
+    {
+        int valueWidth = value.Length + 1;
+        int labelWidth = MaxDescriptiveLineLength - valueWidth;
+        string paddedLabel = label.Length > labelWidth ? label[..labelWidth] : label.PadRight(labelWidth);
+        return paddedLabel + value;
     }
 }

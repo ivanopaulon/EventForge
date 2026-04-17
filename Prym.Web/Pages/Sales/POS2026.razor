@@ -69,6 +69,21 @@
         </MudAlert>
     }
 
+    @* ===== BANNER INFORMATIVO: NESSUNA STAMPANTE FISCALE CONFIGURATA ===== *@
+    @if (_noPrinterConfigured)
+    {
+        <MudAlert Severity="Severity.Info"
+                  Icon="@Icons.Material.Filled.PrintDisabled"
+                  Class="pos2026-closure-banner"
+                  ShowCloseIcon="false"
+                  Dense="true">
+            <MudText Typo="Typo.body2">
+                ℹ️ Nessuna stampante fiscale configurata per questo punto cassa. La verifica della chiusura giornaliera non è disponibile.
+                Configura la stampante nelle impostazioni POS per abilitare la stampa fiscale.
+            </MudText>
+        </MudAlert>
+    }
+
     @* ===== COLONNA SINISTRA ===== *@
     <div class="pos2026-left">
 

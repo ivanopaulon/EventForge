@@ -157,7 +157,17 @@ public partial class CustomFiscalPrinterService
                 .Select(p => new { p.Id, p.Name, p.TenantId })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var zNumber = int.TryParse(printResult.ReceiptNumber, out var n) ? n : 0;
+            // Get next Z-number by incrementing the last one from DB.
+            // printResult.ReceiptNumber is not populated by the Custom protocol response
+            // and therefore cannot be relied upon for Z-numbering.
+            var lastZNumber = await context.DailyClosureRecords
+                .AsNoTracking()
+                .Where(r => r.PrinterId == printerId && !r.IsDeleted)
+                .OrderByDescending(r => r.ZReportNumber)
+                .Select(r => (int?)r.ZReportNumber)
+                .FirstOrDefaultAsync(cancellationToken) ?? 0;
+
+            var zNumber = lastZNumber + 1;
             var closedAt = DateTime.UtcNow;
 
             // Aggregate POS data: find all SaleSession closed today on POSes linked to this printer
@@ -295,6 +305,12 @@ public partial class CustomFiscalPrinterService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The Custom protocol does not have a dedicated reprint-Z command.
+    /// This method prints a descriptive summary of the stored closure using
+    /// non-fiscal <c>CMD_PRINT_DESCRIPTIVE</c> ("20") lines so that the operator
+    /// gets a paper copy without triggering a new hardware Z-closure.
+    /// </remarks>
     public async Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId,
         CancellationToken cancellationToken = default)
@@ -316,13 +332,29 @@ public partial class CustomFiscalPrinterService
                 };
             }
 
-            logger.LogInformation("ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, record.PrinterId);
+            logger.LogInformation(
+                "Custom ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}",
+                closureId, record.PrinterId);
 
-            // The Custom protocol reprint command is the standard DailyClosure command
-            return await DailyClosureAsync(record.PrinterId, cancellationToken);
+            var closureDto = new DailyClosureResultDto
+            {
+                Success = true,
+                ClosureId = record.Id,
+                ZReportNumber = record.ZReportNumber,
+                ClosedAt = record.ClosedAt,
+                ReceiptCount = record.ReceiptCount,
+                TotalAmount = record.TotalAmount,
+                CashAmount = record.CashAmount,
+                Operator = record.Operator
+            };
+
+            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            var sequence = _builder.BuildPrintZReportSummarySequence(closureDto);
+            return await ExecuteSequenceAsync(channel, sequence, record.PrinterId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Custom ReprintZReportAsync failed | ClosureId={ClosureId}", closureId);
             throw;
         }
     }

@@ -190,9 +190,17 @@ public partial class EpsonFiscalPrinterService
 
         int zNumber = lastZNumber + 1;
 
+        // Load TenantId from the printer entity for the closure record
+        var tenantId = await context.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == printerId && !p.IsDeleted)
+            .Select(p => (Guid?)p.TenantId)
+            .FirstOrDefaultAsync(cancellationToken) ?? Guid.Empty;
+
         var record = new Data.Entities.FiscalPrinting.DailyClosureRecord
         {
             PrinterId = printerId,
+            TenantId = tenantId,
             ZReportNumber = zNumber,
             ClosedAt = closedAt,
             ReceiptCount = receiptCount,

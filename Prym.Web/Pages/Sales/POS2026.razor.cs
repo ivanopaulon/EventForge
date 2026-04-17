@@ -84,6 +84,7 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Morning closure check ---
     private bool _previousDayClosureMissing = false;
+    private bool _noPrinterConfigured = false;
     private DateTime? _lastClosureDate = null;
 
     // --- Keyboard shortcuts JS (stesso pattern di POS.razor) ---
@@ -106,11 +107,10 @@ public partial class POS2026 : IAsyncDisposable
 
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
-            // ViewModel init e caricamento dati in parallelo: riduce il tempo di avvio
-            // della schermata di ~50% rispetto alla sequenza precedente.
-            // I task di dati (prodotti, nodi, tavoli, flag) non dipendono dal ViewModel.
+
+            await ViewModel.InitializeAsync(username);
+
             await Task.WhenAll(
-                ViewModel.InitializeAsync(username),
                 LoadProductsAndBestSellersAsync(),
                 LoadClassificationNodesAsync(),
                 LoadAvailableTablesAsync(),
@@ -1128,7 +1128,17 @@ public partial class POS2026 : IAsyncDisposable
     /// </summary>
     private async Task CheckPreviousDayClosureAsync()
     {
-        if (!_fiscalPrinterId.HasValue) return;
+        if (!_fiscalPrinterId.HasValue)
+        {
+            // No fiscal printer configured for this POS terminal.
+            // Set the flag so the UI can surface an informational notice.
+            _noPrinterConfigured = true;
+            Logger.LogDebug("POS2026: nessuna stampante fiscale configurata per questo punto cassa – verifica chiusura saltata.");
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _noPrinterConfigured = false;
         try
         {
             var status = await FiscalPrintingService.GetPreviousDayClosureStatusAsync(_fiscalPrinterId.Value);
@@ -1247,7 +1257,11 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            if (!_fiscalPrinterId.HasValue) return;
+            if (!_fiscalPrinterId.HasValue)
+            {
+                AppNotification.ShowWarning("Nessuna stampante fiscale configurata per questo punto cassa. Configura la stampante nelle impostazioni POS.");
+                return;
+            }
             var parameters = new DialogParameters
             {
                 [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId.Value,

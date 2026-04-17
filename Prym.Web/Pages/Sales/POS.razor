@@ -56,6 +56,21 @@
         </MudAlert>
     }
 
+    @* Banner informativo: nessuna stampante fiscale configurata *@
+    @if (_noPrinterConfigured)
+    {
+        <MudAlert Severity="Severity.Info"
+                  Icon="@Icons.Material.Filled.PrintDisabled"
+                  Class="mb-3"
+                  ShowCloseIcon="false"
+                  Dense="true">
+            <MudText Typo="Typo.body2">
+                ℹ️ Nessuna stampante fiscale configurata per questo punto cassa. La verifica della chiusura giornaliera non è disponibile.
+                Configura la stampante nelle impostazioni POS per abilitare la stampa fiscale.
+            </MudText>
+        </MudAlert>
+    }
+
     <!-- Page Title -->
     <MudText Typo="Typo.h4" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" Size="Size.Medium" />
@@ -1305,6 +1320,8 @@
 
     /// <summary>Set to <c>true</c> when the DB check at startup detects a missing previous-day closure.</summary>
     private bool _previousDayClosureMissing = false;
+    /// <summary>Set to <c>true</c> when no fiscal printer is configured for this POS terminal.</summary>
+    private bool _noPrinterConfigured = false;
     private DateTime? _lastClosureDate = null;
 
     /// <summary>
@@ -1388,7 +1405,15 @@
     /// </summary>
     private async Task CheckPreviousDayClosureAsync()
     {
-        if (!_fiscalPrinterId.HasValue) return;
+        if (!_fiscalPrinterId.HasValue)
+        {
+            _noPrinterConfigured = true;
+            Logger.LogDebug("POS: nessuna stampante fiscale configurata per questo punto cassa – verifica chiusura saltata.");
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _noPrinterConfigured = false;
         try
         {
             var status = await FiscalPrintingService.GetPreviousDayClosureStatusAsync(_fiscalPrinterId.Value);
@@ -1464,7 +1489,11 @@
     {
         try
         {
-            if (!_fiscalPrinterId.HasValue) return;
+            if (!_fiscalPrinterId.HasValue)
+            {
+                AppNotification.ShowWarning("Nessuna stampante fiscale configurata per questo punto cassa. Configura la stampante nelle impostazioni POS.");
+                return;
+            }
 
             var parameters = new DialogParameters
             {
