@@ -112,7 +112,11 @@
     {
         if (_form is null) return;
         await _form.ValidateAsync();
-        if (!_form.IsValid) return;
+        if (!_form.IsValid)
+        {
+            AppNotification.ShowError("Correggi gli errori prima di salvare");
+            return;
+        }
 
         _saving = true;
         try

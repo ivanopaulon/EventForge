@@ -175,12 +175,16 @@
     
     private async Task Submit()
     {
-        if (!_isValid) return;
-        
+        await _form.ValidateAsync();
+        if (!_isValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
         try
         {
             _isSaving = true;
-            
             if (_isEditMode)
             {
                 // Update existing unit

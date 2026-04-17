@@ -246,7 +246,12 @@
         if (_quantityRangeError) return;
 
         await _form.ValidateAsync();
-        if (!_isFormValid) return;
+        await _form.ValidateAsync();
+        if (!_isFormValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
 
         if (Entry is null) return;
 

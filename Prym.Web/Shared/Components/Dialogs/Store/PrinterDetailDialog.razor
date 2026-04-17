@@ -262,7 +262,11 @@
     {
         if (_form is not null)
             await _form.ValidateAsync();
-        if (_form?.IsValid == false) return;
+        if (_form?.IsValid == false)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
 
         try
         {

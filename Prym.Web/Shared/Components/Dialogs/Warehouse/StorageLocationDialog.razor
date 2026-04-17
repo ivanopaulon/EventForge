@@ -176,8 +176,12 @@
 
     private async Task Submit()
     {
+        await _form.ValidateAsync();
         if (_form == null || !_form.IsValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
             return;
+        }
 
         _isSaving = true;
         try

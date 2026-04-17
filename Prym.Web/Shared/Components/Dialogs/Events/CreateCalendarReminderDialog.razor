@@ -310,7 +310,13 @@
     private async Task SaveAsync()
     {
         await _form.ValidateAsync();
-        if (!_isFormValid || !_dueDateOnly.HasValue) return;
+        await _form.ValidateAsync();
+        if (!_isFormValid || !_dueDateOnly.HasValue)
+        {
+            if (!_isFormValid)
+                AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
 
         try
         {
