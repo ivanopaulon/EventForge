@@ -28,7 +28,7 @@
             @* TitleContent inline *@
             <div class="efd-title">
                 <MudIcon Icon="@Icon" Color="Color.Primary" Class="flex-no-shrink" />
-                <MudText Typo="Typo.h6" Class="text-header-dark">
+                <MudText Typo="Typo.h6" Class="efd-header-text">
                     @Title
                 </MudText>
                 <MudSpacer />
@@ -327,8 +327,13 @@
     }
 
     /* Dialog title text — readable in both light and dark theme */
-    .text-header-dark {
+    .efd-header-text {
         color: var(--mud-palette-text-primary) !important;
+        font-weight: 500;
+        flex-grow: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     /* Mobile responsive */

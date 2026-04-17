@@ -8,7 +8,7 @@
           IsProcessing="_isSaving"
           MinWidth="480px"
           OnClose="@MudDialog.Cancel">
-    <BodyContent>
+    <ChildContent>
         <MudForm @ref="_form" Class="pa-2">
             <MudTextField @bind-Value="_dto.Name"
                           Label="@(TranslationService.GetTranslation("field.name", "Nome") + " *")"
@@ -34,8 +34,8 @@
                        Label="@TranslationService.GetTranslation("reports.public", "Visibile a tutti i ruoli")"
                        Color="Color.Primary" />
         </MudForm>
-    </BodyContent>
-    <FooterContent>
+    </ChildContent>
+    <DialogActions>
         <MudButton Variant="Variant.Text"
                    Disabled="_isSaving"
                    OnClick="@MudDialog.Cancel">
@@ -47,7 +47,7 @@
                    OnClick="SaveAsync">
             @TranslationService.GetTranslation("common.save", "Salva")
         </MudButton>
-    </FooterContent>
+    </DialogActions>
 </EFDialog>
 
 @code {

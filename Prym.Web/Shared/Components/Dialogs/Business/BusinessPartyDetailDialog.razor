@@ -29,7 +29,7 @@
         }
         else
         {
-            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab" ActivePanelIndexChanged="OnTabChanged">
+            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" ActivePanelIndex="@_activeTab" ActivePanelIndexChanged="OnTabChanged">
 
                 <MudTabPanel Text="@TranslationService.GetTranslation("businessParty.general", "Generale")">
                     <MudForm @ref="_form">

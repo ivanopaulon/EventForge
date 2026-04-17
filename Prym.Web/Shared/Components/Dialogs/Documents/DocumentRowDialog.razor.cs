@@ -100,6 +100,97 @@ public partial class DocumentRowDialog : IAsyncDisposable
     private string? _appliedPriceListName;
     private string? _appliedPromotionsSummary;
 
+    /// <summary>
+    /// Returns the list of UoM options to display in the select.
+    /// When the product has its own unit list, those are shown; otherwise ALL known
+    /// units of measure are shown so the operator can always make a selection.
+    /// </summary>
+    private IEnumerable<(Guid Id, string Label)> UomOptionsForDisplay
+    {
+        get
+        {
+            if (_availableUnits.Count > 0)
+            {
+                foreach (var unit in _availableUnits)
+                {
+                    var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                    if (uom != null)
+                        yield return (uom.Id, $"{uom.Symbol} - {uom.Name}");
+                }
+            }
+            else
+            {
+                foreach (var uom in _allUnitsOfMeasure)
+                    yield return (uom.Id, $"{uom.Symbol} - {uom.Name}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The UoM select is disabled only when the product has exactly one unit configured
+    /// (it is already pre-filled and the operator has no choice to make).
+    /// When there are zero product-specific units we fall back to the global list and keep
+    /// the select interactive so the operator can fix a missing UoM before saving.
+    /// </summary>
+    private bool IsUomSelectDisabled => _availableUnits.Count == 1;
+
+    // ── Field-level validation helpers ────────────────────────────────────────
+
+    /// <summary>Returns true when the given field has a pending validation error.</summary>
+    private bool HasFieldError(string field) =>
+        _state.Validation.FieldErrors.ContainsKey(field);
+
+    /// <summary>Returns the validation error message for the given field, or null.</summary>
+    private string? GetFieldError(string field) =>
+        _state.Validation.FieldErrors.TryGetValue(field, out var msg) ? msg : null;
+
+    /// <summary>
+    /// Maps validation error keys produced by <see cref="DocumentRowValidator"/>
+    /// to individual field names and stores them in <c>_state.Validation.FieldErrors</c>.
+    /// This enables inline field highlighting alongside the summary alert.
+    /// </summary>
+    private void PopulateFieldErrors(Services.Documents.ValidationResult result)
+    {
+        _state.Validation.FieldErrors.Clear();
+        foreach (var key in result.ErrorKeys)
+        {
+            var field = key switch
+            {
+                "validation.descriptionRequired"           => "description",
+                "validation.quantityMustBePositive"        => "quantity",
+                "validation.quantityTooLarge"              => "quantity",
+                "validation.unitPriceCannotBeNegative"     => "unitPrice",
+                "validation.unitPriceTooLarge"             => "unitPrice",
+                "validation.unitOfMeasureRequired"         => "unitOfMeasure",
+                "validation.vatRateInvalid"                => "vatRate",
+                "validation.discountPercentageInvalid"     => "discount",
+                "validation.discountValueCannotBeNegative" => "discount",
+                "validation.discountValueExceedsTotal"     => "discount",
+                _                                          => (string?)null
+            };
+            if (field is not null && !_state.Validation.FieldErrors.ContainsKey(field))
+            {
+                _state.Validation.FieldErrors[field] =
+                    TranslationService.GetTranslation(key, GetFieldDefaultMessage(key));
+            }
+        }
+    }
+
+    private static string GetFieldDefaultMessage(string key) => key switch
+    {
+        "validation.descriptionRequired"           => "Obbligatorio",
+        "validation.quantityMustBePositive"        => "Deve essere > 0",
+        "validation.quantityTooLarge"              => "Valore troppo elevato",
+        "validation.unitPriceCannotBeNegative"     => "Non può essere negativo",
+        "validation.unitPriceTooLarge"             => "Valore troppo elevato",
+        "validation.unitOfMeasureRequired"         => "Obbligatorio",
+        "validation.vatRateInvalid"                => "Deve essere tra 0 e 100",
+        "validation.discountPercentageInvalid"     => "Deve essere tra 0 e 100",
+        "validation.discountValueCannotBeNegative" => "Non può essere negativo",
+        "validation.discountValueExceedsTotal"     => "Supera il totale riga",
+        _                                          => "Valore non valido"
+    };
+
     #endregion
 
     #region Lifecycle Methods
@@ -1256,6 +1347,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
             {
                 _state.Validation.Errors.Clear();
                 _state.Validation.Errors.AddRange(validationResult.GetErrorMessages(TranslationService));
+                PopulateFieldErrors(validationResult);
                 AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
                 return;
             }
@@ -1325,6 +1417,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
         if (!validationResult.IsValid)
         {
             _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
+            PopulateFieldErrors(validationResult);
             StateHasChanged();
             return;
         }
@@ -1351,6 +1444,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
         if (!validationResult.IsValid)
         {
             _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
+            PopulateFieldErrors(validationResult);
             StateHasChanged();
             return;
         }
@@ -1390,6 +1484,8 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.SelectedProduct = null;
         _state.PreviousSelectedProduct = null;
         _state.Barcode.Input = string.Empty;
+        _state.Validation.Errors.Clear();
+        _state.Validation.FieldErrors.Clear();
 
         // Invalidate cached calculation result
         InvalidateCalculationCache();
