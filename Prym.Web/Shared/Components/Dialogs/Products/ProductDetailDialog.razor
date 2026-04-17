@@ -10,7 +10,7 @@
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Inventory2"
-          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : (ViewModel.Entity?.Name ?? string.Empty))"
+          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("product.newProduct", "Nuovo Prodotto") : TranslationService.GetTranslation("product.detail", "Dettaglio Prodotto"))"
           IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
@@ -58,40 +58,44 @@
             }
 
             <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" @bind-ActivePanelIndex="_activeTab">
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.generalInfo", "Informazioni Generali")">
                     <GeneralInfoTab Product="@ViewModel.Entity" IsEditMode="true"
                                     OnProductUpdated="@HandleProductLocallyChanged"
                                     OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")" Icon="@Icons.Material.Filled.AttachMoney">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.pricingFinancial", "Prezzi e Finanza")">
                     <PricingFinancialTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")" Icon="@Icons.Material.Filled.Category">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.classification", "Classificazione")">
                     <ClassificationTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")" Icon="@Icons.Material.Filled.QrCode2" BadgeData="@ViewModel.ProductCodes?.Count()" BadgeDot="@(ViewModel.ProductCodes?.Any() ?? false)">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeCodes", "Codici Alternativi")"
+                             TabClass="@((ViewModel.ProductCodes?.Any() ?? false) ? "tab-has-data" : "")">
                     <ProductCodesTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")" Icon="@Icons.Material.Filled.Straighten" BadgeData="@ViewModel.ProductUnits?.Count()" BadgeDot="@(ViewModel.ProductUnits?.Any() ?? false)">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.alternativeUnits", "Unità Alternative")"
+                             TabClass="@((ViewModel.ProductUnits?.Any() ?? false) ? "tab-has-data" : "")">
                     <ProductUnitsTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")" Icon="@Icons.Material.Filled.LocalShipping" BadgeData="@ViewModel.ProductSuppliers?.Count()" BadgeDot="@(ViewModel.ProductSuppliers?.Any() ?? false)">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.suppliers", "Fornitori")"
+                             TabClass="@((ViewModel.ProductSuppliers?.Any() ?? false) ? "tab-has-data" : "")">
                     <ProductSuppliersTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
 
                 @if (ViewModel.Entity.IsBundle)
                 {
-                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")" Icon="@Icons.Material.Filled.Inventory" BadgeData="@ViewModel.BundleItems?.Count()" BadgeDot="@(ViewModel.BundleItems?.Any() ?? false)">
+                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bundleComponents", "Componenti Bundle")"
+                                 TabClass="@((ViewModel.BundleItems?.Any() ?? false) ? "tab-has-data" : "")">
                         <BundleItemsTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                     </MudTabPanel>
                 }
 
-                <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")" Icon="@Icons.Material.Filled.Warehouse">
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")">
                     <StockInventoryTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
             </MudTabs>

@@ -94,7 +94,9 @@
 
 <style>
     /* ═══════════════════════════════════════════════════════════
-       EFDialog — Dark card wrapper
+       EFDialog — Theme-aware card wrapper
+       Uses MudBlazor CSS variables so the dialog adapts
+       automatically to both light and dark themes.
        ═══════════════════════════════════════════════════════════ */
 
     /* Ensure the MudDialog overlay centres its child */
@@ -105,29 +107,13 @@
         justify-content: center !important;
     }
 
-    /* Dark card */
+    /* Card — uses theme variables for background / text / border */
     .efd-card {
-        --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
-        --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
-        --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
-        --mud-palette-background:           #12121f;
-        --mud-palette-surface:              #1c1c30;
-        --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
-        --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
-        --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
-        --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
-        --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
-        --mud-palette-divider:              rgba(255, 255, 255, 0.12);
-        --mud-palette-overlay-dark:         rgba(0, 0, 0, 0.5);
-        --efd-color-primary-light:          rgba(100, 170, 255, 1);
-        --efd-color-primary-focus:          rgba(100, 160, 255, 0.9);
-        color: rgba(255, 255, 255, 0.87);
-
-        background: rgba(18, 18, 32, 0.92);
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: var(--mud-palette-surface);
+        color: var(--mud-palette-text-primary);
+        border: 1px solid var(--mud-palette-divider);
         border-radius: 12px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
-        backdrop-filter: blur(8px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.30);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -146,15 +132,14 @@
         align-items: center;
         gap: 12px;
         padding: 16px 20px 14px 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+        border-bottom: 1px solid var(--mud-palette-divider);
         min-width: 0;
     }
 
     /* Body */
     .efd-body {
         padding: 20px 24px;
-        color: rgba(255, 255, 255, 0.87);
-        --mud-palette-surface: transparent;
+        color: var(--mud-palette-text-primary);
         overflow-y: auto;
         overflow-x: hidden;
         flex: 1 1 auto;
@@ -166,9 +151,9 @@
        VERTICAL TABS — unified style inside EFDialog
        ═══════════════════════════════════════════════════════════ */
 
-    /* Left-tab strip: narrower, no border between panel and tab strip */
+    /* Left-tab strip slider */
     .efd-body .mud-tabs.mud-tabs-left .mud-tab-slider {
-        background-color: var(--efd-color-primary-light) !important;
+        background-color: var(--mud-palette-primary) !important;
     }
 
     /* Tab panel content: remove default internal padding that can cause horizontal scroll */
@@ -196,22 +181,20 @@
     }
 
     .efd-body .mud-tabs .mud-tab:hover {
-        background-color: rgba(255, 255, 255, 0.06) !important;
+        background-color: var(--mud-palette-action-default-hover) !important;
         opacity: 0.90;
     }
 
     .efd-body .mud-tabs .mud-tab.mud-tab-active {
         opacity: 1;
         font-weight: 600;
-        background-color: rgba(100, 160, 255, 0.10) !important;
-        color: var(--efd-color-primary-light) !important;
+        color: var(--mud-palette-primary) !important;
+        background-color: var(--mud-palette-primary-hover) !important;
     }
 
-    /* Tab icon: align nicely with label */
-    .efd-body .mud-tabs .mud-tab .mud-icon-root {
-        font-size: 1.1rem;
-        margin-right: 8px;
-        flex-shrink: 0;
+    /* Tab with data: bold label to indicate content is present */
+    .efd-body .mud-tabs .mud-tab.tab-has-data {
+        font-weight: 600;
     }
 
     /* Tab panel text: ensure it fills available width */
@@ -228,7 +211,7 @@
     }
 
     /* ═══════════════════════════════════════════════════════════
-       INPUT FIELDS — fix background trasparente + colori testo.
+       INPUT FIELDS — transparent background, theme-aware text
        ═══════════════════════════════════════════════════════════ */
 
     .efd-body .mud-input,
@@ -257,76 +240,76 @@
     .efd-body .mud-input-root textarea,
     .efd-body .mud-input input,
     .efd-body .mud-input textarea {
-        color: rgba(255, 255, 255, 0.87) !important;
-        caret-color: white !important;
+        color: var(--mud-palette-text-primary) !important;
+        caret-color: var(--mud-palette-text-primary) !important;
         background-color: transparent !important;
     }
 
     .efd-body .mud-input-root,
     .efd-body .mud-input-root-outlined {
-        color: rgba(255, 255, 255, 0.87) !important;
+        color: var(--mud-palette-text-primary) !important;
     }
 
     .efd-body label.mud-input-label,
     .efd-body .mud-input-label {
-        color: rgba(255, 255, 255, 0.85) !important;
+        color: var(--mud-palette-text-secondary) !important;
         background-color: transparent !important;
     }
 
     .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
-        background-color: #12121f !important;
+        background-color: var(--mud-palette-surface) !important;
         padding: 0 6px !important;
         border-radius: 2px;
-        color: var(--efd-color-primary-light) !important;
+        color: var(--mud-palette-primary) !important;
         font-size: 0.75rem !important;
     }
 
     .efd-body .mud-input-outlined-border,
     .efd-body fieldset.mud-input-outlined-border,
     .efd-body .mud-input-outlined fieldset {
-        border-color: rgba(255, 255, 255, 0.35) !important;
+        border-color: var(--mud-palette-lines-inputs) !important;
     }
 
     .efd-body .mud-input-outlined:hover .mud-input-outlined-border,
     .efd-body .mud-input-outlined:hover fieldset {
-        border-color: rgba(255, 255, 255, 0.70) !important;
+        border-color: var(--mud-palette-text-primary) !important;
     }
 
     .efd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
     .efd-body .mud-input-outlined:focus-within fieldset {
-        border-color: var(--efd-color-primary-focus) !important;
+        border-color: var(--mud-palette-primary) !important;
         border-width: 2px !important;
     }
 
     .efd-body .mud-input-adornment .mud-icon-root,
     .efd-body .mud-input-adornment .mud-icon-button {
-        color: rgba(255, 255, 255, 0.55) !important;
+        color: var(--mud-palette-text-secondary) !important;
     }
 
     .efd-body .mud-select .mud-input-root,
     .efd-body .mud-select-input {
-        color: rgba(255, 255, 255, 0.87) !important;
+        color: var(--mud-palette-text-primary) !important;
         background-color: transparent !important;
     }
 
     .efd-body .mud-checkbox .mud-button-label,
     .efd-body .mud-checkbox-label,
     .efd-body span.mud-button-label {
-        color: rgba(255, 255, 255, 0.80) !important;
+        color: var(--mud-palette-text-primary) !important;
     }
 
     .efd-body .mud-checkbox .mud-svg-icon,
     .efd-body .mud-checkbox .mud-icon-root {
-        color: rgba(255, 255, 255, 0.65) !important;
+        color: var(--mud-palette-text-secondary) !important;
     }
 
     .efd-body .mud-switch-label {
-        color: rgba(255, 255, 255, 0.80) !important;
+        color: var(--mud-palette-text-primary) !important;
     }
 
     /* Actions area */
     .efd-actions {
-        border-top: 1px solid rgba(255, 255, 255, 0.10);
+        border-top: 1px solid var(--mud-palette-divider);
         padding: 12px 16px;
         display: flex;
         justify-content: flex-end;
@@ -335,17 +318,17 @@
     }
 
     .efd-actions .mud-button-root.mud-button-text {
-        color: rgba(255, 255, 255, 0.65) !important;
+        color: var(--mud-palette-text-secondary) !important;
     }
 
     .efd-actions .mud-button-root.mud-button-text:hover {
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        color: rgba(255, 255, 255, 0.87) !important;
+        background-color: var(--mud-palette-action-default-hover) !important;
+        color: var(--mud-palette-text-primary) !important;
     }
 
-    /* Dialog title text — ensure visibility on dark background */
+    /* Dialog title text — readable in both light and dark theme */
     .text-header-dark {
-        color: rgba(255, 255, 255, 0.87) !important;
+        color: var(--mud-palette-text-primary) !important;
     }
 
     /* Mobile responsive */
