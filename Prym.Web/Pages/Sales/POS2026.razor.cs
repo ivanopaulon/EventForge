@@ -1259,6 +1259,9 @@ public partial class POS2026 : IAsyncDisposable
             if (result?.Canceled == false)
             {
                 _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+                // Se la chiusura è andata a buon fine, nascondi il banner di avviso
+                if (result.Data is DailyClosureResultDto closureResult && closureResult.Success)
+                    _previousDayClosureMissing = false;
                 StateHasChanged();
             }
         }
