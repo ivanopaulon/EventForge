@@ -438,6 +438,7 @@ public static class ServiceCollectionExtensions
         // Register store user services
         _ = services.AddScoped<IStoreUserService, StoreUserService>();
         _ = services.AddScoped<IFiscalDrawerService, FiscalDrawerService>();
+        _ = services.AddScoped<IShiftService, ShiftService>();
 
         // Payment Terminal (Protocol 17)
         _ = services.AddScoped<IPaymentTerminalService, PaymentTerminalService>();
