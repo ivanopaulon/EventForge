@@ -17,12 +17,9 @@
 
 <PageTitle>@(_isEditMode ? "Modifica Stampante" : "Wizard Configurazione Stampante Fiscale")</PageTitle>
 
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
-
-<MudText Typo="Typo.h5" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Outlined.Print" Class="mr-2 mb-1 vertical-middle" />
-    @(_isEditMode ? "Modifica Stampante" : "Configurazione Stampante Fiscale")
-</MudText>
+<ManagementPageHeader Title="@(_isEditMode ? "Modifica Stampante" : "Configurazione Stampante Fiscale")"
+                      Icon="@Icons.Material.Outlined.Print"
+                      BreadcrumbItems="_breadcrumbs" />
 
 @* ──────────────────── STEP INDICATOR ──────────────────── *@
 <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStep" Linear="false" Class="mb-4">

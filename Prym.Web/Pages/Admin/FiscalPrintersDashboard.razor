@@ -14,27 +14,29 @@
 
 <PageTitle>Stampanti Fiscali – Dashboard</PageTitle>
 
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+<PageLoadingOverlay Visible="@_isLoading" Message="Caricamento dashboard stampanti…" />
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5">
-        <MudIcon Icon="@Icons.Material.Outlined.Print" Class="mr-2 mb-1 vertical-middle" />
-        Stampanti Fiscali
-    </MudText>
-    <MudStack Row="true" Spacing="2">
-        <MudTooltip Text="@($"Aggiornato {_lastRefresh:HH:mm:ss}")">
-            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
-                           OnClick="RefreshAsync"
-                           Disabled="@_isLoading"
-                           Color="Color.Default" />
-        </MudTooltip>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="@(() => NavigationManager.NavigateTo("/admin/fiscal-printers/setup"))">
-            Nuova Stampante
-        </MudButton>
-    </MudStack>
-</MudStack>
+@if (!_isLoading)
+{
+<div class="ef-flex-col-fill">
+    <ManagementPageHeader Title="Stampanti Fiscali"
+                          Icon="@Icons.Material.Outlined.Print"
+                          BreadcrumbItems="_breadcrumbs">
+        <ExtraActions>
+            <MudTooltip Text="@($"Aggiornato {_lastRefresh:HH:mm:ss}")">
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                               OnClick="RefreshAsync"
+                               Color="Color.Default"
+                               Size="Size.Small" />
+            </MudTooltip>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Size="Size.Small"
+                       OnClick="@(() => NavigationManager.NavigateTo("/admin/fiscal-printers/setup"))">
+                Nuova Stampante
+            </MudButton>
+        </ExtraActions>
+    </ManagementPageHeader>
 
 @* ──────────────────── OVERVIEW CARDS ──────────────────── *@
 <MudGrid Spacing="3" Class="mb-6">
@@ -183,6 +185,8 @@
         </NoRecordsContent>
     </MudTable>
 </MudPaper>
+</div>
+}
 
 @code {
     // ──────────────────────────────────────────────────────────
