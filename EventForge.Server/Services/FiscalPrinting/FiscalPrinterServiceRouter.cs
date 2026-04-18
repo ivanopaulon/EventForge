@@ -270,6 +270,67 @@ public sealed class FiscalPrinterServiceRouter(
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Implemented directly in the router via the shared <see cref="EventForgeDbContext"/> so that
+    /// records with <c>PrinterId == Guid.Empty</c> (non-fiscal closures) are included.
+    /// </remarks>
+    public async Task<List<DailyClosureHistoryDto>> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        var query = context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => !r.IsDeleted);
+
+        if (fromDate.HasValue)
+            query = query.Where(r => r.ClosedAt >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(r => r.ClosedAt <= toDate.Value);
+
+        var records = await query
+            .OrderByDescending(r => r.ClosedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        // Batch-load printer names for all real printer IDs
+        var printerIds = records
+            .Select(r => r.PrinterId)
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        var printerNames = printerIds.Count > 0
+            ? await context.Printers
+                .AsNoTracking()
+                .Where(p => printerIds.Contains(p.Id) && !p.IsDeleted)
+                .ToDictionaryAsync(p => p.Id, p => p.Name, ct)
+            : new Dictionary<Guid, string>();
+
+        return records.Select(r => new DailyClosureHistoryDto
+        {
+            Id = r.Id,
+            PrinterId = r.PrinterId,
+            PrinterName = r.PrinterId != Guid.Empty && printerNames.TryGetValue(r.PrinterId, out var name)
+                ? name
+                : "—",
+            ZReportNumber = r.ZReportNumber,
+            ClosedAt = r.ClosedAt,
+            ReceiptCount = r.ReceiptCount,
+            TotalAmount = r.TotalAmount,
+            CashAmount = r.CashAmount,
+            CardAmount = r.CardAmount,
+            Operator = r.Operator,
+            HasPdf = r.HasPdf,
+            ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var closureType)
+                ? closureType
+                : ClosureType.Fiscale,
+            FiscalClosurePending = r.FiscalClosurePending
+        }).ToList();
+    }
+
+    /// <inheritdoc />
     public async Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId, CancellationToken ct = default)
     {

@@ -424,6 +424,28 @@ public class FiscalPrintingService(
     }
 
     /// <inheritdoc />
+    public async Task<List<DailyClosureHistoryDto>?> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/closures?page={page}&pageSize={pageSize}";
+            if (fromDate.HasValue)
+                url += $"&fromDate={fromDate.Value:o}";
+            if (toDate.HasValue)
+                url += $"&toDate={toDate.Value:o}";
+            return await httpClientService.GetAsync<List<DailyClosureHistoryDto>>(url, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetAllClosureHistoryAsync failed");
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<FiscalPrintResult?> ReprintZReportAsync(
         Guid closureId, CancellationToken ct = default)
     {

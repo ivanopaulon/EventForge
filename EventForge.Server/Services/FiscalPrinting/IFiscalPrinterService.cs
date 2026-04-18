@@ -190,6 +190,19 @@ public interface IFiscalPrinterService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the paginated history of all daily closures across every printer and POS terminal
+    /// (i.e. including non-fiscal closures performed without a printer).
+    /// Implemented directly by <see cref="FiscalPrinterServiceRouter"/>; individual printer
+    /// services should throw <see cref="NotSupportedException"/>.
+    /// </summary>
+    Task<List<DailyClosureHistoryDto>> GetAllClosureHistoryAsync(
+        int page = 1,
+        int pageSize = 50,
+        DateTime? fromDate = null,
+        DateTime? toDate = null,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Reprints the Z-report for a previously executed closure.
     /// </summary>
     Task<FiscalPrintResult> ReprintZReportAsync(

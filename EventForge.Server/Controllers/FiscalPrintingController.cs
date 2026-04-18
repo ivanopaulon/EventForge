@@ -1034,6 +1034,33 @@ public class FiscalPrintingController(
     // -------------------------------------------------------------------------
 
     /// <summary>
+    /// Returns the history of all daily closures across every printer and POS terminal
+    /// (including non-fiscal closures performed without a printer), with optional date filters.
+    /// </summary>
+    [HttpGet("closures")]
+    [ProducesResponseType(typeof(List<DailyClosureHistoryDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<List<DailyClosureHistoryDto>>> GetAllClosureHistoryAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] DateTime? fromDate = null,
+        [FromQuery] DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var history = await fiscalPrinterService.GetAllClosureHistoryAsync(
+                page, pageSize, fromDate, toDate, cancellationToken);
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem(
+                "Unexpected error retrieving all closure history.", ex);
+        }
+    }
+
+    /// <summary>
     /// Returns the history of daily closures for the specified printer, with optional date filters.
     /// </summary>
     [HttpGet("closures/{printerId:guid}")]

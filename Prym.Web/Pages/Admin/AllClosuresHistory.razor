@@ -1,64 +1,66 @@
 @namespace Prym.Web.Pages.FiscalAdmin
-@page "/admin/fiscal-printers/{PrinterId:guid}/closures"
+@page "/admin/fiscal-closures"
 @using Prym.DTOs.FiscalPrinting
-@using Microsoft.AspNetCore.SignalR.Client
-@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
 @inject IFiscalPrintingService FiscalPrintingService
-@inject IHttpClientService HttpClientService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
-@inject ILogger<ClosureHistory> Logger
-@implements IAsyncDisposable
+@inject ILogger<AllClosuresHistory> Logger
 
-<PageTitle>Storico Chiusure Fiscali</PageTitle>
+<PageTitle>Storico Chiusure Giornaliere</PageTitle>
 
 <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
 
 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
     <MudText Typo="Typo.h5">
         <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2 mb-1 vertical-middle" />
-        Storico Chiusure Fiscali
-        @if (!string.IsNullOrEmpty(_printerName))
-        {
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="ml-2">@_printerName</MudChip>
-        }
+        Storico Chiusure Giornaliere
     </MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Warning"
-               StartIcon="@Icons.Material.Filled.EventNote"
-               OnClick="OpenDailyClosureDialogAsync">
-        Nuova Chiusura
-    </MudButton>
 </MudStack>
 
 @* ──────────────────── FILTRI ──────────────────── *@
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <MudGrid Spacing="2">
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="3">
             <MudDatePicker @bind-Date="_filterFromDate"
                            Label="Data da"
                            Variant="Variant.Outlined"
                            Clearable="true"
                            DateFormat="dd/MM/yyyy"
-                    Margin="Margin.Dense"/>
+                           Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="3">
             <MudDatePicker @bind-Date="_filterToDate"
                            Label="Data a"
                            Variant="Variant.Outlined"
                            Clearable="true"
                            DateFormat="dd/MM/yyyy"
-                    Margin="Margin.Dense"/>
+                           Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" md="4">
-            <MudTextField @bind-Value="_filterZReport"
-                          Label="N° Z-Report"
-                          Variant="Variant.Outlined"
-                          Clearable="true"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"
-                    Margin="Margin.Dense"/>
+        <MudItem xs="12" md="3">
+            <MudSelect T="ClosureType?" @bind-Value="_filterClosureType"
+                       Label="Tipo chiusura"
+                       Variant="Variant.Outlined"
+                       Clearable="true"
+                       Margin="Margin.Dense">
+                <MudSelectItem T="ClosureType?" Value="@((ClosureType?)null)">Tutti</MudSelectItem>
+                <MudSelectItem T="ClosureType?" Value="@((ClosureType?)ClosureType.Fiscale)">Fiscale</MudSelectItem>
+                <MudSelectItem T="ClosureType?" Value="@((ClosureType?)ClosureType.NonFiscale)">Non Fiscale</MudSelectItem>
+                <MudSelectItem T="ClosureType?" Value="@((ClosureType?)ClosureType.SoloDatabase)">Solo Database</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="bool?" @bind-Value="_filterPending"
+                       Label="Stato pendente"
+                       Variant="Variant.Outlined"
+                       Clearable="true"
+                       Margin="Margin.Dense">
+                <MudSelectItem T="bool?" Value="@((bool?)null)">Tutti</MudSelectItem>
+                <MudSelectItem T="bool?" Value="@((bool?)true)">Solo pendenti</MudSelectItem>
+                <MudSelectItem T="bool?" Value="@((bool?)false)">Solo completate</MudSelectItem>
+            </MudSelect>
         </MudItem>
         <MudItem xs="12">
             <MudStack Row="true" Spacing="2">
@@ -99,15 +101,24 @@
         </ToolBarContent>
         <HeaderContent>
             <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ClosedAt" InitialDirection="SortDirection.Descending">Data/Ora</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ZReportNumber">N° Z-Report</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.PrinterName">Stampante / POS</MudTableSortLabel></MudTh>
             <MudTh>Tipo</MudTh>
-            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
-            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ZReportNumber">N° Z-Report</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
             <MudTh>Operatore</MudTh>
             <MudTh>Azioni</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Data/Ora">@context.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Stampante / POS">@(context.PrinterName ?? "—")</MudTd>
+            <MudTd DataLabel="Tipo">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                         Color="@ClosureTypeColor(context.ClosureType)"
+                         Icon="@ClosureTypeIcon(context.ClosureType)">
+                    @ClosureTypeLabel(context.ClosureType)
+                </MudChip>
+            </MudTd>
             <MudTd DataLabel="N° Z-Report">
                 @if (context.ZReportNumber > 0)
                 {
@@ -123,15 +134,8 @@
                              Variant="Variant.Filled" Class="ml-1" Style="height:20px">Pendente</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Tipo">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                         Color="@ClosureTypeColor(context.ClosureType)"
-                         Icon="@ClosureTypeIcon(context.ClosureType)">
-                    @ClosureTypeLabel(context.ClosureType)
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Scontrini" >@context.ReceiptCount</MudTd>
-            <MudTd DataLabel="Totale" >@context.TotalAmount.ToString("C2")</MudTd>
+            <MudTd DataLabel="Scontrini">@context.ReceiptCount</MudTd>
+            <MudTd DataLabel="Totale">@context.TotalAmount.ToString("C2")</MudTd>
             <MudTd DataLabel="Operatore">@(context.Operator ?? "—")</MudTd>
             <MudTd>
                 <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
@@ -141,14 +145,22 @@
                         Scarica PDF
                     </MudMenuItem>
                     <MudMenuItem Icon="@Icons.Material.Filled.Print"
+                                 Disabled="@(context.PrinterId == Guid.Empty)"
                                  OnClick="@(() => ReprintAsync(context.Id, context.ZReportNumber))">
                         Ristampa Z-Report
                     </MudMenuItem>
+                    @if (context.PrinterId != Guid.Empty)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.History"
+                                     OnClick="@(() => NavigationManager.NavigateTo($"/admin/fiscal-printers/{context.PrinterId}/closures"))">
+                            Vai allo Storico Stampante
+                        </MudMenuItem>
+                    }
                     @if (context.FiscalClosurePending)
                     {
                         <MudDivider />
                         <MudMenuItem Icon="@Icons.Material.Filled.Refresh"
-                                     OnClick="@(() => RetryFiscalClosureAsync(context.Id, context.ZReportNumber))">
+                                     OnClick="@(() => RetryFiscalClosureAsync(context.Id))">
                             Riprova Chiusura Fiscale
                         </MudMenuItem>
                     }
@@ -156,7 +168,7 @@
             </MudTd>
         </RowTemplate>
         <PagerContent>
-            <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" />
+            <MudTablePager PageSizeOptions="new[] { 20, 50, 100 }" />
         </PagerContent>
         <NoRecordsContent>
             <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
@@ -170,27 +182,24 @@
 
 @code {
     // ─────────────────────────────────────────────────────────
-    //  Route parameter
-    // ─────────────────────────────────────────────────────────
-
-    [Parameter] public Guid PrinterId { get; set; }
-
-    // ─────────────────────────────────────────────────────────
     //  State
     // ─────────────────────────────────────────────────────────
 
     private bool _isLoading = true;
-    private string? _printerName;
     private List<DailyClosureHistoryDto> _closures = new();
     private List<DailyClosureHistoryDto> _closuresFiltered = new();
-    private HubConnection? _hubConnection;
 
     // Filters
     private DateTime? _filterFromDate;
     private DateTime? _filterToDate;
-    private string _filterZReport = string.Empty;
+    private ClosureType? _filterClosureType;
+    private bool? _filterPending;
 
-    private List<BreadcrumbItem> _breadcrumbs = [];
+    private List<BreadcrumbItem> _breadcrumbs =
+    [
+        new BreadcrumbItem("Home", href: "/"),
+        new BreadcrumbItem("Storico Chiusure", href: null, disabled: true)
+    ];
 
     // ─────────────────────────────────────────────────────────
     //  Lifecycle
@@ -198,88 +207,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load printer name for breadcrumb/header
-        try
-        {
-            var printer = await HttpClientService.GetAsync<Prym.DTOs.Station.PrinterDto>(
-                $"api/v1/stations/printers/{PrinterId}");
-            _printerName = printer?.Name;
-        }
-        catch (Exception ex) { Logger.LogWarning(ex, "Could not load printer name for {PrinterId}.", PrinterId); }
-
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Home", href: "/"),
-            new BreadcrumbItem("Stampanti Fiscali", href: "/admin/fiscal-printers"),
-            new BreadcrumbItem(_printerName ?? PrinterId.ToString("N")[..8], href: null, disabled: true),
-            new BreadcrumbItem("Storico Chiusure", href: null, disabled: true)
-        ];
-
         await LoadHistoryAsync();
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender || _hubConnection is not null) return;
-        await ConnectToHubAsync();
-    }
-
-    // ─────────────────────────────────────────────────────────
-    //  SignalR
-    // ─────────────────────────────────────────────────────────
-
-    private async Task ConnectToHubAsync()
-    {
-        try
-        {
-            _hubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
-                .WithAutomaticReconnect()
-                .Build();
-
-            _hubConnection.On<Guid, string>("ClosureRequired", async (printerId, _) =>
-            {
-                if (printerId != PrinterId) return;
-                await InvokeAsync(async () =>
-                {
-                    await LoadHistoryAsync();
-                    StateHasChanged();
-                });
-            });
-
-            _hubConnection.Reconnected += async _ =>
-            {
-                try { await _hubConnection.SendAsync("SubscribeToPrinter", PrinterId); }
-                catch (Exception ex) { Logger.LogWarning(ex, "ClosureHistory: failed to re-subscribe to printer {PrinterId} after reconnect", PrinterId); }
-            };
-
-            await _hubConnection.StartAsync();
-            await _hubConnection.SendAsync("SubscribeToPrinter", PrinterId);
-
-            Logger.LogDebug("ClosureHistory: subscribed to printer {PrinterId}", PrinterId);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "ClosureHistory: could not connect to SignalR hub for printer {PrinterId}", PrinterId);
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    //  IAsyncDisposable
-    // ─────────────────────────────────────────────────────────
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_hubConnection is not null)
-        {
-            try
-            {
-                await _hubConnection.SendAsync("UnsubscribeFromPrinter", PrinterId);
-                await _hubConnection.DisposeAsync();
-            }
-            catch { /* intentionally swallowed during disposal */ }
-            _hubConnection = null;
-        }
     }
 
     // ─────────────────────────────────────────────────────────
@@ -291,13 +219,13 @@
         _isLoading = true;
         try
         {
-            _closures = await FiscalPrintingService.GetClosureHistoryAsync(
-                PrinterId, page: 1, pageSize: 200) ?? new();
+            _closures = await FiscalPrintingService.GetAllClosureHistoryAsync(
+                page: 1, pageSize: 200) ?? new();
             ApplyLocalFilters();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "LoadHistoryAsync failed for printer {PrinterId}", PrinterId);
+            Logger.LogError(ex, "LoadHistoryAsync failed for all closures");
             AppNotification.ShowError("Errore nel caricamento dello storico.");
         }
         finally
@@ -320,56 +248,29 @@
         if (_filterToDate.HasValue)
             query = query.Where(c => c.ClosedAt <= _filterToDate.Value.AddDays(1));
 
-        if (!string.IsNullOrWhiteSpace(_filterZReport)
-            && int.TryParse(_filterZReport, out var zNum))
-            query = query.Where(c => c.ZReportNumber == zNum);
+        if (_filterClosureType.HasValue)
+            query = query.Where(c => c.ClosureType == _filterClosureType.Value);
+
+        if (_filterPending.HasValue)
+            query = query.Where(c => c.FiscalClosurePending == _filterPending.Value);
 
         _closuresFiltered = query.ToList();
     }
 
-    private void ApplyFilters()
-    {
-        ApplyLocalFilters();
-    }
+    private void ApplyFilters() => ApplyLocalFilters();
 
     private void ClearFilters()
     {
         _filterFromDate = null;
         _filterToDate = null;
-        _filterZReport = string.Empty;
+        _filterClosureType = null;
+        _filterPending = null;
         ApplyLocalFilters();
     }
 
     // ─────────────────────────────────────────────────────────
     //  Actions
     // ─────────────────────────────────────────────────────────
-
-    private async Task OpenDailyClosureDialogAsync()
-    {
-        try
-        {
-            var parameters = new DialogParameters
-            {
-                [nameof(DailyClosureDialog.PrinterId)] = PrinterId,
-                [nameof(DailyClosureDialog.PrinterName)] = _printerName
-            };
-
-            var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-                string.Empty, parameters, EFDialogDefaults.Options);
-
-            var result = await dialog.Result;
-            if (result?.Canceled == false)
-            {
-                // Refresh history after successful closure
-                await LoadHistoryAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Errore durante l'apertura del dialogo di chiusura giornaliera.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
-    }
 
     private async Task DownloadPdfAsync(Guid closureId)
     {
@@ -410,7 +311,7 @@
         }
     }
 
-    private async Task RetryFiscalClosureAsync(Guid closureId, int zNumber)
+    private async Task RetryFiscalClosureAsync(Guid closureId)
     {
         try
         {
@@ -438,22 +339,24 @@
         try
         {
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("Data/Ora,N° Z-Report,Tipo,Scontrini,Totale,Contanti,Carte,Operatore");
+            sb.AppendLine("Data/Ora,Stampante/POS,Tipo,N° Z-Report,Scontrini,Totale,Contanti,Carte,Operatore,Pendente");
             foreach (var c in _closuresFiltered)
             {
                 sb.AppendLine(string.Join(",",
                     c.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
-                    c.ZReportNumber,
+                    $"\"{c.PrinterName ?? ""}\"",
                     c.ClosureType,
+                    c.ZReportNumber,
                     c.ReceiptCount,
                     c.TotalAmount.ToString("F2"),
                     c.CashAmount.ToString("F2"),
                     c.CardAmount.ToString("F2"),
-                    $"\"{c.Operator ?? ""}\""));
+                    $"\"{c.Operator ?? ""}\"",
+                    c.FiscalClosurePending ? "Sì" : "No"));
             }
 
             var csvBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-            var fileName = $"Chiusure_{PrinterId}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            var fileName = $"Chiusure_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
             await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, csvBytes, "text/csv;charset=utf-8");
             AppNotification.ShowSuccess($"CSV esportato: {fileName}");
         }

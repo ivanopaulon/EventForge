@@ -97,6 +97,15 @@ public interface IFiscalPrintingService
         DateTime? fromDate = null, DateTime? toDate = null,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns the history of all daily closures across every printer and POS terminal,
+    /// including non-fiscal closures performed without a printer.
+    /// </summary>
+    Task<List<DailyClosureHistoryDto>?> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default);
+
     /// <summary>Reprints the Z-report for a previously executed closure.</summary>
     Task<FiscalPrintResult?> ReprintZReportAsync(Guid closureId, CancellationToken ct = default);
 

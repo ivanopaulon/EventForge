@@ -369,6 +369,17 @@ public partial class CustomFiscalPrinterService
 
     /// <inheritdoc />
     /// <remarks>
+    /// Not supported on individual printer services; always handled by <see cref="FiscalPrinterServiceRouter"/>.
+    /// </remarks>
+    public Task<List<DailyClosureHistoryDto>> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+        => throw new NotSupportedException(
+            "GetAllClosureHistoryAsync must be called on FiscalPrinterServiceRouter, not on a specific printer service.");
+
+    /// <inheritdoc />
+    /// <remarks>
     /// The Custom protocol does not have a dedicated reprint-Z command.
     /// This method prints a descriptive summary of the stored closure using
     /// non-fiscal <c>CMD_PRINT_DESCRIPTIVE</c> ("20") lines so that the operator

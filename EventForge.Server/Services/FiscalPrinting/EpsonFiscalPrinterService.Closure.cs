@@ -377,6 +377,17 @@ public partial class EpsonFiscalPrinterService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Not supported on individual printer services; always handled by <see cref="FiscalPrinterServiceRouter"/>.
+    /// </remarks>
+    public Task<List<DailyClosureHistoryDto>> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+        => throw new NotSupportedException(
+            "GetAllClosureHistoryAsync must be called on FiscalPrinterServiceRouter, not on a specific printer service.");
+
+    /// <inheritdoc />
     public async Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId,
         CancellationToken cancellationToken = default)
