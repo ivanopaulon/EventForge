@@ -52,6 +52,29 @@ public class DailyClosureRecord : AuditableEntity
     public string? Operator { get; set; }
 
     /// <summary>
+    /// Type of closure executed.
+    /// Stored as a string (enum name) for readability in the database.
+    /// See <see cref="Prym.DTOs.FiscalPrinting.ClosureType"/> for possible values.
+    /// </summary>
+    [MaxLength(50)]
+    public string ClosureType { get; set; } = "Fiscale";
+
+    /// <summary>
+    /// When <c>true</c>, the fiscal Z-report could not be sent to the printer at closure time
+    /// (printer was offline or unreachable). The closure totals are in the database but the
+    /// hardware fiscal closure is still pending and must be retried once the printer is back.
+    /// </summary>
+    public bool FiscalClosurePending { get; set; }
+
+    /// <summary>
+    /// Error text captured from the printer at the time of the closure attempt.
+    /// Populated only when <see cref="FiscalClosurePending"/> is <c>true</c>.
+    /// Truncated to 500 characters.
+    /// </summary>
+    [MaxLength(500)]
+    public string? PrinterErrors { get; set; }
+
+    /// <summary>
     /// Whether a PDF copy of the Z-report has been generated and stored.
     /// When <c>true</c>, the PDF can be downloaded via the API.
     /// </summary>

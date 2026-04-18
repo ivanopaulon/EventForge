@@ -111,11 +111,24 @@ public partial class EpsonFiscalPrinterService
             preCheck.IsDrawerOpen = statusResult.IsDrawerOpen;
             // Epson receipt printers don't have an open receipt concept
             preCheck.HasOpenReceipt = false;
+            preCheck.PrinterAvailable = statusResult.IsOnline;
+            if (!statusResult.IsOnline)
+            {
+                preCheck.PrinterReachabilityError = statusResult.LastError ?? "Stampante non raggiungibile";
+                preCheck.PlannedClosureType = ClosureType.SoloDatabase;
+            }
+            else
+            {
+                preCheck.PlannedClosureType = ClosureType.Fiscale;
+            }
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex,
                 "Epson GetDailyClosurePreCheckAsync: could not read status | PrinterId={PrinterId}", printerId);
+            preCheck.PrinterAvailable = false;
+            preCheck.PrinterReachabilityError = ex.Message;
+            preCheck.PlannedClosureType = ClosureType.SoloDatabase;
         }
 
         var lastClosure = await context.DailyClosureRecords
@@ -126,6 +139,41 @@ public partial class EpsonFiscalPrinterService
             .FirstOrDefaultAsync(cancellationToken);
 
         preCheck.LastClosureDate = lastClosure;
+
+        // Aggregate today's session totals from DB for the summary
+        var todayStart = DateTime.UtcNow.Date;
+        var posIds = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => p.DefaultFiscalPrinterId == printerId && !p.IsDeleted)
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+
+        if (posIds.Count > 0)
+        {
+            var sessions = await context.SaleSessions
+                .AsNoTracking()
+                .Include(s => s.Payments)
+                    .ThenInclude(p => p.PaymentMethod)
+                .Where(s => posIds.Contains(s.PosId)
+                         && !s.IsDeleted
+                         && s.Status == EventForge.Server.Data.Entities.Sales.SaleSessionStatus.Closed
+                         && s.ClosedAt.HasValue && s.ClosedAt.Value.Date == todayStart)
+                .ToListAsync(cancellationToken);
+
+            preCheck.ReceiptCount = sessions.Count;
+            preCheck.TotalAmount = sessions.Sum(s => s.FinalTotal);
+
+            foreach (var session in sessions)
+                foreach (var payment in session.Payments)
+                {
+                    var code = payment.PaymentMethod?.Code?.ToUpperInvariant() ?? string.Empty;
+                    if (payment.PaymentMethod?.FiscalCode == CashFiscalCode || CashPaymentCodes.Contains(code))
+                        preCheck.CashAmount += payment.Amount;
+                    else
+                        preCheck.CardAmount += payment.Amount;
+                }
+        }
+
         preCheck.CheckedAt = DateTime.UtcNow;
         return preCheck;
     }
@@ -208,6 +256,8 @@ public partial class EpsonFiscalPrinterService
             CashAmount = cashAmount,
             CardAmount = totalAmount - cashAmount,
             Operator = operatorName,
+            ClosureType = "Fiscale",
+            FiscalClosurePending = false,
             HasPdf = false,
             PrinterResponse = null,
             CreatedBy = operatorName
@@ -229,6 +279,8 @@ public partial class EpsonFiscalPrinterService
         };
 
         // Print the Z-report document on the Epson printer
+        bool fiscalPending = false;
+        string? printerError = null;
         try
         {
             await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
@@ -245,16 +297,27 @@ public partial class EpsonFiscalPrinterService
         }
         catch (Exception ex)
         {
-            // Non-fatal: DB closure record is already saved; log and continue
+            // The DB closure record is already saved; mark fiscal part as pending
             logger.LogWarning(ex,
                 "Epson ExecuteDailyClosureAsync: closure saved but Z-report print failed | PrinterId={PrinterId}",
                 printerId);
+            fiscalPending = true;
+            printerError = ex.Message;
         }
 
-        logger.LogInformation(
-            "Epson DailyClosure saved | PrinterId={PrinterId} ClosureId={ClosureId} Z={Z} Operator={Op}",
-            printerId, record.Id, zNumber, operatorName);
+        // Persist fiscal-pending state and closure type
+        record.ClosureType = fiscalPending ? "SoloDatabase" : "Fiscale";
+        record.FiscalClosurePending = fiscalPending;
+        record.PrinterErrors = fiscalPending ? printerError?[..Math.Min(printerError.Length, 500)] : null;
+        await context.SaveChangesAsync(cancellationToken);
 
+        logger.LogInformation(
+            "Epson DailyClosure saved | PrinterId={PrinterId} ClosureId={ClosureId} Z={Z} Type={Type} Pending={Pending} Operator={Op}",
+            printerId, record.Id, zNumber, record.ClosureType, fiscalPending, operatorName);
+
+        closureDto.ClosureType = fiscalPending ? ClosureType.SoloDatabase : ClosureType.Fiscale;
+        closureDto.FiscalClosurePending = fiscalPending;
+        closureDto.PrinterErrors = record.PrinterErrors;
         return closureDto;
     }
 
@@ -302,7 +365,9 @@ public partial class EpsonFiscalPrinterService
                 CashAmount = r.CashAmount,
                 CardAmount = r.CardAmount,
                 Operator = r.Operator,
-                HasPdf = r.HasPdf
+                HasPdf = r.HasPdf,
+                ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var ct) ? ct : ClosureType.Fiscale,
+                FiscalClosurePending = r.FiscalClosurePending
             }).ToList();
         }
         catch (Exception ex)
@@ -356,6 +421,89 @@ public partial class EpsonFiscalPrinterService
         catch (Exception ex)
         {
             throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto> RetryFiscalClosureAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default)
+    {
+        var record = await context.DailyClosureRecords
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure record {closureId} not found." };
+
+        if (!record.FiscalClosurePending)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = "La chiusura fiscale per questo record non è pendente." };
+
+        logger.LogInformation("Epson RetryFiscalClosureAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, record.PrinterId);
+
+        var closureDto = new DailyClosureResultDto
+        {
+            Success = true,
+            ClosureId = record.Id,
+            ZReportNumber = record.ZReportNumber,
+            ClosedAt = record.ClosedAt,
+            ReceiptCount = record.ReceiptCount,
+            TotalAmount = record.TotalAmount,
+            CashAmount = record.CashAmount,
+            Operator = record.Operator
+        };
+
+        try
+        {
+            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+            var printResult = await ExecuteXmlAsync(channel, xml, record.PrinterId, cancellationToken).ConfigureAwait(false);
+
+            if (printResult.Success)
+            {
+                record.FiscalClosurePending = false;
+                record.ClosureType = "Fiscale";
+                record.PrinterErrors = null;
+                record.ModifiedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
+
+                closureDto.ClosureType = ClosureType.Fiscale;
+                closureDto.FiscalClosurePending = false;
+                return closureDto;
+            }
+            else
+            {
+                record.PrinterErrors = printResult.ErrorMessage?[..Math.Min(printResult.ErrorMessage.Length, 500)];
+                record.ModifiedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
+
+                return new DailyClosureResultDto
+                {
+                    Success = false,
+                    ErrorMessage = printResult.ErrorMessage,
+                    ClosureId = record.Id,
+                    ClosureType = ClosureType.SoloDatabase,
+                    FiscalClosurePending = true,
+                    PrinterErrors = printResult.ErrorMessage
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Epson RetryFiscalClosureAsync: printer still unreachable | ClosureId={ClosureId}", closureId);
+            record.PrinterErrors = ex.Message[..Math.Min(ex.Message.Length, 500)];
+            record.ModifiedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync(cancellationToken);
+
+            return new DailyClosureResultDto
+            {
+                Success = false,
+                ErrorMessage = ex.Message,
+                ClosureId = record.Id,
+                ClosureType = ClosureType.SoloDatabase,
+                FiscalClosurePending = true,
+                PrinterErrors = ex.Message
+            };
         }
     }
 }

@@ -79,6 +79,18 @@ public interface IFiscalPrintingService
     /// <summary>Executes the daily fiscal closure (Z-report) for the specified printer.</summary>
     Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(Guid printerId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Executes a daily closure for a POS terminal that has no fiscal printer configured.
+    /// Saves totals to the database only (<c>ClosureType = NonFiscale</c>).
+    /// </summary>
+    Task<DailyClosureResultDto?> ExecuteNoPrinterDailyClosureAsync(Guid posId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Retries the hardware fiscal Z-report for a closure record whose
+    /// <c>FiscalClosurePending</c> flag is <c>true</c>.
+    /// </summary>
+    Task<DailyClosureResultDto?> RetryFiscalClosureAsync(Guid closureId, CancellationToken ct = default);
+
     /// <summary>Returns the history of daily closures for the specified printer.</summary>
     Task<List<DailyClosureHistoryDto>?> GetClosureHistoryAsync(
         Guid printerId, int page = 1, int pageSize = 20,

@@ -344,4 +344,119 @@ public sealed class FiscalPrinterServiceRouter(
         string subnetPrefix, int port = 9100, int timeoutMs = 300, CancellationToken ct = default)
         => serviceProvider.GetRequiredService<CustomFiscalPrinterService>()
                .ScanNetworkAsync(subnetPrefix, port, timeoutMs, ct);
+
+    // -------------------------------------------------------------------------
+    //  RetryFiscalClosureAsync
+    // -------------------------------------------------------------------------
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto> RetryFiscalClosureAsync(
+        Guid closureId, CancellationToken ct = default)
+    {
+        var printerId = await context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .Select(r => (Guid?)r.PrinterId)
+            .FirstOrDefaultAsync(ct);
+
+        if (printerId is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure {closureId} not found." };
+
+        return await (await ResolveAsync(printerId.Value, ct)).RetryFiscalClosureAsync(closureId, ct);
+    }
+
+    // -------------------------------------------------------------------------
+    //  No-printer daily closure (DB-only / NonFiscale)
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Executes a daily closure when no fiscal printer is configured for the POS terminal.
+    /// Aggregates today's session totals from the database and saves a <see cref="DailyClosureRecord"/>
+    /// with <see cref="ClosureType.NonFiscale"/> and <see cref="DailyClosureRecord.FiscalClosurePending"/> = <c>false</c>.
+    /// </summary>
+    public async Task<DailyClosureResultDto> ExecuteNoPrinterDailyClosureAsync(
+        Guid posId,
+        string operatorName,
+        CancellationToken ct = default)
+    {
+        logger.LogInformation("ExecuteNoPrinterDailyClosureAsync | PosId={PosId} Operator={Op}", posId, operatorName);
+
+        var closedAt = DateTime.UtcNow;
+        var todayStart = closedAt.Date;
+
+        // Resolve tenant from the POS record
+        var pos = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => p.Id == posId && !p.IsDeleted)
+            .Select(p => new { p.Id, p.TenantId })
+            .FirstOrDefaultAsync(ct);
+
+        if (pos is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"POS {posId} non trovato." };
+
+        // Aggregate today's sessions for this POS
+        var sessions = await context.SaleSessions
+            .AsNoTracking()
+            .Include(s => s.Payments)
+                .ThenInclude(p => p.PaymentMethod)
+            .Where(s => s.PosId == posId
+                     && !s.IsDeleted
+                     && s.Status == EventForge.Server.Data.Entities.Sales.SaleSessionStatus.Closed
+                     && s.ClosedAt.HasValue && s.ClosedAt.Value.Date == todayStart)
+            .ToListAsync(ct);
+
+        decimal totalAmount = 0m, cashAmount = 0m, cardAmount = 0m;
+        int receiptCount = sessions.Count;
+        totalAmount = sessions.Sum(s => s.FinalTotal);
+
+        foreach (var session in sessions)
+            foreach (var payment in session.Payments)
+            {
+                var code = payment.PaymentMethod?.Code?.ToUpperInvariant() ?? string.Empty;
+                // FiscalCode 1 = cash; any other recognised code = card/electronic
+                bool isCash = payment.PaymentMethod?.FiscalCode == 1
+                           || code is "CASH" or "CONTANTI" or "CONTANTE";
+                if (isCash) cashAmount += payment.Amount;
+                else cardAmount += payment.Amount;
+            }
+
+        // There is no physical fiscal printer, so Z-number is 0 (not applicable)
+        var record = new Data.Entities.FiscalPrinting.DailyClosureRecord
+        {
+            PrinterId = Guid.Empty,
+            TenantId = pos.TenantId,
+            ZReportNumber = 0,
+            ClosedAt = closedAt,
+            ReceiptCount = receiptCount,
+            TotalAmount = totalAmount,
+            CashAmount = cashAmount,
+            CardAmount = cardAmount,
+            Operator = operatorName,
+            ClosureType = "NonFiscale",
+            FiscalClosurePending = false,
+            HasPdf = false,
+            CreatedBy = operatorName
+        };
+
+        context.DailyClosureRecords.Add(record);
+        await context.SaveChangesAsync(ct);
+
+        logger.LogInformation(
+            "NoPrinter DailyClosure saved | PosId={PosId} ClosureId={ClosureId} Type=NonFiscale Operator={Op}",
+            posId, record.Id, operatorName);
+
+        return new DailyClosureResultDto
+        {
+            Success = true,
+            ClosureId = record.Id,
+            ZReportNumber = null,
+            ClosedAt = closedAt,
+            ReceiptCount = receiptCount,
+            TotalAmount = totalAmount,
+            CashAmount = cashAmount,
+            Operator = operatorName,
+            ClosureType = ClosureType.NonFiscale,
+            FiscalClosurePending = false
+        };
+    }
 }

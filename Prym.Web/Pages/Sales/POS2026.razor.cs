@@ -1257,22 +1257,19 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            if (!_fiscalPrinterId.HasValue)
-            {
-                AppNotification.ShowWarning("Nessuna stampante fiscale configurata per questo punto cassa. Configura la stampante nelle impostazioni POS.");
-                return;
-            }
             var parameters = new DialogParameters
             {
-                [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId.Value,
-                [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
+                [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId,
+                [nameof(DailyClosureDialog.PosId)]       = ViewModel.SelectedPosId,
+                [nameof(DailyClosureDialog.PrinterName)] = _fiscalPrinterId.HasValue ? "Stampante POS" : null
             };
             var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
                 string.Empty, parameters, EFDialogDefaults.Options);
             var result = await dialog.Result;
             if (result?.Canceled == false)
             {
-                _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+                if (_fiscalPrinterId.HasValue)
+                    _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
                 // Se la chiusura è andata a buon fine, nascondi il banner di avviso
                 if (result.Data is DailyClosureResultDto closureResult && closureResult.Success)
                     _previousDayClosureMissing = false;

@@ -370,6 +370,38 @@ public class FiscalPrintingService(
     }
 
     /// <inheritdoc />
+    public async Task<DailyClosureResultDto?> ExecuteNoPrinterDailyClosureAsync(
+        Guid posId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, DailyClosureResultDto>(
+                $"{BaseUrl}/daily-closure/execute-no-printer/{posId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "ExecuteNoPrinterDailyClosureAsync failed for POS {PosId}", posId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto?> RetryFiscalClosureAsync(
+        Guid closureId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, DailyClosureResultDto>(
+                $"{BaseUrl}/daily-closure/{closureId}/retry-fiscal", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "RetryFiscalClosureAsync failed for closure {ClosureId}", closureId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<List<DailyClosureHistoryDto>?> GetClosureHistoryAsync(
         Guid printerId, int page = 1, int pageSize = 20,
         DateTime? fromDate = null, DateTime? toDate = null,

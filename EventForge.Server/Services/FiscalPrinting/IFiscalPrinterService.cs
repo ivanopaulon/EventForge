@@ -205,4 +205,20 @@ public interface IFiscalPrinterService
     Task<byte[]?> GenerateZReportPdfAsync(
         Guid closureId,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retries the hardware fiscal Z-report for a closure that was recorded in the database
+    /// but whose <see cref="DailyClosureResultDto.FiscalClosurePending"/> flag is <c>true</c>
+    /// (because the printer was unreachable at the time of the original closure).
+    /// On success, clears <see cref="DailyClosureRecord.FiscalClosurePending"/>,
+    /// updates <see cref="DailyClosureRecord.ZReportNumber"/> from the hardware response, and
+    /// changes <see cref="DailyClosureRecord.ClosureType"/> to <c>Fiscale</c>.
+    /// </summary>
+    /// <param name="closureId">Database ID of the <see cref="DailyClosureRecord"/> to retry.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Updated result DTO; <see cref="FiscalPrintResult.Success"/> is <c>false</c> if the printer is still unreachable.</returns>
+    Task<DailyClosureResultDto> RetryFiscalClosureAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default);
 }
+
