@@ -14,23 +14,23 @@
 
 <PageTitle>Storico Chiusure Fiscali</PageTitle>
 
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+<PageLoadingOverlay Visible="@_isLoading" Message="Caricamento storico chiusure…" />
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5">
-        <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2 mb-1 vertical-middle" />
-        Storico Chiusure Fiscali
-        @if (!string.IsNullOrEmpty(_printerName))
-        {
-            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Class="ml-2">@_printerName</MudChip>
-        }
-    </MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Warning"
-               StartIcon="@Icons.Material.Filled.EventNote"
-               OnClick="OpenDailyClosureDialogAsync">
-        Nuova Chiusura
-    </MudButton>
-</MudStack>
+@if (!_isLoading)
+{
+<div class="ef-flex-col-fill">
+    <ManagementPageHeader Title="@($"Storico Chiusure{(!string.IsNullOrEmpty(_printerName) ? $" – {_printerName}" : "")}")"
+                          Icon="@Icons.Material.Outlined.EventNote"
+                          BreadcrumbItems="_breadcrumbs">
+        <ExtraActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                       StartIcon="@Icons.Material.Filled.EventNote"
+                       Size="Size.Small"
+                       OnClick="OpenDailyClosureDialogAsync">
+                Nuova Chiusura
+            </MudButton>
+        </ExtraActions>
+    </ManagementPageHeader>
 
 @* ──────────────────── FILTRI ──────────────────── *@
 <MudPaper Class="pa-4 mb-4" Elevation="1">
@@ -167,6 +167,8 @@
         </NoRecordsContent>
     </MudTable>
 </MudPaper>
+</div>
+}
 
 @code {
     // ─────────────────────────────────────────────────────────

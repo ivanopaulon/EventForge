@@ -11,14 +11,14 @@
 
 <PageTitle>Storico Chiusure Giornaliere</PageTitle>
 
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+<PageLoadingOverlay Visible="@_isLoading" Message="Caricamento storico chiusure…" />
 
-<MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h5">
-        <MudIcon Icon="@Icons.Material.Filled.EventNote" Class="mr-2 mb-1 vertical-middle" />
-        Storico Chiusure Giornaliere
-    </MudText>
-</MudStack>
+@if (!_isLoading)
+{
+<div class="ef-flex-col-fill">
+    <ManagementPageHeader Title="Storico Chiusure Giornaliere"
+                          Icon="@Icons.Material.Outlined.EventNote"
+                          BreadcrumbItems="_breadcrumbs" />
 
 @* ──────────────────── FILTRI ──────────────────── *@
 <MudPaper Class="pa-4 mb-4" Elevation="1">
@@ -179,6 +179,8 @@
         </NoRecordsContent>
     </MudTable>
 </MudPaper>
+</div>
+}
 
 @code {
     // ─────────────────────────────────────────────────────────
