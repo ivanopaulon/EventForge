@@ -290,6 +290,14 @@ builder.Services.AddHttpClient<Prym.Web.Services.Store.IFiscalDrawerService, Pry
 })
 .AddHttpMessageHandler<Prym.Web.Services.Store.AuthenticatedHttpClientHandler>();
 
+builder.Services.AddHttpClient<Prym.Web.Services.Store.IShiftService, Prym.Web.Services.Store.ShiftService>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+})
+.AddHttpMessageHandler<Prym.Web.Services.Store.AuthenticatedHttpClientHandler>();
+
 builder.Services.AddHttpClient<Prym.Web.Services.Store.IPaymentTerminalService, Prym.Web.Services.Store.PaymentTerminalService>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);

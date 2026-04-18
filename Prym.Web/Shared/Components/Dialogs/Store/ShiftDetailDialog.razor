@@ -1,0 +1,295 @@
+@using Prym.DTOs.Store
+@using Prym.Web.Services.Store
+@inject IShiftService ShiftService
+@inject IStoreUserService StoreUserService
+@inject IStorePosService StorePosService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ShiftDetailDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Schedule"
+          Title="@(ShiftId.HasValue ? "Modifica Turno" : "Nuovo Turno")"
+          IsProcessing="_isSaving"
+          OnClose="Cancel"
+          MinWidth="600px">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            @if (ShiftId.HasValue)
+            {
+                <div class="d-flex align-center gap-3 flex-wrap mb-3">
+                    <MudChip T="string" Size="Size.Medium" Color="@GetStatusColor(_status)">
+                        @GetStatusText(_status)
+                    </MudChip>
+                </div>
+                <MudDivider Class="mb-3" />
+            }
+
+            <MudForm @ref="_form">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudSelect @bind-Value="_storeUserId"
+                                   Label="Operatore"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="ef-select"
+                                   Disabled="ShiftId.HasValue">
+                            @foreach (var user in _operators)
+                            {
+                                <MudSelectItem Value="user.Id">@user.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSelect @bind-Value="_posId"
+                                   Label="Cassa (POS)"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="ef-select"
+                                   Clearable="true">
+                            @foreach (var pos in _poses)
+                            {
+                                <MudSelectItem Value="@((Guid?)pos.Id)">@pos.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="6" sm="4">
+                        <MudDatePicker @bind-Date="_shiftStartDate"
+                                       Label="Inizio - Data"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Class="ef-datepicker" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudTimePicker @bind-Time="_shiftStartTime"
+                                       Label="Ora"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       AmPm="false" />
+                    </MudItem>
+
+                    <MudItem xs="6" sm="4">
+                        <MudDatePicker @bind-Date="_shiftEndDate"
+                                       Label="Fine - Data"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Class="ef-datepicker" />
+                    </MudItem>
+                    <MudItem xs="6" sm="2">
+                        <MudTimePicker @bind-Time="_shiftEndTime"
+                                       Label="Ora"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       AmPm="false" />
+                    </MudItem>
+
+                    @if (ShiftId.HasValue)
+                    {
+                        <MudItem xs="12">
+                            <MudSelect @bind-Value="_status"
+                                       Label="Stato"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Class="ef-select">
+                                @foreach (var status in Enum.GetValues<ShiftStatus>())
+                                {
+                                    <MudSelectItem Value="status">@GetStatusText(status)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                    }
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_notes"
+                                      Label="Note"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Lines="2"
+                                      MaxLength="500"
+                                      Class="ef-input" />
+                    </MudItem>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="Cancel" Disabled="_isSaving">
+            Annulla
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving || _isLoading">
+            Salva
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? ShiftId { get; set; }
+
+    private MudForm? _form;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    private Guid _storeUserId;
+    private Guid? _posId;
+    private DateTime? _shiftStartDate = DateTime.Today;
+    private TimeSpan? _shiftStartTime = new TimeSpan(8, 0, 0);
+    private DateTime? _shiftEndDate = DateTime.Today;
+    private TimeSpan? _shiftEndTime = new TimeSpan(16, 0, 0);
+    private ShiftStatus _status = ShiftStatus.Scheduled;
+    private string? _notes;
+
+    private List<StoreUserDto> _operators = [];
+    private List<StorePosDto> _poses = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var opTask = StoreUserService.GetAllAsync();
+            var posTask = StorePosService.GetActiveAsync();
+            await Task.WhenAll(opTask, posTask);
+            _operators = opTask.Result;
+            _poses = posTask.Result;
+
+            if (ShiftId.HasValue)
+            {
+                var shift = await ShiftService.GetByIdAsync(ShiftId.Value);
+                if (shift is not null)
+                {
+                    _storeUserId = shift.StoreUserId;
+                    _posId = shift.PosId;
+                    var localStart = shift.ShiftStart.ToLocalTime();
+                    var localEnd = shift.ShiftEnd.ToLocalTime();
+                    _shiftStartDate = localStart.Date;
+                    _shiftStartTime = localStart.TimeOfDay;
+                    _shiftEndDate = localEnd.Date;
+                    _shiftEndTime = localEnd.TimeOfDay;
+                    _status = shift.Status;
+                    _notes = shift.Notes;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading shift dialog data");
+            _errorMessage = "Errore durante il caricamento dei dati.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+
+        if (_storeUserId == Guid.Empty)
+        {
+            _errorMessage = "Seleziona un operatore.";
+            return;
+        }
+        if (_shiftStartDate is null || _shiftStartTime is null || _shiftEndDate is null || _shiftEndTime is null)
+        {
+            _errorMessage = "Inserisci inizio e fine del turno.";
+            return;
+        }
+
+        // Combine date + time, then convert local → UTC for storage
+        var shiftStart = DateTime.SpecifyKind(
+            _shiftStartDate.Value.Add(_shiftStartTime.Value), DateTimeKind.Local).ToUniversalTime();
+        var shiftEnd = DateTime.SpecifyKind(
+            _shiftEndDate.Value.Add(_shiftEndTime.Value), DateTimeKind.Local).ToUniversalTime();
+
+        if (shiftEnd <= shiftStart)
+        {
+            _errorMessage = "La fine del turno deve essere successiva all'inizio.";
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            CashierShiftDto? result;
+
+            if (ShiftId.HasValue)
+            {
+                var updateDto = new UpdateCashierShiftDto
+                {
+                    PosId = _posId,
+                    ShiftStart = shiftStart,
+                    ShiftEnd = shiftEnd,
+                    Status = _status,
+                    Notes = _notes
+                };
+                result = await ShiftService.UpdateAsync(ShiftId.Value, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateCashierShiftDto
+                {
+                    StoreUserId = _storeUserId,
+                    PosId = _posId,
+                    ShiftStart = shiftStart,
+                    ShiftEnd = shiftEnd,
+                    Notes = _notes
+                };
+                result = await ShiftService.CreateAsync(createDto);
+            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving shift");
+            _errorMessage = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static Color GetStatusColor(ShiftStatus status) => status switch
+    {
+        ShiftStatus.Scheduled  => Color.Info,
+        ShiftStatus.InProgress => Color.Warning,
+        ShiftStatus.Completed  => Color.Success,
+        ShiftStatus.Cancelled  => Color.Error,
+        _                      => Color.Default
+    };
+
+    private static string GetStatusText(ShiftStatus status) => status switch
+    {
+        ShiftStatus.Scheduled  => "Pianificato",
+        ShiftStatus.InProgress => "In corso",
+        ShiftStatus.Completed  => "Completato",
+        ShiftStatus.Cancelled  => "Annullato",
+        _                      => status.ToString()
+    };
+}

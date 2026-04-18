@@ -1,0 +1,210 @@
+@page "/store/shifts/calendar"
+@using Prym.DTOs.Store
+@using Prym.Web.Services.Store
+@using Prym.Web.Shared.Components.Dialogs.Store
+@using Syncfusion.Blazor.Schedule
+@attribute [Authorize]
+@inject IShiftService ShiftService
+@inject IStoreUserService StoreUserService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<ShiftCalendar> Logger
+
+<PageTitle>Calendario Turni</PageTitle>
+
+<div class="management-page-root ef-flex-col-fill">
+    <div class="ef-flex-col-fill gap-3">
+
+        <!-- Header -->
+        <MudPaper Elevation="1" Class="pa-3">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5">Calendario Turni</MudText>
+                <MudSpacer />
+                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="@(() => OpenShiftDialogAsync(null, null, null))">
+                    Nuovo Turno
+                </MudButton>
+                <MudIconButton Icon="@Icons.Material.Outlined.TableRows"
+                               Title="Lista Turni"
+                               Href="/store/shifts"
+                               Color="Color.Primary"
+                               Variant="Variant.Outlined" />
+            </MudStack>
+        </MudPaper>
+
+        <!-- Scheduler -->
+        <MudPaper Elevation="2" Class="pa-0" Style="flex:1; overflow:hidden; position:relative; min-height:500px;">
+            @if (_isLoading)
+            {
+                <MudProgressLinear Class="progress-absolute-top" Indeterminate="true" Color="Color.Primary" />
+            }
+            <SfSchedule TValue="SchedulerShiftItem"
+                        Height="650px"
+                        @bind-SelectedDate="_currentDate"
+                        @ref="_schedulerRef">
+                <ScheduleViews>
+                    <ScheduleView Option="View.Day" />
+                    <ScheduleView Option="View.Week" />
+                    <ScheduleView Option="View.Month" />
+                </ScheduleViews>
+                <ScheduleEventSettings DataSource="@_schedulerItems"
+                                       IdField="@nameof(SchedulerShiftItem.Id)"
+                                       SubjectField="@nameof(SchedulerShiftItem.Subject)"
+                                       StartTimeField="@nameof(SchedulerShiftItem.StartTime)"
+                                       EndTimeField="@nameof(SchedulerShiftItem.EndTime)"
+                                       DescriptionField="@nameof(SchedulerShiftItem.Description)" />
+                <ScheduleEvents TValue="SchedulerShiftItem"
+                                OnPopupOpen="OnSchedulerPopupOpen"
+                                EventRendered="OnEventRendered" />
+            </SfSchedule>
+        </MudPaper>
+
+    </div>
+</div>
+
+@code {
+    private SfSchedule<SchedulerShiftItem>? _schedulerRef;
+    private DateTime _currentDate = DateTime.Today;
+    private bool _isLoading;
+
+    private List<CashierShiftDto> _shifts = [];
+    private List<SchedulerShiftItem> _schedulerItems = [];
+
+    // Maps scheduler int ID → CashierShiftDto for lookups
+    private Dictionary<int, CashierShiftDto> _shiftMap = [];
+
+    public class SchedulerShiftItem
+    {
+        public int      Id          { get; set; }
+        public string   ShiftId     { get; set; } = string.Empty;
+        public string   Subject     { get; set; } = string.Empty;
+        public DateTime StartTime   { get; set; }
+        public DateTime EndTime     { get; set; }
+        public string?  Description { get; set; }
+        public string?  Color       { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            // Load one month around the current date
+            var from = DateOnly.FromDateTime(_currentDate.AddDays(-15));
+            var to   = DateOnly.FromDateTime(_currentDate.AddDays(45));
+
+            _shifts = await ShiftService.GetShiftsAsync(from, to);
+            BuildSchedulerItems();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading shifts for calendar");
+            AppNotification.ShowError("Errore durante il caricamento dei turni.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void BuildSchedulerItems()
+    {
+        _shiftMap.Clear();
+        _schedulerItems = _shifts.Select((s, idx) =>
+        {
+            var item = new SchedulerShiftItem
+            {
+                Id          = idx + 1,
+                ShiftId     = s.Id.ToString(),
+                Subject     = string.IsNullOrEmpty(s.PosName)
+                                ? s.StoreUserName
+                                : $"{s.StoreUserName} — {s.PosName}",
+                StartTime   = s.ShiftStart.ToLocalTime(),
+                EndTime     = s.ShiftEnd.ToLocalTime(),
+                Description = s.Notes,
+                Color       = GetStatusColor(s.Status)
+            };
+            _shiftMap[item.Id] = s;
+            return item;
+        }).ToList();
+    }
+
+    private async Task OnSchedulerPopupOpen(PopupOpenEventArgs<SchedulerShiftItem> args)
+    {
+        try
+        {
+            // Suppress default Syncfusion quick-info and editor popups
+            if (args.Type is PopupType.QuickInfo or PopupType.Editor)
+                args.Cancel = true;
+
+            if (args.Type == PopupType.Editor)
+            {
+                var data = args.Data;
+
+                if (data is not null && _shiftMap.TryGetValue(data.Id, out var existingShift))
+                {
+                    // Edit existing shift
+                    await OpenShiftDialogAsync(existingShift.Id, null, null);
+                }
+                else
+                {
+                    // Create new shift from selected cell
+                    await OpenShiftDialogAsync(null, data?.StartTime, data?.EndTime);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in scheduler popup open handler");
+            AppNotification.ShowWarning("Si è verificato un errore durante l'apertura del dialogo.");
+        }
+    }
+
+    private void OnEventRendered(EventRenderedArgs<SchedulerShiftItem> args)
+    {
+        if (!string.IsNullOrEmpty(args.Data.Color))
+            args.Attributes = new Dictionary<string, object>
+            {
+                ["style"] = $"background:{args.Data.Color}!important;border-color:{args.Data.Color}!important;"
+            };
+    }
+
+    private async Task OpenShiftDialogAsync(Guid? shiftId, DateTime? prefilledStart, DateTime? prefilledEnd)
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = false,
+            BackdropClick = false,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var parameters = new DialogParameters<ShiftDetailDialog>
+        {
+            { x => x.ShiftId, shiftId }
+        };
+
+        var dialog = await DialogService.ShowAsync<ShiftDetailDialog>(string.Empty, parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadDataAsync();
+    }
+
+    private static string GetStatusColor(ShiftStatus status) => status switch
+    {
+        ShiftStatus.Scheduled  => "var(--mud-palette-info)",
+        ShiftStatus.InProgress => "var(--mud-palette-warning)",
+        ShiftStatus.Completed  => "var(--mud-palette-success)",
+        ShiftStatus.Cancelled  => "var(--mud-palette-error)",
+        _                      => "var(--mud-palette-primary)"
+    };
+}
