@@ -40,4 +40,13 @@ public class DailyClosureHistoryDto
     /// Whether a PDF copy of the Z-report is stored and downloadable.
     /// </summary>
     public bool HasPdf { get; set; }
+
+    /// <summary>Type of closure performed (Fiscale, NonFiscale, SoloDatabase).</summary>
+    public ClosureType ClosureType { get; set; } = ClosureType.Fiscale;
+
+    /// <summary>
+    /// <c>true</c> if the fiscal Z-report was not sent to the hardware and is still pending.
+    /// </summary>
+    public bool FiscalClosurePending { get; set; }
 }
+

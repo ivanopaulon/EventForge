@@ -515,7 +515,7 @@
 
         if (_form != null && _form.IsValid == false)
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("validation.formInvalid", "Modulo non valido"));
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
             return;
         }
 

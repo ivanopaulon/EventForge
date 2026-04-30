@@ -288,7 +288,11 @@
         if (_documentType == null || _form == null) return;
 
         await _form.ValidateAsync();
-        if (!_form.IsValid) return;
+        if (!_form.IsValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
 
         _isSaving = true;
         try

@@ -252,7 +252,12 @@
     private async Task SaveAsync()
     {
         await _form.ValidateAsync();
-        if (!_isFormValid || _dateRange?.Start == null) return;
+        if (!_isFormValid || _dateRange?.Start == null)
+        {
+            if (!_isFormValid)
+                AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
 
         try
         {

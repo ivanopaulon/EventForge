@@ -1223,17 +1223,18 @@ else
 
     private async Task OpenDailyClosureDialogAsync()
     {
-        if (!_fiscalPrinterId.HasValue) return;
         var parameters = new DialogParameters
         {
-            [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId.Value,
-            [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
+            [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId,
+            [nameof(DailyClosureDialog.PosId)]       = ViewModel.SelectedPosId,
+            [nameof(DailyClosureDialog.PrinterName)] = _fiscalPrinterId.HasValue ? "Stampante POS" : null
         };
         var dialog = await DialogService.ShowAsync<DailyClosureDialog>(string.Empty, parameters, EFDialogDefaults.Options);
         var result = await dialog.Result;
         if (result?.Canceled == false)
         {
-            _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+            if (_fiscalPrinterId.HasValue)
+                _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
             StateHasChanged();
         }
     }

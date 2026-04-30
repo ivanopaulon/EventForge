@@ -338,6 +338,22 @@ public class FiscalPrintingService(
     }
 
     /// <inheritdoc />
+    public async Task<PreviousDayClosureStatusDto?> GetPreviousDayClosureStatusAsync(
+        Guid printerId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<PreviousDayClosureStatusDto>(
+                $"{BaseUrl}/daily-closure/morning-check/{printerId}", ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetPreviousDayClosureStatusAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(
         Guid printerId, CancellationToken ct = default)
     {
@@ -349,6 +365,38 @@ public class FiscalPrintingService(
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "ExecuteDailyClosureAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto?> ExecuteNoPrinterDailyClosureAsync(
+        Guid posId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, DailyClosureResultDto>(
+                $"{BaseUrl}/daily-closure/execute-no-printer/{posId}", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "ExecuteNoPrinterDailyClosureAsync failed for POS {PosId}", posId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto?> RetryFiscalClosureAsync(
+        Guid closureId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, DailyClosureResultDto>(
+                $"{BaseUrl}/daily-closure/{closureId}/retry-fiscal", new { }, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "RetryFiscalClosureAsync failed for closure {ClosureId}", closureId);
             return null;
         }
     }
@@ -371,6 +419,28 @@ public class FiscalPrintingService(
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "GetClosureHistoryAsync failed for printer {PrinterId}", printerId);
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<List<DailyClosureHistoryDto>?> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var url = $"{BaseUrl}/closures?page={page}&pageSize={pageSize}";
+            if (fromDate.HasValue)
+                url += $"&fromDate={fromDate.Value:o}";
+            if (toDate.HasValue)
+                url += $"&toDate={toDate.Value:o}";
+            return await httpClientService.GetAsync<List<DailyClosureHistoryDto>>(url, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            logger.LogWarning(ex, "GetAllClosureHistoryAsync failed");
             return null;
         }
     }

@@ -110,7 +110,11 @@
         try
         {
             await _form.ValidateAsync();
-            if (!_isValid) return;
+            if (!_isValid)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+                return;
+            }
 
             if (_isEditMode && Model != null)
             {

@@ -95,6 +95,12 @@ public class ValidationState
 {
     public List<string> Errors { get; set; } = new();
     public bool IsValid => !Errors.Any();
+
+    /// <summary>
+    /// Per-field validation errors keyed by field name
+    /// (e.g. "quantity", "unitOfMeasure", "unitPrice", "vatRate", "discount", "description").
+    /// </summary>
+    public Dictionary<string, string> FieldErrors { get; set; } = new();
 }
 
 /// <summary>

@@ -100,6 +100,97 @@ public partial class DocumentRowDialog : IAsyncDisposable
     private string? _appliedPriceListName;
     private string? _appliedPromotionsSummary;
 
+    /// <summary>
+    /// Returns the list of UoM options to display in the select.
+    /// When the product has its own unit list, those are shown; otherwise ALL known
+    /// units of measure are shown so the operator can always make a selection.
+    /// </summary>
+    private IEnumerable<(Guid Id, string Label)> UomOptionsForDisplay
+    {
+        get
+        {
+            if (_availableUnits.Count > 0)
+            {
+                foreach (var unit in _availableUnits)
+                {
+                    var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
+                    if (uom != null)
+                        yield return (uom.Id, $"{uom.Symbol} - {uom.Name}");
+                }
+            }
+            else
+            {
+                foreach (var uom in _allUnitsOfMeasure)
+                    yield return (uom.Id, $"{uom.Symbol} - {uom.Name}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The UoM select is disabled only when the product has exactly one unit configured
+    /// (it is already pre-filled and the operator has no choice to make).
+    /// When there are zero product-specific units we fall back to the global list and keep
+    /// the select interactive so the operator can fix a missing UoM before saving.
+    /// </summary>
+    private bool IsUomSelectDisabled => _availableUnits.Count == 1;
+
+    // ── Field-level validation helpers ────────────────────────────────────────
+
+    /// <summary>Returns true when the given field has a pending validation error.</summary>
+    private bool HasFieldError(string field) =>
+        _state.Validation.FieldErrors.ContainsKey(field);
+
+    /// <summary>Returns the validation error message for the given field, or null.</summary>
+    private string? GetFieldError(string field) =>
+        _state.Validation.FieldErrors.TryGetValue(field, out var msg) ? msg : null;
+
+    /// <summary>
+    /// Maps validation error keys produced by <see cref="DocumentRowValidator"/>
+    /// to individual field names and stores them in <c>_state.Validation.FieldErrors</c>.
+    /// This enables inline field highlighting alongside the summary alert.
+    /// </summary>
+    private void PopulateFieldErrors(Services.Documents.ValidationResult result)
+    {
+        _state.Validation.FieldErrors.Clear();
+        foreach (var key in result.ErrorKeys)
+        {
+            var field = key switch
+            {
+                "validation.descriptionRequired"           => "description",
+                "validation.quantityMustBePositive"        => "quantity",
+                "validation.quantityTooLarge"              => "quantity",
+                "validation.unitPriceCannotBeNegative"     => "unitPrice",
+                "validation.unitPriceTooLarge"             => "unitPrice",
+                "validation.unitOfMeasureRequired"         => "unitOfMeasure",
+                "validation.vatRateInvalid"                => "vatRate",
+                "validation.discountPercentageInvalid"     => "discount",
+                "validation.discountValueCannotBeNegative" => "discount",
+                "validation.discountValueExceedsTotal"     => "discount",
+                _                                          => (string?)null
+            };
+            if (field is not null && !_state.Validation.FieldErrors.ContainsKey(field))
+            {
+                _state.Validation.FieldErrors[field] =
+                    TranslationService.GetTranslation(key, GetFieldDefaultMessage(key));
+            }
+        }
+    }
+
+    private static string GetFieldDefaultMessage(string key) => key switch
+    {
+        "validation.descriptionRequired"           => "Obbligatorio",
+        "validation.quantityMustBePositive"        => "Deve essere > 0",
+        "validation.quantityTooLarge"              => "Valore troppo elevato",
+        "validation.unitPriceCannotBeNegative"     => "Non può essere negativo",
+        "validation.unitPriceTooLarge"             => "Valore troppo elevato",
+        "validation.unitOfMeasureRequired"         => "Obbligatorio",
+        "validation.vatRateInvalid"                => "Deve essere tra 0 e 100",
+        "validation.discountPercentageInvalid"     => "Deve essere tra 0 e 100",
+        "validation.discountValueCannotBeNegative" => "Non può essere negativo",
+        "validation.discountValueExceedsTotal"     => "Supera il totale riga",
+        _                                          => "Valore non valido"
+    };
+
     #endregion
 
     #region Lifecycle Methods
@@ -1256,6 +1347,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
             {
                 _state.Validation.Errors.Clear();
                 _state.Validation.Errors.AddRange(validationResult.GetErrorMessages(TranslationService));
+                PopulateFieldErrors(validationResult);
                 AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
                 return;
             }
@@ -1325,6 +1417,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
         if (!validationResult.IsValid)
         {
             _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
+            PopulateFieldErrors(validationResult);
             StateHasChanged();
             return;
         }
@@ -1351,6 +1444,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
         if (!validationResult.IsValid)
         {
             _state.Validation.Errors = validationResult.GetErrorMessages(TranslationService);
+            PopulateFieldErrors(validationResult);
             StateHasChanged();
             return;
         }
@@ -1361,6 +1455,13 @@ public partial class DocumentRowDialog : IAsyncDisposable
             _state.Model.Quantity,
             _state.Model.MergeDuplicateProducts);
 
+        // Capture product state before reset (needed for the incomplete-product offer)
+        var productToCheck   = _state.SelectedProduct;
+        var savedUoMId       = _state.Model.UnitOfMeasureId;
+        var savedVatRateId   = _state.SelectedVatRateId;
+        var savedPrice       = _state.Model.UnitPrice;
+        var productHadNoUoMs = _availableUnits.Count == 0;
+
         var result = await ExecuteWithErrorHandlingAsync(
             () => DocumentHeaderService.AddDocumentRowAsync(_state.Model),
             operationName: "createDocumentRow",
@@ -1369,8 +1470,14 @@ public partial class DocumentRowDialog : IAsyncDisposable
         if (result != null)
         {
             ResetForm();
-
             await FocusBarcodeField();
+
+            // Offer to enrich the product master data with what the operator just entered
+            if (productToCheck != null)
+            {
+                await OfferProductUpdateIfIncompleteAsync(
+                    productToCheck, productHadNoUoMs, savedUoMId, savedVatRateId, savedPrice);
+            }
         }
     }
 
@@ -1390,6 +1497,17 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.SelectedProduct = null;
         _state.PreviousSelectedProduct = null;
         _state.Barcode.Input = string.Empty;
+        _state.Validation.Errors.Clear();
+        _state.Validation.FieldErrors.Clear();
+        _state.SelectedUnitOfMeasureId = null;
+        _state.SelectedVatRateId = null;
+        _state.Cache.AvailableUnits.Clear();
+        _state.Cache.RecentTransactions.Clear();
+
+        // Reset the local binding variable so UnifiedProductSelector detects the change
+        // in OnParametersSet (sees _previousSelectedProduct != null && SelectedProduct == null)
+        // and schedules its internal re-focus automatically.
+        _selectedProduct = null;
 
         // Invalidate cached calculation result
         InvalidateCalculationCache();
@@ -1420,6 +1538,118 @@ public partial class DocumentRowDialog : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogDebug(ex, "Could not focus barcode field.");
+        }
+    }
+
+    /// <summary>
+    /// After a row is successfully added, checks whether the selected product was missing
+    /// master-data that the operator had to fill in manually (UoM, VAT rate, default price).
+    /// If so, shows a confirmation dialog and — when accepted — patches the product record
+    /// with the values that were just entered for the row.
+    /// </summary>
+    private async Task OfferProductUpdateIfIncompleteAsync(
+        ProductDto product,
+        bool productHadNoConfiguredUoMs,
+        Guid? savedUoMId,
+        Guid? savedVatRateId,
+        decimal savedPrice)
+    {
+        bool missingUoM      = productHadNoConfiguredUoMs && savedUoMId.HasValue;
+        bool missingVatRate  = !product.VatRateId.HasValue && savedVatRateId.HasValue;
+        bool missingPrice    = (!product.DefaultPrice.HasValue || product.DefaultPrice == 0m) && savedPrice > 0m;
+
+        if (!missingUoM && !missingVatRate && !missingPrice)
+            return;
+
+        var unknown = TranslationService.GetTranslation("common.unknown", "Sconosciuto");
+
+        // Build the list of missing fields for the confirmation message
+        var missingItems = new List<string>();
+        if (missingUoM)
+        {
+            var uomName = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == savedUoMId)?.Name ?? unknown;
+            missingItems.Add($"{TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")}: {uomName}");
+        }
+        if (missingVatRate)
+        {
+            var vatName = _allVatRates.FirstOrDefault(v => v.Id == savedVatRateId)?.Name ?? unknown;
+            missingItems.Add($"{TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")}: {vatName}");
+        }
+        if (missingPrice)
+        {
+            missingItems.Add($"{TranslationService.GetTranslation("field.defaultPrice", "Prezzo predefinito")}: {savedPrice:F2}");
+        }
+
+        var bulletList = string.Join("\n", missingItems.Select(m => $"• {m}"));
+        var message = string.Format(
+            TranslationService.GetTranslation(
+                "documents.productMissingDataMessage",
+                "Il prodotto '{0}' non ha i seguenti dati configurati:\n{1}\n\nVuoi aggiornare il prodotto con i dati appena inseriti?"),
+            product.Name,
+            bulletList);
+
+        bool? confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("documents.incompleteProductTitle", "Prodotto incompleto"),
+            (MarkupString)message.Replace("\n", "<br/>"),
+            yesText: TranslationService.GetTranslation("common.update", "Aggiorna prodotto"),
+            noText:  TranslationService.GetTranslation("common.skip",   "Non aggiornare"));
+
+        if (confirmed != true)
+            return;
+
+        try
+        {
+            // Build UpdateProductDto preserving all existing product fields and patching only
+            // the ones the operator provided.
+            var updateDto = new UpdateProductDto
+            {
+                Name              = product.Name,
+                ShortDescription  = product.ShortDescription ?? string.Empty,
+                Description       = product.Description ?? string.Empty,
+                ImageUrl          = product.ImageUrl ?? string.Empty,
+                ImageDocumentId   = product.ImageDocumentId,
+                Status            = product.Status,
+                IsVatIncluded     = product.IsVatIncluded,
+                DefaultPrice      = missingPrice ? savedPrice : product.DefaultPrice,
+                VatRateId         = missingVatRate ? savedVatRateId : product.VatRateId,
+                UnitOfMeasureId   = missingUoM   ? savedUoMId     : product.UnitOfMeasureId,
+                CategoryNodeId    = product.CategoryNodeId,
+                FamilyNodeId      = product.FamilyNodeId,
+                GroupNodeId       = product.GroupNodeId,
+                StationId         = product.StationId,
+                BrandId           = product.BrandId,
+                ModelId           = product.ModelId,
+                PreferredSupplierId = product.PreferredSupplierId,
+                ReorderPoint      = product.ReorderPoint,
+                SafetyStock       = product.SafetyStock,
+                TargetStockLevel  = product.TargetStockLevel,
+                AverageDailyDemand = product.AverageDailyDemand,
+            };
+
+            await ProductService.UpdateProductAsync(product.Id, updateDto);
+
+            // When the product had no configured units, also create a ProductUnit entry
+            // so that future selections of this product will pre-fill the UoM automatically.
+            if (missingUoM && savedUoMId.HasValue)
+            {
+                var createUnitDto = new CreateProductUnitDto
+                {
+                    ProductId        = product.Id,
+                    UnitOfMeasureId  = savedUoMId.Value,
+                    UnitType         = "Base",
+                    ConversionFactor = 1m,
+                };
+                await ProductService.CreateProductUnitAsync(createUnitDto);
+            }
+
+            AppNotification.ShowSuccess(
+                TranslationService.GetTranslation("documents.productUpdatedSuccess", "Prodotto aggiornato con i dati inseriti."));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating product {ProductId} with operator-entered data", product.Id);
+            AppNotification.ShowError(
+                TranslationService.GetTranslation("documents.productUpdateError", "Errore durante l'aggiornamento del prodotto."));
         }
     }
 

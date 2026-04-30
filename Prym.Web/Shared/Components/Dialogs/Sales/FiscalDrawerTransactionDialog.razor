@@ -2,6 +2,7 @@
 @using Prym.Web.Services.Store
 @inject IFiscalDrawerService FiscalDrawerService
 @inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
 @inject ILogger<FiscalDrawerTransactionDialog> Logger
 
 <EFDialog Icon="@(TransactionType == FiscalDrawerTransactionType.Deposit ? Icons.Material.Outlined.ArrowUpward : Icons.Material.Outlined.ArrowDownward)"
@@ -112,7 +113,11 @@
     {
         if (_form is null) return;
         await _form.ValidateAsync();
-        if (!_form.IsValid) return;
+        if (!_form.IsValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
 
         _saving = true;
         try

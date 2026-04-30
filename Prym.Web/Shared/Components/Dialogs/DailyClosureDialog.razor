@@ -5,7 +5,7 @@
 @inject ILogger<DailyClosureDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Filled.EventNote"
-          Title="@("Chiusura Giornaliera Fiscale" + (!string.IsNullOrEmpty(_printerName) ? $" – {_printerName}" : string.Empty))"
+          Title="@BuildTitle()"
           IsProcessing="@(_step == 2)"
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthSimple"
@@ -30,9 +30,30 @@
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
                 <MudText Align="Align.Center" Color="Color.Secondary">Caricamento dati giornata...</MudText>
             }
+            else if (PrinterId == null && PosId == null)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-3">
+                    Nessun terminale o stampante selezionati per la chiusura.
+                </MudAlert>
+            }
             else if (_preCheck is not null)
             {
-                @* Open receipt warning *@
+                @* No-printer info banner *@
+                @if (PrinterId == null)
+                {
+                    <MudAlert Severity="Severity.Info" Class="mb-3" Dense="true">
+                        Nessuna stampante fiscale configurata. La chiusura verrà registrata solo nel database (<b>Non Fiscale</b>).
+                    </MudAlert>
+                }
+                else if (_preCheck.PrinterAvailable == false)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-3">
+                        <b>⚠️ Stampante Non Raggiungibile</b> – @_preCheck.PrinterReachabilityError<br />
+                        La chiusura verrà comunque registrata nel database. La chiusura fiscale hardware potrà essere recuperata appena la stampante torna disponibile.
+                    </MudAlert>
+                }
+
+                @* Open receipt warning (only applicable when printer is reachable) *@
                 @if (_preCheck.HasOpenReceipt)
                 {
                     <MudAlert Severity="Severity.Error" Class="mb-3" Dense="false">
@@ -40,7 +61,7 @@
                         Annullare o finalizzare lo scontrino prima di procedere con la chiusura giornaliera.
                     </MudAlert>
                 }
-                else
+                else if (_preCheck.PrinterAvailable == true)
                 {
                     <MudAlert Severity="Severity.Success" Class="mb-3" Dense="true">
                         Nessuno scontrino aperto. Procedura disponibile. ✓
@@ -58,7 +79,14 @@
                 @* Day summary *@
                 <MudCard Elevation="0" Class="mt-3 border-default">
                     <MudCardContent>
-                        <MudText Typo="Typo.subtitle2" Class="mb-3">Riepilogo Giornata</MudText>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Riepilogo Giornata</MudText>
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@ClosureTypeColor(_preCheck.PlannedClosureType)"
+                                     Icon="@ClosureTypeIcon(_preCheck.PlannedClosureType)">
+                                @ClosureTypeLabel(_preCheck.PlannedClosureType)
+                            </MudChip>
+                        </MudStack>
                         <MudGrid Dense="true" Spacing="2">
                             <MudItem xs="6">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Data</MudText>
@@ -99,15 +127,36 @@
            ═══════════════════════════════════ *@
         @if (_step == 1)
         {
-            <MudAlert Severity="Severity.Warning" Class="mb-4">
-                <b>⚠️ Operazione Irreversibile</b><br />
-                La chiusura giornaliera resetta i contatori giornalieri del registratore fiscale.
-                Questa operazione <b>non può essere annullata</b>.
-            </MudAlert>
+            var ct = _preCheck?.PlannedClosureType ?? ClosureType.NonFiscale;
+
+            @if (ct == ClosureType.Fiscale)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4">
+                    <b>⚠️ Operazione Irreversibile</b><br />
+                    La chiusura giornaliera resetta i contatori giornalieri del registratore fiscale.
+                    Questa operazione <b>non può essere annullata</b>.
+                </MudAlert>
+            }
+            else if (ct == ClosureType.SoloDatabase)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mb-4">
+                    <b>⚠️ Chiusura Parziale</b><br />
+                    La stampante fiscale non è raggiungibile. I totali verranno registrati nel database
+                    e la chiusura fiscale hardware rimarrà <b>pendente</b> fino a quando la stampante non tornerà disponibile.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    <b>ℹ️ Chiusura Non Fiscale</b><br />
+                    Nessuna stampante fiscale configurata. La chiusura verrà registrata solo nel database.
+                </MudAlert>
+            }
 
             <MudCheckBox T="bool" @bind-Value="_confirmedCheckbox" Color="Color.Warning" Class="mb-2">
                 <MudText Typo="Typo.body2">
-                    Confermo di voler procedere con la chiusura giornaliera fiscale per la data
+                    Confermo di voler procedere con la
+                    <b>@ClosureTypeLabel(ct)</b> per la data
                     <b>@DateTime.Today.ToString("dd/MM/yyyy")</b>.
                 </MudText>
             </MudCheckBox>
@@ -120,10 +169,22 @@
         {
             <MudStack AlignItems="AlignItems.Center" Spacing="4" Class="py-6">
                 <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
-                <MudText Typo="Typo.subtitle1">Stampa Z-Report in corso...</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Non spegnere la stampante e non aprire il coperchio.
+                <MudText Typo="Typo.subtitle1">
+                    @if (_preCheck?.PlannedClosureType == ClosureType.Fiscale)
+                    {
+                        <span>Stampa Z-Report in corso...</span>
+                    }
+                    else
+                    {
+                        <span>Registrazione chiusura in corso...</span>
+                    }
                 </MudText>
+                @if (_preCheck?.PlannedClosureType == ClosureType.Fiscale)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Non spegnere la stampante e non aprire il coperchio.
+                    </MudText>
+                }
             </MudStack>
         }
 
@@ -134,17 +195,36 @@
         {
             @if (_closureResult?.Success == true)
             {
-                <MudAlert Severity="Severity.Success" Class="mb-4">
-                    ✅ Chiusura Giornaliera Completata!
-                </MudAlert>
+                @if (_closureResult.FiscalClosurePending)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mb-3">
+                        ⚠️ Chiusura registrata nel database, ma la <b>chiusura fiscale hardware è pendente</b>.
+                        Riprovare una volta che la stampante è di nuovo disponibile.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Success" Class="mb-4">
+                        ✅ @ClosureTypeLabel(_closureResult.ClosureType) Completata!
+                    </MudAlert>
+                }
 
                 <MudCard Class="border-default" Elevation="0">
                     <MudCardContent>
-                        <MudText Typo="Typo.subtitle2" Class="mb-3">Dettagli Chiusura</MudText>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                            <MudText Typo="Typo.subtitle2">Dettagli Chiusura</MudText>
+                            <MudChip T="string" Size="Size.Small"
+                                     Color="@ClosureTypeColor(_closureResult.ClosureType)"
+                                     Icon="@ClosureTypeIcon(_closureResult.ClosureType)">
+                                @ClosureTypeLabel(_closureResult.ClosureType)
+                            </MudChip>
+                        </MudStack>
                         <MudGrid Dense="true" Spacing="2">
                             <MudItem xs="6">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">N° Z-Report</MudText>
-                                <MudText Typo="Typo.body1"><b>@(_closureResult.ZReportNumber?.ToString() ?? "—")</b></MudText>
+                                <MudText Typo="Typo.body1">
+                                    <b>@(_closureResult.ZReportNumber.HasValue ? _closureResult.ZReportNumber.ToString() : "N/A")</b>
+                                </MudText>
                             </MudItem>
                             <MudItem xs="6">
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Data/Ora</MudText>
@@ -162,18 +242,40 @@
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">Operatore</MudText>
                                 <MudText Typo="Typo.body2">@(_closureResult.Operator ?? "—")</MudText>
                             </MudItem>
+                            @if (!string.IsNullOrEmpty(_closureResult.PrinterErrors))
+                            {
+                                <MudItem xs="12">
+                                    <MudText Typo="Typo.caption" Color="Color.Warning">Errori stampante</MudText>
+                                    <MudText Typo="Typo.caption">@_closureResult.PrinterErrors</MudText>
+                                </MudItem>
+                            }
                         </MudGrid>
                     </MudCardContent>
                 </MudCard>
 
-                @* Download PDF – deferred to Sprint 5C *@
-                <MudTooltip Text="PDF disponibile dopo Sprint 5C">
-                    <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf"
-                               Variant="Variant.Outlined" Color="Color.Secondary"
-                               Class="mt-4" Disabled="true">
-                        Scarica PDF Z-Report
+                @if (_closureResult.FiscalClosurePending && _closureResult.ClosureId.HasValue)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.Replay"
+                               Variant="Variant.Outlined" Color="Color.Warning"
+                               Class="mt-4" Disabled="_isRetrying"
+                               OnClick="RetryFiscalAsync">
+                        @if (_isRetrying)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="me-2" />
+                        }
+                        Riprova Chiusura Fiscale Hardware
                     </MudButton>
-                </MudTooltip>
+                }
+                else
+                {
+                    <MudTooltip Text="PDF disponibile dopo Sprint 5C">
+                        <MudButton StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                                   Variant="Variant.Outlined" Color="Color.Secondary"
+                                   Class="mt-4" Disabled="true">
+                            Scarica PDF Z-Report
+                        </MudButton>
+                    </MudTooltip>
+                }
             }
             else
             {
@@ -201,10 +303,18 @@
                        StartIcon="@Icons.Material.Filled.ArrowBack">
                 Indietro
             </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Error"
+            <MudButton Variant="Variant.Filled"
+                       Color="@(_preCheck?.PlannedClosureType == ClosureType.Fiscale ? Color.Error : Color.Warning)"
                        OnClick="ExecuteClosureAsync"
                        Disabled="@(!_confirmedCheckbox)">
-                Stampa Z-Report e Chiudi
+                @if (_preCheck?.PlannedClosureType == ClosureType.Fiscale)
+                {
+                    <span>Stampa Z-Report e Chiudi</span>
+                }
+                else
+                {
+                    <span>Conferma Chiusura</span>
+                }
             </MudButton>
         }
         else if (_step == 3)
@@ -224,7 +334,18 @@
 
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    [Parameter] public Guid PrinterId { get; set; }
+    /// <summary>
+    /// Fiscal printer ID. When <c>null</c>, no fiscal printer is configured and the closure
+    /// will be executed as <see cref="ClosureType.NonFiscale"/> using <see cref="PosId"/>.
+    /// </summary>
+    [Parameter] public Guid? PrinterId { get; set; }
+
+    /// <summary>
+    /// POS terminal ID. Used to aggregate session totals when <see cref="PrinterId"/> is null
+    /// or for pre-check enrichment alongside a printer ID.
+    /// </summary>
+    [Parameter] public Guid? PosId { get; set; }
+
     [Parameter] public string? PrinterName { get; set; }
 
     // ─────────────────────────────────────────────────────────
@@ -235,6 +356,7 @@
     private int _step;
     private bool _isLoadingPreCheck = true;
     private bool _confirmedCheckbox;
+    private bool _isRetrying;
     private DailyClosurePreCheckDto? _preCheck;
     private DailyClosureResultDto? _closureResult;
     private string? _printerName;
@@ -257,6 +379,42 @@
     }
 
     // ─────────────────────────────────────────────────────────
+    //  Helpers
+    // ─────────────────────────────────────────────────────────
+
+    private string BuildTitle()
+    {
+        if (PrinterId == null)
+            return "Chiusura Giornaliera (Non Fiscale)";
+        var suffix = !string.IsNullOrEmpty(_printerName) ? $" – {_printerName}" : string.Empty;
+        return $"Chiusura Giornaliera Fiscale{suffix}";
+    }
+
+    private static string ClosureTypeLabel(ClosureType ct) => ct switch
+    {
+        ClosureType.Fiscale      => "Chiusura Fiscale",
+        ClosureType.NonFiscale   => "Chiusura Non Fiscale",
+        ClosureType.SoloDatabase => "Chiusura Solo Database",
+        _                        => ct.ToString()
+    };
+
+    private static Color ClosureTypeColor(ClosureType ct) => ct switch
+    {
+        ClosureType.Fiscale      => Color.Success,
+        ClosureType.NonFiscale   => Color.Info,
+        ClosureType.SoloDatabase => Color.Warning,
+        _                        => Color.Default
+    };
+
+    private static string ClosureTypeIcon(ClosureType ct) => ct switch
+    {
+        ClosureType.Fiscale      => Icons.Material.Filled.Receipt,
+        ClosureType.NonFiscale   => Icons.Material.Filled.ReceiptLong,
+        ClosureType.SoloDatabase => Icons.Material.Filled.Storage,
+        _                        => Icons.Material.Filled.Info
+    };
+
+    // ─────────────────────────────────────────────────────────
     //  Step 0
     // ─────────────────────────────────────────────────────────
 
@@ -265,7 +423,22 @@
         _isLoadingPreCheck = true;
         try
         {
-            _preCheck = await FiscalPrintingService.GetDailyClosurePreCheckAsync(PrinterId);
+            if (PrinterId.HasValue)
+            {
+                _preCheck = await FiscalPrintingService.GetDailyClosurePreCheckAsync(PrinterId.Value);
+            }
+            else
+            {
+                // No printer: build a synthetic pre-check that always allows proceeding
+                _preCheck = new DailyClosurePreCheckDto
+                {
+                    HasOpenReceipt = false,
+                    IsDrawerOpen = false,
+                    PrinterAvailable = null,
+                    PlannedClosureType = ClosureType.NonFiscale,
+                    CheckedAt = DateTime.UtcNow
+                };
+            }
         }
         catch (Exception ex)
         {
@@ -293,21 +466,43 @@
 
     private async Task ExecuteClosureAsync()
     {
-        _step = 2; // show printing progress
+        _step = 2;
         StateHasChanged();
 
         try
         {
-            _closureResult = await FiscalPrintingService.ExecuteDailyClosureAsync(PrinterId);
+            if (PrinterId.HasValue)
+            {
+                _closureResult = await FiscalPrintingService.ExecuteDailyClosureAsync(PrinterId.Value);
+            }
+            else if (PosId.HasValue)
+            {
+                _closureResult = await FiscalPrintingService.ExecuteNoPrinterDailyClosureAsync(PosId.Value);
+            }
+            else
+            {
+                _closureResult = new DailyClosureResultDto
+                {
+                    Success = false,
+                    ErrorMessage = "Nessuna stampante o terminale configurati."
+                };
+            }
 
             if (_closureResult?.Success == true)
-                AppNotification.ShowSuccess("Chiusura giornaliera completata.");
+            {
+                if (_closureResult.FiscalClosurePending)
+                    AppNotification.ShowWarning("Chiusura registrata nel database. Chiusura fiscale hardware pendente.");
+                else
+                    AppNotification.ShowSuccess("Chiusura giornaliera completata.");
+            }
             else
+            {
                 AppNotification.ShowError($"Chiusura fallita: {_closureResult?.ErrorMessage}");
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "ExecuteClosureAsync failed for printer {PrinterId}", PrinterId);
+            Logger.LogError(ex, "ExecuteClosureAsync failed for printer {PrinterId} / POS {PosId}", PrinterId, PosId);
             _closureResult = new DailyClosureResultDto
             {
                 Success = false,
@@ -318,6 +513,39 @@
         finally
         {
             _step = 3;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  Step 3 – Retry pending fiscal closure
+    // ─────────────────────────────────────────────────────────
+
+    private async Task RetryFiscalAsync()
+    {
+        if (_closureResult?.ClosureId == null) return;
+        _isRetrying = true;
+        StateHasChanged();
+        try
+        {
+            var result = await FiscalPrintingService.RetryFiscalClosureAsync(_closureResult.ClosureId.Value);
+            if (result?.Success == true)
+            {
+                _closureResult = result;
+                AppNotification.ShowSuccess("Chiusura fiscale hardware completata con successo.");
+            }
+            else
+            {
+                AppNotification.ShowWarning($"Stampante ancora non raggiungibile: {result?.ErrorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "RetryFiscalAsync failed | ClosureId={ClosureId}", _closureResult.ClosureId);
+            AppNotification.ShowError("Errore durante il recupero della chiusura fiscale.");
+        }
+        finally
+        {
+            _isRetrying = false;
         }
     }
 
