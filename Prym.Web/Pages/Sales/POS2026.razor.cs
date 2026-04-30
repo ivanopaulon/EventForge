@@ -34,6 +34,7 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Stato prodotti ---
     private List<ProductDto> _allProducts = new();
+    private List<ProductDto> _fullCatalogProducts = new();              // catalogo completo — mai modificato dalla ricerca
     private List<ClassificationNodeDto> _classificationNodes = new();   // nodi categoria reali
     private List<string> _categories = new();
     private bool _isLoadingProducts = false;
@@ -42,6 +43,7 @@ public partial class POS2026 : IAsyncDisposable
     private string _searchTerm = string.Empty;
     private Pos26SortMode _sortMode = Pos26SortMode.BestSeller;
     private string? _selectedCategory;
+    private CancellationTokenSource? _searchDebounce;                   // debounce ricerca per evitare HTTP ad ogni tasto
 
     // --- Best seller / ultimi acquisti ---
     private HashSet<Guid> _bestSellerIds = new();
@@ -108,9 +110,10 @@ public partial class POS2026 : IAsyncDisposable
             var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
             var username = authState.User.Identity?.Name;
 
-            await ViewModel.InitializeAsync(username);
-
+            // Tutti i loader non dipendono dalla sessione: vengono avviati in parallelo con
+            // ViewModel.InitializeAsync per ridurre il tempo totale di avvio della pagina.
             await Task.WhenAll(
+                ViewModel.InitializeAsync(username),
                 LoadProductsAndBestSellersAsync(),
                 LoadClassificationNodesAsync(),
                 LoadAvailableTablesAsync(),
@@ -180,6 +183,7 @@ public partial class POS2026 : IAsyncDisposable
             // Use the slim POS-catalog endpoint (no Codes/Units/BundleItems eager loading)
             var result = await ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
             _allProducts = result?.Items?.ToList() ?? new();
+            _fullCatalogProducts = new List<ProductDto>(_allProducts); // cache per ripristino dopo ricerca
             RebuildFilteredProducts();
         }
         catch (Exception ex)
@@ -192,8 +196,17 @@ public partial class POS2026 : IAsyncDisposable
             StateHasChanged();
         }
 
-        // Best-sellers fire-and-forget — non blocca la visualizzazione della griglia
-        _ = LoadBestSellerIdsAsync().ContinueWith(_ => InvokeAsync(StateHasChanged));
+        // Best-sellers fire-and-forget — non blocca la visualizzazione della griglia.
+        // RebuildFilteredProducts viene eseguita nel contesto UI solo se il task è completato con successo.
+        _ = LoadBestSellerIdsAsync().ContinueWith(task =>
+        {
+            if (task.IsCompletedSuccessfully)
+                _ = InvokeAsync(() =>
+                {
+                    RebuildFilteredProducts();
+                    StateHasChanged();
+                });
+        }, TaskScheduler.Default);
     }
 
     /// <summary>
@@ -206,7 +219,7 @@ public partial class POS2026 : IAsyncDisposable
         {
             var filter = new AnalyticsFilterDto
             {
-                DateFrom = DateTime.UtcNow.AddMonths(-3).Date,
+                DateFrom = DateTime.UtcNow.AddMonths(-1).Date, // finestra di 1 mese per prestazioni query
                 DateTo   = DateTime.UtcNow.Date,
                 Top      = 50
             };
@@ -217,7 +230,7 @@ public partial class POS2026 : IAsyncDisposable
                     .Where(p => p.ProductId.HasValue)
                     .Select(p => p.ProductId!.Value)
                     .ToHashSet();
-                RebuildFilteredProducts();
+                // RebuildFilteredProducts viene chiamata dalla continuation nel contesto UI (vedere LoadProductsAndBestSellersAsync)
             }
         }
         catch (Exception ex)
@@ -353,6 +366,7 @@ public partial class POS2026 : IAsyncDisposable
         {
             var result = await ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
             _allProducts = result?.Items?.ToList() ?? new();
+            _fullCatalogProducts = new List<ProductDto>(_allProducts); // aggiorna cache catalogo completo
             BuildCategoryList();
             RebuildFilteredProducts();
         }
@@ -430,31 +444,61 @@ public partial class POS2026 : IAsyncDisposable
     {
         _searchTerm = term;
 
-        if (!string.IsNullOrEmpty(term))
+        // Annulla la ricerca precedente ancora in attesa del debounce
+        _searchDebounce?.Cancel();
+        _searchDebounce?.Dispose();
+        _searchDebounce = new CancellationTokenSource();
+        var cts = _searchDebounce;
+
+        if (string.IsNullOrWhiteSpace(term))
         {
-            // Cerca anche lato server per risultati più completi
-            try
+            // Ricerca azzerata: ripristina il catalogo completo dalla cache locale (zero HTTP call)
+            if (_fullCatalogProducts.Count > 0)
             {
-                var result = await ProductService.SearchProductsAsync(term, maxResults: 100);
-                if (result?.SearchResults != null)
-                {
-                    _allProducts = result.SearchResults.ToList();
-                    BuildCategoryList();
-                }
+                _allProducts = new List<ProductDto>(_fullCatalogProducts);
+                BuildCategoryList();
             }
-            catch (Exception ex)
+            else
             {
-                Logger.LogWarning(ex, "Errore nella ricerca prodotti POS2026.");
+                // Catalogo mai caricato (es. primo avvio fallito): ricarica dal server
+                await LoadProductsAsync();
             }
-        }
-        else if (_allProducts.Count == 0)
-        {
-            // Solo se il catalogo è vuoto lo ricarichiamo; altrimenti usa _allProducts già in memoria
-            await LoadProductsAsync();
+            RebuildFilteredProducts();
+            StateHasChanged();
+            return;
         }
 
-        RebuildFilteredProducts();
-        StateHasChanged();
+        // Debounce 300ms — evita una HTTP call per ogni carattere digitato
+        try
+        {
+            await Task.Delay(300, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            return; // keystroke successivo ha già annullato questa ricerca
+        }
+
+        try
+        {
+            var result = await ProductService.SearchProductsAsync(term, maxResults: 100);
+
+            // Unica guard dopo la chiamata async: se nel frattempo l'utente ha digitato altro,
+            // scartiamo il risultato senza aggiornare lo stato del componente.
+            if (cts.IsCancellationRequested) return;
+
+            if (result?.SearchResults != null)
+            {
+                _allProducts = result.SearchResults.ToList();
+                BuildCategoryList();
+            }
+
+            RebuildFilteredProducts();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Errore nella ricerca prodotti POS2026.");
+        }
     }
 
     private async Task HandleBarcodeAsync(string barcode)
@@ -1331,7 +1375,15 @@ public partial class POS2026 : IAsyncDisposable
     {
         ViewModel.StateChanged -= OnViewModelStateChanged;
         ViewModel.OnNotification -= HandleNotification;
-        ViewModel.Dispose();
+        // NON chiamare ViewModel.Dispose(): in Blazor WASM i servizi Scoped condividono
+        // il lifetime dell'app. Distruggere il SemaphoreSlim causerebbe ObjectDisposedException
+        // alla prossima navigazione sulla stessa pagina. Il DI container smaltirà il ViewModel
+        // al termine della sessione applicativa.
+
+        // Annulla eventuale ricerca pendente
+        _searchDebounce?.Cancel();
+        _searchDebounce?.Dispose();
+        _searchDebounce = null;
 
         if (_shortcutsModule != null)
         {
