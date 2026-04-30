@@ -13,7 +13,10 @@ export function initScrollListener(dotNetRef, threshold) {
 
     _scrollHandler = function onScroll() {
         const visible = window.scrollY > threshold;
-        dotNetRef.invokeMethodAsync('OnScrollChanged', visible);
+        dotNetRef.invokeMethodAsync('OnScrollChanged', visible).catch(() => {
+            // Component was disposed before the callback could be delivered — clean up.
+            destroyScrollListener();
+        });
     };
     window.addEventListener('scroll', _scrollHandler, { passive: true });
 }

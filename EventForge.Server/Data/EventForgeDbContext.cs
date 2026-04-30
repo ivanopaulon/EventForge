@@ -145,6 +145,9 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<StoreUserGroup> StoreUserGroups { get; set; }
     public DbSet<StoreUserPrivilege> StoreUserPrivileges { get; set; }
 
+    // Shift Entities
+    public DbSet<CashierShift> CashierShifts { get; set; }
+
     // Fiscal Drawer Entities
     public DbSet<FiscalDrawer> FiscalDrawers { get; set; }
     public DbSet<FiscalDrawerSession> FiscalDrawerSessions { get; set; }
@@ -240,6 +243,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureFiscalPrintingRelationships(modelBuilder);
         ConfigureWhatsAppRelationships(modelBuilder);
         ConfigureReportRelationships(modelBuilder);
+        ConfigureShiftRelationships(modelBuilder);
     }
 
     /// <summary>

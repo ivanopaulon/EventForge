@@ -29,6 +29,7 @@
     public bool IsVisible => _visible;
 
     private bool _visible = false;
+    private bool _disposed = false;
     private IJSObjectReference? _module;
     private DotNetObjectReference<ScrollToTop>? _selfRef;
 
@@ -54,6 +55,7 @@
     [JSInvokable]
     public void OnScrollChanged(bool visible)
     {
+        if (_disposed) return;
         if (_visible != visible)
         {
             _visible = visible;
@@ -86,6 +88,7 @@
             }
             catch { /* ignore disposal errors */ }
         }
+        _disposed = true;
         _selfRef?.Dispose();
     }
 }

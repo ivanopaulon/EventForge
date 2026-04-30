@@ -79,6 +79,7 @@ public class BoldReportViewerController(
     /// Resolves the GUID-based report path to the stored RDLC content and
     /// provides it as a <see cref="Stream"/> so Bold Reports uses it directly.
     /// </summary>
+    [NonAction]
     public void OnInitReportOptions(ReportViewerOptions reportViewerOptions)
     {
         var reportPath = reportViewerOptions.ReportModel.ReportPath;
@@ -104,6 +105,7 @@ public class BoldReportViewerController(
     /// <summary>
     /// Callback invoked after the report has been loaded by the Bold Reports engine.
     /// </summary>
+    [NonAction]
     public void OnReportLoaded(ReportViewerOptions reportViewerOptions)
     {
         // No post-load customisation required.

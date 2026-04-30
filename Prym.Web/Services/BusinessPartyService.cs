@@ -112,8 +112,8 @@ namespace Prym.Web.Services
         {
             try
             {
-                return await httpClientService.GetAsync<IEnumerable<BusinessPartyDto>>("api/v1/businessparties/with-birthdays", ct)
-                    ?? [];
+                var result = await httpClientService.GetAsync<PagedResult<BusinessPartyDto>>("api/v1/businessparties/with-birthdays", ct);
+                return result?.Items ?? [];
             }
             catch (Exception ex)
             {

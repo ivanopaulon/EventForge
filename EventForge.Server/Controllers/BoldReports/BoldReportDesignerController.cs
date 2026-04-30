@@ -33,6 +33,7 @@ public class BoldReportDesignerController(
     /// Called by the Bold Reports JavaScript ReportDesigner on every interaction.
     /// </summary>
     [HttpPost]
+    [HttpPost("PostDesignerAction")]
     public object PostDesignerAction([FromBody] Dictionary<string, object> jsonResult)
     {
         try
@@ -92,6 +93,7 @@ public class BoldReportDesignerController(
     /// <summary>
     /// Returns a report image by key (used by the designer preview panel).
     /// </summary>
+    [HttpGet("GetImage")]
     public object GetImage(string key, string image)
     {
         return ReportDesignerHelper.GetImage(key, image, this);
@@ -101,6 +103,7 @@ public class BoldReportDesignerController(
     /// Reads a resource (report file, shared data set, etc.) from storage.
     /// The Bold Reports designer calls this to retrieve previously saved resources.
     /// </summary>
+    [NonAction]
     public ResourceInfo GetData(string key, string resourceType)
     {
         // The key is the report GUID when the designer loads an existing report.
@@ -131,6 +134,7 @@ public class BoldReportDesignerController(
     /// Writes a resource to storage. When the key is a valid report GUID and the
     /// payload contains RDLC bytes the content is persisted to the database.
     /// </summary>
+    [NonAction]
     public bool SetData(string key, string resourceType, ItemInfo itemContent, out string errMsg)
     {
         errMsg = string.Empty;
@@ -169,6 +173,7 @@ public class BoldReportDesignerController(
     /// <summary>
     /// Viewer POST action — supports the preview panel embedded in the designer.
     /// </summary>
+    [HttpPost("PostReportAction")]
     public object PostReportAction(Dictionary<string, object> jsonResult)
     {
         try
@@ -186,6 +191,7 @@ public class BoldReportDesignerController(
     /// <summary>
     /// Viewer POST form action for the embedded preview panel.
     /// </summary>
+    [HttpPost("PostFormReportAction")]
     public object PostFormReportAction()
     {
         try
@@ -214,6 +220,7 @@ public class BoldReportDesignerController(
     /// <summary>
     /// Callback invoked before report options are initialised for the embedded viewer.
     /// </summary>
+    [NonAction]
     public void OnInitReportOptions(ReportViewerOptions reportViewerOptions)
     {
         // No customisation required for the designer preview.
@@ -222,6 +229,7 @@ public class BoldReportDesignerController(
     /// <summary>
     /// Callback invoked after the report has been loaded in the embedded viewer.
     /// </summary>
+    [NonAction]
     public void OnReportLoaded(ReportViewerOptions reportViewerOptions)
     {
         // No post-load customisation required.

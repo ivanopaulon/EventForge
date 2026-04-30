@@ -640,6 +640,42 @@ public class ChatController(
     }
 
     /// <summary>
+    /// Marks all unread messages in a chat as read for the current user.
+    /// </summary>
+    /// <param name="chatId">Chat identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Bulk read operation results</returns>
+    /// <response code="200">All messages marked as read</response>
+    /// <response code="404">Chat not found</response>
+    [HttpPost("{chatId:guid}/messages/read-all")]
+    [ProducesResponseType(typeof(BulkReadResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BulkReadResultDto>> MarkAllMessagesAsReadAsync(
+        [FromRoute] Guid chatId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var userId = tenantContext.CurrentUserId ?? Guid.Empty;
+            var allMessages = await chatService.GetMessagesByConversationAsync(
+                chatId,
+                new PaginationParameters { Page = 1, PageSize = 1000 },
+                cancellationToken);
+
+            var messageIds = allMessages.Items.Select(m => m.Id).ToList();
+            if (messageIds.Count == 0)
+                return Ok(new BulkReadResultDto { TotalCount = 0, SuccessCount = 0, FailureCount = 0, ProcessedMessageIds = [], Errors = [] });
+
+            var result = await chatService.BulkMarkAsReadAsync(messageIds, userId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while marking all messages as read", ex);
+        }
+    }
+
+    /// <summary>
     /// Bulk marks multiple messages as read for efficient batch processing.
     /// Supports conversation-level read status updates with optimization.
     /// </summary>
