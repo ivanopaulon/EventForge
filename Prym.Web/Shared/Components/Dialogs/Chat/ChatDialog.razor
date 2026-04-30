@@ -901,7 +901,6 @@
 
     private async Task ScrollToBottomAsync()
     {
-        // TODO: ensure IJSRuntime is available in WASM context; scrollToBottom is a custom JS helper
         try { await JSRuntime.InvokeVoidAsync("scrollToBottom", "messages-container"); } catch { }
     }
 

@@ -237,7 +237,7 @@
     private string _searchQuery = string.Empty;
     private MessagingChannel? _channelFilter;
 
-    private List<ContactItem> _allContacts     = []; // TODO: replace with injected service call
+    private List<ContactItem> _allContacts     = [];
     private List<ContactItem> _selectedContacts = [];
 
     protected override async Task OnInitializedAsync()
@@ -259,7 +259,7 @@
         StateHasChanged();
         try
         {
-            // TODO: replace with injected service call when WhatsApp contacts endpoint is available
+            // Loads internal users. WhatsApp/external contacts are loaded when an external channel endpoint becomes available.
             var users = await ChatService.GetAvailableUsersAsync();
             _allContacts = users
                 .Where(u => u.Id != CurrentUserId)

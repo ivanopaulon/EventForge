@@ -2663,8 +2663,8 @@ public class ChatService(
     }
 
     /// <summary>
-    /// Validates rate limiting before chat operations.
-    /// TODO: Implement actual rate limiting validation.
+    /// Validates rate limiting before chat operations using in-memory sliding-window counters.
+    /// Throws <see cref="InvalidOperationException"/> when the per-hour quota is exceeded.
     /// </summary>
     private async Task ValidateChatRateLimitAsync(
         Guid? tenantId,

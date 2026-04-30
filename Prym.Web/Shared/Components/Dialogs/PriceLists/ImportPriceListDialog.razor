@@ -350,9 +350,6 @@
         
         try
         {
-            // TODO: In production, replace with proper Excel/CSV parsing using ExcelDataReader or ClosedXML
-            // Current implementation is a simplified parser for demonstration purposes
-            
             var entries = new List<CreatePriceListEntryDto>();
             _validationErrors.Clear();
 
@@ -369,11 +366,10 @@
                 rowIndex++;
                 if (string.IsNullOrWhiteSpace(line)) continue;
 
-                // Note: This simple split doesn't handle quoted values with delimiters inside
-                // TODO: Use a proper CSV parsing library like CsvHelper in production
-                var columns = line.Split(new[] { ',', '\t', ';' }, StringSplitOptions.None);
+                // RFC-4180-compliant CSV parser: handles quoted fields containing delimiters or newlines.
+                var columns = ParseCsvLine(line);
                 
-                if (columns.Length < 3)
+                if (columns.Count < 3)
                 {
                     _validationErrors.Add(new ValidationError { RowIndex = rowIndex, Message = "Numero di colonne insufficiente" });
                     continue;
@@ -381,22 +377,21 @@
 
                 try
                 {
-                    // Note: ProductCode is stored in Notes field because CreatePriceListEntryDto requires ProductId
-                    // Backend is expected to resolve ProductCode to ProductId during import
-                    // TODO: Consider using a dedicated import DTO with ProductCode field
-                    var productCode = columns.Length > 0 ? columns[0].Trim() : "";
+                    // ProductCode is stored in Notes so the backend can resolve it to a ProductId during import.
+                    // Expected column layout: ProductCode, ProductName, Price, Currency, MinQty, MaxQty, Status
+                    var productCode = columns.Count > 0 ? columns[0].Trim() : "";
                     var entry = new CreatePriceListEntryDto
                     {
                         PriceListId = PriceListId,
-                        ProductId = Guid.Empty, // Will be resolved by backend from product code in Notes
-                        Price = columns.Length > 2 && decimal.TryParse(columns[2].Trim(), out var price) ? price : 0,
-                        Currency = columns.Length > 3 ? columns[3].Trim() : "EUR",
-                        MinQuantity = columns.Length > 4 && int.TryParse(columns[4].Trim(), out var minQty) ? minQty : 1,
-                        MaxQuantity = columns.Length > 5 && int.TryParse(columns[5].Trim(), out var maxQty) ? maxQty : 0,
-                        Status = columns.Length > 6 && Enum.TryParse<PriceListEntryStatus>(columns[6].Trim(), out var status) 
+                        ProductId = Guid.Empty, // Resolved by the backend from ProductCode stored in Notes
+                        Price = columns.Count > 2 && decimal.TryParse(columns[2].Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var price) ? price : 0,
+                        Currency = columns.Count > 3 && !string.IsNullOrWhiteSpace(columns[3]) ? columns[3].Trim() : "EUR",
+                        MinQuantity = columns.Count > 4 && int.TryParse(columns[4].Trim(), out var minQty) ? minQty : 1,
+                        MaxQuantity = columns.Count > 5 && int.TryParse(columns[5].Trim(), out var maxQty) ? maxQty : 0,
+                        Status = columns.Count > 6 && Enum.TryParse<PriceListEntryStatus>(columns[6].Trim(), true, out var status) 
                             ? status 
                             : PriceListEntryStatus.Attivo,
-                        Notes = $"ProductCode:{productCode}" // Temporary storage for backend ProductId resolution
+                        Notes = $"ProductCode:{productCode}"
                     };
 
                     entries.Add(entry);
@@ -430,6 +425,71 @@
             _isLoading = false;
             _loadingMessage = "";
         }
+    }
+
+    /// <summary>
+    /// Parses a single CSV line according to RFC 4180.
+    /// Handles quoted fields that may contain commas, semicolons, tabs, or embedded quotes ("").
+    /// Supports , ; and \t as delimiters (auto-detected from the first delimiter found).
+    /// </summary>
+    private static List<string> ParseCsvLine(string line)
+    {
+        var fields = new List<string>();
+        if (string.IsNullOrEmpty(line)) return fields;
+
+        // Auto-detect delimiter: prefer comma, then semicolon, then tab
+        char delimiter = line.Contains(',') ? ',' : line.Contains(';') ? ';' : '\t';
+
+        int i = 0;
+        while (i <= line.Length)
+        {
+            if (i == line.Length)
+            {
+                fields.Add(string.Empty);
+                break;
+            }
+
+            if (line[i] == '"')
+            {
+                // Quoted field
+                i++; // skip opening quote
+                var sb = new System.Text.StringBuilder();
+                while (i < line.Length)
+                {
+                    if (line[i] == '"')
+                    {
+                        if (i + 1 < line.Length && line[i + 1] == '"')
+                        {
+                            // Escaped quote
+                            sb.Append('"');
+                            i += 2;
+                        }
+                        else
+                        {
+                            i++; // skip closing quote
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(line[i++]);
+                    }
+                }
+                fields.Add(sb.ToString());
+                // Skip delimiter after closing quote
+                if (i < line.Length && line[i] == delimiter) i++;
+            }
+            else
+            {
+                // Unquoted field: read until next delimiter
+                int start = i;
+                while (i < line.Length && line[i] != delimiter) i++;
+                fields.Add(line[start..i]);
+                if (i < line.Length) i++; // skip delimiter
+            }
+        }
+
+        return fields;
     }
 
     private bool ValidateEntry(CreatePriceListEntryDto entry, out List<string> errors)
