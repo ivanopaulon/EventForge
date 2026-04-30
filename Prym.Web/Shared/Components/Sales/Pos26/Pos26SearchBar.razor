@@ -52,9 +52,9 @@
             <UnifiedBusinessPartySelector
                 SelectedBusinessParty="@Customer"
                 SelectedBusinessPartyChanged="@OnCustomerSelected"
-                Label="Cerca cliente"
-                PartyTypeFilter="BusinessPartyType.Customer"
-                Clearable="true" />
+                Title="Cerca cliente"
+                FilterByType="BusinessPartyType.Customer"
+                AllowClear="true" />
             <button class="pos26-btn-text" @onclick="CloseCustomerSelector">Chiudi</button>
         </div>
     </div>
