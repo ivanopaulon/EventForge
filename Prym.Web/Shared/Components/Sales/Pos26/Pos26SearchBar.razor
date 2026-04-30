@@ -52,9 +52,9 @@
             <UnifiedBusinessPartySelector
                 SelectedBusinessParty="@Customer"
                 SelectedBusinessPartyChanged="@OnCustomerSelected"
-                Label="Cerca cliente"
-                PartyTypeFilter="BusinessPartyType.Customer"
-                Clearable="true" />
+                Title="Cerca cliente"
+                FilterByType="BusinessPartyType.Customer"
+                AllowClear="true" />
             <button class="pos26-btn-text" @onclick="CloseCustomerSelector">Chiudi</button>
         </div>
     </div>
@@ -71,47 +71,48 @@
     private ElementReference _inputRef;
     private CancellationTokenSource? _debounceCts;
     private bool _showCustomerSelector = false;
+    private string _currentInput = string.Empty;  // always in sync with the real input value
 
     private const int DebounceDelayMs = 300;
 
     private void OnInputChanged(ChangeEventArgs e)
     {
-        var value = e.Value?.ToString() ?? string.Empty;
+        _currentInput = e.Value?.ToString() ?? string.Empty;
+        _ = DebounceSearchAsync(_currentInput);
+    }
+
+    private async Task DebounceSearchAsync(string value)
+    {
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
         _debounceCts = new CancellationTokenSource();
-        var token = _debounceCts.Token;
-        _ = Task.Delay(DebounceDelayMs, token).ContinueWith(
-            async t =>
-            {
-                if (t.IsCompletedSuccessfully)
-                    try
-                    {
-                        await InvokeAsync(async () =>
-                        {
-                            await SearchTermChanged.InvokeAsync(value);
-                            StateHasChanged();
-                        });
-                    }
-                    catch (ObjectDisposedException) { /* component disposed — ignore */ }
-            },
-            TaskScheduler.Default);
+        try
+        {
+            await Task.Delay(DebounceDelayMs, _debounceCts.Token);
+            await SearchTermChanged.InvokeAsync(value);
+            StateHasChanged();
+        }
+        catch (OperationCanceledException) { /* superseded by a newer keystroke */ }
+        catch (ObjectDisposedException) { /* component disposed — ignore */ }
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        // Rilevamento barcode: Enter dopo sequenza di tasti rapida
-        if (e.Key == "Enter" && !string.IsNullOrEmpty(SearchTerm))
+        // Rilevamento barcode: Enter dopo sequenza di tasti rapida.
+        // Usa _currentInput (aggiornata sincronamente) invece del parametro SearchTerm
+        // che potrebbe essere stale se il debounce non ha ancora completato.
+        if (e.Key == "Enter" && !string.IsNullOrEmpty(_currentInput))
         {
             _debounceCts?.Cancel();
             _debounceCts?.Dispose();
             _debounceCts = null;
-            await OnBarcodeDetected.InvokeAsync(SearchTerm);
+            await OnBarcodeDetected.InvokeAsync(_currentInput);
         }
     }
 
     private async Task ClearSearch()
     {
+        _currentInput = string.Empty;
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
         _debounceCts = null;

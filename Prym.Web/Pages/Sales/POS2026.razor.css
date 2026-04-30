@@ -16,27 +16,39 @@
     --pos-red-key:       #993C1D;
 }
 
-/* ===== Layout principale 2 colonne ===== */
+/* ===== Layout principale: flex colonna (banner + contenuto) ===== */
 .pos2026-wrap {
-    display: grid;
-    grid-template-columns: 1fr 280px;
-    height: calc(100vh - 64px);  /* 64px = altezza appbar MudBlazor */
+    display: flex;
+    flex-direction: column;
+    height: 100%;           /* eredita dal mud-main-content (già dimensionato correttamente) */
     overflow: hidden;
     background: var(--mud-palette-background);
 }
 
+/* ===== Contenuto principale: 2 colonne ===== */
+.pos2026-content {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;          /* necessario per shrink dei flex-children */
+}
+
 @media (max-width: 900px) {
-    .pos2026-wrap {
+    .pos2026-content {
         grid-template-columns: 1fr 240px;
     }
 }
 
 @media (max-width: 600px) {
     .pos2026-wrap {
+        height: auto;
+        min-height: 100%;
+        overflow: visible;
+    }
+    .pos2026-content {
         grid-template-columns: 1fr;
         grid-template-rows: 1fr auto;
-        height: auto;
-        overflow: visible;
     }
     .pos2026-right {
         max-height: 280px;
@@ -64,6 +76,8 @@
     flex-direction: column;
     background: var(--pos-dark);
     overflow: hidden;
+    /* Prevents content being hidden behind the fixed shortcuts bar (~28px) */
+    padding-bottom: 28px;
 }
 
 /* ===== Barra shortcut (footer) ===== */

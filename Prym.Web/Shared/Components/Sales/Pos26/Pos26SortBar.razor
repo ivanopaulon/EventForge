@@ -33,6 +33,20 @@
         new(Pos26SortMode.Categoria,      "Categoria",       Icons.Material.Outlined.GridView)
     ];
 
+    private Pos26SortMode _prevSortMode;
+    private bool _prevHasCustomer;
+
+    protected override bool ShouldRender()
+    {
+        var changed = _prevSortMode != SortMode || _prevHasCustomer != HasCustomer;
+        if (changed)
+        {
+            _prevSortMode = SortMode;
+            _prevHasCustomer = HasCustomer;
+        }
+        return changed;
+    }
+
     private async Task OnPillClick(Pos26SortMode mode)
     {
         await OnSortChanged.InvokeAsync(mode);

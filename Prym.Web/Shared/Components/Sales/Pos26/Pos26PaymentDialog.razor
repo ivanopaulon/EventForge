@@ -130,7 +130,7 @@
                 @* Tasto Conferma *@
                 <button class="pos26-pay-confirm @(_residuo <= 0 ? "pos26-pay-confirm--ready" : "")"
                         @onclick="ConfermaAsync"
-                        disabled="@(!_pagamentiAggiunti.Any())"
+                        disabled="@(!_pagamentiAggiunti.Any() || _residuo > 0)"
                         title="@(_residuo > 0 ? $"Mancano ancora €{_residuo:F2}" : "Conferma pagamento")">
                     @if (_residuo <= 0 && _pagamentiAggiunti.Any())
                     {
@@ -172,7 +172,7 @@
 
     private record NumpadKeyDef(string Value, string Label, string Icon = "", string Css = "", string Style = "");
 
-    private List<NumpadKeyDef> _numpadKeys =>
+    private static readonly List<NumpadKeyDef> _numpadKeys =
     [
         new("7","7"), new("8","8"), new("9","9"),
         new("4","4"), new("5","5"), new("6","6"),
@@ -206,6 +206,8 @@
     protected override void OnInitialized()
     {
         _paymentMethods = PaymentMethods ?? new();
+        // Pre-select first available payment method for faster transaction flow
+        _selectedMethod = _paymentMethods.FirstOrDefault();
         // Importo predefinito = residuo
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
     }

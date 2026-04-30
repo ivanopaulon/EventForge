@@ -54,7 +54,22 @@
 
     private record KeyDef(string Value, string Label, string Icon = "", string Css = "", string Style = "", bool Disabled = false, string Title = "");
 
-    private List<KeyDef> _keys => BuildKeys();
+    private List<KeyDef> _keys = [];
+    private NumpadMode _lastBuiltMode;
+    private bool _lastCanPay;
+
+    protected override void OnInitialized() => _keys = BuildKeys();
+
+    protected override void OnParametersSet()
+    {
+        // Rebuild only when CanPay changes (affects the PAGA button style/disabled state).
+        // Mode changes are handled inside HandleKey() below.
+        if (_lastCanPay != CanPay)
+        {
+            _lastCanPay = CanPay;
+            _keys = BuildKeys();
+        }
+    }
 
     private List<KeyDef> BuildKeys()
     {
@@ -148,6 +163,13 @@
                 if (_input.Length < 10)
                     _input += key;
                 break;
+        }
+
+        // Rebuild key list when mode changed so button highlights update correctly.
+        if (_lastBuiltMode != _mode)
+        {
+            _lastBuiltMode = _mode;
+            _keys = BuildKeys();
         }
 
         if (decimal.TryParse(_input.Replace(',', '.'),
