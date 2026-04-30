@@ -811,8 +811,46 @@
         catch (Exception ex) { AppNotification.ShowError($"Errore reazione: {ex.Message}"); }
     }
 
-    private Task ShareMessage(ChatMessageDto _)  { AppNotification.ShowInfo("Message sharing coming soon!"); return Task.CompletedTask; }
-    private Task ReportMessage(ChatMessageDto _) { AppNotification.ShowInfo("Message reporting coming soon!"); return Task.CompletedTask; }
+    private async Task ShareMessage(ChatMessageDto message)
+    {
+        if (string.IsNullOrWhiteSpace(message.Content)) return;
+        try
+        {
+            // "Share" copies the message content to the clipboard so it can be pasted elsewhere.
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", message.Content);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.messageCopied", "Messaggio copiato negli appunti"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error sharing message {MessageId}", message.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("chat.shareFailed", "Impossibile copiare il messaggio"));
+        }
+    }
+
+    private async Task ReportMessage(ChatMessageDto message)
+    {
+        try
+        {
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("chat.reportConfirm", "Segnalare questo messaggio come inappropriato?"),
+                yesText: TranslationService.GetTranslation("chat.report", "Segnala"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+            if (confirmed != true) return;
+
+            var ok = await ChatService.ReportMessageAsync(message.Id, new ReportMessageDto(), default);
+            if (ok)
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("chat.reported", "Messaggio segnalato"));
+            else
+                AppNotification.ShowWarning(TranslationService.GetTranslation("chat.reportFailed", "Impossibile segnalare il messaggio"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error reporting message {MessageId}", message.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("chat.reportFailed", "Impossibile segnalare il messaggio"));
+        }
+    }
 
     private async Task OpenEditDialogAsync(ChatMessageDto message)
     {
@@ -901,7 +939,6 @@
 
     private async Task ScrollToBottomAsync()
     {
-        // TODO: ensure IJSRuntime is available in WASM context; scrollToBottom is a custom JS helper
         try { await JSRuntime.InvokeVoidAsync("scrollToBottom", "messages-container"); } catch { }
     }
 

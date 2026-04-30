@@ -461,6 +461,12 @@
     /// </summary>
     public async Task RefreshAsync() => await LoadEntitiesAsync();
 
+    /// <summary>
+    /// Returns a read-only view of the currently selected entities in the table.
+    /// Can be used by parent pages to implement bulk actions on selected items.
+    /// </summary>
+    public IReadOnlyCollection<TEntity> SelectedItems => _selectedEntities;
+
     private async Task EditEntity(Guid id)
     {
         try

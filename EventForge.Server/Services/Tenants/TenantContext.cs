@@ -181,7 +181,27 @@ public class TenantContext(
                 throw new ArgumentException($"User {userId} not found.");
             }
 
-            // TODO: Add tenant validation - ensure user belongs to current tenant context
+            // Tenant validation: a SuperAdmin can impersonate users from any tenant.
+            // Non-SuperAdmin admins (if this path were reachable) may only impersonate users
+            // within their own tenant. The IsSuperAdmin guard above already restricts access,
+            // but we explicitly verify that the target user's tenant is accessible to the caller.
+            if (targetUser.TenantId != CurrentTenantId)
+            {
+                var canAccess = await context.AdminTenants
+                    .AsNoTracking()
+                    .AnyAsync(at => at.UserId == currentUserId.Value &&
+                                   at.ManagedTenantId == targetUser.TenantId &&
+                                   !at.IsDeleted, ct);
+
+                if (!canAccess)
+                {
+                    logger.LogWarning(
+                        "Impersonation denied: user {AdminId} cannot access tenant {TargetTenantId} (target user {TargetUserId}).",
+                        currentUserId.Value, targetUser.TenantId, userId);
+                    throw new UnauthorizedAccessException(
+                        $"You are not authorised to impersonate users from tenant {targetUser.TenantId}.");
+                }
+            }
 
             httpContext.Session.SetString(OriginalUserIdSessionKey, currentUserId.Value.ToString());
             httpContext.Session.SetString(ImpersonatedUserIdSessionKey, userId.ToString());

@@ -617,6 +617,21 @@ public interface IChatService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Flags a chat message as inappropriate, storing the reporter and optional reason.
+    /// Subsequent calls by the same user are idempotent (flag is not set again).
+    /// </summary>
+    /// <param name="messageId">ID of the message to flag.</param>
+    /// <param name="dto">Optional report reason.</param>
+    /// <param name="reporterUserId">User who is filing the report.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Operation result.</returns>
+    Task<MessageOperationResultDto> ReportMessageAsync(
+        Guid messageId,
+        ReportMessageDto dto,
+        string reporterUserId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Finds all duplicate DirectMessage chats for a given user and merges each duplicate group
     /// into the single primary thread (the one with the most recent activity).
     /// All messages, read receipts and attachments are re-parented to the primary thread;
@@ -654,18 +669,6 @@ public class ChatOperationResultDto
     public string? ErrorMessage { get; set; }
     public string? ErrorCode { get; set; }
     public Dictionary<string, object>? Metadata { get; set; }
-    public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
-}
-
-/// <summary>
-/// Message operation result with status tracking.
-/// </summary>
-public class MessageOperationResultDto
-{
-    public Guid MessageId { get; set; }
-    public bool Success { get; set; }
-    public string? ErrorMessage { get; set; }
-    public MessageStatus? NewStatus { get; set; }
     public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
 }
 

@@ -158,4 +158,46 @@ public class AuditLogsController(
             return CreateInternalServerErrorProblem($"An error occurred while retrieving audit logs for the specified date range.", ex);
         }
     }
+
+    /// <summary>
+    /// Retrieves all audit logs for a specific entity instance, identified by its ID.
+    /// </summary>
+    /// <param name="entityId">Entity instance ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of audit logs for the specified entity instance, ordered by most recent first</returns>
+    /// <response code="200">Successfully retrieved audit logs for the entity instance</response>
+    /// <response code="403">User not authorized to view audit logs</response>
+    [HttpGet("entity-instance/{entityId}")]
+    [ProducesResponseType(typeof(IEnumerable<EntityChangeLogDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<EntityChangeLogDto>>> GetLogsByEntityInstance(
+        Guid entityId,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError is not null) return tenantError;
+
+        try
+        {
+            var logs = await service.GetEntityLogsAsync(entityId, cancellationToken);
+            var dtos = logs.Select(log => new EntityChangeLogDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            });
+            return Ok(dtos);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem($"An error occurred while retrieving audit logs for entity {entityId}.", ex);
+        }
+    }
 }

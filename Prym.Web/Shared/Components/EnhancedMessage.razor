@@ -293,6 +293,7 @@
  [Parameter] public EventCallback<string> OnReaction { get; set; }
  [Parameter] public EventCallback<MessageAttachmentDto> OnDownloadAttachment { get; set; }
  [Parameter] public EventCallback<MessageAttachmentDto> OnPreviewImage { get; set; }
+ [Parameter] public EventCallback<ChatMessageDto> OnShowThread { get; set; }
 
  private bool _showReactionPicker = false;
 
@@ -579,7 +580,7 @@
     {
         try
         {
-            // TODO: Implement thread view
+            await OnShowThread.InvokeAsync(Message);
         }
         catch (Exception ex)
         {

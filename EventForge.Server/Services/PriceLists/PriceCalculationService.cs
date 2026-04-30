@@ -45,7 +45,8 @@ public class PriceCalculationService(
                     !ple.IsDeleted &&
                     ple.Status == PriceListEntryStatus.Active &&
                     ple.MinQuantity <= quantity &&
-                    (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)));
+                    (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
+                .ThenInclude(ple => ple.UnitOfMeasure);
 
             var applicablePriceLists = await query.ToListAsync(cancellationToken);
 
@@ -123,9 +124,9 @@ public class PriceCalculationService(
                 BusinessPartyId = orderedPriceList.BusinessPartyRel?.BusinessPartyId,
                 BusinessPartyName = orderedPriceList.BusinessPartyRel?.BusinessParty?.Name,
                 AppliedDiscountPercentage = orderedPriceList.GlobalDiscount,
-                UnitOfMeasureId = Guid.Empty, // TODO: Gestire UnitOfMeasure se necessario
-                UnitOfMeasureName = string.Empty,
-                UnitSymbol = string.Empty,
+                UnitOfMeasureId = orderedPriceList.Entry.UnitOfMeasureId ?? Guid.Empty,
+                UnitOfMeasureName = orderedPriceList.Entry.UnitOfMeasure?.Name ?? string.Empty,
+                UnitSymbol = orderedPriceList.Entry.UnitOfMeasure?.Symbol ?? string.Empty,
                 CalculationNotes = orderedPriceList.GlobalDiscount.HasValue
                     ? $"Applied {orderedPriceList.GlobalDiscount.Value:F2}% global discount for {orderedPriceList.BusinessPartyRel?.BusinessParty?.Name}"
                     : null

@@ -47,5 +47,16 @@ namespace Prym.Web.Services
         Task<PagedResult<SanitizedSystemLogDto>> GetPublicApplicationLogsAsync(
             ApplicationLogQueryParameters queryParameters,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Initiates an asynchronous log export job on the server.
+        /// Restricted to SuperAdmin role.
+        /// </summary>
+        /// <param name="exportRequest">Export parameters (type, format, date range, filters)</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Export result with status and download URL when ready</returns>
+        Task<ExportResultDto> ExportLogsAsync(
+            ExportRequestDto exportRequest,
+            CancellationToken cancellationToken = default);
     }
 }

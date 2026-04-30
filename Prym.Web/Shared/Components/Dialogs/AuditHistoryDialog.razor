@@ -7,6 +7,7 @@
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject ILogger<AuditHistoryDialog> Logger
+@inject ILogsService LogsService
 
 <EFDialog Icon="@Icons.Material.Outlined.History"
           Title="@GetDialogTitle()"
@@ -333,58 +334,29 @@
             _expandedRows.Clear();
             StateHasChanged();
 
-            // TODO: Replace with actual audit service call when implemented
-            await Task.Delay(1000);
+            var logs = await LogsService.GetEntityInstanceAuditLogsAsync(EntityId.Value);
 
-            _auditLogs = new List<AuditLogDto>
-            {
-                new AuditLogDto
+            _auditLogs = logs
+                .Select(log => new AuditLogDto
                 {
-                    Id = Guid.NewGuid(),
-                    EntityType = EntityType,
-                    EntityId = EntityId.Value,
-                    Action = "Created",
-                    Timestamp = DateTime.Now.AddDays(-7),
-                    UserName = "admin@example.com",
-                    Notes = "Entity created during system initialization",
+                    Id = log.Id,
+                    EntityType = log.EntityName,
+                    EntityId = log.EntityId,
+                    Action = log.OperationType,
+                    Timestamp = log.ChangedAt,
+                    UserName = log.ChangedBy,
+                    Notes = log.EntityDisplayName ?? log.EntityName,
                     Changes = new List<AuditFieldChangeDto>
                     {
-                        new AuditFieldChangeDto { FieldName = "Name", OldValue = "", NewValue = EntityName },
-                        new AuditFieldChangeDto { FieldName = "Status", OldValue = "", NewValue = "Active" },
-                        new AuditFieldChangeDto { FieldName = "CreatedAt", OldValue = "", NewValue = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd HH:mm:ss") }
+                        new AuditFieldChangeDto
+                        {
+                            FieldName = log.PropertyName,
+                            OldValue = log.OldValue ?? string.Empty,
+                            NewValue = log.NewValue ?? string.Empty
+                        }
                     }
-                },
-                new AuditLogDto
-                {
-                    Id = Guid.NewGuid(),
-                    EntityType = EntityType,
-                    EntityId = EntityId.Value,
-                    Action = "Updated",
-                    Timestamp = DateTime.Now.AddDays(-3),
-                    UserName = "user@example.com",
-                    Notes = "Details updated by user request",
-                    Changes = new List<AuditFieldChangeDto>
-                    {
-                        new AuditFieldChangeDto { FieldName = "Description", OldValue = "Old description", NewValue = "Updated description with more details" },
-                        new AuditFieldChangeDto { FieldName = "ModifiedAt", OldValue = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd HH:mm:ss"), NewValue = DateTime.Now.AddDays(-3).ToString("yyyy-MM-dd HH:mm:ss") }
-                    }
-                },
-                new AuditLogDto
-                {
-                    Id = Guid.NewGuid(),
-                    EntityType = EntityType,
-                    EntityId = EntityId.Value,
-                    Action = "Activated",
-                    Timestamp = DateTime.Now.AddHours(-6),
-                    UserName = "manager@example.com",
-                    Notes = "Activated after review completion",
-                    Changes = new List<AuditFieldChangeDto>
-                    {
-                        new AuditFieldChangeDto { FieldName = "IsActive", OldValue = "false", NewValue = "true" },
-                        new AuditFieldChangeDto { FieldName = "ActivatedBy", OldValue = "", NewValue = "manager@example.com" }
-                    }
-                }
-            };
+                })
+                .ToList();
         }
         catch (Exception ex)
         {

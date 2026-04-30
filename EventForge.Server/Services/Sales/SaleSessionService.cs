@@ -129,6 +129,15 @@ public class SaleSessionService(
             session.CustomerId = updateDto.CustomerId ?? session.CustomerId;
             session.SaleType = updateDto.SaleType ?? session.SaleType;
 
+            if (updateDto.ClearTable)
+            {
+                session.TableId = null;
+            }
+            else if (updateDto.TableId.HasValue && updateDto.TableId.Value != Guid.Empty)
+            {
+                session.TableId = updateDto.TableId.Value;
+            }
+
             if (updateDto.Status.HasValue)
             {
                 session.Status = (SaleSessionStatus)updateDto.Status.Value;
