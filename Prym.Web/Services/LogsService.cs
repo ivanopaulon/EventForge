@@ -15,6 +15,7 @@ namespace Prym.Web.Services
         // Audit Logs  
         Task<PagedResult<EntityChangeLogDto>> GetAuditLogsAsync(Dictionary<string, object> queryParams, CancellationToken ct = default);
         Task<EntityChangeLogDto?> GetAuditLogAsync(Guid id, CancellationToken ct = default);
+        Task<IEnumerable<EntityChangeLogDto>> GetEntityInstanceAuditLogsAsync(Guid entityId, CancellationToken ct = default);
         Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditLogStatisticsAsync(CancellationToken ct = default);
         Task<Stream> ExportAuditLogsAsync(AuditLogExportDto exportDto, CancellationToken ct = default);
 
@@ -115,6 +116,20 @@ namespace Prym.Web.Services
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error retrieving audit log {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<EntityChangeLogDto>> GetEntityInstanceAuditLogsAsync(Guid entityId, CancellationToken ct = default)
+        {
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<EntityChangeLogDto>>($"api/v1/audit-logs/entity-instance/{entityId}", ct)
+                       ?? Enumerable.Empty<EntityChangeLogDto>();
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving audit logs for entity instance {EntityId}", entityId);
                 throw;
             }
         }

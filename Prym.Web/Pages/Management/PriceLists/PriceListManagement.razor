@@ -384,15 +384,83 @@
 
     private async Task BulkActivate()
     {
-        // TODO: Implement bulk activate functionality
-        AppNotification.ShowInfo(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"));
-        await Task.CompletedTask;
+        var selected = _entityPage?.SelectedItems;
+        if (selected == null || selected.Count == 0)
+        {
+            AppNotification.ShowInfo(TranslationService.GetTranslation("pricelist.bulkActivate.selectFirst", "Seleziona almeno un listino da attivare"));
+            return;
+        }
+
+        try
+        {
+            var toActivate = selected.Where(pl => pl.Status != PriceListStatus.Active).ToList();
+            if (toActivate.Count == 0)
+            {
+                AppNotification.ShowInfo(TranslationService.GetTranslation("pricelist.bulkActivate.alreadyActive", "Tutti i listini selezionati sono già attivi"));
+                return;
+            }
+
+            var tasks = toActivate.Select(pl => PriceListService.UpdateAsync(pl.Id, new UpdatePriceListDto
+            {
+                Name = pl.Name,
+                Description = pl.Description ?? string.Empty,
+                ValidFrom = pl.ValidFrom,
+                ValidTo = pl.ValidTo,
+                Notes = pl.Notes ?? string.Empty,
+                Status = PriceListStatus.Active,
+                IsDefault = pl.IsDefault,
+                Priority = pl.Priority
+            }, CancellationToken.None));
+
+            await Task.WhenAll(tasks);
+            await _entityPage!.RefreshAsync();
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("pricelist.bulkActivate.success", "{0} listino/i attivato/i", toActivate.Count));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during bulk activate.");
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.bulkActivate.error", "Errore durante l'attivazione dei listini"));
+        }
     }
 
     private async Task BulkSuspend()
     {
-        // TODO: Implement bulk suspend functionality
-        AppNotification.ShowInfo(TranslationService.GetTranslation("common.notImplemented", "Funzionalità non ancora implementata"));
-        await Task.CompletedTask;
+        var selected = _entityPage?.SelectedItems;
+        if (selected == null || selected.Count == 0)
+        {
+            AppNotification.ShowInfo(TranslationService.GetTranslation("pricelist.bulkSuspend.selectFirst", "Seleziona almeno un listino da sospendere"));
+            return;
+        }
+
+        try
+        {
+            var toSuspend = selected.Where(pl => pl.Status != PriceListStatus.Suspended).ToList();
+            if (toSuspend.Count == 0)
+            {
+                AppNotification.ShowInfo(TranslationService.GetTranslation("pricelist.bulkSuspend.alreadySuspended", "Tutti i listini selezionati sono già sospesi"));
+                return;
+            }
+
+            var tasks = toSuspend.Select(pl => PriceListService.UpdateAsync(pl.Id, new UpdatePriceListDto
+            {
+                Name = pl.Name,
+                Description = pl.Description ?? string.Empty,
+                ValidFrom = pl.ValidFrom,
+                ValidTo = pl.ValidTo,
+                Notes = pl.Notes ?? string.Empty,
+                Status = PriceListStatus.Suspended,
+                IsDefault = pl.IsDefault,
+                Priority = pl.Priority
+            }, CancellationToken.None));
+
+            await Task.WhenAll(tasks);
+            await _entityPage!.RefreshAsync();
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("pricelist.bulkSuspend.success", "{0} listino/i sospeso/i", toSuspend.Count));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during bulk suspend.");
+            AppNotification.ShowError(TranslationService.GetTranslation("pricelist.bulkSuspend.error", "Errore durante la sospensione dei listini"));
+        }
     }
 }
