@@ -139,6 +139,7 @@
 
     private async Task Submit()
     {
+        if (_form != null) await _form.ValidateAsync();
         if (!_isValid || _selectedProduct == null) return;
 
         try

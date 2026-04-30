@@ -61,7 +61,7 @@
 
     private async Task SaveAsync()
     {
-        if (_form is not null) await _form.Validate();
+        if (_form is not null) await _form.ValidateAsync();
         if (_form?.IsValid != true) return;
 
         _isSaving = true;

@@ -304,6 +304,7 @@
 
     private async Task DuplicatePriceList()
     {
+        if (_form != null) await _form.ValidateAsync();
         if (!_isFormValid) return;
 
         _isLoading = true;
