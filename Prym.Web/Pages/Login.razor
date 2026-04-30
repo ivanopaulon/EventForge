@@ -177,7 +177,7 @@
             if (isAuthenticated)
             {
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
-                NavigationManager.NavigateTo(isAdmin ? "/product-management/products" : "/product-management/products");
+                NavigationManager.NavigateTo(isAdmin ? "/" : "/product-management/products");
                 return;
             }
         }
@@ -241,7 +241,7 @@
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"));
 
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
-                NavigationManager.NavigateTo(isAdmin ? "/product-management/products" : "/product-management/products");
+                NavigationManager.NavigateTo(isAdmin ? "/" : "/product-management/products");
             }
             else
             {
