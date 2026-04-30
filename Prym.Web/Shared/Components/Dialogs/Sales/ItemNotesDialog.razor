@@ -74,26 +74,29 @@
 
     private string _customNotes = string.Empty;
     private HashSet<string> _selectedQuickNotes = new();
+    private List<string> _quickNotes = [];
     private MudTextField<string>? _notesField;
     private const string NoteSeparator = "; ";
 
-    // Quick notes are in Italian as this is the primary language for food service context
-    // TODO: Consider making these configurable through settings or translatable for multi-language support
-    private readonly List<string> _quickNotes = new()
-    {
-        "Senza glutine",
-        "Extra formaggio",
-        "Piccante",
-        "Allergie",
-        "Poco sale",
-        "Ben cotto",
-        "Da asporto",
-        "Senza cipolla",
-        "Senza lattosio"
-    };
+    // Quick notes are in Italian as this is the primary language for food service context.
+    // Labels are translated via TranslationService so they adapt when the active locale changes.
+    private List<string> BuildQuickNotes() =>
+    [
+        TranslationService.GetTranslation("sales.quickNote.glutenFree",  "Senza glutine"),
+        TranslationService.GetTranslation("sales.quickNote.extraCheese", "Extra formaggio"),
+        TranslationService.GetTranslation("sales.quickNote.spicy",       "Piccante"),
+        TranslationService.GetTranslation("sales.quickNote.allergies",   "Allergie"),
+        TranslationService.GetTranslation("sales.quickNote.lowSalt",     "Poco sale"),
+        TranslationService.GetTranslation("sales.quickNote.wellDone",    "Ben cotto"),
+        TranslationService.GetTranslation("sales.quickNote.takeaway",    "Da asporto"),
+        TranslationService.GetTranslation("sales.quickNote.noOnion",     "Senza cipolla"),
+        TranslationService.GetTranslation("sales.quickNote.lactoseFree", "Senza lattosio"),
+    ];
 
     protected override void OnInitialized()
     {
+        _quickNotes = BuildQuickNotes();
+
         // Parse initial notes to extract quick notes and custom notes
         if (!string.IsNullOrWhiteSpace(InitialNotes))
         {

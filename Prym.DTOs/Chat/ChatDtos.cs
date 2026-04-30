@@ -354,6 +354,10 @@ namespace Prym.DTOs.Chat
         public MessageDirection? Direction { get; set; }
         /// <summary>WhatsApp delivery status (Inviato/Consegnato/Letto/Errore).</summary>
         public WhatsAppDeliveryStatus? WhatsAppDeliveryStatus { get; set; }
+
+        // Moderation
+        /// <summary>Whether this message has been flagged as inappropriate.</summary>
+        public bool IsFlagged { get; set; }
     }
 
     /// <summary>
@@ -525,6 +529,16 @@ namespace Prym.DTOs.Chat
         public string? Reason { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public bool NotifyMembers { get; set; } = true;
+    }
+
+    /// <summary>
+    /// DTO for reporting (flagging) an inappropriate chat message.
+    /// </summary>
+    public class ReportMessageDto
+    {
+        /// <summary>Optional free-text reason chosen or typed by the reporter.</summary>
+        [MaxLength(500)]
+        public string? Reason { get; set; }
     }
 
     /// <summary>
@@ -797,5 +811,17 @@ namespace Prym.DTOs.Chat
 
         /// <summary>IDs of the primary (surviving) threads.</summary>
         public List<Guid> PrimaryThreadIds { get; set; } = [];
+    }
+
+    /// <summary>
+    /// Result of a message-level operation (delete, flag, react, etc.).
+    /// </summary>
+    public class MessageOperationResultDto
+    {
+        public Guid MessageId { get; set; }
+        public bool Success { get; set; }
+        public string? ErrorMessage { get; set; }
+        public MessageStatus? NewStatus { get; set; }
+        public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
     }
 }

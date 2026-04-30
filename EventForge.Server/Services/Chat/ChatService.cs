@@ -2886,6 +2886,62 @@ public class ChatService(
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<MessageOperationResultDto> ReportMessageAsync(
+        Guid messageId,
+        ReportMessageDto dto,
+        string reporterUserId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var message = await context.ChatMessages
+                .FirstOrDefaultAsync(m => m.Id == messageId && !m.IsDeleted, cancellationToken);
+
+            if (message is null)
+            {
+                return new MessageOperationResultDto
+                {
+                    Success = false,
+                    ErrorMessage = "Message not found.",
+                    MessageId = messageId
+                };
+            }
+
+            if (message.IsFlagged)
+            {
+                return new MessageOperationResultDto
+                {
+                    Success = true,
+                    MessageId = messageId
+                };
+            }
+
+            message.IsFlagged = true;
+            message.FlaggedAt = DateTime.UtcNow;
+            message.FlaggedBy = reporterUserId;
+            message.FlagReason = dto.Reason?.Trim();
+            message.ModifiedAt = DateTime.UtcNow;
+            message.ModifiedBy = reporterUserId;
+
+            _ = await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Message {MessageId} flagged by user {UserId}. Reason: {Reason}",
+                messageId, reporterUserId, dto.Reason);
+
+            return new MessageOperationResultDto
+            {
+                Success = true,
+                MessageId = messageId
+            };
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reporting message {MessageId}", messageId);
+            throw;
+        }
+    }
+
     #endregion
 
     /// <summary>

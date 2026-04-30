@@ -35,6 +35,15 @@ public interface IChatService : IDisposable
     /// </summary>
     Task<int> MergeDuplicateChatsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Reports (flags) a chat message as inappropriate.
+    /// </summary>
+    /// <param name="messageId">ID of the message to report.</param>
+    /// <param name="dto">Optional report reason.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the message was flagged; false if not found or on error.</returns>
+    Task<bool> ReportMessageAsync(Guid messageId, ReportMessageDto dto, CancellationToken cancellationToken = default);
+
     // Events for real-time updates
     event Action<ChatResponseDto>? ChatCreated;
     event Action<ChatMessageDto>? MessageReceived;
@@ -656,6 +665,22 @@ public class ChatService : IChatService
         {
             _logger.LogWarning(ex, "MergeDuplicateChatsAsync failed (non-critical).");
             return 0;
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<bool> ReportMessageAsync(Guid messageId, ReportMessageDto dto, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _httpClientService.PostAsync<ReportMessageDto, MessageOperationResultDto>(
+                $"{BaseUrl}/messages/{messageId}/report", dto, cancellationToken);
+            return result?.Success ?? false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reporting message {MessageId}", messageId);
+            return false;
         }
     }
 }
