@@ -906,11 +906,11 @@ public partial class POS2026 : IAsyncDisposable
         if (!ViewModel.HasActiveSession) return;
         try
         {
-            // UpdateSaleSessionDto non espone TableId; la sessione viene aggiornata con SaleType
-            // e il numero tavolo viene mostrato nell'header come info contestuale.
-            // Per assegnare davvero un tavolo alla sessione è necessario un endpoint dedicato.
-            // TODO: chiamare un endpoint dedicato /api/v1/sales/sessions/{id}/table una volta disponibile.
-            var updateDto = new UpdateSaleSessionDto { SaleType = SaleTypes.Retail };
+            var updateDto = new UpdateSaleSessionDto
+            {
+                SaleType = SaleTypes.Retail,
+                TableId = table.Id
+            };
             await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
             await ViewModel.ReloadSessionAsync();
             AppNotification.ShowSuccess($"Sessione impostata su Tavolo {table.TableNumber}.");

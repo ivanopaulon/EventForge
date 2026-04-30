@@ -53,10 +53,23 @@ namespace Prym.DTOs.Sales
         public Guid? CustomerId { get; set; }
 
         /// <summary>
-        /// Sale type.
+        /// Sale type (e.g., "RETAIL", "BAR", "RESTAURANT").
         /// </summary>
         [MaxLength(50)]
         public string? SaleType { get; set; }
+
+        /// <summary>
+        /// Table identifier (for bar/restaurant scenarios).
+        /// When set to <see cref="Guid.Empty"/>, clears the current table assignment.
+        /// When null, leaves the current table assignment unchanged.
+        /// </summary>
+        public Guid? TableId { get; set; }
+
+        /// <summary>
+        /// When true, <see cref="TableId"/> is applied even if it is <see cref="Guid.Empty"/>
+        /// (i.e., the table assignment is explicitly cleared).
+        /// </summary>
+        public bool ClearTable { get; set; }
 
         /// <summary>
         /// Session status.
