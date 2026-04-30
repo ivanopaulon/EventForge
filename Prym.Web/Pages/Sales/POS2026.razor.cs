@@ -197,12 +197,16 @@ public partial class POS2026 : IAsyncDisposable
         }
 
         // Best-sellers fire-and-forget — non blocca la visualizzazione della griglia.
-        // RebuildFilteredProducts viene eseguita nel contesto UI dopo che i dati sono pronti.
-        _ = LoadBestSellerIdsAsync().ContinueWith(_ => InvokeAsync(() =>
+        // RebuildFilteredProducts viene eseguita nel contesto UI solo se il task è completato con successo.
+        _ = LoadBestSellerIdsAsync().ContinueWith(task =>
         {
-            RebuildFilteredProducts();
-            StateHasChanged();
-        }));
+            if (task.IsCompletedSuccessfully)
+                _ = InvokeAsync(() =>
+                {
+                    RebuildFilteredProducts();
+                    StateHasChanged();
+                });
+        }, TaskScheduler.Default);
     }
 
     /// <summary>
@@ -474,26 +478,26 @@ public partial class POS2026 : IAsyncDisposable
             return; // keystroke successivo ha già annullato questa ricerca
         }
 
-        if (cts.IsCancellationRequested) return;
-
         try
         {
             var result = await ProductService.SearchProductsAsync(term, maxResults: 100);
-            if (!cts.IsCancellationRequested && result?.SearchResults != null)
+
+            // Unica guard dopo la chiamata async: se nel frattempo l'utente ha digitato altro,
+            // scartiamo il risultato senza aggiornare lo stato del componente.
+            if (cts.IsCancellationRequested) return;
+
+            if (result?.SearchResults != null)
             {
                 _allProducts = result.SearchResults.ToList();
                 BuildCategoryList();
             }
+
+            RebuildFilteredProducts();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Errore nella ricerca prodotti POS2026.");
-        }
-
-        if (!cts.IsCancellationRequested)
-        {
-            RebuildFilteredProducts();
-            StateHasChanged();
         }
     }
 
