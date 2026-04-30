@@ -76,6 +76,8 @@
     flex-direction: column;
     background: var(--pos-dark);
     overflow: hidden;
+    /* Prevents content being hidden behind the fixed shortcuts bar (~28px) */
+    padding-bottom: 28px;
 }
 
 /* ===== Barra shortcut (footer) ===== */

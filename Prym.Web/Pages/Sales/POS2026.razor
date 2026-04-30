@@ -142,6 +142,7 @@
             @* Pulsante Note ordine *@
             <button class="pos26-fn-btn @(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? "pos26-fn-btn--active" : "")"
                     @onclick="ToggleNoteInput"
+                    aria-pressed="@(_showNoteInput.ToString().ToLowerInvariant())"
                     title="Note ordine">
                 <MudIcon Icon="@Icons.Material.Outlined.Note" Size="Size.Small" />
                 <span>Note</span>
@@ -154,6 +155,7 @@
             @* Pulsante Coupon *@
             <button class="pos26-fn-btn @(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? "pos26-fn-btn--active" : "")"
                     @onclick="ToggleCouponInput"
+                    aria-pressed="@(_showCouponInput.ToString().ToLowerInvariant())"
                     title="Coupon">
                 <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Small" />
                 <span>Coupon</span>
@@ -166,6 +168,7 @@
             @* Pulsante Tavolo / Asporto *@
             <button class="pos26-fn-btn @(_showTablePicker ? "pos26-fn-btn--active" : "")"
                     @onclick="ToggleTablePickerAsync"
+                    aria-pressed="@(_showTablePicker.ToString().ToLowerInvariant())"
                     title="Tavolo / Asporto">
                 <MudIcon Icon="@Icons.Material.Outlined.TableBar" Size="Size.Small" />
                 <span>
@@ -181,6 +184,7 @@
             @* Sessioni parcheggiate *@
             <button class="pos26-fn-btn @(_showParkedSessions ? "pos26-fn-btn--active" : "")"
                     @onclick="ToggleParkedSessionsAsync"
+                    aria-pressed="@(_showParkedSessions.ToString().ToLowerInvariant())"
                     title="Sessioni parcheggiate">
                 <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" />
                 <span>Sospese</span>
@@ -210,7 +214,9 @@
                 @if (_noteFlags.Count > 1)
                 {
                     <div class="pos26-fn-row mb-1">
-                        <select class="pos26-fn-input"
+                        <label for="pos26-note-flag-select" class="sr-only">Tipo nota</label>
+                        <select id="pos26-note-flag-select"
+                                class="pos26-fn-input"
                                 @bind="_selectedNoteFlagId">
                             @foreach (var flag in _noteFlags)
                             {
@@ -220,7 +226,9 @@
                     </div>
                 }
                 <div class="pos26-fn-row">
-                    <input class="pos26-fn-input"
+                    <label for="pos26-note-text-input" class="sr-only">Testo nota ordine</label>
+                    <input id="pos26-note-text-input"
+                           class="pos26-fn-input"
                            type="text"
                            placeholder="Aggiungi nota…"
                            @bind="_orderNoteText"

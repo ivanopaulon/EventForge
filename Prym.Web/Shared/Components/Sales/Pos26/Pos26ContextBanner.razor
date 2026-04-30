@@ -20,6 +20,20 @@
     private string _fg = "#666";
     private string _icon = Icons.Material.Outlined.Info;
 
+    private Pos26SortMode _prevSortMode;
+    private BusinessPartyDto? _prevCustomer;
+
+    protected override bool ShouldRender()
+    {
+        var changed = _prevSortMode != SortMode || !ReferenceEquals(_prevCustomer, Customer);
+        if (changed)
+        {
+            _prevSortMode = SortMode;
+            _prevCustomer = Customer;
+        }
+        return changed;
+    }
+
     protected override void OnParametersSet()
     {
         (_bg, _fg, _icon) = SortMode switch

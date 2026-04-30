@@ -9,38 +9,25 @@
         <span>Caricamento articoli…</span>
     </div>
 }
-else if (!Products.Any())
+else if (Products.Count == 0)
 {
     <div class="pos26-grid-empty">
         <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Class="opacity-30" />
         <span>Nessun articolo trovato</span>
     </div>
 }
-else if (Products.Count > 50)
+else
 {
     <div class="pos26-product-grid">
-        <Virtualize Items="@Products.ToList()" Context="product" OverscanCount="5">
-            <Pos26ProductCard Product="@product"
+        <Virtualize Items="@Products.ToList()" Context="product" OverscanCount="10">
+            <Pos26ProductCard @key="product.Id"
+                              Product="@product"
                               CartQuantity="@GetCartQty(product.Id)"
                               IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
                               IsBestSeller="@IsBestSellerProduct(product.Id)"
                               OnAddToCart="@OnAddToCart"
                               OnLongPress="@OnLongPress" />
         </Virtualize>
-    </div>
-}
-else
-{
-    <div class="pos26-product-grid">
-        @foreach (var product in Products)
-        {
-            <Pos26ProductCard Product="@product"
-                              CartQuantity="@GetCartQty(product.Id)"
-                              IsLastPurchase="@IsLastPurchaseProduct(product.Id)"
-                              IsBestSeller="@IsBestSellerProduct(product.Id)"
-                              OnAddToCart="@OnAddToCart"
-                              OnLongPress="@OnLongPress" />
-        }
     </div>
 }
 

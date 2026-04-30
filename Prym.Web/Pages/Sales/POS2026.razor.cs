@@ -58,6 +58,9 @@ public partial class POS2026 : IAsyncDisposable
     // --- Dizionario categoria O(1) per lookup nella sort ---
     private Dictionary<Guid, string> _categoryNodeDict = new();
 
+    // --- Dizionario inverso O(1): nome → ID, per filtraggio categoria ---
+    private Dictionary<string, Guid> _categoryNameToIdDict = new();
+
     // --- Sessioni parcheggiate ---
     private List<SaleSessionDto> _parkedSessions = new();
     private bool _showParkedSessions = false;
@@ -206,6 +209,8 @@ public partial class POS2026 : IAsyncDisposable
                     RebuildFilteredProducts();
                     StateHasChanged();
                 });
+            else if (task.IsFaulted)
+                Logger.LogWarning(task.Exception, "POS2026: eccezione non gestita in LoadBestSellerIdsAsync.");
         }, TaskScheduler.Default);
     }
 
@@ -250,6 +255,7 @@ public partial class POS2026 : IAsyncDisposable
             var nodes = await EntityManagementService.GetClassificationNodesAsync();
             _classificationNodes = nodes?.Where(n => n.IsActive).OrderBy(n => n.Name).ToList() ?? new();
             _categoryNodeDict = _classificationNodes.ToDictionary(n => n.Id, n => n.Name);
+            _categoryNameToIdDict = _classificationNodes.ToDictionary(n => n.Name, n => n.Id, StringComparer.Ordinal);
         }
         catch (Exception ex)
         {
@@ -401,20 +407,13 @@ public partial class POS2026 : IAsyncDisposable
                 (p.Code?.ToLowerInvariant().Contains(term) == true));
         }
 
-        // Filtro categoria — usa CategoryNodeId se disponibili i nodi reali, altrimenti VatRateName
+        // Filtro categoria — usa _categoryNameToIdDict (O(1)) se disponibili i nodi reali, altrimenti VatRateName
         if (!string.IsNullOrEmpty(_selectedCategory))
         {
-            if (_categoryNodeDict.Count > 0)
-            {
-                var nodeId = _classificationNodes
-                    .FirstOrDefault(n => n.Name == _selectedCategory)?.Id;
-                if (nodeId.HasValue)
-                    source = source.Where(p => p.CategoryNodeId == nodeId.Value);
-            }
-            else
-            {
+            if (_categoryNameToIdDict.TryGetValue(_selectedCategory, out var nodeId))
+                source = source.Where(p => p.CategoryNodeId == nodeId);
+            else if (_categoryNodeDict.Count == 0)
                 source = source.Where(p => p.VatRateName == _selectedCategory);
-            }
         }
 
         // Ordinamento — usa _categoryNodeDict per lookup O(1) nella sort per categoria
@@ -444,7 +443,7 @@ public partial class POS2026 : IAsyncDisposable
     {
         _searchTerm = term;
 
-        // Annulla la ricerca precedente ancora in attesa del debounce
+        // Cancellation guard: discards stale results if the user types faster than the HTTP response.
         _searchDebounce?.Cancel();
         _searchDebounce?.Dispose();
         _searchDebounce = new CancellationTokenSource();
@@ -457,6 +456,9 @@ public partial class POS2026 : IAsyncDisposable
             {
                 _allProducts = new List<ProductDto>(_fullCatalogProducts);
                 BuildCategoryList();
+                // Se la categoria selezionata non esiste più nella lista ricostruita, resettala
+                if (_selectedCategory != null && !_categories.Contains(_selectedCategory))
+                    _selectedCategory = null;
             }
             else
             {
@@ -468,15 +470,11 @@ public partial class POS2026 : IAsyncDisposable
             return;
         }
 
-        // Debounce 300ms — evita una HTTP call per ogni carattere digitato
-        try
-        {
-            await Task.Delay(300, cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            return; // keystroke successivo ha già annullato questa ricerca
-        }
+        // Reset della categoria selezionata durante la ricerca testuale: i pill di categoria
+        // vengono ricostruiti sui risultati di ricerca, quindi la categoria potrebbe scomparire
+        // rendendo il filtro invisibile ma ancora attivo.
+        if (_selectedCategory != null)
+            _selectedCategory = null;
 
         try
         {
@@ -525,7 +523,7 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
-    private async Task OnSortModeChangedAsync(Pos26SortMode mode)
+    private void OnSortModeChangedAsync(Pos26SortMode mode)
     {
         _sortMode = mode;
 
@@ -534,15 +532,13 @@ public partial class POS2026 : IAsyncDisposable
 
         RebuildFilteredProducts();
         StateHasChanged();
-        await Task.CompletedTask;
     }
 
-    private async Task OnCategorySelectedAsync(string? category)
+    private void OnCategorySelectedAsync(string? category)
     {
         _selectedCategory = category;
         RebuildFilteredProducts();
         StateHasChanged();
-        await Task.CompletedTask;
     }
 
     private async Task OnSelectedCustomerChangedAsync(BusinessPartyDto? customer)
@@ -685,7 +681,19 @@ public partial class POS2026 : IAsyncDisposable
                 new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
             var result = await dialog.Result;
             if (result?.Canceled == false)
+            {
+                var notes = result.Data as string ?? string.Empty;
+                var updateDto = new UpdateSaleItemDto
+                {
+                    Quantity       = item.Quantity,
+                    UnitPrice      = item.UnitPrice,
+                    DiscountPercent = item.DiscountPercent,
+                    Notes          = notes
+                };
+                await SalesService.UpdateItemAsync(ViewModel.CurrentSession!.Id, item.Id, updateDto);
                 await ViewModel.ReloadSessionAsync();
+                RebuildCartQuantities();
+            }
         }
         catch (Exception ex)
         {
@@ -796,6 +804,9 @@ public partial class POS2026 : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore durante la registrazione del pagamento POS2026.");
+            // Ricarica la sessione per allineare la UI allo stato reale del server
+            // (possibile pagamento parziale già registrato)
+            try { await ViewModel.ReloadSessionAsync(); } catch { /* best effort */ }
             AppNotification.ShowError("Errore durante il pagamento.");
         }
     }
@@ -959,14 +970,15 @@ public partial class POS2026 : IAsyncDisposable
         if (!ViewModel.HasActiveSession) return;
         try
         {
-            // UpdateSaleSessionDto non espone TableId; la sessione viene aggiornata con SaleType
-            // e il numero tavolo viene mostrato nell'header come info contestuale.
-            // Per assegnare davvero un tavolo alla sessione è necessario un endpoint dedicato.
-            // TODO: chiamare un endpoint dedicato /api/v1/sales/sessions/{id}/table una volta disponibile.
-            var updateDto = new UpdateSaleSessionDto { SaleType = SaleTypes.Retail };
-            await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
+            // Collega il tavolo alla sessione corrente tramite UpdateTableStatusAsync
+            await TableManagementService.UpdateTableStatusAsync(table.Id, new UpdateTableStatusDto
+            {
+                Status = "Occupied",
+                SaleSessionId = ViewModel.CurrentSession!.Id
+            });
+            // Ricarica la sessione per ricevere il TableNumber aggiornato dall'API
             await ViewModel.ReloadSessionAsync();
-            AppNotification.ShowSuccess($"Sessione impostata su Tavolo {table.TableNumber}.");
+            AppNotification.ShowSuccess($"Tavolo {table.TableNumber} assegnato.");
             _showTablePicker = false;
         }
         catch (Exception ex)
@@ -986,7 +998,8 @@ public partial class POS2026 : IAsyncDisposable
             if (session != null)
             {
                 await ViewModel.ReloadSessionAsync();
-                var label = saleType == SaleTypes.Retail ? "Banco" : "Asporto";                AppNotification.ShowSuccess($"Tipo vendita: {label}.");
+                var label = saleType == SaleTypes.Retail ? "Banco" : "Asporto";
+                AppNotification.ShowSuccess($"Tipo vendita: {label}.");
             }
         }
         catch (Exception ex)
@@ -1011,12 +1024,14 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            // Riprende la sessione sospesa aggiornando lo stato a Open
+            // Aggiorna lo stato della sessione sospesa a Open sul server
             var updateDto = new UpdateSaleSessionDto { Status = SaleSessionStatusDto.Open };
             var resumed = await SalesService.UpdateSessionAsync(session.Id, updateDto);
             if (resumed != null)
             {
-                await ViewModel.ReloadSessionAsync();
+                // ResumeSessionAsync imposta CurrentSession = resumed e aggiorna OperatorId/PosId
+                await ViewModel.ResumeSessionAsync(resumed);
+                RebuildCartQuantities();
                 _showParkedSessions = false;
                 AppNotification.ShowSuccess($"Sessione #{session.Id.ToString()[..8]} ripresa.");
             }
@@ -1100,9 +1115,14 @@ public partial class POS2026 : IAsyncDisposable
                     break;
                 case "F4":
                     if (ViewModel.CurrentSession?.Items.LastOrDefault() is { } last)
-                        await SalesService.RemoveItemAsync(ViewModel.CurrentSession.Id, last.Id);
-                    await ViewModel.ReloadSessionAsync();
-                    RebuildCartQuantities();
+                    {
+                        // Routing through ViewModel.RemoveItemAsync respects the update semaphore
+                        // and flushes any pending debounced updates before removing the item.
+                        var removeResult = await ViewModel.RemoveItemAsync(last);
+                        if (!removeResult.Success)
+                            AppNotification.ShowWarning(removeResult.Error ?? "Errore durante la rimozione dell'articolo.");
+                        RebuildCartQuantities();
+                    }
                     break;
                 case "F8":
                     _searchBar?.FocusInput();
@@ -1130,6 +1150,14 @@ public partial class POS2026 : IAsyncDisposable
         if (!_fiscalPrinterId.HasValue) return;
         try
         {
+            // Dispose any existing WebSocket connection to prevent leaks when the POS changes.
+            if (_fiscalHubConnection != null)
+            {
+                try { await _fiscalHubConnection.DisposeAsync(); }
+                catch (Exception ex) { Logger.LogWarning(ex, "POS2026: errore durante il dispose della vecchia connessione hub."); }
+                _fiscalHubConnection = null;
+            }
+
             _fiscalHubConnection = new HubConnectionBuilder()
                 .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/fiscal-printer"))
                 .WithAutomaticReconnect()
@@ -1348,24 +1376,49 @@ public partial class POS2026 : IAsyncDisposable
 
     private static FiscalReceiptData BuildFiscalReceiptData(SaleSessionDto session)
     {
-        var items = session.Items.Select(item => new FiscalReceiptItem
+        var items = session.Items.Select(item =>
         {
-            Description = item.ProductName ?? item.ProductCode ?? "Articolo",
-            Quantity = item.Quantity,
-            UnitPrice = item.UnitPrice,
-            VatCode = 1,
-            Department = 1
+            var vatCode = MapVatCodeFromTaxRate(item.TaxRate);
+            return new FiscalReceiptItem
+            {
+                Description = item.ProductName ?? item.ProductCode ?? "Articolo",
+                Quantity    = item.Quantity,
+                UnitPrice   = item.UnitPrice,
+                VatCode     = vatCode,
+                Department  = vatCode   // departments are configured to match the VAT code in standard setups
+            };
         }).ToList();
 
         var payments = session.Payments.Select(p => new FiscalPayment
         {
-            Amount = p.Amount,
-            MethodCode = 1,
+            Amount      = p.Amount,
+            MethodCode  = 1,
             Description = p.PaymentMethodName ?? "Pagamento"
         }).ToList();
 
         return new FiscalReceiptData { Items = items, Payments = payments };
     }
+
+    /// <summary>
+    /// Maps an item's tax rate to the standard Italian fiscal printer VAT code (1–4).
+    /// Standard assignment for Italian fiscal printers (Custom, Epson):
+    ///   Code 1 → 22%  (standard rate)
+    ///   Code 2 → 10%  (reduced rate — food, hospitality, etc.)
+    ///   Code 3 → 5%   (intermediate rate)
+    ///   Code 4 → 4%   (super-reduced — essential goods)
+    ///   Code 5 → 0%   (exempt / no VAT)
+    /// Merchants who have a non-standard printer configuration must update this mapping
+    /// or introduce a configurable VAT-code table in the printer settings.
+    /// </summary>
+    private static int MapVatCodeFromTaxRate(decimal taxRate) => taxRate switch
+    {
+        22m => 1,
+        10m => 2,
+        5m  => 3,
+        4m  => 4,
+        0m  => 5,
+        _   => 1    // fallback: unknown rate defaults to code 1 (22%)
+    };
 
     // =========================================================================
     //  Dispose

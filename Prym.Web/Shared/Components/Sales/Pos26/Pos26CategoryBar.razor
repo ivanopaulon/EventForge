@@ -22,6 +22,21 @@
     [Parameter] public string? SelectedCategory { get; set; }
     [Parameter] public EventCallback<string?> OnCategorySelected { get; set; }
 
+    private List<string>? _prevCategories;
+    private string? _prevSelectedCategory;
+
+    protected override bool ShouldRender()
+    {
+        var changed = !ReferenceEquals(_prevCategories, Categories)
+                   || _prevSelectedCategory != SelectedCategory;
+        if (changed)
+        {
+            _prevCategories = Categories;
+            _prevSelectedCategory = SelectedCategory;
+        }
+        return changed;
+    }
+
     private async Task OnPillClick(string? cat)
     {
         await OnCategorySelected.InvokeAsync(cat);

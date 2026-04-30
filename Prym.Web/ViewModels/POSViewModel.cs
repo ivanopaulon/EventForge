@@ -38,7 +38,6 @@ public class POSViewModel : IDisposable
     private readonly Dictionary<Guid, SaleItemDto> _itemBackups = new();
 
     // Retry tracking
-    private int _currentRetryAttempt = 0;
     private const int MaxRetryAttempts = 3;
     private const int ManualRetryAttempts = 2;
 
@@ -735,8 +734,7 @@ public class POSViewModel : IDisposable
                 IsSessionClosed = true;
                 NotifySuccess("Sale completed successfully!");
 
-                // Auto-prepare for new sale after a short delay
-                await Task.Delay(2000);
+                // Prepare for next sale immediately after closing (removed arbitrary 2-second delay)
                 await PrepareNewSaleAsync();
                 return (true, null);
             }
@@ -1053,42 +1051,6 @@ public class POSViewModel : IDisposable
         }
     }
 
-    private async Task CheckForSuspendedSessionsAsync()
-    {
-        try
-        {
-            _logger.LogDebug("Checking for suspended sessions...");
-            var allSessions = await _salesService.GetActiveSessionsAsync();
-
-            if (allSessions == null)
-            {
-                _logger.LogWarning("GetActiveSessionsAsync returned null");
-                return;
-            }
-
-            var suspendedSessions = allSessions
-                .Where(s => s.Status == SaleSessionStatusDto.Suspended)
-                .ToList();
-
-            _logger.LogDebug("Found {Count} suspended sessions", suspendedSessions.Count);
-
-            // Note: The actual dialog handling is done in the UI layer
-            // This method just checks if there are suspended sessions
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-        {
-            _logger.LogWarning(httpEx, "Unauthorized error checking for suspended sessions");
-        }
-        catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.Forbidden)
-        {
-            _logger.LogWarning(httpEx, "Forbidden error checking for suspended sessions");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking for suspended sessions");
-        }
-    }
-
     private async Task PrepareNewSaleAsync()
     {
         CurrentSession = null;
@@ -1175,10 +1137,6 @@ public class POSViewModel : IDisposable
 
             try
             {
-                // Update retry state for UI
-                _currentRetryAttempt = attempt;
-                NotifyStateChanged();
-
                 var updateDto = new UpdateSaleItemDto
                 {
                     Quantity = item.Quantity,
@@ -1192,8 +1150,7 @@ public class POSViewModel : IDisposable
                 if (updatedSession != null)
                 {
                     CurrentSession = updatedSession;
-                    // Success - reset retry counter and remove backup
-                    _currentRetryAttempt = 0;
+                    // Success - remove backup
                     _itemBackups.Remove(item.Id);
                     NotifyStateChanged();
                     return;
@@ -1225,7 +1182,6 @@ public class POSViewModel : IDisposable
             catch (OperationCanceledException)
             {
                 // Update was cancelled - rollback and rethrow
-                _currentRetryAttempt = 0;
                 _logger.LogDebug("Update cancelled for item {ItemId}", item.Id);
                 RollbackItem(item);
                 NotifyStateChanged();
@@ -1234,7 +1190,6 @@ public class POSViewModel : IDisposable
             catch (Exception ex)
             {
                 // Non-retryable error - rollback and fail immediately
-                _currentRetryAttempt = 0;
                 _logger.LogError(ex, "Non-retryable error updating item");
                 RollbackItem(item);
                 NotifyError("Error updating item");
@@ -1244,7 +1199,6 @@ public class POSViewModel : IDisposable
         }
 
         // All retries failed - rollback
-        _currentRetryAttempt = 0;
         RollbackItem(item);
         NotifyStateChanged();
         NotifyError($"Failed to update item after {totalAttempts} attempts");
@@ -1399,8 +1353,6 @@ public class POSViewModel : IDisposable
         _pendingItemUpdates.Clear();
         _itemBackups.Clear();
 
-        // Reset retry state
-        _currentRetryAttempt = 0;
         IsUpdatingItems = false;
     }
 
