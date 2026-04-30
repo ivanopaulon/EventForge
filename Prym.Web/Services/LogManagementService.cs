@@ -95,6 +95,25 @@ public class LogManagementService(
         }
     }
 
+    /// <inheritdoc/>
+    public async Task<ExportResultDto> ExportLogsAsync(
+        ExportRequestDto exportRequest,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<ExportRequestDto, ExportResultDto>(
+                "api/v1/LogManagement/export", exportRequest, cancellationToken);
+
+            return result ?? throw new InvalidOperationException("Empty response from log export endpoint.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error exporting logs with request: {@ExportRequest}", exportRequest);
+            throw;
+        }
+    }
+
     /// <summary>
     /// Builds a query string from the ApplicationLogQueryParameters object.
     /// </summary>

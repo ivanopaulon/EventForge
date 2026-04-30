@@ -13,6 +13,8 @@
 @inject ITranslationService TranslationService
 @inject ILogger<StockOverview> Logger
 @inject IStockReconciliationService StockReconciliationService
+@inject IHttpClientService HttpClientService
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("stock.overview", "Situazione Giacenze")</PageTitle>
@@ -1207,54 +1209,115 @@
     }
 
     /// <summary>
-    /// Exports selected stock items to Excel.
+    /// Exports selected stock items to Excel using the standard export pipeline.
     /// </summary>
     private async Task ExportSelectedToExcel()
     {
+        if (!_selectedStockItems.Any())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("stock.export.selectFirst", "Seleziona almeno un elemento da esportare"));
+            return;
+        }
+
         try
         {
             AppNotification.ShowInfo(TranslationService.GetTranslationFormatted("stock.exportInProgress", "Esportazione di {0} elementi in corso...", _selectedStockItems.Count));
-            
-            // TODO: Implementare logica esportazione Excel
-            // Possibile approccio:
-            // - Chiamare endpoint API che genera file Excel
-            // - Scaricare file tramite JSInterop
-            
-            await Task.Delay(1000); // Placeholder
-            
+
+            var visibleColumns = (_efTable?.ColumnConfigurations ?? _initialColumns)
+                .Where(c => c.IsVisible && c.PropertyName != "ReconciledQty" && c.PropertyName != "Status")
+                .OrderBy(c => c.Order)
+                .Select(c => new { propertyName = ToCamelCaseExport(c.PropertyName), displayName = c.DisplayName, isVisible = true })
+                .ToList();
+
+            var exportPayload = new
+            {
+                data = _selectedStockItems.ToList(),
+                options = new
+                {
+                    fileName = "GiacenzeSelezionate",
+                    sheetName = TranslationService.GetTranslation("stock.overview", "Situazione Giacenze"),
+                    columns = visibleColumns,
+                    formatting = new { headerBackgroundColor = "#1976D2", headerFontColor = "#FFFFFF", headerBold = true, headerBorders = true, alternateRowColors = true, alternateRowColor = "#F5F5F5", dataBorders = true },
+                    autoFitColumns = true,
+                    freezeHeader = true,
+                    addAutoFilter = true
+                }
+            };
+
+            var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", exportPayload);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"GiacenzeSelezionate_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
             AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.exportSuccess", "Esportazione completata"));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error exporting stock items");
+            Logger.LogError(ex, "Error exporting selected stock items");
             AppNotification.ShowError(TranslationService.GetTranslation("stock.exportError", "Errore durante l'esportazione"));
         }
     }
 
     /// <summary>
-    /// Prints labels for selected stock items.
+    /// Exports selected stock items in a label-friendly Excel format
+    /// (ProductCode, ProductName, WarehouseName, LocationCode, LotCode, Quantity).
     /// </summary>
     private async Task PrintSelectedLabels()
     {
+        if (!_selectedStockItems.Any())
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("stock.print.selectFirst", "Seleziona almeno un elemento per stampare le etichette"));
+            return;
+        }
+
         try
         {
             AppNotification.ShowInfo(TranslationService.GetTranslationFormatted("stock.printInProgress", "Preparazione stampa di {0} etichette...", _selectedStockItems.Count));
-            
-            // TODO: Implementare logica stampa etichette
-            // Possibile approccio:
-            // - Generare PDF con etichette
-            // - Aprire dialog stampa browser
-            
-            await Task.Delay(1000); // Placeholder
-            
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.printSuccess", "Etichette pronte per la stampa"));
+
+            var labelColumns = new[]
+            {
+                new { propertyName = "productCode",    displayName = "Codice",     isVisible = true },
+                new { propertyName = "productName",    displayName = "Descrizione", isVisible = true },
+                new { propertyName = "warehouseName",  displayName = "Magazzino",  isVisible = true },
+                new { propertyName = "locationCode",   displayName = "Ubicazione", isVisible = true },
+                new { propertyName = "lotCode",        displayName = "Lotto",      isVisible = true },
+                new { propertyName = "quantity",       displayName = "Quantità",   isVisible = true }
+            };
+
+            var exportPayload = new
+            {
+                data = _selectedStockItems.ToList(),
+                options = new
+                {
+                    fileName = "EtichetteGiacenze",
+                    sheetName = TranslationService.GetTranslation("stock.labels", "Etichette Giacenze"),
+                    columns = labelColumns,
+                    formatting = new { headerBackgroundColor = "#388E3C", headerFontColor = "#FFFFFF", headerBold = true, headerBorders = true, alternateRowColors = true, alternateRowColor = "#F9FBE7", dataBorders = true },
+                    autoFitColumns = true,
+                    freezeHeader = true,
+                    addAutoFilter = false
+                }
+            };
+
+            var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", exportPayload);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", $"EtichetteGiacenze_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx", bytes);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.printSuccess", "File etichette scaricato — aprilo e stampa il foglio"));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error printing labels");
+            Logger.LogError(ex, "Error preparing label export");
             AppNotification.ShowError(TranslationService.GetTranslation("stock.printError", "Errore durante la preparazione stampa"));
         }
     }
+
+    /// <summary>
+    /// Converts a PascalCase property name to camelCase for JSON export payload.
+    /// </summary>
+    private static string ToCamelCaseExport(string name) =>
+        string.IsNullOrEmpty(name) ? name : char.ToLowerInvariant(name[0]) + name[1..];
 
     /// <summary>
     /// Starts quick edit mode for a stock item.

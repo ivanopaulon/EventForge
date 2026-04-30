@@ -1236,6 +1236,46 @@ public class ChatController(
             return CreateInternalServerErrorProblem("An error occurred while merging duplicate chats", ex);
         }
     }
+
+    /// <summary>
+    /// Reports (flags) a chat message as inappropriate.
+    /// The flag is idempotent: a message already flagged is returned as successful without modification.
+    /// </summary>
+    /// <param name="messageId">The ID of the message to report.</param>
+    /// <param name="dto">Optional reason for reporting.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Operation result indicating success.</returns>
+    /// <response code="200">Message flagged successfully (or already flagged).</response>
+    /// <response code="404">Message not found.</response>
+    /// <response code="400">Validation error.</response>
+    [HttpPost("messages/{messageId:guid}/report")]
+    [ProducesResponseType(typeof(MessageOperationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<MessageOperationResultDto>> ReportMessageAsync(
+        [FromRoute] Guid messageId,
+        [FromBody] ReportMessageDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var reporterUserId = tenantContext.CurrentUserId?.ToString() ?? "unknown";
+
+        try
+        {
+            var result = await chatService.ReportMessageAsync(messageId, dto, reporterUserId, cancellationToken);
+
+            if (!result.Success)
+                return NotFound(new ProblemDetails { Title = result.ErrorMessage ?? "Message not found." });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while reporting the message", ex);
+        }
+    }
 }
 
 /// <summary>

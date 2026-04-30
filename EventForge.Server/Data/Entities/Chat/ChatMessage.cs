@@ -145,4 +145,26 @@ public class ChatMessage : AuditableEntity
     /// Read receipts for this message.
     /// </summary>
     public virtual ICollection<MessageReadReceipt> ReadReceipts { get; set; } = new List<MessageReadReceipt>();
+
+    // ── Moderation / flagging ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Whether this message has been flagged as inappropriate by a user.
+    /// </summary>
+    public bool IsFlagged { get; set; } = false;
+
+    /// <summary>
+    /// UTC timestamp when the message was flagged.
+    /// </summary>
+    public DateTime? FlaggedAt { get; set; }
+
+    /// <summary>
+    /// User ID (string) who flagged the message.
+    /// </summary>
+    public string? FlaggedBy { get; set; }
+
+    /// <summary>
+    /// Optional free-text reason provided by the reporter.
+    /// </summary>
+    public string? FlagReason { get; set; }
 }

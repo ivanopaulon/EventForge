@@ -970,13 +970,12 @@ public partial class POS2026 : IAsyncDisposable
         if (!ViewModel.HasActiveSession) return;
         try
         {
-            // Collega il tavolo alla sessione corrente tramite UpdateTableStatusAsync
-            await TableManagementService.UpdateTableStatusAsync(table.Id, new UpdateTableStatusDto
+            var updateDto = new UpdateSaleSessionDto
             {
-                Status = "Occupied",
-                SaleSessionId = ViewModel.CurrentSession!.Id
-            });
-            // Ricarica la sessione per ricevere il TableNumber aggiornato dall'API
+                SaleType = SaleTypes.Retail,
+                TableId = table.Id
+            };
+            await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
             await ViewModel.ReloadSessionAsync();
             AppNotification.ShowSuccess($"Tavolo {table.TableNumber} assegnato.");
             _showTablePicker = false;

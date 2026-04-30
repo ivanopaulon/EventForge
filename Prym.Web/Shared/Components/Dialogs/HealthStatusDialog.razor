@@ -14,6 +14,8 @@
 @inject IHealthService HealthService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILogger<HealthStatusDialog> Logger
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 @implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.MonitorHeart"
@@ -966,9 +968,40 @@
 
     private async Task ExportLogs()
     {
-        // Stub implementation for now
-        AppNotification.ShowInfo(TranslationService.GetTranslation("health.exportNotImplemented", "Export feature coming soon"));
-        await Task.CompletedTask;
+        try
+        {
+            var exportRequest = new ExportRequestDto
+            {
+                Type = "systemlogs",
+                Format = "CSV",
+                FromDate = _startDate,
+                ToDate = _endDate,
+                Filters = string.IsNullOrWhiteSpace(_selectedLogLevel)
+                    ? null
+                    : new Dictionary<string, object> { ["Level"] = _selectedLogLevel },
+                FileName = $"Logs_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
+            };
+
+            AppNotification.ShowInfo(TranslationService.GetTranslation("health.exportStarted", "Esportazione log avviata..."));
+
+            var result = await LogManagementService.ExportLogsAsync(exportRequest);
+
+            if (!string.IsNullOrWhiteSpace(result.DownloadUrl))
+            {
+                await JSRuntime.InvokeVoidAsync("open", result.DownloadUrl, "_blank");
+            }
+            else
+            {
+                AppNotification.ShowSuccess(
+                    TranslationService.GetTranslation("health.exportQueued",
+                        $"Export avviato ({result.TotalRecords ?? 0} record). Sarà disponibile a breve."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting logs");
+            AppNotification.ShowError(TranslationService.GetTranslation("health.exportFailed", $"Errore export: {ex.Message}"));
+        }
     }
 
     private Color GetLogLevelColor(string level)
