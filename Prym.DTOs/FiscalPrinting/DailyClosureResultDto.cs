@@ -31,4 +31,29 @@ public class DailyClosureResultDto
 
     /// <summary>The operator who triggered the closure.</summary>
     public string? Operator { get; set; }
+
+    /// <summary>
+    /// How the closure was performed.
+    /// <list type="bullet">
+    ///   <item><see cref="ClosureType.Fiscale"/> – Z-report sent to hardware successfully.</item>
+    ///   <item><see cref="ClosureType.NonFiscale"/> – No fiscal hardware; summary printed on thermal printer.</item>
+    ///   <item><see cref="ClosureType.SoloDatabase"/> – DB-only: fiscal printer was configured but unreachable,
+    ///         or explicitly skipped.</item>
+    /// </list>
+    /// </summary>
+    public ClosureType ClosureType { get; set; } = ClosureType.Fiscale;
+
+    /// <summary>
+    /// When <c>true</c>, the fiscal Z-report could not be sent to the printer hardware.
+    /// The totals are saved in the database but the hardware closure is still pending.
+    /// Use <c>RetryFiscalClosureAsync</c> to retry once the printer is back online.
+    /// </summary>
+    public bool FiscalClosurePending { get; set; }
+
+    /// <summary>
+    /// Error message captured from the printer at the time of the closure attempt.
+    /// Populated only when <see cref="FiscalClosurePending"/> is <c>true</c>.
+    /// </summary>
+    public string? PrinterErrors { get; set; }
 }
+

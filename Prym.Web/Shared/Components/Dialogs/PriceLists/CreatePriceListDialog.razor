@@ -188,6 +188,16 @@
 
     private async Task Create()
     {
+        if (_form != null)
+        {
+            await _form.ValidateAsync();
+            if (!_isFormValid)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+                return;
+            }
+        }
+
         try
         {
             _isLoading = true;

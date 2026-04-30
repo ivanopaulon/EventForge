@@ -35,4 +35,33 @@ public class DailyClosurePreCheckDto
     /// (i.e., <see cref="HasOpenReceipt"/> is <c>false</c>).
     /// </summary>
     public bool CanProceed => !HasOpenReceipt;
+
+    // ─── Printer reachability ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Whether the fiscal printer was reachable when this pre-check was performed.
+    /// <c>null</c> means no fiscal printer is configured for this terminal
+    /// (closure will proceed as <see cref="ClosureType.NonFiscale"/> or <see cref="ClosureType.SoloDatabase"/>).
+    /// <c>true</c> means the printer responded successfully.
+    /// <c>false</c> means the printer is configured but did not respond.
+    /// </summary>
+    public bool? PrinterAvailable { get; set; }
+
+    /// <summary>
+    /// Error message from the printer reachability check.
+    /// Populated only when <see cref="PrinterAvailable"/> is <c>false</c>.
+    /// </summary>
+    public string? PrinterReachabilityError { get; set; }
+
+    /// <summary>
+    /// The type of closure that will be executed based on the current state.
+    /// <list type="bullet">
+    ///   <item><see cref="ClosureType.Fiscale"/> – printer is configured and reachable.</item>
+    ///   <item><see cref="ClosureType.NonFiscale"/> – no fiscal printer configured.</item>
+    ///   <item><see cref="ClosureType.SoloDatabase"/> – printer configured but unreachable;
+    ///         the fiscal Z-report will be pending.</item>
+    /// </list>
+    /// </summary>
+    public ClosureType PlannedClosureType { get; set; } = ClosureType.Fiscale;
 }
+

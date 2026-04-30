@@ -38,7 +38,7 @@ public class ReportsController(
         var tenantError = await ValidateTenantAccessAsync(tenantContext);
         if (tenantError is not null) return tenantError;
 
-        var paginationError = ValidatePaginationParameters(page, pageSize);
+        var paginationError = ValidatePaginationParameters(page, pageSize, maxPageSize: 10_000);
         if (paginationError is not null) return paginationError;
 
         try

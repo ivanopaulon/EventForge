@@ -9,6 +9,13 @@ namespace EventForge.Server.Services.FiscalPrinting;
 public partial class CustomFiscalPrinterService
 {
     /// <inheritdoc />
+    /// <remarks>DB-only operation – implemented in <see cref="FiscalPrinterServiceRouter"/>; not delegated here.</remarks>
+    public Task<PreviousDayClosureStatusDto> GetPreviousDayClosureStatusAsync(
+        Guid printerId, CancellationToken cancellationToken = default)
+        => throw new NotSupportedException(
+            "GetPreviousDayClosureStatusAsync must be called through FiscalPrinterServiceRouter.");
+
+    /// <inheritdoc />
     public async Task<FiscalPrintResult> DailyClosureAsync(
         Guid printerId,
         CancellationToken cancellationToken = default)
@@ -96,16 +103,29 @@ public partial class CustomFiscalPrinterService
     {
         var preCheck = new DailyClosurePreCheckDto();
 
+        // Attempt a live connection to determine printer reachability and receipt/drawer state
         try
         {
-            // Attempt a status read to detect open-receipt and drawer states
             var statusResult = await GetStatusAsync(printerId, cancellationToken);
             preCheck.HasOpenReceipt = statusResult.IsReceiptOpen;
             preCheck.IsDrawerOpen = statusResult.IsDrawerOpen;
+            preCheck.PrinterAvailable = statusResult.IsOnline;
+            if (!statusResult.IsOnline)
+            {
+                preCheck.PrinterReachabilityError = statusResult.LastError ?? "Stampante non raggiungibile";
+                preCheck.PlannedClosureType = ClosureType.SoloDatabase;
+            }
+            else
+            {
+                preCheck.PlannedClosureType = ClosureType.Fiscale;
+            }
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "GetDailyClosurePreCheckAsync: could not read status for printer {PrinterId}", printerId);
+            preCheck.PrinterAvailable = false;
+            preCheck.PrinterReachabilityError = ex.Message;
+            preCheck.PlannedClosureType = ClosureType.SoloDatabase;
         }
 
         // Load last closure date from DB
@@ -117,6 +137,41 @@ public partial class CustomFiscalPrinterService
             .FirstOrDefaultAsync(cancellationToken);
 
         preCheck.LastClosureDate = lastClosure;
+
+        // Aggregate today's session totals from DB for the summary
+        var todayStart = DateTime.UtcNow.Date;
+        var posIds = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => p.DefaultFiscalPrinterId == printerId && !p.IsDeleted)
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+
+        if (posIds.Count > 0)
+        {
+            var sessions = await context.SaleSessions
+                .AsNoTracking()
+                .Include(s => s.Payments)
+                    .ThenInclude(p => p.PaymentMethod)
+                .Where(s => posIds.Contains(s.PosId)
+                         && !s.IsDeleted
+                         && s.Status == EventForge.Server.Data.Entities.Sales.SaleSessionStatus.Closed
+                         && s.ClosedAt.HasValue && s.ClosedAt.Value.Date == todayStart)
+                .ToListAsync(cancellationToken);
+
+            preCheck.ReceiptCount = sessions.Count;
+            preCheck.TotalAmount = sessions.Sum(s => s.FinalTotal);
+
+            foreach (var session in sessions)
+                foreach (var payment in session.Payments)
+                {
+                    var code = payment.PaymentMethod?.Code?.ToUpperInvariant() ?? string.Empty;
+                    if (payment.PaymentMethod?.FiscalCode == CashFiscalCode || CashPaymentCodes.Contains(code))
+                        preCheck.CashAmount += payment.Amount;
+                    else
+                        preCheck.CardAmount += payment.Amount;
+                }
+        }
+
         preCheck.CheckedAt = DateTime.UtcNow;
         return preCheck;
     }
@@ -131,17 +186,24 @@ public partial class CustomFiscalPrinterService
         {
             logger.LogInformation("ExecuteDailyClosureAsync | PrinterId={PrinterId} Operator={Op}", printerId, operatorName);
 
-            var printResult = await DailyClosureAsync(printerId, cancellationToken);
-
-            if (!printResult.Success)
+            // Try to execute the hardware Z-closure first; capture any printer errors
+            FiscalPrintResult? printResult = null;
+            string? printerError = null;
+            try
             {
-                return new DailyClosureResultDto
-                {
-                    Success = false,
-                    ErrorMessage = printResult.ErrorMessage,
-                    ClosedAt = DateTime.UtcNow
-                };
+                printResult = await DailyClosureAsync(printerId, cancellationToken);
+                if (!printResult.Success)
+                    printerError = printResult.ErrorMessage;
             }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Custom ExecuteDailyClosureAsync: printer unreachable, proceeding with DB-only closure | PrinterId={PrinterId}",
+                    printerId);
+                printerError = ex.Message;
+            }
+
+            bool fiscalPending = printerError is not null;
 
             // Read tenant id from printer
             var printer = await context.Printers
@@ -150,7 +212,15 @@ public partial class CustomFiscalPrinterService
                 .Select(p => new { p.Id, p.Name, p.TenantId })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            var zNumber = int.TryParse(printResult.ReceiptNumber, out var n) ? n : 0;
+            // Get next Z-number by incrementing the last one from DB.
+            var lastZNumber = await context.DailyClosureRecords
+                .AsNoTracking()
+                .Where(r => r.PrinterId == printerId && !r.IsDeleted)
+                .OrderByDescending(r => r.ZReportNumber)
+                .Select(r => (int?)r.ZReportNumber)
+                .FirstOrDefaultAsync(cancellationToken) ?? 0;
+
+            var zNumber = lastZNumber + 1;
             var closedAt = DateTime.UtcNow;
 
             // Aggregate POS data: find all SaleSession closed today on POSes linked to this printer
@@ -184,7 +254,6 @@ public partial class CustomFiscalPrinterService
                     foreach (var payment in session.Payments)
                     {
                         var code = payment.PaymentMethod?.Code?.ToUpperInvariant() ?? string.Empty;
-                        // FiscalCode 1 = cash; any other recognised code = card/electronic
                         if (payment.PaymentMethod?.FiscalCode == CashFiscalCode
                             || CashPaymentCodes.Contains(code))
                             cashAmount += payment.Amount;
@@ -194,6 +263,7 @@ public partial class CustomFiscalPrinterService
                 }
             }
 
+            var closureType = fiscalPending ? "SoloDatabase" : "Fiscale";
             var record = new Data.Entities.FiscalPrinting.DailyClosureRecord
             {
                 PrinterId = printerId,
@@ -205,6 +275,9 @@ public partial class CustomFiscalPrinterService
                 CashAmount = cashAmount,
                 CardAmount = cardAmount,
                 Operator = operatorName,
+                ClosureType = closureType,
+                FiscalClosurePending = fiscalPending,
+                PrinterErrors = fiscalPending ? printerError?[..Math.Min(printerError.Length, 500)] : null,
                 HasPdf = false,
                 PrinterResponse = null,
                 CreatedBy = operatorName
@@ -214,8 +287,8 @@ public partial class CustomFiscalPrinterService
             await context.SaveChangesAsync(cancellationToken);
 
             logger.LogInformation(
-                "DailyClosure saved to DB | PrinterId={PrinterId} ClosureId={ClosureId} ZReport={Z} Operator={Op}",
-                printerId, record.Id, zNumber, operatorName);
+                "Custom DailyClosure saved | PrinterId={PrinterId} ClosureId={ClosureId} Z={Z} Type={Type} Pending={Pending} Operator={Op}",
+                printerId, record.Id, zNumber, closureType, fiscalPending, operatorName);
 
             return new DailyClosureResultDto
             {
@@ -225,11 +298,16 @@ public partial class CustomFiscalPrinterService
                 ClosedAt = closedAt,
                 ReceiptCount = record.ReceiptCount,
                 TotalAmount = record.TotalAmount,
-                Operator = operatorName
+                CashAmount = record.CashAmount,
+                Operator = operatorName,
+                ClosureType = fiscalPending ? ClosureType.SoloDatabase : ClosureType.Fiscale,
+                FiscalClosurePending = fiscalPending,
+                PrinterErrors = record.PrinterErrors
             };
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Custom ExecuteDailyClosureAsync failed | PrinterId={PrinterId}", printerId);
             throw;
         }
     }
@@ -278,7 +356,9 @@ public partial class CustomFiscalPrinterService
                 CashAmount = r.CashAmount,
                 CardAmount = r.CardAmount,
                 Operator = r.Operator,
-                HasPdf = r.HasPdf
+                HasPdf = r.HasPdf,
+                ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var ct) ? ct : ClosureType.Fiscale,
+                FiscalClosurePending = r.FiscalClosurePending
             }).ToList();
         }
         catch (Exception ex)
@@ -288,6 +368,23 @@ public partial class CustomFiscalPrinterService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Not supported on individual printer services; always handled by <see cref="FiscalPrinterServiceRouter"/>.
+    /// </remarks>
+    public Task<List<DailyClosureHistoryDto>> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken cancellationToken = default)
+        => throw new NotSupportedException(
+            "GetAllClosureHistoryAsync must be called on FiscalPrinterServiceRouter, not on a specific printer service.");
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// The Custom protocol does not have a dedicated reprint-Z command.
+    /// This method prints a descriptive summary of the stored closure using
+    /// non-fiscal <c>CMD_PRINT_DESCRIPTIVE</c> ("20") lines so that the operator
+    /// gets a paper copy without triggering a new hardware Z-closure.
+    /// </remarks>
     public async Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId,
         CancellationToken cancellationToken = default)
@@ -309,14 +406,109 @@ public partial class CustomFiscalPrinterService
                 };
             }
 
-            logger.LogInformation("ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, record.PrinterId);
+            logger.LogInformation(
+                "Custom ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}",
+                closureId, record.PrinterId);
 
-            // The Custom protocol reprint command is the standard DailyClosure command
-            return await DailyClosureAsync(record.PrinterId, cancellationToken);
+            var closureDto = new DailyClosureResultDto
+            {
+                Success = true,
+                ClosureId = record.Id,
+                ZReportNumber = record.ZReportNumber,
+                ClosedAt = record.ClosedAt,
+                ReceiptCount = record.ReceiptCount,
+                TotalAmount = record.TotalAmount,
+                CashAmount = record.CashAmount,
+                Operator = record.Operator
+            };
+
+            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            var sequence = _builder.BuildPrintZReportSummarySequence(closureDto);
+            return await ExecuteSequenceAsync(channel, sequence, record.PrinterId, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "Custom ReprintZReportAsync failed | ClosureId={ClosureId}", closureId);
             throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DailyClosureResultDto> RetryFiscalClosureAsync(
+        Guid closureId,
+        CancellationToken cancellationToken = default)
+    {
+        var record = await context.DailyClosureRecords
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure record {closureId} not found." };
+
+        if (!record.FiscalClosurePending)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = "La chiusura fiscale per questo record non è pendente." };
+
+        logger.LogInformation("Custom RetryFiscalClosureAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, record.PrinterId);
+
+        try
+        {
+            var printResult = await DailyClosureAsync(record.PrinterId, cancellationToken);
+
+            if (printResult.Success)
+            {
+                record.FiscalClosurePending = false;
+                record.ClosureType = "Fiscale";
+                record.PrinterErrors = null;
+                record.ModifiedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
+
+                return new DailyClosureResultDto
+                {
+                    Success = true,
+                    ClosureId = record.Id,
+                    ZReportNumber = record.ZReportNumber,
+                    ClosedAt = record.ClosedAt,
+                    ReceiptCount = record.ReceiptCount,
+                    TotalAmount = record.TotalAmount,
+                    CashAmount = record.CashAmount,
+                    Operator = record.Operator,
+                    ClosureType = ClosureType.Fiscale,
+                    FiscalClosurePending = false
+                };
+            }
+            else
+            {
+                record.PrinterErrors = printResult.ErrorMessage?[..Math.Min(printResult.ErrorMessage.Length, 500)];
+                record.ModifiedAt = DateTime.UtcNow;
+                await context.SaveChangesAsync(cancellationToken);
+
+                return new DailyClosureResultDto
+                {
+                    Success = false,
+                    ErrorMessage = printResult.ErrorMessage,
+                    ClosureId = record.Id,
+                    ClosureType = ClosureType.SoloDatabase,
+                    FiscalClosurePending = true,
+                    PrinterErrors = printResult.ErrorMessage
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Custom RetryFiscalClosureAsync: printer still unreachable | ClosureId={ClosureId}", closureId);
+            record.PrinterErrors = ex.Message[..Math.Min(ex.Message.Length, 500)];
+            record.ModifiedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync(cancellationToken);
+
+            return new DailyClosureResultDto
+            {
+                Success = false,
+                ErrorMessage = ex.Message,
+                ClosureId = record.Id,
+                ClosureType = ClosureType.SoloDatabase,
+                FiscalClosurePending = true,
+                PrinterErrors = ex.Message
+            };
         }
     }
 }

@@ -29,6 +29,49 @@
 
 
 <MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+
+    @* Banner avviso chiusura giornaliera del giorno precedente mancante *@
+    @if (_previousDayClosureMissing && _fiscalPrinterId.HasValue)
+    {
+        <MudAlert Severity="Severity.Error"
+                  Icon="@Icons.Material.Filled.Warning"
+                  Class="mb-3"
+                  ShowCloseIcon="false">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2">⛔ Chiusura Giornaliera Mancante</MudText>
+                    <MudText Typo="Typo.body2">
+                        La chiusura fiscale del giorno precedente
+                        @(_lastClosureDate.HasValue
+                            ? $"(ultima: {_lastClosureDate.Value.ToLocalTime():dd/MM/yyyy})"
+                            : "(nessuna chiusura registrata)")
+                        non è stata eseguita. Eseguire la chiusura prima di iniziare nuove vendite.
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                           OnClick="@OpenDailyClosureDialogAsync"
+                           StartIcon="@Icons.Material.Filled.EventNote">
+                    Esegui Chiusura
+                </MudButton>
+            </MudStack>
+        </MudAlert>
+    }
+
+    @* Banner informativo: nessuna stampante fiscale configurata *@
+    @if (_noPrinterConfigured)
+    {
+        <MudAlert Severity="Severity.Info"
+                  Icon="@Icons.Material.Filled.PrintDisabled"
+                  Class="mb-3"
+                  ShowCloseIcon="false"
+                  Dense="true">
+            <MudText Typo="Typo.body2">
+                ℹ️ Nessuna stampante fiscale configurata per questo punto cassa. La verifica della chiusura giornaliera non è disponibile.
+                Configura la stampante nelle impostazioni POS per abilitare la stampa fiscale.
+            </MudText>
+        </MudAlert>
+    }
+
     <!-- Page Title -->
     <MudText Typo="Typo.h4" Class="mb-4">
         <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" Size="Size.Medium" />
@@ -1161,6 +1204,8 @@
                 await ConnectFiscalHubAsync();
                 // Load fiscal drawer for the current POS/operator selection
                 await LoadFiscalDrawerAsync();
+                // Controllo mattutino: verifica che la chiusura del giorno precedente sia stata eseguita.
+                await CheckPreviousDayClosureAsync();
             }
         }
         catch (Exception ex)
@@ -1274,6 +1319,12 @@
     /// <summary>SignalR connection for real-time fiscal printer status updates.</summary>
     private HubConnection? _fiscalHubConnection;
 
+    /// <summary>Set to <c>true</c> when the DB check at startup detects a missing previous-day closure.</summary>
+    private bool _previousDayClosureMissing = false;
+    /// <summary>Set to <c>true</c> when no fiscal printer is configured for this POS terminal.</summary>
+    private bool _noPrinterConfigured = false;
+    private DateTime? _lastClosureDate = null;
+
     /// <summary>
     /// Connects to the fiscal printer SignalR hub and subscribes to the printer
     /// assigned to this POS station. Only called when <see cref="_fiscalPrinterId"/> is set.
@@ -1349,6 +1400,46 @@
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Controllo mattutino: verifica via DB (nessuna comunicazione hardware) se la chiusura
+    /// del giorno precedente è stata eseguita.
+    /// </summary>
+    private async Task CheckPreviousDayClosureAsync()
+    {
+        if (!_fiscalPrinterId.HasValue)
+        {
+            _noPrinterConfigured = true;
+            Logger.LogDebug("POS: nessuna stampante fiscale configurata per questo punto cassa – verifica chiusura saltata.");
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        _noPrinterConfigured = false;
+        try
+        {
+            var status = await FiscalPrintingService.GetPreviousDayClosureStatusAsync(_fiscalPrinterId.Value);
+            if (status != null)
+            {
+                _previousDayClosureMissing = status.IsPreviousDayClosureMissing;
+                _lastClosureDate = status.LastClosureDate;
+
+                if (_previousDayClosureMissing)
+                {
+                    Logger.LogWarning(
+                        "POS: chiusura mancante per il {PreviousDay} | Ultima chiusura: {LastClosure} | PrinterId={PrinterId}",
+                        status.PreviousBusinessDay.ToString("dd/MM/yyyy"),
+                        status.LastClosureDate?.ToString("dd/MM/yyyy HH:mm") ?? "mai",
+                        _fiscalPrinterId.Value);
+                }
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS: impossibile verificare la chiusura del giorno precedente.");
+        }
+    }
+
     private async Task OpenDrawerSessionAsync()
     {
         try
@@ -1399,12 +1490,11 @@
     {
         try
         {
-            if (!_fiscalPrinterId.HasValue) return;
-
             var parameters = new DialogParameters
             {
-                [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId.Value,
-                [nameof(DailyClosureDialog.PrinterName)] = "Stampante POS"
+                [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId,
+                [nameof(DailyClosureDialog.PosId)]       = ViewModel.SelectedPosId,
+                [nameof(DailyClosureDialog.PrinterName)] = _fiscalPrinterId.HasValue ? "Stampante POS" : null
             };
 
             var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
@@ -1413,7 +1503,11 @@
             var result = await dialog.Result;
             if (result?.Canceled == false)
             {
-                _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+                if (_fiscalPrinterId.HasValue)
+                    _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
+                // Se la chiusura è andata a buon fine, nascondi il banner di avviso
+                if (result.Data is DailyClosureResultDto closureResult && closureResult.Success)
+                    _previousDayClosureMissing = false;
                 StateHasChanged();
             }
         }

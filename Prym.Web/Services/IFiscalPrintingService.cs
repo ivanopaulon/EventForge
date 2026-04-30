@@ -70,12 +70,39 @@ public interface IFiscalPrintingService
     /// <summary>Returns pre-check data before executing the daily closure.</summary>
     Task<DailyClosurePreCheckDto?> GetDailyClosurePreCheckAsync(Guid printerId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Lightweight "morning check": returns whether the previous business day's daily closure
+    /// was performed. DB-only — safe to call even when the printer is offline.
+    /// </summary>
+    Task<PreviousDayClosureStatusDto?> GetPreviousDayClosureStatusAsync(Guid printerId, CancellationToken ct = default);
+
     /// <summary>Executes the daily fiscal closure (Z-report) for the specified printer.</summary>
     Task<DailyClosureResultDto?> ExecuteDailyClosureAsync(Guid printerId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Executes a daily closure for a POS terminal that has no fiscal printer configured.
+    /// Saves totals to the database only (<c>ClosureType = NonFiscale</c>).
+    /// </summary>
+    Task<DailyClosureResultDto?> ExecuteNoPrinterDailyClosureAsync(Guid posId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Retries the hardware fiscal Z-report for a closure record whose
+    /// <c>FiscalClosurePending</c> flag is <c>true</c>.
+    /// </summary>
+    Task<DailyClosureResultDto?> RetryFiscalClosureAsync(Guid closureId, CancellationToken ct = default);
 
     /// <summary>Returns the history of daily closures for the specified printer.</summary>
     Task<List<DailyClosureHistoryDto>?> GetClosureHistoryAsync(
         Guid printerId, int page = 1, int pageSize = 20,
+        DateTime? fromDate = null, DateTime? toDate = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the history of all daily closures across every printer and POS terminal,
+    /// including non-fiscal closures performed without a printer.
+    /// </summary>
+    Task<List<DailyClosureHistoryDto>?> GetAllClosureHistoryAsync(
+        int page = 1, int pageSize = 50,
         DateTime? fromDate = null, DateTime? toDate = null,
         CancellationToken ct = default);
 
