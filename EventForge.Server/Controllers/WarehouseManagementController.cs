@@ -928,6 +928,9 @@ public class WarehouseManagementController(
         if (referenceDate == default)
             return CreateValidationProblemDetails("referenceDate is required.");
 
+        if (referenceDate.Date > DateTime.UtcNow.Date)
+            return CreateValidationProblemDetails("referenceDate cannot be in the future.");
+
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try

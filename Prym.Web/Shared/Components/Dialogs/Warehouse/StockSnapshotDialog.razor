@@ -78,10 +78,19 @@
         @* ── Note on sale price ── *@
         @if (_results.Any() && _includePrices)
         {
-            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            var hasListPrices = _results.Any(r => r.IsPriceFromList);
+            <MudAlert Severity="@(hasListPrices ? Severity.Success : Severity.Info)" Dense="true" Class="mb-3">
                 <MudText Typo="Typo.caption">
-                    @TranslationService.GetTranslation("stock.snapshot.salePriceNote",
-                        "Il prezzo di vendita mostrato è quello attuale del prodotto. I prezzi storici non sono disponibili senza una price list con validità temporale.")
+                    @if (hasListPrices)
+                    {
+                        @TranslationService.GetTranslation("stock.snapshot.salePriceFromList",
+                            "Il prezzo di vendita è stato risolto dal listino prezzi attivo alla data di riferimento.")
+                    }
+                    else
+                    {
+                        @TranslationService.GetTranslation("stock.snapshot.salePriceFallback",
+                            "Nessun listino attivo trovato per la data selezionata: viene mostrato il prezzo di vendita predefinito del prodotto.")
+                    }
                 </MudText>
             </MudAlert>
         }
@@ -123,7 +132,7 @@
                         {
                             <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.unitCost", "Prezzo Acquisto")</MudTh>
                             <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.totalCostValue", "Valore Acquisto")</MudTh>
-                            <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.defaultPrice", "Prezzo Vendita")</MudTh>
+                            <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.salePrice", "Prezzo Vendita")</MudTh>
                             <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.totalSaleValue", "Valore Vendita")</MudTh>
                         }
                     </HeaderContent>
@@ -181,7 +190,13 @@
                                 <MudText Typo="Typo.body2">@(context.TotalCostValue?.ToString("N2") ?? "-")</MudText>
                             </MudTd>
                             <MudTd DataLabel="Prezzo Vendita" Class="text-right">
-                                <MudText Typo="Typo.body2">@(context.DefaultPrice?.ToString("N2") ?? "-")</MudText>
+                                <div>
+                                    <MudText Typo="Typo.body2">@(context.SalePrice?.ToString("N2") ?? "-")</MudText>
+                                    @if (context.IsPriceFromList && !string.IsNullOrWhiteSpace(context.PriceListName))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.PriceListName</MudText>
+                                    }
+                                </div>
                             </MudTd>
                             <MudTd DataLabel="Valore Vendita" Class="text-right">
                                 <MudText Typo="Typo.body2">@(context.TotalSaleValue?.ToString("N2") ?? "-")</MudText>
@@ -294,8 +309,9 @@
             {
                 columns.Add(new { propertyName = "unitCost",        displayName = "Prezzo Acquisto",  isVisible = true });
                 columns.Add(new { propertyName = "totalCostValue",  displayName = "Valore Acquisto",  isVisible = true });
-                columns.Add(new { propertyName = "defaultPrice",    displayName = "Prezzo Vendita",   isVisible = true });
+                columns.Add(new { propertyName = "salePrice",       displayName = "Prezzo Vendita",   isVisible = true });
                 columns.Add(new { propertyName = "totalSaleValue",  displayName = "Valore Vendita",   isVisible = true });
+                columns.Add(new { propertyName = "priceListName",   displayName = "Listino",          isVisible = true });
             }
 
             var dateStr = _referenceDate!.Value.ToString("dd/MM/yyyy");

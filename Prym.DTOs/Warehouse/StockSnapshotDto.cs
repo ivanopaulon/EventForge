@@ -56,16 +56,22 @@ public class StockSnapshotDto
     public decimal? UnitCost { get; set; }
 
     /// <summary>
-    /// Current sale price from Product.DefaultPrice.
-    /// Note: historical sale prices are not tracked without a time-aware price list.
+    /// Sale price resolved from the most-priority active Output price list valid at ReferenceDate,
+    /// falling back to Product.DefaultPrice when no price list entry is found.
     /// </summary>
-    public decimal? DefaultPrice { get; set; }
+    public decimal? SalePrice { get; set; }
+
+    /// <summary>Indicates whether SalePrice came from a price list (true) or from Product.DefaultPrice (false).</summary>
+    public bool IsPriceFromList { get; set; }
+
+    /// <summary>Name of the price list from which SalePrice was resolved, or null when using the default price.</summary>
+    public string? PriceListName { get; set; }
 
     /// <summary>Total purchase value = Quantity * UnitCost.</summary>
     public decimal? TotalCostValue => UnitCost.HasValue ? Quantity * UnitCost.Value : null;
 
-    /// <summary>Total sale value = Quantity * DefaultPrice.</summary>
-    public decimal? TotalSaleValue => DefaultPrice.HasValue ? Quantity * DefaultPrice.Value : null;
+    /// <summary>Total sale value = Quantity * SalePrice.</summary>
+    public decimal? TotalSaleValue => SalePrice.HasValue ? Quantity * SalePrice.Value : null;
 
     /// <summary>Reference date for this snapshot.</summary>
     public DateTime ReferenceDate { get; set; }

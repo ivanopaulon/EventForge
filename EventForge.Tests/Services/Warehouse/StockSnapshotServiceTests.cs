@@ -1,5 +1,6 @@
 using Prym.DTOs.Warehouse;
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Services.Audit;
@@ -8,6 +9,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
 
 namespace EventForge.Tests.Services.Warehouse;
 
@@ -393,7 +395,7 @@ public class StockSnapshotServiceTests : IDisposable
         Assert.Single(result);
         var dto = result[0];
         Assert.Equal(50.00m, dto.TotalCostValue);          // 10 * 5
-        Assert.Equal(10m * 19.99m, dto.TotalSaleValue);    // 10 * DefaultPrice
+        Assert.Equal(10m * 19.99m, dto.TotalSaleValue);    // 10 * SalePrice (fallback to DefaultPrice)
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -417,11 +419,11 @@ public class StockSnapshotServiceTests : IDisposable
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // 14. DefaultPrice comes from Product.DefaultPrice
+    // 14. No active price list → SalePrice falls back to Product.DefaultPrice
     // ─────────────────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task GetStockSnapshotAsync_DefaultPrice_FromProduct()
+    public async Task GetStockSnapshotAsync_NoActivePriceList_FallsBackToDefaultPrice()
     {
         _context.StockMovements.Add(
             MakeMovement(_productId, _locationId, null, 1m, RefDate.AddDays(-1)));
@@ -430,7 +432,9 @@ public class StockSnapshotServiceTests : IDisposable
         var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
 
         Assert.Single(result);
-        Assert.Equal(19.99m, result[0].DefaultPrice);
+        Assert.Equal(19.99m, result[0].SalePrice);
+        Assert.False(result[0].IsPriceFromList);
+        Assert.Null(result[0].PriceListName);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -507,6 +511,234 @@ public class StockSnapshotServiceTests : IDisposable
         Assert.Equal(2, result.Count);
         var quantities = result.Select(r => r.Quantity).OrderBy(q => q).ToList();
         Assert.Equal(new[] { 10m, 20m }, quantities);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 18. Active Output price list valid at referenceDate → SalePrice from list
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_ActiveOutputPriceList_UsesPriceListPrice()
+    {
+        // Seed price list
+        var priceList = new PriceList
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Listino Vendita Test",
+            Direction = PriceListDirection.Output,
+            Status = PriceListStatus.Active,
+            Priority = 0,
+            ValidFrom = RefDate.AddDays(-30),
+            ValidTo = null,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+
+        var entry = new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            PriceListId = priceList.Id,
+            ProductId = _productId,
+            Price = 25.00m,
+            Status = PriceListEntryStatus.Active,
+            MinQuantity = 0,
+            MaxQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceListEntries.Add(entry);
+
+        _context.StockMovements.Add(
+            MakeMovement(_productId, _locationId, null, 5m, RefDate.AddDays(-1)));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(25.00m, result[0].SalePrice);
+        Assert.True(result[0].IsPriceFromList);
+        Assert.Equal("Listino Vendita Test", result[0].PriceListName);
+        Assert.Equal(5m * 25.00m, result[0].TotalSaleValue);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 19. Expired price list (ValidTo < referenceDate) → fallback to DefaultPrice
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_ExpiredPriceList_FallsBackToDefaultPrice()
+    {
+        var priceList = new PriceList
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Listino Scaduto",
+            Direction = PriceListDirection.Output,
+            Status = PriceListStatus.Active,
+            Priority = 0,
+            ValidFrom = RefDate.AddDays(-60),
+            ValidTo = RefDate.AddDays(-1),   // expired before referenceDate
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+        _context.PriceListEntries.Add(new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            PriceListId = priceList.Id,
+            ProductId = _productId,
+            Price = 99.99m,
+            Status = PriceListEntryStatus.Active,
+            MinQuantity = 0,
+            MaxQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        _context.StockMovements.Add(
+            MakeMovement(_productId, _locationId, null, 2m, RefDate.AddDays(-2)));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(19.99m, result[0].SalePrice);   // Product.DefaultPrice
+        Assert.False(result[0].IsPriceFromList);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 20. Not-yet-started price list (ValidFrom > referenceDate) → fallback
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_FuturePriceList_FallsBackToDefaultPrice()
+    {
+        var priceList = new PriceList
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Listino Futuro",
+            Direction = PriceListDirection.Output,
+            Status = PriceListStatus.Active,
+            Priority = 0,
+            ValidFrom = RefDate.AddDays(1),   // starts after referenceDate
+            ValidTo = null,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+        _context.PriceListEntries.Add(new PriceListEntry
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            PriceListId = priceList.Id,
+            ProductId = _productId,
+            Price = 88.00m,
+            Status = PriceListEntryStatus.Active,
+            MinQuantity = 0,
+            MaxQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        _context.StockMovements.Add(
+            MakeMovement(_productId, _locationId, null, 3m, RefDate.AddDays(-1)));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(19.99m, result[0].SalePrice);
+        Assert.False(result[0].IsPriceFromList);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 21. Highest priority (lowest Priority value) price list wins
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_MultiplePriceLists_HighestPriorityWins()
+    {
+        var pl1 = new PriceList
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, Name = "Listino P10",
+            Direction = PriceListDirection.Output, Status = PriceListStatus.Active,
+            Priority = 10, ValidFrom = null, ValidTo = null,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        };
+        var pl2 = new PriceList
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, Name = "Listino P1",
+            Direction = PriceListDirection.Output, Status = PriceListStatus.Active,
+            Priority = 1,  ValidFrom = null, ValidTo = null,  // higher priority
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        };
+        _context.PriceLists.AddRange(pl1, pl2);
+
+        _context.PriceListEntries.AddRange(
+            new PriceListEntry
+            {
+                Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = pl1.Id,
+                ProductId = _productId, Price = 50.00m,
+                Status = PriceListEntryStatus.Active, MinQuantity = 0, MaxQuantity = 0,
+                CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            },
+            new PriceListEntry
+            {
+                Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = pl2.Id,
+                ProductId = _productId, Price = 30.00m,  // this should win (Priority=1)
+                Status = PriceListEntryStatus.Active, MinQuantity = 0, MaxQuantity = 0,
+                CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            });
+
+        _context.StockMovements.Add(
+            MakeMovement(_productId, _locationId, null, 1m, RefDate.AddDays(-1)));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(30.00m, result[0].SalePrice);   // Priority=1 wins over Priority=10
+        Assert.Equal("Listino P1", result[0].PriceListName);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 22. Input price list (Purchase direction) → not used for sale price
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_InputPriceList_NotUsedForSalePrice()
+    {
+        var priceList = new PriceList
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, Name = "Listino Acquisto",
+            Direction = PriceListDirection.Input,   // wrong direction for sale price
+            Status = PriceListStatus.Active,
+            Priority = 0, ValidFrom = null, ValidTo = null,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        };
+        _context.PriceLists.Add(priceList);
+        _context.PriceListEntries.Add(new PriceListEntry
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = priceList.Id,
+            ProductId = _productId, Price = 77.00m,
+            Status = PriceListEntryStatus.Active, MinQuantity = 0, MaxQuantity = 0,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+
+        _context.StockMovements.Add(
+            MakeMovement(_productId, _locationId, null, 1m, RefDate.AddDays(-1)));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(19.99m, result[0].SalePrice);   // fallback: Input list not used
+        Assert.False(result[0].IsPriceFromList);
     }
 
     public void Dispose() => _context?.Dispose();

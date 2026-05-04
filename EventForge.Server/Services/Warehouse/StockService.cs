@@ -1,3 +1,4 @@
+using Prym.DTOs.Common;
 using Prym.DTOs.Warehouse;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
@@ -1164,6 +1165,15 @@ public class StockService(
                 s => s.UnitCost,
                 cancellationToken);
 
+        // Resolve sale price from the highest-priority Output price list that was active at
+        // referenceDate, for each relevant product.  Priority is determined by pl.Priority (lower = higher).
+        // Falls back to Product.DefaultPrice when no price-list entry is found.
+        // This mirrors the normal pricing cascade (priority 4 of PriceResolutionService) without
+        // business-party or document context (both are irrelevant for a stock valuation snapshot).
+        var referenceDateUtc = referenceDate.Date;
+        var salePriceLookup = await BuildSalePriceLookupAsync(
+            relevantProductIds, referenceDateUtc, currentTenantId.Value, cancellationToken);
+
         // Build snapshot groups: key = (ProductId, LocationId, LotId).
         // Inflows  → ToLocationId  (+Quantity, tracks last UnitCost)
         // Outflows → FromLocationId (-Quantity)
@@ -1242,6 +1252,9 @@ public class StockService(
             if (!unitCost.HasValue)
                 stockCostLookup.TryGetValue((key.ProductId, key.LocationId, key.LotId), out unitCost);
 
+            // Resolve sale price: price-list entry (Output, active at referenceDate) → Product.DefaultPrice.
+            salePriceLookup.TryGetValue(key.ProductId, out var salePriceEntry);
+
             result.Add(new StockSnapshotDto
             {
                 ProductId = product.Id,
@@ -1258,7 +1271,9 @@ public class StockService(
                 LotExpiry = lot?.ExpiryDate,
                 Quantity = acc.Quantity,
                 UnitCost = unitCost,
-                DefaultPrice = product.DefaultPrice,
+                SalePrice = salePriceEntry?.Price ?? product.DefaultPrice,
+                IsPriceFromList = salePriceEntry is not null,
+                PriceListName = salePriceEntry?.PriceListName,
                 ReferenceDate = referenceDate.Date
             });
         }
@@ -1277,6 +1292,66 @@ public class StockService(
         public decimal Quantity { get; set; }
         public decimal? LastInboundUnitCost { get; set; }
         public DateTime LastInboundDate { get; set; }
+    }
+
+    /// <summary>Resolved sale-price entry for a product from a price list.</summary>
+    private sealed record SalePriceEntry(decimal Price, string PriceListName);
+
+    /// <summary>
+    /// Builds a lookup of resolved sale prices for the given products at the reference date.
+    /// <para>
+    /// Resolution logic (mirrors PriceResolutionService priority 4 — general active price list):
+    /// <list type="number">
+    ///   <item>Find active Output price lists valid at <paramref name="referenceDateUtc"/>
+    ///         (Status = Active, ValidFrom ≤ date, ValidTo = null or ≥ date), ordered by Priority.</item>
+    ///   <item>For each product, pick the entry from the highest-priority list that contains it.</item>
+    ///   <item>Products without a price-list entry are absent from the returned dictionary;
+    ///         callers fall back to <c>Product.DefaultPrice</c>.</item>
+    /// </list>
+    /// A single DB query fetches all matching entries at once to avoid N+1 problems.
+    /// </para>
+    /// </summary>
+    private async Task<Dictionary<Guid, SalePriceEntry>> BuildSalePriceLookupAsync(
+        IReadOnlyCollection<Guid> productIds,
+        DateTime referenceDateUtc,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        // Load all active Output price-list entries for the relevant products in one query.
+        // We include the price list so we can use Priority and Name.
+        var entries = await context.PriceListEntries
+            .AsNoTracking()
+            .Include(e => e.PriceList)
+            .Where(e => productIds.Contains(e.ProductId)
+                        && e.TenantId == tenantId
+                        && !e.IsDeleted
+                        && e.Status == Data.Entities.PriceList.PriceListEntryStatus.Active
+                        && e.PriceList != null
+                        && e.PriceList.TenantId == tenantId
+                        && !e.PriceList.IsDeleted
+                        && e.PriceList.Status == Data.Entities.PriceList.PriceListStatus.Active
+                        && e.PriceList.Direction == PriceListDirection.Output
+                        && (e.PriceList.ValidFrom == null || e.PriceList.ValidFrom.Value.Date <= referenceDateUtc)
+                        && (e.PriceList.ValidTo == null || e.PriceList.ValidTo.Value.Date >= referenceDateUtc))
+            .Select(e => new
+            {
+                e.ProductId,
+                e.Price,
+                PriceListName = e.PriceList!.Name,
+                Priority = e.PriceList!.Priority
+            })
+            .ToListAsync(cancellationToken);
+
+        // For each product keep only the entry from the highest-priority price list (lowest Priority value).
+        return entries
+            .GroupBy(e => e.ProductId)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var best = g.OrderBy(e => e.Priority).First();
+                    return new SalePriceEntry(best.Price, best.PriceListName);
+                });
     }
 
 }
