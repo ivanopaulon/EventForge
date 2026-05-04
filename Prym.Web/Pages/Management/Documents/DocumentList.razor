@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDocumentTypeService DocumentTypeService
+@inject IDocumentStatusService DocumentStatusService
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
@@ -146,15 +147,34 @@
     </RowTemplate>
 
     <AdditionalRowActions Context="doc">
-        @if (doc.Status == DocumentStatus.Open)
+        @if (doc.Status != DocumentStatus.Draft)
         {
-            <MudTooltip Text="@TranslationService.GetTranslation("documents.close", "Chiudi")">
-                <PrymIconButton Icon="@Icons.Material.Outlined.Lock"
+            <MudTooltip Text="@TranslationService.GetTranslation("common.view", "Visualizza")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.Visibility"
                                 Size="Size.Small"
-                                Color="Color.Warning"
+                                Color="Color.Primary"
                                 Class="ef-row-actionbutton"
-                                OnClick="@(() => CloseDocumentAsync(doc.Id))" />
+                                OnClick="@(() => OpenDocumentDialogAsync(doc.Id))" />
             </MudTooltip>
+        }
+        @{
+            var transitions = GetAvailableStatusTransitions(doc.Status);
+        }
+        @if (transitions.Count > 0)
+        {
+            <MudMenu Icon="@Icons.Material.Outlined.SwapHoriz"
+                     Size="Size.Small"
+                     Dense="true"
+                     Class="ef-row-actionbutton"
+                     Title="@TranslationService.GetTranslation("documents.changeStatus", "Cambia stato")">
+                @foreach (var transition in transitions)
+                {
+                    <MudMenuItem Icon="@GetStatusIcon(transition)"
+                                 OnClick="@(async () => await ChangeDocumentStatusAsync(doc.Id, doc.Status, transition))">
+                        @TranslationService.GetTranslation($"documents.statusTransition.{transition.ToString().ToLower()}", GetStatusTransitionLabel(transition))
+                    </MudMenuItem>
+                }
+            </MudMenu>
         }
     </AdditionalRowActions>
 </EntityManagementPage>
@@ -280,25 +300,68 @@
         _ => Color.Default
     };
 
-    private async Task CloseDocumentAsync(Guid documentId)
+    private async Task ChangeDocumentStatusAsync(Guid documentId, DocumentStatus currentStatus, DocumentStatus newStatus)
     {
         try
         {
-            var result = await DocumentHeaderService.CloseDocumentAsync(documentId);
+            var confirmMessage = GetStatusTransitionConfirmation(currentStatus, newStatus);
+            var confirmed = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("documents.changeStatus", "Cambio stato documento"),
+                confirmMessage,
+                yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+            if (confirmed != true) return;
+
+            var result = await DocumentStatusService.ChangeStatusAsync(documentId, newStatus);
             if (result != null)
             {
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.closeSuccess", "Documento chiuso con successo"));
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.statusChangeSuccess", "Stato documento aggiornato con successo"));
                 await _managementPage.RefreshAsync();
             }
             else
             {
-                AppNotification.ShowError(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"));
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.statusChangeError", "Errore durante il cambio di stato del documento"));
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error closing document {DocumentId}", documentId);
-            AppNotification.ShowError(TranslationService.GetTranslation("documents.closeError", "Errore durante la chiusura del documento"));
+            Logger.LogError(ex, "Error changing status for document {DocumentId} to {NewStatus}", documentId, newStatus);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.statusChangeError", "Errore durante il cambio di stato del documento"));
         }
     }
+
+    private static List<DocumentStatus> GetAvailableStatusTransitions(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Draft => new() { DocumentStatus.Open, DocumentStatus.Cancelled },
+        DocumentStatus.Open => new() { DocumentStatus.Closed, DocumentStatus.Draft, DocumentStatus.Cancelled },
+        _ => new()
+    };
+
+    private static string GetStatusTransitionLabel(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Open => "Apri",
+        DocumentStatus.Closed => "Chiudi",
+        DocumentStatus.Draft => "Riporta in bozza",
+        DocumentStatus.Cancelled => "Annulla",
+        _ => status.ToString()
+    };
+
+    private static string GetStatusIcon(DocumentStatus status) => status switch
+    {
+        DocumentStatus.Open => Icons.Material.Outlined.LockOpen,
+        DocumentStatus.Closed => Icons.Material.Outlined.Lock,
+        DocumentStatus.Draft => Icons.Material.Outlined.Edit,
+        DocumentStatus.Cancelled => Icons.Material.Outlined.Cancel,
+        _ => Icons.Material.Outlined.SwapHoriz
+    };
+
+    private static string GetStatusTransitionConfirmation(DocumentStatus from, DocumentStatus to) => (from, to) switch
+    {
+        (DocumentStatus.Draft, DocumentStatus.Open) => "Aprire il documento? Sarà pronto per la lavorazione.",
+        (DocumentStatus.Open, DocumentStatus.Closed) => "Chiudere il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
+        (DocumentStatus.Open, DocumentStatus.Draft) => "Riportare il documento in bozza? Potrai continuare a modificarlo.",
+        (_, DocumentStatus.Cancelled) => "Annullare il documento? Questa azione è IRREVERSIBILE.",
+        _ => $"Confermare la transizione di stato?"
+    };
 }
