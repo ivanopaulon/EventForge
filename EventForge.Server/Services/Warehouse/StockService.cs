@@ -1183,13 +1183,16 @@ public class StockService(
             .ToListAsync(cancellationToken);
 
         // Build a lookup: (ProductId, LocationId, LotId?) → most-recent inventory anchor.
-        // We rely on DocumentRow.LotId being null for non-lot-tracked items, consistent
-        // with how StockReconciliationService.CalculateStockItem works.
+        // DocumentRow has no LotId field (inventory counting in this system does not track
+        // at lot level — lot-level stock movements are handled by StockMovement.LotId).
+        // Therefore the anchor key always uses LotId = null, and the anchor quantity covers
+        // the entire location regardless of lots. Movement accumulation for lot-specific keys
+        // will be anchored as well (they share the same (ProductId, LocationId, null) bucket).
         var inventoryAnchorLookup = inventoryDocRows
             .GroupBy(dr => (
                 ProductId: dr.ProductId!.Value,
                 LocationId: dr.LocationId!.Value,
-                LotId: (Guid?)null))   // DocumentRow has no LotId — use null for the key
+                LotId: (Guid?)null))
             .ToDictionary(
                 g => g.Key,
                 g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
