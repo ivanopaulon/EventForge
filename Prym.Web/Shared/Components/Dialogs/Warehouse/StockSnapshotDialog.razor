@@ -153,7 +153,7 @@
                                     <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@context.LotCode</MudChip>
                                     @if (context.LotExpiry.HasValue)
                                     {
-                                        var isExpired = context.LotExpiry.Value <= DateTime.UtcNow;
+                                        var isExpired = context.LotExpiry.Value <= (_referenceDate ?? DateTime.UtcNow);
                                         <MudText Typo="Typo.caption" Color="@(isExpired ? Color.Error : Color.Default)">
                                             @context.LotExpiry.Value.ToString("dd/MM/yyyy")
                                         </MudText>
@@ -304,7 +304,7 @@
                 data = _results,
                 options = new
                 {
-                    fileName = $"GiacenzeAl_{_referenceDate:yyyyMMdd}",
+                    fileName = $"StockSnapshot_{_referenceDate:yyyyMMdd}",
                     sheetName = $"Giacenze al {dateStr}",
                     columns,
                     formatting = new
@@ -327,7 +327,7 @@
             using var ms = new MemoryStream();
             await stream.CopyToAsync(ms);
             var bytes = ms.ToArray();
-            var fileName = $"GiacenzeAl_{_referenceDate:yyyyMMdd}_{DateTime.Now:HHmmss}.xlsx";
+            var fileName = $"StockSnapshot_{_referenceDate:yyyyMMdd}_{DateTime.Now:HHmmss}.xlsx";
             await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
             AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.snapshot.exportSuccess", "Esportazione completata"));
         }

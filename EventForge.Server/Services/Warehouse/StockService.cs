@@ -1104,8 +1104,8 @@ public class StockService(
         if (!currentTenantId.HasValue)
             throw new InvalidOperationException("Current tenant ID is not available.");
 
-        // Include the full last second of the reference date (UTC end-of-day).
-        var cutoff = referenceDate.Date.AddDays(1).AddTicks(-1);
+        // Include movements up to (but not including) the day after referenceDate — covers the full reference day in UTC.
+        var cutoff = referenceDate.Date.AddDays(1);
 
         // Load all relevant movements up to cutoff.
         var movements = await context.StockMovements
@@ -1118,7 +1118,7 @@ public class StockService(
             .Include(sm => sm.Lot)
             .Where(sm => sm.TenantId == currentTenantId.Value
                          && !sm.IsDeleted
-                         && sm.MovementDate <= cutoff)
+                         && sm.MovementDate < cutoff)
             .ToListAsync(cancellationToken);
 
         if (movements.Count == 0)
