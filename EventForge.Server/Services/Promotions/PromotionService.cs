@@ -51,7 +51,7 @@ public class PromotionService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -74,7 +74,7 @@ public class PromotionService(
 
             return MapToPromotionDto(promotion);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -94,7 +94,7 @@ public class PromotionService(
 
             return promotions.Select(MapToPromotionDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -143,7 +143,7 @@ public class PromotionService(
 
             return MapToPromotionDto(promotion);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -215,7 +215,7 @@ public class PromotionService(
 
             return MapToPromotionDto(promotion);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -265,7 +265,7 @@ public class PromotionService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -279,7 +279,7 @@ public class PromotionService(
                 .AsNoTracking()
                 .AnyAsync(p => p.Id == promotionId && !p.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1206,7 +1206,7 @@ public class PromotionService(
 
             return rules.Select(MapToPromotionRuleDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1252,7 +1252,7 @@ public class PromotionService(
 
             return MapToPromotionDto(promotion);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1323,7 +1323,7 @@ public class PromotionService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1368,7 +1368,7 @@ public class PromotionService(
 
             return rules.Select(MapToPromotionRuleDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1445,7 +1445,7 @@ public class PromotionService(
 
             return MapToPromotionRuleDto(rule);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1524,7 +1524,7 @@ public class PromotionService(
 
             return MapToPromotionRuleDto(rule);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1557,7 +1557,7 @@ public class PromotionService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1629,7 +1629,7 @@ public class PromotionService(
                 ModifiedBy = p.ModifiedBy
             });
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1695,7 +1695,7 @@ public class PromotionService(
                 CreatedBy = ruleProduct.CreatedBy
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1720,7 +1720,7 @@ public class PromotionService(
             InvalidatePromotionCache();
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

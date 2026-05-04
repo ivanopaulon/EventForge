@@ -66,7 +66,7 @@ public partial class CustomFiscalPrinterService
 
             return pdfBytes;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

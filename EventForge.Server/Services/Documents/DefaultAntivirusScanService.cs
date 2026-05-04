@@ -1,11 +1,12 @@
 namespace EventForge.Server.Services.Documents;
 
 /// <summary>
-/// Stub implementation of antivirus scanning service for development/testing
+/// Default implementation of antivirus scanning service.
+/// Supports optional mock threat detection via configuration for development and testing.
 /// </summary>
-public class StubAntivirusScanService(
+public class DefaultAntivirusScanService(
     IConfiguration configuration,
-    ILogger<StubAntivirusScanService> logger) : IAntivirusScanService
+    ILogger<DefaultAntivirusScanService> logger) : IAntivirusScanService
 {
 
     /// <summary>
@@ -14,7 +15,8 @@ public class StubAntivirusScanService(
     public bool IsEnabled => configuration.GetValue<bool>("AntivirusScan:Enabled", false);
 
     /// <summary>
-    /// Performs a mock antivirus scan for development purposes
+    /// Scans a file for threats. When scanning is disabled, returns a clean result immediately.
+    /// When enabled, simulates threat detection using configurable filename patterns for testing.
     /// </summary>
     public async Task<AntivirusScanResult> ScanFileAsync(
         Stream fileStream,
@@ -80,7 +82,7 @@ public class StubAntivirusScanService(
                 }
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

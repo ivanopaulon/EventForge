@@ -80,7 +80,7 @@ public class StockService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -106,7 +106,7 @@ public class StockService(
 
             return stock?.ToStockDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -134,7 +134,7 @@ public class StockService(
 
             return stocks.Select(s => s.ToStockDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -162,7 +162,7 @@ public class StockService(
 
             return stocks.Select(s => s.ToStockDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -189,7 +189,7 @@ public class StockService(
 
             return await query.SumAsync(s => s.AvailableQuantity, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -219,7 +219,7 @@ public class StockService(
             var stock = await query.FirstOrDefaultAsync(cancellationToken);
             return stock?.AvailableQuantity ?? 0;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -368,7 +368,7 @@ public class StockService(
 
             return stockForDto.ToStockDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -525,7 +525,7 @@ public class StockService(
                 return existingStock.ToStockDto();
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -592,7 +592,7 @@ public class StockService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -629,7 +629,7 @@ public class StockService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -666,7 +666,7 @@ public class StockService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -696,7 +696,7 @@ public class StockService(
 
             return stocks.Select(s => s.ToStockDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -726,7 +726,7 @@ public class StockService(
 
             return stocks.Select(s => s.ToStockDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -752,7 +752,7 @@ public class StockService(
                 _ = await context.SaveChangesAsync(cancellationToken);
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -795,7 +795,7 @@ public class StockService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1007,7 +1007,7 @@ public class StockService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1087,7 +1087,7 @@ public class StockService(
 
             return stock.ToStockDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

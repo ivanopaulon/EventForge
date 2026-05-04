@@ -1,4 +1,3 @@
-using EventForge.Server.Services.Interfaces;
 using SkiaSharp;
 using Spire.Barcode;
 using System.Runtime.InteropServices;
@@ -49,7 +48,7 @@ public class BarcodeService(ILogger<BarcodeService> logger) : IBarcodeService
                 Data = request.Data
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

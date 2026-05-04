@@ -45,7 +45,7 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
 
             return await Task.FromResult(package.GetAsByteArray());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -91,7 +91,7 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
 
             return memoryStream.ToArray();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

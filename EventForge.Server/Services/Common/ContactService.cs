@@ -46,7 +46,7 @@ public class ContactService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -71,7 +71,7 @@ public class ContactService(
 
             return contacts.Select(MapToContactDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -88,7 +88,7 @@ public class ContactService(
 
             return contact is null ? null : MapToContactDto(contact);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -130,7 +130,7 @@ public class ContactService(
 
             return MapToContactDto(contact);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -179,7 +179,7 @@ public class ContactService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -227,7 +227,7 @@ public class ContactService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -241,7 +241,7 @@ public class ContactService(
                 .AsNoTracking()
                 .AnyAsync(c => c.Id == contactId && !c.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -260,7 +260,7 @@ public class ContactService(
 
             return contacts.Select(MapToContactDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -278,7 +278,7 @@ public class ContactService(
 
             return contact is not null ? MapToContactDto(contact) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -301,7 +301,7 @@ public class ContactService(
 
             return hasEmergencyContact;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

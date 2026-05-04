@@ -60,7 +60,7 @@ public class VatNatureService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -77,7 +77,7 @@ public class VatNatureService(
 
             return vatNature is not null ? MapToVatNatureDto(vatNature) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -119,7 +119,7 @@ public class VatNatureService(
 
             return MapToVatNatureDto(vatNature);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -174,7 +174,7 @@ public class VatNatureService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -226,7 +226,7 @@ public class VatNatureService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

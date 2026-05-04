@@ -286,7 +286,7 @@ public class LicenseSeeder(
                 _ = await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -51,7 +51,7 @@ public class DocumentAccessLogService(
 
             return logEntry.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -86,7 +86,7 @@ public class DocumentAccessLogService(
 
             return logs.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -121,7 +121,7 @@ public class DocumentAccessLogService(
 
             return logs.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -186,7 +186,7 @@ public class DocumentAccessLogService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -222,7 +222,7 @@ public class DocumentAccessLogService(
 
             return oldLogs.Count;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

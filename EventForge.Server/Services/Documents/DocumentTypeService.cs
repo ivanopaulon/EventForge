@@ -51,7 +51,7 @@ public class DocumentTypeService(
 
             return allDocumentTypes;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -76,7 +76,7 @@ public class DocumentTypeService(
 
             return entity is null ? null : DocumentTypeMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -120,7 +120,7 @@ public class DocumentTypeService(
 
             return DocumentTypeMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -176,7 +176,7 @@ public class DocumentTypeService(
 
             return DocumentTypeMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -230,7 +230,7 @@ public class DocumentTypeService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

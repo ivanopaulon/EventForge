@@ -1376,7 +1376,7 @@ public class NotificationService(
             // 5. Return localized notification
             return notification;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1723,7 +1723,7 @@ public class NotificationService(
 
             return rateLimitPolicy;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1822,7 +1822,7 @@ public class NotificationService(
                 FailedCount = 0
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

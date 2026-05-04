@@ -155,7 +155,7 @@ public partial class EpsonFiscalPrinterService
                 subnetPrefix, port, list.Count);
             return list;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

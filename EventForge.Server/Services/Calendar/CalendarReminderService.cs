@@ -41,7 +41,7 @@ public class CalendarReminderService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -65,7 +65,7 @@ public class CalendarReminderService(
 
             return items.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -90,7 +90,7 @@ public class CalendarReminderService(
 
             return items.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -117,7 +117,7 @@ public class CalendarReminderService(
 
             return MapToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -165,7 +165,7 @@ public class CalendarReminderService(
 
             return MapToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -233,7 +233,7 @@ public class CalendarReminderService(
 
             return MapToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -290,7 +290,7 @@ public class CalendarReminderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -343,7 +343,7 @@ public class CalendarReminderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

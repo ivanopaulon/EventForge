@@ -245,7 +245,7 @@ public class PriceListBulkOperationsService(
 
             return exportableEntries;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -522,7 +522,7 @@ public class PriceListBulkOperationsService(
                 AverageIncreasePercentage = averageIncreasePercentage
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -618,7 +618,7 @@ public class PriceListBulkOperationsService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

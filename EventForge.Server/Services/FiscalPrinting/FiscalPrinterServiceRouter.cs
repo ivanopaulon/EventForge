@@ -95,7 +95,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).PrintReceiptAsync(printerId, receipt, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -109,7 +109,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).CancelCurrentReceiptAsync(printerId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -123,7 +123,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).PrintRefundReceiptAsync(printerId, refund, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -137,7 +137,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).PrintPartialRefundAsync(printerId, refund, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -151,7 +151,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).DailyClosureAsync(printerId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -165,7 +165,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).GetStatusAsync(printerId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -179,7 +179,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).OpenDrawerAsync(printerId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -193,7 +193,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).TestConnectionAsync(printerId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -232,7 +232,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).GetDailyClosurePreCheckAsync(printerId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -246,7 +246,7 @@ public sealed class FiscalPrinterServiceRouter(
         {
             return await (await ResolveAsync(printerId, ct)).ExecuteDailyClosureAsync(printerId, operatorName, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -263,7 +263,7 @@ public sealed class FiscalPrinterServiceRouter(
             return await (await ResolveAsync(printerId, ct))
                        .GetClosureHistoryAsync(printerId, page, pageSize, fromDate, toDate, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -348,7 +348,7 @@ public sealed class FiscalPrinterServiceRouter(
 
             return await (await ResolveAsync(printerId.Value, ct)).ReprintZReportAsync(closureId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -371,7 +371,7 @@ public sealed class FiscalPrinterServiceRouter(
 
             return await (await ResolveAsync(printerId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

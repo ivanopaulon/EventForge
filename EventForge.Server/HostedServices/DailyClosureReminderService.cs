@@ -2,7 +2,7 @@ using Prym.DTOs.Notifications;
 using EventForge.Server.Data;
 using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;
-using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -266,7 +266,7 @@ public class DailyClosureReminderService : BackgroundService
     {
         try
         {
-            await notificationService.CreateNotificationAsync(dto);
+            await notificationService.SendNotificationAsync(dto);
         }
         catch (Exception ex)
         {

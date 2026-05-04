@@ -62,7 +62,7 @@ public class BusinessPartyService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -119,7 +119,7 @@ public class BusinessPartyService(
 
             return MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -147,7 +147,7 @@ public class BusinessPartyService(
 
             return await EnrichBusinessPartiesAsync(businessParties, currentTenantId.Value, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -204,7 +204,7 @@ public class BusinessPartyService(
 
             return await EnrichBusinessPartiesAsync(businessParties, currentTenantId.Value, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -249,7 +249,7 @@ public class BusinessPartyService(
 
             return MapToBusinessPartyDto(businessParty, 0, 0, 0, false, null, []);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -348,7 +348,7 @@ public class BusinessPartyService(
 
             return MapToBusinessPartyDto(businessParty, addressCount, contactCount, referenceCount, hasAccountingData, primaryAddress, contacts);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -406,7 +406,7 @@ public class BusinessPartyService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -453,7 +453,7 @@ public class BusinessPartyService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -481,7 +481,7 @@ public class BusinessPartyService(
 
             return MapToBusinessPartyAccountingDto(businessPartyAccounting, businessPartyName);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -509,7 +509,7 @@ public class BusinessPartyService(
 
             return MapToBusinessPartyAccountingDto(businessPartyAccounting, businessPartyName);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -561,7 +561,7 @@ public class BusinessPartyService(
 
             return MapToBusinessPartyAccountingDto(createdBusinessPartyAccounting, businessPartyName);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -629,7 +629,7 @@ public class BusinessPartyService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -681,7 +681,7 @@ public class BusinessPartyService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -760,7 +760,7 @@ public class BusinessPartyService(
                 .AsNoTracking()
                 .AnyAsync(bp => bp.Id == businessPartyId && !bp.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -790,7 +790,7 @@ public class BusinessPartyService(
                 CreatedBy = bp.CreatedBy
             });
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -961,7 +961,7 @@ public class BusinessPartyService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1113,7 +1113,7 @@ public class BusinessPartyService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1251,7 +1251,7 @@ public class BusinessPartyService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1467,7 +1467,7 @@ public class BusinessPartyService(
                 CreatedAt = bp.CreatedAt
             });
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

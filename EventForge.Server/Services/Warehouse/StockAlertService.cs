@@ -100,7 +100,7 @@ public class StockAlertService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -126,7 +126,7 @@ public class StockAlertService(
 
             return alert?.ToStockAlertDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -152,7 +152,7 @@ public class StockAlertService(
 
             return alerts.Select(a => a.ToStockAlertDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -178,7 +178,7 @@ public class StockAlertService(
 
             return alerts.Select(a => a.ToStockAlertDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -213,7 +213,7 @@ public class StockAlertService(
 
             return (await GetAlertByIdAsync(alert.Id, cancellationToken))!;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -243,7 +243,7 @@ public class StockAlertService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -270,7 +270,7 @@ public class StockAlertService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -295,7 +295,7 @@ public class StockAlertService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -358,7 +358,7 @@ public class StockAlertService(
 
             return alerts.Select(a => a.ToStockAlertDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -421,7 +421,7 @@ public class StockAlertService(
 
             return alerts.Select(a => a.ToStockAlertDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -496,7 +496,7 @@ public class StockAlertService(
 
             return alerts.Select(a => a.ToStockAlertDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -518,7 +518,7 @@ public class StockAlertService(
                 ExpiryAlertsCreated = expiryAlerts.Count()
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -549,7 +549,7 @@ public class StockAlertService(
                 OverstockAlerts = alerts.Count(a => a.AlertType == StockAlertType.HighStock && a.Status == AlertStatus.Active)
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -651,7 +651,7 @@ public class StockAlertService(
 
             return alerts.Select(a => a.ToStockAlertDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -672,7 +672,7 @@ public class StockAlertService(
 
             return count;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -700,7 +700,7 @@ public class StockAlertService(
 
             return oldAlerts.Count;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

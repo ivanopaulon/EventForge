@@ -158,7 +158,7 @@ public class InventoryDiagnosticService(
 
         return report;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -371,7 +371,7 @@ public class InventoryDiagnosticService(
 
             return modified;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -403,7 +403,7 @@ public class InventoryDiagnosticService(
 
             return rows.Count;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

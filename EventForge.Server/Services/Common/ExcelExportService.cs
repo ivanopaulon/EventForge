@@ -96,7 +96,7 @@ public class ExcelExportService(ILogger<ExcelExportService> logger) : IExcelExpo
                 return stream.ToArray();
             }, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

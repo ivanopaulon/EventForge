@@ -28,7 +28,7 @@ public class DocumentCounterService(
 
             return counters.Select(c => c.ToDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -47,7 +47,7 @@ public class DocumentCounterService(
 
             return counters.Select(c => c.ToDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -64,7 +64,7 @@ public class DocumentCounterService(
 
             return counter?.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -90,7 +90,7 @@ public class DocumentCounterService(
 
             return counter?.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -136,7 +136,7 @@ public class DocumentCounterService(
 
             return counter.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -177,7 +177,7 @@ public class DocumentCounterService(
 
             return counter.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -218,7 +218,7 @@ public class DocumentCounterService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -269,7 +269,7 @@ public class DocumentCounterService(
                     documentTypeId, series, currentUser, tenantId.Value, currentYear, cancellationToken);
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

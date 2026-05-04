@@ -45,7 +45,7 @@ public class AddressService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -69,7 +69,7 @@ public class AddressService(
 
             return addresses.Select(MapToAddressDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -86,7 +86,7 @@ public class AddressService(
 
             return address is null ? null : MapToAddressDto(address);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -132,7 +132,7 @@ public class AddressService(
 
             return MapToAddressDto(address);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -186,7 +186,7 @@ public class AddressService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -235,7 +235,7 @@ public class AddressService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -249,7 +249,7 @@ public class AddressService(
                 .AsNoTracking()
                 .AnyAsync(a => a.Id == addressId && !a.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

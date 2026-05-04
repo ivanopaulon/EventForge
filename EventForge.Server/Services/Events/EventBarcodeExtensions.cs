@@ -1,4 +1,4 @@
-using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.Common;
 
 namespace EventForge.Server.Services.Events;
 
@@ -48,7 +48,7 @@ public class EventBarcodeExtensions(
 
             return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -80,7 +80,7 @@ public class EventBarcodeExtensions(
 
             return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -110,7 +110,7 @@ public class EventBarcodeExtensions(
 
             return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

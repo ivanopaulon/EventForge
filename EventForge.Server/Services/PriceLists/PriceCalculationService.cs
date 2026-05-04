@@ -132,7 +132,7 @@ public class PriceCalculationService(
                     : null
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -219,7 +219,7 @@ public class PriceCalculationService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -294,7 +294,7 @@ public class PriceCalculationService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -333,7 +333,7 @@ public class PriceCalculationService(
                 _ => throw new InvalidOperationException($"Unknown price application mode: {mode}")
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -420,7 +420,7 @@ public class PriceCalculationService(
             // Ordina per prezzo (migliore prima)
             return comparisons.OrderBy(c => c.Price).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

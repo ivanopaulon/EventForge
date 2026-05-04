@@ -45,7 +45,7 @@ public class NoteFlagService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -70,7 +70,7 @@ public class NoteFlagService(
 
             return noteFlags.Select(MapToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -95,7 +95,7 @@ public class NoteFlagService(
 
             return noteFlags.Select(MapToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -117,7 +117,7 @@ public class NoteFlagService(
 
             return noteFlag is null ? null : MapToDto(noteFlag);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -168,7 +168,7 @@ public class NoteFlagService(
 
             return MapToDto(noteFlag);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -221,7 +221,7 @@ public class NoteFlagService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -269,7 +269,7 @@ public class NoteFlagService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

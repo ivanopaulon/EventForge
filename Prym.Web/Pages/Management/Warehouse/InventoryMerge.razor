@@ -8,12 +8,14 @@
 
 <PageTitle>Accorpamento Inventari</PageTitle>
 
-<MudBreadcrumbs Items="_breadcrumbs" Class="mb-2 pa-0" />
+<PageLoadingOverlay Visible="@_loading" Message="Caricamento inventari..." />
 
-<MudText Typo="Typo.h5" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Filled.MergeType" Class="mr-2 mb-1 vertical-middle" />
-    Accorpamento Inventari
-</MudText>
+@if (!_loading)
+{
+<div class="ef-flex-col-fill">
+<ManagementPageHeader Title="Accorpamento Inventari"
+                      Icon="@Icons.Material.Filled.MergeType"
+                      BreadcrumbItems="_breadcrumbs" />
 
 @* ──────────────────── STEP INDICATOR ──────────────────── *@
 <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStep" Linear="true" Class="mb-4">
@@ -328,6 +330,9 @@
             Torna agli inventari
         </MudButton>
     </MudStack>
+}
+
+</div>
 }
 
 @code {

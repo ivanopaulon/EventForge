@@ -52,7 +52,7 @@ public class BrandService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -75,7 +75,7 @@ public class BrandService(
 
             return brand is not null ? MapToBrandDto(brand) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -115,7 +115,7 @@ public class BrandService(
 
             return MapToBrandDto(brand);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -174,7 +174,7 @@ public class BrandService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -229,7 +229,7 @@ public class BrandService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -250,7 +250,7 @@ public class BrandService(
                 .Where(b => b.Id == brandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
                 .AnyAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -310,7 +310,7 @@ public class BrandService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

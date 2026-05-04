@@ -47,7 +47,7 @@ public class BankService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -64,7 +64,7 @@ public class BankService(
 
             return bank is not null ? MapToBankDto(bank) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -102,7 +102,7 @@ public class BankService(
 
             return MapToBankDto(bank);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -156,7 +156,7 @@ public class BankService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -202,7 +202,7 @@ public class BankService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -216,7 +216,7 @@ public class BankService(
                 .AsNoTracking()
                 .AnyAsync(b => b.Id == bankId && !b.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

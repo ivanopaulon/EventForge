@@ -97,7 +97,7 @@ public class StockMovementService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -124,7 +124,7 @@ public class StockMovementService(
 
             return movement?.ToStockMovementDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -148,7 +148,7 @@ public class StockMovementService(
 
             return movements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -172,7 +172,7 @@ public class StockMovementService(
 
             return movements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -196,7 +196,7 @@ public class StockMovementService(
 
             return movements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -220,7 +220,7 @@ public class StockMovementService(
 
             return movements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -244,7 +244,7 @@ public class StockMovementService(
 
             return movements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -300,7 +300,7 @@ public class StockMovementService(
 
         return movement.ToStockMovementDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -365,7 +365,7 @@ public class StockMovementService(
 
         return allMovements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -405,7 +405,7 @@ public class StockMovementService(
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -443,7 +443,7 @@ public class StockMovementService(
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -477,7 +477,7 @@ public class StockMovementService(
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -511,7 +511,7 @@ public class StockMovementService(
 
         return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -549,7 +549,7 @@ public class StockMovementService(
 
         return await CreateMovementAsync(reverseDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -601,7 +601,7 @@ public class StockMovementService(
             TotalOutboundValue = outboundMovements.Sum(m => m.TotalValue)
         };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -664,7 +664,7 @@ public class StockMovementService(
 
         return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -688,7 +688,7 @@ public class StockMovementService(
 
         return movements.Select(m => m.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -729,7 +729,7 @@ public class StockMovementService(
 
         return movement.ToStockMovementDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -909,7 +909,7 @@ public class StockMovementService(
 
         return items.Select(MapToInventoryExportDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

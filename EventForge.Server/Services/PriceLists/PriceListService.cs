@@ -78,7 +78,7 @@ public class PriceListService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -98,7 +98,7 @@ public class PriceListService(
 
             return priceLists.Select(MapToPriceListDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -116,7 +116,7 @@ public class PriceListService(
 
             return priceList is not null ? MapToPriceListDto(priceList) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -134,7 +134,7 @@ public class PriceListService(
 
             return priceList is not null ? MapToPriceListDetailDto(priceList) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -176,7 +176,7 @@ public class PriceListService(
 
             return MapToPriceListDto(priceList);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -239,7 +239,7 @@ public class PriceListService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -303,7 +303,7 @@ public class PriceListService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -322,7 +322,7 @@ public class PriceListService(
 
             return entries.Select(MapToPriceListEntryDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -340,7 +340,7 @@ public class PriceListService(
 
             return entry is not null ? MapToPriceListEntryDto(entry) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -390,7 +390,7 @@ public class PriceListService(
 
             return MapToPriceListEntryDto(entry);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -455,7 +455,7 @@ public class PriceListService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -510,7 +510,7 @@ public class PriceListService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -524,7 +524,7 @@ public class PriceListService(
                 .AsNoTracking()
                 .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -538,7 +538,7 @@ public class PriceListService(
                 .AsNoTracking()
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -552,7 +552,7 @@ public class PriceListService(
                 .AsNoTracking()
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -667,7 +667,7 @@ public class PriceListService(
         {
             return await calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -679,7 +679,7 @@ public class PriceListService(
         {
             return await calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -691,7 +691,7 @@ public class PriceListService(
         {
             return await calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -707,7 +707,7 @@ public class PriceListService(
         {
             return await calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -724,7 +724,7 @@ public class PriceListService(
         {
             return await calculationService.GetProductPriceAsync(request, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -740,7 +740,7 @@ public class PriceListService(
         {
             return await bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -752,7 +752,7 @@ public class PriceListService(
         {
             return await bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -764,7 +764,7 @@ public class PriceListService(
         {
             return await bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -780,7 +780,7 @@ public class PriceListService(
         {
             return await businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -792,7 +792,7 @@ public class PriceListService(
         {
             return await businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -804,7 +804,7 @@ public class PriceListService(
         {
             return await businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -824,7 +824,7 @@ public class PriceListService(
 
             return priceLists.Select(MapToPriceListDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -836,7 +836,7 @@ public class PriceListService(
         {
             return await businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -863,7 +863,7 @@ public class PriceListService(
         {
             return await generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -883,7 +883,7 @@ public class PriceListService(
         {
             return await bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -902,7 +902,7 @@ public class PriceListService(
         {
             return await bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -923,7 +923,7 @@ public class PriceListService(
         {
             return await generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -941,7 +941,7 @@ public class PriceListService(
         {
             return await generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -958,7 +958,7 @@ public class PriceListService(
         {
             return await generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -976,7 +976,7 @@ public class PriceListService(
         {
             return await generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -998,7 +998,7 @@ public class PriceListService(
         {
             return await generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1015,7 +1015,7 @@ public class PriceListService(
         {
             return await generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1033,7 +1033,7 @@ public class PriceListService(
         {
             return await bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

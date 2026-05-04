@@ -28,7 +28,7 @@ public partial class CustomFiscalPrinterService
             byte[] cmd = _builder.BuildDailyClosureCommand();
             return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -361,7 +361,7 @@ public partial class CustomFiscalPrinterService
                 FiscalClosurePending = r.FiscalClosurePending
             }).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

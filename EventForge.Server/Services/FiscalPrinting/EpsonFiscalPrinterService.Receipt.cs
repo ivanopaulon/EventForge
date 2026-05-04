@@ -28,7 +28,7 @@ public partial class EpsonFiscalPrinterService
                 receipt, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -47,7 +47,7 @@ public partial class EpsonFiscalPrinterService
             var xml = EpsonXmlBuilder.BuildCancelReceipt(channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -72,7 +72,7 @@ public partial class EpsonFiscalPrinterService
                 refund, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -98,7 +98,7 @@ public partial class EpsonFiscalPrinterService
                 refund, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -117,7 +117,7 @@ public partial class EpsonFiscalPrinterService
             var xml = EpsonXmlBuilder.BuildOpenDrawer(channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

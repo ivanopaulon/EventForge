@@ -26,7 +26,7 @@ public class DocumentRetentionService(
 
             return policies.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -45,7 +45,7 @@ public class DocumentRetentionService(
 
             return policy is not null ? MapToDto(policy) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -64,7 +64,7 @@ public class DocumentRetentionService(
 
             return policy is not null ? MapToDto(policy) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -116,7 +116,7 @@ public class DocumentRetentionService(
 
             return MapToDto(policy);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -169,7 +169,7 @@ public class DocumentRetentionService(
 
             return MapToDto(policy);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -199,7 +199,7 @@ public class DocumentRetentionService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -313,7 +313,7 @@ public class DocumentRetentionService(
 
             return eligibleDocuments.Distinct();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

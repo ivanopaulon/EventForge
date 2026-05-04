@@ -314,7 +314,7 @@ public class ChatService(
 
             return MapToChatResponseDto(thread, members, lastMessage, unreadCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -518,7 +518,7 @@ public class ChatService(
             PageSize = pageSize
         };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -904,7 +904,7 @@ public class ChatService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -949,7 +949,7 @@ public class ChatService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -994,7 +994,7 @@ public class ChatService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1046,7 +1046,7 @@ public class ChatService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1114,7 +1114,7 @@ public class ChatService(
                 cancellationToken);
             return MapToChatMessageDto(message, singleNames);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1219,7 +1219,7 @@ public class ChatService(
             // 11. Return updated ChatMessageDto
             return mappedDto;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1328,7 +1328,7 @@ public class ChatService(
                 ProcessedAt = DateTime.UtcNow
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1651,7 +1651,7 @@ public class ChatService(
                 ContentType = attachment.ContentType
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1742,7 +1742,7 @@ public class ChatService(
                 GeneratedVariants = variants
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1793,7 +1793,7 @@ public class ChatService(
 
             return new FileOperationResultDto { AttachmentId = attachmentId, Success = true };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2066,7 +2066,7 @@ public class ChatService(
 
             return await BuildMemberDtosAsync(chatId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2103,7 +2103,7 @@ public class ChatService(
                 IsOnline = onlineUserTracker.IsOnline(u.Id)
             }).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2229,7 +2229,7 @@ public class ChatService(
 
             return rateLimitPolicy;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2337,7 +2337,7 @@ public class ChatService(
                 }
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2520,7 +2520,7 @@ public class ChatService(
         // 4. Return localized ChatMessageDto
         return message;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2574,7 +2574,7 @@ public class ChatService(
             preferences.UserId = userId;
             return preferences;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2880,7 +2880,7 @@ public class ChatService(
                 MessageId = reactionDto.MessageId
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

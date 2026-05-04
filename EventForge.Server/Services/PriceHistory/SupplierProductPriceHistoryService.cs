@@ -85,7 +85,7 @@ public class SupplierProductPriceHistoryService(
 
             return priceHistory.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -145,7 +145,7 @@ public class SupplierProductPriceHistoryService(
 
             return priceHistories.Select(ph => ph.Id).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -204,7 +204,7 @@ public class SupplierProductPriceHistoryService(
                 Statistics = statistics
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -262,7 +262,7 @@ public class SupplierProductPriceHistoryService(
                 Statistics = statistics
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -320,7 +320,7 @@ public class SupplierProductPriceHistoryService(
                 Statistics = statistics
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -352,7 +352,7 @@ public class SupplierProductPriceHistoryService(
 
             return await CalculateStatisticsAsync(query, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -391,7 +391,7 @@ public class SupplierProductPriceHistoryService(
 
             return trendData;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

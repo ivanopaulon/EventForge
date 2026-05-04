@@ -501,7 +501,7 @@ public static class ServiceCollectionExtensions
         // Register document analytics and supporting services
         _ = services.AddScoped<IDocumentAnalyticsService, DocumentAnalyticsService>();
         _ = services.AddScoped<IFileStorageService, LocalFileStorageService>();
-        _ = services.AddScoped<IAntivirusScanService, StubAntivirusScanService>();
+        _ = services.AddScoped<IAntivirusScanService, DefaultAntivirusScanService>();
 
         // Register document export and management services
         _ = services.AddScoped<IDocumentExportService, DocumentExportService>();
@@ -558,7 +558,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<ILicenseService, LicenseService>();
 
         // Register barcode services
-        _ = services.AddScoped<EventForge.Server.Services.Interfaces.IBarcodeService, BarcodeService>();
+        _ = services.AddScoped<IBarcodeService, BarcodeService>();
 
         // Register hosted service for database migration and bootstrap
         _ = services.AddHostedService<BootstrapHostedService>();

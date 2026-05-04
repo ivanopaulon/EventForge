@@ -46,7 +46,7 @@ public class VatRateService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -64,7 +64,7 @@ public class VatRateService(
 
             return vatRate is not null ? MapToVatRateDto(vatRate) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -107,7 +107,7 @@ public class VatRateService(
 
             return MapToVatRateDto(vatRate);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -160,7 +160,7 @@ public class VatRateService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -206,7 +206,7 @@ public class VatRateService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -220,7 +220,7 @@ public class VatRateService(
                 .AsNoTracking()
                 .AnyAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

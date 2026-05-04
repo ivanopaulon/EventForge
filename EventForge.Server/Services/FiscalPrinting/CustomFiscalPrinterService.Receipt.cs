@@ -27,7 +27,7 @@ public partial class CustomFiscalPrinterService
             var sequence = _builder.BuildFullReceiptSequence(receipt);
             return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -46,7 +46,7 @@ public partial class CustomFiscalPrinterService
             byte[] cmd = _builder.BuildCancelReceiptCommand();
             return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -70,7 +70,7 @@ public partial class CustomFiscalPrinterService
             var sequence = _builder.BuildRefundReceiptSequence(refund);
             return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -95,7 +95,7 @@ public partial class CustomFiscalPrinterService
             var sequence = _builder.BuildRefundReceiptSequence(refund);
             return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -114,7 +114,7 @@ public partial class CustomFiscalPrinterService
             byte[] cmd = _builder.BuildOpenDrawerCommand();
             return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

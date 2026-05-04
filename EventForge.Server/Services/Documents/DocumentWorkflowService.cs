@@ -29,7 +29,7 @@ public class DocumentWorkflowService(
 
             return DocumentWorkflowMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -49,7 +49,7 @@ public class DocumentWorkflowService(
 
             return entity is null ? null : DocumentWorkflowMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -71,7 +71,7 @@ public class DocumentWorkflowService(
 
             return DocumentWorkflowMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -93,7 +93,7 @@ public class DocumentWorkflowService(
 
             return DocumentWorkflowMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -117,7 +117,7 @@ public class DocumentWorkflowService(
 
             return DocumentWorkflowMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -150,7 +150,7 @@ public class DocumentWorkflowService(
 
             return DocumentWorkflowMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -190,7 +190,7 @@ public class DocumentWorkflowService(
 
             return DocumentWorkflowMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -225,7 +225,7 @@ public class DocumentWorkflowService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -259,7 +259,7 @@ public class DocumentWorkflowService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -276,7 +276,7 @@ public class DocumentWorkflowService(
 
             return entity?.WorkflowVersion;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

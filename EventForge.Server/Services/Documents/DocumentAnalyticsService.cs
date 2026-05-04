@@ -62,7 +62,7 @@ public class DocumentAnalyticsService(
 
             return DocumentAnalyticsMapper.ToDto(analytics!);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -82,7 +82,7 @@ public class DocumentAnalyticsService(
 
             return analytics is not null ? DocumentAnalyticsMapper.ToDto(analytics) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -130,7 +130,7 @@ public class DocumentAnalyticsService(
 
             return summary;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -173,7 +173,7 @@ public class DocumentAnalyticsService(
 
             return DocumentAnalyticsMapper.ToDto(analytics);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -215,7 +215,7 @@ public class DocumentAnalyticsService(
                 CostEfficiencyRatio = CalculateCostEfficiencyRatio(analytics)
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -142,7 +142,7 @@ public class TenantContext(
             logger.LogWarning("Operazione di cambio tenant annullata.");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -221,7 +221,7 @@ public class TenantContext(
             logger.LogWarning("Operazione di impersonificazione annullata.");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -272,7 +272,7 @@ public class TenantContext(
             logger.LogWarning("Operazione di fine impersonificazione annullata.");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -322,7 +322,7 @@ public class TenantContext(
             logger.LogWarning("Operazione di recupero tenant gestibili annullata.");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -379,7 +379,7 @@ public class TenantContext(
             logger.LogWarning("Operazione di verifica accesso tenant annullata.");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -50,7 +50,7 @@ public class ReferenceService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -76,7 +76,7 @@ public class ReferenceService(
 
             return ReferenceMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -93,7 +93,7 @@ public class ReferenceService(
 
             return entity is null ? null : ReferenceMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -128,7 +128,7 @@ public class ReferenceService(
 
             return ReferenceMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -179,7 +179,7 @@ public class ReferenceService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -229,7 +229,7 @@ public class ReferenceService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -244,7 +244,7 @@ public class ReferenceService(
                 .AsNoTracking()
                 .AnyAsync(r => r.Id == referenceId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

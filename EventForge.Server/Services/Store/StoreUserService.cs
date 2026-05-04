@@ -50,7 +50,7 @@ public class StoreUserService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -81,7 +81,7 @@ public class StoreUserService(
 
             return MapToStoreUserDto(storeUser);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -112,7 +112,7 @@ public class StoreUserService(
 
             return MapToStoreUserDto(storeUser);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -137,7 +137,7 @@ public class StoreUserService(
 
             return storeUsers.Select(MapToStoreUserDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -210,7 +210,7 @@ public class StoreUserService(
 
             return MapToStoreUserDto(createdStoreUser);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -281,7 +281,7 @@ public class StoreUserService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -338,7 +338,7 @@ public class StoreUserService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -391,7 +391,7 @@ public class StoreUserService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -428,7 +428,7 @@ public class StoreUserService(
 
             return MapToStoreUserGroupDto(storeUserGroup, cashierCount, privilegeCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -469,7 +469,7 @@ public class StoreUserService(
 
             return MapToStoreUserGroupDto(storeUserGroup, 0, 0);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -543,7 +543,7 @@ public class StoreUserService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -607,7 +607,7 @@ public class StoreUserService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -657,7 +657,7 @@ public class StoreUserService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -690,7 +690,7 @@ public class StoreUserService(
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -725,7 +725,7 @@ public class StoreUserService(
 
             return storeUserPrivilegeDtos;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -770,7 +770,7 @@ public class StoreUserService(
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, 0);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -833,7 +833,7 @@ public class StoreUserService(
 
             return MapToStoreUserPrivilegeDto(storeUserPrivilege, groupCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -885,7 +885,7 @@ public class StoreUserService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -909,7 +909,7 @@ public class StoreUserService(
                 .AsNoTracking()
                 .AnyAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -930,7 +930,7 @@ public class StoreUserService(
 
             return storeUsers.Select(MapToStoreUserDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -950,7 +950,7 @@ public class StoreUserService(
                 .AsNoTracking()
                 .AnyAsync(sug => sug.Id == groupId && !sug.IsDeleted && sug.TenantId == currentTenantId.Value, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1080,7 +1080,7 @@ public class StoreUserService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1106,7 +1106,7 @@ public class StoreUserService(
 
             return storePos is not null ? MapToStorePosDto(storePos) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1151,7 +1151,7 @@ public class StoreUserService(
             logger.LogInformation("Store POS {Name} created successfully by {User}.", storePos.Name, currentUser);
             return MapToStorePosDto(storePos);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1196,7 +1196,7 @@ public class StoreUserService(
             logger.LogInformation("Store POS {Id} updated successfully by {User}.", id, currentUser);
             return MapToStorePosDto(storePos);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1231,7 +1231,7 @@ public class StoreUserService(
             logger.LogInformation("Store POS {Id} deleted successfully by {User}.", id, currentUser);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1339,7 +1339,7 @@ public class StoreUserService(
             storeUser.PhotoDocument = documentReference;
             return MapToStoreUserDto(storeUser);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1368,7 +1368,7 @@ public class StoreUserService(
 
             return MapToDocumentReferenceDto(storeUser.PhotoDocument);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1415,7 +1415,7 @@ public class StoreUserService(
             logger.LogInformation("Store user {StoreUserId} photo deleted successfully.", storeUserId);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1519,7 +1519,7 @@ public class StoreUserService(
 
             return MapToStoreUserGroupDto(group, cashierCount, privilegeCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1548,7 +1548,7 @@ public class StoreUserService(
 
             return MapToDocumentReferenceDto(group.LogoDocument);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1595,7 +1595,7 @@ public class StoreUserService(
             logger.LogInformation("Store user group {GroupId} logo deleted successfully.", groupId);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1692,7 +1692,7 @@ public class StoreUserService(
             storePos.ImageDocument = documentReference;
             return MapToStorePosDto(storePos);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1721,7 +1721,7 @@ public class StoreUserService(
 
             return MapToDocumentReferenceDto(storePos.ImageDocument);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1768,7 +1768,7 @@ public class StoreUserService(
             logger.LogInformation("Store POS {StorePosId} image deleted successfully.", storePosId);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -45,7 +45,7 @@ public class PaymentTermService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -68,7 +68,7 @@ public class PaymentTermService(
 
             return paymentTerm is not null ? MapToPaymentTermDto(paymentTerm) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -108,7 +108,7 @@ public class PaymentTermService(
 
             return MapToPaymentTermDto(paymentTerm);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -171,7 +171,7 @@ public class PaymentTermService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -230,7 +230,7 @@ public class PaymentTermService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -243,7 +243,7 @@ public class PaymentTermService(
             return await context.PaymentTerms
                 .AnyAsync(pt => pt.Id == paymentTermId && !pt.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

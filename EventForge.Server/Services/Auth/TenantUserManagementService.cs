@@ -76,7 +76,7 @@ public class TenantUserManagementService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -108,7 +108,7 @@ public class TenantUserManagementService(
                 user.Tenant?.Name
             );
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -142,7 +142,7 @@ public class TenantUserManagementService(
                 u.Tenant?.Name
             )).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -255,7 +255,7 @@ public class TenantUserManagementService(
                 InitialPassword = initialPassword
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -378,7 +378,7 @@ public class TenantUserManagementService(
 
             return UserMapper.ToManagementDto(user, dto.Roles, user.Tenant?.Name);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -432,7 +432,7 @@ public class TenantUserManagementService(
 
             logger.LogInformation("User {UserId} deleted.", userId);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -478,7 +478,7 @@ public class TenantUserManagementService(
                 user.Tenant?.Name
             );
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -544,7 +544,7 @@ public class TenantUserManagementService(
 
             return UserMapper.ToManagementDto(user, roles, user.Tenant?.Name);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -593,7 +593,7 @@ public class TenantUserManagementService(
 
             logger.LogInformation("Password reset for user {UserId}.", userId);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -631,7 +631,7 @@ public class TenantUserManagementService(
 
             logger.LogInformation("Password change forced for user {UserId}", userId);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -666,7 +666,7 @@ public class TenantUserManagementService(
                 LastUpdated = DateTime.UtcNow
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -750,7 +750,7 @@ public class TenantUserManagementService(
                 user.Tenant?.Name
             );
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -344,7 +344,7 @@ public class TenantService(
 
             return tenant is not null ? TenantMapper.ToServerResponseDto(tenant) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -365,7 +365,7 @@ public class TenantService(
 
             return TenantMapper.ToServerResponseDtoCollection(tenants);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -457,7 +457,7 @@ public class TenantService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -522,7 +522,7 @@ public class TenantService(
                 _ = await context.SaveChangesAsync();
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -608,7 +608,7 @@ public class TenantService(
                 TenantName = tenant.Name
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -670,7 +670,7 @@ public class TenantService(
                 _ = await context.SaveChangesAsync();
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -708,7 +708,7 @@ public class TenantService(
                 TenantName = at.ManagedTenant.Name
             });
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -778,7 +778,7 @@ public class TenantService(
                 _ = await context.SaveChangesAsync();
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -852,7 +852,7 @@ public class TenantService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -901,7 +901,7 @@ public class TenantService(
                 TenantsNearLimit = tenantsNearLimit
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1014,7 +1014,7 @@ public class TenantService(
                 PageSize = searchDto.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1069,7 +1069,7 @@ public class TenantService(
                 RecentActivities = recentActivities
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1105,7 +1105,7 @@ public class TenantService(
                 CurrentEventsThisMonth = currentEventsThisMonth
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1150,7 +1150,7 @@ public class TenantService(
 
             return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1276,7 +1276,7 @@ public class TenantService(
                 _ = await context.SaveChangesAsync();
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1330,7 +1330,7 @@ public class TenantService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1383,7 +1383,7 @@ public class TenantService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -392,7 +392,7 @@ public class WarehouseFacade(
 
             return enrichedRows;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -427,7 +427,7 @@ public class WarehouseFacade(
                 })
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -446,7 +446,7 @@ public class WarehouseFacade(
                 .FirstOrDefaultAsync(u => u.Id == unitOfMeasureId && !u.IsDeleted, cancellationToken);
             return um?.Symbol;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -465,7 +465,7 @@ public class WarehouseFacade(
 
             return (vat.Percentage, $"VAT {vat.Percentage}%");
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -509,7 +509,7 @@ public class WarehouseFacade(
                 CreatedBy = rowEntity.CreatedBy
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -535,7 +535,7 @@ public class WarehouseFacade(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -580,7 +580,7 @@ public class WarehouseFacade(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -603,7 +603,7 @@ public class WarehouseFacade(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -621,7 +621,7 @@ public class WarehouseFacade(
 
             return productIds.Except(existingProducts).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -639,7 +639,7 @@ public class WarehouseFacade(
 
             return locationIds.Except(existingLocations).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -662,7 +662,7 @@ public class WarehouseFacade(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -701,7 +701,7 @@ public class WarehouseFacade(
 
             return (documentRows, totalCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -729,7 +729,7 @@ public class WarehouseFacade(
             await context.SaveChangesAsync(cancellationToken);
             return cancelledCount;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -766,7 +766,7 @@ public class WarehouseFacade(
                 d.Notes
             )).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -797,7 +797,7 @@ public class WarehouseFacade(
 
             await context.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -863,7 +863,7 @@ public class WarehouseFacade(
 
             return preview;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1039,7 +1039,7 @@ public class WarehouseFacade(
                 .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
                 .CountAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1056,7 +1056,7 @@ public class WarehouseFacade(
                 .Select(r => new ValueTuple<Guid, Guid?, Guid?>(r.Id, r.ProductId, r.LocationId))
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1082,7 +1082,7 @@ public class WarehouseFacade(
 
             return (productIds, locationIds);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

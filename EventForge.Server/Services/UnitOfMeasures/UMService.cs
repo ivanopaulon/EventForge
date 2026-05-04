@@ -46,7 +46,7 @@ public class UMService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -68,7 +68,7 @@ public class UMService(
 
             return um is not null ? MapToUMDto(um) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -108,7 +108,7 @@ public class UMService(
 
             return MapToUMDto(um);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -161,7 +161,7 @@ public class UMService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -210,7 +210,7 @@ public class UMService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -223,7 +223,7 @@ public class UMService(
             return await context.UMs
                 .AnyAsync(u => u.Id == umId && !u.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
