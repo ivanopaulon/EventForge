@@ -114,4 +114,16 @@ public interface IStockService
     /// Adjusts stock quantity and creates appropriate stock movement.
     /// </summary>
     Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns a historical stock snapshot by replaying all movements up to
+    /// <paramref name="referenceDate"/> (inclusive, end-of-day UTC).
+    /// Only groups with at least one movement are returned.
+    /// </summary>
+    Task<IEnumerable<StockSnapshotDto>> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default);
 }

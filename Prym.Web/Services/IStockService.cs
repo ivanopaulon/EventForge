@@ -62,4 +62,14 @@ public interface IStockService
     /// If dto.StockId is null/empty, creates new stock entry.
     /// </summary>
     Task<StockDto?> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns a historical stock snapshot by replaying movements up to referenceDate (end-of-day).
+    /// </summary>
+    Task<IEnumerable<StockSnapshotDto>?> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken ct = default);
 }

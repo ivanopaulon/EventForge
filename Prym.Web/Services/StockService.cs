@@ -166,4 +166,35 @@ public class StockService(
             return null;
         }
     }
+
+    public async Task<IEnumerable<StockSnapshotDto>?> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"referenceDate={referenceDate:yyyy-MM-dd}"
+            };
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
+            if (warehouseId.HasValue)
+                queryParams.Add($"warehouseId={warehouseId.Value}");
+            if (locationId.HasValue)
+                queryParams.Add($"locationId={locationId.Value}");
+
+            var query = string.Join("&", queryParams);
+            return await httpClientService.GetAsync<IEnumerable<StockSnapshotDto>>($"{BaseUrl}/snapshot?{query}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving stock snapshot for date {ReferenceDate}", referenceDate);
+            return null;
+        }
+    }
 }

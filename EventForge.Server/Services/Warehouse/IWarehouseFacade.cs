@@ -398,6 +398,23 @@ public interface IWarehouseFacade
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<IEnumerable<InventoryExportDto>> GetInventoryForExportAsync(PaginationParameters pagination, CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns a historical stock snapshot reconstructed from movements up to
+    /// <paramref name="referenceDate"/> (end-of-day UTC inclusive).
+    /// </summary>
+    /// <param name="referenceDate">The reference date for the snapshot</param>
+    /// <param name="searchTerm">Optional search term to filter by product name or code</param>
+    /// <param name="warehouseId">Optional warehouse filter</param>
+    /// <param name="locationId">Optional location filter</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of stock snapshot entries</returns>
+    Task<IEnumerable<StockSnapshotDto>> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Document Operations

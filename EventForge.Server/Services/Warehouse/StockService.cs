@@ -1092,4 +1092,183 @@ public class StockService(
         }
     }
 
+    /// <inheritdoc />
+    public async Task<IEnumerable<StockSnapshotDto>> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Current tenant ID is not available.");
+
+        // Include the full last second of the reference date (UTC end-of-day).
+        var cutoff = referenceDate.Date.AddDays(1).AddTicks(-1);
+
+        // Load all relevant movements up to cutoff.
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.ToLocation)
+                .ThenInclude(l => l!.Warehouse)
+            .Include(sm => sm.FromLocation)
+                .ThenInclude(l => l!.Warehouse)
+            .Include(sm => sm.Lot)
+            .Where(sm => sm.TenantId == currentTenantId.Value
+                         && !sm.IsDeleted
+                         && sm.MovementDate <= cutoff)
+            .ToListAsync(cancellationToken);
+
+        if (movements.Count == 0)
+            return Enumerable.Empty<StockSnapshotDto>();
+
+        // Apply optional warehouse/location filter by restricting which locations to include.
+        if (warehouseId.HasValue)
+        {
+            movements = movements.Where(sm =>
+                (sm.ToLocation != null && sm.ToLocation.WarehouseId == warehouseId.Value) ||
+                (sm.FromLocation != null && sm.FromLocation.WarehouseId == warehouseId.Value))
+                .ToList();
+        }
+
+        if (locationId.HasValue)
+        {
+            movements = movements.Where(sm =>
+                sm.ToLocationId == locationId.Value || sm.FromLocationId == locationId.Value)
+                .ToList();
+        }
+
+        if (movements.Count == 0)
+            return Enumerable.Empty<StockSnapshotDto>();
+
+        // Build a lookup of current Stock.UnitCost keyed by (ProductId, LocationId, LotId).
+        var stockCosts = await context.Stocks
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted)
+            .Select(s => new { s.ProductId, s.StorageLocationId, s.LotId, s.UnitCost })
+            .ToListAsync(cancellationToken);
+
+        var stockCostLookup = stockCosts.ToDictionary(
+            s => (s.ProductId, s.StorageLocationId, s.LotId),
+            s => s.UnitCost);
+
+        // Build snapshot groups: key = (ProductId, LocationId, LotId).
+        // For each movement:
+        //   ToLocationId → inflow (+Quantity, possibly updates UnitCost)
+        //   FromLocationId → outflow (-Quantity)
+        var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>();
+
+        foreach (var mv in movements)
+        {
+            // Inflow contribution.
+            if (mv.ToLocationId.HasValue)
+            {
+                var key = (mv.ProductId, mv.ToLocationId.Value, mv.LotId);
+                if (!groups.TryGetValue(key, out var acc))
+                {
+                    acc = new SnapshotAccumulator
+                    {
+                        Product = mv.Product,
+                        Location = mv.ToLocation,
+                        Lot = mv.Lot
+                    };
+                    groups[key] = acc;
+                }
+
+                acc.Quantity += mv.Quantity;
+                // Track the most recent inbound UnitCost.
+                if (mv.UnitCost.HasValue && mv.MovementDate > acc.LastInboundDate)
+                {
+                    acc.LastInboundDate = mv.MovementDate;
+                    acc.LastInboundUnitCost = mv.UnitCost;
+                }
+            }
+
+            // Outflow contribution.
+            if (mv.FromLocationId.HasValue)
+            {
+                var key = (mv.ProductId, mv.FromLocationId.Value, mv.LotId);
+                if (!groups.TryGetValue(key, out var acc))
+                {
+                    acc = new SnapshotAccumulator
+                    {
+                        Product = mv.Product,
+                        Location = mv.FromLocation,
+                        Lot = mv.Lot
+                    };
+                    groups[key] = acc;
+                }
+
+                acc.Quantity -= mv.Quantity;
+            }
+        }
+
+        // Build result DTOs.
+        var result = new List<StockSnapshotDto>();
+
+        foreach (var (key, acc) in groups)
+        {
+            var product = acc.Product;
+            var loc = acc.Location;
+            var lot = acc.Lot;
+
+            if (product is null || loc is null)
+                continue;
+
+            // Apply optional search filter.
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var term = searchTerm.ToLowerInvariant();
+                if (!product.Name.ToLowerInvariant().Contains(term) &&
+                    !product.Code.ToLowerInvariant().Contains(term))
+                    continue;
+            }
+
+            // Resolve purchase unit cost.
+            decimal? unitCost = acc.LastInboundUnitCost;
+            if (!unitCost.HasValue)
+            {
+                // Fallback to current Stock.UnitCost.
+                stockCostLookup.TryGetValue((key.ProductId, key.LocationId, key.LotId), out unitCost);
+            }
+
+            result.Add(new StockSnapshotDto
+            {
+                ProductId = product.Id,
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                WarehouseId = loc.Warehouse?.Id ?? Guid.Empty,
+                WarehouseName = loc.Warehouse?.Name ?? string.Empty,
+                WarehouseCode = loc.Warehouse?.Code ?? string.Empty,
+                LocationId = loc.Id,
+                LocationCode = loc.Code,
+                LocationDescription = loc.Description,
+                LotId = lot?.Id,
+                LotCode = lot?.Code,
+                LotExpiry = lot?.ExpiryDate,
+                Quantity = acc.Quantity,
+                UnitCost = unitCost,
+                DefaultPrice = product.DefaultPrice,
+                ReferenceDate = referenceDate.Date
+            });
+        }
+
+        return result
+            .OrderBy(s => s.ProductCode)
+            .ThenBy(s => s.LocationCode);
+    }
+
+    /// <summary>Accumulates quantity and purchase cost data for a snapshot group.</summary>
+    private sealed class SnapshotAccumulator
+    {
+        public Data.Entities.Products.Product? Product { get; set; }
+        public Data.Entities.Warehouse.StorageLocation? Location { get; set; }
+        public Data.Entities.Warehouse.Lot? Lot { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal? LastInboundUnitCost { get; set; }
+        public DateTime LastInboundDate { get; set; }
+    }
+
 }
