@@ -2850,7 +2850,7 @@
       "referenceDate": "Data di riferimento",
       "includePrices": "Includi prezzi",
       "unitCost": "Prezzo Acquisto",
-      "defaultPrice": "Prezzo Vendita",
+      "salePrice": "Prezzo Vendita",
       "totalCostValue": "Valore Acquisto",
       "totalSaleValue": "Valore Vendita",
       "extract": "Estrai",
@@ -2858,7 +2858,8 @@
       "tooltipBtn": "Estrai giacenze ad una data specifica con prezzi di acquisto e vendita",
       "noResults": "Nessuna giacenza trovata per la data selezionata",
       "rowsFound": "{0} righe trovate",
-      "salePriceNote": "Il prezzo di vendita mostrato è quello attuale del prodotto. I prezzi storici non sono disponibili senza una price list con validità temporale.",
+      "salePriceFromList": "Il prezzo di vendita è stato risolto dal listino prezzi attivo alla data di riferimento.",
+      "salePriceFallback": "Nessun listino attivo trovato per la data selezionata: viene mostrato il prezzo di vendita predefinito del prodotto.",
       "extractError": "Errore durante l'estrazione delle giacenze",
       "exportSuccess": "Esportazione completata",
       "exportError": "Errore durante l'esportazione"
