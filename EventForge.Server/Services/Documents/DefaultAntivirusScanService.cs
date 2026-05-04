@@ -15,7 +15,8 @@ public class DefaultAntivirusScanService(
     public bool IsEnabled => configuration.GetValue<bool>("AntivirusScan:Enabled", false);
 
     /// <summary>
-    /// Performs a mock antivirus scan for development purposes
+    /// Scans a file for threats. When scanning is disabled, returns a clean result immediately.
+    /// When enabled, simulates threat detection using configurable filename patterns for testing.
     /// </summary>
     public async Task<AntivirusScanResult> ScanFileAsync(
         Stream fileStream,
