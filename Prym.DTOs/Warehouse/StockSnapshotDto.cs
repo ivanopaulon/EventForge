@@ -62,10 +62,10 @@ public class StockSnapshotDto
     public decimal? DefaultPrice { get; set; }
 
     /// <summary>Total purchase value = Quantity * UnitCost.</summary>
-    public decimal? TotalCostValue => Quantity > 0 && UnitCost.HasValue ? Quantity * UnitCost.Value : null;
+    public decimal? TotalCostValue => UnitCost.HasValue ? Quantity * UnitCost.Value : null;
 
     /// <summary>Total sale value = Quantity * DefaultPrice.</summary>
-    public decimal? TotalSaleValue => Quantity > 0 && DefaultPrice.HasValue ? Quantity * DefaultPrice.Value : null;
+    public decimal? TotalSaleValue => DefaultPrice.HasValue ? Quantity * DefaultPrice.Value : null;
 
     /// <summary>Reference date for this snapshot.</summary>
     public DateTime ReferenceDate { get; set; }

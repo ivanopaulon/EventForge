@@ -1104,11 +1104,12 @@ public class StockService(
         if (!currentTenantId.HasValue)
             throw new InvalidOperationException("Current tenant ID is not available.");
 
-        // Include movements up to (but not including) the day after referenceDate — covers the full reference day in UTC.
+        // Cover the full reference day in UTC: movements on the reference date are included.
         var cutoff = referenceDate.Date.AddDays(1);
 
-        // Load all relevant movements up to cutoff.
-        var movements = await context.StockMovements
+        // Build the base query with all necessary navigation properties.
+        // Only Completed movements contribute to historical stock levels.
+        var movementsQuery = context.StockMovements
             .AsNoTracking()
             .Include(sm => sm.Product)
             .Include(sm => sm.ToLocation)
@@ -1118,46 +1119,54 @@ public class StockService(
             .Include(sm => sm.Lot)
             .Where(sm => sm.TenantId == currentTenantId.Value
                          && !sm.IsDeleted
-                         && sm.MovementDate < cutoff)
-            .ToListAsync(cancellationToken);
+                         && sm.MovementDate < cutoff
+                         && sm.Status == MovementStatus.Completed);
 
-        if (movements.Count == 0)
-            return Enumerable.Empty<StockSnapshotDto>();
-
-        // Apply optional warehouse/location filter by restricting which locations to include.
-        if (warehouseId.HasValue)
-        {
-            movements = movements.Where(sm =>
-                (sm.ToLocation != null && sm.ToLocation.WarehouseId == warehouseId.Value) ||
-                (sm.FromLocation != null && sm.FromLocation.WarehouseId == warehouseId.Value))
-                .ToList();
-        }
-
+        // Push location/warehouse filters to the database to avoid loading irrelevant rows.
         if (locationId.HasValue)
         {
-            movements = movements.Where(sm =>
-                sm.ToLocationId == locationId.Value || sm.FromLocationId == locationId.Value)
-                .ToList();
+            movementsQuery = movementsQuery.Where(sm =>
+                sm.ToLocationId == locationId.Value || sm.FromLocationId == locationId.Value);
         }
+        else if (warehouseId.HasValue)
+        {
+            var wid = warehouseId.Value;
+            movementsQuery = movementsQuery.Where(sm =>
+                (sm.ToLocation != null && sm.ToLocation.WarehouseId == wid) ||
+                (sm.FromLocation != null && sm.FromLocation.WarehouseId == wid));
+        }
+
+        var movements = await movementsQuery.ToListAsync(cancellationToken);
 
         if (movements.Count == 0)
             return Enumerable.Empty<StockSnapshotDto>();
 
-        // Build a lookup of current Stock.UnitCost keyed by (ProductId, LocationId, LotId).
-        var stockCosts = await context.Stocks
-            .AsNoTracking()
-            .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted)
-            .Select(s => new { s.ProductId, s.StorageLocationId, s.LotId, s.UnitCost })
-            .ToListAsync(cancellationToken);
+        // Collect the exact product IDs and location IDs from the loaded movements
+        // so the UnitCost fallback query is scoped to only what is needed.
+        var relevantProductIds = movements.Select(m => m.ProductId).Distinct().ToList();
+        var relevantLocationIds = movements
+            .SelectMany(m => new[] { m.ToLocationId, m.FromLocationId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
 
-        var stockCostLookup = stockCosts.ToDictionary(
-            s => (s.ProductId, s.StorageLocationId, s.LotId),
-            s => s.UnitCost);
+        // Load Stock.UnitCost only for the relevant (ProductId, LocationId) combinations.
+        var stockCostLookup = await context.Stocks
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value
+                        && !s.IsDeleted
+                        && relevantProductIds.Contains(s.ProductId)
+                        && relevantLocationIds.Contains(s.StorageLocationId))
+            .Select(s => new { s.ProductId, s.StorageLocationId, s.LotId, s.UnitCost })
+            .ToDictionaryAsync(
+                s => (s.ProductId, s.StorageLocationId, s.LotId),
+                s => s.UnitCost,
+                cancellationToken);
 
         // Build snapshot groups: key = (ProductId, LocationId, LotId).
-        // For each movement:
-        //   ToLocationId → inflow (+Quantity, possibly updates UnitCost)
-        //   FromLocationId → outflow (-Quantity)
+        // Inflows  → ToLocationId  (+Quantity, tracks last UnitCost)
+        // Outflows → FromLocationId (-Quantity)
         var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>();
 
         foreach (var mv in movements)
@@ -1178,7 +1187,7 @@ public class StockService(
                 }
 
                 acc.Quantity += mv.Quantity;
-                // Track the most recent inbound UnitCost.
+                // Track the most recent inbound UnitCost for the purchase price.
                 if (mv.UnitCost.HasValue && mv.MovementDate > acc.LastInboundDate)
                 {
                     acc.LastInboundDate = mv.MovementDate;
@@ -1205,8 +1214,13 @@ public class StockService(
             }
         }
 
+        // Compile pre-processed search term once (avoid repeated allocation in the loop).
+        var lowerSearchTerm = string.IsNullOrWhiteSpace(searchTerm)
+            ? null
+            : searchTerm.ToLowerInvariant();
+
         // Build result DTOs.
-        var result = new List<StockSnapshotDto>();
+        var result = new List<StockSnapshotDto>(groups.Count);
 
         foreach (var (key, acc) in groups)
         {
@@ -1217,22 +1231,18 @@ public class StockService(
             if (product is null || loc is null)
                 continue;
 
-            // Apply optional search filter.
-            if (!string.IsNullOrWhiteSpace(searchTerm))
+            // Apply optional search filter (in-memory, after aggregation).
+            if (lowerSearchTerm is not null &&
+                !product.Name.Contains(lowerSearchTerm, StringComparison.OrdinalIgnoreCase) &&
+                !product.Code.Contains(lowerSearchTerm, StringComparison.OrdinalIgnoreCase))
             {
-                var term = searchTerm.ToLowerInvariant();
-                if (!product.Name.ToLowerInvariant().Contains(term) &&
-                    !product.Code.ToLowerInvariant().Contains(term))
-                    continue;
+                continue;
             }
 
-            // Resolve purchase unit cost.
+            // Resolve purchase unit cost: last inbound movement's cost → fallback to Stock.UnitCost.
             decimal? unitCost = acc.LastInboundUnitCost;
             if (!unitCost.HasValue)
-            {
-                // Fallback to current Stock.UnitCost.
                 stockCostLookup.TryGetValue((key.ProductId, key.LocationId, key.LotId), out unitCost);
-            }
 
             result.Add(new StockSnapshotDto
             {
