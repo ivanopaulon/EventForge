@@ -642,7 +642,11 @@ public class StockReconciliationService(
             ? request.DocumentStatuses.Select(v => (Prym.DTOs.Common.DocumentStatus)v).ToList()
             : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Closed };
 
-        // Build query on DocumentHeaders
+        // Build query on DocumentHeaders.
+        // Both filters are required (AND): a document must satisfy the approval-status
+        // condition AND the document-status condition before its rows are eligible for
+        // movement rebuild.  Using OR would include documents that are Approved-but-Open
+        // (movements would be premature) or Closed-but-not-Approved (data anomaly).
         var headersQuery = context.DocumentHeaders
             .AsNoTracking()
             .Include(dh => dh.DocumentType)
@@ -650,8 +654,8 @@ public class StockReconciliationService(
                 .ThenInclude(r => r.Product)
             .Where(dh => dh.TenantId == currentTenantId.Value
                       && !dh.IsDeleted
-                      && (approvalStatusFilter.Contains(dh.ApprovalStatus)
-                          || documentStatusFilter.Contains(dh.Status)));
+                      && approvalStatusFilter.Contains(dh.ApprovalStatus)
+                      && documentStatusFilter.Contains(dh.Status));
 
         if (request.FromDate.HasValue)
             headersQuery = headersQuery.Where(dh => dh.Date >= request.FromDate.Value);
@@ -711,15 +715,21 @@ public class StockReconciliationService(
             if (row.DestinationWarehouseId.HasValue) allWarehouseIds.Add(row.DestinationWarehouseId.Value);
         }
 
-        // Batch: fetch first storage location per warehouse
+        // Batch: fetch the first storage location per warehouse, ordered by Code so the
+        // selection is deterministic regardless of insertion order or DB provider.
+        // The GroupBy + Select pushes the per-warehouse min-Code selection to the database,
+        // loading only the two fields (WarehouseId, LocationId) that are actually needed.
         var storageLocationsByWarehouse = await context.StorageLocations
             .AsNoTracking()
             .Where(sl => allWarehouseIds.Contains(sl.WarehouseId) && !sl.IsDeleted)
             .GroupBy(sl => sl.WarehouseId)
-            .ToDictionaryAsync(
-                g => g.Key,
-                g => g.First().Id,
-                cancellationToken);
+            .Select(g => new
+            {
+                WarehouseId = g.Key,
+                // Lexicographically smallest Code → stable across runs
+                LocationId  = g.OrderBy(sl => sl.Code).Select(sl => sl.Id).First()
+            })
+            .ToDictionaryAsync(g => g.WarehouseId, g => g.LocationId, cancellationToken);
 
         // Phase 1 (in-memory): build the lists of movements to create and update
         var movementsToCreate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
@@ -791,6 +801,9 @@ public class StockReconciliationService(
                 }
 
                 var quantity = row.BaseQuantity ?? row.Quantity;
+                // BaseQuantity stores the quantity in the product's base unit of measure
+                // (set by UnitConversionService when the document row has a UOM conversion).
+                // Falling back to Quantity is correct when no UOM conversion is configured.
                 var movementDate = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
 
                 var dto = new CreateStockMovementDto
@@ -805,7 +818,7 @@ public class StockReconciliationService(
                     Notes = alreadyExists
                         ? $"Aggiornamento movimento per documento {documentHeader.Number} riga {row.Id}"
                         : $"Rebuilt missing movement for document {documentHeader.Number} row {row.Id}",
-                    Reason = isInbound ? "Purchase" : "Sale",
+                    Reason = ResolveMovementReason(documentHeader.DocumentType, isInbound),
                     MovementDate = movementDate
                 };
 
@@ -890,6 +903,13 @@ public class StockReconciliationService(
 
                             if (needsStockAdjust)
                             {
+                                // Log a warning if either side of the delta cannot find its Stock row.
+                                // Phase 3 (RecalculateStockForAffectedPairsAsync) will create the
+                                // missing row from movement history, but the warning helps diagnose
+                                // data-integrity issues (e.g. Stock table was reset externally).
+                                LogMissingStockWarning(stockForUpdateByKey, existing.ProductId, oldType, oldFrom, oldTo, docNumber);
+                                LogMissingStockWarning(stockForUpdateByKey, existing.ProductId, newType, dto.FromLocationId, dto.ToLocationId, docNumber);
+
                                 ApplyMovementStockDelta(stockForUpdateByKey, existing.ProductId, oldType, oldFrom, oldTo, oldQty, reverse: true);
                                 ApplyMovementStockDelta(stockForUpdateByKey, existing.ProductId, newType, dto.FromLocationId, dto.ToLocationId, dto.Quantity, reverse: false);
                                 existing.Quantity = dto.Quantity;
@@ -1075,8 +1095,70 @@ public class StockReconciliationService(
     }
 
     /// <summary>
+    /// Maps the document type to an appropriate <see cref="StockMovementReason"/>.
+    /// <para>
+    /// Inventory-counting documents produce an Adjustment reason.
+    /// All other inbound documents default to Purchase; outbound to Sale.
+    /// A more granular mapping (e.g. Return, Transfer) would require an explicit
+    /// <c>DefaultMovementReason</c> field on <see cref="DocumentType"/>, which is not
+    /// currently modelled.
+    /// </para>
+    /// </summary>
+    private static string ResolveMovementReason(Data.Entities.Documents.DocumentType documentType, bool isInbound)
+    {
+        if (documentType.IsInventoryDocument)
+            return StockMovementReason.Adjustment.ToString();
+
+        return isInbound
+            ? StockMovementReason.Purchase.ToString()
+            : StockMovementReason.Sale.ToString();
+    }
+
+    /// <summary>
+    /// Emits a warning log when the stock dictionary does not contain the expected key for
+    /// a movement side (inbound destination or outbound source).  This indicates that the
+    /// Stock table is missing a record for the product/location pair and Phase 3 will need
+    /// to create it.
+    /// </summary>
+    private void LogMissingStockWarning(
+        Dictionary<(Guid ProductId, Guid LocationId), Stock> stockByKey,
+        Guid productId,
+        StockMovementType movementType,
+        Guid? fromLocationId,
+        Guid? toLocationId,
+        string? documentNumber)
+    {
+        if ((movementType == StockMovementType.Inbound || movementType == StockMovementType.Transfer)
+            && toLocationId.HasValue
+            && !stockByKey.ContainsKey((productId, toLocationId.Value)))
+        {
+            logger.LogWarning(
+                "RebuildMovements: no Stock record found for product {ProductId} at ToLocation {LocationId} (doc {DocNumber}). " +
+                "Phase 3 will create the missing row from movement history.",
+                productId, toLocationId.Value, documentNumber);
+        }
+
+        if ((movementType == StockMovementType.Outbound || movementType == StockMovementType.Transfer)
+            && fromLocationId.HasValue
+            && !stockByKey.ContainsKey((productId, fromLocationId.Value)))
+        {
+            logger.LogWarning(
+                "RebuildMovements: no Stock record found for product {ProductId} at FromLocation {LocationId} (doc {DocNumber}). " +
+                "Phase 3 will create the missing row from movement history.",
+                productId, fromLocationId.Value, documentNumber);
+        }
+    }
+
+    /// <summary>
     /// Applies or reverses the stock-level impact of a movement on the pre-loaded stock dictionary.
     /// Used when updating existing movements to keep stock quantities consistent.
+    /// <para>
+    /// NOTE: if the (ProductId, LocationId) key is absent from <paramref name="stockByKey"/>
+    /// (e.g. the Stock table was externally reset or the record was never created), the delta
+    /// for that side is silently skipped here.  Phase 3 (<see cref="RecalculateStockForAffectedPairsAsync"/>)
+    /// creates the missing Stock row from movement history for such pairs.  A warning is logged at
+    /// the call site to aid diagnostics.
+    /// </para>
     /// </summary>
     private static void ApplyMovementStockDelta(
         Dictionary<(Guid ProductId, Guid LocationId), Stock> stockByKey,
