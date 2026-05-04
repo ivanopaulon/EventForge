@@ -1110,6 +1110,10 @@ public class StockService(
 
         // Build the base query with all necessary navigation properties.
         // Only Completed movements contribute to historical stock levels.
+        // POS sales (SaleSessionService) and document approval (DocumentHeaderService) both
+        // create movements directly with MovementStatus.Completed, so the filter is correct.
+        // Planned/InProgress/Cancelled/Failed movements represent uncommitted or voided intent
+        // and must NOT influence the historical balance.
         var movementsQuery = context.StockMovements
             .AsNoTracking()
             .Include(sm => sm.Product)
@@ -1177,10 +1181,16 @@ public class StockService(
         // Build snapshot groups: key = (ProductId, LocationId, LotId).
         // Inflows  → ToLocationId  (+Quantity, tracks last UnitCost)
         // Outflows → FromLocationId (-Quantity)
+        // Convention: StockMovement.Quantity is always stored as a positive value regardless of
+        // direction — the sign is implicit from MovementType / FromLocationId / ToLocationId.
+        // Math.Abs is applied defensively so that any legacy rows with a negative Quantity
+        // (e.g. written by old code) do not silently invert the sign of the accumulator.
         var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>();
 
         foreach (var mv in movements)
         {
+            var absQty = Math.Abs(mv.Quantity);
+
             // Inflow contribution.
             if (mv.ToLocationId.HasValue)
             {
@@ -1196,7 +1206,7 @@ public class StockService(
                     groups[key] = acc;
                 }
 
-                acc.Quantity += mv.Quantity;
+                acc.Quantity += absQty;
                 // Track the most recent inbound UnitCost for the purchase price.
                 if (mv.UnitCost.HasValue && mv.MovementDate > acc.LastInboundDate)
                 {
@@ -1220,7 +1230,7 @@ public class StockService(
                     groups[key] = acc;
                 }
 
-                acc.Quantity -= mv.Quantity;
+                acc.Quantity -= absQty;
             }
         }
 

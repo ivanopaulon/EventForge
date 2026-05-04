@@ -743,3 +743,167 @@ public class StockSnapshotServiceTests : IDisposable
 
     public void Dispose() => _context?.Dispose();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Additional tests added as part of stock-snapshot correctness review
+// (negative-stored quantities, pure outbound, transfer warehouse filter)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Supplemental tests that verify the Math.Abs defensive fix and edge-cases
+/// not covered by the original test class.
+/// </summary>
+[Trait("Category", "Unit")]
+public class StockSnapshotNegativeQuantityTests : IDisposable
+{
+    private readonly EventForgeDbContext _context;
+    private readonly StockService _stockService;
+
+    private readonly Guid _tenantId  = Guid.NewGuid();
+    private readonly Guid _warehouseId = Guid.NewGuid();
+    private readonly Guid _locationId  = Guid.NewGuid();
+    private readonly Guid _location2Id = Guid.NewGuid();
+    private readonly Guid _productId   = Guid.NewGuid();
+
+    private static readonly DateTime RefDate = new DateTime(2025, 6, 15);
+
+    public StockSnapshotNegativeQuantityTests()
+    {
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        _context = new EventForgeDbContext(options);
+
+        var mockAudit   = new Mock<IAuditLogService>();
+        var mockTenant  = new Mock<ITenantContext>();
+        var mockLogger  = new Mock<ILogger<StockService>>();
+
+        mockTenant.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+
+        _stockService = new StockService(
+            _context,
+            mockAudit.Object,
+            mockTenant.Object,
+            mockLogger.Object);
+
+        // Seed warehouse + two locations + product
+        _context.StorageFacilities.Add(new StorageFacility
+        {
+            Id = _warehouseId, TenantId = _tenantId, Name = "WH", Code = "WH",
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+        _context.StorageLocations.AddRange(
+            new StorageLocation { Id = _locationId,  TenantId = _tenantId, WarehouseId = _warehouseId, Code = "LOC-A", CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
+            new StorageLocation { Id = _location2Id, TenantId = _tenantId, WarehouseId = _warehouseId, Code = "LOC-B", CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
+        _context.Products.Add(new Product
+        {
+            Id = _productId, TenantId = _tenantId, Code = "P01", Name = "Product",
+            DefaultPrice = 10m, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+        _context.SaveChanges();
+    }
+
+    private StockMovement MakeMovement(Guid? toId, Guid? fromId, decimal quantity, MovementStatus status = MovementStatus.Completed)
+        => new StockMovement
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
+            ToLocationId = toId, FromLocationId = fromId,
+            Quantity = quantity,
+            MovementType = toId.HasValue && fromId.HasValue
+                ? StockMovementType.Transfer
+                : toId.HasValue ? StockMovementType.Inbound : StockMovementType.Outbound,
+            Status = status,
+            MovementDate = RefDate.AddDays(-1),
+            Reason = StockMovementReason.Purchase,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 23. Inbound movement stored with a negative Quantity → Math.Abs treats it
+    //     as a positive inflow (defensive fix for legacy data).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_InboundWithNegativeStoredQuantity_TreatedAsPositiveInflow()
+    {
+        // Simulate legacy data: an inbound movement with Quantity=-50 in DB
+        _context.StockMovements.Add(MakeMovement(toId: _locationId, fromId: null, quantity: -50m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        // Math.Abs(-50) = 50 → quantity should be +50, not -50
+        Assert.Equal(50m, result[0].Quantity);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 24. Outbound movement stored with a negative Quantity → Math.Abs prevents
+    //     double-negation (would add stock instead of reducing it without fix).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_OutboundWithNegativeStoredQuantity_TreatedAsReduction()
+    {
+        // 100 in (normal positive), then 30 out stored as -30 (legacy)
+        _context.StockMovements.AddRange(
+            MakeMovement(toId: _locationId,   fromId: null,      quantity: 100m),
+            MakeMovement(toId: null,           fromId: _locationId, quantity: -30m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        // Without Math.Abs: 100 - (-30) = 130 (wrong)
+        // With    Math.Abs: 100 -   30  =  70 (correct)
+        Assert.Equal(70m, result[0].Quantity);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 25. Pure outbound-only row (no prior inbound for that location) produces
+    //     a negative quantity entry in the snapshot (oversold/data gap).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_PureOutbound_ProducesNegativeQuantity()
+    {
+        _context.StockMovements.Add(MakeMovement(toId: null, fromId: _locationId, quantity: 40m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(-40m, result[0].Quantity);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 26. Transfer with warehouseId filter: both sides (src and dst) belong to
+    //     the same warehouse, so both location entries are returned.
+    //     Total stock across the warehouse is conserved.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task GetStockSnapshotAsync_TransferWithWarehouseFilter_BothEntriesReturnedNetZero()
+    {
+        // Seed 100 into LOC-A, then transfer 40 from LOC-A to LOC-B
+        _context.StockMovements.AddRange(
+            MakeMovement(toId: _locationId,  fromId: null,       quantity: 100m),
+            MakeMovement(toId: _location2Id, fromId: _locationId, quantity: 40m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetStockSnapshotAsync(RefDate, warehouseId: _warehouseId)).ToList();
+
+        // Both location entries are included (same warehouse)
+        Assert.Equal(2, result.Count);
+        var locA = result.First(r => r.LocationId == _locationId);
+        var locB = result.First(r => r.LocationId == _location2Id);
+
+        Assert.Equal(60m, locA.Quantity);  // 100 - 40
+        Assert.Equal(40m, locB.Quantity);  // 0   + 40
+
+        // Net across warehouse is conserved (100 in, 0 out of warehouse)
+        Assert.Equal(100m, locA.Quantity + locB.Quantity);
+    }
+
+    public void Dispose() => _context?.Dispose();
+}
