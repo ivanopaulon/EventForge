@@ -12,7 +12,6 @@
 @inject IDocumentHeaderService DocumentHeaderService
 @inject IDocumentStatusService DocumentStatusService
 @inject IDocumentTypeService DocumentTypeService
-@inject IBusinessPartyService BusinessPartyService
 @inject IPriceListService PriceListService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
@@ -607,6 +606,14 @@
             ? TranslationService.GetTranslation("documents.editDocument", "Modifica Documento")
             : TranslationService.GetTranslation("documents.createDocument", "Nuovo Documento");
 
+        // Show loading overlay immediately for existing documents — must be set before
+        // the first real await so that Blazor captures it in the very first render.
+        if (DocumentId.HasValue)
+        {
+            _isLoading = true;
+            _loadingMessage = TranslationService.GetTranslation("documents.loadingDocument", "Caricamento documento...");
+        }
+
         // Load document types and price lists in parallel
         await Task.WhenAll(
             LoadDocumentTypesAsync(),
@@ -728,6 +735,10 @@
     {
         _loadingMessage = TranslationService.GetTranslation("documents.loadingDocument", "Caricamento documento...");
         _isLoading = true;
+        // Ensure the overlay is visible when this method is called outside OnInitializedAsync
+        // (e.g. after adding or editing a row). StateHasChanged queues a render; the ensuing
+        // await gives the renderer a chance to apply it before the HTTP call goes out.
+        StateHasChanged();
         try
         {
             Logger.LogInformation("Loading document {DocumentId} with includeRows=true", documentId);
@@ -753,12 +764,18 @@
 
                 if (_currentDocument.BusinessPartyId != Guid.Empty)
                 {
-                    _selectedBusinessParty = await BusinessPartyService.GetBusinessPartyAsync(_currentDocument.BusinessPartyId);
-                    if (_selectedBusinessParty == null)
+                    // Build a minimal stub from the name already embedded in the DTO.
+                    // Only Id (for equality checks) and Name (for display in the left-column
+                    // summary and the UnifiedBusinessPartySelector's pre-filled chip) are
+                    // required here. ApplyHeaderDto uses the same stub pattern when the
+                    // header-edit dialog returns. If the user opens the edit dialog the
+                    // selector does its own server-side search, so no other properties
+                    // of BusinessPartyDto are needed at this stage.
+                    _selectedBusinessParty = new BusinessPartyDto
                     {
-                        Logger.LogWarning("Business party with ID {BusinessPartyId} not found for document {DocumentId}",
-                            _currentDocument.BusinessPartyId, documentId);
-                    }
+                        Id = _currentDocument.BusinessPartyId,
+                        Name = _currentDocument.BusinessPartyName ?? string.Empty,
+                    };
                 }
 
                 // Refresh cached display values after loading
