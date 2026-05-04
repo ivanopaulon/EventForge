@@ -717,13 +717,19 @@ public class StockReconciliationService(
 
         // Batch: fetch the first storage location per warehouse, ordered by Code so the
         // selection is deterministic regardless of insertion order or DB provider.
-        var storageLocationsByWarehouse = (await context.StorageLocations
+        // The GroupBy + Select pushes the per-warehouse min-Code selection to the database,
+        // loading only the two fields (WarehouseId, LocationId) that are actually needed.
+        var storageLocationsByWarehouse = await context.StorageLocations
             .AsNoTracking()
             .Where(sl => allWarehouseIds.Contains(sl.WarehouseId) && !sl.IsDeleted)
-            .OrderBy(sl => sl.Code)
-            .ToListAsync(cancellationToken))
             .GroupBy(sl => sl.WarehouseId)
-            .ToDictionary(g => g.Key, g => g.First().Id);
+            .Select(g => new
+            {
+                WarehouseId = g.Key,
+                // Lexicographically smallest Code → stable across runs
+                LocationId  = g.OrderBy(sl => sl.Code).Select(sl => sl.Id).First()
+            })
+            .ToDictionaryAsync(g => g.WarehouseId, g => g.LocationId, cancellationToken);
 
         // Phase 1 (in-memory): build the lists of movements to create and update
         var movementsToCreate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
