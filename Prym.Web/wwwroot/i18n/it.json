@@ -2844,7 +2844,25 @@
     "doubleClickToEdit": "Doppio click per modifica rapida",
     "useFullEditForNewStock": "Prodotto senza giacenza. Usa il pulsante 'Modifica' per creare il primo record.",
     "dashboardDisabledPagination": "Dashboard metriche disabilitata con paginazione server. Visualizzati {0} di {1} elementi totali su {2} pagine.",
-    "notesRequired": "Note obbligatorie per differenze > {0} unità"
+    "notesRequired": "Note obbligatorie per differenze > {0} unità",
+    "snapshot": {
+      "title": "Giacenze ad una data",
+      "referenceDate": "Data di riferimento",
+      "includePrices": "Includi prezzi",
+      "unitCost": "Prezzo Acquisto",
+      "defaultPrice": "Prezzo Vendita",
+      "totalCostValue": "Valore Acquisto",
+      "totalSaleValue": "Valore Vendita",
+      "extract": "Estrai",
+      "exportExcel": "Esporta Excel",
+      "tooltipBtn": "Estrai giacenze ad una data specifica con prezzi di acquisto e vendita",
+      "noResults": "Nessuna giacenza trovata per la data selezionata",
+      "rowsFound": "{0} righe trovate",
+      "salePriceNote": "Il prezzo di vendita mostrato è quello attuale del prodotto. I prezzi storici non sono disponibili senza una price list con validità temporale.",
+      "extractError": "Errore durante l'estrazione delle giacenze",
+      "exportSuccess": "Esportazione completata",
+      "exportError": "Errore durante l'esportazione"
+    }
   },
   "stockStatus": {
     "ok": "OK",
