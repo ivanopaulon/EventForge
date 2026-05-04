@@ -9,31 +9,23 @@
 @inject ILogger<PromotionNew> Logger
 
 <PageTitle>@TranslationService.GetTranslation("promotion.new", "Nuova Promozione")</PageTitle>
-<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
-    <PageLoadingOverlay Visible="_isLoading || _isSaving"
-                        Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina..."))" />
+<PageLoadingOverlay Visible="_isLoading || _isSaving"
+                    Message="@(_isSaving ? TranslationService.GetTranslation("common.saving", "Salvataggio...") : TranslationService.GetTranslation("messages.loadingPage", "Caricamento pagina..."))" />
 
-    @if (!_isLoading)
-    {
-        <!-- Breadcrumb -->
-        <MudBreadcrumbs Items="_breadcrumbs" Class="mb-2" />
-
-        <!-- Page Header -->
-        <MudPaper Elevation="2" Class="pa-4 mb-4">
-            <div class="d-flex justify-space-between align-center flex-wrap gap-2">
-                <div class="d-flex align-center gap-2">
-                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                                   Color="Color.Primary"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/management/promotions"))"
-                                   Size="Size.Medium"
-                                   title="@TranslationService.GetTranslation("promotion.backToList", "Torna a Promozioni")" />
-                    <MudText Typo="Typo.h5">
-                        <MudIcon Icon="@Icons.Material.Outlined.AddCircleOutline" Class="mr-2" />
-                        @TranslationService.GetTranslation("promotion.create", "Nuova Promozione")
-                    </MudText>
-                </div>
-            </div>
-        </MudPaper>
+@if (!_isLoading)
+{
+<div class="ef-flex-col-fill">
+    <ManagementPageHeader Title="@TranslationService.GetTranslation("promotion.create", "Nuova Promozione")"
+                          Icon="@Icons.Material.Outlined.AddCircleOutline"
+                          BreadcrumbItems="_breadcrumbs">
+        <ExtraActions>
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                           Color="Color.Primary"
+                           OnClick="@(() => NavigationManager.NavigateTo("/management/promotions"))"
+                           Size="Size.Medium"
+                           title="@TranslationService.GetTranslation("promotion.backToList", "Torna a Promozioni")" />
+        </ExtraActions>
+    </ManagementPageHeader>
 
         <!-- Form -->
         <MudPaper Elevation="2" Class="pa-4">
@@ -186,8 +178,8 @@
                 </MudGrid>
             </EditForm>
         </MudPaper>
-    }
-</MudContainer>
+</div>
+}
 
 @code {
     private bool _isLoading = true;

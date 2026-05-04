@@ -1,4 +1,4 @@
-namespace EventForge.Server.Services.Interfaces;
+namespace EventForge.Server.Services.Common;
 
 public interface IBarcodeService
 {

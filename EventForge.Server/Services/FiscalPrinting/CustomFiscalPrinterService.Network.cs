@@ -165,7 +165,7 @@ public partial class CustomFiscalPrinterService
             logger.LogInformation("Network scan {Subnet}.x:{Port} found {Count} devices", subnetPrefix, port, list.Count);
             return list;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

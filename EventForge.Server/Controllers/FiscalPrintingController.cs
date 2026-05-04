@@ -1087,10 +1087,6 @@ public class FiscalPrintingController(
         }
     }
 
-    // -------------------------------------------------------------------------
-    //  PDF download (5B.4) – stub (PDF generation is Sprint 5C scope)
-    // -------------------------------------------------------------------------
-
     /// <summary>
     /// Downloads the PDF Z-report for the specified closure.
     /// On first request the PDF is generated on-demand and stored for future calls.

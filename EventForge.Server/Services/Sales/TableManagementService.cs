@@ -47,7 +47,7 @@ public class TableManagementService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -79,7 +79,7 @@ public class TableManagementService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -113,7 +113,7 @@ public class TableManagementService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -133,7 +133,7 @@ public class TableManagementService(
 
             return tables.Select(MapToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -151,7 +151,7 @@ public class TableManagementService(
 
             return table is not null ? MapToDto(table) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -171,7 +171,7 @@ public class TableManagementService(
 
             return tables.Select(MapToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -214,7 +214,7 @@ public class TableManagementService(
 
             return MapToDto(table);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -264,7 +264,7 @@ public class TableManagementService(
 
             return MapToDto(table);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -300,7 +300,7 @@ public class TableManagementService(
 
             return MapToDto(table);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -330,7 +330,7 @@ public class TableManagementService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -355,7 +355,7 @@ public class TableManagementService(
 
             return reservations.Select(MapReservationToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -374,7 +374,7 @@ public class TableManagementService(
 
             return reservation is not null ? MapReservationToDto(reservation) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -426,7 +426,7 @@ public class TableManagementService(
 
             return MapReservationToDto(reservation);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -470,7 +470,7 @@ public class TableManagementService(
 
             return MapReservationToDto(reservation);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -502,7 +502,7 @@ public class TableManagementService(
 
             return MapReservationToDto(reservation);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -534,7 +534,7 @@ public class TableManagementService(
 
             return MapReservationToDto(reservation);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -564,7 +564,7 @@ public class TableManagementService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -595,7 +595,7 @@ public class TableManagementService(
 
             return MapReservationToDto(reservation);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

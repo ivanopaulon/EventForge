@@ -71,7 +71,7 @@ public partial class EpsonFiscalPrinterService
 
             return pdfBytes;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

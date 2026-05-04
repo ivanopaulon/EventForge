@@ -69,7 +69,7 @@ public class SaleSessionService(
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -99,7 +99,7 @@ public class SaleSessionService(
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -161,7 +161,7 @@ public class SaleSessionService(
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -197,7 +197,7 @@ public class SaleSessionService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -344,7 +344,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 throw;
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -421,7 +421,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -486,7 +486,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -550,7 +550,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(reloadedSession, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -598,7 +598,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -654,7 +654,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -736,7 +736,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -769,7 +769,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -868,7 +868,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -948,7 +948,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1027,7 +1027,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1112,7 +1112,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1194,7 +1194,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1229,7 +1229,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return dtos;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1262,7 +1262,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return dtos;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1525,7 +1525,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(session, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1579,7 +1579,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             {
                 receiptDocumentType = await documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
             }
-            catch (Exception ex)
+            catch
             {
                 throw;
             }
@@ -1592,7 +1592,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 {
                     businessPartyId = await documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
                 }
-                catch (Exception ex)
+                catch
                 {
                     throw;
                 }
@@ -1644,7 +1644,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 }
                 logger.LogInformation("Document header created: {DocumentId} for session {SessionId}", documentHeader.Id, session.Id);
             }
-            catch (Exception ex)
+            catch
             {
                 throw;
             }
@@ -1694,7 +1694,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return documentHeader.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1867,7 +1867,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 SplitType = splitDto.SplitType
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1976,7 +1976,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return await MapToDtoAsync(mergedSession, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2008,7 +2008,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2320,7 +2320,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             return productIds;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

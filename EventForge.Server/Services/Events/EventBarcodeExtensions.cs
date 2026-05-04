@@ -1,4 +1,4 @@
-using EventForge.Server.Services.Interfaces;
+using EventForge.Server.Services.Common;
 
 namespace EventForge.Server.Services.Events;
 

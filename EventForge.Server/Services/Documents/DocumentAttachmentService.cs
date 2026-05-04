@@ -36,7 +36,7 @@ public class DocumentAttachmentService(
 
             return attachments.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -65,7 +65,7 @@ public class DocumentAttachmentService(
 
             return attachments.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -84,7 +84,7 @@ public class DocumentAttachmentService(
 
             return attachment is not null ? MapToDto(attachment) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -142,7 +142,7 @@ public class DocumentAttachmentService(
 
             return MapToDto(attachment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -193,7 +193,7 @@ public class DocumentAttachmentService(
 
             return MapToDto(attachment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -258,7 +258,7 @@ public class DocumentAttachmentService(
 
             return MapToDto(newVersion);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -297,7 +297,7 @@ public class DocumentAttachmentService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -340,7 +340,7 @@ public class DocumentAttachmentService(
 
             return versions.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -383,7 +383,7 @@ public class DocumentAttachmentService(
 
             return MapToDto(attachment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -409,7 +409,7 @@ public class DocumentAttachmentService(
 
             return attachments.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -426,7 +426,7 @@ public class DocumentAttachmentService(
                 .AsNoTracking()
                 .AnyAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

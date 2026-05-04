@@ -36,7 +36,7 @@ public class DocumentCommentService(
 
             return comments.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -65,7 +65,7 @@ public class DocumentCommentService(
 
             return comments.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -89,7 +89,7 @@ public class DocumentCommentService(
             var comment = await query.FirstOrDefaultAsync(cancellationToken);
             return comment is not null ? MapToDto(comment) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -148,7 +148,7 @@ public class DocumentCommentService(
 
             return MapToDto(comment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -207,7 +207,7 @@ public class DocumentCommentService(
 
             return MapToDto(comment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -246,7 +246,7 @@ public class DocumentCommentService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -295,7 +295,7 @@ public class DocumentCommentService(
 
             return MapToDto(comment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -325,7 +325,7 @@ public class DocumentCommentService(
             _ = await context.SaveChangesAsync(cancellationToken);
             return MapToDto(comment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -378,7 +378,7 @@ public class DocumentCommentService(
                 })
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -426,7 +426,7 @@ public class DocumentCommentService(
                 })
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -474,7 +474,7 @@ public class DocumentCommentService(
                 })
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -522,7 +522,7 @@ public class DocumentCommentService(
                 })
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -551,7 +551,7 @@ public class DocumentCommentService(
                 AssignedToMe = comments.Count(c => c.AssignedTo == currentUser)
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -572,7 +572,7 @@ public class DocumentCommentService(
 
             return replies.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -599,7 +599,7 @@ public class DocumentCommentService(
             _ = await context.SaveChangesAsync(cancellationToken);
             return MapToDto(comment);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -636,7 +636,7 @@ public class DocumentCommentService(
             var comments = await query.OrderByDescending(c => c.CreatedAt).ToListAsync(cancellationToken);
             return comments.Select(MapToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -653,7 +653,7 @@ public class DocumentCommentService(
                 .AsNoTracking()
                 .AnyAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

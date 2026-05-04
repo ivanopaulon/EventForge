@@ -193,7 +193,7 @@ public class PriceListGenerationService(
 
             return priceList.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -310,7 +310,7 @@ public class PriceListGenerationService(
                 ProductsExcluded = products.Count - validProductsCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -444,7 +444,7 @@ public class PriceListGenerationService(
                 AnalysisToDate = dto.ToDate
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -617,7 +617,7 @@ public class PriceListGenerationService(
 
             return priceList.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -742,7 +742,7 @@ public class PriceListGenerationService(
                 AnalysisToDate = toDate
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -947,7 +947,7 @@ public class PriceListGenerationService(
                 Warnings = warnings
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1289,7 +1289,7 @@ public class PriceListGenerationService(
                 CreatedBy = currentUser
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

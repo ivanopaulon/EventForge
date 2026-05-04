@@ -71,7 +71,7 @@ public class LocalFileStorageService(
                 FileHash = fileHash
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -121,7 +121,7 @@ public class LocalFileStorageService(
             };
             return Task.FromResult<FileRetrievalResult?>(result);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -159,7 +159,7 @@ public class LocalFileStorageService(
 
             return Task.FromResult(true);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -204,7 +204,7 @@ public class LocalFileStorageService(
             };
             return Task.FromResult<FileMetadata?>(result);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

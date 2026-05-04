@@ -27,7 +27,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -45,7 +45,7 @@ public class DocumentRecurrenceService(
 
             return entity is null ? null : DocumentRecurrenceMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -65,7 +65,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -85,7 +85,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -109,7 +109,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -129,7 +129,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -165,7 +165,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -209,7 +209,7 @@ public class DocumentRecurrenceService(
 
             return DocumentRecurrenceMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -244,7 +244,7 @@ public class DocumentRecurrenceService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -278,7 +278,7 @@ public class DocumentRecurrenceService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -324,7 +324,7 @@ public class DocumentRecurrenceService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -341,7 +341,7 @@ public class DocumentRecurrenceService(
 
             return entity is null ? null : CalculateNextExecutionDate(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

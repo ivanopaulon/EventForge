@@ -54,7 +54,7 @@ public class DocumentHeaderService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -88,7 +88,7 @@ public class DocumentHeaderService(
 
             return documentHeader.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -110,7 +110,7 @@ public class DocumentHeaderService(
 
             return documentHeaders;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -172,7 +172,7 @@ public class DocumentHeaderService(
 
             return documentHeader.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -241,7 +241,7 @@ public class DocumentHeaderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -364,7 +364,7 @@ public class DocumentHeaderService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -403,7 +403,7 @@ public class DocumentHeaderService(
 
             return documentHeader.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -476,7 +476,7 @@ public class DocumentHeaderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -546,7 +546,7 @@ public class DocumentHeaderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -562,7 +562,7 @@ public class DocumentHeaderService(
                 .AsNoTracking()
                 .AnyAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -663,7 +663,7 @@ public class DocumentHeaderService(
 
             return DocumentTypeMapper.ToDto(newType);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -709,7 +709,7 @@ public class DocumentHeaderService(
 
             return DocumentTypeMapper.ToDto(newType);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -753,7 +753,7 @@ public class DocumentHeaderService(
 
             return newParty.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1020,7 +1020,7 @@ public class DocumentHeaderService(
 
             return row.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1202,7 +1202,7 @@ public class DocumentHeaderService(
 
             return row.ToDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1312,7 +1312,7 @@ public class DocumentHeaderService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1462,7 +1462,7 @@ public class DocumentHeaderService(
 
             logger.LogInformation("Completed processing stock movements for document {DocumentHeaderId}.", documentHeader.Id);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1537,7 +1537,7 @@ public class DocumentHeaderService(
             {
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

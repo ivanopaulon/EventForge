@@ -1,6 +1,8 @@
 @page "/documents/create"
 @page "/documents/edit/{DocumentId:guid}"
 @inject NavigationManager NavigationManager
+
+@* Redirect placeholder: these routes are not yet implemented. Navigates to the document list. *@
 @code {
     [Parameter] public Guid? DocumentId { get; set; }
     protected override void OnInitialized()

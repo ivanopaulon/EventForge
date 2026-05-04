@@ -27,7 +27,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -45,7 +45,7 @@ public class DocumentTemplateService(
 
             return entity is null ? null : DocumentTemplateMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -65,7 +65,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -85,7 +85,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -107,7 +107,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -129,7 +129,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDtoCollection(entities);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -162,7 +162,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -200,7 +200,7 @@ public class DocumentTemplateService(
 
             return DocumentTemplateMapper.ToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -235,7 +235,7 @@ public class DocumentTemplateService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -268,7 +268,7 @@ public class DocumentTemplateService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

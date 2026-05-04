@@ -242,8 +242,20 @@ public class DashboardMetricCalculationTests
         Assert.Equal("42.57", formatted); // Rounded to 2 decimals
     }
 
-    // Test for FilterDefinition removed - type not yet implemented
-    // TODO: Re-enable when DashboardFilterDefinition is implemented
+    [Fact]
+    public void DashboardFilterDefinition_ShouldHaveCorrectFilterType()
+    {
+        // Arrange & Act
+        var filterDef = new DashboardFilterDefinition
+        {
+            Id = "dateFilter",
+            Label = "Data",
+            Type = FilterType.DateRange
+        };
+
+        // Assert
+        Assert.Equal(FilterType.DateRange, filterDef.Type);
+    }
 
     [Fact]
     public void DashboardMetric_WithExpressionSelector_ShouldBeCompilable()

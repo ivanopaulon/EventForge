@@ -65,7 +65,7 @@ public class PaymentMethodService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -102,7 +102,7 @@ public class PaymentMethodService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -125,7 +125,7 @@ public class PaymentMethodService(
 
             return paymentMethod is not null ? MapToDto(paymentMethod) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -150,7 +150,7 @@ public class PaymentMethodService(
 
             return paymentMethod is not null ? MapToDto(paymentMethod) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -214,7 +214,7 @@ public class PaymentMethodService(
 
             return MapToDto(paymentMethod);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -287,7 +287,7 @@ public class PaymentMethodService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -351,7 +351,7 @@ public class PaymentMethodService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -380,7 +380,7 @@ public class PaymentMethodService(
 
             return await query.AnyAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

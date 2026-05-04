@@ -31,7 +31,7 @@ public class DocumentFacade(
         {
             return await attachmentService.GetDocumentHeaderAttachmentsAsync(documentHeaderId, includeHistory, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -47,7 +47,7 @@ public class DocumentFacade(
         {
             return await attachmentService.CreateAttachmentAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -63,7 +63,7 @@ public class DocumentFacade(
         {
             return await attachmentService.GetDocumentRowAttachmentsAsync(documentRowId, includeHistory, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -78,7 +78,7 @@ public class DocumentFacade(
         {
             return await attachmentService.GetAttachmentByIdAsync(attachmentId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -95,7 +95,7 @@ public class DocumentFacade(
         {
             return await attachmentService.UpdateAttachmentAsync(attachmentId, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -112,7 +112,7 @@ public class DocumentFacade(
         {
             return await attachmentService.CreateAttachmentVersionAsync(attachmentId, versionDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -127,7 +127,7 @@ public class DocumentFacade(
         {
             return await attachmentService.GetAttachmentVersionsAsync(attachmentId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -144,7 +144,7 @@ public class DocumentFacade(
         {
             return await attachmentService.SignAttachmentAsync(attachmentId, signatureInfo, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -159,7 +159,7 @@ public class DocumentFacade(
         {
             return await attachmentService.GetAttachmentsByCategoryAsync(category, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -175,7 +175,7 @@ public class DocumentFacade(
         {
             return await attachmentService.DeleteAttachmentAsync(attachmentId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -190,7 +190,7 @@ public class DocumentFacade(
         {
             return await attachmentService.AttachmentExistsAsync(attachmentId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -207,7 +207,7 @@ public class DocumentFacade(
         {
             return await commentService.GetDocumentHeaderCommentsAsync(documentHeaderId, includeReplies, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -223,7 +223,7 @@ public class DocumentFacade(
         {
             return await commentService.CreateCommentAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -239,7 +239,7 @@ public class DocumentFacade(
         {
             return await commentService.GetDocumentRowCommentsAsync(documentRowId, includeReplies, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -255,7 +255,7 @@ public class DocumentFacade(
         {
             return await commentService.GetCommentByIdAsync(commentId, includeReplies, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -272,7 +272,7 @@ public class DocumentFacade(
         {
             return await commentService.UpdateCommentAsync(commentId, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -289,7 +289,7 @@ public class DocumentFacade(
         {
             return await commentService.ResolveCommentAsync(commentId, resolveDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -305,7 +305,7 @@ public class DocumentFacade(
         {
             return await commentService.ReopenCommentAsync(commentId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -321,7 +321,7 @@ public class DocumentFacade(
         {
             return await commentService.GetDocumentCommentStatsAsync(documentId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -337,7 +337,7 @@ public class DocumentFacade(
         {
             return await commentService.GetAssignedCommentsAsync(userId, status, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -353,7 +353,7 @@ public class DocumentFacade(
         {
             return await commentService.DeleteCommentAsync(commentId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -368,7 +368,7 @@ public class DocumentFacade(
         {
             return await commentService.CommentExistsAsync(commentId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -383,7 +383,7 @@ public class DocumentFacade(
         {
             return await templateService.GetPublicTemplatesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -398,7 +398,7 @@ public class DocumentFacade(
         {
             return await templateService.GetByIdAsync(templateId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -412,7 +412,7 @@ public class DocumentFacade(
         {
             return await templateService.GetAllAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -427,7 +427,7 @@ public class DocumentFacade(
         {
             return await templateService.GetByDocumentTypeAsync(documentTypeId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -442,7 +442,7 @@ public class DocumentFacade(
         {
             return await templateService.GetByCategoryAsync(category, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -458,7 +458,7 @@ public class DocumentFacade(
         {
             return await templateService.CreateAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -475,7 +475,7 @@ public class DocumentFacade(
         {
             return await templateService.UpdateAsync(templateId, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -491,7 +491,7 @@ public class DocumentFacade(
         {
             return await templateService.DeleteAsync(templateId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -507,7 +507,7 @@ public class DocumentFacade(
         {
             return await templateService.UpdateUsageAsync(templateId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -528,7 +528,7 @@ public class DocumentFacade(
 
             return await workflowService.GetAllAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -543,7 +543,7 @@ public class DocumentFacade(
         {
             return await workflowService.GetByIdAsync(workflowId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -559,7 +559,7 @@ public class DocumentFacade(
         {
             return await workflowService.CreateAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -576,7 +576,7 @@ public class DocumentFacade(
         {
             return await workflowService.UpdateAsync(workflowId, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -592,7 +592,7 @@ public class DocumentFacade(
         {
             return await workflowService.DeleteAsync(workflowId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -608,7 +608,7 @@ public class DocumentFacade(
         {
             return await analyticsService.GetDocumentAnalyticsAsync(documentHeaderId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -624,7 +624,7 @@ public class DocumentFacade(
         {
             return await analyticsService.CreateOrUpdateAnalyticsAsync(documentHeaderId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -641,7 +641,7 @@ public class DocumentFacade(
         {
             return await analyticsService.GetAnalyticsSummaryAsync(from, to, groupBy, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -657,7 +657,7 @@ public class DocumentFacade(
         {
             return await analyticsService.CalculateKpiSummaryAsync(from, to, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -675,7 +675,7 @@ public class DocumentFacade(
         {
             return await analyticsService.HandleWorkflowEventAsync(documentId, eventType, eventData, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -691,7 +691,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.GetPagedDocumentHeadersAsync(queryParameters, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -707,7 +707,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -722,7 +722,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.GetDocumentHeadersByBusinessPartyAsync(businessPartyId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -738,7 +738,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.CreateDocumentHeaderAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -755,7 +755,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.UpdateDocumentHeaderAsync(id, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -771,7 +771,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.DeleteDocumentHeaderAsync(id, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -786,7 +786,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.CalculateDocumentTotalsAsync(id, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -802,7 +802,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -818,7 +818,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -833,7 +833,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.DocumentHeaderExistsAsync(id, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -849,7 +849,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.AddDocumentRowAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -866,7 +866,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.UpdateDocumentRowAsync(rowId, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -882,7 +882,7 @@ public class DocumentFacade(
         {
             return await documentHeaderService.DeleteDocumentRowAsync(rowId, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -896,7 +896,7 @@ public class DocumentFacade(
         {
             return await documentTypeService.GetAllAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -909,7 +909,7 @@ public class DocumentFacade(
         {
             return await documentTypeService.GetByIdAsync(id, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -922,7 +922,7 @@ public class DocumentFacade(
         {
             return await documentTypeService.CreateAsync(createDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -935,7 +935,7 @@ public class DocumentFacade(
         {
             return await documentTypeService.UpdateAsync(id, updateDto, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -948,7 +948,7 @@ public class DocumentFacade(
         {
             return await documentTypeService.DeleteAsync(id, currentUser, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -966,7 +966,7 @@ public class DocumentFacade(
         {
             return await documentStatusService.ChangeStatusAsync(documentId, newStatus, reason, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -981,7 +981,7 @@ public class DocumentFacade(
         {
             return await documentStatusService.GetStatusHistoryAsync(documentId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -996,7 +996,7 @@ public class DocumentFacade(
         {
             return await documentStatusService.GetAvailableTransitionsAsync(documentId, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

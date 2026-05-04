@@ -77,7 +77,7 @@ public class DocumentStatusService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -108,7 +108,7 @@ public class DocumentStatusService(
                 UserAgent = h.UserAgent
             }).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -133,7 +133,7 @@ public class DocumentStatusService(
 
             return DocumentStateMachine.GetAvailableTransitions(document);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -161,7 +161,7 @@ public class DocumentStatusService(
             var documentDto = document.ToDto();
             return DocumentStateMachine.ValidateTransition(documentDto, newStatus);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -13,10 +13,10 @@
 
 @if (!_isLoading)
 {
-    <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
-        <MudText Typo="Typo.h4" Class="mb-4">
-            @TranslationService.GetTranslation("analytics.title", "Analytics & Reportistica")
-        </MudText>
+<div class="ef-flex-col-fill">
+    <ManagementPageHeader Title="@TranslationService.GetTranslation("analytics.title", "Analytics & Reportistica")"
+                          Icon="@Icons.Material.Outlined.Analytics"
+                          BreadcrumbItems="_breadcrumbs" />
 
         <!-- Filter bar -->
         <MudPaper Elevation="1" Class="pa-4 mb-4">
@@ -388,13 +388,20 @@
             </MudTabPanel>
 
         </MudTabs>
-    </MudContainer>
+</div>
 }
 
 @code {
     private bool _isLoading = true;
     private bool _isLoadingData;
     private string _activePeriod = "6m";
+
+    private List<BreadcrumbItem> _breadcrumbs = new()
+    {
+        new("Home", href: "/"),
+        new("Gestione", href: null, disabled: true),
+        new("Analytics & Reportistica", href: null, disabled: true)
+    };
 
     private AnalyticsFilterDto _filter = new()
     {

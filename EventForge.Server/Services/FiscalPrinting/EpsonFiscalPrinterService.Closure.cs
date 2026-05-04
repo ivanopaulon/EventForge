@@ -63,7 +63,7 @@ public partial class EpsonFiscalPrinterService
             var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -370,7 +370,7 @@ public partial class EpsonFiscalPrinterService
                 FiscalClosurePending = r.FiscalClosurePending
             }).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -429,7 +429,7 @@ public partial class EpsonFiscalPrinterService
             var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
             return await ExecuteXmlAsync(channel, xml, record.PrinterId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

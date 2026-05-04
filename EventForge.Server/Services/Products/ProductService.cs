@@ -75,7 +75,7 @@ public class ProductService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -124,7 +124,7 @@ public class ProductService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -162,7 +162,7 @@ public class ProductService(
             dto.PreferredSupplierName = preferredSupplierName;
             return dto;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -200,7 +200,7 @@ public class ProductService(
             dto.PreferredSupplierName = preferredSupplierName;
             return dto;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -296,7 +296,7 @@ public class ProductService(
             // This should never be reached
             throw new InvalidOperationException("Unexpected error in product creation retry logic.");
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -455,7 +455,7 @@ public class ProductService(
                 throw;
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -573,7 +573,7 @@ public class ProductService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -677,7 +677,7 @@ public class ProductService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -698,7 +698,7 @@ public class ProductService(
 
             return codes.Select(MapToProductCodeDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -715,7 +715,7 @@ public class ProductService(
 
             return code is not null ? MapToProductCodeDto(code) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -740,7 +740,7 @@ public class ProductService(
 
             return MapToProductDto(productCode.Product);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -776,7 +776,7 @@ public class ProductService(
                 Code = MapToProductCodeDto(productCode)
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -826,7 +826,7 @@ public class ProductService(
 
             return MapToProductCodeDto(productCode);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -881,7 +881,7 @@ public class ProductService(
 
             return MapToProductCodeDto(productCode);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -934,7 +934,7 @@ public class ProductService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -955,7 +955,7 @@ public class ProductService(
 
             return units.Select(MapToProductUnitDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -972,7 +972,7 @@ public class ProductService(
 
             return unit is not null ? MapToProductUnitDto(unit) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1022,7 +1022,7 @@ public class ProductService(
 
             return MapToProductUnitDto(productUnit);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1078,7 +1078,7 @@ public class ProductService(
 
             return MapToProductUnitDto(productUnit);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1132,7 +1132,7 @@ public class ProductService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1152,7 +1152,7 @@ public class ProductService(
 
             return bundleItems.Select(MapToProductBundleItemDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1169,7 +1169,7 @@ public class ProductService(
 
             return bundleItem is not null ? MapToProductBundleItemDto(bundleItem) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1214,7 +1214,7 @@ public class ProductService(
 
             return MapToProductBundleItemDto(bundleItem);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1271,7 +1271,7 @@ public class ProductService(
 
             return MapToProductBundleItemDto(bundleItem);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1323,7 +1323,7 @@ public class ProductService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1357,7 +1357,7 @@ public class ProductService(
             logger.LogInformation("Product {ProductId} image updated successfully by user {User}.", productId, currentUser);
             return MapToProductDto(product);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1456,7 +1456,7 @@ public class ProductService(
             product.ImageDocument = documentReference;
             return MapToProductDto(product);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1485,7 +1485,7 @@ public class ProductService(
 
             return MapToDocumentReferenceDto(product.ImageDocument);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1531,7 +1531,7 @@ public class ProductService(
             logger.LogInformation("Product {ProductId} image deleted successfully.", productId);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1708,7 +1708,7 @@ public class ProductService(
                 .AsNoTracking()
                 .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1762,7 +1762,7 @@ public class ProductService(
 
             return suppliers.Select(MapToProductSupplierDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1787,7 +1787,7 @@ public class ProductService(
 
             return supplier is not null ? MapToProductSupplierDto(supplier) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1890,7 +1890,7 @@ public class ProductService(
 
             return MapToProductSupplierDto(productSupplier);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2033,7 +2033,7 @@ public class ProductService(
 
             return MapToProductSupplierDto(productSupplier);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2077,7 +2077,7 @@ public class ProductService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2152,7 +2152,7 @@ public class ProductService(
                 };
             }).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2219,7 +2219,7 @@ public class ProductService(
 
             return productIdsToAdd.Count;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2331,7 +2331,7 @@ public class ProductService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2437,7 +2437,7 @@ public class ProductService(
 
             return transactions;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2536,7 +2536,7 @@ public class ProductService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -2597,7 +2597,7 @@ public class ProductService(
                 CreatedAt = p.CreatedAt
             });
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
