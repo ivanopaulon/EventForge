@@ -10,6 +10,8 @@
 
 <PageLoadingOverlay Visible="@_loading" Message="Caricamento inventari..." />
 
+@if (!_loading)
+{
 <div class="ef-flex-col-fill">
 <ManagementPageHeader Title="Accorpamento Inventari"
                       Icon="@Icons.Material.Filled.MergeType"
@@ -331,6 +333,7 @@
 }
 
 </div>
+}
 
 @code {
     private MudStepper? _stepper;

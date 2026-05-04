@@ -48,7 +48,7 @@ public class BarcodeService(ILogger<BarcodeService> logger) : IBarcodeService
                 Data = request.Data
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

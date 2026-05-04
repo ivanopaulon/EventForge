@@ -71,7 +71,7 @@ public class StorageLocationService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -114,7 +114,7 @@ public class StorageLocationService(
 
             return location;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -161,7 +161,7 @@ public class StorageLocationService(
 
             return locations;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -216,7 +216,7 @@ public class StorageLocationService(
 
             return locations;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -291,7 +291,7 @@ public class StorageLocationService(
             return await GetStorageLocationByIdAsync(location.Id, cancellationToken)
                    ?? throw new InvalidOperationException("Failed to retrieve created storage location.");
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -400,7 +400,7 @@ public class StorageLocationService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -456,7 +456,7 @@ public class StorageLocationService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -503,7 +503,7 @@ public class StorageLocationService(
 
             return await GetStorageLocationByIdAsync(id, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -564,7 +564,7 @@ public class StorageLocationService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -625,7 +625,7 @@ public class StorageLocationService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

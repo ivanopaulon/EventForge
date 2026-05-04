@@ -44,7 +44,7 @@ public class EventService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -85,7 +85,7 @@ public class EventService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -133,7 +133,7 @@ public class EventService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -178,7 +178,7 @@ public class EventService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -209,7 +209,7 @@ public class EventService(
 
             return MapToEventDto(eventEntity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -241,7 +241,7 @@ public class EventService(
 
             return MapToEventDetailDto(eventEntity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -308,7 +308,7 @@ public class EventService(
 
             return MapToEventDto(createdEvent);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -396,7 +396,7 @@ public class EventService(
 
             return MapToEventDto(eventEntity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -507,7 +507,7 @@ public class EventService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -521,7 +521,7 @@ public class EventService(
                 .AsNoTracking()
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

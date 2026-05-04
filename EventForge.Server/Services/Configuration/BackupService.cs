@@ -50,7 +50,7 @@ public class BackupService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -73,7 +73,7 @@ public class BackupService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -106,7 +106,7 @@ public class BackupService(
 
             return results;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -139,7 +139,7 @@ public class BackupService(
             // Notify clients
             await NotifyBackupStatusChange(backup, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -168,7 +168,7 @@ public class BackupService(
 
             return (fileStream, fileName);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -203,7 +203,7 @@ public class BackupService(
             _ = context.BackupOperations.Remove(backup);
             _ = await context.SaveChangesAsync(ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

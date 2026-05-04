@@ -98,7 +98,7 @@ public class PortConfigurationService(
 
             logger.LogInformation("Port configuration saved: HTTP={HttpPort}, HTTPS={HttpsPort}", httpPort, httpsPort);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

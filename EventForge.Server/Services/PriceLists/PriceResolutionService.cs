@@ -142,10 +142,10 @@ namespace EventForge.Server.Services.PriceLists
                     Source = "DefaultPrice"
                 };
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         /// <inheritdoc/>
@@ -206,10 +206,10 @@ namespace EventForge.Server.Services.PriceLists
 
                 return response;
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         /// <summary>

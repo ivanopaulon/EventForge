@@ -60,7 +60,7 @@ public class AuditLogService(
 
             return changeLog;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -81,7 +81,7 @@ public class AuditLogService(
                 .OrderByDescending(log => log.ChangedAt)
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -104,7 +104,7 @@ public class AuditLogService(
                 .OrderByDescending(log => log.ChangedAt)
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -126,7 +126,7 @@ public class AuditLogService(
                 .OrderByDescending(log => log.ChangedAt)
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -149,7 +149,7 @@ public class AuditLogService(
                 .OrderByDescending(log => log.ChangedAt)
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -182,7 +182,7 @@ public class AuditLogService(
                 .Take(take)
                 .ToListAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -270,7 +270,7 @@ public class AuditLogService(
 
             return changeLogs;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -345,7 +345,7 @@ public class AuditLogService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -364,7 +364,7 @@ public class AuditLogService(
                 .AsNoTracking()
                 .FirstOrDefaultAsync(log => log.Id == id, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -512,7 +512,7 @@ public class AuditLogService(
                 PageSize = searchDto.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -545,7 +545,7 @@ public class AuditLogService(
                 DeletedEntries = deletedEntries
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -736,7 +736,7 @@ public class AuditLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -785,7 +785,7 @@ public class AuditLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -837,7 +837,7 @@ public class AuditLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -889,7 +889,7 @@ public class AuditLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

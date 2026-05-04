@@ -106,7 +106,7 @@ public class MonitoringService(
                 RecentErrors = recentErrors
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

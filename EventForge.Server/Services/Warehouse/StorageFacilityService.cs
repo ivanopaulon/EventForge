@@ -63,7 +63,7 @@ public class StorageFacilityService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -81,7 +81,7 @@ public class StorageFacilityService(
 
             return facility is null ? null : MapToStorageFacilityDto(facility);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -132,7 +132,7 @@ public class StorageFacilityService(
 
             return MapToStorageFacilityDto(facility);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -194,7 +194,7 @@ public class StorageFacilityService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -248,7 +248,7 @@ public class StorageFacilityService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -262,7 +262,7 @@ public class StorageFacilityService(
                 .AsNoTracking()
                 .AnyAsync(sf => sf.Id == facilityId && !sf.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -341,7 +341,7 @@ public class StorageFacilityService(
                 CreatedAt = sf.CreatedAt
             });
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

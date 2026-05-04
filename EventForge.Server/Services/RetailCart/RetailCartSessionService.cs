@@ -48,10 +48,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await MapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -64,10 +64,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await MapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> AddItemAsync(Guid sessionId, AddCartItemDto addItemDto, CancellationToken cancellationToken = default)
@@ -106,10 +106,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId, CancellationToken cancellationToken = default)
@@ -131,10 +131,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> UpdateItemQuantityAsync(Guid sessionId, Guid itemId, UpdateCartItemDto updateDto, CancellationToken cancellationToken = default)
@@ -166,10 +166,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> ApplyCouponsAsync(Guid sessionId, ApplyCouponsDto applyCouponsDto, CancellationToken cancellationToken = default)
@@ -188,10 +188,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> ClearAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -210,10 +210,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         public async Task<CartSessionDto?> GetTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -226,10 +226,10 @@ namespace EventForge.Server.Services.RetailCart
 
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
-            catch (Exception ex)
-            {
-                throw;
-            }
+            catch
+        {
+            throw;
+        }
         }
 
         #region Private Methods

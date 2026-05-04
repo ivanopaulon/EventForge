@@ -86,7 +86,7 @@ public class LogIngestionService(ILogger<LogIngestionService> logger) : ILogInge
 
             return successCount;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

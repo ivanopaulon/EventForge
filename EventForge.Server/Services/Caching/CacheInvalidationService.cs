@@ -17,7 +17,7 @@ public class CacheInvalidationService(
             logger.LogInformation("Invalidating static entities cache");
             await cache.EvictByTagAsync("static", ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -30,7 +30,7 @@ public class CacheInvalidationService(
             logger.LogInformation("Invalidating semi-static entities cache");
             await cache.EvictByTagAsync("semi-static", ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -43,7 +43,7 @@ public class CacheInvalidationService(
             logger.LogInformation("Invalidating real-time entities cache");
             await cache.EvictByTagAsync("realtime", ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -56,7 +56,7 @@ public class CacheInvalidationService(
             logger.LogInformation("Invalidating cache tag: {Tag}", tag);
             await cache.EvictByTagAsync(tag, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

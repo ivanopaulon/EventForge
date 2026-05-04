@@ -72,7 +72,7 @@ public class LotService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -96,7 +96,7 @@ public class LotService(
 
             return lot is not null ? LotMapper.ToDto(lot) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -120,7 +120,7 @@ public class LotService(
 
             return lot is not null ? LotMapper.ToDto(lot) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -146,7 +146,7 @@ public class LotService(
 
             return lots.Select(LotMapper.ToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -178,7 +178,7 @@ public class LotService(
 
             return lots.Select(LotMapper.ToDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -235,7 +235,7 @@ public class LotService(
             var createdLot = await GetLotByIdAsync(lot.Id, cancellationToken);
             return createdLot!;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -300,7 +300,7 @@ public class LotService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -365,7 +365,7 @@ public class LotService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -421,7 +421,7 @@ public class LotService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -465,7 +465,7 @@ public class LotService(
             logger.LogWarning("Blocked lot {LotId} ({Code}). Reason: {Reason}", lot.Id, lot.Code, reason);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -509,7 +509,7 @@ public class LotService(
             logger.LogInformation("Unblocked lot {LotId} ({Code})", lot.Id, lot.Code);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -532,7 +532,7 @@ public class LotService(
 
             return totalQuantity;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -560,7 +560,7 @@ public class LotService(
             var exists = await query.AnyAsync(cancellationToken);
             return !exists;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -606,7 +606,7 @@ public class LotService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -654,7 +654,7 @@ public class LotService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -703,7 +703,7 @@ public class LotService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

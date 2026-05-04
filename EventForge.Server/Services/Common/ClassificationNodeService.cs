@@ -65,7 +65,7 @@ public class ClassificationNodeService(
                 PageSize = pagination.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -101,7 +101,7 @@ public class ClassificationNodeService(
 
             return node;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -139,7 +139,7 @@ public class ClassificationNodeService(
 
             return nodes;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -177,7 +177,7 @@ public class ClassificationNodeService(
 
             return children;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -258,7 +258,7 @@ public class ClassificationNodeService(
                 ModifiedBy = node.ModifiedBy
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -366,7 +366,7 @@ public class ClassificationNodeService(
                 ModifiedBy = node.ModifiedBy
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -429,7 +429,7 @@ public class ClassificationNodeService(
             logger.LogInformation("Deleted classification node: {Id}", id);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

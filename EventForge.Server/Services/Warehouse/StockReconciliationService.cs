@@ -166,7 +166,7 @@ public class StockReconciliationService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

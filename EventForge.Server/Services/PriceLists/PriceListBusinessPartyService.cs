@@ -87,7 +87,7 @@ public class PriceListBusinessPartyService(
             // Return mapped DTO
             return MapToDto(assignment, businessParty);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -143,7 +143,7 @@ public class PriceListBusinessPartyService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -163,7 +163,7 @@ public class PriceListBusinessPartyService(
 
             return assignments.Select(a => MapToDto(a, a.BusinessParty)).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -194,7 +194,7 @@ public class PriceListBusinessPartyService(
                 .Select(a => MapToPriceListDto(a.PriceList))
                 .ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

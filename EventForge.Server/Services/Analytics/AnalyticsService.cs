@@ -121,7 +121,7 @@ public class AnalyticsService(
             cache.Set(cacheKey, result, CacheEntryOptions);
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -242,7 +242,7 @@ public class AnalyticsService(
             cache.Set(cacheKey, result, CacheEntryOptions);
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -404,7 +404,7 @@ public class AnalyticsService(
             cache.Set(cacheKey, result, CacheEntryOptions);
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -88,7 +88,7 @@ public class SerialService(
                 PageSize = pageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -115,7 +115,7 @@ public class SerialService(
 
             return serial?.ToSerialDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -142,7 +142,7 @@ public class SerialService(
 
             return serial?.ToSerialDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -171,7 +171,7 @@ public class SerialService(
 
             return serials.Select(s => s.ToSerialDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -200,7 +200,7 @@ public class SerialService(
 
             return serials.Select(s => s.ToSerialDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -230,7 +230,7 @@ public class SerialService(
 
             return serials.Select(s => s.ToSerialDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -260,7 +260,7 @@ public class SerialService(
 
             return serials.Select(s => s.ToSerialDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -294,7 +294,7 @@ public class SerialService(
 
             return serials.Select(s => s.ToSerialDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -340,7 +340,7 @@ public class SerialService(
 
             return serialForDto.ToSerialDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -403,7 +403,7 @@ public class SerialService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -465,7 +465,7 @@ public class SerialService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -505,7 +505,7 @@ public class SerialService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -541,7 +541,7 @@ public class SerialService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -581,7 +581,7 @@ public class SerialService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -608,7 +608,7 @@ public class SerialService(
 
             return !await query.AnyAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -651,7 +651,7 @@ public class SerialService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -679,7 +679,7 @@ public class SerialService(
 
             return movements.Select(sm => sm.ToStockMovementDto());
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

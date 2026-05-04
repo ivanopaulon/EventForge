@@ -56,7 +56,7 @@ public class StationService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -90,7 +90,7 @@ public class StationService(
 
             return MapToStationDto(station, printerCount);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -133,7 +133,7 @@ public class StationService(
 
             return MapToStationDto(station, 0);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -207,7 +207,7 @@ public class StationService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -271,7 +271,7 @@ public class StationService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -314,7 +314,7 @@ public class StationService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -345,7 +345,7 @@ public class StationService(
 
             return MapToPrinterDto(printer);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -371,7 +371,7 @@ public class StationService(
 
             return printers.Select(MapToPrinterDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -436,7 +436,7 @@ public class StationService(
 
             return MapToPrinterDto(createdPrinter);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -516,7 +516,7 @@ public class StationService(
 
             return MapToPrinterDto(updatedPrinter);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -568,7 +568,7 @@ public class StationService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -592,7 +592,7 @@ public class StationService(
                 .AsNoTracking()
                 .AnyAsync(s => s.Id == stationId && !s.IsDeleted && s.TenantId == tenantId.Value, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -64,7 +64,7 @@ public class FiscalDrawerService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -84,7 +84,7 @@ public class FiscalDrawerService(
             var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
             return MapToDto(entity, openSession);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -104,7 +104,7 @@ public class FiscalDrawerService(
             var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
             return MapToDto(entity, openSession);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -124,7 +124,7 @@ public class FiscalDrawerService(
             var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
             return MapToDto(entity, openSession);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -161,7 +161,7 @@ public class FiscalDrawerService(
 
             return MapToDto(entity, null);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -213,7 +213,7 @@ public class FiscalDrawerService(
         {
             throw; // Re-throw business rule violations as-is (controller handles 409)
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -239,7 +239,7 @@ public class FiscalDrawerService(
             _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, null, ct);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -267,7 +267,7 @@ public class FiscalDrawerService(
 
             return session is null ? null : MapSessionToDto(session);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -300,7 +300,7 @@ public class FiscalDrawerService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -381,7 +381,7 @@ public class FiscalDrawerService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -440,7 +440,7 @@ public class FiscalDrawerService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -477,7 +477,7 @@ public class FiscalDrawerService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -552,7 +552,7 @@ public class FiscalDrawerService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -616,7 +616,7 @@ public class FiscalDrawerService(
 
             await context.SaveChangesAsync(ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -682,7 +682,7 @@ public class FiscalDrawerService(
 
             return items.Select(MapDenominationToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -729,7 +729,7 @@ public class FiscalDrawerService(
             await context.SaveChangesAsync(ct);
             return result.Select(MapDenominationToDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -752,7 +752,7 @@ public class FiscalDrawerService(
             await context.SaveChangesAsync(ct);
             return MapDenominationToDto(entity);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -825,7 +825,7 @@ public class FiscalDrawerService(
 
             return response;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -869,7 +869,7 @@ public class FiscalDrawerService(
                 SessionTotalWithdrawals = session?.TotalWithdrawals ?? 0
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -985,7 +985,7 @@ public class FiscalDrawerService(
                 WeeklySalesTrend = weeklyTrend
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

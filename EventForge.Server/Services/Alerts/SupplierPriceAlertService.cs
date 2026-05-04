@@ -88,7 +88,7 @@ public class SupplierPriceAlertService(
 
             return alert.Id;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -208,7 +208,7 @@ public class SupplierPriceAlertService(
 
             return alertIds;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -310,7 +310,7 @@ public class SupplierPriceAlertService(
 
             return alertIds;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -331,7 +331,7 @@ public class SupplierPriceAlertService(
 
             return alert is null ? null : await MapToDto(alert, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -438,7 +438,7 @@ public class SupplierPriceAlertService(
                 PageSize = filter.PageSize
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -482,7 +482,7 @@ public class SupplierPriceAlertService(
                     : null
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -513,7 +513,7 @@ public class SupplierPriceAlertService(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -545,7 +545,7 @@ public class SupplierPriceAlertService(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -574,7 +574,7 @@ public class SupplierPriceAlertService(
             await context.SaveChangesAsync(cancellationToken);
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -601,7 +601,7 @@ public class SupplierPriceAlertService(
             await context.SaveChangesAsync(cancellationToken);
             return alerts.Count;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -618,7 +618,7 @@ public class SupplierPriceAlertService(
                 .Where(a => a.TenantId == tenantId && a.Status == AlertStatus.New)
                 .CountAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -652,7 +652,7 @@ public class SupplierPriceAlertService(
 
             return config;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -689,7 +689,7 @@ public class SupplierPriceAlertService(
             await context.SaveChangesAsync(cancellationToken);
             return config;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

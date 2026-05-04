@@ -193,7 +193,7 @@ public class SupplierProductBulkService(
 
             return previews;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

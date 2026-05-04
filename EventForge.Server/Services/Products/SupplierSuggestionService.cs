@@ -113,7 +113,7 @@ public class SupplierSuggestionService(
                 RecommendationExplanation = explanation
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -203,7 +203,7 @@ public class SupplierSuggestionService(
 
             return suggestions;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -294,7 +294,7 @@ public class SupplierSuggestionService(
                 Metrics = metrics
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -361,7 +361,7 @@ public class SupplierSuggestionService(
 
             return explanation;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

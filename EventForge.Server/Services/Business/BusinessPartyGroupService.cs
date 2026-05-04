@@ -57,7 +57,7 @@ public class BusinessPartyGroupService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -81,7 +81,7 @@ public class BusinessPartyGroupService(
 
             return group is not null ? MapToGroupDto(group) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -142,7 +142,7 @@ public class BusinessPartyGroupService(
 
             return MapToGroupDto(group);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -237,7 +237,7 @@ public class BusinessPartyGroupService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -303,7 +303,7 @@ public class BusinessPartyGroupService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -350,7 +350,7 @@ public class BusinessPartyGroupService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -435,7 +435,7 @@ public class BusinessPartyGroupService(
 
             return MapToMemberDto(member);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -538,7 +538,7 @@ public class BusinessPartyGroupService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -597,7 +597,7 @@ public class BusinessPartyGroupService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -663,7 +663,7 @@ public class BusinessPartyGroupService(
 
             return MapToMemberDto(member);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -696,7 +696,7 @@ public class BusinessPartyGroupService(
 
             return groups.Select(MapToGroupDto).ToList();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -736,7 +736,7 @@ public class BusinessPartyGroupService(
 
             return groupIds;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -763,7 +763,7 @@ public class BusinessPartyGroupService(
                     && !m.IsDeleted
                     && m.Status == BusinessPartyGroupMemberStatus.Active, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -55,7 +55,7 @@ public class ModelService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -103,7 +103,7 @@ public class ModelService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -127,7 +127,7 @@ public class ModelService(
 
             return model is not null ? MapToModelDto(model) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -183,7 +183,7 @@ public class ModelService(
 
             return MapToModelDto(createdModel);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -258,7 +258,7 @@ public class ModelService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -313,7 +313,7 @@ public class ModelService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -334,7 +334,7 @@ public class ModelService(
                 .Where(m => m.Id == modelId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
                 .AnyAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

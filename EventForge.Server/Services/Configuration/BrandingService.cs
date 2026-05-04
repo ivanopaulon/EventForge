@@ -164,7 +164,7 @@ public class BrandingService(
 
             return await GetBrandingAsync(null, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -211,7 +211,7 @@ public class BrandingService(
 
             return await GetBrandingAsync(tenantId, ct);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -243,7 +243,7 @@ public class BrandingService(
 
             logger.LogInformation("Tenant branding override deleted successfully for TenantId: {TenantId}", tenantId);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -291,7 +291,7 @@ public class BrandingService(
 
             return logoUrl;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

@@ -89,7 +89,7 @@ public class WhatsAppConversazioneService(
                 sem.Release();
             }
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -128,7 +128,7 @@ public class WhatsAppConversazioneService(
             await dbContext.SaveChangesAsync(cancellationToken);
             return nuova;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -186,7 +186,7 @@ public class WhatsAppConversazioneService(
             await hubContext.Clients.Group($"tenant_{tenantId}")
                 .SendAsync("ConversazioneAggiornata", dto, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -214,7 +214,7 @@ public class WhatsAppConversazioneService(
 
             return businessParty;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -251,7 +251,7 @@ public class WhatsAppConversazioneService(
 
             await dbContext.SaveChangesAsync(cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -297,7 +297,7 @@ public class WhatsAppConversazioneService(
 
             return messaggio;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

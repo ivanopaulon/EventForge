@@ -48,7 +48,7 @@ public class TeamService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -68,7 +68,7 @@ public class TeamService(
 
             return teams.Select(MapToTeamDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -93,7 +93,7 @@ public class TeamService(
 
             return MapToTeamDto(team);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -118,7 +118,7 @@ public class TeamService(
 
             return MapToTeamDetailDto(team);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -159,7 +159,7 @@ public class TeamService(
 
             return MapToTeamDto(createdTeam);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -214,7 +214,7 @@ public class TeamService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -289,7 +289,7 @@ public class TeamService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -311,7 +311,7 @@ public class TeamService(
 
             return members.Select(MapToTeamMemberDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -335,7 +335,7 @@ public class TeamService(
 
             return MapToTeamMemberDto(member);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -376,7 +376,7 @@ public class TeamService(
 
             return MapToTeamMemberDto(createdMember);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -432,7 +432,7 @@ public class TeamService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -482,7 +482,7 @@ public class TeamService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -496,7 +496,7 @@ public class TeamService(
                 .AsNoTracking()
                 .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -519,7 +519,7 @@ public class TeamService(
 
             return members.Select(MapToTeamMemberDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -533,7 +533,7 @@ public class TeamService(
                 .AsNoTracking()
                 .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -554,7 +554,7 @@ public class TeamService(
 
             return documents.Select(MapToDocumentReferenceDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -571,7 +571,7 @@ public class TeamService(
 
             return document is not null ? MapToDocumentReferenceDto(document) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -611,7 +611,7 @@ public class TeamService(
 
             return MapToDocumentReferenceDto(document);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -656,7 +656,7 @@ public class TeamService(
 
             return MapToDocumentReferenceDto(document);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -693,7 +693,7 @@ public class TeamService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -714,7 +714,7 @@ public class TeamService(
 
             return cards.Select(MapToMembershipCardDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -733,7 +733,7 @@ public class TeamService(
 
             return card is not null ? MapToMembershipCardDto(card) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -773,7 +773,7 @@ public class TeamService(
 
             return MapToMembershipCardDto(createdCard);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -819,7 +819,7 @@ public class TeamService(
 
             return MapToMembershipCardDto(card);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -856,7 +856,7 @@ public class TeamService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -877,7 +877,7 @@ public class TeamService(
 
             return policies.Select(MapToInsurancePolicyDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -896,7 +896,7 @@ public class TeamService(
 
             return policy is not null ? MapToInsurancePolicyDto(policy) : null;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -938,7 +938,7 @@ public class TeamService(
 
             return MapToInsurancePolicyDto(createdPolicy);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -986,7 +986,7 @@ public class TeamService(
 
             return MapToInsurancePolicyDto(policy);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1023,7 +1023,7 @@ public class TeamService(
 
             return true;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1047,7 +1047,7 @@ public class TeamService(
             var exists = await query.AnyAsync(cancellationToken);
             return !exists; // Return true if number is available (not taken)
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1071,7 +1071,7 @@ public class TeamService(
 
             return membersWithExpiringDocs.Select(MapToTeamMemberDto);
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -1159,7 +1159,7 @@ public class TeamService(
 
             return result;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

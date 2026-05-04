@@ -77,7 +77,7 @@ public class TransferOrderService(
                 TotalCount = totalCount
             };
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -109,7 +109,7 @@ public class TransferOrderService(
 
             return transferOrder?.ToTransferOrderDto();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -213,7 +213,7 @@ public class TransferOrderService(
             return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
                 ?? throw new InvalidOperationException("Failed to retrieve created transfer order.");
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -333,7 +333,7 @@ public class TransferOrderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -490,7 +490,7 @@ public class TransferOrderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -558,7 +558,7 @@ public class TransferOrderService(
         {
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

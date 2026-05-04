@@ -64,7 +64,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("GetConfigurationsAsync operation was cancelled");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -118,7 +118,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("GetConfigurationByIdAsync operation was cancelled for ID: {Id}", id);
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -173,7 +173,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("GetDefaultConfigurationAsync operation was cancelled for entity type: {EntityType}", entityType);
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -239,7 +239,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("CreateConfigurationAsync operation was cancelled");
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -313,7 +313,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("UpdateConfigurationAsync operation was cancelled for ID: {Id}", id);
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -351,7 +351,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("DeleteConfigurationAsync operation was cancelled for ID: {Id}", id);
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -390,7 +390,7 @@ public class DashboardConfigurationService(
             logger.LogInformation("SetAsDefaultAsync operation was cancelled for ID: {Id}", id);
             throw;
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }

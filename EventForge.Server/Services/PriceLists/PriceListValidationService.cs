@@ -70,7 +70,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -129,7 +129,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -170,7 +170,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -243,7 +243,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -283,7 +283,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -411,7 +411,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
@@ -461,7 +461,7 @@ public class PriceListValidationService(
 
             return ValidationResult.Success();
         }
-        catch (Exception ex)
+        catch
         {
             throw;
         }
