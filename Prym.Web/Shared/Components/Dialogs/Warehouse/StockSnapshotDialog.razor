@@ -14,6 +14,29 @@
           MinHeight="300px"
           OnClose="Cancel">
     <ChildContent>
+        @* ── Quick-select: last 3 inventory dates ── *@
+        @if (_recentInventoryDates.Any())
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mb-1">
+                @TranslationService.GetTranslation("stock.snapshot.recentInventories", "Ultimi inventari:")
+            </MudText>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                @foreach (var inv in _recentInventoryDates)
+                {
+                    var isSelected = _referenceDate.HasValue && _referenceDate.Value.Date == inv.Date.Date;
+                    <MudChip T="string"
+                             Color="@(isSelected ? Color.Primary : Color.Default)"
+                             Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
+                             Size="Size.Small"
+                             Icon="@Icons.Material.Outlined.Inventory2"
+                             OnClick="@(() => SelectInventoryDate(inv.Date))"
+                             Style="cursor:pointer">
+                        @inv.Date.ToString("dd/MM/yyyy") — @inv.DocumentNumber
+                    </MudChip>
+                }
+            </div>
+        }
+
         @* ── Parameters row ── *@
         <MudGrid Spacing="2" Class="mb-4">
             <MudItem xs="12" sm="6" md="4">
@@ -234,6 +257,7 @@
     // Data
     private List<StockSnapshotDto> _results = new();
     private List<StorageFacilityDto> _warehouses = new();
+    private List<InventorySnapshotDateDto> _recentInventoryDates = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -241,14 +265,28 @@
 
         try
         {
-            var wh = await WarehouseService.GetStorageFacilitiesAsync();
+            var whTask = WarehouseService.GetStorageFacilitiesAsync();
+            var invTask = StockService.GetRecentInventoryDatesAsync(3);
+
+            await Task.WhenAll(whTask, invTask);
+
+            var wh = await whTask;
             if (wh != null)
                 _warehouses = wh.Items.ToList();
+
+            var inv = await invTask;
+            if (inv != null)
+                _recentInventoryDates = inv.ToList();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading warehouses in StockSnapshotDialog");
+            Logger.LogError(ex, "Error loading initial data in StockSnapshotDialog");
         }
+    }
+
+    private void SelectInventoryDate(DateTime date)
+    {
+        _referenceDate = date;
     }
 
     private async Task ExtractAsync()

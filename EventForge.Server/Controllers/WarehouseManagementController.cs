@@ -946,6 +946,37 @@ public class WarehouseManagementController(
     }
 
     /// <summary>
+    /// Returns the dates and document numbers of the most recent closed inventory documents.
+    /// Used to populate quick-select shortcuts in the stock snapshot dialog.
+    /// </summary>
+    /// <param name="count">Maximum number of records to return (default 3, max 10).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of recent inventory document dates, ordered from newest to oldest.</returns>
+    /// <response code="200">Returns the list of recent inventory dates.</response>
+    /// <response code="403">If the user doesn't have access to the current tenant.</response>
+    [HttpGet("stock/snapshot/recent-inventory-dates")]
+    [ProducesResponseType(typeof(IReadOnlyList<InventorySnapshotDateDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetRecentInventoryDates(
+        [FromQuery] int count = 3,
+        CancellationToken cancellationToken = default)
+    {
+        count = Math.Clamp(count, 1, 10);
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.GetRecentInventoryDatesAsync(count, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving recent inventory dates.", ex);
+        }
+    }
+
+    /// <summary>
     /// Adjusts stock quantity for a specific stock entry.
     /// </summary>
     /// <param name="dto">Stock adjustment data</param>

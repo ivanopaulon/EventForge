@@ -126,4 +126,15 @@ public interface IStockService
         Guid? warehouseId = null,
         Guid? locationId = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the dates (and document numbers) of the most recent closed inventory documents
+    /// for the current tenant, ordered by date descending.
+    /// Used to populate quick-select shortcuts in the stock snapshot dialog.
+    /// </summary>
+    /// <param name="count">Maximum number of dates to return (default 3).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IReadOnlyList<InventorySnapshotDateDto>> GetRecentInventoryDatesAsync(
+        int count = 3,
+        CancellationToken cancellationToken = default);
 }

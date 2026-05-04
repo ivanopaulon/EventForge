@@ -1336,6 +1336,45 @@ public class StockService(
             .ThenBy(s => s.LocationCode);
     }
 
+    /// <inheritdoc/>
+    public async Task<IReadOnlyList<InventorySnapshotDateDto>> GetRecentInventoryDatesAsync(
+        int count = 3,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            return Array.Empty<InventorySnapshotDateDto>();
+
+        try
+        {
+            var rows = await context.DocumentHeaders
+                .AsNoTracking()
+                .Include(dh => dh.DocumentType)
+                .Where(dh => dh.TenantId == currentTenantId.Value
+                             && !dh.IsDeleted
+                             && dh.DocumentType != null
+                             && dh.DocumentType.IsInventoryDocument
+                             && dh.Status == DocumentStatus.Closed)
+                .OrderByDescending(dh => dh.Date)
+                .Take(count)
+                .Select(dh => new InventorySnapshotDateDto
+                {
+                    Date = dh.Date.Kind == DateTimeKind.Utc
+                        ? dh.Date.Date
+                        : DateTime.SpecifyKind(dh.Date, DateTimeKind.Utc).Date,
+                    DocumentNumber = dh.Number
+                })
+                .ToListAsync(cancellationToken);
+
+            return rows;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving recent inventory dates for tenant {TenantId}.", currentTenantId.Value);
+            return Array.Empty<InventorySnapshotDateDto>();
+        }
+    }
+
     /// <summary>Accumulates quantity and purchase cost data for a snapshot group.</summary>
     private sealed class SnapshotAccumulator
     {

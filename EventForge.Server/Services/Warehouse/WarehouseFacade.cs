@@ -158,6 +158,11 @@ public class WarehouseFacade(
         CancellationToken cancellationToken = default)
         => stockService.GetStockSnapshotAsync(referenceDate, searchTerm, warehouseId, locationId, cancellationToken);
 
+    public Task<IReadOnlyList<InventorySnapshotDateDto>> GetRecentInventoryDatesAsync(
+        int count = 3,
+        CancellationToken cancellationToken = default)
+        => stockService.GetRecentInventoryDatesAsync(count, cancellationToken);
+
     #endregion
 
     #region Document Operations

@@ -415,6 +415,16 @@ public interface IWarehouseFacade
         Guid? locationId = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns the dates and document numbers of the most recent closed inventory documents
+    /// for the current tenant, ordered by date descending.
+    /// </summary>
+    /// <param name="count">Maximum number of records to return (default 3).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IReadOnlyList<InventorySnapshotDateDto>> GetRecentInventoryDatesAsync(
+        int count = 3,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Document Operations

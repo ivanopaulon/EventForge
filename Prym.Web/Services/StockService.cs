@@ -197,4 +197,20 @@ public class StockService(
             return null;
         }
     }
+
+    public async Task<IEnumerable<InventorySnapshotDateDto>?> GetRecentInventoryDatesAsync(
+        int count = 3,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<IEnumerable<InventorySnapshotDateDto>>(
+                $"{BaseUrl}/snapshot/recent-inventory-dates?count={count}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving recent inventory dates");
+            return null;
+        }
+    }
 }
