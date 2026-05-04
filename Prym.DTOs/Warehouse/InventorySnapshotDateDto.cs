@@ -6,6 +6,9 @@ namespace Prym.DTOs.Warehouse;
 /// </summary>
 public class InventorySnapshotDateDto
 {
+    /// <summary>Unique identifier of the inventory DocumentHeader.</summary>
+    public Guid DocumentHeaderId { get; set; }
+
     /// <summary>Date of the inventory document (UTC, day precision).</summary>
     public DateTime Date { get; set; }
 

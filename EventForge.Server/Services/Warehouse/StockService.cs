@@ -1392,13 +1392,14 @@ public class StockService(
                              && dh.Status == DocumentStatus.Closed)
                 .OrderByDescending(dh => dh.Date)
                 .Take(count)
-                .Select(dh => new { dh.Date, dh.Number })
+                .Select(dh => new { dh.Id, dh.Date, dh.Number })
                 .ToListAsync(cancellationToken);
 
             // Map to DTO in-memory (safe to use .Date here, outside the LINQ-to-SQL boundary).
             return raw
                 .Select(r => new InventorySnapshotDateDto
                 {
+                    DocumentHeaderId = r.Id,
                     Date = r.Date.Date,
                     DocumentNumber = r.Number
                 })
@@ -1409,6 +1410,195 @@ public class StockService(
             logger.LogError(ex, "Error retrieving recent inventory dates for tenant {TenantId}.", currentTenantId.Value);
             return Array.Empty<InventorySnapshotDateDto>();
         }
+    }
+
+    /// <inheritdoc/>
+    public async Task<IEnumerable<StockSnapshotDto>> GetInventoryDocumentQuantitiesAsync(
+        Guid documentHeaderId,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Current tenant ID is not available.");
+
+        // ── Step 1: Validate and load the inventory document header (scalar projection) ──────
+        // Only closed inventory documents are authoritative. An open/draft document
+        // represents an in-progress count and must not be used for stock valuation.
+        var header = await context.DocumentHeaders
+            .AsNoTracking()
+            .Where(dh => dh.Id == documentHeaderId
+                         && dh.TenantId == currentTenantId.Value
+                         && !dh.IsDeleted
+                         && dh.DocumentType != null
+                         && dh.DocumentType.IsInventoryDocument
+                         && dh.Status == DocumentStatus.Closed)
+            .Select(dh => new { dh.Id, dh.Date })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (header is null)
+            return Enumerable.Empty<StockSnapshotDto>();
+
+        var documentDate = header.Date.Date;
+        // The cutoff for movement cost look-up: include all inbounds up to end of document day.
+        var movementCutoff = documentDate.AddDays(1);
+
+        // ── Step 2: Load DocumentRows via projection ─────────────────────────────────────────
+        // DocumentRows only have ProductId and LocationId — they do not track lots. One row
+        // per (Product, Location) is the expected structure; if there are duplicates the
+        // quantities are summed in-memory (group step below).
+        var rowsQuery = context.DocumentRows
+            .AsNoTracking()
+            .Where(dr => dr.DocumentHeaderId == documentHeaderId
+                         && dr.TenantId == currentTenantId.Value
+                         && !dr.IsDeleted
+                         && dr.ProductId.HasValue
+                         && dr.LocationId.HasValue);
+
+        // Push location/warehouse filters to the database to avoid loading irrelevant rows.
+        if (locationId.HasValue)
+        {
+            rowsQuery = rowsQuery.Where(dr => dr.LocationId == locationId.Value);
+        }
+        else if (warehouseId.HasValue)
+        {
+            var wid = warehouseId.Value;
+            rowsQuery = rowsQuery.Where(dr =>
+                dr.Location != null && dr.Location.WarehouseId == wid);
+        }
+
+        var rawRows = await rowsQuery
+            .Select(dr => new
+            {
+                ProductId = dr.ProductId!.Value,
+                LocationId = dr.LocationId!.Value,
+                dr.Quantity
+            })
+            .ToListAsync(cancellationToken);
+
+        if (rawRows.Count == 0)
+            return Enumerable.Empty<StockSnapshotDto>();
+
+        // ── Step 3: Group by (ProductId, LocationId) and sum quantities ──────────────────────
+        // Handles the rare case of multiple rows per (Product, Location) in one document.
+        var grouped = rawRows
+            .GroupBy(r => (r.ProductId, r.LocationId))
+            .Select(g => (ProductId: g.Key.ProductId, LocationId: g.Key.LocationId, Quantity: g.Sum(r => r.Quantity)))
+            .ToList();
+
+        var relevantProductIds = grouped.Select(r => r.ProductId).Distinct().ToList();
+        var relevantLocationIds = grouped.Select(r => r.LocationId).Distinct().ToList();
+
+        // ── Step 4: Bulk-load Products and Locations ─────────────────────────────────────────
+        var productLookup = await context.Products
+            .AsNoTracking()
+            .Where(p => p.TenantId == currentTenantId.Value
+                        && !p.IsDeleted
+                        && relevantProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        var locationLookup = await context.StorageLocations
+            .AsNoTracking()
+            .Include(l => l.Warehouse)
+            .Where(l => l.TenantId == currentTenantId.Value
+                        && !l.IsDeleted
+                        && relevantLocationIds.Contains(l.Id))
+            .ToDictionaryAsync(l => l.Id, cancellationToken);
+
+        // ── Step 5: Resolve purchase unit cost per (Product, Location) ───────────────────────
+        // Strategy: most recent Completed Inbound movement up to end of document day.
+        // If no inbound has a cost, fall back to the current Stock.UnitCost.
+        var lastCostLookup = (await context.StockMovements
+            .AsNoTracking()
+            .Where(sm => sm.TenantId == currentTenantId.Value
+                         && !sm.IsDeleted
+                         && sm.Status == MovementStatus.Completed
+                         && sm.ToLocationId.HasValue
+                         && relevantProductIds.Contains(sm.ProductId)
+                         && relevantLocationIds.Contains(sm.ToLocationId!.Value)
+                         && sm.MovementDate < movementCutoff
+                         && sm.UnitCost.HasValue)
+            .Select(sm => new
+            {
+                sm.ProductId,
+                LocationId = sm.ToLocationId!.Value,
+                sm.MovementDate,
+                sm.UnitCost
+            })
+            .ToListAsync(cancellationToken))
+            .GroupBy(sm => (sm.ProductId, sm.LocationId))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(sm => sm.MovementDate).First().UnitCost);
+
+        var stockCostLookup = await context.Stocks
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value
+                        && !s.IsDeleted
+                        && relevantProductIds.Contains(s.ProductId)
+                        && relevantLocationIds.Contains(s.StorageLocationId))
+            .Select(s => new { s.ProductId, s.StorageLocationId, s.UnitCost })
+            .ToDictionaryAsync(
+                s => (s.ProductId, s.StorageLocationId),
+                s => s.UnitCost,
+                cancellationToken);
+
+        // ── Step 6: Resolve sale prices at the document date ─────────────────────────────────
+        var salePriceLookup = await BuildSalePriceLookupAsync(
+            relevantProductIds, documentDate, currentTenantId.Value, cancellationToken);
+
+        // ── Step 7: Build result DTOs ─────────────────────────────────────────────────────────
+        var effectiveSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+        var result = new List<StockSnapshotDto>(grouped.Count);
+
+        foreach (var (productId, locId, quantity) in grouped)
+        {
+            if (!productLookup.TryGetValue(productId, out var product)) continue;
+            if (!locationLookup.TryGetValue(locId, out var loc)) continue;
+
+            if (effectiveSearch is not null &&
+                !product.Name.Contains(effectiveSearch, StringComparison.OrdinalIgnoreCase) &&
+                !product.Code.Contains(effectiveSearch, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // Resolve unit cost: last inbound before document date → fallback to Stock.UnitCost.
+            decimal? unitCost = null;
+            lastCostLookup.TryGetValue((productId, locId), out unitCost);
+            if (!unitCost.HasValue)
+                stockCostLookup.TryGetValue((productId, locId), out unitCost);
+
+            salePriceLookup.TryGetValue(productId, out var salePriceEntry);
+
+            result.Add(new StockSnapshotDto
+            {
+                ProductId = product.Id,
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                WarehouseId = loc.Warehouse?.Id ?? Guid.Empty,
+                WarehouseName = loc.Warehouse?.Name ?? string.Empty,
+                WarehouseCode = loc.Warehouse?.Code ?? string.Empty,
+                LocationId = loc.Id,
+                LocationCode = loc.Code,
+                LocationDescription = loc.Description,
+                LotId = null,    // inventory documents do not track at lot level
+                LotCode = null,
+                LotExpiry = null,
+                Quantity = quantity,
+                UnitCost = unitCost,
+                SalePrice = salePriceEntry?.Price ?? product.DefaultPrice,
+                IsPriceFromList = salePriceEntry is not null,
+                PriceListName = salePriceEntry?.PriceListName,
+                ReferenceDate = documentDate
+            });
+        }
+
+        return result
+            .OrderBy(s => s.ProductCode)
+            .ThenBy(s => s.LocationCode);
     }
 
     // ── Private projection type ───────────────────────────────────────────────

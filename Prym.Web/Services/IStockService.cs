@@ -82,4 +82,21 @@ public interface IStockService
     Task<IEnumerable<InventorySnapshotDateDto>?> GetRecentInventoryDatesAsync(
         int count = 3,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the raw quantities from a specific closed inventory document,
+    /// with purchase cost and sale price resolved at the document date.
+    /// No movement reconstruction is performed.
+    /// </summary>
+    /// <param name="documentHeaderId">ID of the closed inventory document header.</param>
+    /// <param name="searchTerm">Optional search term for product name or code.</param>
+    /// <param name="warehouseId">Optional warehouse filter.</param>
+    /// <param name="locationId">Optional location filter.</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<IEnumerable<StockSnapshotDto>?> GetInventoryDocumentQuantitiesAsync(
+        Guid documentHeaderId,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken ct = default);
 }

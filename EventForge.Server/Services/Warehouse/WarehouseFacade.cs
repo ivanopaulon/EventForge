@@ -163,6 +163,14 @@ public class WarehouseFacade(
         CancellationToken cancellationToken = default)
         => stockService.GetRecentInventoryDatesAsync(count, cancellationToken);
 
+    public Task<IEnumerable<StockSnapshotDto>> GetInventoryDocumentQuantitiesAsync(
+        Guid documentHeaderId,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+        => stockService.GetInventoryDocumentQuantitiesAsync(documentHeaderId, searchTerm, warehouseId, locationId, cancellationToken);
+
     #endregion
 
     #region Document Operations

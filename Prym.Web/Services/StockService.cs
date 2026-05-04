@@ -213,4 +213,33 @@ public class StockService(
             return null;
         }
     }
+
+    public async Task<IEnumerable<StockSnapshotDto>?> GetInventoryDocumentQuantitiesAsync(
+        Guid documentHeaderId,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var queryParams = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                queryParams.Add($"search={Uri.EscapeDataString(searchTerm)}");
+            if (warehouseId.HasValue)
+                queryParams.Add($"warehouseId={warehouseId.Value}");
+            if (locationId.HasValue)
+                queryParams.Add($"locationId={locationId.Value}");
+
+            var query = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : string.Empty;
+            return await httpClientService.GetAsync<IEnumerable<StockSnapshotDto>>(
+                $"{BaseUrl}/snapshot/inventory/{documentHeaderId}{query}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving inventory document quantities for document {DocumentHeaderId}", documentHeaderId);
+            return null;
+        }
+    }
 }

@@ -977,6 +977,49 @@ public class WarehouseManagementController(
     }
 
     /// <summary>
+    /// Returns the raw quantities from a specific closed inventory document, with purchase cost
+    /// and sale price resolved at the document date using the standard pricing rules.
+    /// Unlike the movement-reconstruction snapshot, no stock movements are replayed —
+    /// the returned quantities are exactly what was counted in the inventory document.
+    /// </summary>
+    /// <param name="documentHeaderId">ID of the closed inventory document header.</param>
+    /// <param name="search">Optional search term for product name/code.</param>
+    /// <param name="warehouseId">Optional warehouse ID filter.</param>
+    /// <param name="locationId">Optional location ID filter.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Collection of stock snapshot entries with the inventoried quantities.</returns>
+    /// <response code="200">Returns the inventoried quantities.</response>
+    /// <response code="400">If the documentHeaderId is invalid.</response>
+    /// <response code="403">If the user doesn't have access to the current tenant.</response>
+    [HttpGet("stock/snapshot/inventory/{documentHeaderId:guid}")]
+    [ProducesResponseType(typeof(IEnumerable<StockSnapshotDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetInventoryDocumentQuantities(
+        [FromRoute] Guid documentHeaderId,
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? warehouseId = null,
+        [FromQuery] Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (documentHeaderId == Guid.Empty)
+            return CreateValidationProblemDetails("documentHeaderId is required.");
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.GetInventoryDocumentQuantitiesAsync(
+                documentHeaderId, search, warehouseId, locationId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving inventory document quantities.", ex);
+        }
+    }
+
+    /// <summary>
     /// Adjusts stock quantity for a specific stock entry.
     /// </summary>
     /// <param name="dto">Stock adjustment data</param>

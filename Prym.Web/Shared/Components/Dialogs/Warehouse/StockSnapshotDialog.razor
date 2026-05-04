@@ -23,18 +23,35 @@
             <div class="d-flex flex-wrap gap-2 mb-3">
                 @foreach (var inv in _recentInventoryDates)
                 {
-                    var isSelected = _referenceDate.HasValue && _referenceDate.Value.Date == inv.Date.Date;
+                    var isSelected = _selectedInventoryDate?.DocumentHeaderId == inv.DocumentHeaderId;
                     <MudChip T="string"
                              Color="@(isSelected ? Color.Primary : Color.Default)"
                              Variant="@(isSelected ? Variant.Filled : Variant.Outlined)"
                              Size="Size.Small"
                              Icon="@Icons.Material.Outlined.Inventory2"
-                             OnClick="@(() => SelectInventoryDate(inv.Date))"
+                             OnClick="@(() => SelectInventoryDate(inv))"
                              Style="cursor:pointer">
                         @inv.Date.ToString("dd/MM/yyyy") — @inv.DocumentNumber
                     </MudChip>
                 }
             </div>
+
+            @* ── Toggle: use raw inventory quantities when a chip is selected ── *@
+            @if (_selectedInventoryDate is not null)
+            {
+                <div class="d-flex align-center gap-2 mb-3">
+                    <MudSwitch @bind-Value="_useInventoryQuantities"
+                               Label="@TranslationService.GetTranslation("stock.snapshot.useInventoryQuantities", "Estrai quantità inventariate")"
+                               Color="Color.Secondary" />
+                    @if (_useInventoryQuantities)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @TranslationService.GetTranslation("stock.snapshot.useInventoryQuantitiesHint",
+                                "Le quantità mostrate sono quelle fisicamente conteggiate nell'inventario, senza ricalcolo dai movimenti.")
+                        </MudText>
+                    }
+                </div>
+            }
         }
 
         @* ── Parameters row ── *@
@@ -254,6 +271,19 @@
     private bool _isExporting;
     private bool _extracted;
 
+    /// <summary>
+    /// The inventory chip currently selected by the user.
+    /// When not null, the "Estrai quantità inventariate" toggle is shown.
+    /// </summary>
+    private InventorySnapshotDateDto? _selectedInventoryDate;
+
+    /// <summary>
+    /// When true (and an inventory chip is selected), <see cref="ExtractAsync"/> calls
+    /// <see cref="IStockService.GetInventoryDocumentQuantitiesAsync"/> instead of the
+    /// movement-reconstruction snapshot.
+    /// </summary>
+    private bool _useInventoryQuantities;
+
     // Data
     private List<StockSnapshotDto> _results = new();
     private List<StorageFacilityDto> _warehouses = new();
@@ -284,9 +314,19 @@
         }
     }
 
-    private void SelectInventoryDate(DateTime date)
+    private void SelectInventoryDate(InventorySnapshotDateDto inv)
     {
-        _referenceDate = date;
+        if (_selectedInventoryDate?.DocumentHeaderId == inv.DocumentHeaderId)
+        {
+            // Clicking the already-selected chip deselects it and resets the toggle.
+            _selectedInventoryDate = null;
+            _useInventoryQuantities = false;
+        }
+        else
+        {
+            _selectedInventoryDate = inv;
+            _referenceDate = inv.Date;
+        }
     }
 
     private async Task ExtractAsync()
@@ -300,11 +340,26 @@
             _extracted = false;
             _results.Clear();
 
-            var data = await StockService.GetStockSnapshotAsync(
-                _referenceDate.Value,
-                searchTerm: null,
-                warehouseId: _warehouseId,
-                locationId: null);
+            IEnumerable<StockSnapshotDto>? data;
+
+            if (_useInventoryQuantities && _selectedInventoryDate is not null)
+            {
+                // Direct inventory extract: quantities as counted, no movement reconstruction.
+                data = await StockService.GetInventoryDocumentQuantitiesAsync(
+                    _selectedInventoryDate.DocumentHeaderId,
+                    searchTerm: null,
+                    warehouseId: _warehouseId,
+                    locationId: null);
+            }
+            else
+            {
+                // Standard movement-reconstruction snapshot.
+                data = await StockService.GetStockSnapshotAsync(
+                    _referenceDate.Value,
+                    searchTerm: null,
+                    warehouseId: _warehouseId,
+                    locationId: null);
+            }
 
             _results = data?.ToList() ?? new List<StockSnapshotDto>();
             _extracted = true;
