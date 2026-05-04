@@ -1,0 +1,362 @@
+@using Prym.DTOs.Warehouse
+@inject IStockService StockService
+@inject IWarehouseService WarehouseService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject IHttpClientService HttpClientService
+@inject IJSRuntime JSRuntime
+@inject ILogger<StockSnapshotDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.EventNote"
+          Title="@TranslationService.GetTranslation("stock.snapshot.title", "Giacenze ad una data")"
+          IsProcessing="@_isLoading"
+          MinWidth="min(900px, 95vw)"
+          MinHeight="300px"
+          OnClose="Cancel">
+    <ChildContent>
+        @* ── Parameters row ── *@
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="12" sm="6" md="4">
+                <MudDatePicker @bind-Date="_referenceDate"
+                               Label="@TranslationService.GetTranslation("stock.snapshot.referenceDate", "Data di riferimento")"
+                               Variant="Variant.Outlined"
+                               DateFormat="dd/MM/yyyy"
+                               MaxDate="@DateTime.Today"
+                               Editable="true"
+                               Class="mb-0" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect @bind-Value="_warehouseId"
+                           Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
+                           Variant="Variant.Outlined"
+                           Clearable="true"
+                           Class="mb-0">
+                    @foreach (var wh in _warehouses)
+                    {
+                        <MudSelectItem T="Guid?" Value="@wh.Id">@wh.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4" Class="d-flex align-center">
+                <MudSwitch @bind-Value="_includePrices"
+                           Label="@TranslationService.GetTranslation("stock.snapshot.includePrices", "Includi prezzi")"
+                           Color="Color.Primary" />
+            </MudItem>
+        </MudGrid>
+
+        @* ── Action buttons ── *@
+        <div class="d-flex align-center gap-2 mb-4">
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.Search"
+                       OnClick="ExtractAsync"
+                       Disabled="@(_isLoading || !_referenceDate.HasValue)">
+                @TranslationService.GetTranslation("stock.snapshot.extract", "Estrai")
+            </MudButton>
+
+            @if (_results.Any())
+            {
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Success"
+                           StartIcon="@Icons.Material.Outlined.FileDownload"
+                           OnClick="ExportToExcelAsync"
+                           Disabled="@_isExporting">
+                    @if (_isExporting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    @TranslationService.GetTranslation("stock.snapshot.exportExcel", "Esporta Excel")
+                </MudButton>
+
+                <MudSpacer />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @TranslationService.GetTranslationFormatted("stock.snapshot.rowsFound", "{0} righe trovate", _results.Count)
+                </MudText>
+            }
+        </div>
+
+        @* ── Note on sale price ── *@
+        @if (_results.Any() && _includePrices)
+        {
+            var hasListPrices = _results.Any(r => r.IsPriceFromList);
+            <MudAlert Severity="@(hasListPrices ? Severity.Success : Severity.Info)" Dense="true" Class="mb-3">
+                <MudText Typo="Typo.caption">
+                    @if (hasListPrices)
+                    {
+                        @TranslationService.GetTranslation("stock.snapshot.salePriceFromList",
+                            "Il prezzo di vendita è stato risolto dal listino prezzi attivo alla data di riferimento.")
+                    }
+                    else
+                    {
+                        @TranslationService.GetTranslation("stock.snapshot.salePriceFallback",
+                            "Nessun listino attivo trovato per la data selezionata: viene mostrato il prezzo di vendita predefinito del prodotto.")
+                    }
+                </MudText>
+            </MudAlert>
+        }
+
+        @* ── Results table ── *@
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (_extracted && !_results.Any())
+        {
+            <div class="text-center pa-4">
+                <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Large" Class="mud-text-secondary mb-2" />
+                <MudText Typo="Typo.body1" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("stock.snapshot.noResults", "Nessuna giacenza trovata per la data selezionata")
+                </MudText>
+            </div>
+        }
+        else if (_results.Any())
+        {
+            <div style="overflow-x: auto;">
+                <MudTable Items="_results"
+                          Dense="true"
+                          Hover="true"
+                          Striped="true"
+                          FixedHeader="true"
+                          Height="400px"
+                          Breakpoint="Breakpoint.None">
+                    <HeaderContent>
+                        <MudTh>@TranslationService.GetTranslation("field.productCode", "Codice")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.productName", "Nome Prodotto")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.location", "Ubicazione")</MudTh>
+                        <MudTh>@TranslationService.GetTranslation("field.lotCode", "Lotto")</MudTh>
+                        <MudTh Class="text-right">@TranslationService.GetTranslation("field.quantity", "Quantità")</MudTh>
+                        @if (_includePrices)
+                        {
+                            <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.unitCost", "Prezzo Acquisto")</MudTh>
+                            <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.totalCostValue", "Valore Acquisto")</MudTh>
+                            <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.salePrice", "Prezzo Vendita")</MudTh>
+                            <MudTh Class="text-right">@TranslationService.GetTranslation("stock.snapshot.totalSaleValue", "Valore Vendita")</MudTh>
+                        }
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Codice">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.ProductCode</MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Nome Prodotto">
+                            <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Magazzino">
+                            <MudText Typo="Typo.body2">@context.WarehouseName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Ubicazione">
+                            <div>
+                                <MudText Typo="Typo.body2">@context.LocationCode</MudText>
+                                @if (!string.IsNullOrWhiteSpace(context.LocationDescription))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.LocationDescription</MudText>
+                                }
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="Lotto">
+                            @if (!string.IsNullOrWhiteSpace(context.LotCode))
+                            {
+                                <div>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary">@context.LotCode</MudChip>
+                                    @if (context.LotExpiry.HasValue)
+                                    {
+                                        var isExpired = context.LotExpiry.Value <= _referenceDate!.Value;
+                                        <MudText Typo="Typo.caption" Color="@(isExpired ? Color.Error : Color.Default)">
+                                            @context.LotExpiry.Value.ToString("dd/MM/yyyy")
+                                        </MudText>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2">-</MudText>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Quantità" Class="text-right">
+                            <MudText Typo="Typo.body2"
+                                     Color="@(context.Quantity > 0 ? Color.Default : Color.Error)"
+                                     Class="fw-semibold">
+                                @context.Quantity.ToString("N2")
+                            </MudText>
+                        </MudTd>
+                        @if (_includePrices)
+                        {
+                            <MudTd DataLabel="Prezzo Acquisto" Class="text-right">
+                                <MudText Typo="Typo.body2">@(context.UnitCost?.ToString("N2") ?? "-")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Valore Acquisto" Class="text-right">
+                                <MudText Typo="Typo.body2">@(context.TotalCostValue?.ToString("N2") ?? "-")</MudText>
+                            </MudTd>
+                            <MudTd DataLabel="Prezzo Vendita" Class="text-right">
+                                <div>
+                                    <MudText Typo="Typo.body2">@(context.SalePrice?.ToString("N2") ?? "-")</MudText>
+                                    @if (context.IsPriceFromList && !string.IsNullOrWhiteSpace(context.PriceListName))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.PriceListName</MudText>
+                                    }
+                                </div>
+                            </MudTd>
+                            <MudTd DataLabel="Valore Vendita" Class="text-right">
+                                <MudText Typo="Typo.body2">@(context.TotalSaleValue?.ToString("N2") ?? "-")</MudText>
+                            </MudTd>
+                        }
+                    </RowTemplate>
+                </MudTable>
+            </div>
+        }
+    </ChildContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Optional initial warehouse filter passed by the caller.</summary>
+    [Parameter] public Guid? InitialWarehouseId { get; set; }
+
+    // Form state
+    private DateTime? _referenceDate = DateTime.Today.AddDays(-1);
+    private Guid? _warehouseId;
+    private bool _includePrices = true;
+
+    // UI state
+    private bool _isLoading;
+    private bool _isExporting;
+    private bool _extracted;
+
+    // Data
+    private List<StockSnapshotDto> _results = new();
+    private List<StorageFacilityDto> _warehouses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _warehouseId = InitialWarehouseId;
+
+        try
+        {
+            var wh = await WarehouseService.GetStorageFacilitiesAsync();
+            if (wh != null)
+                _warehouses = wh.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading warehouses in StockSnapshotDialog");
+        }
+    }
+
+    private async Task ExtractAsync()
+    {
+        if (!_referenceDate.HasValue)
+            return;
+
+        try
+        {
+            _isLoading = true;
+            _extracted = false;
+            _results.Clear();
+
+            var data = await StockService.GetStockSnapshotAsync(
+                _referenceDate.Value,
+                searchTerm: null,
+                warehouseId: _warehouseId,
+                locationId: null);
+
+            _results = data?.ToList() ?? new List<StockSnapshotDto>();
+            _extracted = true;
+
+            if (!_results.Any())
+                AppNotification.ShowInfo(TranslationService.GetTranslation(
+                    "stock.snapshot.noResults", "Nessuna giacenza trovata per la data selezionata"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error extracting stock snapshot for {Date}", _referenceDate);
+            AppNotification.ShowError(TranslationService.GetTranslation(
+                "stock.snapshot.extractError", "Errore durante l'estrazione delle giacenze"));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ExportToExcelAsync()
+    {
+        if (!_results.Any()) return;
+
+        try
+        {
+            _isExporting = true;
+
+            var columns = new List<object>
+            {
+                new { propertyName = "productCode",      displayName = "Codice",          isVisible = true },
+                new { propertyName = "productName",      displayName = "Nome Prodotto",    isVisible = true },
+                new { propertyName = "warehouseName",    displayName = "Magazzino",        isVisible = true },
+                new { propertyName = "locationCode",     displayName = "Ubicazione",       isVisible = true },
+                new { propertyName = "lotCode",          displayName = "Lotto",            isVisible = true },
+                new { propertyName = "quantity",         displayName = "Quantità",         isVisible = true }
+            };
+
+            if (_includePrices)
+            {
+                columns.Add(new { propertyName = "unitCost",        displayName = "Prezzo Acquisto",  isVisible = true });
+                columns.Add(new { propertyName = "totalCostValue",  displayName = "Valore Acquisto",  isVisible = true });
+                columns.Add(new { propertyName = "salePrice",       displayName = "Prezzo Vendita",   isVisible = true });
+                columns.Add(new { propertyName = "totalSaleValue",  displayName = "Valore Vendita",   isVisible = true });
+                columns.Add(new { propertyName = "priceListName",   displayName = "Listino",          isVisible = true });
+            }
+
+            var dateStr = _referenceDate!.Value.ToString("dd/MM/yyyy");
+            var payload = new
+            {
+                data = _results,
+                options = new
+                {
+                    fileName = $"StockSnapshot_{_referenceDate:yyyyMMdd}",
+                    sheetName = $"Giacenze al {dateStr}",
+                    columns,
+                    formatting = new
+                    {
+                        headerBackgroundColor = "#1565C0",
+                        headerFontColor = "#FFFFFF",
+                        headerBold = true,
+                        headerBorders = true,
+                        alternateRowColors = true,
+                        alternateRowColor = "#F5F5F5",
+                        dataBorders = true
+                    },
+                    autoFitColumns = true,
+                    freezeHeader = true,
+                    addAutoFilter = true
+                }
+            };
+
+            var stream = await HttpClientService.PostStreamAsync("api/v1/export/excel", payload);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+            var fileName = $"StockSnapshot_{_referenceDate!.Value:yyyyMMdd}_{DateTime.Now:HHmmss}.xlsx";
+            await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.snapshot.exportSuccess", "Esportazione completata"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting stock snapshot");
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.snapshot.exportError", "Errore durante l'esportazione"));
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

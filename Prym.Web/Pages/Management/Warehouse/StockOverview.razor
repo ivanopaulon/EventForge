@@ -102,6 +102,12 @@
                                    OnClick="OpenRebuildMovementsDialogAsync"
                                    Class="ml-2" />
                 </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("stock.snapshot.tooltipBtn", "Estrai giacenze ad una data specifica con prezzi di acquisto e vendita")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.EventNote"
+                                   Color="Color.Info"
+                                   OnClick="OpenStockSnapshotDialogAsync"
+                                   Class="ml-2" />
+                </MudTooltip>
                 @if (_selectedStockItems.Any())
                 {
                     <MudTooltip Text="@TranslationService.GetTranslationFormatted("stock.export.tooltip", "Esporta {0} elementi selezionati", _selectedStockItems.Count)">
@@ -1112,6 +1118,38 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in OpenRebuildMovementsDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    /// <summary>
+    /// Opens the stock snapshot dialog to extract historical stock at a specific date.
+    /// </summary>
+    private async Task OpenStockSnapshotDialogAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["InitialWarehouseId"] = _filters.WarehouseId
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = false,
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            await DialogService.ShowAsync<StockSnapshotDialog>(
+                string.Empty,
+                parameters,
+                options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenStockSnapshotDialogAsync.");
             AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }

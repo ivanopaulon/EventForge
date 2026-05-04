@@ -150,6 +150,14 @@ public class WarehouseFacade(
     public Task<IEnumerable<InventoryExportDto>> GetInventoryForExportAsync(PaginationParameters pagination, CancellationToken ct = default)
         => stockMovementService.GetInventoryForExportAsync(pagination, ct);
 
+    public Task<IEnumerable<StockSnapshotDto>> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+        => stockService.GetStockSnapshotAsync(referenceDate, searchTerm, warehouseId, locationId, cancellationToken);
+
     #endregion
 
     #region Document Operations

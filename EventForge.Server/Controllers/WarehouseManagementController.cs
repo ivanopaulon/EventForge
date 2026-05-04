@@ -902,6 +902,50 @@ public class WarehouseManagementController(
     }
 
     /// <summary>
+    /// Returns a historical stock snapshot reconstructed from movements up to the specified reference date.
+    /// Quantities are computed by replaying all stock movements up to (and including) the end of the reference date.
+    /// </summary>
+    /// <param name="referenceDate">Reference date (format: YYYY-MM-DD)</param>
+    /// <param name="search">Optional search term for product name/code</param>
+    /// <param name="warehouseId">Optional warehouse ID filter</param>
+    /// <param name="locationId">Optional location ID filter</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Collection of stock snapshot entries at the reference date</returns>
+    /// <response code="200">Returns the stock snapshot</response>
+    /// <response code="400">If the referenceDate is invalid or in the future</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("stock/snapshot")]
+    [ProducesResponseType(typeof(IEnumerable<StockSnapshotDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetStockSnapshot(
+        [FromQuery] DateTime referenceDate,
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? warehouseId = null,
+        [FromQuery] Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (referenceDate == default)
+            return CreateValidationProblemDetails("referenceDate is required.");
+
+        if (referenceDate.Date > DateTime.UtcNow.Date)
+            return CreateValidationProblemDetails("referenceDate cannot be in the future.");
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.GetStockSnapshotAsync(
+                referenceDate, search, warehouseId, locationId, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the stock snapshot.", ex);
+        }
+    }
+
+    /// <summary>
     /// Adjusts stock quantity for a specific stock entry.
     /// </summary>
     /// <param name="dto">Stock adjustment data</param>

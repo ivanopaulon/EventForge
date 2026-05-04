@@ -1,3 +1,4 @@
+using Prym.DTOs.Common;
 using Prym.DTOs.Warehouse;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
@@ -1090,6 +1091,267 @@ public class StockService(
         {
             throw;
         }
+    }
+
+    /// <inheritdoc />
+    public async Task<IEnumerable<StockSnapshotDto>> GetStockSnapshotAsync(
+        DateTime referenceDate,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Current tenant ID is not available.");
+
+        // Cover the full reference day in UTC: movements on the reference date are included.
+        var cutoff = referenceDate.Date.AddDays(1);
+
+        // Build the base query with all necessary navigation properties.
+        // Only Completed movements contribute to historical stock levels.
+        var movementsQuery = context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.ToLocation)
+                .ThenInclude(l => l!.Warehouse)
+            .Include(sm => sm.FromLocation)
+                .ThenInclude(l => l!.Warehouse)
+            .Include(sm => sm.Lot)
+            .Where(sm => sm.TenantId == currentTenantId.Value
+                         && !sm.IsDeleted
+                         && sm.MovementDate < cutoff
+                         && sm.Status == MovementStatus.Completed);
+
+        // Push location/warehouse filters to the database to avoid loading irrelevant rows.
+        if (locationId.HasValue)
+        {
+            movementsQuery = movementsQuery.Where(sm =>
+                sm.ToLocationId == locationId.Value || sm.FromLocationId == locationId.Value);
+        }
+        else if (warehouseId.HasValue)
+        {
+            var wid = warehouseId.Value;
+            movementsQuery = movementsQuery.Where(sm =>
+                (sm.ToLocation != null && sm.ToLocation.WarehouseId == wid) ||
+                (sm.FromLocation != null && sm.FromLocation.WarehouseId == wid));
+        }
+
+        var movements = await movementsQuery.ToListAsync(cancellationToken);
+
+        if (movements.Count == 0)
+            return Enumerable.Empty<StockSnapshotDto>();
+
+        // Collect the exact product IDs and location IDs from the loaded movements
+        // so the UnitCost fallback query is scoped to only what is needed.
+        var relevantProductIds = movements.Select(m => m.ProductId).Distinct().ToList();
+        var relevantLocationIds = movements
+            .SelectMany(m => new[] { m.ToLocationId, m.FromLocationId })
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        // Load Stock.UnitCost only for the relevant (ProductId, LocationId) combinations.
+        var stockCostLookup = await context.Stocks
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value
+                        && !s.IsDeleted
+                        && relevantProductIds.Contains(s.ProductId)
+                        && relevantLocationIds.Contains(s.StorageLocationId))
+            .Select(s => new { s.ProductId, s.StorageLocationId, s.LotId, s.UnitCost })
+            .ToDictionaryAsync(
+                s => (s.ProductId, s.StorageLocationId, s.LotId),
+                s => s.UnitCost,
+                cancellationToken);
+
+        // Resolve sale price from the highest-priority Output price list that was active at
+        // referenceDate, for each relevant product.  Priority is determined by pl.Priority (lower = higher).
+        // Falls back to Product.DefaultPrice when no price-list entry is found.
+        // This mirrors the normal pricing cascade (priority 4 of PriceResolutionService) without
+        // business-party or document context (both are irrelevant for a stock valuation snapshot).
+        var referenceDateUtc = referenceDate.Date;
+        var salePriceLookup = await BuildSalePriceLookupAsync(
+            relevantProductIds, referenceDateUtc, currentTenantId.Value, cancellationToken);
+
+        // Build snapshot groups: key = (ProductId, LocationId, LotId).
+        // Inflows  → ToLocationId  (+Quantity, tracks last UnitCost)
+        // Outflows → FromLocationId (-Quantity)
+        var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>();
+
+        foreach (var mv in movements)
+        {
+            // Inflow contribution.
+            if (mv.ToLocationId.HasValue)
+            {
+                var key = (mv.ProductId, mv.ToLocationId.Value, mv.LotId);
+                if (!groups.TryGetValue(key, out var acc))
+                {
+                    acc = new SnapshotAccumulator
+                    {
+                        Product = mv.Product,
+                        Location = mv.ToLocation,
+                        Lot = mv.Lot
+                    };
+                    groups[key] = acc;
+                }
+
+                acc.Quantity += mv.Quantity;
+                // Track the most recent inbound UnitCost for the purchase price.
+                if (mv.UnitCost.HasValue && mv.MovementDate > acc.LastInboundDate)
+                {
+                    acc.LastInboundDate = mv.MovementDate;
+                    acc.LastInboundUnitCost = mv.UnitCost;
+                }
+            }
+
+            // Outflow contribution.
+            if (mv.FromLocationId.HasValue)
+            {
+                var key = (mv.ProductId, mv.FromLocationId.Value, mv.LotId);
+                if (!groups.TryGetValue(key, out var acc))
+                {
+                    acc = new SnapshotAccumulator
+                    {
+                        Product = mv.Product,
+                        Location = mv.FromLocation,
+                        Lot = mv.Lot
+                    };
+                    groups[key] = acc;
+                }
+
+                acc.Quantity -= mv.Quantity;
+            }
+        }
+
+        // Trim the search term once. StringComparison.OrdinalIgnoreCase is used in Contains — no lowercasing needed.
+        var effectiveSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
+
+        // Build result DTOs.
+        var result = new List<StockSnapshotDto>(groups.Count);
+
+        foreach (var (key, acc) in groups)
+        {
+            var product = acc.Product;
+            var loc = acc.Location;
+            var lot = acc.Lot;
+
+            if (product is null || loc is null)
+                continue;
+
+            // Apply optional search filter (in-memory, after aggregation).
+            if (effectiveSearch is not null &&
+                !product.Name.Contains(effectiveSearch, StringComparison.OrdinalIgnoreCase) &&
+                !product.Code.Contains(effectiveSearch, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            // Resolve purchase unit cost: last inbound movement's cost → fallback to Stock.UnitCost.
+            decimal? unitCost = acc.LastInboundUnitCost;
+            if (!unitCost.HasValue)
+                stockCostLookup.TryGetValue((key.ProductId, key.LocationId, key.LotId), out unitCost);
+
+            // Resolve sale price: price-list entry (Output, active at referenceDate) → Product.DefaultPrice.
+            salePriceLookup.TryGetValue(key.ProductId, out var salePriceEntry);
+
+            result.Add(new StockSnapshotDto
+            {
+                ProductId = product.Id,
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                WarehouseId = loc.Warehouse?.Id ?? Guid.Empty,
+                WarehouseName = loc.Warehouse?.Name ?? string.Empty,
+                WarehouseCode = loc.Warehouse?.Code ?? string.Empty,
+                LocationId = loc.Id,
+                LocationCode = loc.Code,
+                LocationDescription = loc.Description,
+                LotId = lot?.Id,
+                LotCode = lot?.Code,
+                LotExpiry = lot?.ExpiryDate,
+                Quantity = acc.Quantity,
+                UnitCost = unitCost,
+                SalePrice = salePriceEntry?.Price ?? product.DefaultPrice,
+                IsPriceFromList = salePriceEntry is not null,
+                PriceListName = salePriceEntry?.PriceListName,
+                ReferenceDate = referenceDate.Date
+            });
+        }
+
+        return result
+            .OrderBy(s => s.ProductCode)
+            .ThenBy(s => s.LocationCode);
+    }
+
+    /// <summary>Accumulates quantity and purchase cost data for a snapshot group.</summary>
+    private sealed class SnapshotAccumulator
+    {
+        public Data.Entities.Products.Product? Product { get; set; }
+        public Data.Entities.Warehouse.StorageLocation? Location { get; set; }
+        public Data.Entities.Warehouse.Lot? Lot { get; set; }
+        public decimal Quantity { get; set; }
+        public decimal? LastInboundUnitCost { get; set; }
+        public DateTime LastInboundDate { get; set; }
+    }
+
+    /// <summary>Resolved sale-price entry for a product from a price list.</summary>
+    private sealed record SalePriceEntry(decimal Price, string PriceListName);
+
+    /// <summary>
+    /// Builds a lookup of resolved sale prices for the given products at the reference date.
+    /// <para>
+    /// Resolution logic (mirrors PriceResolutionService priority 4 — general active price list):
+    /// <list type="number">
+    ///   <item>Find active Output price lists valid at <paramref name="referenceDateUtc"/>
+    ///         (Status = Active, ValidFrom ≤ date, ValidTo = null or ≥ date), ordered by Priority.</item>
+    ///   <item>For each product, pick the entry from the highest-priority list that contains it.</item>
+    ///   <item>Products without a price-list entry are absent from the returned dictionary;
+    ///         callers fall back to <c>Product.DefaultPrice</c>.</item>
+    /// </list>
+    /// A single DB query fetches all matching entries at once to avoid N+1 problems.
+    /// </para>
+    /// </summary>
+    private async Task<Dictionary<Guid, SalePriceEntry>> BuildSalePriceLookupAsync(
+        IReadOnlyCollection<Guid> productIds,
+        DateTime referenceDateUtc,
+        Guid tenantId,
+        CancellationToken cancellationToken)
+    {
+        // Load all active Output price-list entries for the relevant products in one query.
+        // We include the price list so we can use Priority and Name.
+        var entries = await context.PriceListEntries
+            .AsNoTracking()
+            .Include(e => e.PriceList)
+            .Where(e => productIds.Contains(e.ProductId)
+                        && e.TenantId == tenantId
+                        && !e.IsDeleted
+                        && e.Status == Data.Entities.PriceList.PriceListEntryStatus.Active
+                        && e.PriceList != null
+                        && e.PriceList.TenantId == tenantId
+                        && !e.PriceList.IsDeleted
+                        && e.PriceList.Status == Data.Entities.PriceList.PriceListStatus.Active
+                        && e.PriceList.Direction == PriceListDirection.Output
+                        && (e.PriceList.ValidFrom == null || e.PriceList.ValidFrom.Value.Date <= referenceDateUtc)
+                        && (e.PriceList.ValidTo == null || e.PriceList.ValidTo.Value.Date >= referenceDateUtc))
+            .Select(e => new
+            {
+                e.ProductId,
+                e.Price,
+                PriceListName = e.PriceList!.Name,
+                Priority = e.PriceList!.Priority
+            })
+            .ToListAsync(cancellationToken);
+
+        // For each product keep only the entry from the highest-priority price list (lowest Priority value).
+        return entries
+            .GroupBy(e => e.ProductId)
+            .ToDictionary(
+                g => g.Key,
+                g =>
+                {
+                    var best = g.OrderBy(e => e.Priority).First();
+                    return new SalePriceEntry(best.Price, best.PriceListName);
+                });
     }
 
 }
