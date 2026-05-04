@@ -1156,6 +1156,44 @@ public class StockService(
             .Distinct()
             .ToList();
 
+        // ── Inventory-document anchors ────────────────────────────────────────
+        // Load all closed inventory-document rows for the relevant products and
+        // locations whose document date is ≤ referenceDate.  For each
+        // (ProductId, LocationId, LotId) group the most recent such row is used as
+        // a quantity anchor: the snapshot starts at that quantity and only movements
+        // dated *after* the inventory document's date are applied on top.
+        // DocumentRow.LocationId matches the field used by StockReconciliationService.
+        // If no inventory document exists for a group, the full movement history
+        // (accumulated from zero) is used — preserving the previous behaviour.
+        var inventoryDocRows = await context.DocumentRows
+            .AsNoTracking()
+            .Include(dr => dr.DocumentHeader)
+                .ThenInclude(dh => dh!.DocumentType)
+            .Where(dr => dr.TenantId == currentTenantId.Value
+                         && !dr.IsDeleted
+                         && dr.ProductId.HasValue
+                         && relevantProductIds.Contains(dr.ProductId!.Value)
+                         && dr.LocationId.HasValue
+                         && relevantLocationIds.Contains(dr.LocationId!.Value)
+                         && dr.DocumentHeader != null
+                         && dr.DocumentHeader.DocumentType != null
+                         && dr.DocumentHeader.DocumentType.IsInventoryDocument
+                         && dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed
+                         && dr.DocumentHeader.Date < cutoff)
+            .ToListAsync(cancellationToken);
+
+        // Build a lookup: (ProductId, LocationId, LotId?) → most-recent inventory anchor.
+        // We rely on DocumentRow.LotId being null for non-lot-tracked items, consistent
+        // with how StockReconciliationService.CalculateStockItem works.
+        var inventoryAnchorLookup = inventoryDocRows
+            .GroupBy(dr => (
+                ProductId: dr.ProductId!.Value,
+                LocationId: dr.LocationId!.Value,
+                LotId: (Guid?)null))   // DocumentRow has no LotId — use null for the key
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
+
         // Load Stock.UnitCost only for the relevant (ProductId, LocationId) combinations.
         var stockCostLookup = await context.Stocks
             .AsNoTracking()
@@ -1185,6 +1223,10 @@ public class StockService(
         // direction — the sign is implicit from MovementType / FromLocationId / ToLocationId.
         // Math.Abs is applied defensively so that any legacy rows with a negative Quantity
         // (e.g. written by old code) do not silently invert the sign of the accumulator.
+        //
+        // When an inventory-document anchor exists for a (ProductId, LocationId) pair, the
+        // accumulator starts at the anchored quantity instead of zero, and only movements
+        // dated strictly after the inventory document's date are applied.
         var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>();
 
         foreach (var mv in movements)
@@ -1197,14 +1239,13 @@ public class StockService(
                 var key = (mv.ProductId, mv.ToLocationId.Value, mv.LotId);
                 if (!groups.TryGetValue(key, out var acc))
                 {
-                    acc = new SnapshotAccumulator
-                    {
-                        Product = mv.Product,
-                        Location = mv.ToLocation,
-                        Lot = mv.Lot
-                    };
+                    acc = BuildAccumulatorWithAnchor(key, mv.Product, mv.ToLocation, mv.Lot, inventoryAnchorLookup);
                     groups[key] = acc;
                 }
+
+                // Skip movements that pre-date (or are on the same day as) the inventory anchor.
+                if (acc.InventoryAnchorDate.HasValue && mv.MovementDate < acc.InventoryAnchorDate.Value.AddDays(1))
+                    continue;
 
                 acc.Quantity += absQty;
                 // Track the most recent inbound UnitCost for the purchase price.
@@ -1221,14 +1262,13 @@ public class StockService(
                 var key = (mv.ProductId, mv.FromLocationId.Value, mv.LotId);
                 if (!groups.TryGetValue(key, out var acc))
                 {
-                    acc = new SnapshotAccumulator
-                    {
-                        Product = mv.Product,
-                        Location = mv.FromLocation,
-                        Lot = mv.Lot
-                    };
+                    acc = BuildAccumulatorWithAnchor(key, mv.Product, mv.FromLocation, mv.Lot, inventoryAnchorLookup);
                     groups[key] = acc;
                 }
+
+                // Skip movements that pre-date (or are on the same day as) the inventory anchor.
+                if (acc.InventoryAnchorDate.HasValue && mv.MovementDate < acc.InventoryAnchorDate.Value.AddDays(1))
+                    continue;
 
                 acc.Quantity -= absQty;
             }
@@ -1299,9 +1339,47 @@ public class StockService(
         public Data.Entities.Products.Product? Product { get; set; }
         public Data.Entities.Warehouse.StorageLocation? Location { get; set; }
         public Data.Entities.Warehouse.Lot? Lot { get; set; }
+
+        /// <summary>Running net quantity (starts at the inventory anchor quantity when an anchor exists).</summary>
         public decimal Quantity { get; set; }
+
         public decimal? LastInboundUnitCost { get; set; }
         public DateTime LastInboundDate { get; set; }
+
+        /// <summary>
+        /// Date of the most recent closed inventory-document row that anchors this accumulator.
+        /// Movements dated on or before this date are excluded from the running total.
+        /// Null when no inventory anchor is available (full movement history is used).
+        /// </summary>
+        public DateTime? InventoryAnchorDate { get; set; }
+    }
+
+    /// <summary>
+    /// Creates a <see cref="SnapshotAccumulator"/> pre-seeded with the inventory-document anchor
+    /// quantity for the given key, if one exists in <paramref name="anchorLookup"/>.
+    /// When no anchor exists the accumulator starts at zero (original behaviour).
+    /// </summary>
+    private static SnapshotAccumulator BuildAccumulatorWithAnchor(
+        (Guid ProductId, Guid LocationId, Guid? LotId) key,
+        Data.Entities.Products.Product? product,
+        Data.Entities.Warehouse.StorageLocation? location,
+        Data.Entities.Warehouse.Lot? lot,
+        Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), Data.Entities.Documents.DocumentRow> anchorLookup)
+    {
+        var acc = new SnapshotAccumulator
+        {
+            Product = product,
+            Location = location,
+            Lot = lot
+        };
+
+        if (anchorLookup.TryGetValue(key, out var anchorRow))
+        {
+            acc.Quantity = anchorRow.Quantity;
+            acc.InventoryAnchorDate = anchorRow.DocumentHeader!.Date.Date;
+        }
+
+        return acc;
     }
 
     /// <summary>Resolved sale-price entry for a product from a price list.</summary>

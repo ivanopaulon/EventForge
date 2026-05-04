@@ -1,5 +1,6 @@
 using Prym.DTOs.Warehouse;
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Data.Entities.Warehouse;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
+using EntityDocumentStatus = Prym.DTOs.Common.DocumentStatus;
 
 namespace EventForge.Tests.Services.Warehouse;
 
@@ -739,6 +741,199 @@ public class StockSnapshotServiceTests : IDisposable
         Assert.Single(result);
         Assert.Equal(19.99m, result[0].SalePrice);   // fallback: Input list not used
         Assert.False(result[0].IsPriceFromList);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Inventory-document anchor tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private Guid _inventoryDocTypeId = Guid.NewGuid();
+
+    private void SeedInventoryDocumentType()
+    {
+        _context.DocumentTypes.Add(new DocumentType
+        {
+            Id = _inventoryDocTypeId,
+            TenantId = _tenantId,
+            Code = "INVENTORY",
+            Name = "Inventory Document",
+            IsInventoryDocument = true,
+            CreatesStockMovements = false,
+            IsStockIncrease = false,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+    }
+
+    private DocumentHeader MakeInventoryHeader(
+        DateTime date,
+        EntityDocumentStatus status = EntityDocumentStatus.Closed)
+    {
+        return new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = _inventoryDocTypeId,
+            Number = $"INV-{Guid.NewGuid():N}",
+            Date = date,
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+    }
+
+    private DocumentRow MakeInventoryRow(
+        Guid documentHeaderId,
+        Guid productId,
+        Guid locationId,
+        decimal quantity)
+    {
+        return new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeaderId,
+            ProductId = productId,
+            LocationId = locationId,
+            Description = "Inventory count",
+            Quantity = quantity,
+            UnitPrice = 0m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+    }
+
+    /// <summary>
+    /// When a closed inventory document exists before the reference date, the snapshot must use
+    /// the inventory quantity as the starting point and apply only movements that occurred AFTER
+    /// the inventory document date (day boundary, inclusive of the next day onward).
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_InventoryAnchor_UsesInventoryAsStartingPoint()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var feb10 = new DateTime(2025, 2, 10, 0, 0, 0, DateTimeKind.Utc);
+        var feb15 = new DateTime(2025, 2, 15, 0, 0, 0, DateTimeKind.Utc);
+
+        // Two inbound movements on Jan 01
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 40m, jan01),
+            MakeMovement(_productId, _locationId, null, 60m, jan01.AddHours(1)));
+
+        // Inventory document on Feb 06 saying stock is 80 (anchor)
+        var inventoryHeader = MakeInventoryHeader(feb06);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 80m));
+
+        // One outbound movement on Feb 10 (after inventory)
+        _context.StockMovements.Add(MakeMovement(_productId, null, _locationId, 15m, feb10));
+
+        await _context.SaveChangesAsync();
+
+        // Act: snapshot at Feb 15
+        var result = (await _stockService.GetStockSnapshotAsync(feb15)).ToList();
+
+        // Assert: should be 80 (inventory anchor) - 15 (post-inventory outbound) = 65
+        // NOT 40+60-15 = 85 (which would ignore the inventory anchor)
+        Assert.Single(result);
+        Assert.Equal(65m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// When the reference date is BEFORE the inventory document date, the inventory anchor
+    /// must be ignored and the full movement history must be used.
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_SnapshotBeforeInventory_IgnoresAnchor()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var feb05 = feb06.AddDays(-1); // one day BEFORE the inventory document
+
+        // Inbound movements before the inventory
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 50m, jan01),
+            MakeMovement(_productId, _locationId, null, 30m, jan01.AddDays(10)));
+
+        // Inventory document on Feb 06 (after the reference date)
+        var inventoryHeader = MakeInventoryHeader(feb06);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 99m));
+
+        await _context.SaveChangesAsync();
+
+        // Act: snapshot at Feb 05 (before the inventory document)
+        var result = (await _stockService.GetStockSnapshotAsync(feb05)).ToList();
+
+        // Assert: should be 50+30 = 80 (full movement history, inventory is ignored)
+        Assert.Single(result);
+        Assert.Equal(80m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// When no inventory document exists, the snapshot must behave exactly as before
+    /// (accumulate from zero using the full movement history).
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_NoInventoryDocument_UsesFullMovementHistory()
+    {
+        // Arrange — no inventory document type seeded, no DocumentRows
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var mar01 = new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 100m, jan01),
+            MakeMovement(_productId, null, _locationId, 25m,  jan01.AddDays(30)));
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _stockService.GetStockSnapshotAsync(mar01)).ToList();
+
+        // Assert: 100 - 25 = 75 (standard behaviour)
+        Assert.Single(result);
+        Assert.Equal(75m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// An inventory document that is NOT in Closed status must NOT be used as an anchor.
+    /// Only closed inventory documents are authoritative.
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_OpenInventoryDocument_IsIgnoredAsAnchor()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var mar01 = new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 60m, jan01),
+            MakeMovement(_productId, null, _locationId, 10m, jan01.AddDays(5)));
+
+        // Inventory document that is Open (not Closed) — must not be used as anchor
+        var inventoryHeader = MakeInventoryHeader(feb06, EntityDocumentStatus.Open);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 999m));
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _stockService.GetStockSnapshotAsync(mar01)).ToList();
+
+        // Assert: 60 - 10 = 50 (inventory is not closed, so full history is used)
+        Assert.Single(result);
+        Assert.Equal(50m, result[0].Quantity);
     }
 
     public void Dispose() => _context?.Dispose();

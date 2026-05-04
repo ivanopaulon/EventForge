@@ -655,7 +655,10 @@ public class StockReconciliationService(
             .Where(dh => dh.TenantId == currentTenantId.Value
                       && !dh.IsDeleted
                       && approvalStatusFilter.Contains(dh.ApprovalStatus)
-                      && documentStatusFilter.Contains(dh.Status));
+                      && documentStatusFilter.Contains(dh.Status)
+                      // Inventory documents are quantity anchors, not incremental movements.
+                      // Including them would create erroneous Inbound/Outbound movements.
+                      && (dh.DocumentType == null || !dh.DocumentType.IsInventoryDocument));
 
         if (request.FromDate.HasValue)
             headersQuery = headersQuery.Where(dh => dh.Date >= request.FromDate.Value);
@@ -804,7 +807,10 @@ public class StockReconciliationService(
                 // BaseQuantity stores the quantity in the product's base unit of measure
                 // (set by UnitConversionService when the document row has a UOM conversion).
                 // Falling back to Quantity is correct when no UOM conversion is configured.
-                var movementDate = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+                var docDate = documentHeader.Date;
+                var movementDate = docDate.Kind == DateTimeKind.Utc
+                    ? docDate
+                    : DateTime.SpecifyKind(docDate, DateTimeKind.Utc);
 
                 var dto = new CreateStockMovementDto
                 {

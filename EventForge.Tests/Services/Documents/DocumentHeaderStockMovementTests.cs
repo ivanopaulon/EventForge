@@ -1271,6 +1271,231 @@ public class DocumentHeaderStockMovementTests : IDisposable
         Assert.Equal(1, movementsAfterSecondClose);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Inventory document — stock movement suppression tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Approving a document whose type has IsInventoryDocument = true must NOT create any
+    /// StockMovements.  Inventory documents are quantity anchors, not stock deltas.
+    /// </summary>
+    [Fact]
+    public async Task ApproveDocumentAsync_InventoryDocument_DoesNotCreateStockMovements()
+    {
+        // Arrange
+        var inventoryDocType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Inventory Count",
+            Code = "INVENTORY",
+            IsInventoryDocument = true,
+            CreatesStockMovements = false,
+            IsStockIncrease = false,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.ClienteFornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(inventoryDocType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = inventoryDocType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "INV-001",
+            Date = DateTime.UtcNow,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            LocationId = _storageLocationId,
+            Description = "Physical count",
+            Quantity = 75,   // absolute counted quantity
+            UnitPrice = 0,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+        await _context.SaveChangesAsync();
+
+        var initialStock = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+
+        // Act
+        var result = await _documentHeaderService.ApproveDocumentAsync(documentHeader.Id, "test");
+
+        // Assert — document approved but NO movements created
+        Assert.NotNull(result);
+        Assert.Equal(DtoApprovalStatus.Approved, result.ApprovalStatus);
+
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+        Assert.Empty(movements);
+
+        // Stock must remain unchanged
+        var finalStock = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+        Assert.Equal(initialStock, finalStock);
+    }
+
+    /// <summary>
+    /// Closing a document whose type has IsInventoryDocument = true must NOT create any
+    /// StockMovements.  Inventory documents are quantity anchors, not stock deltas.
+    /// </summary>
+    [Fact]
+    public async Task CloseDocumentAsync_InventoryDocument_DoesNotCreateStockMovements()
+    {
+        // Arrange
+        var inventoryDocType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Inventory Count",
+            Code = "INVENTORY",
+            IsInventoryDocument = true,
+            CreatesStockMovements = false,
+            IsStockIncrease = false,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.ClienteFornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(inventoryDocType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = inventoryDocType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "INV-002",
+            Date = DateTime.UtcNow,
+            ApprovalStatus = EntityApprovalStatus.Approved,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            LocationId = _storageLocationId,
+            Description = "Physical count",
+            Quantity = 50,
+            UnitPrice = 0,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+        await _context.SaveChangesAsync();
+
+        var initialStock = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+
+        // Act
+        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+
+        // Assert — document closed but NO movements created
+        Assert.NotNull(result);
+
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+        Assert.Empty(movements);
+
+        // Stock must remain unchanged
+        var finalStock = await _context.Stocks
+            .Where(s => s.ProductId == _productId && s.StorageLocationId == _storageLocationId)
+            .SumAsync(s => s.Quantity);
+        Assert.Equal(initialStock, finalStock);
+    }
+
+    /// <summary>
+    /// A normal (non-inventory) purchase document must still create stock movements after
+    /// the inventory-document guard is in place — regression check.
+    /// </summary>
+    [Fact]
+    public async Task ApproveDocumentAsync_NormalDocument_StillCreatesStockMovements()
+    {
+        // Arrange
+        var purchaseType = new DocumentType
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Purchase Order",
+            Code = "PO-REG",
+            IsInventoryDocument = false,
+            CreatesStockMovements = true,
+            IsStockIncrease = true,
+            DefaultWarehouseId = _warehouseId,
+            RequiredPartyType = EntityBusinessPartyType.Fornitore,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentTypes.Add(purchaseType);
+
+        var documentHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = purchaseType.Id,
+            BusinessPartyId = _businessPartyId,
+            Number = "PO-REG-001",
+            Date = DateTime.UtcNow,
+            ApprovalStatus = EntityApprovalStatus.None,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(documentHeader);
+
+        var documentRow = new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeader.Id,
+            ProductId = _productId,
+            Description = "Normal product",
+            Quantity = 20,
+            UnitPrice = 10,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentRows.Add(documentRow);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _documentHeaderService.ApproveDocumentAsync(documentHeader.Id, "test");
+
+        // Assert — movement must be created for normal documents
+        Assert.NotNull(result);
+        Assert.Equal(DtoApprovalStatus.Approved, result.ApprovalStatus);
+
+        var movements = await _context.StockMovements
+            .Where(sm => sm.DocumentHeaderId == documentHeader.Id)
+            .ToListAsync();
+        Assert.Single(movements);
+        Assert.Equal(StockMovementType.Inbound, movements[0].MovementType);
+        Assert.Equal(20, movements[0].Quantity);
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
