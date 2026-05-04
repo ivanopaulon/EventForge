@@ -1214,10 +1214,8 @@ public class StockService(
             }
         }
 
-        // Compile pre-processed search term once (avoid repeated allocation in the loop).
-        var lowerSearchTerm = string.IsNullOrWhiteSpace(searchTerm)
-            ? null
-            : searchTerm.ToLowerInvariant();
+        // Trim the search term once. StringComparison.OrdinalIgnoreCase is used in Contains — no lowercasing needed.
+        var effectiveSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
 
         // Build result DTOs.
         var result = new List<StockSnapshotDto>(groups.Count);
@@ -1232,9 +1230,9 @@ public class StockService(
                 continue;
 
             // Apply optional search filter (in-memory, after aggregation).
-            if (lowerSearchTerm is not null &&
-                !product.Name.Contains(lowerSearchTerm, StringComparison.OrdinalIgnoreCase) &&
-                !product.Code.Contains(lowerSearchTerm, StringComparison.OrdinalIgnoreCase))
+            if (effectiveSearch is not null &&
+                !product.Name.Contains(effectiveSearch, StringComparison.OrdinalIgnoreCase) &&
+                !product.Code.Contains(effectiveSearch, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
