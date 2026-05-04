@@ -59,6 +59,15 @@
                             </MudText>
                         </MudAlert>
                     }
+                    else if (_isReadOnlyDueToStatus)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            <MudText Typo="Typo.body2">
+                                @TranslationService.GetTranslation("documents.readOnlyDueToStatus", "Documento in sola lettura — stato:")
+                                <strong>@TranslationService.GetTranslation($"documents.status.{_documentStatus.ToString().ToLower()}", _documentStatus.ToString())</strong>
+                            </MudText>
+                        </MudAlert>
+                    }
                     else if (_isReadOnlyDueToError)
                     {
                         <MudAlert Severity="Severity.Warning" Dense="true">
@@ -529,6 +538,7 @@
     private bool _hasEditLock = false;
     private bool _isReadOnly = false;
     private bool _isReadOnlyDueToError = false;
+    private bool _isReadOnlyDueToStatus = false;
     private string? _lockHolderName = null;
 
     // Selection management for rows
@@ -657,6 +667,15 @@
 
     private async Task SetupCollaborationAsync(Guid documentId)
     {
+        // Documents with immutable status (Closed/Cancelled) are opened in read-only mode
+        // without attempting to acquire an edit lock.
+        if (_documentStatus == DocumentStatus.Closed || _documentStatus == DocumentStatus.Cancelled)
+        {
+            _isReadOnly = true;
+            _isReadOnlyDueToStatus = true;
+            return;
+        }
+
         RealtimeService.DocumentLocked += OnDocumentLocked;
         RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
         try
@@ -1342,6 +1361,9 @@
         if (_lockReleased) return;
         _lockReleased = true;
 
+        // When read-only due to document status, no lock or collaboration session was established.
+        if (_isReadOnlyDueToStatus) return;
+
         try
         {
             if (_hasEditLock && _currentDocument?.Id is { } docId && docId != Guid.Empty)
@@ -1401,7 +1423,7 @@
                         _isReadOnly = false;
                         AppNotification.ShowInfo(TranslationService.GetTranslation(
                             "documents.documentUnlocked",
-                            "✅ Documento ora disponibile per la modifica."));
+                            "Documento ora disponibile per la modifica."));
                     }
                 }
             }
