@@ -936,6 +936,131 @@ public class StockSnapshotServiceTests : IDisposable
         Assert.Equal(50m, result[0].Quantity);
     }
 
+    /// <summary>
+    /// Lot-specific movements (LotId != null) must still be correctly anchored by a closed
+    /// inventory document for the same (ProductId, LocationId), even though the inventory
+    /// document has no LotId column. One anchor covers all lots in the same (Product, Location).
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_InventoryAnchor_AppliesCorrectlyToLotSpecificMovements()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var lotId = Guid.NewGuid();
+        _context.Lots.Add(new Lot
+        {
+            Id = lotId,
+            TenantId = _tenantId,
+            ProductId = _productId,
+            Code = "LOT-001",
+            OriginalQuantity = 100m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var feb10 = new DateTime(2025, 2, 10, 0, 0, 0, DateTimeKind.Utc);
+        var feb15 = new DateTime(2025, 2, 15, 0, 0, 0, DateTimeKind.Utc);
+
+        // Pre-inventory inbound movements for the lot
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 40m, jan01, lotId: lotId),
+            MakeMovement(_productId, _locationId, null, 60m, jan01.AddHours(1), lotId: lotId));
+
+        // Closed inventory document on Feb 06 anchoring at 80 for (product, location)
+        var inventoryHeader = MakeInventoryHeader(feb06);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        // Inventory rows have no LotId — they cover the location as a whole
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 80m));
+
+        // Post-inventory outbound for the same lot on Feb 10
+        _context.StockMovements.Add(MakeMovement(_productId, null, _locationId, 10m, feb10, lotId: lotId));
+
+        await _context.SaveChangesAsync();
+
+        // Act: snapshot at Feb 15
+        var result = (await _stockService.GetStockSnapshotAsync(feb15)).ToList();
+
+        // Assert: anchor = 80, post-inventory outbound = -10 → net 70.
+        // Before the fix, lot-specific movements missed the anchor lookup (key mismatch)
+        // and the result would have been 40 + 60 - 10 = 90 (ignoring the anchor).
+        Assert.Single(result);
+        Assert.Equal(lotId, result[0].LotId);
+        Assert.Equal(70m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// GetRecentInventoryDatesAsync returns the most recent N closed inventory document dates,
+    /// ordered from newest to oldest, and correctly extracts only the date component.
+    /// </summary>
+    [Fact]
+    public async Task GetRecentInventoryDatesAsync_ReturnsMostRecentClosedInventoriesOrdered()
+    {
+        SeedInventoryDocumentType();
+
+        var dates = new[]
+        {
+            new DateTime(2025, 1, 10, 10, 0, 0, DateTimeKind.Utc),
+            new DateTime(2025, 3, 5,  22, 0, 0, DateTimeKind.Utc),  // newest
+            new DateTime(2024, 12, 1, 8,  0, 0, DateTimeKind.Utc),  // oldest of 3
+        };
+
+        foreach (var d in dates)
+        {
+            var header = MakeInventoryHeader(d, EntityDocumentStatus.Closed);
+            _context.DocumentHeaders.Add(header);
+        }
+
+        // An open inventory document — must NOT be included.
+        _context.DocumentHeaders.Add(MakeInventoryHeader(
+            new DateTime(2025, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+            EntityDocumentStatus.Open));
+
+        await _context.SaveChangesAsync();
+
+        var result = await _stockService.GetRecentInventoryDatesAsync(3);
+
+        Assert.Equal(3, result.Count);
+        // Ordered from newest to oldest
+        Assert.Equal(new DateTime(2025, 3, 5), result[0].Date);
+        Assert.Equal(new DateTime(2025, 1, 10), result[1].Date);
+        Assert.Equal(new DateTime(2024, 12, 1), result[2].Date);
+        // Date component only (time stripped)
+        Assert.All(result, r => Assert.Equal(TimeSpan.Zero, r.Date.TimeOfDay));
+    }
+
+    /// <summary>
+    /// GetRecentInventoryDatesAsync respects the count limit and returns at most N records.
+    /// </summary>
+    [Fact]
+    public async Task GetRecentInventoryDatesAsync_RespectsCountLimit()
+    {
+        SeedInventoryDocumentType();
+
+        for (var i = 1; i <= 5; i++)
+        {
+            _context.DocumentHeaders.Add(MakeInventoryHeader(
+                new DateTime(2025, i, 1, 0, 0, 0, DateTimeKind.Utc)));
+        }
+        await _context.SaveChangesAsync();
+
+        var result = await _stockService.GetRecentInventoryDatesAsync(count: 2);
+
+        Assert.Equal(2, result.Count);
+    }
+
+    /// <summary>
+    /// GetRecentInventoryDatesAsync returns an empty list when no closed inventory documents exist.
+    /// </summary>
+    [Fact]
+    public async Task GetRecentInventoryDatesAsync_NoClosedInventories_ReturnsEmpty()
+    {
+        var result = await _stockService.GetRecentInventoryDatesAsync(3);
+        Assert.Empty(result);
+    }
+
     public void Dispose() => _context?.Dispose();
 }
 

@@ -1108,20 +1108,16 @@ public class StockService(
         // Cover the full reference day in UTC: movements on the reference date are included.
         var cutoff = referenceDate.Date.AddDays(1);
 
-        // Build the base query with all necessary navigation properties.
+        // ── Step 1: Load movements via projection ────────────────────────────
+        // Using a scalar projection avoids loading unused navigation-property columns
+        // (AuditableEntity fields, Notes, Reference, …) for every movement row.
         // Only Completed movements contribute to historical stock levels.
         // POS sales (SaleSessionService) and document approval (DocumentHeaderService) both
         // create movements directly with MovementStatus.Completed, so the filter is correct.
         // Planned/InProgress/Cancelled/Failed movements represent uncommitted or voided intent
         // and must NOT influence the historical balance.
-        var movementsQuery = context.StockMovements
+        var movementsBase = context.StockMovements
             .AsNoTracking()
-            .Include(sm => sm.Product)
-            .Include(sm => sm.ToLocation)
-                .ThenInclude(l => l!.Warehouse)
-            .Include(sm => sm.FromLocation)
-                .ThenInclude(l => l!.Warehouse)
-            .Include(sm => sm.Lot)
             .Where(sm => sm.TenantId == currentTenantId.Value
                          && !sm.IsDeleted
                          && sm.MovementDate < cutoff
@@ -1130,45 +1126,84 @@ public class StockService(
         // Push location/warehouse filters to the database to avoid loading irrelevant rows.
         if (locationId.HasValue)
         {
-            movementsQuery = movementsQuery.Where(sm =>
+            movementsBase = movementsBase.Where(sm =>
                 sm.ToLocationId == locationId.Value || sm.FromLocationId == locationId.Value);
         }
         else if (warehouseId.HasValue)
         {
             var wid = warehouseId.Value;
-            movementsQuery = movementsQuery.Where(sm =>
+            // Navigation-property access in WHERE is translated to a JOIN without loading the entity.
+            movementsBase = movementsBase.Where(sm =>
                 (sm.ToLocation != null && sm.ToLocation.WarehouseId == wid) ||
                 (sm.FromLocation != null && sm.FromLocation.WarehouseId == wid));
         }
 
-        var movements = await movementsQuery.ToListAsync(cancellationToken);
+        var rawMovements = await movementsBase
+            .Select(sm => new MovementProjection(
+                sm.ProductId,
+                sm.ToLocationId,
+                sm.FromLocationId,
+                sm.LotId,
+                sm.Quantity,
+                sm.MovementDate,
+                sm.UnitCost))
+            .ToListAsync(cancellationToken);
 
-        if (movements.Count == 0)
+        if (rawMovements.Count == 0)
             return Enumerable.Empty<StockSnapshotDto>();
 
-        // Collect the exact product IDs and location IDs from the loaded movements
-        // so the UnitCost fallback query is scoped to only what is needed.
-        var relevantProductIds = movements.Select(m => m.ProductId).Distinct().ToList();
-        var relevantLocationIds = movements
+        // ── Step 2: Collect IDs for bulk-loading reference data ──────────────
+        var relevantProductIds = rawMovements.Select(m => m.ProductId).Distinct().ToList();
+        var relevantLocationIds = rawMovements
             .SelectMany(m => new[] { m.ToLocationId, m.FromLocationId })
             .Where(id => id.HasValue)
             .Select(id => id!.Value)
             .Distinct()
             .ToList();
+        var relevantLotIds = rawMovements
+            .Where(m => m.LotId.HasValue)
+            .Select(m => m.LotId!.Value)
+            .Distinct()
+            .ToList();
 
-        // ── Inventory-document anchors ────────────────────────────────────────
-        // Load all closed inventory-document rows for the relevant products and
-        // locations whose document date is ≤ referenceDate.  For each
-        // (ProductId, LocationId, LotId) group the most recent such row is used as
-        // a quantity anchor: the snapshot starts at that quantity and only movements
-        // dated *after* the inventory document's date are applied on top.
-        // DocumentRow.LocationId matches the field used by StockReconciliationService.
-        // If no inventory document exists for a group, the full movement history
-        // (accumulated from zero) is used — preserving the previous behaviour.
-        var inventoryDocRows = await context.DocumentRows
+        // ── Step 3: Bulk-load Products, Locations, Lots ──────────────────────
+        // DbContext is not thread-safe — queries must be sequential.
+
+        var productLookup = await context.Products
             .AsNoTracking()
-            .Include(dr => dr.DocumentHeader)
-                .ThenInclude(dh => dh!.DocumentType)
+            .Where(p => p.TenantId == currentTenantId.Value
+                        && !p.IsDeleted
+                        && relevantProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        // Location lookup with warehouse navigation so we can fill warehouse name/code in the DTO.
+        var locationLookup = await context.StorageLocations
+            .AsNoTracking()
+            .Include(l => l.Warehouse)
+            .Where(l => l.TenantId == currentTenantId.Value
+                        && !l.IsDeleted
+                        && relevantLocationIds.Contains(l.Id))
+            .ToDictionaryAsync(l => l.Id, cancellationToken);
+
+        // Lot lookup is only needed when at least one movement references a lot.
+        var lotLookup = relevantLotIds.Count > 0
+            ? await context.Lots
+                .AsNoTracking()
+                .Where(l => l.TenantId == currentTenantId.Value
+                            && !l.IsDeleted
+                            && relevantLotIds.Contains(l.Id))
+                .ToDictionaryAsync(l => l.Id, cancellationToken)
+            : new Dictionary<Guid, Data.Entities.Warehouse.Lot>();
+
+        // ── Step 4: Load inventory-document anchors (projected) ───────────────
+        // For each (ProductId, LocationId) pair, the most recent closed inventory document
+        // whose date is before the cutoff seeds the accumulator with the counted quantity.
+        // Only movements dated *after* the inventory document's date are then applied on top.
+        // DocumentRow has no LotId column — inventory counting is done at the (Product, Location)
+        // level, so one anchor covers all lot-specific buckets within the same location.
+        // Using a scalar projection avoids loading full DocumentRow/DocumentHeader/DocumentType entities.
+        var inventoryAnchorLookup = (await context.DocumentRows
+            .AsNoTracking()
             .Where(dr => dr.TenantId == currentTenantId.Value
                          && !dr.IsDeleted
                          && dr.ProductId.HasValue
@@ -1180,24 +1215,26 @@ public class StockService(
                          && dr.DocumentHeader.DocumentType.IsInventoryDocument
                          && dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed
                          && dr.DocumentHeader.Date < cutoff)
-            .ToListAsync(cancellationToken);
-
-        // Build a lookup: (ProductId, LocationId, LotId?) → most-recent inventory anchor.
-        // DocumentRow has no LotId field (inventory counting in this system does not track
-        // at lot level — lot-level stock movements are handled by StockMovement.LotId).
-        // Therefore the anchor key always uses LotId = null, and the anchor quantity covers
-        // the entire location regardless of lots. Movement accumulation for lot-specific keys
-        // will be anchored as well (they share the same (ProductId, LocationId, null) bucket).
-        var inventoryAnchorLookup = inventoryDocRows
-            .GroupBy(dr => (
-                ProductId: dr.ProductId!.Value,
-                LocationId: dr.LocationId!.Value,
-                LotId: (Guid?)null))
+            .Select(dr => new
+            {
+                ProductId = dr.ProductId!.Value,
+                LocationId = dr.LocationId!.Value,
+                dr.Quantity,
+                DocumentDate = dr.DocumentHeader!.Date
+            })
+            .ToListAsync(cancellationToken))
+            .GroupBy(r => (r.ProductId, r.LocationId))
             .ToDictionary(
                 g => g.Key,
-                g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
+                g =>
+                {
+                    // Most recent inventory document for this (Product, Location) pair.
+                    var best = g.OrderByDescending(r => r.DocumentDate).First();
+                    // Pre-compute the cutoff so the inner loop does not call AddDays(1) per iteration.
+                    return (Quantity: best.Quantity, Cutoff: best.DocumentDate.Date.AddDays(1));
+                });
 
-        // Load Stock.UnitCost only for the relevant (ProductId, LocationId) combinations.
+        // ── Step 5: Load Stock.UnitCost fallback ─────────────────────────────
         var stockCostLookup = await context.Stocks
             .AsNoTracking()
             .Where(s => s.TenantId == currentTenantId.Value
@@ -1210,16 +1247,14 @@ public class StockService(
                 s => s.UnitCost,
                 cancellationToken);
 
-        // Resolve sale price from the highest-priority Output price list that was active at
-        // referenceDate, for each relevant product.  Priority is determined by pl.Priority (lower = higher).
-        // Falls back to Product.DefaultPrice when no price-list entry is found.
-        // This mirrors the normal pricing cascade (priority 4 of PriceResolutionService) without
-        // business-party or document context (both are irrelevant for a stock valuation snapshot).
+        // ── Step 6: Resolve sale prices ──────────────────────────────────────
+        // Mirrors the normal pricing cascade (priority 4 of PriceResolutionService) without
+        // business-party or document context (irrelevant for a stock valuation snapshot).
         var referenceDateUtc = referenceDate.Date;
         var salePriceLookup = await BuildSalePriceLookupAsync(
             relevantProductIds, referenceDateUtc, currentTenantId.Value, cancellationToken);
 
-        // Build snapshot groups: key = (ProductId, LocationId, LotId).
+        // ── Step 7: Accumulate movements into per-(Product, Location, Lot) buckets ──
         // Inflows  → ToLocationId  (+Quantity, tracks last UnitCost)
         // Outflows → FromLocationId (-Quantity)
         // Convention: StockMovement.Quantity is always stored as a positive value regardless of
@@ -1230,9 +1265,10 @@ public class StockService(
         // When an inventory-document anchor exists for a (ProductId, LocationId) pair, the
         // accumulator starts at the anchored quantity instead of zero, and only movements
         // dated strictly after the inventory document's date are applied.
-        var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>();
+        var groups = new Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), SnapshotAccumulator>(
+            rawMovements.Count / 2);
 
-        foreach (var mv in movements)
+        foreach (var mv in rawMovements)
         {
             var absQty = Math.Abs(mv.Quantity);
 
@@ -1242,12 +1278,13 @@ public class StockService(
                 var key = (mv.ProductId, mv.ToLocationId.Value, mv.LotId);
                 if (!groups.TryGetValue(key, out var acc))
                 {
-                    acc = BuildAccumulatorWithAnchor(key, mv.Product, mv.ToLocation, mv.Lot, inventoryAnchorLookup);
+                    acc = BuildAccumulatorWithAnchor(key, inventoryAnchorLookup);
                     groups[key] = acc;
                 }
 
                 // Skip movements that pre-date (or are on the same day as) the inventory anchor.
-                if (acc.InventoryAnchorDate.HasValue && mv.MovementDate < acc.InventoryAnchorDate.Value.AddDays(1))
+                // InventoryAnchorCutoff is pre-computed (anchorDate.Date + 1 day), so no AddDays() here.
+                if (acc.InventoryAnchorCutoff.HasValue && mv.MovementDate < acc.InventoryAnchorCutoff.Value)
                     continue;
 
                 acc.Quantity += absQty;
@@ -1265,32 +1302,28 @@ public class StockService(
                 var key = (mv.ProductId, mv.FromLocationId.Value, mv.LotId);
                 if (!groups.TryGetValue(key, out var acc))
                 {
-                    acc = BuildAccumulatorWithAnchor(key, mv.Product, mv.FromLocation, mv.Lot, inventoryAnchorLookup);
+                    acc = BuildAccumulatorWithAnchor(key, inventoryAnchorLookup);
                     groups[key] = acc;
                 }
 
-                // Skip movements that pre-date (or are on the same day as) the inventory anchor.
-                if (acc.InventoryAnchorDate.HasValue && mv.MovementDate < acc.InventoryAnchorDate.Value.AddDays(1))
+                if (acc.InventoryAnchorCutoff.HasValue && mv.MovementDate < acc.InventoryAnchorCutoff.Value)
                     continue;
 
                 acc.Quantity -= absQty;
             }
         }
 
-        // Trim the search term once. StringComparison.OrdinalIgnoreCase is used in Contains — no lowercasing needed.
+        // ── Step 8: Build result DTOs ─────────────────────────────────────────
+        // Trim the search term once. StringComparison.OrdinalIgnoreCase is used in Contains.
         var effectiveSearch = string.IsNullOrWhiteSpace(searchTerm) ? null : searchTerm.Trim();
-
-        // Build result DTOs.
         var result = new List<StockSnapshotDto>(groups.Count);
 
         foreach (var (key, acc) in groups)
         {
-            var product = acc.Product;
-            var loc = acc.Location;
-            var lot = acc.Lot;
+            if (!productLookup.TryGetValue(key.ProductId, out var product)) continue;
+            if (!locationLookup.TryGetValue(key.LocationId, out var loc)) continue;
 
-            if (product is null || loc is null)
-                continue;
+            var lot = key.LotId.HasValue && lotLookup.TryGetValue(key.LotId.Value, out var l) ? l : null;
 
             // Apply optional search filter (in-memory, after aggregation).
             if (effectiveSearch is not null &&
@@ -1347,9 +1380,11 @@ public class StockService(
 
         try
         {
-            var rows = await context.DocumentHeaders
+            // Project only the scalar fields that are needed — this avoids loading full entity
+            // columns and, critically, avoids using CLR-only properties such as DateTime.Kind
+            // that EF Core cannot translate to SQL against a real (non-InMemory) database.
+            var raw = await context.DocumentHeaders
                 .AsNoTracking()
-                .Include(dh => dh.DocumentType)
                 .Where(dh => dh.TenantId == currentTenantId.Value
                              && !dh.IsDeleted
                              && dh.DocumentType != null
@@ -1357,16 +1392,17 @@ public class StockService(
                              && dh.Status == DocumentStatus.Closed)
                 .OrderByDescending(dh => dh.Date)
                 .Take(count)
-                .Select(dh => new InventorySnapshotDateDto
-                {
-                    Date = dh.Date.Kind == DateTimeKind.Utc
-                        ? dh.Date.Date
-                        : DateTime.SpecifyKind(dh.Date, DateTimeKind.Utc).Date,
-                    DocumentNumber = dh.Number
-                })
+                .Select(dh => new { dh.Date, dh.Number })
                 .ToListAsync(cancellationToken);
 
-            return rows;
+            // Map to DTO in-memory (safe to use .Date here, outside the LINQ-to-SQL boundary).
+            return raw
+                .Select(r => new InventorySnapshotDateDto
+                {
+                    Date = r.Date.Date,
+                    DocumentNumber = r.Number
+                })
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -1375,13 +1411,25 @@ public class StockService(
         }
     }
 
+    // ── Private projection type ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Lightweight projection of StockMovement data — only the scalar fields needed
+    /// for snapshot accumulation. Using this avoids loading navigation-property columns
+    /// (AuditableEntity audit fields, Notes, Reference, etc.) for every movement row.
+    /// </summary>
+    private sealed record MovementProjection(
+        Guid ProductId,
+        Guid? ToLocationId,
+        Guid? FromLocationId,
+        Guid? LotId,
+        decimal Quantity,
+        DateTime MovementDate,
+        decimal? UnitCost);
+
     /// <summary>Accumulates quantity and purchase cost data for a snapshot group.</summary>
     private sealed class SnapshotAccumulator
     {
-        public Data.Entities.Products.Product? Product { get; set; }
-        public Data.Entities.Warehouse.StorageLocation? Location { get; set; }
-        public Data.Entities.Warehouse.Lot? Lot { get; set; }
-
         /// <summary>Running net quantity (starts at the inventory anchor quantity when an anchor exists).</summary>
         public decimal Quantity { get; set; }
 
@@ -1389,11 +1437,13 @@ public class StockService(
         public DateTime LastInboundDate { get; set; }
 
         /// <summary>
-        /// Date of the most recent closed inventory-document row that anchors this accumulator.
-        /// Movements dated on or before this date are excluded from the running total.
-        /// Null when no inventory anchor is available (full movement history is used).
+        /// Pre-computed exclusive cutoff date for the inventory anchor:
+        /// <c>anchorDate.Date.AddDays(1)</c>.
+        /// Movements with <c>MovementDate &lt; InventoryAnchorCutoff</c> are excluded from the
+        /// running total (they are already baked into the anchor quantity).
+        /// Null when no inventory anchor is available — the full movement history is used.
         /// </summary>
-        public DateTime? InventoryAnchorDate { get; set; }
+        public DateTime? InventoryAnchorCutoff { get; set; }
     }
 
     /// <summary>
@@ -1401,24 +1451,24 @@ public class StockService(
     /// quantity for the given key, if one exists in <paramref name="anchorLookup"/>.
     /// When no anchor exists the accumulator starts at zero (original behaviour).
     /// </summary>
+    /// <remarks>
+    /// The anchor lookup is keyed by <c>(ProductId, LocationId)</c> only — LotId is intentionally
+    /// ignored because inventory documents record counts at the (Product, Location) granularity
+    /// without lot-level tracking. One anchor therefore covers ALL lot-specific buckets within
+    /// the same (Product, Location) pair, which is the correct semantic.
+    /// </remarks>
     private static SnapshotAccumulator BuildAccumulatorWithAnchor(
         (Guid ProductId, Guid LocationId, Guid? LotId) key,
-        Data.Entities.Products.Product? product,
-        Data.Entities.Warehouse.StorageLocation? location,
-        Data.Entities.Warehouse.Lot? lot,
-        Dictionary<(Guid ProductId, Guid LocationId, Guid? LotId), Data.Entities.Documents.DocumentRow> anchorLookup)
+        Dictionary<(Guid ProductId, Guid LocationId), (decimal Quantity, DateTime Cutoff)> anchorLookup)
     {
-        var acc = new SnapshotAccumulator
-        {
-            Product = product,
-            Location = location,
-            Lot = lot
-        };
+        var acc = new SnapshotAccumulator();
 
-        if (anchorLookup.TryGetValue(key, out var anchorRow))
+        // Look up with null LotId regardless of the movement's actual LotId.
+        // Inventory documents do not track at lot level, so one anchor covers all lots.
+        if (anchorLookup.TryGetValue((key.ProductId, key.LocationId), out var anchor))
         {
-            acc.Quantity = anchorRow.Quantity;
-            acc.InventoryAnchorDate = anchorRow.DocumentHeader!.Date.Date;
+            acc.Quantity = anchor.Quantity;
+            acc.InventoryAnchorCutoff = anchor.Cutoff;
         }
 
         return acc;
