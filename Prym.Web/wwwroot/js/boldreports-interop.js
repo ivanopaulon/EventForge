@@ -123,10 +123,11 @@ window.boldReportsInterop = (function () {
             // internal layout (toolbar positions, canvas dimensions, panel sizes).
             // This is necessary because Blazor's Mud layout may have changed the
             // effective viewport height between page render and designer init.
+            // The delay allows Blazor's layout to settle before the resize is measured.
             options.created = function () {
                 setTimeout(function () {
                     window.dispatchEvent(new Event('resize'));
-                }, 150);
+                }, LAYOUT_SETTLE_DELAY_MS);
             };
 
             // ── Save handling ──────────────────────────────────────────────────
@@ -219,13 +220,14 @@ window.boldReportsInterop = (function () {
             // ── renderComplete callback ────────────────────────────────────────
             // Fires after each report render cycle. Fire a resize event on the
             // first render so the viewer recalculates its layout correctly.
+            // The delay allows Blazor's layout to settle before the resize is measured.
             let _viewerFirstRender = true;
             options.renderComplete = function () {
                 if (_viewerFirstRender) {
                     _viewerFirstRender = false;
                     setTimeout(function () {
                         window.dispatchEvent(new Event('resize'));
-                    }, 150);
+                    }, LAYOUT_SETTLE_DELAY_MS);
                 }
             };
 
@@ -245,7 +247,15 @@ window.boldReportsInterop = (function () {
         _destroyInstance(elementId);
     }
 
-    // ── Private ───────────────────────────────────────────────────────────────
+    // ── Private constants ─────────────────────────────────────────────────────
+
+    /**
+     * Milliseconds to wait after a Bold Reports component is created/rendered before
+     * dispatching the window resize event. This gives Blazor's MudBlazor layout engine
+     * time to settle (flex containers, drawer animations, AppBar measurements) so the
+     * resize recalculation sees the final viewport dimensions rather than intermediate ones.
+     */
+    const LAYOUT_SETTLE_DELAY_MS = 150;
 
     /**
      * Installs JWT Bearer authentication interceptors for Bold Reports service requests.

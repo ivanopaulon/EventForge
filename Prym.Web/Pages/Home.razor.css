@@ -1,0 +1,8 @@
+/* Home.razor.css — scoped styles for the Home/Dashboard page */
+
+/* Uniform height for the top-row statistic widget cards.
+   All four cards (Products, Business Parties, Documents, Quick Actions)
+   share this height so the stat row appears consistent. */
+.ef-stat-widget {
+    height: 120px;
+}
