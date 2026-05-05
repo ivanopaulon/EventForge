@@ -540,6 +540,9 @@
     private bool _isReadOnlyDueToStatus = false;
     private string? _lockHolderName = null;
 
+    // Maximum time to wait for SignalR hub methods during collaboration setup.
+    private const int CollaborationTimeoutSeconds = 15;
+
     // Tracks whether background collaboration setup has already been scheduled.
     // Set to true as soon as the fire-and-forget task is queued so that re-renders
     // triggered during the async collaboration setup don't schedule a second call.
@@ -639,8 +642,22 @@
                 _collaborationSetupScheduled = true;
                 _ = InvokeAsync(async () =>
                 {
-                    await SetupCollaborationAsync(DocumentId.Value);
-                    StateHasChanged();
+                    try
+                    {
+                        await SetupCollaborationAsync(DocumentId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Unhandled error in background collaboration setup for document {DocumentId}", DocumentId.Value);
+                        _isReadOnly = true;
+                        _isReadOnlyDueToError = true;
+                        AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError",
+                            "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
+                    }
+                    finally
+                    {
+                        StateHasChanged();
+                    }
                 });
             }
         }
@@ -707,7 +724,7 @@
 
         // Use a timeout so that a slow or unresponsive hub cannot block collaboration
         // setup indefinitely. 15 s is generous for a local-network SignalR call.
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(CollaborationTimeoutSeconds));
         try
         {
             await RealtimeService.StartDocumentCollaborationConnectionAsync();
