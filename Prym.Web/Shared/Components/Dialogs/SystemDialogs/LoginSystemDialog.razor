@@ -53,7 +53,14 @@
                 else
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true">
-                        @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
+                        @if (_serverError)
+                        {
+                            @TranslationService.GetTranslation("auth.serverUnavailable", "Server non raggiungibile. Riconnessione in corso...")
+                        }
+                        else
+                        {
+                            @TranslationService.GetTranslation("auth.noTenantsAvailable", "Nessun tenant disponibile. Contatta l'amministratore.")
+                        }
                     </MudAlert>
                 }
 
@@ -113,6 +120,8 @@
     private bool _isLoadingTenants = false;
     private bool _isChangePasswordMode = false;
     private bool _changePasswordIsMandatory = false;
+    private bool _serverError = false;
+    private CancellationTokenSource? _retryCts;
     private MudForm _form = null!;
     private readonly LoginRequestDto _loginRequest = new();
     private List<TenantResponseDto> _tenants = new();
@@ -153,20 +162,58 @@
         try
         {
             _tenants = (await AuthService.GetAvailableTenantsAsync()).ToList();
+            _serverError = false;
             if (_tenants.Any())
+            {
                 _selectedTenantId ??= _tenants.First().Id.ToString();
+                CancelRetry();
+            }
         }
         catch (Exception ex)
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError",
-                    "Errore nel caricamento dei tenant: {0}", ex.Message));
+            Logger.LogError(ex, "Error loading tenants.");
+            _serverError = true;
             _tenants = new List<TenantResponseDto>();
+            EnsureRetryStarted();
         }
         finally
         {
             _isLoadingTenants = false;
             _subtitle = "Accedi al sistema";
             await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void EnsureRetryStarted()
+    {
+        if (_retryCts != null) return;
+        _retryCts = new CancellationTokenSource();
+        _ = RetryLoadTenantsLoopAsync(_retryCts.Token);
+    }
+
+    private void CancelRetry()
+    {
+        var cts = _retryCts;
+        _retryCts = null;
+        if (cts == null) return;
+        try { cts.Cancel(); } catch (ObjectDisposedException) { }
+        cts.Dispose();
+    }
+
+    private async Task RetryLoadTenantsLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(5000, token);
+                await LoadTenantsAsync();
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error in tenant retry loop.");
         }
     }
 
@@ -193,8 +240,6 @@
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result is not null)
             {
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login effettuato con successo!"));
-
                 if (result.MustChangePassword)
                 {
                     HandleMustChangePassword();
@@ -213,7 +258,6 @@
                 _progressValue = 100;
                 _progressColor = Color.Error;
                 _subtitle = SubtitleLoginError;
-                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed", "Login fallito. Verifica le credenziali."));
             }
         }
         catch (Exception ex)
@@ -222,7 +266,7 @@
             _progressValue = 100;
             _progressColor = Color.Error;
             _subtitle = SubtitleLoginError;
-            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", "Errore durante il login: {0}", ex.Message));
+            Logger.LogError(ex, "Error during login.");
         }
         finally
         {
@@ -321,6 +365,9 @@
         }
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        CancelRetry();
+    }
 }
 
