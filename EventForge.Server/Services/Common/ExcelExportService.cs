@@ -14,7 +14,7 @@ public class ExcelExportService(ILogger<ExcelExportService> logger) : IExcelExpo
             return await Task.Run(() =>
             {
                 using var workbook = new XLWorkbook();
-                var worksheet = workbook.Worksheets.Add(options.SheetName);
+                var worksheet = workbook.Worksheets.Add(SanitizeSheetName(options.SheetName));
 
                 var dataList = data.ToList();
                 var properties = typeof(T).GetProperties();
@@ -100,6 +100,27 @@ public class ExcelExportService(ILogger<ExcelExportService> logger) : IExcelExpo
         {
             throw;
         }
+    }
+
+    /// <summary>
+    /// Removes characters that are invalid in an Excel worksheet name and truncates to 31 characters.
+    /// Invalid characters: \ / ? * [ ] :
+    /// Leading/trailing apostrophes are also stripped (Excel restriction).
+    /// </summary>
+    private static string SanitizeSheetName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return "Sheet1";
+
+        var sanitized = new string(name
+            .Where(c => c is not ('\\' or '/' or '?' or '*' or '[' or ']' or ':'))
+            .ToArray())
+            .Trim('\'');
+
+        if (string.IsNullOrWhiteSpace(sanitized))
+            return "Sheet1";
+
+        return sanitized.Length > 31 ? sanitized[..31] : sanitized;
     }
 
     private static object? UnwrapJsonElement(object? raw) => raw switch

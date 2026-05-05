@@ -21,6 +21,7 @@ namespace EventForge.Server.Controllers.BoldReports;
 [Route("api/v1/boldreports/designer")]
 [ApiController]
 [Authorize(Roles = "Admin,SuperAdmin")]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class BoldReportDesignerController(
     IReportDefinitionService reportService,
     IMemoryCache memoryCache,
