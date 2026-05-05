@@ -203,14 +203,17 @@
         ChatService.ChatCreated += OnChatCreated;
         NotificationService.StatsUpdated += OnNotificationStatsUpdated;
         UpdateNotification.StateChanged += OnUpdateStateChanged;
-        try
+        if (await AuthService.IsAuthenticatedAsync())
         {
-            var stats = await NotificationService.GetNotificationStatsAsync();
-            _unreadNotifications = stats.UnreadCount;
-        }
-        catch
-        {
-            // Stats loading is best-effort; don't fail if unavailable
+            try
+            {
+                var stats = await NotificationService.GetNotificationStatsAsync();
+                _unreadNotifications = stats.UnreadCount;
+            }
+            catch
+            {
+                // Stats loading is best-effort; don't fail if unavailable
+            }
         }
 
         try
