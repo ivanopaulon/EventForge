@@ -24,6 +24,7 @@ public static class DocumentTypeMapper
             RequiredPartyType = (Prym.DTOs.Common.BusinessPartyType)documentType.RequiredPartyType,
             Notes = documentType.Notes,
             IsInventoryDocument = documentType.IsInventoryDocument,
+            CreatesStockMovements = documentType.CreatesStockMovements,
             CreatedAt = documentType.CreatedAt,
             CreatedBy = documentType.CreatedBy,
             ModifiedAt = documentType.ModifiedAt,
@@ -52,7 +53,9 @@ public static class DocumentTypeMapper
             DefaultWarehouseId = dto.DefaultWarehouseId,
             IsFiscal = dto.IsFiscal,
             RequiredPartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)dto.RequiredPartyType,
-            Notes = dto.Notes
+            Notes = dto.Notes,
+            IsInventoryDocument = dto.IsInventoryDocument,
+            CreatesStockMovements = dto.IsInventoryDocument ? false : dto.CreatesStockMovements
         };
     }
 
@@ -68,5 +71,7 @@ public static class DocumentTypeMapper
         entity.IsFiscal = dto.IsFiscal;
         entity.RequiredPartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)dto.RequiredPartyType;
         entity.Notes = dto.Notes;
+        entity.IsInventoryDocument = dto.IsInventoryDocument;
+        entity.CreatesStockMovements = dto.IsInventoryDocument ? false : dto.CreatesStockMovements;
     }
 }

@@ -210,13 +210,15 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
         try
         {
-            // Load data in parallel for faster initialization
+            // Load document header (with rows in edit mode), UoM and VAT in parallel.
+            // PreloadPriceListsCacheAsync needs _state.DocumentHeader to determine the price
+            // list direction, so it runs sequentially after the parallel block.
             await Task.WhenAll(
                 LoadDocumentHeaderAsync(),
                 LoadUnitsOfMeasureAsync(),
-                LoadVatRatesAsync(),
-                PreloadPriceListsCacheAsync() // ✅ NUOVO: Preload cache listini
+                LoadVatRatesAsync()
             );
+            await PreloadPriceListsCacheAsync();
 
             // Add edit mode task if applicable
             if (_isEditMode && RowId.HasValue)
@@ -416,15 +418,15 @@ public partial class DocumentRowDialog : IAsyncDisposable
     #region Data Loading Methods
 
     /// <summary>
-    /// Loads the document header information
+    /// Loads the document header information.
+    /// In add mode (<see cref="_isEditMode"/> is false) the header is fetched without rows for speed.
+    /// In edit mode the header is fetched with rows (includeRows: true) so that
+    /// <see cref="LoadRowForEdit"/> can reuse the already-loaded rows without a second API call.
     /// </summary>
-    /// <remarks>
-    /// Loads without rows to improve performance. Row data is loaded separately if needed.
-    /// </remarks>
     private async Task LoadDocumentHeaderAsync()
     {
         _state.DocumentHeader = await ExecuteWithErrorHandlingAsync(
-            () => DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: false),
+            () => DocumentHeaderService.GetDocumentHeaderByIdAsync(DocumentHeaderId, includeRows: _isEditMode),
             operationName: "loadDocumentHeader",
             showErrorToUser: true);
     }
@@ -580,19 +582,29 @@ public partial class DocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Loads an existing document row for editing
+    /// Loads an existing document row for editing.
+    /// The document header (with rows) is already loaded by <see cref="LoadDocumentHeaderAsync"/>
+    /// in the parallel block of <see cref="OnInitializedAsync"/>, so no additional API call is needed.
     /// </summary>
     private async Task LoadRowForEdit(Guid rowId)
     {
         try
         {
-            var document = await DocumentHeaderService.GetDocumentHeaderByIdAsync(
-                DocumentHeaderId, includeRows: true);
-            var row = document?.Rows?.FirstOrDefault(r => r.Id == rowId);
+            // Rows were already loaded with includeRows: true in the parallel block.
+            var row = _state.DocumentHeader?.Rows?.FirstOrDefault(r => r.Id == rowId);
 
             if (row != null)
             {
                 await PopulateModelFromRow(row);
+            }
+            else
+            {
+                // This can happen if the header failed to load, the row ID is invalid,
+                // the row doesn't belong to this document, or it was deleted concurrently.
+                Logger.LogWarning("Row {RowId} not found in loaded document header {HeaderId}. " +
+                    "Document may have failed to load or the row was deleted.", rowId, DocumentHeaderId);
+                AppNotification.ShowError(TranslationService.GetTranslation(
+                    "documents.errorRowNotFound", "Riga del documento non trovata. Riprovare."));
             }
         }
         catch (Exception ex)
@@ -636,12 +648,20 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
         if (row.ProductId.HasValue)
         {
-            var product = await ProductService.GetProductByIdAsync(row.ProductId.Value);
+            // Load product details and product units in parallel to reduce latency.
+            var productTask = ProductService.GetProductByIdAsync(row.ProductId.Value);
+            var unitsTask = ProductService.GetProductUnitsAsync(row.ProductId.Value);
+            await Task.WhenAll(productTask, unitsTask);
+
+            var product = await productTask;
             if (product != null)
             {
+                // Set both the local binding variable (drives the UI autocomplete) and the
+                // state references used by other panels (price, VAT, UoM, recent transactions).
+                _selectedProduct = product;
                 _state.SelectedProduct = product;
-                var units = await ProductService.GetProductUnitsAsync(product.Id);
-                _state.Cache.AvailableUnits = units?.ToList() ?? new List<ProductUnitDto>();
+                _state.PreviousSelectedProduct = product;
+                _state.Cache.AvailableUnits = (await unitsTask)?.ToList() ?? new List<ProductUnitDto>();
             }
         }
 

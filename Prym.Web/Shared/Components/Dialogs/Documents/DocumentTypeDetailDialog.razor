@@ -118,6 +118,36 @@
                         </MudText>
                     </MudItem>
 
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="DocumentTypeIsInventoryDocument"
+                                   @bind-Value:after="@(() => MarkChanged())"
+                                   Label="@TranslationService.GetTranslation("field.isInventoryDocument", "Documento di Inventario")"
+                                   Color="Color.Warning"
+                                   ThumbIcon="@(DocumentTypeIsInventoryDocument ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.isInventoryDocument", "Indica se il documento rappresenta un inventario fisico. Disabilita automaticamente i movimenti di magazzino.")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="DocumentTypeCreatesStockMovements"
+                                   @bind-Value:after="@(() => MarkChanged())"
+                                   Disabled="@DocumentTypeIsInventoryDocument"
+                                   Label="@TranslationService.GetTranslation("field.createsStockMovements", "Crea Movimenti di Magazzino")"
+                                   Color="Color.Primary"
+                                   ThumbIcon="@(DocumentTypeCreatesStockMovements ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @if (DocumentTypeIsInventoryDocument)
+                            {
+                                @TranslationService.GetTranslation("documentType.helperText.createsStockMovementsDisabled", "Disabilitato per i documenti di inventario")
+                            }
+                            else
+                            {
+                                @TranslationService.GetTranslation("documentType.helperText.createsStockMovements", "Indica se la chiusura del documento genera movimenti di magazzino")
+                            }
+                        </MudText>
+                    </MudItem>
+
                     @if (!_isCreateMode && _documentType != null)
                     {
                         <MudItem xs="12" md="4">
@@ -199,6 +229,27 @@
     {
         get => _documentType?.IsStockIncrease ?? false;
         set { if (_documentType != null) _documentType.IsStockIncrease = value; }
+    }
+
+    private bool DocumentTypeIsInventoryDocument
+    {
+        get => _documentType?.IsInventoryDocument ?? false;
+        set
+        {
+            if (_documentType != null)
+            {
+                _documentType.IsInventoryDocument = value;
+                // Inventory documents must never create stock movements.
+                if (value)
+                    _documentType.CreatesStockMovements = false;
+            }
+        }
+    }
+
+    private bool DocumentTypeCreatesStockMovements
+    {
+        get => _documentType?.CreatesStockMovements ?? true;
+        set { if (_documentType != null) _documentType.CreatesStockMovements = value; }
     }
 
     private BusinessPartyType DocumentTypeRequiredPartyType
@@ -306,6 +357,8 @@
                     Notes = _documentType.Notes,
                     IsFiscal = _documentType.IsFiscal,
                     IsStockIncrease = _documentType.IsStockIncrease,
+                    IsInventoryDocument = _documentType.IsInventoryDocument,
+                    CreatesStockMovements = _documentType.CreatesStockMovements,
                     RequiredPartyType = _documentType.RequiredPartyType,
                     DefaultWarehouseId = _documentType.DefaultWarehouseId
                 };
@@ -322,6 +375,8 @@
                     Notes = _documentType.Notes,
                     IsFiscal = _documentType.IsFiscal,
                     IsStockIncrease = _documentType.IsStockIncrease,
+                    IsInventoryDocument = _documentType.IsInventoryDocument,
+                    CreatesStockMovements = _documentType.CreatesStockMovements,
                     RequiredPartyType = _documentType.RequiredPartyType,
                     DefaultWarehouseId = _documentType.DefaultWarehouseId
                 };
