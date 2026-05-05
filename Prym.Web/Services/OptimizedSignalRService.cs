@@ -1348,7 +1348,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             try
             {
-                await connection.InvokeAsync("JoinDocument", documentId);
+                await connection.InvokeAsync("JoinDocument", documentId, ct);
                 _joinedDocumentIds[documentId] = true;
                 _logger.LogInformation("Joined document {DocumentId} collaboration room", documentId);
             }
@@ -1390,7 +1390,7 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
         {
             try
             {
-                var lockAcquired = await connection.InvokeAsync<bool>("RequestEditLock", documentId);
+                var lockAcquired = await connection.InvokeAsync<bool>("RequestEditLock", documentId, ct);
 
                 _logger.LogInformation(
                     "Lock request for document {DocumentId}: {Result}",

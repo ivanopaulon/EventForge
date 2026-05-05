@@ -540,6 +540,11 @@
     private bool _isReadOnlyDueToStatus = false;
     private string? _lockHolderName = null;
 
+    // Tracks whether background collaboration setup has already been scheduled.
+    // Set to true as soon as the fire-and-forget task is queued so that re-renders
+    // triggered during the async collaboration setup don't schedule a second call.
+    private bool _collaborationSetupScheduled = false;
+
     // Selection management for rows
     private HashSet<DocumentRowDto> _selectedRows = new();
 
@@ -623,7 +628,21 @@
         if (DocumentId.HasValue)
         {
             await LoadDocumentAsync(DocumentId.Value);
-            await SetupCollaborationAsync(DocumentId.Value);
+
+            // Schedule collaboration setup as a fire-and-forget task so that the document
+            // content is shown immediately after the HTTP load, without blocking on
+            // SignalR negotiation.  SetupCollaborationAsync is safe to run concurrently
+            // with the first render: it only mutates _hasEditLock / _isReadOnly flags and
+            // calls StateHasChanged once it is done.
+            if (!_collaborationSetupScheduled)
+            {
+                _collaborationSetupScheduled = true;
+                _ = InvokeAsync(async () =>
+                {
+                    await SetupCollaborationAsync(DocumentId.Value);
+                    StateHasChanged();
+                });
+            }
         }
         else
         {
@@ -685,14 +704,18 @@
 
         RealtimeService.DocumentLocked += OnDocumentLocked;
         RealtimeService.DocumentUnlocked += OnDocumentUnlocked;
+
+        // Use a timeout so that a slow or unresponsive hub cannot block collaboration
+        // setup indefinitely. 15 s is generous for a local-network SignalR call.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         try
         {
             await RealtimeService.StartDocumentCollaborationConnectionAsync();
-            await RealtimeService.JoinDocumentAsync(documentId);
+            await RealtimeService.JoinDocumentAsync(documentId, cts.Token);
 
             try
             {
-                _hasEditLock = await RealtimeService.RequestDocumentEditLockAsync(documentId);
+                _hasEditLock = await RealtimeService.RequestDocumentEditLockAsync(documentId, cts.Token);
 
                 if (!_hasEditLock)
                 {
@@ -725,7 +748,14 @@
         {
             _isReadOnly = true;
             _isReadOnlyDueToError = true;
-            Logger.LogError(ex, "SignalR collaboration setup failed for document {DocumentId}", documentId);
+            if (ex is OperationCanceledException)
+            {
+                Logger.LogWarning("SignalR collaboration setup timed out for document {DocumentId}", documentId);
+            }
+            else
+            {
+                Logger.LogError(ex, "SignalR collaboration setup failed for document {DocumentId}", documentId);
+            }
             AppNotification.ShowWarning(TranslationService.GetTranslation("documents.lockConnectionError",
                     "⚠️ Errore connessione collaborazione. Documento aperto in sola lettura."));
         }
@@ -801,6 +831,10 @@
         {
             _isLoading = false;
             UpdateFilteredRows();
+            // Trigger a render immediately so the loading overlay is dismissed as soon
+            // as the document data is available, without waiting for the next natural
+            // render checkpoint (e.g. the first SignalR await in SetupCollaborationAsync).
+            StateHasChanged();
         }
     }
 
