@@ -28,7 +28,7 @@
 /* ===== Contenuto principale: 2 colonne ===== */
 .pos2026-content {
     display: grid;
-    grid-template-columns: 1fr 280px;
+    grid-template-columns: 1fr 360px;
     flex: 1;
     overflow: hidden;
     min-height: 0;          /* necessario per shrink dei flex-children */
@@ -36,7 +36,7 @@
 
 @media (max-width: 900px) {
     .pos2026-content {
-        grid-template-columns: 1fr 240px;
+        grid-template-columns: 1fr 320px;
     }
 }
 
@@ -78,6 +78,8 @@
     overflow: hidden;
     /* Prevents content being hidden behind the fixed shortcuts bar (~28px) */
     padding-bottom: 28px;
+    border-left: 2px solid var(--pos-dark-border);
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);
 }
 
 /* ===== Barra shortcut (footer) ===== */
@@ -1045,6 +1047,20 @@
     background: var(--pos-accent-light);
     border-color: var(--pos-accent);
     color: var(--pos-accent);
+}
+
+.pos26-fn-btn--danger {
+    color: var(--pos-red-key);
+}
+
+.pos26-fn-btn--danger:hover {
+    background: #fdecea;
+    border-color: var(--pos-red-key);
+}
+
+.pos26-fn-btn--danger:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .pos26-fn-badge {

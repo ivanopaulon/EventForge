@@ -102,8 +102,8 @@
                    SessionNumber="@ViewModel.CurrentSession?.Id"
                    IsSessionActive="@ViewModel.HasActiveSession"
                    IsUpdatingItems="@ViewModel.IsUpdatingItems"
-                   LoadingTooltipText="Salvataggio in corso…"
-                   LoadingSpinnerColor="@Color.Primary"
+                   LoadingTooltipText="@GetLoadingTooltipText()"
+                   LoadingSpinnerColor="@GetLoadingSpinnerColor()"
                    FiscalDrawerSummary="@_fiscalDrawerSummary"
                    OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
                    OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
@@ -137,7 +137,7 @@
         <Pos26ContextBanner SortMode="@_sortMode"
                             Customer="@ViewModel.SelectedCustomer" />
 
-        @* ===== TOOLBAR FUNZIONI: Note, Coupon, Tavolo, Sessioni parcheggiate ===== *@
+        @* ===== TOOLBAR FUNZIONI: Note, Coupon, Tavolo, Sessioni parcheggiate, Rimuovi Ultimo, Dividi, Unisci ===== *@
         <div class="pos26-fn-toolbar">
             @* Pulsante Note ordine *@
             <button class="pos26-fn-btn @(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? "pos26-fn-btn--active" : "")"
@@ -189,6 +189,37 @@
                 <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" />
                 <span>Sospese</span>
             </button>
+
+            @* Pulsante Rimuovi Ultimo articolo *@
+            <button class="pos26-fn-btn pos26-fn-btn--danger"
+                    @onclick="RemoveLastItemAsync"
+                    disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
+                    title="Rimuovi ultimo articolo (F4)">
+                <MudIcon Icon="@Icons.Material.Outlined.RemoveCircle" Size="Size.Small" />
+                <span>Rimuovi</span>
+            </button>
+
+            @* Pulsante Dividi conto *@
+            @if (_canSplit)
+            {
+                <button class="pos26-fn-btn"
+                        @onclick="OpenSplitDialogAsync"
+                        title="Dividi conto">
+                    <MudIcon Icon="@Icons.Material.Outlined.CallSplit" Size="Size.Small" />
+                    <span>Dividi</span>
+                </button>
+            }
+
+            @* Pulsante Unisci sessioni *@
+            @if (_openSessions.Count >= 2)
+            {
+                <button class="pos26-fn-btn"
+                        @onclick="OpenMergeDialogAsync"
+                        title="Unisci sessioni">
+                    <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" />
+                    <span>Unisci</span>
+                </button>
+            }
         </div>
 
         @* Input nota ordine *@
