@@ -309,15 +309,6 @@
                 </MudNavGroup>
             }
 
-            <!-- Amministrazione (SuperAdmin only) -->
-            @if (_isSuperAdmin)
-            {
-                <MudNavLink Href="/admin"
-                            Icon="@Icons.Material.Outlined.AdminPanelSettings"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.administration", "Amministrazione")
-                </MudNavLink>
-            }
         }
     }
     else

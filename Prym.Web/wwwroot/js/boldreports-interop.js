@@ -22,6 +22,36 @@ window.boldReportsInterop = (function () {
     let _authInterceptorInstalled = false;
 
     /**
+     * Overrides `body` and `#app` overflow to allow Bold Reports floating panels
+     * (property panes, context menus, toolbars, dialogs) to render without being clipped.
+     *
+     * The application's global CSS (`app.css`) sets:
+     *   html, body { overflow: hidden; }
+     *   #app        { overflow: hidden; }
+     *
+     * These rules are intentional for the rest of the app (prevents double scroll-bars)
+     * but they prevent Bold Reports UI from rendering correctly because the designer and
+     * viewer use absolutely-positioned popups that extend beyond their container bounds.
+     *
+     * When active=true  → inline style override (trumps stylesheet rules) to 'auto'
+     * When active=false → inline style removed (sheet rule takes back control)
+     *
+     * The override is scoped to the lifecycle of Bold Reports instances:
+     *   - Applied when the FIRST instance is created.
+     *   - Removed when the LAST instance is destroyed.
+     */
+    function _setBodyOverrideForBoldReports(active) {
+        const appEl = document.getElementById('app');
+        if (active) {
+            document.body.style.overflow = 'auto';
+            if (appEl) appEl.style.overflow = 'auto';
+        } else {
+            document.body.style.overflow = '';
+            if (appEl) appEl.style.overflow = '';
+        }
+    }
+
+    /**
      * Initialises the Bold Reports Report Designer inside the given element.
      *
      * @param {string}      elementId  - ID of the container element.
@@ -31,6 +61,29 @@ window.boldReportsInterop = (function () {
      */
     function initReportDesigner(elementId, serviceUrl, reportPath, dotNetRef) {
         _ensureAuthInterceptor();
+
+        // Guard: if jQuery or the Bold Reports plugin isn't loaded yet, retry after a short delay.
+        if (typeof $ === 'undefined' || typeof $.fn.boldReportDesigner === 'undefined') {
+            var attempts = 0;
+            var maxAttempts = 20; // up to 2 s total
+            var intervalId = setInterval(function () {
+                attempts++;
+                if (typeof $ !== 'undefined' && typeof $.fn.boldReportDesigner !== 'undefined') {
+                    clearInterval(intervalId);
+                    _initReportDesignerCore(elementId, serviceUrl, reportPath, dotNetRef);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    console.error('[BoldReports] jQuery or boldReportDesigner plugin not available after ' + (maxAttempts * 100) + 'ms. ' +
+                        'Ensure the Bold Reports CDN scripts are loaded in index.html before app-interop.js.');
+                }
+            }, 100);
+            return;
+        }
+
+        _initReportDesignerCore(elementId, serviceUrl, reportPath, dotNetRef);
+    }
+
+    function _initReportDesignerCore(elementId, serviceUrl, reportPath, dotNetRef) {
         try {
             const el = document.getElementById(elementId);
             if (!el) {
@@ -47,6 +100,14 @@ window.boldReportsInterop = (function () {
             // Destroy any existing instance in this container.
             _destroyInstance(elementId);
 
+            // ── Override body/app overflow ──────────────────────────────────────
+            // Bold Reports floating UI (property panels, context menus, dialogs)
+            // requires body/app NOT to have overflow:hidden, otherwise panels are
+            // clipped and the designer appears broken.
+            if (Object.keys(_instances).length === 0) {
+                _setBodyOverrideForBoldReports(true);
+            }
+
             const options = {
                 serviceUrl: serviceUrl,
             };
@@ -55,6 +116,19 @@ window.boldReportsInterop = (function () {
             if (reportPath) {
                 options.reportPath = reportPath;
             }
+
+            // ── created callback ───────────────────────────────────────────────
+            // Fires after the designer widget is fully initialised.
+            // Dispatch a window resize event so the designer recalculates its
+            // internal layout (toolbar positions, canvas dimensions, panel sizes).
+            // This is necessary because Blazor's Mud layout may have changed the
+            // effective viewport height between page render and designer init.
+            // The delay allows Blazor's layout to settle before the resize is measured.
+            options.created = function () {
+                setTimeout(function () {
+                    window.dispatchEvent(new Event('resize'));
+                }, LAYOUT_SETTLE_DELAY_MS);
+            };
 
             // ── Save handling ──────────────────────────────────────────────────
             // The designer POSTs to SetData on the server when the user saves.
@@ -89,6 +163,27 @@ window.boldReportsInterop = (function () {
      */
     function initReportViewer(elementId, serviceUrl, reportPath, params) {
         _ensureAuthInterceptor();
+
+        if (typeof $ === 'undefined' || typeof $.fn.boldReportViewer === 'undefined') {
+            var attempts = 0;
+            var maxAttempts = 20;
+            var intervalId = setInterval(function () {
+                attempts++;
+                if (typeof $ !== 'undefined' && typeof $.fn.boldReportViewer !== 'undefined') {
+                    clearInterval(intervalId);
+                    _initReportViewerCore(elementId, serviceUrl, reportPath, params);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    console.error('[BoldReports] jQuery or boldReportViewer plugin not available after ' + (maxAttempts * 100) + 'ms.');
+                }
+            }, 100);
+            return;
+        }
+
+        _initReportViewerCore(elementId, serviceUrl, reportPath, params);
+    }
+
+    function _initReportViewerCore(elementId, serviceUrl, reportPath, params) {
         try {
             const el = document.getElementById(elementId);
             if (!el) {
@@ -105,6 +200,11 @@ window.boldReportsInterop = (function () {
             // Destroy any existing instance in this container.
             _destroyInstance(elementId);
 
+            // ── Override body/app overflow ──────────────────────────────────────
+            if (Object.keys(_instances).length === 0) {
+                _setBodyOverrideForBoldReports(true);
+            }
+
             const options = {
                 reportServiceUrl: serviceUrl,
                 reportPath: reportPath,
@@ -116,6 +216,20 @@ window.boldReportsInterop = (function () {
                     values: [String(value)],
                 }));
             }
+
+            // ── renderComplete callback ────────────────────────────────────────
+            // Fires after each report render cycle. Fire a resize event on the
+            // first render so the viewer recalculates its layout correctly.
+            // The delay allows Blazor's layout to settle before the resize is measured.
+            let _viewerFirstRender = true;
+            options.renderComplete = function () {
+                if (_viewerFirstRender) {
+                    _viewerFirstRender = false;
+                    setTimeout(function () {
+                        window.dispatchEvent(new Event('resize'));
+                    }, LAYOUT_SETTLE_DELAY_MS);
+                }
+            };
 
             $('#' + elementId).boldReportViewer(options);
             _instances[elementId] = true;
@@ -133,7 +247,15 @@ window.boldReportsInterop = (function () {
         _destroyInstance(elementId);
     }
 
-    // ── Private ───────────────────────────────────────────────────────────────
+    // ── Private constants ─────────────────────────────────────────────────────
+
+    /**
+     * Milliseconds to wait after a Bold Reports component is created/rendered before
+     * dispatching the window resize event. This gives Blazor's MudBlazor layout engine
+     * time to settle (flex containers, drawer animations, AppBar measurements) so the
+     * resize recalculation sees the final viewport dimensions rather than intermediate ones.
+     */
+    const LAYOUT_SETTLE_DELAY_MS = 150;
 
     /**
      * Installs JWT Bearer authentication interceptors for Bold Reports service requests.
@@ -202,6 +324,11 @@ window.boldReportsInterop = (function () {
                 console.warn('[BoldReports] destroy error for', elementId, err);
             }
             delete _instances[elementId];
+
+            // Restore body/app overflow when no more Bold Reports instances are active.
+            if (Object.keys(_instances).length === 0) {
+                _setBodyOverrideForBoldReports(false);
+            }
         }
     }
 

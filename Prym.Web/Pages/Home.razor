@@ -39,79 +39,113 @@
         {
             <!-- Products count -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 d-flex align-center gap-3 border-primary-l">
+                <MudPaper Class="pa-3 d-flex flex-column justify-space-between border-primary-l ef-stat-widget">
                     @if (_statsLoading)
                     {
-                        <MudSkeleton Width="100%" Height="48px" />
+                        <MudSkeleton Width="100%" Height="80px" />
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary" Size="Size.Large" />
-                        <div>
-                            <MudText Typo="Typo.h4" Class="fw-bold">@_productCount</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti</MudText>
+                        <div class="d-flex align-center gap-3 flex-grow-1">
+                            <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary" Size="Size.Large" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="fw-bold">@_productCount</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Prodotti</MudText>
+                            </div>
                         </div>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Primary" Class="pa-0 align-self-end"
+                                   StartIcon="@Icons.Material.Outlined.OpenInNew"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/product-management/products"))">
+                            Vai al Catalogo
+                        </MudButton>
                     }
                 </MudPaper>
             </MudItem>
 
             <!-- Business parties count -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 d-flex align-center gap-3 border-secondary-l">
+                <MudPaper Class="pa-3 d-flex flex-column justify-space-between border-secondary-l ef-stat-widget">
                     @if (_statsLoading)
                     {
-                        <MudSkeleton Width="100%" Height="48px" />
+                        <MudSkeleton Width="100%" Height="80px" />
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Secondary" Size="Size.Large" />
-                        <div>
-                            <MudText Typo="Typo.h4" Class="fw-bold">@_businessPartyCount</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Business Party</MudText>
+                        <div class="d-flex align-center gap-3 flex-grow-1">
+                            <MudIcon Icon="@Icons.Material.Outlined.Business" Color="Color.Secondary" Size="Size.Large" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="fw-bold">@_businessPartyCount</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Business Party</MudText>
+                            </div>
                         </div>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Secondary" Class="pa-0 align-self-end"
+                                   StartIcon="@Icons.Material.Outlined.OpenInNew"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/business/parties"))">
+                            Vai alle Anagrafiche
+                        </MudButton>
                     }
                 </MudPaper>
             </MudItem>
 
             <!-- Documents count -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 d-flex align-center gap-3 border-tertiary-l">
+                <MudPaper Class="pa-3 d-flex flex-column justify-space-between border-tertiary-l ef-stat-widget">
                     @if (_statsLoading)
                     {
-                        <MudSkeleton Width="100%" Height="48px" />
+                        <MudSkeleton Width="100%" Height="80px" />
                     }
                     else
                     {
-                        <MudIcon Icon="@Icons.Material.Outlined.Description" Color="Color.Tertiary" Size="Size.Large" />
-                        <div>
-                            <MudText Typo="Typo.h4" Class="fw-bold">@_documentCount</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">Documenti</MudText>
+                        <div class="d-flex align-center gap-3 flex-grow-1">
+                            <MudIcon Icon="@Icons.Material.Outlined.Description" Color="Color.Tertiary" Size="Size.Large" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="fw-bold">@_documentCount</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Documenti</MudText>
+                            </div>
                         </div>
+                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Tertiary" Class="pa-0 align-self-end"
+                                   StartIcon="@Icons.Material.Outlined.OpenInNew"
+                                   OnClick="@(() => NavigationManager.NavigateTo("/documents/list"))">
+                            Vai ai Documenti
+                        </MudButton>
                     }
                 </MudPaper>
             </MudItem>
 
             <!-- Quick actions -->
             <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-3 border-warning-l">
+                <MudPaper Class="pa-3 border-warning-l ef-stat-widget">
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-2">Azioni Rapide</MudText>
-                    <div class="d-flex flex-column gap-1">
-                        <MudButton Variant="Variant.Text" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/documents/list"))">
-                            Nuovo Documento
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/product-management/products"))">
-                            Prodotti
-                        </MudButton>
-                        <MudButton Variant="Variant.Text" Size="Size.Small"
-                                   StartIcon="@Icons.Material.Outlined.Business" Color="Color.Primary"
-                                   OnClick="@(() => NavigationManager.NavigateTo("/business/parties"))">
-                            Business Party
-                        </MudButton>
-                    </div>
+                    <MudGrid Spacing="1">
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" FullWidth="true"
+                                       StartIcon="@Icons.Material.Outlined.Add" Color="Color.Primary"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/documents/list"))">
+                                Documento
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" FullWidth="true"
+                                       StartIcon="@Icons.Material.Outlined.Inventory2" Color="Color.Primary"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/product-management/products"))">
+                                Prodotti
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" FullWidth="true"
+                                       StartIcon="@Icons.Material.Outlined.Business" Color="Color.Primary"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/business/parties"))">
+                                Anagrafiche
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Text" Size="Size.Small" FullWidth="true"
+                                       StartIcon="@Icons.Material.Outlined.PointOfSale" Color="Color.Primary"
+                                       OnClick="@(() => NavigationManager.NavigateTo("/sales/pos"))">
+                                Cassa POS
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
                 </MudPaper>
             </MudItem>
         }
