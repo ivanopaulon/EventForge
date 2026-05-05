@@ -288,10 +288,33 @@ window.boldReportsInterop = (function () {
         }
 
         // ── Layer 2: XHR prototype intercept ─────────────────────────────────
+        //
+        // Problem: BoldReports SDK sets its own internal Authorization header via
+        // setRequestHeader() between open() and send(). XHR combines duplicate header
+        // names with a comma, so calling setRequestHeader('Authorization', ...) again
+        // in send() produces "BoldReports_token, Bearer our_JWT". The server JWT
+        // middleware then tries to decode the first value (a JWE / encrypted token
+        // from BoldReports internals) and fails with IDX14309.
+        //
+        // Fix: intercept setRequestHeader to SUPPRESS any Authorization header that
+        // BoldReports sets on /api/v1/boldreports/* requests, then set the correct
+        // Bearer token once in send() so it is the only Authorization value sent.
+
         const origOpen = XMLHttpRequest.prototype.open;
         XMLHttpRequest.prototype.open = function (method, url) {
             this._brUrl = (typeof url === 'string' ? url : String(url));
             return origOpen.apply(this, arguments);
+        };
+
+        const origSetRequestHeader = XMLHttpRequest.prototype.setRequestHeader;
+        XMLHttpRequest.prototype.setRequestHeader = function (name, value) {
+            // Suppress any Authorization header the BoldReports SDK sets on its own
+            // endpoints — we will inject the correct Bearer token in send() instead.
+            if (name && name.toLowerCase() === 'authorization' &&
+                this._brUrl && this._brUrl.indexOf(BR_PATH_HINT) >= 0) {
+                return;
+            }
+            return origSetRequestHeader.apply(this, arguments);
         };
 
         const origSend = XMLHttpRequest.prototype.send;
@@ -300,7 +323,9 @@ window.boldReportsInterop = (function () {
                 const token = localStorage.getItem(TOKEN_KEY);
                 if (token) {
                     try {
-                        this.setRequestHeader('Authorization', 'Bearer ' + token);
+                        // At this point no Authorization header has been set (we suppressed
+                        // BoldReports' attempt above), so this call adds ours cleanly.
+                        origSetRequestHeader.call(this, 'Authorization', 'Bearer ' + token);
                     } catch (_) {
                         // setRequestHeader throws if the request is already sent; safe to ignore.
                     }
