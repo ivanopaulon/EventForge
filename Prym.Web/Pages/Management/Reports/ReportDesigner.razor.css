@@ -1,0 +1,15 @@
+/* ReportDesigner.razor.css
+   Scoped styles for the Report Designer page.
+   Prevents global overflow:hidden from clipping Bold Reports designer popups
+   (property panels, context menus, dialogs). */
+
+.reports-designer-root {
+    /* Override the inherited overflow:hidden from ef-flex-col-fill so that
+       Bold Reports overlay panels can extend beyond the page container. */
+    overflow: visible !important;
+}
+
+.reports-designer-root .ef-flex-child-fill {
+    overflow: auto;
+    position: relative;
+}

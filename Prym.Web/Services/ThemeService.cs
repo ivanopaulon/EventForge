@@ -133,6 +133,8 @@ public class ThemeService(
         try
         {
             await jsRuntime.InvokeVoidAsync("document.documentElement.setAttribute", "data-theme", _currentTheme);
+            // Swap Syncfusion CSS stylesheet to match the current theme.
+            await jsRuntime.InvokeVoidAsync("EventForge.setSyncfusionTheme", IsDarkMode);
         }
         catch (Exception ex)
         {

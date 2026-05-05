@@ -31,6 +31,29 @@ window.boldReportsInterop = (function () {
      */
     function initReportDesigner(elementId, serviceUrl, reportPath, dotNetRef) {
         _ensureAuthInterceptor();
+
+        // Guard: if jQuery or the Bold Reports plugin isn't loaded yet, retry after a short delay.
+        if (typeof $ === 'undefined' || typeof $.fn.boldReportDesigner === 'undefined') {
+            var attempts = 0;
+            var maxAttempts = 20; // up to 2 s total
+            var intervalId = setInterval(function () {
+                attempts++;
+                if (typeof $ !== 'undefined' && typeof $.fn.boldReportDesigner !== 'undefined') {
+                    clearInterval(intervalId);
+                    _initReportDesignerCore(elementId, serviceUrl, reportPath, dotNetRef);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    console.error('[BoldReports] jQuery or boldReportDesigner plugin not available after ' + (maxAttempts * 100) + 'ms. ' +
+                        'Ensure the Bold Reports CDN scripts are loaded in index.html before app-interop.js.');
+                }
+            }, 100);
+            return;
+        }
+
+        _initReportDesignerCore(elementId, serviceUrl, reportPath, dotNetRef);
+    }
+
+    function _initReportDesignerCore(elementId, serviceUrl, reportPath, dotNetRef) {
         try {
             const el = document.getElementById(elementId);
             if (!el) {
@@ -89,6 +112,27 @@ window.boldReportsInterop = (function () {
      */
     function initReportViewer(elementId, serviceUrl, reportPath, params) {
         _ensureAuthInterceptor();
+
+        if (typeof $ === 'undefined' || typeof $.fn.boldReportViewer === 'undefined') {
+            var attempts = 0;
+            var maxAttempts = 20;
+            var intervalId = setInterval(function () {
+                attempts++;
+                if (typeof $ !== 'undefined' && typeof $.fn.boldReportViewer !== 'undefined') {
+                    clearInterval(intervalId);
+                    _initReportViewerCore(elementId, serviceUrl, reportPath, params);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    console.error('[BoldReports] jQuery or boldReportViewer plugin not available after ' + (maxAttempts * 100) + 'ms.');
+                }
+            }, 100);
+            return;
+        }
+
+        _initReportViewerCore(elementId, serviceUrl, reportPath, params);
+    }
+
+    function _initReportViewerCore(elementId, serviceUrl, reportPath, params) {
         try {
             const el = document.getElementById(elementId);
             if (!el) {
