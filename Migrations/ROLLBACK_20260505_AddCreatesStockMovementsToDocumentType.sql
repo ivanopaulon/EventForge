@@ -24,6 +24,26 @@ BEGIN TRY
           AND  name = 'CreatesStockMovements'
     )
     BEGIN
+        -- Drop the DEFAULT constraint (added inline by the forward migration) before
+        -- dropping the column.  SQL Server does not allow DROP COLUMN when a DEFAULT
+        -- constraint still exists; the constraint name is system-generated, so we
+        -- look it up dynamically.
+        DECLARE @ConstraintName NVARCHAR(256);
+
+        SELECT @ConstraintName = dc.[name]
+        FROM   sys.default_constraints dc
+        JOIN   sys.columns             c
+               ON  c.object_id     = dc.parent_object_id
+               AND c.column_id     = dc.parent_column_id
+        WHERE  dc.parent_object_id = OBJECT_ID(N'[dbo].[DocumentTypes]')
+          AND  c.[name]            = 'CreatesStockMovements';
+
+        IF @ConstraintName IS NOT NULL
+        BEGIN
+            EXEC('ALTER TABLE [dbo].[DocumentTypes] DROP CONSTRAINT [' + @ConstraintName + ']');
+            PRINT CONCAT('Dropped DEFAULT constraint: ', @ConstraintName);
+        END
+
         ALTER TABLE [dbo].[DocumentTypes]
         DROP COLUMN [CreatesStockMovements];
 

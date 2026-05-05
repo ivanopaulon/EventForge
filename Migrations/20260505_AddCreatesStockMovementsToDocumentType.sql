@@ -69,10 +69,13 @@ BEGIN TRY
     -- ─────────────────────────────────────────────────────────────────────────
 
     -- 4a. Collect the IDs of erroneous movements into a temp table
+    --     LotId is included so that stock-quantity corrections are scoped to the
+    --     exact (Product, Location, Lot) bucket and do not bleed into other lots.
     SELECT sm.[Id],
            sm.[ProductId],
            sm.[FromLocationId],
            sm.[ToLocationId],
+           sm.[LotId],
            sm.[Quantity],
            sm.[TenantId]
     INTO   #ErroneousMovements
@@ -99,6 +102,9 @@ BEGIN TRY
            AND em.[TenantId]     = s.[TenantId]
            AND em.[ProductId]    = s.[ProductId]
            AND em.[ToLocationId] = s.[StorageLocationId]
+           -- Match on the exact lot bucket: NULL-safe equality
+           AND (  (em.[LotId] IS NULL     AND s.[LotId] IS NULL)
+               OR (em.[LotId] = s.[LotId])  )
     WHERE  s.[IsDeleted] = 0;
 
     PRINT CONCAT('Reversed inbound contributions for ', @@ROWCOUNT, ' stock record(s).');
@@ -114,6 +120,9 @@ BEGIN TRY
            AND em.[TenantId]       = s.[TenantId]
            AND em.[ProductId]      = s.[ProductId]
            AND em.[FromLocationId] = s.[StorageLocationId]
+           -- Match on the exact lot bucket: NULL-safe equality
+           AND (  (em.[LotId] IS NULL     AND s.[LotId] IS NULL)
+               OR (em.[LotId] = s.[LotId])  )
     WHERE  s.[IsDeleted] = 0;
 
     PRINT CONCAT('Reversed outbound contributions for ', @@ROWCOUNT, ' stock record(s).');

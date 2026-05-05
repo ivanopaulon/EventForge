@@ -1396,11 +1396,13 @@ public class StockService(
                 .ToListAsync(cancellationToken);
 
             // Map to DTO in-memory (safe to use .Date here, outside the LINQ-to-SQL boundary).
+            // SpecifyKind ensures the serialized value always carries a UTC timezone offset,
+            // matching the documented contract on InventorySnapshotDateDto.Date.
             return raw
                 .Select(r => new InventorySnapshotDateDto
                 {
                     DocumentHeaderId = r.Id,
-                    Date = r.Date.Date,
+                    Date = DateTime.SpecifyKind(r.Date.Date, DateTimeKind.Utc),
                     DocumentNumber = r.Number
                 })
                 .ToList();
