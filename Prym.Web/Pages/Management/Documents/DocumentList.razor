@@ -275,7 +275,7 @@
             };
             var dialog = await DialogService.ShowAsync<DocumentDetailDialog>(string.Empty, parameters, _fullScreenDialogOptions);
             var result = await dialog.Result;
-            if (result is { Canceled: false })
+            if (result is { Canceled: false, Data: true })
                 await _managementPage.RefreshAsync();
         }
         catch (Exception ex)

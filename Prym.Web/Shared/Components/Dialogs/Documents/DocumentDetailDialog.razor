@@ -1426,7 +1426,11 @@
     private async Task CloseDialogAsync()
     {
         await ReleaseLockInternalAsync();
-        MudDialog.Close(DialogResult.Ok(_currentDocument != null));
+        // Return Ok(true) when document saved, Cancel otherwise to skip entity-list refresh.
+        if (_currentDocument != null)
+            MudDialog.Close(DialogResult.Ok(true));
+        else
+            MudDialog.Cancel();
     }
 
     private async Task ReleaseLockInternalAsync()
