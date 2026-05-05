@@ -1049,7 +1049,12 @@
             await LoadDocumentAsync(_currentDocument.Id);
         }
 
-        await RecalculateDocumentTotalsAsync();
+        // Only recalculate totals when changes were actually saved (dialog was not canceled).
+        // Avoids an unnecessary HTTP call when the user dismisses the dialog without saving.
+        if (result is { Canceled: false })
+        {
+            await RecalculateDocumentTotalsAsync();
+        }
         StateHasChanged();
     }
 
