@@ -29,6 +29,18 @@ namespace Prym.DTOs.Documents
         public bool IsStockIncrease { get; set; }
 
         /// <summary>
+        /// Indicates if this document type represents a physical inventory count.
+        /// When true, CreatesStockMovements is forced to false.
+        /// </summary>
+        public bool IsInventoryDocument { get; set; }
+
+        /// <summary>
+        /// Indicates if approving/closing a document of this type should generate warehouse stock movements.
+        /// Defaults to true; automatically set to false for inventory document types.
+        /// </summary>
+        public bool CreatesStockMovements { get; set; } = true;
+
+        /// <summary>
         /// Default warehouse for this document type
         /// </summary>
         public Guid? DefaultWarehouseId { get; set; }

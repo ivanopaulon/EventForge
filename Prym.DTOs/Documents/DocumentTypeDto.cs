@@ -59,6 +59,12 @@ namespace Prym.DTOs.Documents
         public bool IsInventoryDocument { get; set; }
 
         /// <summary>
+        /// Indicates if approving/closing a document of this type should generate warehouse stock movements.
+        /// Always false for inventory documents.
+        /// </summary>
+        public bool CreatesStockMovements { get; set; } = true;
+
+        /// <summary>
         /// Date and time when the document type was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }
