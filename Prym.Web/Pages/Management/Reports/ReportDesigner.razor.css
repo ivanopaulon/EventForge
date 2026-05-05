@@ -1,15 +1,24 @@
 /* ReportDesigner.razor.css
    Scoped styles for the Report Designer page.
-   Prevents global overflow:hidden from clipping Bold Reports designer popups
-   (property panels, context menus, dialogs). */
+
+   Root cause of Bold Reports rendering issue:
+   The global `app.css` sets `html, body { overflow: hidden; }` and `#app { overflow: hidden; }`.
+   These rules clip Bold Reports' absolutely-positioned floating panels (property pane,
+   context menus, dialogs, toolbar dropdowns), making the designer appear "broken".
+
+   The JS interop (`boldreports-interop.js`) overrides body/#app overflow at runtime.
+   This file handles the Blazor-side flex container chain so the designer panel has
+   correct dimensions regardless of how the parent components set their overflow. */
 
 .reports-designer-root {
-    /* Override the inherited overflow:hidden from ef-flex-col-fill so that
-       Bold Reports overlay panels can extend beyond the page container. */
+    /* ef-flex-col-fill sets overflow:hidden; override so Bold Reports panels are not
+       clipped at the page-root level while this page is active. */
     overflow: visible !important;
 }
 
 .reports-designer-root .ef-flex-child-fill {
+    /* Allow the designer container to scroll vertically if the viewport is very small,
+       but do not clip (overflow:hidden would break Bold Reports panel positioning). */
     overflow: auto;
     position: relative;
 }

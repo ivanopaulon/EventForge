@@ -22,6 +22,36 @@ window.boldReportsInterop = (function () {
     let _authInterceptorInstalled = false;
 
     /**
+     * Overrides `body` and `#app` overflow to allow Bold Reports floating panels
+     * (property panes, context menus, toolbars, dialogs) to render without being clipped.
+     *
+     * The application's global CSS (`app.css`) sets:
+     *   html, body { overflow: hidden; }
+     *   #app        { overflow: hidden; }
+     *
+     * These rules are intentional for the rest of the app (prevents double scroll-bars)
+     * but they prevent Bold Reports UI from rendering correctly because the designer and
+     * viewer use absolutely-positioned popups that extend beyond their container bounds.
+     *
+     * When active=true  → inline style override (trumps stylesheet rules) to 'auto'
+     * When active=false → inline style removed (sheet rule takes back control)
+     *
+     * The override is scoped to the lifecycle of Bold Reports instances:
+     *   - Applied when the FIRST instance is created.
+     *   - Removed when the LAST instance is destroyed.
+     */
+    function _setBodyOverrideForBoldReports(active) {
+        const appEl = document.getElementById('app');
+        if (active) {
+            document.body.style.overflow = 'auto';
+            if (appEl) appEl.style.overflow = 'auto';
+        } else {
+            document.body.style.overflow = '';
+            if (appEl) appEl.style.overflow = '';
+        }
+    }
+
+    /**
      * Initialises the Bold Reports Report Designer inside the given element.
      *
      * @param {string}      elementId  - ID of the container element.
@@ -70,6 +100,14 @@ window.boldReportsInterop = (function () {
             // Destroy any existing instance in this container.
             _destroyInstance(elementId);
 
+            // ── Override body/app overflow ──────────────────────────────────────
+            // Bold Reports floating UI (property panels, context menus, dialogs)
+            // requires body/app NOT to have overflow:hidden, otherwise panels are
+            // clipped and the designer appears broken.
+            if (Object.keys(_instances).length === 0) {
+                _setBodyOverrideForBoldReports(true);
+            }
+
             const options = {
                 serviceUrl: serviceUrl,
             };
@@ -78,6 +116,18 @@ window.boldReportsInterop = (function () {
             if (reportPath) {
                 options.reportPath = reportPath;
             }
+
+            // ── created callback ───────────────────────────────────────────────
+            // Fires after the designer widget is fully initialised.
+            // Dispatch a window resize event so the designer recalculates its
+            // internal layout (toolbar positions, canvas dimensions, panel sizes).
+            // This is necessary because Blazor's Mud layout may have changed the
+            // effective viewport height between page render and designer init.
+            options.created = function () {
+                setTimeout(function () {
+                    window.dispatchEvent(new Event('resize'));
+                }, 150);
+            };
 
             // ── Save handling ──────────────────────────────────────────────────
             // The designer POSTs to SetData on the server when the user saves.
@@ -149,6 +199,11 @@ window.boldReportsInterop = (function () {
             // Destroy any existing instance in this container.
             _destroyInstance(elementId);
 
+            // ── Override body/app overflow ──────────────────────────────────────
+            if (Object.keys(_instances).length === 0) {
+                _setBodyOverrideForBoldReports(true);
+            }
+
             const options = {
                 reportServiceUrl: serviceUrl,
                 reportPath: reportPath,
@@ -160,6 +215,19 @@ window.boldReportsInterop = (function () {
                     values: [String(value)],
                 }));
             }
+
+            // ── renderComplete callback ────────────────────────────────────────
+            // Fires after each report render cycle. Fire a resize event on the
+            // first render so the viewer recalculates its layout correctly.
+            let _viewerFirstRender = true;
+            options.renderComplete = function () {
+                if (_viewerFirstRender) {
+                    _viewerFirstRender = false;
+                    setTimeout(function () {
+                        window.dispatchEvent(new Event('resize'));
+                    }, 150);
+                }
+            };
 
             $('#' + elementId).boldReportViewer(options);
             _instances[elementId] = true;
@@ -246,6 +314,11 @@ window.boldReportsInterop = (function () {
                 console.warn('[BoldReports] destroy error for', elementId, err);
             }
             delete _instances[elementId];
+
+            // Restore body/app overflow when no more Bold Reports instances are active.
+            if (Object.keys(_instances).length === 0) {
+                _setBodyOverrideForBoldReports(false);
+            }
         }
     }
 
