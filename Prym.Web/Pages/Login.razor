@@ -7,6 +7,7 @@
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
 @inject ILogger<Login> Logger
+@implements IDisposable
 
 <PageTitle>@TranslationService.GetTranslation("auth.login", "Login") - PRYM</PageTitle>
 
@@ -66,7 +67,14 @@
                     else
                     {
                         <MudAlert Severity="Severity.Info">
-                            @TranslationService.GetTranslation("auth.noTenants", "Nessun tenant disponibile. Contatta l'amministratore.")
+                            @if (_serverError)
+                            {
+                                @TranslationService.GetTranslation("auth.serverUnavailable", "Server non raggiungibile. Riconnessione in corso...")
+                            }
+                            else
+                            {
+                                @TranslationService.GetTranslation("auth.noTenants", "Nessun tenant disponibile. Contatta l'amministratore.")
+                            }
                         </MudAlert>
                     }
                 </MudItem>
@@ -124,6 +132,13 @@
                     </MudText>
                 </MudItem>
 
+                @if (_loginError != null)
+                {
+                    <MudItem xs="12">
+                        <MudAlert Severity="Severity.Error" Dense="true">@_loginError</MudAlert>
+                    </MudItem>
+                }
+
                 <MudItem xs="12">
                     <MudButton ButtonType="ButtonType.Button"
                                Variant="Variant.Filled"
@@ -157,6 +172,9 @@
     private bool _isFormValid;
     private bool _isLoading = false;
     private bool _isLoadingTenants = true;
+    private bool _serverError = false;
+    private string? _loginError;
+    private CancellationTokenSource? _retryCts;
     private readonly LoginRequestDto _loginRequest = new();
     private List<TenantResponseDto> _tenants = new();
     private string? _selectedTenantId;
@@ -192,30 +210,71 @@
         try
         {
             _isLoadingTenants = true;
-            // AuthService should expose a lightweight call returning public/active tenants for login.
-            // If your IAuthService has a different method name adapt it here (e.g. GetPublicTenantsAsync or GetLoginTenantsAsync).
             _tenants = (await AuthService.GetAvailableTenantsAsync()).ToList();
+            _serverError = false;
 
-            // Auto-select first tenant if none chosen
             if (_tenants.Any())
             {
                 _selectedTenantId ??= _tenants.First().Id.ToString();
+                CancelRetry();
             }
         }
         catch (Exception ex)
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("auth.tenantsLoadError", "Errore nel caricamento dei tenant: {0}", ex.Message));
+            Logger.LogError(ex, "Error loading tenants.");
+            _serverError = true;
             _tenants = new List<TenantResponseDto>();
+            EnsureRetryStarted();
         }
         finally
         {
             _isLoadingTenants = false;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private void EnsureRetryStarted()
+    {
+        if (_retryCts != null) return;
+        _retryCts = new CancellationTokenSource();
+        _ = RetryLoadTenantsLoopAsync(_retryCts.Token);
+    }
+
+    private void CancelRetry()
+    {
+        var cts = _retryCts;
+        _retryCts = null;
+        if (cts == null) return;
+        try { cts.Cancel(); } catch (ObjectDisposedException) { }
+        cts.Dispose();
+    }
+
+    private async Task RetryLoadTenantsLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                await Task.Delay(5000, token);
+                await LoadTenantsAsync();
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error in tenant retry loop.");
+        }
+    }
+
+    public void Dispose()
+    {
+        CancelRetry();
     }
 
     private async Task HandleLogin()
     {
+        _loginError = null;
+
         // Ensure form validation runs
         await form.ValidateAsync();
         if (!_isFormValid) return;
@@ -238,19 +297,18 @@
             var result = await AuthService.LoginAsync(_loginRequest);
             if (result != null)
             {
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("auth.loginSuccess", "Login successful!"));
-
                 var isAdmin = await AuthService.IsInRoleAsync("Admin");
                 NavigationManager.NavigateTo(isAdmin ? "/" : "/product-management/products");
             }
             else
             {
-                AppNotification.ShowError(TranslationService.GetTranslation("auth.loginFailed", "Login failed. Please check your credentials."));
+                _loginError = TranslationService.GetTranslation("auth.loginFailed", "Login failed. Please check your credentials.");
             }
         }
         catch (Exception ex)
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("auth.loginError", "Login error: {0}", ex.Message));
+            _loginError = TranslationService.GetTranslation("auth.loginError", "Login error: {0}", ex.Message);
+            Logger.LogError(ex, "Error during login.");
         }
         finally
         {
