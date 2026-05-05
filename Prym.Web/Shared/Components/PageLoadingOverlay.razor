@@ -38,32 +38,40 @@
     private IDialogReference? _dialogRef;
     private PageLoadingState? _state;
     private bool _wasVisible;
+    // Prevents re-entrant OnParametersSetAsync calls from opening orphaned dialogs while ShowAsync is pending.
+    private bool _isOpening;
 
     protected override async Task OnParametersSetAsync()
     {
         try
         {
-            if (Visible && !_wasVisible)
+            if (Visible && !_wasVisible && !_isOpening)
             {
-                _state = BuildState();
-                var dp = new DialogParameters<PageLoadingSystemDialog>
+                _isOpening = true;
+                try
                 {
-                    { x => x.State, _state }
-                };
-                _dialogRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _options);
-                _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => { _dialogRef = null; }));
+                    _state = BuildState();
+                    var dp = new DialogParameters<PageLoadingSystemDialog>
+                    {
+                        { x => x.State, _state }
+                    };
+                    _dialogRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _options);
+                    _ = _dialogRef.Result.ContinueWith(_ => InvokeAsync(() => { _dialogRef = null; }));
 
-                // Race-condition guard: if Visible flipped to false while we were awaiting
-                // ShowAsync (the close signal arrives before _wasVisible was set), close the
-                // dialog immediately so it is never left open with no owner.
-                if (!Visible)
+                    // Close immediately if Visible flipped to false while ShowAsync was pending.
+                    if (!Visible)
+                    {
+                        _dialogRef.Close();
+                        _dialogRef = null;
+                        _state = null;
+                    }
+                }
+                finally
                 {
-                    _dialogRef.Close();
-                    _dialogRef = null;
-                    _state = null;
+                    _isOpening = false;
                 }
             }
-            else if (!Visible && _wasVisible)
+            else if (!Visible && (_wasVisible || _dialogRef is not null))
             {
                 _dialogRef?.Close();
                 _dialogRef = null;
