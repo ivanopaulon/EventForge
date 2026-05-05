@@ -2,6 +2,7 @@
 
 @inject IJSRuntime JS
 @inject ILogger<ReportViewerPanel> Logger
+@inject IServerConfigService ServerConfig
 
 <div id="@_containerId" style="width:100%;height:@Height;min-height:400px;"></div>
 
@@ -13,10 +14,10 @@
     [Parameter, EditorRequired] public Guid ReportId { get; set; }
 
     /// <summary>
-    /// URL of the Bold Reports server-side viewer service.
-    /// Defaults to the standard EventForge endpoint.
+    /// Relative path of the Bold Reports server-side viewer service.
+    /// Will be combined with the server base URL from IServerConfigService.
     /// </summary>
-    [Parameter] public string ServiceUrl { get; set; } = "/api/v1/boldreports/viewer";
+    [Parameter] public string ServicePath { get; set; } = "/api/v1/boldreports/viewer";
 
     /// <summary>Height of the viewer container (CSS value).</summary>
     [Parameter] public string Height { get; set; } = "calc(100vh - 180px)";
@@ -47,10 +48,12 @@
     {
         try
         {
+            var serverBase = (await ServerConfig.GetServerUrlAsync()).TrimEnd('/');
+            var absoluteServiceUrl = serverBase + ServicePath;
             await JS.InvokeVoidAsync(
                 "boldReportsInterop.initReportViewer",
                 _containerId,
-                ServiceUrl,
+                absoluteServiceUrl,
                 ReportId.ToString(),
                 Parameters);
         }

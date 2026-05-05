@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject ITranslationService TranslationService
 @inject ILogger<ReportDesignerPanel> Logger
+@inject IServerConfigService ServerConfig
 
 <div id="@_containerId" style="width:100%;height:@Height;min-height:500px;"></div>
 
@@ -15,10 +16,10 @@
     [Parameter] public Guid? ReportId { get; set; }
 
     /// <summary>
-    /// URL of the Bold Reports server-side designer service.
-    /// Defaults to the standard EventForge endpoint.
+    /// Relative path of the Bold Reports server-side designer service.
+    /// Will be combined with the server base URL from IServerConfigService.
     /// </summary>
-    [Parameter] public string ServiceUrl { get; set; } = "/api/v1/boldreports/designer";
+    [Parameter] public string ServicePath { get; set; } = "/api/v1/boldreports/designer";
 
     /// <summary>Height of the designer container (CSS value, e.g. "600px" or "calc(100vh - 160px)").</summary>
     [Parameter] public string Height { get; set; } = "calc(100vh - 180px)";
@@ -39,10 +40,12 @@
         try
         {
             var reportPath = ReportId.HasValue ? ReportId.Value.ToString() : null;
+            var serverBase = (await ServerConfig.GetServerUrlAsync()).TrimEnd('/');
+            var absoluteServiceUrl = serverBase + ServicePath;
             await JS.InvokeVoidAsync(
                 "boldReportsInterop.initReportDesigner",
                 _containerId,
-                ServiceUrl,
+                absoluteServiceUrl,
                 reportPath,
                 _selfRef);
         }
