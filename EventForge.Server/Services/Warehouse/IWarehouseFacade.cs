@@ -415,6 +415,33 @@ public interface IWarehouseFacade
         Guid? locationId = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Returns the dates and document numbers of the most recent closed inventory documents
+    /// for the current tenant, ordered by date descending.
+    /// </summary>
+    /// <param name="count">Maximum number of records to return (default 3).</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IReadOnlyList<InventorySnapshotDateDto>> GetRecentInventoryDatesAsync(
+        int count = 3,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the raw quantities from a specific closed inventory document,
+    /// with purchase cost and sale price resolved at the document date.
+    /// No movement reconstruction is performed.
+    /// </summary>
+    /// <param name="documentHeaderId">ID of the closed inventory document header.</param>
+    /// <param name="searchTerm">Optional search term for product name or code.</param>
+    /// <param name="warehouseId">Optional warehouse filter.</param>
+    /// <param name="locationId">Optional location filter.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<IEnumerable<StockSnapshotDto>> GetInventoryDocumentQuantitiesAsync(
+        Guid documentHeaderId,
+        string? searchTerm = null,
+        Guid? warehouseId = null,
+        Guid? locationId = null,
+        CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Document Operations

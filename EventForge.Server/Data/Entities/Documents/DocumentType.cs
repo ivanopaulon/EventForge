@@ -66,4 +66,13 @@ public class DocumentType : AuditableEntity
     /// </summary>
     [Display(Name = "Is Inventory Document", Description = "Indicates if this is an inventory counting document")]
     public bool IsInventoryDocument { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c> (default), approving or closing a document of this type automatically
+    /// generates warehouse stock movements.  Set to <c>false</c> for document types such as
+    /// physical inventory counts whose rows represent absolute quantity anchors rather than
+    /// incremental stock deltas.
+    /// </summary>
+    [Display(Name = "Creates Stock Movements", Description = "Whether approving or closing this document type auto-generates stock movements.")]
+    public bool CreatesStockMovements { get; set; } = true;
 }

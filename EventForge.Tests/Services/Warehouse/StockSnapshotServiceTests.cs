@@ -1,5 +1,6 @@
 using Prym.DTOs.Warehouse;
 using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Data.Entities.Warehouse;
@@ -10,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
+using EntityDocumentStatus = Prym.DTOs.Common.DocumentStatus;
 
 namespace EventForge.Tests.Services.Warehouse;
 
@@ -741,6 +743,324 @@ public class StockSnapshotServiceTests : IDisposable
         Assert.False(result[0].IsPriceFromList);
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Inventory-document anchor tests
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private Guid _inventoryDocTypeId = Guid.NewGuid();
+
+    private void SeedInventoryDocumentType()
+    {
+        _context.DocumentTypes.Add(new DocumentType
+        {
+            Id = _inventoryDocTypeId,
+            TenantId = _tenantId,
+            Code = "INVENTORY",
+            Name = "Inventory Document",
+            IsInventoryDocument = true,
+            CreatesStockMovements = false,
+            IsStockIncrease = false,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+    }
+
+    private DocumentHeader MakeInventoryHeader(
+        DateTime date,
+        EntityDocumentStatus status = EntityDocumentStatus.Closed)
+    {
+        return new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = _inventoryDocTypeId,
+            Number = $"INV-{Guid.NewGuid():N}",
+            Date = date,
+            Status = status,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+    }
+
+    private DocumentRow MakeInventoryRow(
+        Guid documentHeaderId,
+        Guid productId,
+        Guid locationId,
+        decimal quantity)
+    {
+        return new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeaderId,
+            ProductId = productId,
+            LocationId = locationId,
+            Description = "Inventory count",
+            Quantity = quantity,
+            UnitPrice = 0m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+    }
+
+    /// <summary>
+    /// When a closed inventory document exists before the reference date, the snapshot must use
+    /// the inventory quantity as the starting point and apply only movements that occurred AFTER
+    /// the inventory document date (day boundary, inclusive of the next day onward).
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_InventoryAnchor_UsesInventoryAsStartingPoint()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var feb10 = new DateTime(2025, 2, 10, 0, 0, 0, DateTimeKind.Utc);
+        var feb15 = new DateTime(2025, 2, 15, 0, 0, 0, DateTimeKind.Utc);
+
+        // Two inbound movements on Jan 01
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 40m, jan01),
+            MakeMovement(_productId, _locationId, null, 60m, jan01.AddHours(1)));
+
+        // Inventory document on Feb 06 saying stock is 80 (anchor)
+        var inventoryHeader = MakeInventoryHeader(feb06);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 80m));
+
+        // One outbound movement on Feb 10 (after inventory)
+        _context.StockMovements.Add(MakeMovement(_productId, null, _locationId, 15m, feb10));
+
+        await _context.SaveChangesAsync();
+
+        // Act: snapshot at Feb 15
+        var result = (await _stockService.GetStockSnapshotAsync(feb15)).ToList();
+
+        // Assert: should be 80 (inventory anchor) - 15 (post-inventory outbound) = 65
+        // NOT 40+60-15 = 85 (which would ignore the inventory anchor)
+        Assert.Single(result);
+        Assert.Equal(65m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// When the reference date is BEFORE the inventory document date, the inventory anchor
+    /// must be ignored and the full movement history must be used.
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_SnapshotBeforeInventory_IgnoresAnchor()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var feb05 = feb06.AddDays(-1); // one day BEFORE the inventory document
+
+        // Inbound movements before the inventory
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 50m, jan01),
+            MakeMovement(_productId, _locationId, null, 30m, jan01.AddDays(10)));
+
+        // Inventory document on Feb 06 (after the reference date)
+        var inventoryHeader = MakeInventoryHeader(feb06);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 99m));
+
+        await _context.SaveChangesAsync();
+
+        // Act: snapshot at Feb 05 (before the inventory document)
+        var result = (await _stockService.GetStockSnapshotAsync(feb05)).ToList();
+
+        // Assert: should be 50+30 = 80 (full movement history, inventory is ignored)
+        Assert.Single(result);
+        Assert.Equal(80m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// When no inventory document exists, the snapshot must behave exactly as before
+    /// (accumulate from zero using the full movement history).
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_NoInventoryDocument_UsesFullMovementHistory()
+    {
+        // Arrange — no inventory document type seeded, no DocumentRows
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var mar01 = new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 100m, jan01),
+            MakeMovement(_productId, null, _locationId, 25m,  jan01.AddDays(30)));
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _stockService.GetStockSnapshotAsync(mar01)).ToList();
+
+        // Assert: 100 - 25 = 75 (standard behaviour)
+        Assert.Single(result);
+        Assert.Equal(75m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// An inventory document that is NOT in Closed status must NOT be used as an anchor.
+    /// Only closed inventory documents are authoritative.
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_OpenInventoryDocument_IsIgnoredAsAnchor()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var mar01 = new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 60m, jan01),
+            MakeMovement(_productId, null, _locationId, 10m, jan01.AddDays(5)));
+
+        // Inventory document that is Open (not Closed) — must not be used as anchor
+        var inventoryHeader = MakeInventoryHeader(feb06, EntityDocumentStatus.Open);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 999m));
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = (await _stockService.GetStockSnapshotAsync(mar01)).ToList();
+
+        // Assert: 60 - 10 = 50 (inventory is not closed, so full history is used)
+        Assert.Single(result);
+        Assert.Equal(50m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// Lot-specific movements (LotId != null) must still be correctly anchored by a closed
+    /// inventory document for the same (ProductId, LocationId), even though the inventory
+    /// document has no LotId column. One anchor covers all lots in the same (Product, Location).
+    /// </summary>
+    [Fact]
+    public async Task GetStockSnapshotAsync_InventoryAnchor_AppliesCorrectlyToLotSpecificMovements()
+    {
+        // Arrange
+        SeedInventoryDocumentType();
+
+        var lotId = Guid.NewGuid();
+        _context.Lots.Add(new Lot
+        {
+            Id = lotId,
+            TenantId = _tenantId,
+            ProductId = _productId,
+            Code = "LOT-001",
+            OriginalQuantity = 100m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        var jan01 = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var feb06 = new DateTime(2025, 2, 6, 0, 0, 0, DateTimeKind.Utc);
+        var feb10 = new DateTime(2025, 2, 10, 0, 0, 0, DateTimeKind.Utc);
+        var feb15 = new DateTime(2025, 2, 15, 0, 0, 0, DateTimeKind.Utc);
+
+        // Pre-inventory inbound movements for the lot
+        _context.StockMovements.AddRange(
+            MakeMovement(_productId, _locationId, null, 40m, jan01, lotId: lotId),
+            MakeMovement(_productId, _locationId, null, 60m, jan01.AddHours(1), lotId: lotId));
+
+        // Closed inventory document on Feb 06 anchoring at 80 for (product, location)
+        var inventoryHeader = MakeInventoryHeader(feb06);
+        _context.DocumentHeaders.Add(inventoryHeader);
+        // Inventory rows have no LotId — they cover the location as a whole
+        _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 80m));
+
+        // Post-inventory outbound for the same lot on Feb 10
+        _context.StockMovements.Add(MakeMovement(_productId, null, _locationId, 10m, feb10, lotId: lotId));
+
+        await _context.SaveChangesAsync();
+
+        // Act: snapshot at Feb 15
+        var result = (await _stockService.GetStockSnapshotAsync(feb15)).ToList();
+
+        // Assert: anchor = 80, post-inventory outbound = -10 → net 70.
+        // Before the fix, lot-specific movements missed the anchor lookup (key mismatch)
+        // and the result would have been 40 + 60 - 10 = 90 (ignoring the anchor).
+        Assert.Single(result);
+        Assert.Equal(lotId, result[0].LotId);
+        Assert.Equal(70m, result[0].Quantity);
+    }
+
+    /// <summary>
+    /// GetRecentInventoryDatesAsync returns the most recent N closed inventory document dates,
+    /// ordered from newest to oldest, and correctly extracts only the date component.
+    /// </summary>
+    [Fact]
+    public async Task GetRecentInventoryDatesAsync_ReturnsMostRecentClosedInventoriesOrdered()
+    {
+        SeedInventoryDocumentType();
+
+        var dates = new[]
+        {
+            new DateTime(2025, 1, 10, 10, 0, 0, DateTimeKind.Utc),
+            new DateTime(2025, 3, 5,  22, 0, 0, DateTimeKind.Utc),  // newest
+            new DateTime(2024, 12, 1, 8,  0, 0, DateTimeKind.Utc),  // oldest of 3
+        };
+
+        foreach (var d in dates)
+        {
+            var header = MakeInventoryHeader(d, EntityDocumentStatus.Closed);
+            _context.DocumentHeaders.Add(header);
+        }
+
+        // An open inventory document — must NOT be included.
+        _context.DocumentHeaders.Add(MakeInventoryHeader(
+            new DateTime(2025, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+            EntityDocumentStatus.Open));
+
+        await _context.SaveChangesAsync();
+
+        var result = await _stockService.GetRecentInventoryDatesAsync(3);
+
+        Assert.Equal(3, result.Count);
+        // Ordered from newest to oldest
+        Assert.Equal(new DateTime(2025, 3, 5), result[0].Date);
+        Assert.Equal(new DateTime(2025, 1, 10), result[1].Date);
+        Assert.Equal(new DateTime(2024, 12, 1), result[2].Date);
+        // Date component only (time stripped)
+        Assert.All(result, r => Assert.Equal(TimeSpan.Zero, r.Date.TimeOfDay));
+    }
+
+    /// <summary>
+    /// GetRecentInventoryDatesAsync respects the count limit and returns at most N records.
+    /// </summary>
+    [Fact]
+    public async Task GetRecentInventoryDatesAsync_RespectsCountLimit()
+    {
+        SeedInventoryDocumentType();
+
+        for (var i = 1; i <= 5; i++)
+        {
+            _context.DocumentHeaders.Add(MakeInventoryHeader(
+                new DateTime(2025, i, 1, 0, 0, 0, DateTimeKind.Utc)));
+        }
+        await _context.SaveChangesAsync();
+
+        var result = await _stockService.GetRecentInventoryDatesAsync(count: 2);
+
+        Assert.Equal(2, result.Count);
+    }
+
+    /// <summary>
+    /// GetRecentInventoryDatesAsync returns an empty list when no closed inventory documents exist.
+    /// </summary>
+    [Fact]
+    public async Task GetRecentInventoryDatesAsync_NoClosedInventories_ReturnsEmpty()
+    {
+        var result = await _stockService.GetRecentInventoryDatesAsync(3);
+        Assert.Empty(result);
+    }
+
     public void Dispose() => _context?.Dispose();
 }
 
@@ -903,6 +1223,320 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
 
         // Net across warehouse is conserved (100 in, 0 out of warehouse)
         Assert.Equal(100m, locA.Quantity + locB.Quantity);
+    }
+
+    public void Dispose() => _context?.Dispose();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tests for GetInventoryDocumentQuantitiesAsync
+// Verifies that the "direct inventory extract" mode returns raw DocumentRow
+// quantities without movement reconstruction, with prices resolved at the
+// document date using the existing pricing rules.
+// ─────────────────────────────────────────────────────────────────────────────
+
+public class InventoryDocumentQuantitiesTests : IDisposable
+{
+    private readonly EventForgeDbContext _context;
+    private readonly StockService _stockService;
+
+    private readonly Guid _tenantId    = Guid.NewGuid();
+    private readonly Guid _warehouseId = Guid.NewGuid();
+    private readonly Guid _locationId  = Guid.NewGuid();
+    private readonly Guid _location2Id = Guid.NewGuid();
+    private readonly Guid _productId   = Guid.NewGuid();
+    private readonly Guid _product2Id  = Guid.NewGuid();
+    private readonly Guid _docTypeId   = Guid.NewGuid();
+
+    public InventoryDocumentQuantitiesTests()
+    {
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        _context = new EventForgeDbContext(options);
+
+        var mockAudit  = new Mock<IAuditLogService>();
+        var mockTenant = new Mock<ITenantContext>();
+        var mockLogger = new Mock<ILogger<StockService>>();
+        mockTenant.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+
+        _stockService = new StockService(_context, mockAudit.Object, mockTenant.Object, mockLogger.Object);
+
+        // Seed warehouse, locations, products
+        _context.StorageFacilities.Add(new StorageFacility
+        {
+            Id = _warehouseId, TenantId = _tenantId, Name = "WH", Code = "WH",
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+        _context.StorageLocations.AddRange(
+            new StorageLocation { Id = _locationId,  TenantId = _tenantId, WarehouseId = _warehouseId, Code = "L1", CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
+            new StorageLocation { Id = _location2Id, TenantId = _tenantId, WarehouseId = _warehouseId, Code = "L2", CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
+        _context.Products.AddRange(
+            new Product { Id = _productId,  TenantId = _tenantId, Code = "P1", Name = "Product One", DefaultPrice = 20m, CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
+            new Product { Id = _product2Id, TenantId = _tenantId, Code = "P2", Name = "Product Two", DefaultPrice = 5m,  CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
+
+        // Seed inventory document type
+        _context.DocumentTypes.Add(new DocumentType
+        {
+            Id = _docTypeId, TenantId = _tenantId, Code = "INV", Name = "Inventory",
+            IsInventoryDocument = true, CreatesStockMovements = false,
+            IsActive = true, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+
+        _context.SaveChanges();
+    }
+
+    private DocumentHeader MakeHeader(EntityDocumentStatus status = EntityDocumentStatus.Closed, DateTime? date = null)
+        => new DocumentHeader
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, DocumentTypeId = _docTypeId,
+            Number = $"INV-{Guid.NewGuid():N}",
+            Date = date ?? new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            Status = status,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        };
+
+    private DocumentRow MakeRow(Guid documentHeaderId, Guid productId, Guid locationId, decimal quantity)
+        => new DocumentRow
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, DocumentHeaderId = documentHeaderId,
+            ProductId = productId, LocationId = locationId, Description = "count",
+            Quantity = quantity, UnitPrice = 0m,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        };
+
+    /// <summary>Returns the raw inventoried quantity directly from the document row.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_SingleRow_ReturnsInventoriedQuantity()
+    {
+        var header = MakeHeader();
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(MakeRow(header.Id, _productId, _locationId, 42m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(42m, result[0].Quantity);
+        Assert.Equal(_productId, result[0].ProductId);
+        Assert.Equal(_locationId, result[0].LocationId);
+        Assert.Null(result[0].LotId); // inventory docs have no lot tracking
+    }
+
+    /// <summary>Multiple rows for different (Product, Location) pairs are all returned.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_MultipleRows_ReturnsAllGroups()
+    {
+        var header = MakeHeader();
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.AddRange(
+            MakeRow(header.Id, _productId,  _locationId,  10m),
+            MakeRow(header.Id, _product2Id, _locationId,  25m),
+            MakeRow(header.Id, _productId,  _location2Id, 7m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Equal(3, result.Count);
+        Assert.Equal(10m, result.Single(r => r.ProductId == _productId  && r.LocationId == _locationId).Quantity);
+        Assert.Equal(25m, result.Single(r => r.ProductId == _product2Id && r.LocationId == _locationId).Quantity);
+        Assert.Equal(7m,  result.Single(r => r.ProductId == _productId  && r.LocationId == _location2Id).Quantity);
+    }
+
+    /// <summary>
+    /// Duplicate rows for the same (Product, Location) within the same document are summed.
+    /// This is an edge case but must not silently drop data.
+    /// </summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_DuplicateRows_QuantitiesSummed()
+    {
+        var header = MakeHeader();
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.AddRange(
+            MakeRow(header.Id, _productId, _locationId, 30m),
+            MakeRow(header.Id, _productId, _locationId, 20m)); // same key
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(50m, result[0].Quantity);
+    }
+
+    /// <summary>An open (non-closed) document returns empty — only closed docs are authoritative.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_OpenDocument_ReturnsEmpty()
+    {
+        var header = MakeHeader(EntityDocumentStatus.Open);
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(MakeRow(header.Id, _productId, _locationId, 99m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Empty(result);
+    }
+
+    /// <summary>A non-existent document ID returns empty.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_UnknownId_ReturnsEmpty()
+    {
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(Guid.NewGuid())).ToList();
+        Assert.Empty(result);
+    }
+
+    /// <summary>
+    /// The document date is used for price resolution, not today.
+    /// An active price list valid at the document date is applied.
+    /// </summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_SalePriceResolved_AtDocumentDate()
+    {
+        var docDate = new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var header = MakeHeader(date: docDate);
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(MakeRow(header.Id, _productId, _locationId, 10m));
+
+        var priceListId = Guid.NewGuid();
+        _context.PriceLists.Add(new PriceList
+        {
+            Id = priceListId, TenantId = _tenantId, Name = "Standard", Code = "STD",
+            Direction = PriceListDirection.Output, Priority = 1,
+            Status = PriceListStatus.Active,
+            ValidFrom = docDate.AddDays(-30), ValidTo = null,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+        _context.PriceListEntries.Add(new PriceListEntry
+        {
+            Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = priceListId,
+            ProductId = _productId, Price = 55m,
+            Status = PriceListEntryStatus.Active,
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(55m, result[0].SalePrice);
+        Assert.True(result[0].IsPriceFromList);
+    }
+
+    /// <summary>When no price list covers the document date, DefaultPrice is used as fallback.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_NoPriceList_FallsBackToDefaultPrice()
+    {
+        var header = MakeHeader();
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(MakeRow(header.Id, _productId, _locationId, 5m));
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(20m, result[0].SalePrice); // product DefaultPrice = 20
+        Assert.False(result[0].IsPriceFromList);
+    }
+
+    /// <summary>
+    /// Unit cost is resolved from the last inbound movement before the document date,
+    /// not from movements after it.
+    /// </summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_UnitCost_FromLastInboundBeforeDocDate()
+    {
+        var docDate = new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var header = MakeHeader(date: docDate);
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(MakeRow(header.Id, _productId, _locationId, 10m));
+
+        _context.StockMovements.AddRange(
+            new StockMovement
+            {
+                Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
+                ToLocationId = _locationId, Quantity = 50m, UnitCost = 8m,
+                MovementDate = docDate.AddDays(-10),
+                MovementType = StockMovementType.Inbound, Status = MovementStatus.Completed,
+                Reason = StockMovementReason.Purchase, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            },
+            new StockMovement
+            {
+                Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
+                ToLocationId = _locationId, Quantity = 30m, UnitCost = 12m, // more recent
+                MovementDate = docDate.AddDays(-2),
+                MovementType = StockMovementType.Inbound, Status = MovementStatus.Completed,
+                Reason = StockMovementReason.Purchase, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            },
+            new StockMovement
+            {
+                Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
+                ToLocationId = _locationId, Quantity = 20m, UnitCost = 99m, // after doc — excluded
+                MovementDate = docDate.AddDays(5),
+                MovementType = StockMovementType.Inbound, Status = MovementStatus.Completed,
+                Reason = StockMovementReason.Purchase, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            });
+
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(12m, result[0].UnitCost); // most recent inbound before doc date
+    }
+
+    /// <summary>The warehouseId filter limits results to rows in that warehouse's locations.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_WarehouseFilter_LimitsResults()
+    {
+        var wh2Id  = Guid.NewGuid();
+        var loc3Id = Guid.NewGuid();
+        _context.StorageFacilities.Add(new StorageFacility
+        {
+            Id = wh2Id, TenantId = _tenantId, Name = "WH2", Code = "WH2",
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+        _context.StorageLocations.Add(new StorageLocation
+        {
+            Id = loc3Id, TenantId = _tenantId, WarehouseId = wh2Id, Code = "L3",
+            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+        });
+
+        var header = MakeHeader();
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.AddRange(
+            MakeRow(header.Id, _productId, _locationId, 10m),  // WH1
+            MakeRow(header.Id, _productId, loc3Id,      25m)); // WH2
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id, warehouseId: _warehouseId)).ToList();
+
+        Assert.Single(result);
+        Assert.Equal(10m, result[0].Quantity);
+        Assert.Equal(_locationId, result[0].LocationId);
+    }
+
+    /// <summary>The result is ordered by ProductCode then LocationCode.</summary>
+    [Fact]
+    public async Task GetInventoryDocumentQuantitiesAsync_OrderedByProductCodeThenLocationCode()
+    {
+        var header = MakeHeader();
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.AddRange(
+            MakeRow(header.Id, _product2Id, _locationId,  5m),  // P2 / L1
+            MakeRow(header.Id, _productId,  _location2Id, 3m),  // P1 / L2
+            MakeRow(header.Id, _productId,  _locationId,  7m)); // P1 / L1
+        await _context.SaveChangesAsync();
+
+        var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
+
+        // Expected order: P1/L1, P1/L2, P2/L1
+        Assert.Equal(3, result.Count);
+        Assert.Equal("P1", result[0].ProductCode);
+        Assert.Equal("L1", result[0].LocationCode);
+        Assert.Equal("P1", result[1].ProductCode);
+        Assert.Equal("L2", result[1].LocationCode);
+        Assert.Equal("P2", result[2].ProductCode);
     }
 
     public void Dispose() => _context?.Dispose();

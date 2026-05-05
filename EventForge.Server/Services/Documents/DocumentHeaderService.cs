@@ -207,8 +207,8 @@ public class DocumentHeaderService(
 
             // Detect if Date changed to sync stock movements
             // Normalize both dates to UTC for proper comparison
-            var originalDateUtc = DateTime.SpecifyKind(originalHeader.Date, DateTimeKind.Utc);
-            var newDateUtc = DateTime.SpecifyKind(updateDto.Date, DateTimeKind.Utc);
+            var originalDateUtc = NormalizeDateToUtc(originalHeader.Date);
+            var newDateUtc = NormalizeDateToUtc(updateDto.Date);
             var dateChanged = originalDateUtc != newDateUtc;
 
             documentHeader.UpdateFromDto(updateDto);
@@ -281,7 +281,7 @@ public class DocumentHeaderService(
                 && documentHeader.DocumentType is not null)
             {
                 var compensatingCount = 0;
-                var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+                var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
 
                 foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
                 {
@@ -568,6 +568,16 @@ public class DocumentHeaderService(
         }
     }
 
+    /// <summary>
+    /// Returns <paramref name="date"/> with <see cref="DateTimeKind.Utc"/> ensured.
+    /// SQL Server stores datetime values as UTC but EF Core reads them back with
+    /// <see cref="DateTimeKind.Unspecified"/>.  This helper relabels the value without
+    /// changing the numeric ticks, which is correct when the DB always stores UTC.
+    /// If the value is already <see cref="DateTimeKind.Utc"/> it is returned unchanged.
+    /// </summary>
+    private static DateTime NormalizeDateToUtc(DateTime date) =>
+        date.Kind == DateTimeKind.Utc ? date : DateTime.SpecifyKind(date, DateTimeKind.Utc);
+
     private IQueryable<DocumentHeader> BuildDocumentHeaderQuery(DocumentHeaderQueryParameters parameters)
     {
         var query = context.DocumentHeaders.AsNoTracking().Where(dh => !dh.IsDeleted);
@@ -651,6 +661,12 @@ public class DocumentHeaderService(
                 Code = "INVENTORY",
                 Name = "Inventory Document",
                 Notes = "Physical inventory count document",
+                IsInventoryDocument = true,
+                // Inventory documents record absolute quantity anchors, NOT incremental stock deltas.
+                // Setting CreatesStockMovements = false prevents approve/close from generating
+                // erroneous Inbound/Outbound movements for these documents.
+                CreatesStockMovements = false,
+                IsStockIncrease = false,
                 IsActive = true,
                 CreatedBy = "system",
                 CreatedAt = DateTime.UtcNow
@@ -947,7 +963,7 @@ public class DocumentHeaderService(
 
                 if (documentHeader.DocumentType is not null)
                 {
-                    var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+                    var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
 
                     // Determine the warehouse location to use (same logic as ProcessStockMovementsForDocumentAsync)
                     Guid? warehouseLocationId = null;
@@ -1100,7 +1116,7 @@ public class DocumentHeaderService(
                 var delta = newBaseQuantity - oldBaseQuantity;
                 if (delta != 0)
                 {
-                    var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
+                    var documentDateUtc = NormalizeDateToUtc(row.DocumentHeader.Date);
 
                     // Determine warehouse location
                     Guid? warehouseLocationId = null;
@@ -1240,7 +1256,7 @@ public class DocumentHeaderService(
 
                 if (existingMovement is not null && row.DocumentHeader.DocumentType is not null)
                 {
-                    var documentDateUtc = DateTime.SpecifyKind(row.DocumentHeader.Date, DateTimeKind.Utc);
+                    var documentDateUtc = NormalizeDateToUtc(row.DocumentHeader.Date);
 
                     // Determine warehouse location
                     Guid? warehouseLocationId = null;
@@ -1334,13 +1350,24 @@ public class DocumentHeaderService(
                 return;
             }
 
+            // Inventory documents record absolute quantity anchors used for stock reconciliation and
+            // snapshot calculations.  They are NOT incremental stock deltas, so they must never
+            // generate automatic Inbound/Outbound movements.
+            if (documentHeader.DocumentType.IsInventoryDocument || !documentHeader.DocumentType.CreatesStockMovements)
+            {
+                logger.LogInformation(
+                    "Document {DocumentHeaderId} (type '{Code}') is flagged as inventory or non-movement — stock movements are not generated automatically.",
+                    documentHeader.Id, documentHeader.DocumentType.Code);
+                return;
+            }
+
             if (documentHeader.Rows is null || !documentHeader.Rows.Any())
             {
                 return;
             }
 
             // Ensure document date is in UTC for stock movements
-            var documentDateUtc = DateTime.SpecifyKind(documentHeader.Date, DateTimeKind.Utc);
+            var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
 
 
             foreach (var row in documentHeader.Rows.Where(r => !r.IsDeleted && r.ProductId.HasValue))
@@ -1480,7 +1507,7 @@ public class DocumentHeaderService(
         try
         {
             // Ensure the date is in UTC
-            var newDateUtc = DateTime.SpecifyKind(newDate, DateTimeKind.Utc);
+            var newDateUtc = NormalizeDateToUtc(newDate);
             var modifiedAt = DateTime.UtcNow;
 
             // Try batch SQL update for efficiency (works with SQL Server)
