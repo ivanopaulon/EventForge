@@ -418,11 +418,11 @@ public partial class DocumentRowDialog : IAsyncDisposable
     #region Data Loading Methods
 
     /// <summary>
-    /// Loads the document header information
+    /// Loads the document header information.
+    /// In add mode (<see cref="_isEditMode"/> is false) the header is fetched without rows for speed.
+    /// In edit mode the header is fetched with rows (includeRows: true) so that
+    /// <see cref="LoadRowForEdit"/> can reuse the already-loaded rows without a second API call.
     /// </summary>
-    /// <remarks>
-    /// Loads without rows to improve performance. Row data is loaded separately if needed.
-    /// </remarks>
     private async Task LoadDocumentHeaderAsync()
     {
         _state.DocumentHeader = await ExecuteWithErrorHandlingAsync(
@@ -597,6 +597,15 @@ public partial class DocumentRowDialog : IAsyncDisposable
             {
                 await PopulateModelFromRow(row);
             }
+            else
+            {
+                // This can happen if the header failed to load, the row ID is invalid,
+                // the row doesn't belong to this document, or it was deleted concurrently.
+                Logger.LogWarning("Row {RowId} not found in loaded document header {HeaderId}. " +
+                    "Document may have failed to load or the row was deleted.", rowId, DocumentHeaderId);
+                AppNotification.ShowError(TranslationService.GetTranslation(
+                    "documents.errorRowNotFound", "Riga del documento non trovata. Riprovare."));
+            }
         }
         catch (Exception ex)
         {
@@ -647,7 +656,11 @@ public partial class DocumentRowDialog : IAsyncDisposable
             var product = await productTask;
             if (product != null)
             {
+                // Set both the local binding variable (drives the UI autocomplete) and the
+                // state references used by other panels (price, VAT, UoM, recent transactions).
+                _selectedProduct = product;
                 _state.SelectedProduct = product;
+                _state.PreviousSelectedProduct = product;
                 _state.Cache.AvailableUnits = (await unitsTask)?.ToList() ?? new List<ProductUnitDto>();
             }
         }
