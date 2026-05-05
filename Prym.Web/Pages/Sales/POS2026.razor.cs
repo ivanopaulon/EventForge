@@ -134,6 +134,9 @@ public partial class POS2026 : IAsyncDisposable
             }
 
             RebuildCartQuantities();
+
+            // Carica sessioni aperte e controlla possibilità di split (non dipende dalla sessione corrente)
+            await Task.WhenAll(LoadOpenSessionsAsync(), CheckCanSplitAsync());
         }
         catch (Exception ex)
         {
@@ -583,7 +586,8 @@ public partial class POS2026 : IAsyncDisposable
             if (result.Success)
             {
                 RebuildCartQuantities();
-                AppNotification.ShowSuccess($"✅ {product.Name} aggiunto");
+                // Notification is already emitted by POSViewModel via OnNotification → HandleNotification.
+                // Do NOT call AppNotification here to avoid showing two toasts at once.
             }
             else
             {
@@ -822,7 +826,7 @@ public partial class POS2026 : IAsyncDisposable
             await ViewModel.CloseSaleAsync();
             if (_fiscalPrinterId.HasValue)
                 await TriggerFiscalPrintAsync(ViewModel.CurrentSession!);
-            AppNotification.ShowSuccess("Vendita completata.");
+            // Notification ("Sale completed successfully!") already emitted by POSViewModel.
             RebuildCartQuantities();
         }
         catch (Exception ex)
@@ -837,7 +841,7 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             await ViewModel.ParkSessionAsync();
-            AppNotification.ShowInfo("Sessione parcheggiata.");
+            // Notification ("Session parked") already emitted by POSViewModel.
             RebuildCartQuantities();
         }
         catch (Exception ex)
@@ -856,7 +860,7 @@ public partial class POS2026 : IAsyncDisposable
             if (!confirmed) return;
             await ViewModel.CancelSessionAsync();
             _cartQuantities.Clear();
-            AppNotification.ShowInfo("Vendita annullata.");
+            // Notification ("Session cancelled") already emitted by POSViewModel.
         }
         catch (Exception ex)
         {
@@ -1048,6 +1052,117 @@ public partial class POS2026 : IAsyncDisposable
         else AppNotification.ShowError(message);
     }
 
+    // =========================================================================
+    //  Rimuovi ultimo articolo
+    // =========================================================================
+
+    private async Task RemoveLastItemAsync()
+    {
+        if (ViewModel.CurrentSession?.Items.Any() != true) return;
+        try
+        {
+            var last = ViewModel.CurrentSession.Items.Last();
+            var result = await ViewModel.RemoveItemAsync(last);
+            if (!result.Success)
+                AppNotification.ShowWarning(result.Error ?? "Errore durante la rimozione dell'articolo.");
+            RebuildCartQuantities();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore rimozione ultimo articolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    // =========================================================================
+    //  Split / Merge sessioni
+    // =========================================================================
+
+    private bool _canSplit = false;
+    private List<SaleSessionDto> _openSessions = new();
+
+    private async Task LoadOpenSessionsAsync()
+    {
+        try
+        {
+            var all = await SalesService.GetActiveSessionsAsync();
+            _openSessions = all?
+                .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
+                .ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS2026: errore caricamento sessioni aperte.");
+        }
+    }
+
+    private async Task CheckCanSplitAsync()
+    {
+        _canSplit = ViewModel.CurrentSession != null &&
+                    await SalesService.CanSplitSessionAsync(ViewModel.CurrentSession.Id);
+    }
+
+    private async Task OpenSplitDialogAsync()
+    {
+        if (ViewModel.CurrentSession == null) return;
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Session", ViewModel.CurrentSession }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+            var dialog = await DialogService.ShowAsync<SplitPaymentDialog>("Dividi Conto", parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS2026: errore apertura dialog divisione conto.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task OpenMergeDialogAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "AvailableSessions", _openSessions }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+            var dialog = await DialogService.ShowAsync<MergeSessionsDialog>("Unisci Sessioni", parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await ViewModel.ReloadSessionAsync();
+                await LoadOpenSessionsAsync();
+                await CheckCanSplitAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS2026: errore apertura dialog unione sessioni.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    // =========================================================================
+    //  Helper UI
+    // =========================================================================
+
+    private string GetLoadingTooltipText() =>
+        ViewModel.IsUpdatingItems ? "Salvataggio in corso…" : "Aggiornamento completato";
+
+    private Color GetLoadingSpinnerColor() =>
+        ViewModel.IsUpdatingItems ? Color.Warning : Color.Primary;
+
     private void OnViewModelStateChanged()
     {
         RebuildCartQuantities();
@@ -1113,15 +1228,7 @@ public partial class POS2026 : IAsyncDisposable
                     await ParkSessionAsync();
                     break;
                 case "F4":
-                    if (ViewModel.CurrentSession?.Items.LastOrDefault() is { } last)
-                    {
-                        // Routing through ViewModel.RemoveItemAsync respects the update semaphore
-                        // and flushes any pending debounced updates before removing the item.
-                        var removeResult = await ViewModel.RemoveItemAsync(last);
-                        if (!removeResult.Success)
-                            AppNotification.ShowWarning(removeResult.Error ?? "Errore durante la rimozione dell'articolo.");
-                        RebuildCartQuantities();
-                    }
+                    await RemoveLastItemAsync();
                     break;
                 case "F8":
                     _searchBar?.FocusInput();
