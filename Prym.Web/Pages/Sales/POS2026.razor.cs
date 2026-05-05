@@ -1086,9 +1086,9 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             var all = await SalesService.GetActiveSessionsAsync();
-            _openSessions = all?
+            _openSessions = (all ?? Enumerable.Empty<SaleSessionDto>())
                 .Where(s => s.Status == SaleSessionStatusDto.Open && s.ParentSessionId == null)
-                .ToList() ?? new();
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -1158,7 +1158,7 @@ public partial class POS2026 : IAsyncDisposable
     // =========================================================================
 
     private string GetLoadingTooltipText() =>
-        ViewModel.IsUpdatingItems ? "Salvataggio in corso…" : "Aggiornamento completato";
+        ViewModel.IsUpdatingItems ? "Salvataggio in corso..." : "Aggiornamento completato";
 
     private Color GetLoadingSpinnerColor() =>
         ViewModel.IsUpdatingItems ? Color.Warning : Color.Primary;
