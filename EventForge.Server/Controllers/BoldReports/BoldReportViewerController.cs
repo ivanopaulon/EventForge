@@ -18,6 +18,7 @@ namespace EventForge.Server.Controllers.BoldReports;
 [Route("api/v1/boldreports/viewer")]
 [ApiController]
 [Authorize]
+[ApiExplorerSettings(IgnoreApi = true)]
 public class BoldReportViewerController(
     IReportDefinitionService reportService,
     IMemoryCache memoryCache,
