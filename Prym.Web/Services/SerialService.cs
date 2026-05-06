@@ -119,7 +119,7 @@ public class SerialService(
             if (!string.IsNullOrEmpty(notes))
                 queryParams += $"&notes={Uri.EscapeDataString(notes)}";
 
-            _ = await httpClientService.PutAsync<object, object>($"{BaseUrl}/{id}/status?{queryParams}", new { });
+            await httpClientService.PutAsync($"{BaseUrl}/{id}/status?{queryParams}", new { }, ct);
             return true;
         }
         catch (Exception ex)

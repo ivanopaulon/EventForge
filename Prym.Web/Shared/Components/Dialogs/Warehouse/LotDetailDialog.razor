@@ -1,5 +1,6 @@
 @using Prym.DTOs.Warehouse
 @using Prym.DTOs.Products
+@using Prym.Web.ViewModels
 @attribute [Authorize]
 @inject LotDetailViewModel ViewModel
 @inject IAppNotificationService AppNotification
@@ -89,21 +90,19 @@
 
                         <MudItem xs="12" md="6">
                             <MudDatePicker @bind-Date="_productionDateLocal"
+                                           @bind-Date:after="@OnProductionDateChanged"
                                            Label="@TranslationService.GetTranslation("warehouse.productionDate", "Data Produzione")"
                                            Variant="Variant.Outlined"
                                            Margin="Margin.Dense"
-                                           DateChanged="@(d => { ViewModel.Entity.ProductionDate = d; ViewModel.NotifyEntityChanged(); })"
-                                           Date="@ViewModel.Entity.ProductionDate"
                                            Clearable="true" />
                         </MudItem>
 
                         <MudItem xs="12" md="6">
                             <MudDatePicker @bind-Date="_expiryDateLocal"
+                                           @bind-Date:after="@OnExpiryDateChanged"
                                            Label="@TranslationService.GetTranslation("warehouse.expiryDate", "Data Scadenza")"
                                            Variant="Variant.Outlined"
                                            Margin="Margin.Dense"
-                                           DateChanged="@(d => { ViewModel.Entity.ExpiryDate = d; ViewModel.NotifyEntityChanged(); })"
-                                           Date="@ViewModel.Entity.ExpiryDate"
                                            Clearable="true" />
                         </MudItem>
 
@@ -244,6 +243,24 @@
     private void OnViewModelStateChanged()
     {
         InvokeAsync(StateHasChanged);
+    }
+
+    private void OnProductionDateChanged()
+    {
+        if (ViewModel.Entity != null)
+        {
+            ViewModel.Entity.ProductionDate = _productionDateLocal;
+            ViewModel.NotifyEntityChanged();
+        }
+    }
+
+    private void OnExpiryDateChanged()
+    {
+        if (ViewModel.Entity != null)
+        {
+            ViewModel.Entity.ExpiryDate = _expiryDateLocal;
+            ViewModel.NotifyEntityChanged();
+        }
     }
 
     private async Task SaveAsync()

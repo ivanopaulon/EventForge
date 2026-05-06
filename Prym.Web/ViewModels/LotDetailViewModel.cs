@@ -25,6 +25,11 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     // Related entity collections
     public IEnumerable<ProductDto>? Products { get; private set; }
 
+    /// <summary>
+    /// Optional pre-set product ID (used when opening dialog from product context).
+    /// </summary>
+    public Guid? InitialProductId { get; set; }
+
     protected override LotDto CreateNewEntity()
     {
         return new LotDto
@@ -32,7 +37,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             Id = Guid.Empty,
             TenantId = Guid.Empty,
             Code = string.Empty,
-            ProductId = Guid.Empty,
+            ProductId = InitialProductId ?? Guid.Empty,
             ProductName = null,
             ProductCode = null,
             ProductionDate = DateTime.UtcNow,

@@ -1,0 +1,310 @@
+@using Prym.DTOs.Products
+@using Prym.DTOs.Warehouse
+@inject ILotService LotService
+@inject ISerialService SerialService
+@inject ITranslationService TranslationService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<LotsAndSerialsTab> Logger
+
+<MudStack Spacing="3">
+
+    <!-- Lots section -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-3">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Outlined.QrCode" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.lots", "Lotti Assegnati")
+            </MudText>
+            <MudTooltip Text="@TranslationService.GetTranslation("lot.newLot", "Nuovo Lotto")">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               OnClick="@OpenNewLotDialogAsync" />
+            </MudTooltip>
+        </div>
+
+        @if (_isLoadingLots)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+            </div>
+        }
+        else if (!_lots.Any())
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+                @TranslationService.GetTranslation("lot.noLots", "Nessun lotto assegnato a questo prodotto")
+            </MudText>
+        }
+        else
+        {
+            <MudTable Items="@_lots" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+                      Elevation="0" Class="pa-0">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.lotCode", "Codice")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.expiryDate", "Scadenza")</MudTh>
+                    <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lotCode", "Codice")">
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@context.Code</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
+                        <MudChip T="string" Size="Size.Small" Color="@GetLotStatusColor(context.Status)">
+                            @GetLotStatusText(context.Status)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")">
+                        @context.AvailableQuantity.ToString("N2")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.expiryDate", "Scadenza")">
+                        @if (context.ExpiryDate.HasValue)
+                        {
+                            <MudText Typo="Typo.body2" Color="@((context.ExpiryDate.Value - DateTime.Now).Days <= 30 ? Color.Warning : Color.Default)">
+                                @context.ExpiryDate.Value.ToString("dd/MM/yyyy")
+                            </MudText>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </MudTd>
+                    <MudTd Class="text-center">
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => OpenEditLotDialogAsync(context.Id))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+
+    <!-- Serials section -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-3">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Outlined.Numbers" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.serials", "Matricole Assegnate")
+            </MudText>
+            <MudTooltip Text="@TranslationService.GetTranslation("serial.newSerial", "Nuova Matricola")">
+                <MudIconButton Icon="@Icons.Material.Filled.Add"
+                               Color="Color.Primary"
+                               Size="Size.Small"
+                               OnClick="@OpenNewSerialDialogAsync" />
+            </MudTooltip>
+        </div>
+
+        @if (_isLoadingSerials)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+            </div>
+        }
+        else if (!_serials.Any())
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+                @TranslationService.GetTranslation("serial.noSerials", "Nessuna matricola assegnata a questo prodotto")
+            </MudText>
+        }
+        else
+        {
+            <MudTable Items="@_serials" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+                      Elevation="0" Class="pa-0">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("serial.number", "Matricola")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.lot", "Lotto")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("serial.warrantyExpiry", "Scad. Garanzia")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione")</MudTh>
+                    <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("serial.number", "Matricola")">
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@context.SerialNumber</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
+                        <MudChip T="string" Size="Size.Small" Color="@GetSerialStatusColor(context.Status)">
+                            @GetSerialStatusText(context.Status)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lot", "Lotto")">
+                        @if (!string.IsNullOrEmpty(context.LotCode))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.QrCode">
+                                @context.LotCode
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("serial.warrantyExpiry", "Scad. Garanzia")">
+                        @(context.WarrantyExpiry?.ToString("dd/MM/yyyy") ?? "-")
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione")">
+                        @(context.CurrentLocationCode ?? "-")
+                    </MudTd>
+                    <MudTd Class="text-center">
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => OpenEditSerialDialogAsync(context.Id))" />
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired]
+    public ProductDto Product { get; set; } = null!;
+
+    private bool _isLoadingLots = false;
+    private bool _isLoadingSerials = false;
+    private IEnumerable<LotDto> _lots = Enumerable.Empty<LotDto>();
+    private IEnumerable<SerialDto> _serials = Enumerable.Empty<SerialDto>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Product?.Id != Guid.Empty)
+        {
+            await Task.WhenAll(LoadLotsAsync(), LoadSerialsAsync());
+        }
+    }
+
+    private async Task LoadLotsAsync()
+    {
+        _isLoadingLots = true;
+        try
+        {
+            var result = await LotService.GetLotsAsync(1, 200, productId: Product.Id);
+            _lots = result?.Items ?? Enumerable.Empty<LotDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lots for product {ProductId}", Product.Id);
+            _lots = Enumerable.Empty<LotDto>();
+        }
+        finally
+        {
+            _isLoadingLots = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadSerialsAsync()
+    {
+        _isLoadingSerials = true;
+        try
+        {
+            var result = await SerialService.GetSerialsAsync(1, 200, productId: Product.Id);
+            _serials = result?.Items ?? Enumerable.Empty<SerialDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading serials for product {ProductId}", Product.Id);
+            _serials = Enumerable.Empty<SerialDto>();
+        }
+        finally
+        {
+            _isLoadingSerials = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenNewLotDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(LotDetailDialog.InitialProductId)] = Product.Id
+        };
+        var dialog = await DialogService.ShowAsync<LotDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadLotsAsync();
+    }
+
+    private async Task OpenEditLotDialogAsync(Guid lotId)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(LotDetailDialog.EntityId)] = lotId
+        };
+        var dialog = await DialogService.ShowAsync<LotDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadLotsAsync();
+    }
+
+    private async Task OpenNewSerialDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(SerialDetailDialog.InitialProductId)] = Product.Id
+        };
+        var dialog = await DialogService.ShowAsync<SerialDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadSerialsAsync();
+    }
+
+    private async Task OpenEditSerialDialogAsync(Guid serialId)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(SerialDetailDialog.EntityId)] = serialId
+        };
+        var dialog = await DialogService.ShowAsync<SerialDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await LoadSerialsAsync();
+    }
+
+    private Color GetLotStatusColor(string status) => status switch
+    {
+        "Active" => Color.Success,
+        "Blocked" => Color.Error,
+        "Expired" => Color.Warning,
+        "Recalled" => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetLotStatusText(string status) => status switch
+    {
+        "Active" => TranslationService.GetTranslation("warehouse.active", "Attivo"),
+        "Blocked" => TranslationService.GetTranslation("warehouse.blocked", "Bloccato"),
+        "Expired" => TranslationService.GetTranslation("warehouse.expired", "Scaduto"),
+        "Recalled" => TranslationService.GetTranslation("warehouse.recalled", "Richiamato"),
+        _ => status
+    };
+
+    private Color GetSerialStatusColor(string status) => status switch
+    {
+        "Available" => Color.Success,
+        "Sold" => Color.Primary,
+        "InMaintenance" => Color.Warning,
+        "Defective" => Color.Error,
+        "Retired" => Color.Default,
+        _ => Color.Default
+    };
+
+    private string GetSerialStatusText(string status) => status switch
+    {
+        "Available" => TranslationService.GetTranslation("serial.available", "Disponibile"),
+        "Sold" => TranslationService.GetTranslation("serial.sold", "Venduto"),
+        "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
+        "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
+        "Retired" => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
+        _ => status
+    };
+}

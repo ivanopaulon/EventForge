@@ -98,6 +98,14 @@
                 <MudTabPanel Text="@TranslationService.GetTranslation("product.stockInventory", "Magazzino e Inventario")">
                     <StockInventoryTab Product="@ViewModel.Entity" IsEditMode="true" OnProductUpdated="@HandleProductLocallyChanged" OnProductUpdatedPersisted="@HandleProductPersistedChange" />
                 </MudTabPanel>
+
+                @if (!ViewModel.IsNewEntity)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("product.lotsAndSerials", "Lotti e Matricole")"
+                                 Icon="@Icons.Material.Outlined.QrCode">
+                        <LotsAndSerialsTab Product="@ViewModel.Entity" />
+                    </MudTabPanel>
+                }
             </MudTabs>
         }
     </ChildContent>
