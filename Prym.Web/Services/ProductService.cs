@@ -796,7 +796,7 @@ public class ProductService(
     {
         try
         {
-            return await httpClientService.PostAsync<BulkUpdateProductsDto, BulkUpdateResult>(
+            return await httpClientService.PostLongRunningAsync<BulkUpdateProductsDto, BulkUpdateResult>(
                 $"{BaseUrl}/bulk-catalog-update",
                 dto,
                 ct);

@@ -395,11 +395,13 @@
         <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">
             @TranslationService.GetTranslation("common.close", "Chiudi")
         </PrymButton>
-        <PrymButton StartIcon="@Icons.Material.Filled.AutoFixHigh"
+        <PrymButton StartIcon="@(_isSaving ? Icons.Material.Outlined.HourglassTop : Icons.Material.Filled.AutoFixHigh)"
                     Color="Color.Warning"
                     OnClick="ExecuteUpdateAsync"
                     Disabled="@(_isSaving || _isLoading || !HasFieldsToUpdate())">
-            @TranslationService.GetTranslation("product.bulkUpdate.execute", "Esegui Aggiornamento")
+            @(_isSaving
+                ? TranslationService.GetTranslation("product.bulkUpdate.executing", "Aggiornamento in corso…")
+                : TranslationService.GetTranslation("product.bulkUpdate.execute", "Esegui Aggiornamento"))
         </PrymButton>
     </DialogActions>
 </EFDialog>
@@ -610,17 +612,31 @@
 
     private async Task ExecuteUpdateAsync()
     {
-        // Destructive confirmation for Suspended or Deleted status
+        // Build confirmation message with count info and optional large-batch warning
+        var countLabel = _previewCount.HasValue ? $"{_previewCount}" : "tutti i";
+        string confirmMessage;
+        string confirmTitle;
+
         if (_dto.Status is ProductStatus.Suspended or ProductStatus.Deleted)
         {
             var actionLabel = _dto.Status == ProductStatus.Deleted ? "eliminare" : "sospendere";
-            var countLabel = _previewCount.HasValue ? $"~{_previewCount}" : "tutti i";
-            bool confirmed = await ConfirmDestructiveAsync(
-                $"Stai per {actionLabel} {countLabel} prodotti selezionati. Questa operazione non può essere annullata facilmente. Continuare?");
-            if (!confirmed) return;
+            confirmTitle = "Conferma operazione critica";
+            confirmMessage = $"Stai per {actionLabel} {countLabel} prodotti selezionati. Questa operazione non può essere annullata facilmente. Continuare?";
+        }
+        else
+        {
+            confirmTitle = "Conferma aggiornamento";
+            confirmMessage = $"Stai per aggiornare {countLabel} prodotti selezionati. Continuare?";
         }
 
+        if (_previewCount > 1000)
+            confirmMessage += $"\n\n⚠ Stai per aggiornare più di 1000 prodotti. L'operazione potrebbe richiedere diversi minuti.";
+
+        bool confirmed = await ConfirmDestructiveAsync(confirmTitle, confirmMessage);
+        if (!confirmed) return;
+
         _isSaving = true;
+        StateHasChanged();
         try
         {
             _result = await ProductService.BulkUpdateProductCatalogAsync(_dto);
@@ -650,15 +666,16 @@
         finally
         {
             _isSaving = false;
+            StateHasChanged();
         }
     }
 
-    private async Task<bool> ConfirmDestructiveAsync(string message)
+    private async Task<bool> ConfirmDestructiveAsync(string title, string message)
     {
         try
         {
             var result = await DialogService.ShowMessageBoxAsync(
-                "Conferma operazione critica",
+                title,
                 message,
                 yesText: "Confermo",
                 cancelText: "Annulla");

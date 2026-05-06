@@ -2935,21 +2935,7 @@ public class ProductService(
         if (!currentTenantId.HasValue)
             throw new InvalidOperationException("Tenant context is required for bulk product operations.");
 
-        const int maxBatchSize = 500;
-
-        // Enforce batch size limit for explicit ID lists
-        if (dto.ProductIds?.Count > maxBatchSize)
-            throw new ArgumentException($"Maximum {maxBatchSize} products can be updated at once in explicit-ID mode.");
-
         var query = await BuildBulkFilterQueryAsync(dto, currentTenantId.Value, cancellationToken);
-
-        // For filter-based mode, enforce the limit before loading entities
-        if (!(dto.ProductIds?.Count > 0))
-        {
-            var candidateCount = await query.CountAsync(cancellationToken);
-            if (candidateCount > maxBatchSize)
-                throw new ArgumentException($"The applied filters match {candidateCount} products, which exceeds the maximum of {maxBatchSize}. Use a more restrictive filter.");
-        }
 
         var products = await query.ToListAsync(cancellationToken);
 
