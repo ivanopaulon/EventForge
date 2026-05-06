@@ -6,6 +6,7 @@ public interface IProfileService
 {
     Task<UserProfileDto?> GetProfileAsync(CancellationToken ct = default);
     Task<UserProfileDto?> UpdateProfileAsync(UpdateProfileDto updateDto, CancellationToken ct = default);
+    Task<UserDisplayPreferencesDto?> UpdateDisplayPreferencesAsync(UserDisplayPreferencesDto preferences, CancellationToken ct = default);
     Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType, CancellationToken ct = default);
     Task<bool> DeleteAvatarAsync(CancellationToken ct = default);
     Task<bool> ChangePasswordAsync(ChangePasswordDto changePasswordDto, CancellationToken ct = default);

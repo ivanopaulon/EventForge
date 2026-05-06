@@ -738,6 +738,80 @@ public class ProfileController(
         }
     }
 
+    /// <summary>
+    /// Updates only the display preferences (theme and font) for the current user.
+    /// This lightweight PATCH avoids rewriting the full profile just to change appearance settings.
+    /// </summary>
+    /// <param name="displayPreferences">Display preferences to save</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated display preferences</returns>
+    /// <response code="200">Returns the saved display preferences</response>
+    /// <response code="400">If the input is invalid</response>
+    /// <response code="401">If user is not authenticated</response>
+    [HttpPatch("display-preferences")]
+    [ProducesResponseType(typeof(UserDisplayPreferencesDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<UserDisplayPreferencesDto>> UpdateDisplayPreferences(
+        [FromBody] UserDisplayPreferencesDto displayPreferences,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var userId = tenantContext.CurrentUserId;
+            if (!userId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            var user = await context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId.Value && !u.IsDeleted, cancellationToken);
+
+            if (user is null)
+            {
+                return CreateNotFoundProblem("User profile not found.");
+            }
+
+            Dictionary<string, object> metadata;
+            if (string.IsNullOrEmpty(user.MetadataJson))
+            {
+                metadata = new Dictionary<string, object>();
+            }
+            else
+            {
+                try
+                {
+                    metadata = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(user.MetadataJson)
+                               ?? new Dictionary<string, object>();
+                }
+                catch
+                {
+                    metadata = new Dictionary<string, object>();
+                }
+            }
+
+            metadata["DisplayPreferences"] = displayPreferences;
+            user.MetadataJson = System.Text.Json.JsonSerializer.Serialize(metadata);
+            user.ModifiedAt = DateTime.UtcNow;
+            user.ModifiedBy = user.Username;
+
+            await context.SaveChangesAsync(cancellationToken);
+
+            logger.LogInformation("Updated DisplayPreferences for user {UserId} via PATCH display-preferences", userId);
+
+            return Ok(displayPreferences);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating display preferences.", ex);
+        }
+    }
+
     #region Private Helper Methods
 
     /// <summary>

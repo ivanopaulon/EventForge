@@ -137,11 +137,25 @@
 
 <body>
     <div id="app">
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <div class="ef-splash">
+            <!-- Brand row: icon logo + text logo inline -->
+            <div class="ef-splash-brand-row" role="img" aria-label="PRYM">
+                <img class="ef-splash-icon" src="trace.svg" alt="" aria-hidden="true" />
+                <img class="ef-splash-wordmark ef-splash-wordmark--light" src="logo.svg" alt="" aria-hidden="true" />
+                <img class="ef-splash-wordmark ef-splash-wordmark--dark" src="logoWhite.svg" alt="" aria-hidden="true" />
+            </div>
+
+            <!-- Loading phase text + percentage -->
+            <div class="ef-splash-status">
+                <span class="ef-splash-phase loading-progress-text"></span>
+                <span class="ef-splash-pct"></span>
+            </div>
+
+            <!-- Linear progress bar -->
+            <div class="ef-splash-bar-track">
+                <div class="ef-splash-bar-fill loading-progress"></div>
+            </div>
+        </div>
     </div>
 
     <div id="blazor-error-ui">
