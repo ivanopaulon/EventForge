@@ -174,7 +174,7 @@ namespace EventForge.Tests.Services.Business
         }
 
         [Fact]
-        public async Task DeleteGroupAsync_SoftDeletesPersistsToDatabase()
+        public async Task DeleteGroupAsync_SoftDeletePersistsToDatabase()
         {
             // Arrange
             var group = new BusinessPartyGroup
