@@ -1053,6 +1053,70 @@ public class WarehouseManagementController(
         }
     }
 
+    /// <summary>
+    /// Gets stock movements for a specific product at a specific location, ordered by date descending.
+    /// </summary>
+    [HttpGet("stock/movements")]
+    [ProducesResponseType(typeof(PagedResult<StockMovementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetStockMovementsByProductAndLocation(
+        [FromQuery] Guid productId,
+        [FromQuery] Guid locationId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
+        try
+        {
+            var result = await warehouseFacade.GetStockMovementsByProductAndLocationAsync(
+                productId, locationId, page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stock movements.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a quick stock transfer from one location to another.
+    /// </summary>
+    [HttpPost("stock/transfer")]
+    [ProducesResponseType(typeof(StockMovementDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> QuickStockTransfer(
+        [FromBody] QuickStockTransferDto request,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        if (request.FromLocationId == request.ToLocationId)
+            return BadRequest(new { message = "Source and destination locations must be different." });
+
+        if (request.Quantity <= 0)
+            return BadRequest(new { message = "Quantity must be greater than zero." });
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var movement = await warehouseFacade.QuickStockTransferAsync(request, currentUser, cancellationToken);
+            return Ok(movement);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while processing the stock transfer.", ex);
+        }
+    }
+
     #endregion
 
     #region Serial Management

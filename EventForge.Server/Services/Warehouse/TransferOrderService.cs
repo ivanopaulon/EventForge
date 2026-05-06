@@ -274,7 +274,7 @@ public class TransferOrderService(
                     LotId = row.LotId,
                     FromLocationId = row.SourceLocationId,
                     ToLocationId = null, // In transit
-                    Quantity = -row.QuantityOrdered, // Negative for outbound
+                    Quantity = row.QuantityOrdered, // Always positive; direction is conveyed by MovementType + FromLocationId
                     UnitCost = stock.UnitCost,
                     MovementDate = shipDto.ShipmentDate,
                     Reason = StockMovementReason.Transfer,

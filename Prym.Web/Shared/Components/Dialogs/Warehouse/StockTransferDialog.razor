@@ -1,0 +1,224 @@
+@using Prym.DTOs.Warehouse
+@inject IStockService StockService
+@inject IWarehouseService WarehouseService
+@inject IStorageLocationService StorageLocationService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<StockTransferDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.SwapHoriz"
+          Title="@TranslationService.GetTranslation("stock.transfer.title", "Trasferimento Stock")"
+          IsProcessing="@_isTransferring"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudGrid Spacing="2">
+            @* Product info (read-only) *@
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                    <strong>@TranslationService.GetTranslation("field.product", "Prodotto"):</strong> @ProductName
+                    &nbsp;—&nbsp;
+                    <strong>@TranslationService.GetTranslation("field.sourceLocation", "Da"):</strong> @LocationCode
+                    &nbsp;—&nbsp;
+                    <strong>@TranslationService.GetTranslation("field.available", "Disponibile"):</strong> @AvailableQuantity.ToString("N2")
+                </MudAlert>
+            </MudItem>
+
+            @* Destination warehouse *@
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="_destWarehouseId"
+                           @bind-Value:after="OnDestWarehouseChangedAsync"
+                           Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino Destinazione")"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Required="true">
+                    @foreach (var w in Warehouses)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)w.Id)">@w.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* Destination location *@
+            <MudItem xs="12" sm="6">
+                <MudSelect @bind-Value="_destLocationId"
+                           Label="@TranslationService.GetTranslation("stock.location", "Ubicazione Destinazione")"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Required="true"
+                           Disabled="@(!_destWarehouseId.HasValue || _isLoadingLocations)">
+                    @foreach (var l in _destLocations)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)l.Id)">@GetLocationDisplay(l)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            @* Quantity *@
+            <MudItem xs="12" sm="6">
+                <MudNumericField @bind-Value="_quantity"
+                                 Label="@TranslationService.GetTranslation("field.quantity", "Quantità da Trasferire")"
+                                 Variant="Variant.Outlined"
+                                 Margin="Margin.Dense"
+                                 Min="0.001m"
+                                 Max="@AvailableQuantity"
+                                 Step="1"
+                                 Required="true" />
+            </MudItem>
+
+            @* Notes *@
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_notes"
+                              Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2"
+                              MaxLength="500" />
+            </MudItem>
+
+            @if (_validationError != null)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Error" Dense="true">@_validationError</MudAlert>
+                </MudItem>
+            }
+        </MudGrid>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="@_isTransferring">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.SwapHoriz"
+                   OnClick="ExecuteTransferAsync"
+                   Disabled="@(!CanTransfer || _isTransferring)">
+            @if (_isTransferring)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @TranslationService.GetTranslation("stock.transfer.confirm", "Trasferisci")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid SourceProductId { get; set; }
+    [Parameter] public Guid SourceLocationId { get; set; }
+    [Parameter] public string ProductName { get; set; } = string.Empty;
+    [Parameter] public string LocationCode { get; set; } = string.Empty;
+    [Parameter] public decimal AvailableQuantity { get; set; }
+    [Parameter] public List<StorageFacilityDto> Warehouses { get; set; } = new();
+
+    private Guid? _destWarehouseId;
+    private Guid? _destLocationId;
+    private decimal _quantity = 1;
+    private string? _notes;
+    private bool _isTransferring = false;
+    private bool _isLoadingLocations = false;
+    private List<StorageLocationDto> _destLocations = new();
+    private string? _validationError;
+
+    private bool CanTransfer =>
+        _destWarehouseId.HasValue &&
+        _destLocationId.HasValue &&
+        _destLocationId.Value != SourceLocationId &&
+        _quantity > 0 &&
+        _quantity <= AvailableQuantity;
+
+    private async Task OnDestWarehouseChangedAsync()
+    {
+        _destLocationId = null;
+        _destLocations.Clear();
+
+        if (!_destWarehouseId.HasValue) return;
+
+        try
+        {
+            _isLoadingLocations = true;
+            var result = await StorageLocationService.GetStorageLocationsByWarehouseAsync(_destWarehouseId.Value, 1, 500);
+            _destLocations = result?.Items?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading locations for warehouse {WarehouseId}", _destWarehouseId);
+        }
+        finally
+        {
+            _isLoadingLocations = false;
+        }
+    }
+
+    private async Task ExecuteTransferAsync()
+    {
+        _validationError = null;
+
+        if (!_destLocationId.HasValue)
+        {
+            _validationError = TranslationService.GetTranslation("stock.transfer.selectDestination", "Seleziona un'ubicazione di destinazione.");
+            return;
+        }
+
+        if (_destLocationId.Value == SourceLocationId)
+        {
+            _validationError = TranslationService.GetTranslation("stock.transfer.sameLoc", "Sorgente e destinazione devono essere diverse.");
+            return;
+        }
+
+        if (_quantity <= 0 || _quantity > AvailableQuantity)
+        {
+            _validationError = TranslationService.GetTranslationFormatted(
+                "stock.transfer.invalidQty",
+                "Quantità non valida. Deve essere compresa tra 0.001 e {0}.",
+                AvailableQuantity.ToString("N2"));
+            return;
+        }
+
+        try
+        {
+            _isTransferring = true;
+            StateHasChanged();
+
+            var dto = new QuickStockTransferDto
+            {
+                ProductId = SourceProductId,
+                FromLocationId = SourceLocationId,
+                ToLocationId = _destLocationId.Value,
+                Quantity = _quantity,
+                Notes = _notes
+            };
+
+            var result = await StockService.QuickStockTransferAsync(dto);
+
+            if (result is not null)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation(
+                    "stock.transfer.success", "Trasferimento effettuato con successo."));
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                _validationError = TranslationService.GetTranslation(
+                    "stock.transfer.error", "Errore durante il trasferimento. Verificare la disponibilità e riprovare.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing stock transfer");
+            _validationError = TranslationService.GetTranslation("stock.transfer.error", "Errore durante il trasferimento.");
+        }
+        finally
+        {
+            _isTransferring = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static string GetLocationDisplay(StorageLocationDto location) =>
+        string.IsNullOrWhiteSpace(location.Description)
+            ? location.Code
+            : $"{location.Code} — {location.Description}";
+}

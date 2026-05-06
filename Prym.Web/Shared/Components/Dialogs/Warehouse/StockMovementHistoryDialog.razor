@@ -1,0 +1,189 @@
+@using Prym.DTOs.Warehouse
+@using Prym.DTOs.Common
+@inject IStockService StockService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<StockMovementHistoryDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.History"
+          Title="@TranslationService.GetTranslationFormatted("stock.movementHistory.title", "Storico Movimenti — {0} @ {1}", ProductName, LocationCode)"
+          IsProcessing="@_isLoading"
+          MinWidth="min(900px, 95vw)"
+          Height="calc(100dvh - 96px)"
+          OnClose="Close">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center align-center pa-8">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+            </div>
+        }
+        else if (_movements.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                @TranslationService.GetTranslation("stock.movementHistory.noMovements", "Nessun movimento trovato per questa giacenza.")
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Class="mb-2 mud-text-secondary">
+                @TranslationService.GetTranslationFormatted("stock.movementHistory.count", "{0} movimenti trovati", _totalCount)
+            </MudText>
+            <MudSimpleTable Dense="true" Striped="true" Bordered="true" Hover="true" Class="mb-2">
+                <thead>
+                    <tr>
+                        <th>@TranslationService.GetTranslation("field.date", "Data")</th>
+                        <th>@TranslationService.GetTranslation("field.movementType", "Tipo")</th>
+                        <th class="text-right">@TranslationService.GetTranslation("field.quantity", "Quantità")</th>
+                        <th>@TranslationService.GetTranslation("field.fromLocation", "Da")</th>
+                        <th>@TranslationService.GetTranslation("field.toLocation", "A")</th>
+                        <th>@TranslationService.GetTranslation("field.reference", "Riferimento")</th>
+                        <th>@TranslationService.GetTranslation("field.reason", "Motivo")</th>
+                        <th>@TranslationService.GetTranslation("field.notes", "Note")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in _movements)
+                    {
+                        var isInbound = m.ToLocationId == LocationId;
+                        <tr>
+                            <td>
+                                <MudText Typo="Typo.body2">@m.MovementDate.ToString("dd/MM/yyyy HH:mm")</MudText>
+                            </td>
+                            <td>
+                                <MudChip T="string" Size="Size.Small"
+                                         Color="@GetMovementTypeColor(m.MovementType, isInbound)"
+                                         Icon="@GetMovementTypeIcon(m.MovementType, isInbound)">
+                                    @TranslateMovementType(m.MovementType)
+                                </MudChip>
+                            </td>
+                            <td class="text-right">
+                                <MudText Typo="Typo.body2"
+                                         Color="@(isInbound ? Color.Success : Color.Error)"
+                                         Class="fw-semibold">
+                                    @((isInbound ? "+" : "-"))@m.Quantity.ToString("N2")
+                                </MudText>
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.body2">@(m.FromLocationCode ?? "—")</MudText>
+                                @if (!string.IsNullOrWhiteSpace(m.FromWarehouseName))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@m.FromWarehouseName</MudText>
+                                }
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.body2">@(m.ToLocationCode ?? "—")</MudText>
+                                @if (!string.IsNullOrWhiteSpace(m.ToWarehouseName))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@m.ToWarehouseName</MudText>
+                                }
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.body2">@(m.Reference ?? m.DocumentReference ?? "—")</MudText>
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(m.Reason) ? "—" : m.Reason)</MudText>
+                            </td>
+                            <td>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@(m.Notes ?? "—")</MudText>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            @if (_totalCount > (long)_pageSize)
+            {
+                <div class="d-flex justify-center mt-2">
+                    <MudPagination Count="@((int)Math.Ceiling((double)_totalCount / _pageSize))"
+                                   Selected="@_currentPage"
+                                   SelectedChanged="OnPageChangedAsync"
+                                   Color="Color.Primary"
+                                   ShowFirstButton="true"
+                                   ShowLastButton="true" />
+                </div>
+            }
+        }
+    </ChildContent>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public Guid LocationId { get; set; }
+    [Parameter] public string ProductName { get; set; } = string.Empty;
+    [Parameter] public string LocationCode { get; set; } = string.Empty;
+
+    private bool _isLoading = true;
+    private List<StockMovementDto> _movements = new();
+    private long _totalCount = 0;
+    private int _currentPage = 1;
+    private const int _pageSize = 50;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMovementsAsync();
+    }
+
+    private async Task LoadMovementsAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            var result = await StockService.GetStockMovementsByProductAndLocationAsync(
+                ProductId, LocationId, _currentPage, _pageSize);
+
+            _movements = result?.Items?.ToList() ?? new();
+            _totalCount = result?.TotalCount ?? 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading movement history for product {ProductId} at location {LocationId}", ProductId, LocationId);
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.movementHistory.loadError", "Errore nel caricamento dello storico movimenti."));
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnPageChangedAsync(int page)
+    {
+        _currentPage = page;
+        await LoadMovementsAsync();
+    }
+
+    private void Close() => MudDialog.Cancel();
+
+    private static Color GetMovementTypeColor(string movementType, bool isInbound)
+    {
+        if (movementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase))
+            return Color.Warning;
+        if (movementType.Contains("Transfer", StringComparison.OrdinalIgnoreCase))
+            return Color.Info;
+        return isInbound ? Color.Success : Color.Error;
+    }
+
+    private static string GetMovementTypeIcon(string movementType, bool isInbound)
+    {
+        if (movementType.Contains("Adjustment", StringComparison.OrdinalIgnoreCase))
+            return Icons.Material.Outlined.Tune;
+        if (movementType.Contains("Transfer", StringComparison.OrdinalIgnoreCase))
+            return Icons.Material.Outlined.SwapHoriz;
+        return isInbound ? Icons.Material.Outlined.CallReceived : Icons.Material.Outlined.CallMade;
+    }
+
+    private string TranslateMovementType(string movementType) =>
+        movementType switch
+        {
+            "Inbound" => TranslationService.GetTranslation("stock.movement.inbound", "Entrata"),
+            "Outbound" => TranslationService.GetTranslation("stock.movement.outbound", "Uscita"),
+            "Adjustment" => TranslationService.GetTranslation("stock.movement.adjustment", "Rettifica"),
+            "Transfer" => TranslationService.GetTranslation("stock.movement.transfer", "Trasferimento"),
+            _ => movementType
+        };
+}

@@ -242,4 +242,43 @@ public class StockService(
             return null;
         }
     }
+
+    public async Task<PagedResult<StockMovementDto>?> GetStockMovementsByProductAndLocationAsync(
+        Guid productId,
+        Guid locationId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var queryParams = new List<string>
+            {
+                $"productId={productId}",
+                $"locationId={locationId}",
+                $"page={page}",
+                $"pageSize={pageSize}"
+            };
+            var query = string.Join("&", queryParams);
+            return await httpClientService.GetAsync<PagedResult<StockMovementDto>>($"{BaseUrl}/movements?{query}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving stock movements for product {ProductId} at location {LocationId}", productId, locationId);
+            return null;
+        }
+    }
+
+    public async Task<StockMovementDto?> QuickStockTransferAsync(QuickStockTransferDto request, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<QuickStockTransferDto, StockMovementDto>($"{BaseUrl}/transfer", request, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating quick stock transfer for product {ProductId}", request.ProductId);
+            return null;
+        }
+    }
 }

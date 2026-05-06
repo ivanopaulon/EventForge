@@ -112,6 +112,34 @@ public class WarehouseFacade(
     public Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default)
         => stockService.AdjustStockAsync(dto, currentUser, cancellationToken);
 
+    public async Task<PagedResult<StockMovementDto>> GetStockMovementsByProductAndLocationAsync(
+        Guid productId, Guid locationId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var paged = await stockMovementService.GetMovementsAsync(
+            page: page, pageSize: pageSize, productId: productId, lotId: null, serialId: null, locationId: locationId, cancellationToken: cancellationToken);
+        // Return descending by date — GetMovementsAsync returns ascending, so we reverse
+        return new PagedResult<StockMovementDto>
+        {
+            Items = paged.Items.OrderByDescending(m => m.MovementDate).ToList(),
+            TotalCount = paged.TotalCount,
+            Page = paged.Page,
+            PageSize = paged.PageSize
+        };
+    }
+
+    public Task<StockMovementDto> QuickStockTransferAsync(
+        QuickStockTransferDto request, string currentUser, CancellationToken cancellationToken = default)
+        => stockMovementService.ProcessTransferMovementAsync(
+            request.ProductId,
+            request.FromLocationId,
+            request.ToLocationId,
+            request.Quantity,
+            request.LotId,
+            serialId: null,
+            request.Notes,
+            currentUser,
+            cancellationToken);
+
     public Task<PagedResult<StockLocationDetail>> GetStockOverviewAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? warehouseId = null, Guid? locationId = null, Guid? lotId = null, bool? lowStock = null, bool? criticalStock = null, bool? outOfStock = null, bool? inStockOnly = null, bool? showAllProducts = null, bool detailedView = false, CancellationToken cancellationToken = default)
         => stockService.GetStockOverviewAsync(page, pageSize, searchTerm, warehouseId, locationId, lotId, lowStock, criticalStock, outOfStock, inStockOnly, showAllProducts, detailedView, cancellationToken);
 

@@ -1,4 +1,5 @@
-@page "/warehouse/stock-overview"
+@* StockOverview is an embedded-only component — it must be used inside StockManagement tabs. *@
+@* It does NOT have its own route. Navigating directly is not supported. *@
 @using Prym.DTOs.Warehouse
 @using Prym.Web.Extensions
 @attribute [Authorize]
@@ -36,7 +37,7 @@
                                 @TranslationService.GetTranslation("stock.filtersActive", 
                                     "Filtri attivi: visualizzati {0} di {1} risultati totali",
                                     _stockItems.Count,
-                                    _stockItems.Count)
+                                    _totalUnfilteredCount)
                             </MudText>
                             <MudSpacer />
                             <MudButton Size="Size.Small" 
@@ -96,17 +97,21 @@
                            Label="@(_filters.DetailedView ? TranslationService.GetTranslation("stock.detailedView", "Vista Dettagliata") : TranslationService.GetTranslation("stock.aggregatedView", "Vista Aggregata"))"
                            Color="Color.Info"
                            Class="ml-2" />
-                <MudTooltip Text="@TranslationService.GetTranslation("stock.rebuildMovements", "Ricostruisce i movimenti mancanti dai documenti approvati/chiusi")">
-                    <MudIconButton Icon="@Icons.Material.Outlined.BuildCircle"
-                                   Color="Color.Secondary"
-                                   OnClick="OpenRebuildMovementsDialogAsync"
-                                   Class="ml-2" />
-                </MudTooltip>
-                <MudTooltip Text="@TranslationService.GetTranslation("stock.snapshot.tooltipBtn", "Estrai giacenze ad una data specifica con prezzi di acquisto e vendita")">
-                    <MudIconButton Icon="@Icons.Material.Outlined.EventNote"
-                                   Color="Color.Info"
-                                   OnClick="OpenStockSnapshotDialogAsync"
-                                   Class="ml-2" />
+                <MudTooltip Text="@TranslationService.GetTranslation("stock.maintenance.tooltipBtn", "Strumenti magazzino: riconciliazione, ricostruzione movimenti, snapshot storico")">
+                    @{
+                        var _reconDiscrepancyCount = _reconciliationCalculated
+                            ? _reconciliationData.Values.Count(r => r.Severity != ReconciliationSeverity.Correct)
+                            : 0;
+                    }
+                    <MudBadge Content="@_reconDiscrepancyCount"
+                              Color="Color.Warning"
+                              Visible="@(_reconciliationCalculated && _reconDiscrepancyCount > 0)"
+                              Overlap="true">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Tune"
+                                       Color="Color.Secondary"
+                                       OnClick="OpenMaintenanceDialogAsync"
+                                       Class="ml-2" />
+                    </MudBadge>
                 </MudTooltip>
                 @if (_selectedStockItems.Any())
                 {
@@ -395,6 +400,21 @@
                                            Size="Size.Small"
                                            OnClick="@((e) => OpenFullEditPopover(item, e))" />
                         </MudTooltip>
+                        @if (item.StockId != Guid.Empty)
+                        {
+                            <MudTooltip Text="@TranslationService.GetTranslation("stock.movementHistory", "Storico movimenti")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.History"
+                                               Color="Color.Info"
+                                               Size="Size.Small"
+                                               OnClick="@(() => OpenMovementHistoryDialogAsync(item))" />
+                            </MudTooltip>
+                            <MudTooltip Text="@TranslationService.GetTranslation("stock.transfer", "Trasferisci stock")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.SwapHoriz"
+                                               Color="Color.Tertiary"
+                                               Size="Size.Small"
+                                               OnClick="@(() => OpenTransferDialogAsync(item))" />
+                            </MudTooltip>
+                        }
                         <MudTooltip Text="@TranslationService.GetTranslation("stock.verifyReconciliation", "Verifica riconciliazione")">
                             <MudIconButton Icon="@Icons.Material.Outlined.ManageSearch"
                                            Color="Color.Secondary"
@@ -617,7 +637,6 @@
 
     // Filter and search state
     private StockFilters _filters = new();
-    private CancellationTokenSource? _searchDebounceCts = new CancellationTokenSource();
     
     // Quick Filters
     private List<QuickFilter<StockLocationDetail>> _quickFilters = new()
@@ -696,6 +715,7 @@
 
     // Data collections
     private List<StockLocationDetail> _stockItems = new();
+    private int _totalUnfilteredCount = 0;
     private List<StorageFacilityDto> _warehouses = new();
     private List<StorageLocationDto> _locations = new();
     private HashSet<StockLocationDetail> _selectedStockItems = new();
@@ -738,45 +758,21 @@
     }
 
     /// <summary>
-    /// Handles quick filter selection - updates server-side filters and reloads data
+    /// Handles quick filter selection - applies filter client-side without HTTP reload.
+    /// The QuickFilter predicates already filter the in-memory _stockItems list.
     /// </summary>
-    private async Task HandleQuickFilter(QuickFilter<StockLocationDetail>? filter)
+    private Task HandleQuickFilter(QuickFilter<StockLocationDetail>? filter)
     {
         try
         {
             _activeQuickFilter = filter;
-            
-            // Update server-side filters based on quick filter selection
-            _filters.ShowOnlyLowStock = false;
-            _filters.ShowOnlyCritical = false;
-            _filters.ShowOnlyOutOfStock = false;
-            _filters.ShowOnlyInStock = false;
-            
-            if (filter?.Id == "in_stock")
-            {
-                _filters.ShowOnlyInStock = true;
-            }
-            else if (filter?.Id == "low_stock")
-            {
-                _filters.ShowOnlyLowStock = true;
-            }
-            else if (filter?.Id == "critical_stock")
-            {
-                _filters.ShowOnlyCritical = true;
-            }
-            else if (filter?.Id == "out_of_stock")
-            {
-                _filters.ShowOnlyOutOfStock = true;
-            }
-            // Note: negative_stock handled client-side via predicate
-            
-            await LoadStockOverviewAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in HandleQuickFilter.");
             AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -815,7 +811,11 @@
     {
         if (!IsEmbedded)
         {
-            NavigationManager.NavigateTo("/warehouse/stock-management", replace: true);
+            // Guard: component is only supported embedded inside a parent page.
+            AppNotification.ShowWarning(TranslationService.GetTranslation(
+                "stock.embeddedOnly",
+                "Questo componente è disponibile solo all'interno della gestione magazzino."));
+            _isLoading = false;
             return;
         }
 
@@ -928,6 +928,9 @@
             );
 
             _stockItems = result?.Items?.ToList() ?? new List<StockLocationDetail>();
+            // Keep track of the total unfiltered count so the filter banner can show "X di Y"
+            if (!_filters.HasActiveFilters)
+                _totalUnfilteredCount = _stockItems.Count;
             Logger.LogInformation("Loaded {Count} stock items", _stockItems.Count);
         }
         catch (Exception ex)
@@ -1073,65 +1076,17 @@
     }
 
     /// <summary>
-    /// Opens the step-by-step dialog to rebuild missing stock movements from documents.
-    /// After closing, reloads stock data if any movements were created.
+    /// Opens the unified stock maintenance dialog (reconciliation, rebuild movements, snapshot).
+    /// Reloads stock data if the user applied any changes inside the dialog.
     /// </summary>
-    private async Task OpenRebuildMovementsDialogAsync()
+    private async Task OpenMaintenanceDialogAsync()
     {
         try
         {
             var parameters = new DialogParameters
             {
-                ["InitialWarehouseId"] = _filters.WarehouseId
-            };
-
-            var options = new DialogOptions
-            {
-                CloseButton = false,
-                MaxWidth = MaxWidth.Medium,
-                FullWidth = true,
-                CloseOnEscapeKey = false
-            };
-
-            var dialog = await DialogService.ShowAsync<RebuildMovementsDialog>(
-                string.Empty,
-                parameters,
-                options);
-
-            var result = await dialog.Result;
-
-            if (result is { Canceled: false } && result.Data is RebuildMovementsResultDto applyResult
-                && (applyResult.MovementsCreated > 0 || applyResult.MovementsUpdated > 0))
-            {
-                var msg = applyResult.MovementsCreated > 0 && applyResult.MovementsUpdated > 0
-                    ? TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloadingBoth",
-                        "{0} creato/i, {1} aggiornato/i — ricarico le giacenze.", applyResult.MovementsCreated, applyResult.MovementsUpdated)
-                    : applyResult.MovementsCreated > 0
-                        ? TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloading",
-                            "{0} movimento/i creati — ricarico le giacenze.", applyResult.MovementsCreated)
-                        : TranslationService.GetTranslationFormatted("stock.rebuildMovements.reloadingUpdated",
-                            "{0} movimento/i aggiornati — ricarico le giacenze.", applyResult.MovementsUpdated);
-                AppNotification.ShowSuccess(msg);
-                await LoadAndReconcileAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error in OpenRebuildMovementsDialogAsync.");
-            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
-        }
-    }
-
-    /// <summary>
-    /// Opens the stock snapshot dialog to extract historical stock at a specific date.
-    /// </summary>
-    private async Task OpenStockSnapshotDialogAsync()
-    {
-        try
-        {
-            var parameters = new DialogParameters
-            {
-                ["InitialWarehouseId"] = _filters.WarehouseId
+                ["InitialWarehouseId"] = _filters.WarehouseId,
+                ["InitialTab"] = 0
             };
 
             var options = new DialogOptions
@@ -1142,32 +1097,116 @@
                 CloseOnEscapeKey = true
             };
 
-            await DialogService.ShowAsync<StockSnapshotDialog>(
+            var dialog = await DialogService.ShowAsync<StockMaintenanceDialog>(
                 string.Empty,
                 parameters,
                 options);
+
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is bool reloadNeeded && reloadNeeded)
+            {
+                await LoadAndReconcileAsync();
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error in OpenStockSnapshotDialogAsync.");
+            Logger.LogError(ex, "Error in OpenMaintenanceDialogAsync.");
             AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
 
     /// <summary>
-    /// Reloads stock data and then recalculates reconciliation.
-    /// Used by the refresh button and after rebuild operations.
+    /// Reloads stock data. Reconciliation is NOT re-run automatically — the user must
+    /// trigger it explicitly via the maintenance dialog or the initial page load.
     /// </summary>
     private async Task LoadAndReconcileAsync()
     {
         try
         {
             await LoadStockOverviewAsync();
-            await CalculateReconciliationAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error in LoadAndReconcileAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    /// <summary>
+    /// Opens the movement history dialog for a specific stock row.
+    /// </summary>
+    private async Task OpenMovementHistoryDialogAsync(StockLocationDetail item)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["ProductId"] = item.ProductId,
+                ["LocationId"] = item.LocationId,
+                ["ProductName"] = item.ProductName,
+                ["LocationCode"] = item.LocationCode
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Large,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            await DialogService.ShowAsync<StockMovementHistoryDialog>(
+                TranslationService.GetTranslation("stock.movementHistory.title", "Storico Movimenti"),
+                parameters,
+                options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenMovementHistoryDialogAsync.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    /// <summary>
+    /// Opens the quick stock transfer dialog for a specific stock row.
+    /// </summary>
+    private async Task OpenTransferDialogAsync(StockLocationDetail item)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                ["SourceProductId"] = item.ProductId,
+                ["SourceLocationId"] = item.LocationId,
+                ["ProductName"] = item.ProductName,
+                ["LocationCode"] = item.LocationCode,
+                ["AvailableQuantity"] = item.Available,
+                ["Warehouses"] = _warehouses
+            };
+
+            var options = new DialogOptions
+            {
+                CloseButton = true,
+                MaxWidth = MaxWidth.Small,
+                FullWidth = true,
+                CloseOnEscapeKey = true
+            };
+
+            var dialog = await DialogService.ShowAsync<StockTransferDialog>(
+                TranslationService.GetTranslation("stock.transfer.title", "Trasferimento Stock"),
+                parameters,
+                options);
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadStockOverviewAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in OpenTransferDialogAsync.");
             AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
         }
     }
@@ -1741,7 +1780,5 @@
     /// </summary>
     public void Dispose()
     {
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts?.Dispose();
     }
 }

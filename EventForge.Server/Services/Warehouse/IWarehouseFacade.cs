@@ -265,6 +265,18 @@ public interface IWarehouseFacade
     Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets stock movements for a specific product at a specific location, ordered by date descending.
+    /// </summary>
+    Task<PagedResult<StockMovementDto>> GetStockMovementsByProductAndLocationAsync(
+        Guid productId, Guid locationId, int page, int pageSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a quick stock transfer between two locations using <see cref="IStockMovementService.ProcessTransferMovementAsync"/>.
+    /// </summary>
+    Task<StockMovementDto> QuickStockTransferAsync(
+        QuickStockTransferDto request, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Retrieves a comprehensive stock overview with filtering and detailed view options.
     /// </summary>
     /// <param name="page">Page number</param>

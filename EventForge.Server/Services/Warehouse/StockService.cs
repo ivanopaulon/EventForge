@@ -23,8 +23,7 @@ public class StockService(
         bool? lowStock = null,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -78,17 +77,11 @@ public class StockService(
                 Page = page,
                 PageSize = pageSize
             };
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<StockDto?> GetStockByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -104,17 +97,11 @@ public class StockService(
                 .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
 
             return stock?.ToStockDto();
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<IEnumerable<StockDto>> GetStockByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -132,17 +119,11 @@ public class StockService(
                 .ToListAsync(cancellationToken);
 
             return stocks.Select(s => s.ToStockDto());
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<IEnumerable<StockDto>> GetStockByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -160,17 +141,11 @@ public class StockService(
                 .ToListAsync(cancellationToken);
 
             return stocks.Select(s => s.ToStockDto());
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<decimal> GetAvailableQuantityAsync(Guid productId, Guid? lotId = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -187,17 +162,11 @@ public class StockService(
             }
 
             return await query.SumAsync(s => s.AvailableQuantity, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<decimal> GetAvailableQuantityAtLocationAsync(Guid productId, Guid locationId, Guid? lotId = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -217,17 +186,11 @@ public class StockService(
 
             var stock = await query.FirstOrDefaultAsync(cancellationToken);
             return stock?.AvailableQuantity ?? 0;
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<StockDto> CreateOrUpdateStockAsync(CreateStockDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -366,11 +329,6 @@ public class StockService(
                 .FirstAsync(s => s.Id == existingStock.Id, cancellationToken);
 
             return stockForDto.ToStockDto();
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     /// <summary>
@@ -380,8 +338,7 @@ public class StockService(
     /// </summary>
     public async Task<StockDto> CreateOrUpdateStockAsync(CreateOrUpdateStockDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -523,11 +480,6 @@ public class StockService(
 
                 return existingStock.ToStockDto();
             }
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<StockDto?> UpdateStockLevelsAsync(Guid id, UpdateStockDto updateDto, string currentUser, CancellationToken cancellationToken = default)
@@ -591,16 +543,11 @@ public class StockService(
         {
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<bool> ReserveStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string? currentUser = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -627,17 +574,11 @@ public class StockService(
             _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<bool> ReleaseReservedStockAsync(Guid productId, Guid locationId, decimal quantity, Guid? lotId = null, string? currentUser = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -664,17 +605,11 @@ public class StockService(
             _ = await context.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<IEnumerable<StockDto>> GetLowStockAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -694,17 +629,11 @@ public class StockService(
                 .ToListAsync(cancellationToken);
 
             return stocks.Select(s => s.ToStockDto());
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<IEnumerable<StockDto>> GetOverstockAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -724,17 +653,11 @@ public class StockService(
                 .ToListAsync(cancellationToken);
 
             return stocks.Select(s => s.ToStockDto());
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task UpdateLastInventoryDateAsync(Guid stockId, DateTime inventoryDate, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -750,11 +673,6 @@ public class StockService(
                 stock.ModifiedAt = DateTime.UtcNow;
                 _ = await context.SaveChangesAsync(cancellationToken);
             }
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<bool> DeleteStockAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
@@ -794,10 +712,6 @@ public class StockService(
         {
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<PagedResult<StockLocationDetail>> GetStockOverviewAsync(
@@ -815,8 +729,7 @@ public class StockService(
         bool detailedView = false,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -1005,17 +918,11 @@ public class StockService(
                 Page = page,
                 PageSize = pageSize
             };
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<StockDto?> AdjustStockAsync(AdjustStockDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
+
             var currentTenantId = tenantContext.CurrentTenantId;
             if (!currentTenantId.HasValue)
             {
@@ -1036,6 +943,13 @@ public class StockService(
 
             var previousQuantity = stock.Quantity;
             var difference = dto.NewQuantity - previousQuantity;
+
+            // Guard: no-op when quantity is unchanged — skip movement creation
+            if (difference == 0)
+            {
+                logger.LogDebug("AdjustStockAsync: NewQuantity equals PreviousQuantity ({Qty}) for Stock {StockId} — skipping.", dto.NewQuantity, dto.StockId);
+                return stock.ToStockDto();
+            }
 
             // Update stock quantity
             stock.Quantity = dto.NewQuantity;
@@ -1085,11 +999,6 @@ public class StockService(
                 stock.ProductId, stock.StorageLocationId, previousQuantity, dto.NewQuantity, dto.Reason);
 
             return stock.ToStockDto();
-        }
-        catch
-        {
-            throw;
-        }
     }
 
     /// <inheritdoc />

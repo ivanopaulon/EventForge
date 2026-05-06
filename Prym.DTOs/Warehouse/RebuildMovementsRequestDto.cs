@@ -47,4 +47,13 @@ public class RebuildMovementsRequestDto
     /// instead of skipped. Default: true.
     /// </summary>
     public bool UpdateExisting { get; set; } = true;
+
+    /// <summary>
+    /// When true, Phase 3 of the rebuild overwrites the quantity of every existing Stock row
+    /// for affected product/location pairs by computing the net from the full movement history
+    /// (inbound − outbound, using <see cref="Math.Abs"/> for legacy negative-quantity rows).
+    /// Use this flag to correct stock balances that were already wrong before the rebuild.
+    /// Default: false (safe mode — existing balances are only adjusted by the movement delta).
+    /// </summary>
+    public bool ForceRecalculateFromMovements { get; set; } = false;
 }
