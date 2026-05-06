@@ -1297,6 +1297,7 @@ public class StockReconciliationService(
 
             // Use Math.Abs(sm.Quantity) defensively: legacy movements from TransferOrderService
             // were persisted with a negative quantity even though the convention is always-positive.
+            // Math.Abs ensures those rows are counted correctly regardless of sign.
             var inboundTotals = await context.StockMovements
                 .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
                              && sm.ToLocationId.HasValue
@@ -1307,6 +1308,7 @@ public class StockReconciliationService(
                 {
                     g.Key.ProductId,
                     g.Key.LocationId,
+                    // Math.Abs: legacy TransferOrderService rows may have been stored with Quantity < 0
                     Total = g.Sum(sm => Math.Abs(sm.Quantity))
                 })
                 .ToListAsync(cancellationToken);
@@ -1321,6 +1323,7 @@ public class StockReconciliationService(
                 {
                     g.Key.ProductId,
                     g.Key.LocationId,
+                    // Math.Abs: same defensive handling as inboundTotals above
                     Total = g.Sum(sm => Math.Abs(sm.Quantity))
                 })
                 .ToListAsync(cancellationToken);
