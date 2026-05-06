@@ -454,7 +454,6 @@ public class LotService(
             }
 
             lot.Status = LotStatus.Blocked;
-            lot.Notes = $"{lot.Notes}\n[BLOCKED] {DateTime.UtcNow:yyyy-MM-dd HH:mm}: {reason}".Trim();
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
@@ -498,7 +497,6 @@ public class LotService(
             }
 
             lot.Status = LotStatus.Active;
-            lot.Notes = $"{lot.Notes}\n[UNBLOCKED] {DateTime.UtcNow:yyyy-MM-dd HH:mm}: Lot unblocked by {currentUser}".Trim();
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
