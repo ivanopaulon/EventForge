@@ -437,6 +437,7 @@
         try
         {
             await LoadLookupsAsync();
+            ScheduleCountPreview();
         }
         catch (Exception ex)
         {
@@ -495,20 +496,6 @@
 
     private async Task RefreshCountPreviewAsync()
     {
-        // Only call the count endpoint when at least one filter or explicit IDs are set
-        bool hasFilters = _dto.ProductIds?.Count > 0 ||
-            _dto.FilterBrandId.HasValue || _dto.FilterVatRateId.HasValue ||
-            _dto.FilterUnitOfMeasureId.HasValue || _dto.FilterClassificationNodeId.HasValue ||
-            _dto.FilterStatus.HasValue || _dto.FilterIsBundle.HasValue ||
-            _dto.FilterModelId.HasValue || _dto.FilterStationId.HasValue;
-
-        if (!hasFilters)
-        {
-            _previewCount = null;
-            _isCountLoading = false;
-            return;
-        }
-
         _isCountLoading = true;
         try
         {

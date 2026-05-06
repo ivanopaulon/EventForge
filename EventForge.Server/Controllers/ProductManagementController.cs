@@ -2792,14 +2792,8 @@ public class ProductManagementController(
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        if (dto == null || (!(dto.ProductIds?.Count > 0) &&
-            !dto.FilterBrandId.HasValue && !dto.FilterClassificationNodeId.HasValue &&
-            !dto.FilterVatRateId.HasValue && !dto.FilterUnitOfMeasureId.HasValue &&
-            !dto.FilterStatus.HasValue && !dto.FilterIsBundle.HasValue &&
-            !dto.FilterModelId.HasValue && !dto.FilterStationId.HasValue))
-        {
-            return BadRequest("Either ProductIds or at least one filter must be specified.");
-        }
+        if (dto == null)
+            return BadRequest("Request body is required.");
 
         if (!dto.VatRateId.HasValue && !dto.UnitOfMeasureId.HasValue && !dto.BrandId.HasValue &&
             !dto.ModelId.HasValue && !dto.CategoryNodeId.HasValue && !dto.FamilyNodeId.HasValue &&
@@ -2843,14 +2837,8 @@ public class ProductManagementController(
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        if (dto == null || (!(dto.ProductIds?.Count > 0) &&
-            !dto.FilterBrandId.HasValue && !dto.FilterClassificationNodeId.HasValue &&
-            !dto.FilterVatRateId.HasValue && !dto.FilterUnitOfMeasureId.HasValue &&
-            !dto.FilterStatus.HasValue && !dto.FilterIsBundle.HasValue &&
-            !dto.FilterModelId.HasValue && !dto.FilterStationId.HasValue))
-        {
-            return BadRequest("At least one selection criterion must be specified.");
-        }
+        if (dto == null)
+            return BadRequest("Request body is required.");
 
         try
         {
