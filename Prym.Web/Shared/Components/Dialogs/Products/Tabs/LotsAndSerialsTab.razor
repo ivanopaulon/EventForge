@@ -173,11 +173,13 @@
     private bool _isLoadingSerials = false;
     private IEnumerable<LotDto> _lots = Enumerable.Empty<LotDto>();
     private IEnumerable<SerialDto> _serials = Enumerable.Empty<SerialDto>();
+    private Guid _lastLoadedProductId = Guid.Empty;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (Product?.Id != Guid.Empty)
+        if (Product?.Id != Guid.Empty && Product?.Id != _lastLoadedProductId)
         {
+            _lastLoadedProductId = Product!.Id;
             await Task.WhenAll(LoadLotsAsync(), LoadSerialsAsync());
         }
     }
