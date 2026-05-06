@@ -13,7 +13,7 @@
 </MudButton>
 
 @code {
-    public enum ButtonIntent { Primary, Secondary, Ghost, Danger }
+    public enum ButtonIntent { Primary, Secondary, Ghost, Danger, Warning }
 
     [Parameter] public ButtonIntent    Intent       { get; set; } = ButtonIntent.Primary;
     [Parameter] public string?         StartIcon    { get; set; }
@@ -36,8 +36,9 @@
 
     private Color _color => Intent switch
     {
-        ButtonIntent.Danger => Color.Error,
-        ButtonIntent.Ghost  => Color.Default,
-        _                   => Color.Primary,
+        ButtonIntent.Danger   => Color.Error,
+        ButtonIntent.Warning  => Color.Warning,
+        ButtonIntent.Ghost    => Color.Default,
+        _                     => Color.Primary,
     };
 }
