@@ -68,11 +68,11 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetLots(pagination, CancellationToken.None);
+        var result = await _controller.GetLots(pagination, cancellationToken: CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -104,11 +104,11 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 50
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetLots(pagination, CancellationToken.None);
+        var result = await _controller.GetLots(pagination, cancellationToken: CancellationToken.None);
 
         // Assert
         Assert.IsType<OkObjectResult>(result.Result);
@@ -130,11 +130,11 @@ public class LotsControllerTests
             Page = 2,
             PageSize = 50
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        await _controller.GetLots(pagination, CancellationToken.None);
+        await _controller.GetLots(pagination, cancellationToken: CancellationToken.None);
 
         // Assert
         _mockService.Verify(s => s.GetLotsAsync(
@@ -158,11 +158,11 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetLots(pagination, CancellationToken.None);
+        var result = await _controller.GetLots(pagination, cancellationToken: CancellationToken.None);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
@@ -183,15 +183,16 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
-        await _controller.GetLots(pagination, cts.Token);
+        await _controller.GetLots(pagination, cancellationToken: cts.Token);
 
         // Assert
         _mockService.Verify(s => s.GetLotsAsync(
             It.IsAny<PaginationParameters>(),
+            null,
             null,
             null,
             null,

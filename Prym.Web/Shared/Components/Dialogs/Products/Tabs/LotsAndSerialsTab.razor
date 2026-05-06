@@ -87,7 +87,7 @@
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.expiryDate", "Scadenza")">
                         @if (context.ExpiryDate.HasValue)
                         {
-                            var daysLeft = (context.ExpiryDate.Value - DateTime.Now).Days;
+            var daysLeft = (context.ExpiryDate.Value - DateTime.Now).Days;
                             <MudText Typo="Typo.body2"
                                      Color="@(daysLeft <= 0 ? Color.Error : daysLeft <= 30 ? Color.Warning : Color.Default)">
                                 @context.ExpiryDate.Value.ToString("dd/MM/yyyy")
@@ -126,6 +126,14 @@
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+            @if (_lotsTotalCount > _lots.Count())
+            {
+                <div class="d-flex justify-center mt-3">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ExpandMore" OnClick="LoadMoreLotsAsync">
+                        @TranslationService.GetTranslation("common.loadMore", "Carica altri")
+                    </MudButton>
+                </div>
+            }
             }
         }
     </MudPaper>
@@ -247,7 +255,7 @@
                                            Color="Color.Primary"
                                            OnClick="@(() => OpenEditSerialDialogAsync(context.Id))" />
                         </MudTooltip>
-                        @if (context.Status == "Available" || context.Status == "InMaintenance")
+                        @if (context.Status == "Available" || context.Status == "Maintenance" || context.Status == "Recalled")
                         {
                             <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna difettosa")">
                                 <MudIconButton Icon="@Icons.Material.Outlined.BugReport"
@@ -256,7 +264,7 @@
                                                OnClick="@(() => MarkSerialDefectiveAsync(context))" />
                             </MudTooltip>
                         }
-                        @if (context.Status == "InMaintenance" || context.Status == "Defective")
+                        @if (context.Status == "Maintenance" || context.Status == "Defective" || context.Status == "Recalled")
                         {
                             <MudTooltip Text="@TranslationService.GetTranslation("serial.makeAvailable", "Rimetti disponibile")">
                                 <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
@@ -274,6 +282,14 @@
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+            @if (_serialsTotalCount > _serials.Count())
+            {
+                <div class="d-flex justify-center mt-3">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.ExpandMore" OnClick="LoadMoreSerialsAsync">
+                        @TranslationService.GetTranslation("common.loadMore", "Carica altri")
+                    </MudButton>
+                </div>
+            }
             }
         }
     </MudPaper>
@@ -296,6 +312,8 @@
     private Guid _lastLoadedProductId = Guid.Empty;
     private string? _searchLot;
     private string? _searchSerial;
+    private int _lotsPageSize = 50;
+    private int _serialsPageSize = 50;
 
     private IEnumerable<LotDto> FilteredLots => string.IsNullOrWhiteSpace(_searchLot)
         ? _lots
@@ -316,6 +334,8 @@
         if (Product?.Id != Guid.Empty && Product?.Id != _lastLoadedProductId)
         {
             _lastLoadedProductId = Product!.Id;
+            _lotsPageSize = 50;
+            _serialsPageSize = 50;
             await Task.WhenAll(LoadLotsAsync(), LoadSerialsAsync());
         }
     }
@@ -325,11 +345,11 @@
         _isLoadingLots = true;
         try
         {
-            var result = await LotService.GetLotsAsync(1, 200, productId: Product.Id);
+            var result = await LotService.GetLotsAsync(1, _lotsPageSize, productId: Product.Id);
             _lots = result?.Items?.ToList() ?? new List<LotDto>();
             _lotsTotalCount = (int)(result?.TotalCount ?? (long)_lots.Count());
             if (OnLotsCountChanged.HasDelegate)
-                await OnLotsCountChanged.InvokeAsync(((List<LotDto>)_lots).Count);
+                await OnLotsCountChanged.InvokeAsync(_lotsTotalCount);
         }
         catch (Exception ex)
         {
@@ -348,11 +368,11 @@
         _isLoadingSerials = true;
         try
         {
-            var result = await SerialService.GetSerialsAsync(1, 200, productId: Product.Id);
+            var result = await SerialService.GetSerialsAsync(1, _serialsPageSize, productId: Product.Id);
             _serials = result?.Items?.ToList() ?? new List<SerialDto>();
             _serialsTotalCount = (int)(result?.TotalCount ?? (long)_serials.Count());
             if (OnSerialsCountChanged.HasDelegate)
-                await OnSerialsCountChanged.InvokeAsync(((List<SerialDto>)_serials).Count);
+                await OnSerialsCountChanged.InvokeAsync(_serialsTotalCount);
         }
         catch (Exception ex)
         {
@@ -514,5 +534,16 @@
         }
     }
 
-}
+    private async Task LoadMoreLotsAsync()
+    {
+        _lotsPageSize += 50;
+        await LoadLotsAsync();
+    }
 
+    private async Task LoadMoreSerialsAsync()
+    {
+        _serialsPageSize += 50;
+        await LoadSerialsAsync();
+    }
+
+}

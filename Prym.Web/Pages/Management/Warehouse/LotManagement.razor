@@ -13,10 +13,11 @@
                       @ref="_managementPage"
                       Config="_config"
                       Service="_service"
-                      AdditionalFilter="@(l => string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus)"
+                      ExternalFilters="_filters"
                       OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
                       OnEditOverride="@(id => OpenDetailDialogAsync(id))"
-                      OnQuickFilterChanged="@OnQuickFilterChanged">
+                      OnQuickFilterChanged="@OnQuickFilterChanged"
+                      OnClearFilters="@ClearFiltersAsync">
     <AdditionalToolbarContent>
         <PrymSelect T="string"
                     @bind-Value="_selectedStatus"
@@ -180,6 +181,7 @@
     private EntityManagementConfig<LotDto> _config = null!;
 
     private string? _selectedStatus;
+    private readonly Dictionary<string, object?> _filters = new();
 
     protected override void OnInitialized()
     {
@@ -195,6 +197,8 @@
             ExcelFileName = "Lotti",
             SearchPlaceholderKey = "common.search",
             SearchPlaceholderDefault = "Cerca",
+            DefaultPageSize = 25,
+            UseServerSidePaging = true,
             CreateTooltip = "common.create",
             EntityTypeName = "Lot",
             ShowView = true,
@@ -232,17 +236,53 @@
         };
     }
 
-    private void OnFilterChanged()
+    private async Task OnFilterChanged()
     {
-        StateHasChanged();
+        if (string.IsNullOrWhiteSpace(_selectedStatus))
+            _filters.Remove("status");
+        else
+            _filters["status"] = _selectedStatus;
+
+        _filters.Remove("expiringSoon");
+        _filters.Remove("recent");
+        await _managementPage.RefreshAsync();
     }
 
-    private Task OnQuickFilterChanged(QuickFilter<LotDto>? filter)
+    private async Task OnQuickFilterChanged(QuickFilter<LotDto>? filter)
     {
-        // When a QuickFilter is activated, clear the status dropdown to avoid silent AND-filtering
         _selectedStatus = null;
-        StateHasChanged();
-        return Task.CompletedTask;
+        _filters.Clear();
+
+        switch (filter?.Id)
+        {
+            case "active":
+                _filters["status"] = "Active";
+                break;
+            case "blocked":
+                _filters["status"] = "Blocked";
+                break;
+            case "expired":
+                _filters["status"] = "Expired";
+                break;
+            case "recalled":
+                _filters["status"] = "Recalled";
+                break;
+            case "expiring_soon":
+                _filters["expiringSoon"] = true;
+                break;
+            case "recent":
+                _filters["recent"] = true;
+                break;
+        }
+
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _selectedStatus = null;
+        _filters.Clear();
+        await _managementPage.RefreshAsync();
     }
 
     private async Task BlockLot(LotDto lot)

@@ -21,6 +21,7 @@ public interface ILotService
         Guid? productId = null,
         string? status = null,
         bool? expiringSoon = null,
+        bool? recent = null,
         string? searchTerm = null,
         CancellationToken cancellationToken = default);
 
@@ -110,4 +111,9 @@ public interface ILotService
     /// Checks if a lot code is unique within the tenant.
     /// </summary>
     Task<bool> IsLotCodeUniqueAsync(string code, Guid? excludeId = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets lot movement history.
+    /// </summary>
+    Task<IEnumerable<StockMovementDto>> GetLotHistoryAsync(Guid lotId, CancellationToken cancellationToken = default);
 }

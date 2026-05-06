@@ -7,8 +7,6 @@ namespace Prym.Web.Shared.Management.Adapters;
 /// <summary>
 /// Adapter that wraps <see cref="ISerialService"/> for use with
 /// <see cref="EntityManagementPage{TEntity}"/>.
-/// All serials are loaded client-side so that filtering, search and quick-filters
-/// operate without additional server round-trips.
 /// </summary>
 public class SerialManagementService : IEntityManagementService<SerialDto>
 {
@@ -19,9 +17,9 @@ public class SerialManagementService : IEntityManagementService<SerialDto>
 
     public async Task<PagedResult<SerialDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
-        var result = await _serialService.GetSerialsAsync(1, int.MaxValue, ct: ct);
-        var list = result?.Items?.ToList() ?? new List<SerialDto>();
-        return new PagedResult<SerialDto> { Items = list, TotalCount = list.Count, Page = 1, PageSize = list.Count };
+        var status = filters != null && filters.TryGetValue("status", out var statusValue) ? statusValue as string : null;
+        var result = await _serialService.GetSerialsAsync(page, pageSize, status: status, searchTerm: searchTerm, ct: ct);
+        return result ?? new PagedResult<SerialDto> { Items = [], TotalCount = 0, Page = page, PageSize = pageSize };
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

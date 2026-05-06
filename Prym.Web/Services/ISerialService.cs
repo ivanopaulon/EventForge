@@ -52,4 +52,19 @@ public interface ISerialService
     /// Moves a serial to a new storage location.
     /// </summary>
     Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string? notes = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sells a serial to a customer.
+    /// </summary>
+    Task<bool> SellSerialAsync(Guid id, Guid customerId, DateTime saleDate, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns a sold serial to stock.
+    /// </summary>
+    Task<bool> ReturnSerialAsync(Guid id, Guid? newLocationId = null, string? reason = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets movement history for a serial.
+    /// </summary>
+    Task<IEnumerable<StockMovementDto>?> GetSerialHistoryAsync(Guid id, CancellationToken ct = default);
 }

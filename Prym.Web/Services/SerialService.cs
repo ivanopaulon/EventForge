@@ -160,4 +160,53 @@ public class SerialService(
             return false;
         }
     }
+
+    public async Task<bool> SellSerialAsync(Guid id, Guid customerId, DateTime saleDate, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.PostAsync($"{BaseUrl}/{id}/sell", new SellSerialRequestDto
+            {
+                CustomerId = customerId,
+                SaleDate = saleDate
+            }, ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error selling serial {SerialId}", id);
+            return false;
+        }
+    }
+
+    public async Task<bool> ReturnSerialAsync(Guid id, Guid? newLocationId = null, string? reason = null, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.PostAsync($"{BaseUrl}/{id}/return", new ReturnSerialRequestDto
+            {
+                NewLocationId = newLocationId,
+                Reason = reason
+            }, ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error returning serial {SerialId}", id);
+            return false;
+        }
+    }
+
+    public async Task<IEnumerable<StockMovementDto>?> GetSerialHistoryAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<IEnumerable<StockMovementDto>>($"{BaseUrl}/{id}/history", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting history for serial {SerialId}", id);
+            return null;
+        }
+    }
 }

@@ -1,0 +1,54 @@
+@using Prym.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+@if (IsLoading)
+{
+    <div class="d-flex justify-center pa-6">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (!(Items?.Any() ?? false))
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+        @EmptyMessage
+    </MudText>
+}
+else
+{
+    <MudTable Items="Items" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+        <HeaderContent>
+            <MudTh>@TranslationService.GetTranslation("warehouse.movementDate", "Data")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("warehouse.movementType", "Tipo")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("warehouse.fromLocation", "Da")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("warehouse.toLocation", "A")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("field.notes", "Note")</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.movementDate", "Data")">
+                @context.MovementDate.ToString("dd/MM/yyyy HH:mm")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.movementType", "Tipo")">
+                @context.MovementType
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.quantity", "Quantità")">
+                @context.Quantity.ToString("N2")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.fromLocation", "Da")">
+                @(context.FromLocationCode ?? "-")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.toLocation", "A")">
+                @(context.ToLocationCode ?? "-")
+            </MudTd>
+            <MudTd DataLabel="@TranslationService.GetTranslation("field.notes", "Note")">
+                @(string.IsNullOrWhiteSpace(context.Notes) ? "-" : context.Notes)
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter] public IEnumerable<StockMovementDto>? Items { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string EmptyMessage { get; set; } = "Nessun movimento disponibile";
+}

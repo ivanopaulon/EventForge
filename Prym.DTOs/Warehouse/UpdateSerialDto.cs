@@ -8,8 +8,9 @@ namespace Prym.DTOs.Warehouse
     /// </summary>
     public class UpdateSerialDto
     {
+        [Required]
         [StringLength(100, ErrorMessage = "Serial number cannot exceed 100 characters.")]
-        public string? SerialNumber { get; set; }
+        public string SerialNumber { get; set; } = string.Empty;
 
         public Guid? LotId { get; set; }
 
@@ -31,6 +32,8 @@ namespace Prym.DTOs.Warehouse
 
         [StringLength(50, ErrorMessage = "RFID tag cannot exceed 50 characters.")]
         public string? RfidTag { get; set; }
+
+        public string? Status { get; set; }
 
         public bool? IsActive { get; set; }
     }

@@ -12,6 +12,8 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
     private readonly ISerialService _serialService;
     private readonly IProductService _productService;
     private readonly ILotService _lotService;
+    private const int MaxProductDropdownItems = 200;
+    private const int MaxLotDropdownItems = 200;
 
     public SerialDetailViewModel(
         ISerialService serialService,
@@ -27,6 +29,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
 
     public IEnumerable<ProductDto>? Products { get; private set; }
     public IEnumerable<LotDto>? Lots { get; private set; }
+    public Guid? LoadedLotsProductId { get; private set; }
 
     /// <summary>
     /// Optional pre-set product ID (used when opening dialog from product context).
@@ -70,23 +73,60 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
 
     private async Task LoadDropdownDataAsync(CancellationToken ct = default)
     {
-        if (Products != null && Lots != null) return;
+        await EnsureProductsLoadedAsync(ct);
+        await RefreshLotsForProductAsync(InitialProductId ?? Entity?.ProductId, notifyStateChanged: false, ct);
+    }
 
+    private async Task EnsureProductsLoadedAsync(CancellationToken ct = default)
+    {
+        if (Products != null) return;
         try
         {
-            // If a product is already known, scope lots to that product to reduce payload
-            var lotProductId = InitialProductId;
-            var productsTask = _productService.GetProductsAsync(1, 200, ct: ct);
-            var lotsTask = _lotService.GetLotsAsync(1, 500, productId: lotProductId, ct: ct);
-            await Task.WhenAll(productsTask, lotsTask);
+            var productsTask = _productService.GetProductsAsync(1, MaxProductDropdownItems, ct: ct);
             Products = (await productsTask)?.Items ?? new List<ProductDto>();
-            Lots = (await lotsTask)?.Items ?? new List<LotDto>();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading dropdown data for serial");
+            Logger.LogError(ex, "Error loading products for serial");
             Products = new List<ProductDto>();
+        }
+    }
+
+    public async Task RefreshLotsForProductAsync(Guid? productId, bool notifyStateChanged = true, CancellationToken ct = default)
+    {
+        var normalizedProductId = productId.HasValue && productId.Value != Guid.Empty
+            ? productId
+            : null;
+
+        if (Lots != null && LoadedLotsProductId == normalizedProductId)
+        {
+            if (notifyStateChanged)
+                NotifyStateChanged();
+            return;
+        }
+
+        try
+        {
+            var lotsResult = await _lotService.GetLotsAsync(1, MaxLotDropdownItems, productId: normalizedProductId, ct: ct);
+            Lots = lotsResult?.Items?.ToList() ?? new List<LotDto>();
+            LoadedLotsProductId = normalizedProductId;
+
+            if (Entity != null && Entity.LotId.HasValue && !Lots.Any(l => l.Id == Entity.LotId.Value))
+            {
+                Entity.LotId = null;
+                Entity.LotCode = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading lots for serial");
             Lots = new List<LotDto>();
+            LoadedLotsProductId = normalizedProductId;
+        }
+
+        if (notifyStateChanged)
+        {
+            NotifyStateChanged();
         }
     }
 
@@ -111,11 +151,13 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         {
             SerialNumber = entity.SerialNumber,
             LotId = entity.LotId,
+            CurrentLocationId = entity.CurrentLocationId,
             ManufacturingDate = entity.ManufacturingDate,
             WarrantyExpiry = entity.WarrantyExpiry,
             Notes = entity.Notes,
             Barcode = entity.Barcode,
             RfidTag = entity.RfidTag,
+            Status = entity.Status,
             IsActive = entity.IsActive
         };
     }

@@ -1,0 +1,71 @@
+@using Prym.DTOs.Business
+@using Prym.DTOs.Common
+@inject IBusinessPartyService BusinessPartyService
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.ShoppingCart"
+          Title="@TranslationService.GetTranslation("serial.sell", "Vendi matricola")"
+          IsProcessing="_isLoading"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudText Typo="Typo.body2">@TranslationService.GetTranslation("serial.sellPrompt", "Seleziona il cliente e la data di vendita.")</MudText>
+            </MudItem>
+            <MudItem xs="12">
+                <MudSelect T="Guid"
+                           @bind-Value="_customerId"
+                           Label="@($"{TranslationService.GetTranslation("serial.owner", "Cliente")} *")"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense">
+                    @foreach (var customer in _customers)
+                    {
+                        <MudSelectItem Value="@customer.Id">@customer.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudDatePicker @bind-Date="_saleDate"
+                               Label="@($"{TranslationService.GetTranslation("serial.saleDate", "Data vendita")} *")"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+        </MudGrid>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit" Disabled="@(_customerId == Guid.Empty || !_saleDate.HasValue)">
+            @TranslationService.GetTranslation("serial.sell", "Vendi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private readonly List<BusinessPartyDto> _customers = [];
+    private bool _isLoading;
+    private Guid _customerId;
+    private DateTime? _saleDate = DateTime.Today;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var parties = await BusinessPartyService.GetBusinessPartiesAsync(1, 200);
+            _customers.AddRange(parties.Items.Where(p => p.PartyType is BusinessPartyType.Customer or BusinessPartyType.Both));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new SellSerialRequestDto
+    {
+        CustomerId = _customerId,
+        SaleDate = _saleDate ?? DateTime.Today
+    }));
+}

@@ -35,7 +35,8 @@
         <div class="eftable-wrapper ef-flex-child-fill">
             <EFTable @ref="_efTable"
                  TItem="TEntity"
-                 Items="_filteredEntities"
+                 Items="@(Config.UseServerSidePaging ? _entities : _filteredEntities)"
+                 ServerData="@(Config.UseServerSidePaging ? LoadServerDataAsync : null)"
                  MultiSelection="true"
                  SelectedItems="_selectedEntities"
                  SelectedItemsChanged="_selectedItemsChangedCallback"
@@ -48,7 +49,7 @@
                  ExportFormats="@(new List<string> { "Excel" })"
                  ExcelFileName="@Config.ExcelFileName"
                  IsDataFiltered="@HasActiveFilters()"
-                 TotalItemsCount="@_entities.Count"
+                 TotalItemsCount="@(Config.UseServerSidePaging ? _totalItems : _entities.Count)"
                  Title="@TranslationService.GetTranslation(Config.PageTitleKey, Config.PageTitleDefault)"
                  ShowSearch="true"
                  SearchPlaceholder="@TranslationService.GetTranslation(Config.SearchPlaceholderKey, Config.SearchPlaceholderDefault)"
@@ -62,6 +63,9 @@
                  ShowBulkDelete="true"
                  OnBulkDelete="@DeleteSelectedEntities"
                  IsToolbarDisabled="@_isLoadingEntities"
+                 ShowInternalPager="@Config.UseServerSidePaging"
+                 RowsPerPage="@Config.DefaultPageSize"
+                 TotalItems="@_totalItems"
                  FixedHeader="true"
                  Height="100%">
             <AdditionalToolbarContent>
@@ -71,7 +75,7 @@
                                   Items="_entities"
                                   Filters="Config.QuickFilters"
                                   OnFilterSelected="@(async (f) => await HandleQuickFilter(f))"
-                                  ShowCount="true"
+                                  ShowCount="@(!Config.UseServerSidePaging)"
                                   IsInToolbar="true" />
                 }
                 @if (AdditionalToolbarContent != null)
@@ -279,6 +283,7 @@
     // Data collections
     private List<TEntity> _entities = new();
     private HashSet<TEntity> _selectedEntities = new();
+    private int _totalItems;
 
     // EFTable reference
     private EFTable<TEntity> _efTable = null!;
@@ -310,7 +315,9 @@
 
     private void RefreshFilteredEntities()
     {
-        _filteredEntities = _entities.Where(FilterEntity).ToList();
+        _filteredEntities = Config.UseServerSidePaging
+            ? _entities.ToList()
+            : _entities.Where(FilterEntity).ToList();
     }
 
     private async Task HandleQuickFilter(QuickFilter<TEntity>? filter)
@@ -416,13 +423,22 @@
                     ExternalFilters,
                     _cts.Token);
                 if (result != null)
+                {
                     _entities = result.Items.ToList();
+                    _totalItems = (int)result.TotalCount;
+                }
+
+                if (_efTable != null)
+                    await _efTable.ReloadServerDataAsync();
             }
             else
             {
                 var result = await Service.GetPagedAsync(1, int.MaxValue, ct: _cts.Token);
                 if (result != null)
+                {
                     _entities = result.Items.ToList();
+                    _totalItems = _entities.Count;
+                }
             }
         }
         catch (OperationCanceledException) { /* navigation away, ignore */ }
@@ -724,8 +740,14 @@
         _searchDebounceTimer?.Dispose();
         _searchDebounceTimer = new System.Threading.Timer(_ =>
         {
-            InvokeAsync(() =>
+            InvokeAsync(async () =>
             {
+                if (Config.UseServerSidePaging)
+                {
+                    await LoadEntitiesAsync();
+                    return;
+                }
+
                 RefreshFilteredEntities();
                 StateHasChanged();
             });
@@ -742,8 +764,13 @@
                 await OnClearFilters();
             else
             {
-                RefreshFilteredEntities();
-                StateHasChanged();
+                if (Config.UseServerSidePaging)
+                    await LoadEntitiesAsync();
+                else
+                {
+                    RefreshFilteredEntities();
+                    StateHasChanged();
+                }
             }
         }
         catch (Exception ex)
@@ -756,6 +783,26 @@
     private bool HasActiveFilters()
     {
         return !string.IsNullOrWhiteSpace(_searchTerm) || _activeQuickFilter != null;
+    }
+
+    private async Task<TableData<TEntity>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var result = await Service.GetPagedAsync(
+            state.Page + 1,
+            state.PageSize,
+            _searchTerm,
+            ExternalFilters,
+            cancellationToken);
+
+        _entities = result.Items.ToList();
+        _totalItems = (int)result.TotalCount;
+        RefreshFilteredEntities();
+
+        return new TableData<TEntity>
+        {
+            Items = _entities,
+            TotalItems = _totalItems
+        };
     }
 
     private async Task ShowLoginDialogAsync()

@@ -166,7 +166,12 @@ public interface IWarehouseFacade
     /// <returns>Paginated list of lots</returns>
     /// <exception cref="ArgumentNullException">Thrown when pagination is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, string? searchTerm = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, bool? recent = null, string? searchTerm = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves lot movement history.
+    /// </summary>
+    Task<IEnumerable<StockMovementDto>> GetLotHistoryAsync(Guid lotId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Unblocks a previously blocked lot.
@@ -400,6 +405,21 @@ public interface IWarehouseFacade
     /// <param name="cancellationToken">Cancellation token for async operation</param>
     /// <returns>True if moved successfully, false if not found</returns>
     Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string currentUser, string? notes = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sells a serial to a customer.
+    /// </summary>
+    Task<bool> SellSerialAsync(Guid id, Guid customerId, DateTime saleDate, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns a sold serial to stock.
+    /// </summary>
+    Task<bool> ReturnSerialAsync(Guid id, Guid? newLocationId, string currentUser, string? reason = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves serial movement history.
+    /// </summary>
+    Task<IEnumerable<StockMovementDto>> GetSerialHistoryAsync(Guid serialId, CancellationToken cancellationToken = default);
 
     #endregion
 

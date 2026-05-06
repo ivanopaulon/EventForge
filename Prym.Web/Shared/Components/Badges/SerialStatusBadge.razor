@@ -11,10 +11,14 @@
     {
         "Available"     => Color.Success,
         "Sold"          => Color.Primary,
+        "InUse"         => Color.Info,
         "InMaintenance" => Color.Warning,
+        "Maintenance"   => Color.Warning,
         "Defective"     => Color.Error,
         "Retired"       => Color.Default,
+        "Scrapped"      => Color.Default,
         "Lost"          => Color.Error,
+        "Recalled"      => Color.Error,
         _               => Color.Default
     };
 
@@ -22,10 +26,14 @@
     {
         "Available"     => Icons.Material.Outlined.CheckCircle,
         "Sold"          => Icons.Material.Outlined.ShoppingCart,
+        "InUse"         => Icons.Material.Outlined.PlayCircle,
         "InMaintenance" => Icons.Material.Outlined.Build,
+        "Maintenance"   => Icons.Material.Outlined.Build,
         "Defective"     => Icons.Material.Outlined.BugReport,
         "Retired"       => Icons.Material.Outlined.Archive,
+        "Scrapped"      => Icons.Material.Outlined.Archive,
         "Lost"          => Icons.Material.Outlined.SearchOff,
+        "Recalled"      => Icons.Material.Outlined.Report,
         _               => Icons.Material.Outlined.Circle
     };
 
@@ -33,10 +41,14 @@
     {
         "Available"     => TranslationService.GetTranslation("serial.available",     "Disponibile"),
         "Sold"          => TranslationService.GetTranslation("serial.sold",          "Venduto"),
+        "InUse"         => TranslationService.GetTranslation("serial.inUse",         "In uso"),
         "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
+        "Maintenance"   => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
         "Defective"     => TranslationService.GetTranslation("serial.defective",     "Difettoso"),
         "Retired"       => TranslationService.GetTranslation("serial.retired",       "Fuori Servizio"),
+        "Scrapped"      => TranslationService.GetTranslation("serial.scrapped",      "Rottamata"),
         "Lost"          => TranslationService.GetTranslation("serial.lost",          "Perso"),
+        "Recalled"      => TranslationService.GetTranslation("serial.recalled",      "Richiamata"),
         _               => Status
     };
 }

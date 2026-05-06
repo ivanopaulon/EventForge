@@ -74,7 +74,7 @@
                         </div>
                     </div>
                     <LotStatusBadge Status="@ViewModel.Entity.Status" Size="Size.Medium" ShowIcon="true" />
-                    <QualityStatusBadge Status="@ViewModel.Entity.QualityStatus" Size="Size.Medium" />
+                    <QualityStatusBadge Status="@ViewModel.Entity.QualityStatus" Size="Size.Medium" ShowIcon="true" />
                 </div>
                 <MudDivider Class="mb-3" />
             }
@@ -251,6 +251,12 @@
                             </MudItem>
                         </MudGrid>
                     </MudTabPanel>
+
+                    <MudTabPanel Text="@TranslationService.GetTranslation("common.history", "Storico")" Icon="@Icons.Material.Filled.History">
+                        <StockMovementHistoryTable Items="_history"
+                                                  IsLoading="_isLoadingHistory"
+                                                  EmptyMessage="@TranslationService.GetTranslation("lot.noHistory", "Nessun movimento registrato per questo lotto")" />
+                    </MudTabPanel>
                 }
 
             </MudTabs>
@@ -277,6 +283,8 @@
     private DateTime? _expiryDateLocal;
     private string _pendingQualityStatus = string.Empty;
     private string? _qualityChangeNotes;
+    private bool _isLoadingHistory;
+    private IEnumerable<StockMovementDto> _history = Enumerable.Empty<StockMovementDto>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -291,6 +299,8 @@
             _productionDateLocal = ViewModel.Entity?.ProductionDate;
             _expiryDateLocal = ViewModel.Entity?.ExpiryDate;
             _pendingQualityStatus = ViewModel.Entity?.QualityStatus ?? string.Empty;
+            if (!ViewModel.IsNewEntity)
+                await LoadHistoryAsync();
         }
         catch (Exception ex)
         {
@@ -376,6 +386,7 @@
                 _qualityChangeNotes = null;
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("lot.qualityUpdated", "Stato qualità aggiornato"));
                 await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
             }
             else
             {
@@ -392,19 +403,31 @@
     private async Task BlockLotAsync()
     {
         if (ViewModel.Entity == null) return;
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("warehouse.confirmBlock", "Bloccare il lotto '{0}'?", ViewModel.Entity.Code),
-            yesText: TranslationService.GetTranslation("warehouse.block", "Blocca"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-        if (confirmed != true) return;
+        var parameters = new DialogParameters
+        {
+            [nameof(LotBlockDialog.LotCode)] = ViewModel.Entity.Code
+        };
+        var dialog = await DialogService.ShowAsync<LotBlockDialog>(string.Empty, parameters, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = false
+        });
+        var dialogResult = await dialog.Result;
+        if (dialogResult is not { Canceled: false }) return;
+
+        var reason = dialogResult.Data as string;
+        if (string.IsNullOrWhiteSpace(reason))
+            reason = TranslationService.GetTranslation("warehouse.defaultBlockReason", "Blocco manuale da operatore");
+
         try
         {
-            var result = await LotService.BlockLotAsync(ViewModel.Entity.Id, TranslationService.GetTranslation("warehouse.defaultBlockReason", "Blocco manuale da operatore"));
+            var result = await LotService.BlockLotAsync(ViewModel.Entity.Id, reason);
             if (result)
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
                 await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
             }
             else
             {
@@ -434,6 +457,7 @@
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotUnblocked", "Lotto sbloccato"));
                 await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
             }
             else
             {
@@ -444,6 +468,25 @@
         {
             Logger.LogError(ex, "Error unblocking lot {LotId}.", ViewModel.Entity.Id);
             AppNotification.ShowWarning("Si è verificato un errore nello sblocco del lotto.");
+        }
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.IsNewEntity)
+        {
+            _history = Enumerable.Empty<StockMovementDto>();
+            return;
+        }
+
+        _isLoadingHistory = true;
+        try
+        {
+            _history = await LotService.GetLotHistoryAsync(ViewModel.Entity.Id) ?? Enumerable.Empty<StockMovementDto>();
+        }
+        finally
+        {
+            _isLoadingHistory = false;
         }
     }
 }

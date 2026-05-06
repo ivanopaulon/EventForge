@@ -19,6 +19,7 @@ public class LotService(
         Guid? productId = null,
         string? status = null,
         bool? expiringSoon = null,
+        bool? recent = null,
         string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
@@ -32,8 +33,6 @@ public class LotService(
 
             var query = context.Lots
                 .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
                 .Where(l => l.TenantId == currentTenantId.Value && !l.IsDeleted);
 
             // Apply filters
@@ -53,24 +52,54 @@ public class LotService(
                 query = query.Where(l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= expiryThreshold);
             }
 
+            if (recent.HasValue && recent.Value)
+            {
+                var createdAfter = DateTime.UtcNow.AddDays(-30);
+                query = query.Where(l => l.CreatedAt >= createdAfter);
+            }
+
             if (!string.IsNullOrEmpty(searchTerm))
             {
                 query = query.Where(l => l.Code.Contains(searchTerm) ||
                                          (l.Barcode != null && l.Barcode.Contains(searchTerm)) ||
-                                         (l.Notes != null && l.Notes.Contains(searchTerm)));
+                                         (l.Notes != null && l.Notes.Contains(searchTerm)) ||
+                                         (l.Product != null && (l.Product.Name.Contains(searchTerm) || l.Product.Code.Contains(searchTerm))));
             }
 
             // Get total count
             var totalCount = await query.CountAsync(cancellationToken);
 
             // Apply pagination and ordering
-            var lots = await query
+            var lotDtos = await query
                 .OrderByDescending(l => l.CreatedAt)
                 .Skip(pagination.CalculateSkip())
                 .Take(pagination.PageSize)
+                .Select(l => new LotDto
+                {
+                    Id = l.Id,
+                    TenantId = l.TenantId,
+                    Code = l.Code,
+                    ProductId = l.ProductId,
+                    ProductName = l.Product != null ? l.Product.Name : null,
+                    ProductCode = l.Product != null ? l.Product.Code : null,
+                    ProductionDate = l.ProductionDate,
+                    ExpiryDate = l.ExpiryDate,
+                    SupplierId = l.SupplierId,
+                    SupplierName = l.Supplier != null ? l.Supplier.Name : null,
+                    OriginalQuantity = l.OriginalQuantity,
+                    AvailableQuantity = l.AvailableQuantity,
+                    Status = l.Status.ToString(),
+                    QualityStatus = l.QualityStatus.ToString(),
+                    Notes = l.Notes,
+                    Barcode = l.Barcode,
+                    CountryOfOrigin = l.CountryOfOrigin,
+                    CreatedAt = l.CreatedAt,
+                    CreatedBy = l.CreatedBy,
+                    ModifiedAt = l.ModifiedAt,
+                    ModifiedBy = l.ModifiedBy,
+                    IsActive = l.IsActive
+                })
                 .ToListAsync(cancellationToken);
-
-            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
 
             return new PagedResult<LotDto>
             {
@@ -708,6 +737,27 @@ public class LotService(
         {
             throw;
         }
+    }
+
+    public async Task<IEnumerable<StockMovementDto>> GetLotHistoryAsync(Guid lotId, CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Include(sm => sm.DocumentHeader)
+            .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId.Value)
+            .OrderByDescending(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
+
+        return movements.Select(sm => sm.ToStockMovementDto());
     }
 
 }

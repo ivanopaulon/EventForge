@@ -81,8 +81,11 @@ public class WarehouseFacade(
     public Task<LotDto?> GetLotByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => lotService.GetLotByIdAsync(id, cancellationToken);
 
-    public Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, string? searchTerm = null, CancellationToken cancellationToken = default)
-        => lotService.GetLotsAsync(pagination, productId, status, expiringSoon, searchTerm, cancellationToken);
+    public Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, bool? recent = null, string? searchTerm = null, CancellationToken cancellationToken = default)
+        => lotService.GetLotsAsync(pagination, productId, status, expiringSoon, recent, searchTerm, cancellationToken);
+
+    public Task<IEnumerable<StockMovementDto>> GetLotHistoryAsync(Guid lotId, CancellationToken cancellationToken = default)
+        => lotService.GetLotHistoryAsync(lotId, cancellationToken);
 
     public Task<bool> UnblockLotAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
         => lotService.UnblockLotAsync(id, currentUser, cancellationToken);
@@ -148,6 +151,15 @@ public class WarehouseFacade(
 
     public Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
         => serialService.MoveSerialAsync(id, newLocationId, currentUser, notes, cancellationToken);
+
+    public Task<bool> SellSerialAsync(Guid id, Guid customerId, DateTime saleDate, string currentUser, CancellationToken cancellationToken = default)
+        => serialService.SellSerialAsync(id, customerId, saleDate, currentUser, cancellationToken);
+
+    public Task<bool> ReturnSerialAsync(Guid id, Guid? newLocationId, string currentUser, string? reason = null, CancellationToken cancellationToken = default)
+        => serialService.ReturnSerialAsync(id, newLocationId, currentUser, reason, cancellationToken);
+
+    public Task<IEnumerable<StockMovementDto>> GetSerialHistoryAsync(Guid serialId, CancellationToken cancellationToken = default)
+        => serialService.GetSerialHistoryAsync(serialId, cancellationToken);
 
     #endregion
 

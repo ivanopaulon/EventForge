@@ -19,21 +19,44 @@
     <TitleActions>
         @if (!ViewModel.IsNewEntity && ViewModel.Entity != null)
         {
-            @if (ViewModel.Entity.Status == "Available" || ViewModel.Entity.Status == "InMaintenance")
+            @if (ViewModel.Entity.Status is "Available" or "Maintenance" or "Recalled")
             {
                 <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna come difettosa")">
                     <MudIconButton Icon="@Icons.Material.Outlined.BugReport"
                                    Color="Color.Warning"
                                    Size="Size.Small"
                                    Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
-                                   OnClick="MarkDefectiveAsync" />
+                                    OnClick="MarkDefectiveAsync" />
                 </MudTooltip>
-                <MudTooltip Text="@TranslationService.GetTranslation("serial.markRetired", "Ritira matricola")">
+            }
+            @if (ViewModel.Entity.Status == "Available")
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("serial.sell", "Vendi matricola")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.ShoppingCart"
+                                   Color="Color.Primary"
+                                   Size="Size.Small"
+                                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+                                   OnClick="SellSerialAsync" />
+                </MudTooltip>
+            }
+            @if (ViewModel.Entity.Status == "Sold")
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("serial.return", "Registra rientro")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.AssignmentReturn"
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+                                   OnClick="ReturnSerialAsync" />
+                </MudTooltip>
+            }
+            @if (ViewModel.Entity.Status is "Available" or "Maintenance" or "Defective" or "Recalled")
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("serial.markScrapped", "Rottama matricola")">
                     <MudIconButton Icon="@Icons.Material.Outlined.Archive"
                                    Color="Color.Default"
                                    Size="Size.Small"
                                    Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
-                                   OnClick="MarkRetiredAsync" />
+                                   OnClick="MarkScrappedAsync" />
                 </MudTooltip>
             }
         }
@@ -103,7 +126,7 @@
                                        Variant="Variant.Outlined"
                                        Margin="Margin.Dense"
                                        Disabled="@(!ViewModel.IsNewEntity)"
-                                       @bind-Value:after="ViewModel.NotifyEntityChanged">
+                                       @bind-Value:after="OnProductChangedAsync">
                                 @foreach (var product in ViewModel.Products ?? Enumerable.Empty<ProductDto>())
                                 {
                                     <MudSelectItem Value="@product.Id">@product.Name (@product.Code)</MudSelectItem>
@@ -119,8 +142,7 @@
                                        Margin="Margin.Dense"
                                        Clearable="true"
                                        @bind-Value:after="ViewModel.NotifyEntityChanged">
-                                @foreach (var lot in (ViewModel.Lots ?? Enumerable.Empty<LotDto>())
-                                    .Where(l => ViewModel.Entity.ProductId == Guid.Empty || l.ProductId == ViewModel.Entity.ProductId))
+                                @foreach (var lot in ViewModel.Lots ?? Enumerable.Empty<LotDto>())
                                 {
                                     <MudSelectItem Value="@((Guid?)lot.Id)">@lot.Code @(lot.ProductName != null ? $"({lot.ProductName})" : string.Empty)</MudSelectItem>
                                 }
@@ -183,11 +205,12 @@
                                        Margin="Margin.Dense"
                                        @bind-Value:after="ViewModel.NotifyEntityChanged">
                                 <MudSelectItem Value="@("Available")">@TranslationService.GetTranslation("serial.available", "Disponibile")</MudSelectItem>
-                                <MudSelectItem Value="@("Sold")">@TranslationService.GetTranslation("serial.sold", "Venduto")</MudSelectItem>
-                                <MudSelectItem Value="@("InMaintenance")">@TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione")</MudSelectItem>
+                                <MudSelectItem Value="@("Sold")" Disabled="true">@TranslationService.GetTranslation("serial.sold", "Venduto")</MudSelectItem>
+                                <MudSelectItem Value="@("InUse")">@TranslationService.GetTranslation("serial.inUse", "In uso")</MudSelectItem>
+                                <MudSelectItem Value="@("Maintenance")">@TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione")</MudSelectItem>
                                 <MudSelectItem Value="@("Defective")">@TranslationService.GetTranslation("serial.defective", "Difettoso")</MudSelectItem>
-                                <MudSelectItem Value="@("Retired")">@TranslationService.GetTranslation("serial.retired", "Fuori Servizio")</MudSelectItem>
-                                <MudSelectItem Value="@("Lost")">@TranslationService.GetTranslation("serial.lost", "Perso")</MudSelectItem>
+                                <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("serial.recalled", "Richiamata")</MudSelectItem>
+                                <MudSelectItem Value="@("Scrapped")">@TranslationService.GetTranslation("serial.scrapped", "Rottamata")</MudSelectItem>
                             </MudSelect>
                         </MudItem>
 
@@ -239,6 +262,15 @@
                     </MudGrid>
                 </MudTabPanel>
 
+                @if (!ViewModel.IsNewEntity)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("common.history", "Storico")" Icon="@Icons.Material.Filled.History">
+                        <StockMovementHistoryTable Items="_history"
+                                                  IsLoading="_isLoadingHistory"
+                                                  EmptyMessage="@TranslationService.GetTranslation("serial.noHistory", "Nessun movimento registrato per questa matricola")" />
+                    </MudTabPanel>
+                }
+
             </MudTabs>
         }
     </ChildContent>
@@ -260,10 +292,12 @@
 
     private int _activeTab = 0;
     private string? _originalStatus;
+    private bool _isLoadingHistory;
+    private IEnumerable<StockMovementDto> _history = Enumerable.Empty<StockMovementDto>();
 
     private static readonly HashSet<string> _terminalStatuses = new(StringComparer.Ordinal)
     {
-        "Defective", "Retired", "Lost"
+        "Defective", "Scrapped"
     };
 
     protected override async Task OnInitializedAsync()
@@ -277,6 +311,8 @@
             }
             await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
             _originalStatus = ViewModel.Entity?.Status;
+            if (!ViewModel.IsNewEntity)
+                await LoadHistoryAsync();
         }
         catch (Exception ex)
         {
@@ -288,6 +324,12 @@
     private void OnViewModelStateChanged()
     {
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnProductChangedAsync()
+    {
+        ViewModel.NotifyEntityChanged();
+        await ViewModel.RefreshLotsForProductAsync(ViewModel.Entity?.ProductId);
     }
 
     private async Task SaveAsync()
@@ -303,8 +345,7 @@
                 var terminalLabel = newStatus switch
                 {
                     "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
-                    "Retired"   => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
-                    "Lost"      => TranslationService.GetTranslation("serial.lost", "Perso"),
+                    "Scrapped"  => TranslationService.GetTranslation("serial.scrapped", "Rottamata"),
                     _           => newStatus
                 };
                 var confirmed = await DialogService.ShowMessageBoxAsync(
@@ -365,6 +406,7 @@
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedDefective", "Matricola segnata come difettosa"));
                 await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
             }
             else
             {
@@ -378,22 +420,23 @@
         }
     }
 
-    private async Task MarkRetiredAsync()
+    private async Task MarkScrappedAsync()
     {
         if (ViewModel.Entity == null) return;
         var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("serial.confirmRetired", "Ritirare la matricola '{0}'?", ViewModel.Entity.SerialNumber),
-            yesText: TranslationService.GetTranslation("serial.markRetired", "Ritira"),
+            TranslationService.GetTranslation("serial.confirmScrapped", "Rottamare la matricola '{0}'?", ViewModel.Entity.SerialNumber),
+            yesText: TranslationService.GetTranslation("serial.markScrapped", "Rottama"),
             cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
         if (confirmed != true) return;
         try
         {
-            var result = await SerialService.UpdateSerialStatusAsync(ViewModel.Entity.Id, "Retired");
+            var result = await SerialService.UpdateSerialStatusAsync(ViewModel.Entity.Id, "Scrapped");
             if (result)
             {
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedRetired", "Matricola ritirata"));
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedScrapped", "Matricola rottamata"));
                 await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
             }
             else
             {
@@ -402,8 +445,95 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error retiring serial {SerialId}.", ViewModel.Entity.Id);
-            AppNotification.ShowWarning("Si è verificato un errore nel ritiro della matricola.");
+            Logger.LogError(ex, "Error scrapping serial {SerialId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nella rottamazione della matricola.");
+        }
+    }
+
+    private async Task SellSerialAsync()
+    {
+        if (ViewModel.Entity == null) return;
+
+        var dialog = await DialogService.ShowAsync<SerialSellDialog>(string.Empty, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = false
+        });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: SellSerialRequestDto request })
+            return;
+
+        try
+        {
+            if (await SerialService.SellSerialAsync(ViewModel.Entity.Id, request.CustomerId, request.SaleDate))
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.soldSuccess", "Matricola venduta"));
+                await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error selling serial {SerialId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore durante la vendita della matricola.");
+        }
+    }
+
+    private async Task ReturnSerialAsync()
+    {
+        if (ViewModel.Entity == null) return;
+
+        var dialog = await DialogService.ShowAsync<SerialReturnDialog>(string.Empty, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = false
+        });
+        var result = await dialog.Result;
+        if (result is not { Canceled: false, Data: ReturnSerialRequestDto request })
+            return;
+
+        try
+        {
+            if (await SerialService.ReturnSerialAsync(ViewModel.Entity.Id, request.NewLocationId, request.Reason))
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.returnedSuccess", "Rientro registrato"));
+                await ViewModel.ReloadEntityAsync();
+                await LoadHistoryAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error returning serial {SerialId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore durante il rientro della matricola.");
+        }
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.IsNewEntity)
+        {
+            _history = Enumerable.Empty<StockMovementDto>();
+            return;
+        }
+
+        _isLoadingHistory = true;
+        try
+        {
+            _history = await SerialService.GetSerialHistoryAsync(ViewModel.Entity.Id) ?? Enumerable.Empty<StockMovementDto>();
+        }
+        finally
+        {
+            _isLoadingHistory = false;
         }
     }
 }
