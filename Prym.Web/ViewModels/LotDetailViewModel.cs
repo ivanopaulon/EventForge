@@ -12,6 +12,8 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     private readonly ILotService _lotService;
     private readonly IProductService _productService;
 
+    private const int MaxDropdownItems = 200;
+
     public LotDetailViewModel(
         ILotService lotService,
         IProductService productService,
@@ -69,7 +71,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
         try
         {
             // Load products for dropdown selection
-            var productsResult = await _productService.GetProductsAsync(1, 200);
+            var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
             Products = productsResult?.Items ?? new List<ProductDto>();
 
             Logger.LogInformation("Loaded {Count} products for lot {Id}",
@@ -90,7 +92,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
         {
             try
             {
-                var productsResult = await _productService.GetProductsAsync(1, 200);
+                var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
                 Products = productsResult?.Items ?? new List<ProductDto>();
             }
             catch (Exception ex)

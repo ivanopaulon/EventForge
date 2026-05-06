@@ -133,7 +133,7 @@ public class SerialService(
     {
         try
         {
-            await httpClientService.DeleteAsync($"{BaseUrl}/{id}");
+            await httpClientService.DeleteAsync($"{BaseUrl}/{id}", ct);
             return true;
         }
         catch (Exception ex)

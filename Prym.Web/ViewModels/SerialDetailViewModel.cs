@@ -54,6 +54,22 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
+        await LoadDropdownDataAsync(ct);
+    }
+
+    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
+    {
+        await base.LoadEntityAsync(entityId, ct);
+
+        // For new entities we still need the products/lots lists for dropdowns
+        if (IsNewEntity)
+        {
+            await LoadDropdownDataAsync(ct);
+        }
+    }
+
+    private async Task LoadDropdownDataAsync(CancellationToken ct = default)
+    {
         try
         {
             var productsResult = await _productService.GetProductsAsync(1, 200, ct: ct);
@@ -64,33 +80,9 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading related entities for serial {Id}", entityId);
+            Logger.LogError(ex, "Error loading dropdown data for serial");
             Products = new List<ProductDto>();
             Lots = new List<LotDto>();
-        }
-    }
-
-    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
-    {
-        await base.LoadEntityAsync(entityId, ct);
-
-        // For new entities we still need the products/lots lists for dropdowns
-        if (IsNewEntity)
-        {
-            try
-            {
-                var productsResult = await _productService.GetProductsAsync(1, 200, ct: ct);
-                Products = productsResult?.Items ?? new List<ProductDto>();
-
-                var lotsResult = await _lotService.GetLotsAsync(1, 500, ct: ct);
-                Lots = lotsResult?.Items ?? new List<LotDto>();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error loading dropdown data for new serial");
-                Products = new List<ProductDto>();
-                Lots = new List<LotDto>();
-            }
         }
     }
 
