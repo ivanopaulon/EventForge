@@ -47,4 +47,9 @@ public interface ISerialService
     /// Deletes a serial.
     /// </summary>
     Task<bool> DeleteSerialAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Moves a serial to a new storage location.
+    /// </summary>
+    Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string? notes = null, CancellationToken ct = default);
 }

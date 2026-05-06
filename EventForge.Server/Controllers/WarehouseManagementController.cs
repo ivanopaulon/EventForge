@@ -1267,6 +1267,43 @@ public class WarehouseManagementController(
         }
     }
 
+    /// <summary>
+    /// Moves a serial to a new location.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="newLocationId">Target location ID</param>
+    /// <param name="notes">Optional notes</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    [HttpPut("serials/{id:guid}/move")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MoveSerial(
+        Guid id,
+        [FromQuery] Guid newLocationId,
+        [FromQuery] string? notes = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (newLocationId == Guid.Empty)
+        {
+            return CreateValidationProblemDetails("newLocationId is required.");
+        }
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.MoveSerialAsync(id, newLocationId, GetCurrentUser(), notes, cancellationToken);
+            return result ? Ok() : NotFound();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while moving the serial.", ex);
+        }
+    }
+
     #endregion
 
     #region Inventory

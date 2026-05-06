@@ -390,6 +390,17 @@ public interface IWarehouseFacade
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<bool> DeleteSerialAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Moves a serial to a new storage location.
+    /// </summary>
+    /// <param name="id">Serial unique identifier</param>
+    /// <param name="newLocationId">Target location ID</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="notes">Optional notes</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>True if moved successfully, false if not found</returns>
+    Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string currentUser, string? notes = null, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Stock Movement Operations

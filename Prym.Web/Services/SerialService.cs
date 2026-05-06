@@ -142,4 +142,22 @@ public class SerialService(
             return false;
         }
     }
+
+    public async Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string? notes = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var queryParams = $"newLocationId={newLocationId}";
+            if (!string.IsNullOrEmpty(notes))
+                queryParams += $"&notes={Uri.EscapeDataString(notes)}";
+
+            await httpClientService.PutAsync($"{BaseUrl}/{id}/move?{queryParams}", new { }, ct);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error moving serial {SerialId} to location {LocationId}", id, newLocationId);
+            return false;
+        }
+    }
 }
