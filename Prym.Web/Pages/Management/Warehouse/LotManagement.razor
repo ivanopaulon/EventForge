@@ -109,9 +109,7 @@
             else if (column.PropertyName == "QualityStatus")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")">
-                    <MudChip T="string" Size="Size.Small" Color="@GetQualityStatusColor(ctx.Item.QualityStatus)">
-                        @TranslationService.GetTranslation($"warehouse.{ctx.Item.QualityStatus.ToLower()}", ctx.Item.QualityStatus)
-                    </MudChip>
+                    <QualityStatusBadge Status="@ctx.Item.QualityStatus" />
                 </MudTd>
             }
             else if (column.PropertyName == "AvailableQuantity")
@@ -298,15 +296,6 @@
             }
         }
     }
-
-    private Color GetQualityStatusColor(string qualityStatus) => qualityStatus switch
-    {
-        "Approved" => Color.Success,
-        "Rejected" => Color.Error,
-        "Pending" => Color.Warning,
-        "OnHold" => Color.Info,
-        _ => Color.Default
-    };
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {

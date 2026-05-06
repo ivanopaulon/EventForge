@@ -1,0 +1,26 @@
+@inject ITranslationService TranslationService
+
+<MudChip T="string" Size="@Size" Color="@GetColor()">@GetText()</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = string.Empty;
+    [Parameter] public Size Size { get; set; } = Size.Small;
+
+    private Color GetColor() => Status switch
+    {
+        "Approved" => Color.Success,
+        "Rejected" => Color.Error,
+        "Pending"  => Color.Warning,
+        "OnHold"   => Color.Info,
+        _          => Color.Default
+    };
+
+    private string GetText() => Status switch
+    {
+        "Approved" => TranslationService.GetTranslation("warehouse.approved", "Approvato"),
+        "Rejected" => TranslationService.GetTranslation("warehouse.rejected", "Rifiutato"),
+        "Pending"  => TranslationService.GetTranslation("warehouse.pending",  "In Attesa"),
+        "OnHold"   => TranslationService.GetTranslation("warehouse.onHold",   "In Sospeso"),
+        _          => Status
+    };
+}

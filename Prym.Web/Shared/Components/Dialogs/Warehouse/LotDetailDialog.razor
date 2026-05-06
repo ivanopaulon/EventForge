@@ -73,10 +73,8 @@
                             }
                         </div>
                     </div>
-                    <LotStatusBadge Status="@ViewModel.Entity.Status" Size="Size.Medium" />
-                    <MudChip T="string" Size="Size.Small" Color="@GetQualityColor(ViewModel.Entity.QualityStatus)">
-                        @GetQualityText(ViewModel.Entity.QualityStatus)
-                    </MudChip>
+                    <LotStatusBadge Status="@ViewModel.Entity.Status" Size="Size.Medium" ShowIcon="true" />
+                    <QualityStatusBadge Status="@ViewModel.Entity.QualityStatus" Size="Size.Medium" />
                 </div>
                 <MudDivider Class="mb-3" />
             }
@@ -185,21 +183,17 @@
                     <MudTabPanel Text="@TranslationService.GetTranslation("lot.statusQuality", "Stato e Qualità")" Icon="@Icons.Material.Filled.VerifiedUser">
                         <MudGrid Spacing="3">
                             <MudItem xs="12" md="6">
-                                <MudTextField Value="@GetStatusText(ViewModel.Entity.Status)"
-                                              Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense"
-                                              ReadOnly="true"
-                                              Adornment="Adornment.Start"
-                                              AdornmentIcon="@GetStatusIcon(ViewModel.Entity.Status)" />
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-1">
+                                    @TranslationService.GetTranslation("warehouse.status", "Stato")
+                                </MudText>
+                                <LotStatusBadge Status="@ViewModel.Entity.Status" Size="Size.Medium" ShowIcon="true" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
-                                <MudTextField Value="@GetQualityText(ViewModel.Entity.QualityStatus)"
-                                              Label="@TranslationService.GetTranslation("warehouse.qualityStatus", "Stato Qualità")"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense"
-                                              ReadOnly="true" />
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-1">
+                                    @TranslationService.GetTranslation("warehouse.qualityStatus", "Stato Qualità")
+                                </MudText>
+                                <QualityStatusBadge Status="@ViewModel.Entity.QualityStatus" Size="Size.Medium" />
                             </MudItem>
 
                             <MudItem xs="12" md="6">
@@ -323,42 +317,6 @@
         }
         MudDialog.Close();
     }
-
-    private string GetStatusIcon(string status) => status switch
-    {
-        "Active" => Icons.Material.Outlined.CheckCircle,
-        "Blocked" => Icons.Material.Outlined.Block,
-        "Expired" => Icons.Material.Outlined.EventBusy,
-        _ => Icons.Material.Outlined.Circle
-    };
-
-    private string GetStatusText(string status) => status switch
-    {
-        "Active" => TranslationService.GetTranslation("warehouse.active", "Attivo"),
-        "Blocked" => TranslationService.GetTranslation("warehouse.blocked", "Bloccato"),
-        "Expired" => TranslationService.GetTranslation("warehouse.expired", "Scaduto"),
-        "Recalled" => TranslationService.GetTranslation("warehouse.recalled", "Richiamato"),
-        "Consumed" => TranslationService.GetTranslation("warehouse.consumed", "Consumato"),
-        _ => status
-    };
-
-    private Color GetQualityColor(string qualityStatus) => qualityStatus switch
-    {
-        "Approved" => Color.Success,
-        "Rejected" => Color.Error,
-        "Pending" => Color.Warning,
-        "OnHold" => Color.Info,
-        _ => Color.Default
-    };
-
-    private string GetQualityText(string qualityStatus) => qualityStatus switch
-    {
-        "Approved" => TranslationService.GetTranslation("warehouse.approved", "Approvato"),
-        "Rejected" => TranslationService.GetTranslation("warehouse.rejected", "Rifiutato"),
-        "Pending" => TranslationService.GetTranslation("warehouse.pending", "In Attesa"),
-        "OnHold" => TranslationService.GetTranslation("warehouse.onHold", "In Sospeso"),
-        _ => qualityStatus
-    };
 
     public void Dispose()
     {
