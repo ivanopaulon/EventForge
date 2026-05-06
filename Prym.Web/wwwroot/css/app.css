@@ -1387,6 +1387,7 @@ kbd {
 .text-dark-full      { color: rgba(255, 255, 255, 1); }
 
 /* Max-width constraints for table cells */
+.ef-max-160 { max-width: 160px; }
 .ef-max-200 { max-width: 200px; }
 .ef-max-300 { max-width: 300px; }
 .ef-max-400 { max-width: 400px; }

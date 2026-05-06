@@ -15,7 +15,7 @@ public class StockReconciliationService(
     {
         try
         {
-            return await httpClientService.PostAsync<StockReconciliationRequestDto, StockReconciliationResultDto>(
+            return await httpClientService.PostLongRunningAsync<StockReconciliationRequestDto, StockReconciliationResultDto>(
                 $"{BaseUrl}/calculate", request, ct);
         }
         catch (Exception ex)
