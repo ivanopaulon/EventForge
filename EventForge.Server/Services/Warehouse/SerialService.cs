@@ -39,7 +39,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .Where(s => s.TenantId == currentTenantId.Value);
+                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
 
             // Apply filters
             if (productId.HasValue)

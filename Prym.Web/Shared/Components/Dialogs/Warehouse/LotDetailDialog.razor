@@ -266,6 +266,12 @@
 
     private void OnViewModelStateChanged()
     {
+        // Re-sync local date pickers whenever the entity is reloaded (e.g. after Block/Unblock)
+        if (ViewModel.Entity != null)
+        {
+            _productionDateLocal = ViewModel.Entity.ProductionDate;
+            _expiryDateLocal = ViewModel.Entity.ExpiryDate;
+        }
         InvokeAsync(StateHasChanged);
     }
 

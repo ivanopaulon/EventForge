@@ -213,7 +213,8 @@
                 new() { Id = "available", Label = "Disponibili", Predicate = s => s.Status == "Available", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Matricole disponibili" },
                 new() { Id = "sold", Label = "Vendute", Predicate = s => s.Status == "Sold", Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingCart, Description = "Matricole vendute" },
                 new() { Id = "maintenance", Label = "In Manutenzione", Predicate = s => s.Status == "InMaintenance", Color = Color.Warning, Icon = Icons.Material.Outlined.Build, Description = "In manutenzione" },
-                new() { Id = "defective", Label = "Difettose", Predicate = s => s.Status == "Defective", Color = Color.Error, Icon = Icons.Material.Outlined.BugReport, Description = "Matricole difettose" }
+                new() { Id = "defective", Label = "Difettose", Predicate = s => s.Status == "Defective", Color = Color.Error, Icon = Icons.Material.Outlined.BugReport, Description = "Matricole difettose" },
+                new() { Id = "lost", Label = "Persi", Predicate = s => s.Status == "Lost", Color = Color.Error, Icon = Icons.Material.Outlined.SearchOff, Description = "Matricole perse" }
             }
         };
     }
