@@ -48,7 +48,7 @@
                            Disabled="@(!_destWarehouseId.HasValue || _isLoadingLocations)">
                     @foreach (var l in _destLocations)
                     {
-                        <MudSelectItem T="Guid?" Value="@((Guid?)l.Id)">@l.Code@(!string.IsNullOrWhiteSpace(l.Description) ? $" — {l.Description}" : "")</MudSelectItem>
+                        <MudSelectItem T="Guid?" Value="@((Guid?)l.Id)">@GetLocationDisplay(l)</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -216,4 +216,9 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private static string GetLocationDisplay(StorageLocationDto location) =>
+        string.IsNullOrWhiteSpace(location.Description)
+            ? location.Code
+            : $"{location.Code} — {location.Description}";
 }

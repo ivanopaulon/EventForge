@@ -812,7 +812,9 @@
         if (!IsEmbedded)
         {
             // Guard: component is only supported embedded inside a parent page.
-            // Navigating to it directly would result in a no-op page.
+            AppNotification.ShowWarning(TranslationService.GetTranslation(
+                "stock.embeddedOnly",
+                "Questo componente è disponibile solo all'interno della gestione magazzino."));
             _isLoading = false;
             return;
         }
