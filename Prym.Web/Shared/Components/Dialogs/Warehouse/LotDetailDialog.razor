@@ -3,6 +3,7 @@
 @using Prym.Web.ViewModels
 @attribute [Authorize]
 @inject LotDetailViewModel ViewModel
+@inject ILotService LotService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -15,6 +16,31 @@
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
           MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <TitleActions>
+        @if (!ViewModel.IsNewEntity && ViewModel.Entity != null)
+        {
+            @if (ViewModel.Entity.Status != "Blocked")
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.block", "Blocca lotto")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Lock"
+                                   Color="Color.Warning"
+                                   Size="Size.Small"
+                                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+                                   OnClick="BlockLotAsync" />
+                </MudTooltip>
+            }
+            else
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("warehouse.unblock", "Sblocca lotto")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.LockOpen"
+                                   Color="Color.Success"
+                                   Size="Size.Small"
+                                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+                                   OnClick="UnblockLotAsync" />
+                </MudTooltip>
+            }
+        }
+    </TitleActions>
     <ChildContent>
         @if (ViewModel.IsLoading)
         {
@@ -331,5 +357,63 @@
     public void Dispose()
     {
         ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
+
+    private async Task BlockLotAsync()
+    {
+        if (ViewModel.Entity == null) return;
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("warehouse.confirmBlock", "Bloccare il lotto '{0}'?", ViewModel.Entity.Code),
+            yesText: TranslationService.GetTranslation("warehouse.block", "Blocca"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+        try
+        {
+            var result = await LotService.BlockLotAsync(ViewModel.Entity.Id, "Blocked via dialog");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
+                await ViewModel.ReloadEntityAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error blocking lot {LotId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nel blocco del lotto.");
+        }
+    }
+
+    private async Task UnblockLotAsync()
+    {
+        if (ViewModel.Entity == null) return;
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("warehouse.confirmUnblock", "Sbloccare il lotto '{0}'?", ViewModel.Entity.Code),
+            yesText: TranslationService.GetTranslation("warehouse.unblock", "Sblocca"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+        try
+        {
+            var result = await LotService.UnblockLotAsync(ViewModel.Entity.Id);
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotUnblocked", "Lotto sbloccato"));
+                await ViewModel.ReloadEntityAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error unblocking lot {LotId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nello sblocco del lotto.");
+        }
     }
 }

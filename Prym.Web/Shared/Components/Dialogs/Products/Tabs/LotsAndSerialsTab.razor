@@ -60,9 +60,23 @@
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.expiryDate", "Scadenza")">
                         @if (context.ExpiryDate.HasValue)
                         {
-                            <MudText Typo="Typo.body2" Color="@((context.ExpiryDate.Value - DateTime.Now).Days <= 30 ? Color.Warning : Color.Default)">
+                            var daysLeft = (context.ExpiryDate.Value - DateTime.Now).Days;
+                            <MudText Typo="Typo.body2"
+                                     Color="@(daysLeft <= 0 ? Color.Error : daysLeft <= 30 ? Color.Warning : Color.Default)">
                                 @context.ExpiryDate.Value.ToString("dd/MM/yyyy")
                             </MudText>
+                            @if (daysLeft <= 0)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Error">
+                                    @TranslationService.GetTranslation("warehouse.expired", "Scaduto")
+                                </MudText>
+                            }
+                            else if (daysLeft <= 30)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">
+                                    @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysLeft)
+                                </MudText>
+                            }
                         }
                         else
                         {
