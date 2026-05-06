@@ -47,9 +47,7 @@
                             }
                         </div>
                     </div>
-                    <MudChip T="string" Size="Size.Medium" Color="@GetStatusColor(ViewModel.Entity.Status)" Icon="@GetStatusIcon(ViewModel.Entity.Status)">
-                        @GetStatusText(ViewModel.Entity.Status)
-                    </MudChip>
+                    <SerialStatusBadge Status="@ViewModel.Entity.Status" Size="Size.Medium" />
                     @if (!string.IsNullOrEmpty(ViewModel.Entity.LotCode))
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.QrCode">
@@ -292,39 +290,6 @@
         }
         MudDialog.Close();
     }
-
-    private Color GetStatusColor(string status) => status switch
-    {
-        "Available" => Color.Success,
-        "Sold" => Color.Primary,
-        "InMaintenance" => Color.Warning,
-        "Defective" => Color.Error,
-        "Retired" => Color.Default,
-        "Lost" => Color.Error,
-        _ => Color.Default
-    };
-
-    private string GetStatusIcon(string status) => status switch
-    {
-        "Available" => Icons.Material.Outlined.CheckCircle,
-        "Sold" => Icons.Material.Outlined.ShoppingCart,
-        "InMaintenance" => Icons.Material.Outlined.Build,
-        "Defective" => Icons.Material.Outlined.BugReport,
-        "Retired" => Icons.Material.Outlined.Archive,
-        "Lost" => Icons.Material.Outlined.SearchOff,
-        _ => Icons.Material.Outlined.Circle
-    };
-
-    private string GetStatusText(string status) => status switch
-    {
-        "Available" => TranslationService.GetTranslation("serial.available", "Disponibile"),
-        "Sold" => TranslationService.GetTranslation("serial.sold", "Venduto"),
-        "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
-        "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
-        "Retired" => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
-        "Lost" => TranslationService.GetTranslation("serial.lost", "Perso"),
-        _ => status
-    };
 
     public void Dispose()
     {

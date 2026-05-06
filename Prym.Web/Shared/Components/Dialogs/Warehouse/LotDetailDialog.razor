@@ -47,9 +47,7 @@
                             }
                         </div>
                     </div>
-                    <MudChip T="string" Size="Size.Medium" Color="@GetStatusColor(ViewModel.Entity.Status)" Icon="@GetStatusIcon(ViewModel.Entity.Status)">
-                        @GetStatusText(ViewModel.Entity.Status)
-                    </MudChip>
+                    <LotStatusBadge Status="@ViewModel.Entity.Status" Size="Size.Medium" />
                     <MudChip T="string" Size="Size.Small" Color="@GetQualityColor(ViewModel.Entity.QualityStatus)">
                         @GetQualityText(ViewModel.Entity.QualityStatus)
                     </MudChip>
@@ -293,15 +291,6 @@
         }
         MudDialog.Close();
     }
-
-    private Color GetStatusColor(string status) => status switch
-    {
-        "Active" => Color.Success,
-        "Blocked" => Color.Error,
-        "Expired" => Color.Warning,
-        "Recalled" => Color.Error,
-        _ => Color.Default
-    };
 
     private string GetStatusIcon(string status) => status switch
     {

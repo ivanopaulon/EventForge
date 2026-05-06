@@ -119,9 +119,7 @@
             else if (column.PropertyName == "Status")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
-                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)" Icon="@GetStatusIcon(ctx.Item.Status)">
-                        @GetStatusText(ctx.Item.Status)
-                    </MudChip>
+                    <SerialStatusBadge Status="@ctx.Item.Status" />
                 </MudTd>
             }
             else if (column.PropertyName == "WarrantyExpiry")
@@ -245,36 +243,4 @@
         }
     }
 
-    private Color GetStatusColor(string status) => status switch
-    {
-        "Available" => Color.Success,
-        "Sold" => Color.Primary,
-        "InMaintenance" => Color.Warning,
-        "Defective" => Color.Error,
-        "Retired" => Color.Default,
-        "Lost" => Color.Error,
-        _ => Color.Default
-    };
-
-    private string GetStatusIcon(string status) => status switch
-    {
-        "Available" => Icons.Material.Outlined.CheckCircle,
-        "Sold" => Icons.Material.Outlined.ShoppingCart,
-        "InMaintenance" => Icons.Material.Outlined.Build,
-        "Defective" => Icons.Material.Outlined.BugReport,
-        "Retired" => Icons.Material.Outlined.Archive,
-        "Lost" => Icons.Material.Outlined.SearchOff,
-        _ => Icons.Material.Outlined.Circle
-    };
-
-    private string GetStatusText(string status) => status switch
-    {
-        "Available" => TranslationService.GetTranslation("serial.available", "Disponibile"),
-        "Sold" => TranslationService.GetTranslation("serial.sold", "Venduto"),
-        "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
-        "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
-        "Retired" => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
-        "Lost" => TranslationService.GetTranslation("serial.lost", "Perso"),
-        _ => status
-    };
 }

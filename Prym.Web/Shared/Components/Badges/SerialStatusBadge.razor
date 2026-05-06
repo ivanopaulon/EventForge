@@ -1,0 +1,42 @@
+@inject ITranslationService TranslationService
+
+<MudChip T="string" Size="@Size" Color="@GetColor()" Icon="@(ShowIcon ? GetIcon() : string.Empty)">@GetText()</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = string.Empty;
+    [Parameter] public Size Size { get; set; } = Size.Small;
+    [Parameter] public bool ShowIcon { get; set; } = true;
+
+    private Color GetColor() => Status switch
+    {
+        "Available"     => Color.Success,
+        "Sold"          => Color.Primary,
+        "InMaintenance" => Color.Warning,
+        "Defective"     => Color.Error,
+        "Retired"       => Color.Default,
+        "Lost"          => Color.Error,
+        _               => Color.Default
+    };
+
+    private string GetIcon() => Status switch
+    {
+        "Available"     => Icons.Material.Outlined.CheckCircle,
+        "Sold"          => Icons.Material.Outlined.ShoppingCart,
+        "InMaintenance" => Icons.Material.Outlined.Build,
+        "Defective"     => Icons.Material.Outlined.BugReport,
+        "Retired"       => Icons.Material.Outlined.Archive,
+        "Lost"          => Icons.Material.Outlined.SearchOff,
+        _               => Icons.Material.Outlined.Circle
+    };
+
+    private string GetText() => Status switch
+    {
+        "Available"     => TranslationService.GetTranslation("serial.available",     "Disponibile"),
+        "Sold"          => TranslationService.GetTranslation("serial.sold",          "Venduto"),
+        "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
+        "Defective"     => TranslationService.GetTranslation("serial.defective",     "Difettoso"),
+        "Retired"       => TranslationService.GetTranslation("serial.retired",       "Fuori Servizio"),
+        "Lost"          => TranslationService.GetTranslation("serial.lost",          "Perso"),
+        _               => Status
+    };
+}

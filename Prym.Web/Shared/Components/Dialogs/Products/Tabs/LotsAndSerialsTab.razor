@@ -52,9 +52,7 @@
                         <MudText Typo="Typo.body2" Class="fw-semibold">@context.Code</MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
-                        <MudChip T="string" Size="Size.Small" Color="@GetLotStatusColor(context.Status)">
-                            @GetLotStatusText(context.Status)
-                        </MudChip>
+                        <LotStatusBadge Status="@context.Status" />
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")">
                         @context.AvailableQuantity.ToString("N2")
@@ -128,9 +126,7 @@
                         <MudText Typo="Typo.body2" Class="fw-semibold">@context.SerialNumber</MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
-                        <MudChip T="string" Size="Size.Small" Color="@GetSerialStatusColor(context.Status)">
-                            @GetSerialStatusText(context.Status)
-                        </MudChip>
+                        <SerialStatusBadge Status="@context.Status" ShowIcon="false" />
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lot", "Lotto")">
                         @if (!string.IsNullOrEmpty(context.LotCode))
@@ -272,41 +268,4 @@
             await LoadSerialsAsync();
     }
 
-    private Color GetLotStatusColor(string status) => status switch
-    {
-        "Active" => Color.Success,
-        "Blocked" => Color.Error,
-        "Expired" => Color.Warning,
-        "Recalled" => Color.Error,
-        _ => Color.Default
-    };
-
-    private string GetLotStatusText(string status) => status switch
-    {
-        "Active" => TranslationService.GetTranslation("warehouse.active", "Attivo"),
-        "Blocked" => TranslationService.GetTranslation("warehouse.blocked", "Bloccato"),
-        "Expired" => TranslationService.GetTranslation("warehouse.expired", "Scaduto"),
-        "Recalled" => TranslationService.GetTranslation("warehouse.recalled", "Richiamato"),
-        _ => status
-    };
-
-    private Color GetSerialStatusColor(string status) => status switch
-    {
-        "Available" => Color.Success,
-        "Sold" => Color.Primary,
-        "InMaintenance" => Color.Warning,
-        "Defective" => Color.Error,
-        "Retired" => Color.Default,
-        _ => Color.Default
-    };
-
-    private string GetSerialStatusText(string status) => status switch
-    {
-        "Available" => TranslationService.GetTranslation("serial.available", "Disponibile"),
-        "Sold" => TranslationService.GetTranslation("serial.sold", "Venduto"),
-        "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
-        "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
-        "Retired" => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
-        _ => status
-    };
 }
