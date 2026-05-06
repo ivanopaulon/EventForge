@@ -79,6 +79,11 @@
     [Parameter] public ProductClassificationType Type { get; set; }
     [Parameter] public Guid? InitialSelectedId { get; set; }
     [Parameter] public string Title { get; set; } = "";
+    /// <summary>
+    /// When set, only nodes with a matching ApplicableTo value (or All) are shown.
+    /// Null means no filter is applied.
+    /// </summary>
+    [Parameter] public ClassificationApplicableTo? FilterApplicableTo { get; set; }
 
     private bool _isLoading = true;
     private string? _searchTerm;
@@ -110,6 +115,15 @@
             // Load all nodes then filter by requested Type at source so the tree shows only nodes of that type
             var all = (await EntityManagementService.GetClassificationNodesAsync())?.ToList() ?? new List<ClassificationNodeDto>();
             _nodes = all.Where(n => n.Type == Type).ToList();
+
+            // Apply optional ApplicableTo filter: keep nodes that match the requested entity context or are universally applicable
+            if (FilterApplicableTo.HasValue && FilterApplicableTo.Value != ClassificationApplicableTo.All)
+            {
+                _nodes = _nodes.Where(n =>
+                    n.ApplicableTo == ClassificationApplicableTo.All ||
+                    n.ApplicableTo == FilterApplicableTo.Value ||
+                    n.ApplicableTo == ClassificationApplicableTo.Both).ToList();
+            }
             _childrenLookup = _nodes.ToLookup(n => n.ParentId);
 
             // build initial tree items

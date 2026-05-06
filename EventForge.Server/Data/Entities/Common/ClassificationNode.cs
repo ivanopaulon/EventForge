@@ -50,6 +50,12 @@ public class ClassificationNode : AuditableEntity
     public int Level { get; set; } = 0;
 
     /// <summary>
+    /// Specifies which entity types this classification node is applicable to.
+    /// </summary>
+    [Display(Name = "Applicable To", Description = "Specifies which entity types this node applies to.")]
+    public ClassificationApplicableTo ApplicableTo { get; set; } = ClassificationApplicableTo.Products;
+
+    /// <summary>
     /// Order for sorting nodes at the same level.
     /// </summary>
     [Range(0, 1000, ErrorMessage = "The order must be between 0 and 1000.")]

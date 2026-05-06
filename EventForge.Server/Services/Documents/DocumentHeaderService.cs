@@ -162,6 +162,19 @@ public class DocumentHeaderService(
                     row.CreatedAt = DateTime.UtcNow;
                     documentHeader.Rows.Add(row);
                 }
+
+                // Calculate and persist totals from the provided rows
+                var netTotal = documentHeader.Rows.Sum(r => r.UnitPrice * r.Quantity * (1 - (r.LineDiscount / 100m)));
+                var vatTotal = documentHeader.Rows.Sum(r => r.UnitPrice * r.Quantity * (1 - (r.LineDiscount / 100m)) * (r.VatRate / 100m));
+
+                if (documentHeader.TotalDiscount > 0)
+                    netTotal -= netTotal * (documentHeader.TotalDiscount / 100m);
+
+                netTotal -= documentHeader.TotalDiscountAmount;
+
+                documentHeader.TotalNetAmount = Math.Max(0, netTotal);
+                documentHeader.VatAmount = vatTotal;
+                documentHeader.TotalGrossAmount = documentHeader.TotalNetAmount + documentHeader.VatAmount;
             }
 
             _ = await context.SaveChangesAsync(cancellationToken);

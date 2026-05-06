@@ -166,7 +166,6 @@ public class BusinessPartyGroupService(
             }
 
             var group = await context.BusinessPartyGroups
-                .AsNoTracking()
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -256,7 +255,6 @@ public class BusinessPartyGroupService(
             }
 
             var group = await context.BusinessPartyGroups
-                .AsNoTracking()
                 .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 

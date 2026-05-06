@@ -57,6 +57,13 @@ public interface IClassificationNodeService
     Task<ClassificationNodeDto?> UpdateClassificationNodeAsync(Guid id, UpdateClassificationNodeDto updateDto, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all classification nodes as a hierarchical tree.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Root nodes with nested Children populated</returns>
+    Task<IEnumerable<ClassificationNodeDto>> GetTreeAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Soft deletes a classification node.
     /// </summary>
     /// <param name="id">Classification node ID</param>

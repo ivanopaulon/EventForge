@@ -31,6 +31,7 @@ namespace Prym.Web.Services
         // Classification Node Management
         Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesAsync(CancellationToken ct = default);
         Task<IEnumerable<ClassificationNodeDto>> GetRootClassificationNodesAsync(CancellationToken ct = default);
+        Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesTreeAsync(CancellationToken ct = default);
         Task<IEnumerable<ClassificationNodeDto>> GetChildrenClassificationNodesAsync(Guid parentId, CancellationToken ct = default);
         Task<ClassificationNodeDto?> GetClassificationNodeAsync(Guid id, CancellationToken ct = default);
         Task<ClassificationNodeDto> CreateClassificationNodeAsync(CreateClassificationNodeDto createDto, CancellationToken ct = default);
@@ -332,6 +333,19 @@ namespace Prym.Web.Services
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error retrieving root classification nodes");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<ClassificationNodeDto>> GetClassificationNodesTreeAsync(CancellationToken ct = default)
+        {
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>("api/v1/entities/classification-nodes/tree", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving classification node tree");
                 throw;
             }
         }

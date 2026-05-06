@@ -200,6 +200,12 @@
     [Parameter] public Func<Task>? OnClearFilters { get; set; }
 
     /// <summary>
+    /// External filter values passed directly to Service.GetPagedAsync as the <c>filters</c> dictionary.
+    /// Changing this dictionary and calling <see cref="RefreshAsync"/> triggers a full reload with the new filters.
+    /// </summary>
+    [Parameter] public Dictionary<string, object?>? ExternalFilters { get; set; }
+
+    /// <summary>
     /// When true, OnInitializedAsync redirects to EmbeddedRedirectUrl if the page is not embedded.
     /// </summary>
     [Parameter] public bool IsEmbedded { get; set; } = true;
@@ -407,7 +413,7 @@
                     1,
                     Config.DefaultPageSize,
                     _searchTerm,
-                    null,
+                    ExternalFilters,
                     _cts.Token);
                 if (result != null)
                     _entities = result.Items.ToList();

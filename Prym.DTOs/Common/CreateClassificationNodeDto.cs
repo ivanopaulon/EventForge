@@ -55,5 +55,10 @@ namespace Prym.DTOs.Common
         /// Parent node ID (null if root).
         /// </summary>
         public Guid? ParentId { get; set; }
+
+        /// <summary>
+        /// Specifies which entity types this node is applicable to.
+        /// </summary>
+        public ClassificationApplicableTo ApplicableTo { get; set; } = ClassificationApplicableTo.Products;
     }
 }

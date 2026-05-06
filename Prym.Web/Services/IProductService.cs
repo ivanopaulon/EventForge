@@ -19,7 +19,7 @@ public interface IProductService
     // NEW: dettagli prodotto (include codes/units/bundle-items)
     Task<ProductDto?> GetProductDetailAsync(Guid id, CancellationToken ct = default);
 
-    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default);
+    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken ct = default);
 
     /// <summary>
     /// Gets a lean product catalog for POS display (excludes Codes, Units, BundleItems).
@@ -91,4 +91,12 @@ public interface IProductService
 
     // Bulk Operations
     Task<Prym.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default);
+
+    Task<BulkUpdateResult?> BulkUpdateProductCatalogAsync(BulkUpdateProductsDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the count of products matching the given filters without performing any update.
+    /// Returns null on error.
+    /// </summary>
+    Task<int?> BulkCatalogCountAsync(BulkUpdateProductsDto dto, CancellationToken ct = default);
 }

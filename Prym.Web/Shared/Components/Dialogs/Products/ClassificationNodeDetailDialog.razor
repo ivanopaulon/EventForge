@@ -98,6 +98,17 @@
                                             }
                                         </PrymSelect>
                                     </MudItem>
+
+                                    <MudItem xs="12" md="6">
+                                        <PrymSelect T="ClassificationApplicableTo" @bind-Value="NodeApplicableTo"
+                                                    Label="@TranslationService.GetTranslation("classificationNode.applicableTo", "Applicabile A")"
+                                                    @bind-Value:after="@MarkChanged">
+                                            <MudSelectItem Value="@ClassificationApplicableTo.Products">@TranslationService.GetTranslation("classificationType.products", "Prodotti")</MudSelectItem>
+                                            <MudSelectItem Value="@ClassificationApplicableTo.BusinessParties">@TranslationService.GetTranslation("classificationType.businessParties", "Business Party")</MudSelectItem>
+                                            <MudSelectItem Value="@ClassificationApplicableTo.Both">@TranslationService.GetTranslation("classificationType.both", "Entrambi")</MudSelectItem>
+                                            <MudSelectItem Value="@ClassificationApplicableTo.All">@TranslationService.GetTranslation("classificationType.all", "Tutti")</MudSelectItem>
+                                        </PrymSelect>
+                                    </MudItem>
                                 </MudGrid>
                             </MudItem>
 
@@ -344,6 +355,19 @@
         }
     }
 
+    private ClassificationApplicableTo NodeApplicableTo
+    {
+        get => _isCreateMode ? _createModel.ApplicableTo : _updateModel.ApplicableTo;
+        set
+        {
+            if (_isCreateMode)
+                _createModel.ApplicableTo = value;
+            else
+                _updateModel.ApplicableTo = value;
+            MarkChanged();
+        }
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _isCreateMode = EntityId == null || EntityId == Guid.Empty;
@@ -414,7 +438,8 @@
                 Status = _node.Status,
                 Level = _node.Level,
                 Order = _node.Order,
-                ParentId = _node.ParentId
+                ParentId = _node.ParentId,
+                ApplicableTo = _node.ApplicableTo
             };
 
             _originalSnapshot = SerializeCurrentModel();

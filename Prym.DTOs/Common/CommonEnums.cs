@@ -48,6 +48,21 @@ namespace Prym.DTOs.Common
     }
 
     /// <summary>
+    /// Specifies which entity types a classification node is applicable to.
+    /// </summary>
+    public enum ClassificationApplicableTo
+    {
+        /// <summary>Applicable to products only.</summary>
+        Products = 0,
+        /// <summary>Applicable to business parties (customers/suppliers) only.</summary>
+        BusinessParties = 1,
+        /// <summary>Applicable to both products and business parties.</summary>
+        Both = 2,
+        /// <summary>Applicable to all entity types.</summary>
+        All = 3
+    }
+
+    /// <summary>
     /// Product classification node status enumeration.
     /// </summary>
     public enum ProductClassificationNodeStatus

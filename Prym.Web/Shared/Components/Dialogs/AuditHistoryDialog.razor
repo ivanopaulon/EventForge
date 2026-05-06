@@ -15,6 +15,14 @@
           MinWidth="min(900px, 95vw)"
           MaxHeight="calc(100vh - 48px)"
           OnClose="CloseDialog">
+    <TitleActions>
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                       Size="Size.Small"
+                       OnClick="@LoadAuditHistory"
+                       Disabled="@_isLoading"
+                       Class="icon-btn-muted"
+                       title="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
+    </TitleActions>
     <ChildContent>
         <PageLoadingOverlay Visible="@_isLoading"
                             Message="@TranslationService.GetTranslation("audit.loadingHistory", "Caricamento cronologia...")"
@@ -28,7 +36,8 @@
             <MudExpansionPanels Elevation="0" Class="mb-3">
                 <MudExpansionPanel Text="@TranslationService.GetTranslation("audit.advancedFilters", "Filtri Avanzati")"
                                    Icon="@Icons.Material.Outlined.FilterList"
-                                   Dense="true">
+                                   Dense="true"
+                                   IsExpanded="false">
                     <MudGrid Spacing="2">
                         <MudItem xs="12" md="3">
                             <MudSelect T="string" @bind-Value="_operationFilter" @bind-Value:after="OnFilterChanged"
@@ -236,15 +245,6 @@
             }
         }
     </ChildContent>
-    <DialogActions>
-        <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                       OnClick="@LoadAuditHistory"
-                       Title="@TranslationService.GetTranslation("common.refresh", "Aggiorna")" />
-        <MudSpacer />
-        <MudButton Variant="Variant.Text" OnClick="CloseDialog" Color="Color.Default">
-            @TranslationService.GetTranslation("button.close", "Chiudi")
-        </MudButton>
-    </DialogActions>
 </EFDialog>
 
 @code {
