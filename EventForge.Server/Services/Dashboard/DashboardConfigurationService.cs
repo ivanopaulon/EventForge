@@ -1,5 +1,5 @@
-using Prym.DTOs.Dashboard;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Dashboard;
 using EntityDashboard = EventForge.Server.Data.Entities.Dashboard;
 
 namespace EventForge.Server.Services.Dashboard;

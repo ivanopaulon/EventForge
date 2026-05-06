@@ -1,9 +1,9 @@
-using Prym.DTOs.Common;
 using EventForge.Server.Data;
 using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Prym.DTOs.Common;
 using System.Net;
 using System.Net.Http.Json;
 

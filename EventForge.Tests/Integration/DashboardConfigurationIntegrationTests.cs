@@ -1,6 +1,6 @@
-using Prym.DTOs.Dashboard;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Prym.DTOs.Dashboard;
 using System.Net;
 using System.Net.Http.Json;
 

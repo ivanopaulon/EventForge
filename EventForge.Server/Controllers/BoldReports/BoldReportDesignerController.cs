@@ -1,4 +1,3 @@
-using BoldReports.Web;
 using BoldReports.Web.ReportDesigner;
 using BoldReports.Web.ReportViewer;
 using EventForge.Server.Helpers;
@@ -6,7 +5,6 @@ using EventForge.Server.Services.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using Prym.DTOs.Reports;
 
 namespace EventForge.Server.Controllers.BoldReports;
 

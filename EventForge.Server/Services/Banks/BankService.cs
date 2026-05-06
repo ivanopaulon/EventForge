@@ -1,5 +1,5 @@
-using Prym.DTOs.Banks;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Banks;
 
 namespace EventForge.Server.Services.Banks;
 

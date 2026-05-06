@@ -22,7 +22,7 @@ public class LogsModel(AgentOptions options, ILogger<LogsModel> logger) : PageMo
 
     public void OnGet(string? level)
     {
-        InstallationId   = options.InstallationId;
+        InstallationId = options.InstallationId;
         InstallationName = options.InstallationName;
         LevelFilter = level ?? string.Empty;
 
@@ -91,21 +91,21 @@ public class LogsModel(AgentOptions options, ILogger<LogsModel> logger) : PageMo
 
                 try
                 {
-                    var ts    = raw[1..9];
+                    var ts = raw[1..9];
                     var lvlEnd = raw.IndexOf(']', 10);
-                    var lvl   = lvlEnd > 0 ? raw[10..lvlEnd].Trim() : "INF";
-                    var msg   = lvlEnd > 0 && lvlEnd + 2 < raw.Length ? raw[(lvlEnd + 2)..] : raw;
+                    var lvl = lvlEnd > 0 ? raw[10..lvlEnd].Trim() : "INF";
+                    var msg = lvlEnd > 0 && lvlEnd + 2 < raw.Length ? raw[(lvlEnd + 2)..] : raw;
 
-                    pendingTs    = ts;
+                    pendingTs = ts;
                     pendingLevel = NormalizeLevel(lvl);
-                    pendingMsg   = msg;
+                    pendingMsg = msg;
                     pendingEx.Clear();
                 }
                 catch
                 {
-                    pendingTs    = "?";
+                    pendingTs = "?";
                     pendingLevel = "INF";
-                    pendingMsg   = raw;
+                    pendingMsg = raw;
                     pendingEx.Clear();
                 }
             }
@@ -128,12 +128,12 @@ public class LogsModel(AgentOptions options, ILogger<LogsModel> logger) : PageMo
 
     private static string NormalizeLevel(string raw) => raw.ToUpperInvariant() switch
     {
-        "VRB" or "VERBOSE"  => "VRB",
-        "DBG" or "DEBUG"    => "DBG",
+        "VRB" or "VERBOSE" => "VRB",
+        "DBG" or "DEBUG" => "DBG",
         "INF" or "INFORMATION" or "INFO" => "INF",
-        "WRN" or "WARNING" or "WARN"     => "WRN",
-        "ERR" or "ERROR"    => "ERR",
-        "FTL" or "FATAL"    => "FTL",
-        _                   => raw.Length > 3 ? raw[..3].ToUpperInvariant() : raw.ToUpperInvariant()
+        "WRN" or "WARNING" or "WARN" => "WRN",
+        "ERR" or "ERROR" => "ERR",
+        "FTL" or "FATAL" => "FTL",
+        _ => raw.Length > 3 ? raw[..3].ToUpperInvariant() : raw.ToUpperInvariant()
     };
 }

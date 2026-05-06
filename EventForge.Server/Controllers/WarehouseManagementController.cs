@@ -1,11 +1,10 @@
-using Prym.DTOs.Documents;
-using Prym.DTOs.Warehouse;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
-using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Controllers;
 

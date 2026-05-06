@@ -1,4 +1,3 @@
-using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 
 namespace EventForge.Server.Services.Updates;

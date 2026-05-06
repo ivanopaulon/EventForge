@@ -1,5 +1,5 @@
-using System.Xml.Linq;
 using Prym.DTOs.FiscalPrinting;
+using System.Xml.Linq;
 
 namespace EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
 

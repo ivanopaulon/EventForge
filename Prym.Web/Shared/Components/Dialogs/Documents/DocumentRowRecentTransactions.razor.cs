@@ -1,6 +1,6 @@
-using Prym.Web.Services;
-using Prym.DTOs.Products;
 using Microsoft.AspNetCore.Components;
+using Prym.DTOs.Products;
+using Prym.Web.Services;
 
 namespace Prym.Web.Shared.Components.Dialogs.Documents;
 

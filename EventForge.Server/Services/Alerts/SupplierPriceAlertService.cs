@@ -1,7 +1,6 @@
-using Prym.DTOs.Alerts;
-using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Alerts;
 using AlertConfiguration = EventForge.Server.Data.Entities.Alerts.AlertConfiguration;
 using AlertEntity = EventForge.Server.Data.Entities.Alerts.SupplierPriceAlert;
 using AlertFrequency = EventForge.Server.Data.Entities.Alerts.AlertFrequency;

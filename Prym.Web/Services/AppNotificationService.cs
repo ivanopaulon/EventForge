@@ -1,5 +1,5 @@
-using Prym.Web.Shared.Components.Dialogs;
 using MudBlazor;
+using Prym.Web.Shared.Components.Dialogs;
 
 namespace Prym.Web.Services;
 

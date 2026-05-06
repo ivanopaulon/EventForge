@@ -1,7 +1,7 @@
-using Prym.DTOs.Documents;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Prym.DTOs.Documents;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;

@@ -1,5 +1,3 @@
-using Prym.DTOs.Business;
-using Prym.DTOs.Products;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Business;
@@ -7,6 +5,8 @@ using EventForge.Server.Services.Export;
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Prym.DTOs.Business;
+using Prym.DTOs.Products;
 
 namespace EventForge.Server.Controllers;
 

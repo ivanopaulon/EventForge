@@ -1,6 +1,6 @@
-using Prym.DTOs.Warehouse;
 using EventForge.Server.Services.Caching;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 

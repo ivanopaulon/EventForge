@@ -13,8 +13,8 @@ internal static class Protocol17Protocol
     private const byte ETX = 0x03;
 
     public const string CmdPayment = "01";
-    public const string CmdVoid    = "02";
-    public const string CmdRefund  = "04";
+    public const string CmdVoid = "02";
+    public const string CmdRefund = "04";
 
     public static byte[] BuildRequest(string commandCode, decimal amountEur)
     {

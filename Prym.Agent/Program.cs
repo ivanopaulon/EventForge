@@ -1,6 +1,6 @@
-﻿using Prym.Agent.Middleware;
+﻿using Microsoft.Extensions.Options;
+using Prym.Agent.Middleware;
 using Prym.Agent.Workers;
-using Microsoft.Extensions.Options;
 using Serilog;
 using System.Text.Json.Nodes;
 
@@ -88,9 +88,9 @@ try
                 : opts.Components.Server.NotificationBaseUrl;
 
             if (!string.IsNullOrWhiteSpace(serverBase))
-                {
-                    loggerConfig.WriteTo.Sink(new AgentServerSink(opts));
-                }
+            {
+                loggerConfig.WriteTo.Sink(new AgentServerSink(opts));
+            }
         }
     });
 
@@ -198,17 +198,17 @@ try
         var headId = pendingSvc.GetNext()?.PackageId;
         return Results.Ok(all.Select(p => new
         {
-            InstallationId   = opts.InstallationId,
+            InstallationId = opts.InstallationId,
             InstallationName = opts.InstallationName,
             p.PackageId,
-            Component        = p.Command.Component,
-            Version          = p.Command.Version,
+            Component = p.Command.Component,
+            Version = p.Command.Version,
             p.IsManualInstall,
             p.QueuedAt,
-            IsQueueHead      = p.PackageId == headId,
+            IsQueueHead = p.PackageId == headId,
             pendingSvc.IsBlocked,
-            BlockedReason    = pendingSvc.IsBlocked ? pendingSvc.BlockedReason : null,
-            FileExists       = File.Exists(p.LocalZipPath)
+            BlockedReason = pendingSvc.IsBlocked ? pendingSvc.BlockedReason : null,
+            FileExists = File.Exists(p.LocalZipPath)
         }));
     });
 

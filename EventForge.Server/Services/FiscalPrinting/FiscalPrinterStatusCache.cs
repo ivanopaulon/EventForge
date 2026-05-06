@@ -1,5 +1,5 @@
-using System.Collections.Concurrent;
 using Prym.DTOs.FiscalPrinting;
+using System.Collections.Concurrent;
 
 namespace EventForge.Server.Services.FiscalPrinting;
 

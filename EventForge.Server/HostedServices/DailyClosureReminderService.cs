@@ -1,11 +1,8 @@
-using Prym.DTOs.Notifications;
-using EventForge.Server.Data;
-using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+using Prym.DTOs.Notifications;
 
 namespace EventForge.Server.HostedServices;
 

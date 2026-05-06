@@ -1,5 +1,3 @@
-using EventForge.Server.Data;
-using EventForge.Server.Hubs;
 using EventForge.Server.Services.FiscalPrinting;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;

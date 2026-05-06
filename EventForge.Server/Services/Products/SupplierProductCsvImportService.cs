@@ -1,8 +1,8 @@
 using CsvHelper.Configuration;
-using Prym.DTOs.PriceHistory;
-using Prym.DTOs.Products;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.PriceHistory;
+using Prym.DTOs.Products;
 using System.Diagnostics;
 using System.Globalization;
 using System.Text;

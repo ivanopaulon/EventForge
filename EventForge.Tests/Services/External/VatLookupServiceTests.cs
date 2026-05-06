@@ -1,8 +1,8 @@
-using Prym.DTOs.External;
 using EventForge.Server.Services.External;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.External;
 
 namespace EventForge.Tests.Services.External;
 

@@ -1,5 +1,5 @@
-using Prym.DTOs.Chat;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Chat;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 

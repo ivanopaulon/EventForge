@@ -24,9 +24,9 @@ public class ReportExportRequestDto
 /// </summary>
 public enum ReportExportFormat
 {
-    Pdf   = 0,
+    Pdf = 0,
     Excel = 1,
-    Word  = 2,
-    Html  = 3,
-    Csv   = 4,
+    Word = 2,
+    Html = 3,
+    Csv = 4,
 }

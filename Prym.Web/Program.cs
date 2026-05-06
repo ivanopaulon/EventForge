@@ -1,13 +1,12 @@
 using Blazored.LocalStorage;
-using Prym.Web;
-using Prym.Web.Services;
-using Prym.Web.Services.Documents;
-using Prym.Web.Services.Updates;
-using Prym.DTOs.Configuration;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
+using Prym.DTOs.Configuration;
+using Prym.Web;
+using Prym.Web.Services;
+using Prym.Web.Services.Documents;
 using Syncfusion.Blazor;
 using Syncfusion.Licensing;
 using System.Net.Http.Json;

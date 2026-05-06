@@ -1,7 +1,6 @@
-using Prym.Web.Helpers;
-using Prym.DTOs.Common;
-using Prym.DTOs.Sales;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Sales;
+using Prym.Web.Helpers;
 
 namespace Prym.Web.Services.Sales;
 

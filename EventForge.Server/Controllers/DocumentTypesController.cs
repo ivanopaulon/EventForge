@@ -1,9 +1,9 @@
-using Prym.DTOs.Documents;
 using EventForge.Server.Services.Caching;
 using EventForge.Server.Services.Documents;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Controllers;
 

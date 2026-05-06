@@ -1,7 +1,7 @@
-using Prym.DTOs.Dashboard;
 using EventForge.Server.Services.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Prym.DTOs.Dashboard;
 
 namespace EventForge.Server.Pages.Dashboard;
 

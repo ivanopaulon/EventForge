@@ -1,4 +1,3 @@
-using Prym.DTOs.Documents;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Common;
 using EventForge.Server.Data.Entities.Documents;
@@ -11,6 +10,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Tests.Services.Documents;
 

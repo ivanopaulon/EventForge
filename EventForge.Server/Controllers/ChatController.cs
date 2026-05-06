@@ -1,9 +1,9 @@
-using Prym.DTOs.Chat;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Chat;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Chat;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json;
@@ -62,7 +62,7 @@ public class ChatController(
         if (tenantContext.CurrentUserId is not { } currentUserId)
             return CreateValidationProblemDetails("Unable to resolve user from current context");
 
-        createChatDto.TenantId  = tenantId;
+        createChatDto.TenantId = tenantId;
         createChatDto.CreatedBy = currentUserId;
 
         try
@@ -826,7 +826,7 @@ public class ChatController(
             var extension = Path.GetExtension(file.FileName).TrimStart('.').ToLowerInvariant();
             if (string.IsNullOrEmpty(extension)) extension = "bin";
 
-            var year  = DateTime.UtcNow.Year.ToString();
+            var year = DateTime.UtcNow.Year.ToString();
             var month = DateTime.UtcNow.Month.ToString("D2");
 
             var fullPath = Path.Combine(env.ContentRootPath, "Uploads", "chat-images",
@@ -887,10 +887,10 @@ public class ChatController(
         var mimeType = ext switch
         {
             "jpg" or "jpeg" => "image/jpeg",
-            "png"           => "image/png",
-            "gif"           => "image/gif",
-            "webp"          => "image/webp",
-            _               => "application/octet-stream"
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            _ => "application/octet-stream"
         };
         return PhysicalFile(fullPath, mimeType);
     }

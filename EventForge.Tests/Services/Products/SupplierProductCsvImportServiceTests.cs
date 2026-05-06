@@ -1,4 +1,3 @@
-using Prym.DTOs.Products;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
@@ -10,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Products;
 using System.Text;
 
 namespace EventForge.Tests.Services.Products;

@@ -19,10 +19,10 @@ public abstract class BaseApiController : ControllerBase
     {
         ProblemDetails problem = new()
         {
-            Type     = type,
-            Title    = title,
-            Status   = status,
-            Detail   = detail,
+            Type = type,
+            Title = title,
+            Status = status,
+            Detail = detail,
             Instance = HttpContext.Request.Path
         };
 
@@ -52,9 +52,9 @@ public abstract class BaseApiController : ControllerBase
     {
         ValidationProblemDetails problem = new(ModelState)
         {
-            Type     = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            Title    = "One or more validation errors occurred.",
-            Status   = StatusCodes.Status400BadRequest,
+            Type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+            Title = "One or more validation errors occurred.",
+            Status = StatusCodes.Status400BadRequest,
             Instance = HttpContext.Request.Path
         };
 
@@ -144,7 +144,7 @@ public abstract class BaseApiController : ControllerBase
 
         if (HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
         {
-            problem.Extensions["exception"]  = ex.Message;
+            problem.Extensions["exception"] = ex.Message;
             problem.Extensions["stackTrace"] = ex.StackTrace;
             problem.Extensions["innerException"] = ex.InnerException?.Message;
         }
@@ -203,15 +203,15 @@ public abstract class BaseApiController : ControllerBase
     /// </summary>
     protected void SetPaginationHeaders<T>(PagedResult<T> result, PaginationParameters pagination)
     {
-        Response.Headers.Append("X-Total-Count",  result.TotalCount.ToString());
-        Response.Headers.Append("X-Page",         result.Page.ToString());
-        Response.Headers.Append("X-Page-Size",    result.PageSize.ToString());
-        Response.Headers.Append("X-Total-Pages",  result.TotalPages.ToString());
+        Response.Headers.Append("X-Total-Count", result.TotalCount.ToString());
+        Response.Headers.Append("X-Page", result.Page.ToString());
+        Response.Headers.Append("X-Page-Size", result.PageSize.ToString());
+        Response.Headers.Append("X-Total-Pages", result.TotalPages.ToString());
 
         if (pagination.WasCapped)
         {
-            Response.Headers.Append("X-Pagination-Capped",       "true");
-            Response.Headers.Append("X-Pagination-Applied-Max",  pagination.AppliedMaxPageSize.ToString());
+            Response.Headers.Append("X-Pagination-Capped", "true");
+            Response.Headers.Append("X-Pagination-Applied-Max", pagination.AppliedMaxPageSize.ToString());
         }
     }
 }

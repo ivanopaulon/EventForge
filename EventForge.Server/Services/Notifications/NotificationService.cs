@@ -1,8 +1,7 @@
-using Prym.DTOs.Notifications;
-using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Notifications;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Notifications;

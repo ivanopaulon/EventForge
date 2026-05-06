@@ -1,8 +1,8 @@
-using Prym.Web.Services.Updates;
 using Prym.DTOs.Chat;
 using Prym.DTOs.Documents;
 using Prym.DTOs.FiscalPrinting;
 using Prym.DTOs.Notifications;
+using Prym.Web.Services.Updates;
 
 namespace Prym.Web.Services;
 

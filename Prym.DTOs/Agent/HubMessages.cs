@@ -9,15 +9,15 @@ public record RegisterInstallationMessage(
     string? VersionServer,
     string? VersionClient,
     InstallationComponentsDto Components,
-    string? InstallationCode  = null,
-    string? Location          = null,
+    string? InstallationCode = null,
+    string? Location = null,
     IReadOnlyList<string>? Tags = null,
-    string? MachineName       = null,
-    string? OSVersion         = null,
-    string? DotNetVersion     = null,
-    string? AgentVersion      = null,
-    string? LocalIpAddress    = null,
-    string? PublicIpAddress   = null);
+    string? MachineName = null,
+    string? OSVersion = null,
+    string? DotNetVersion = null,
+    string? AgentVersion = null,
+    string? LocalIpAddress = null,
+    string? PublicIpAddress = null);
 
 public record HeartbeatMessage(
     string InstallationId,
@@ -25,10 +25,10 @@ public record HeartbeatMessage(
     string? VersionClient,
     string Status,
     DateTime Timestamp,
-    string? AgentVersion           = null,
-    string? Location               = null,
-    IReadOnlyList<string>? Tags    = null,
-    string? PublicIpAddress        = null);
+    string? AgentVersion = null,
+    string? Location = null,
+    IReadOnlyList<string>? Tags = null,
+    string? PublicIpAddress = null);
 
 public record UpdateProgressMessage(
     string InstallationId,

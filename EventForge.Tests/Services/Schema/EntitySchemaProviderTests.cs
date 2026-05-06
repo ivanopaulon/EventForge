@@ -1,5 +1,5 @@
-using Prym.Web.Services.Schema;
 using Prym.DTOs.Dashboard;
+using Prym.Web.Services.Schema;
 
 namespace EventForge.Tests.Services.Schema;
 

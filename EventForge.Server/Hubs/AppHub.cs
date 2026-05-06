@@ -1,9 +1,9 @@
-using Prym.DTOs.Notifications;
 using EventForge.Server.Services.Alerts;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.Updates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Prym.DTOs.Notifications;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;
@@ -424,9 +424,9 @@ public class AppHub(
     public const string UpdatesAvailable = "UpdatesAvailable";
 
     // Log-cleanup lifecycle events (SuperAdmin only — sent to "superadmin" group)
-    public const string LogCleanupStarted      = "LogCleanupStarted";
+    public const string LogCleanupStarted = "LogCleanupStarted";
     public const string LogCleanupPhaseChanged = "LogCleanupPhaseChanged";
-    public const string LogCleanupCompleted    = "LogCleanupCompleted";
+    public const string LogCleanupCompleted = "LogCleanupCompleted";
 
     // Notification events
     public const string NotificationReceived = "NotificationReceived";

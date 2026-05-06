@@ -1,6 +1,6 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Security.Cryptography;
 
 namespace Prym.ManagementHub.Pages;
 
@@ -208,9 +208,9 @@ public class PackagesModel(
             return RedirectToPage();
         }
 
-        var versionTrimmed     = version.Trim();
+        var versionTrimmed = version.Trim();
         var releaseNotesTrimmed = string.IsNullOrWhiteSpace(releaseNotes) ? null : releaseNotes.Trim();
-        var gitCommitTrimmed   = string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim();
+        var gitCommitTrimmed = string.IsNullOrWhiteSpace(gitCommit) ? null : gitCommit.Trim();
 
         // ── Server + Client in one shot ───────────────────────────────────
         if (component.Equals("Both", StringComparison.OrdinalIgnoreCase))
@@ -224,7 +224,7 @@ public class PackagesModel(
                 return RedirectToPage();
             }
 
-            var errors   = new List<string>();
+            var errors = new List<string>();
             var successes = new List<string>();
 
             foreach (var (comp, folder) in new[]

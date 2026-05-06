@@ -1,5 +1,5 @@
-using Prym.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 

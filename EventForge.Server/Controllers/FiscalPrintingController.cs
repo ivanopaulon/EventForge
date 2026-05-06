@@ -1,12 +1,9 @@
-using Prym.DTOs.FiscalPrinting;
-using Prym.DTOs.Station;
-using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.Station;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http.Json;
+using Prym.DTOs.FiscalPrinting;
+using Prym.DTOs.Station;
 using System.Text.Json;
 
 namespace EventForge.Server.Controllers;
@@ -604,11 +601,11 @@ public class FiscalPrintingController(
 
             var connectionType = setup.ConnectionType switch
             {
-                "Serial"       => PrinterConnectionType.Serial,
-                "UsbViaAgent"  => PrinterConnectionType.UsbViaAgent,
+                "Serial" => PrinterConnectionType.Serial,
+                "UsbViaAgent" => PrinterConnectionType.UsbViaAgent,
                 "NetworkShare" => PrinterConnectionType.NetworkShare,
-                "TcpViaAgent"  => PrinterConnectionType.TcpViaAgent,
-                _              => PrinterConnectionType.Tcp
+                "TcpViaAgent" => PrinterConnectionType.TcpViaAgent,
+                _ => PrinterConnectionType.Tcp
             };
 
             var createDto = new CreatePrinterDto
@@ -709,11 +706,11 @@ public class FiscalPrintingController(
 
             var connectionType = printer.ConnectionType switch
             {
-                PrinterConnectionType.Serial      => "Serial",
+                PrinterConnectionType.Serial => "Serial",
                 PrinterConnectionType.UsbViaAgent => "UsbViaAgent",
                 PrinterConnectionType.NetworkShare => "NetworkShare",
                 PrinterConnectionType.TcpViaAgent => "TcpViaAgent",
-                _                                 => "TCP"
+                _ => "TCP"
             };
 
             var setupDto = new FiscalPrinterSetupDto
@@ -788,11 +785,11 @@ public class FiscalPrintingController(
 
             var connectionType = setup.ConnectionType switch
             {
-                "Serial"       => PrinterConnectionType.Serial,
-                "UsbViaAgent"  => PrinterConnectionType.UsbViaAgent,
+                "Serial" => PrinterConnectionType.Serial,
+                "UsbViaAgent" => PrinterConnectionType.UsbViaAgent,
                 "NetworkShare" => PrinterConnectionType.NetworkShare,
-                "TcpViaAgent"  => PrinterConnectionType.TcpViaAgent,
-                _              => PrinterConnectionType.Tcp
+                "TcpViaAgent" => PrinterConnectionType.TcpViaAgent,
+                _ => PrinterConnectionType.Tcp
             };
 
             var updateDto = new UpdatePrinterDto

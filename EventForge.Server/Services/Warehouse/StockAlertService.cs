@@ -1,7 +1,6 @@
-using Prym.DTOs.Warehouse;
-using EventForge.Server.Services.Configuration;
 using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Warehouse;
 using System.Net;
 using System.Net.Mail;
 

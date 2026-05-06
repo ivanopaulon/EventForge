@@ -26,9 +26,15 @@ public class InstallationsController(
         var onlineIds = connectionTracker.GetOnlineInstallationIds();
         return Ok(installations.Select(i => new
         {
-            i.Id, i.Name, i.Location, i.Components,
-            i.InstalledVersionServer, i.InstalledVersionClient,
-            Status = i.Status.ToString(), i.LastSeen, i.RegisteredAt,
+            i.Id,
+            i.Name,
+            i.Location,
+            i.Components,
+            i.InstalledVersionServer,
+            i.InstalledVersionClient,
+            Status = i.Status.ToString(),
+            i.LastSeen,
+            i.RegisteredAt,
             IsConnected = onlineIds.Contains(i.Id)
         }));
     }
@@ -55,7 +61,9 @@ public class InstallationsController(
 
         return CreatedAtAction(nameof(GetAll), new { }, new
         {
-            created.Id, created.Name, ApiKey = apiKey
+            created.Id,
+            created.Name,
+            ApiKey = apiKey
         });
     }
 
@@ -201,9 +209,15 @@ public class InstallationsController(
         var pending = await installationService.GetPendingInstallsAsync();
         return Ok(pending.Select(p => new
         {
-            p.InstallationId, p.InstallationName, p.IsConnected,
-            p.HistoryId, p.PackageId, p.Component, p.Version,
-            p.IsManualInstall, p.QueuedAt
+            p.InstallationId,
+            p.InstallationName,
+            p.IsConnected,
+            p.HistoryId,
+            p.PackageId,
+            p.Component,
+            p.Version,
+            p.IsManualInstall,
+            p.QueuedAt
         }));
     }
 

@@ -16,10 +16,10 @@ public sealed class UpdateNotificationService : IUpdateNotificationService, IDis
     private readonly ILogger<UpdateNotificationService> _logger;
 
     // ── Phase name constants — must match UpdatePhase.ToString() in Prym.UpdateShared ──
-    private const string PhasePackageReceived        = "PackageReceived";
+    private const string PhasePackageReceived = "PackageReceived";
     private const string PhaseAwaitingMaintenanceWindow = "AwaitingMaintenanceWindow";
-    private const string PhaseCompleted              = "Completed";
-    private const string PhaseRollback               = "Rollback";
+    private const string PhaseCompleted = "Completed";
+    private const string PhaseRollback = "Rollback";
 
     // ── Maintenance state ────────────────────────────────────────────────────
     private bool _isServerMaintenance;

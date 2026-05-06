@@ -1,6 +1,6 @@
 using ClosedXML.Excel;
-using Prym.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 
@@ -730,7 +730,7 @@ public class StockReconciliationService(
             {
                 WarehouseId = g.Key,
                 // Lexicographically smallest Code → stable across runs
-                LocationId  = g.OrderBy(sl => sl.Code).Select(sl => sl.Id).First()
+                LocationId = g.OrderBy(sl => sl.Code).Select(sl => sl.Id).First()
             })
             .ToDictionaryAsync(g => g.WarehouseId, g => g.LocationId, cancellationToken);
 

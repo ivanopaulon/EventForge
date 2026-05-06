@@ -1,5 +1,5 @@
-using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
+using System.Text.RegularExpressions;
 
 namespace Prym.Web.Shared.Helpers;
 
@@ -11,10 +11,10 @@ namespace Prym.Web.Shared.Helpers;
 public static partial class ChatMarkdownRenderer
 {
     // Source-generated regexes (C# 12 / .NET 8+) — zero startup overhead, no JIT compilation.
-    [GeneratedRegex(@"\*\*(.+?)\*\*",                              RegexOptions.Singleline)] private static partial Regex BoldRegex();
-    [GeneratedRegex(@"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)",        RegexOptions.Singleline)] private static partial Regex ItalicRegex();
-    [GeneratedRegex(@"`([^`]+)`")]                                  private static partial Regex CodeRegex();
-    [GeneratedRegex(@"\[([^\]]+)\]\((https?://[^\s)]+)\)")]        private static partial Regex LinkRegex();
+    [GeneratedRegex(@"\*\*(.+?)\*\*", RegexOptions.Singleline)] private static partial Regex BoldRegex();
+    [GeneratedRegex(@"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", RegexOptions.Singleline)] private static partial Regex ItalicRegex();
+    [GeneratedRegex(@"`([^`]+)`")] private static partial Regex CodeRegex();
+    [GeneratedRegex(@"\[([^\]]+)\]\((https?://[^\s)]+)\)")] private static partial Regex LinkRegex();
 
     /// <summary>
     /// Converts a chat message string to a safe <see cref="MarkupString"/>.

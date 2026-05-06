@@ -29,17 +29,17 @@ public class RequestContextEnricherMiddleware(RequestDelegate next)
         {
             userName = context.User.FindFirst(ClaimTypes.Name)?.Value
                        ?? context.User.FindFirst(ClaimTypes.Email)?.Value;
-            userId   = context.User.FindFirst("user_id")?.Value
+            userId = context.User.FindFirst("user_id")?.Value
                        ?? context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             tenantId = context.User.FindFirst("tenant_id")?.Value;
         }
 
-        using (LogContext.PushProperty("CorrelationId",   correlationId))
-        using (LogContext.PushProperty("UserId",          userId))
-        using (LogContext.PushProperty("UserName",        userName))
-        using (LogContext.PushProperty("TenantId",        tenantId))
+        using (LogContext.PushProperty("CorrelationId", correlationId))
+        using (LogContext.PushProperty("UserId", userId))
+        using (LogContext.PushProperty("UserName", userName))
+        using (LogContext.PushProperty("TenantId", tenantId))
         using (LogContext.PushProperty("RemoteIpAddress", remoteIp))
-        using (LogContext.PushProperty("RequestPath",     path))
+        using (LogContext.PushProperty("RequestPath", path))
         {
             await next(context);
         }

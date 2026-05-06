@@ -23,17 +23,17 @@
 using System.ServiceProcess;
 using System.Text.RegularExpressions;
 
-const int ExitOk             = 0;
-const int ExitArgError       = 1;
-const int ExitStopTimeout    = 2;
-const int ExitCopyError      = 3;
-const int ExitStartError     = 4;
+const int ExitOk = 0;
+const int ExitArgError = 1;
+const int ExitStopTimeout = 2;
+const int ExitCopyError = 3;
+const int ExitStartError = 4;
 
 // ── Parse args ───────────────────────────────────────────────────────────────
 string? serviceName = null;
-string? sourceDir   = null;
-string? targetDir   = null;
-string? cleanupDir  = null;
+string? sourceDir = null;
+string? targetDir = null;
+string? cleanupDir = null;
 var preservePatterns = new List<string> { "appsettings.json", "appsettings.*.json", "pending.json" };
 
 for (var i = 0; i < args.Length; i++)
@@ -62,7 +62,7 @@ for (var i = 0; i < args.Length; i++)
 }
 
 if (string.IsNullOrWhiteSpace(serviceName) ||
-    string.IsNullOrWhiteSpace(sourceDir)   ||
+    string.IsNullOrWhiteSpace(sourceDir) ||
     string.IsNullOrWhiteSpace(targetDir))
 {
     Console.Error.WriteLine("Usage: Prym.Agent.Updater --service <name> --source <dir> --target <dir> [--preserve <glob>...] [--cleanup <dir>]");
@@ -139,13 +139,13 @@ try
         return false;
     }
 
-    var copied  = 0;
+    var copied = 0;
     var skipped = 0;
 
     foreach (var srcFile in Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories))
     {
         var relative = Path.GetRelativePath(sourceDir, srcFile);
-        var dstFile  = Path.Combine(targetDir, relative);
+        var dstFile = Path.Combine(targetDir, relative);
 
         var dstDir = Path.GetDirectoryName(dstFile);
         if (dstDir is not null && !Directory.Exists(dstDir))

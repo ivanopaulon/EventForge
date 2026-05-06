@@ -1,4 +1,3 @@
-using EventForge.Server.Data.Entities.Audit;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Chat;

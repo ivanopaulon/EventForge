@@ -1,5 +1,5 @@
-using Prym.DTOs.Profile;
 using MudBlazor;
+using Prym.DTOs.Profile;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 

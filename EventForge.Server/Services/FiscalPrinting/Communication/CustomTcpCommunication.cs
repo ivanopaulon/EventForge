@@ -1,7 +1,7 @@
-using System.Net.Sockets;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
 using Polly;
 using Polly.Retry;
+using System.Net.Sockets;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
 

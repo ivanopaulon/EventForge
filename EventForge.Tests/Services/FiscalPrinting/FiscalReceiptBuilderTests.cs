@@ -1,6 +1,6 @@
-using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Tests.Services.FiscalPrinting;
 
@@ -365,7 +365,11 @@ public class FiscalReceiptBuilderTests
             Payments = [new FiscalPayment { Amount = 100m, MethodCode = 1 }],
             LoyaltyData = new LoyaltyReceiptData
             {
-                HasCard = true, CardType = "Silver", CardNumber = "9876", PointsEarned = 10, CurrentBalance = 500
+                HasCard = true,
+                CardType = "Silver",
+                CardNumber = "9876",
+                PointsEarned = 10,
+                CurrentBalance = 500
             }
         };
 

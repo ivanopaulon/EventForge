@@ -1,7 +1,7 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Prym.ManagementHub.Controllers;
 
@@ -143,11 +143,11 @@ public record EnrollmentRequest(
     Guid? HintInstallationId,
     string? Location,
     InstallationComponents Components,
-    string? MachineName        = null,
-    string? OSVersion          = null,
-    string? DotNetVersion      = null,
-    string? AgentVersion       = null,
-    string? LocalIpAddress     = null,
+    string? MachineName = null,
+    string? OSVersion = null,
+    string? DotNetVersion = null,
+    string? AgentVersion = null,
+    string? LocalIpAddress = null,
     IReadOnlyList<string>? Tags = null);
 
 // Response returned to the Agent on successful enrollment

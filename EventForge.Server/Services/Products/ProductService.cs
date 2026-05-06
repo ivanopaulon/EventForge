@@ -1,9 +1,9 @@
-using Prym.DTOs.PriceHistory;
-using Prym.DTOs.Products;
 using EventForge.Server.Services.CodeGeneration;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.PriceHistory;
+using Prym.DTOs.Products;
 using EntityProductCodeStatus = EventForge.Server.Data.Entities.Products.ProductCodeStatus;
 using EntityProductStatus = EventForge.Server.Data.Entities.Products.ProductStatus;
 using EntityProductUnitStatus = EventForge.Server.Data.Entities.Products.ProductUnitStatus;
@@ -2949,21 +2949,21 @@ public class ProductService(
             {
                 try
                 {
-                    if (dto.UnitOfMeasureId.HasValue)    product.UnitOfMeasureId = dto.UnitOfMeasureId;
-                    if (dto.VatRateId.HasValue)          product.VatRateId = dto.VatRateId;
-                    if (dto.BrandId.HasValue)            product.BrandId = dto.BrandId;
-                    if (dto.ModelId.HasValue)            product.ModelId = dto.ModelId;
-                    if (dto.CategoryNodeId.HasValue)     product.CategoryNodeId = dto.CategoryNodeId;
-                    if (dto.FamilyNodeId.HasValue)       product.FamilyNodeId = dto.FamilyNodeId;
-                    if (dto.GroupNodeId.HasValue)        product.GroupNodeId = dto.GroupNodeId;
-                    if (dto.Status.HasValue)             product.Status = (Data.Entities.Products.ProductStatus)(int)dto.Status.Value;
-                    if (dto.IsVatIncluded.HasValue)      product.IsVatIncluded = dto.IsVatIncluded.Value;
-                    if (dto.ReorderPoint.HasValue)       product.ReorderPoint = dto.ReorderPoint;
-                    if (dto.SafetyStock.HasValue)        product.SafetyStock = dto.SafetyStock;
-                    if (dto.TargetStockLevel.HasValue)   product.TargetStockLevel = dto.TargetStockLevel;
+                    if (dto.UnitOfMeasureId.HasValue) product.UnitOfMeasureId = dto.UnitOfMeasureId;
+                    if (dto.VatRateId.HasValue) product.VatRateId = dto.VatRateId;
+                    if (dto.BrandId.HasValue) product.BrandId = dto.BrandId;
+                    if (dto.ModelId.HasValue) product.ModelId = dto.ModelId;
+                    if (dto.CategoryNodeId.HasValue) product.CategoryNodeId = dto.CategoryNodeId;
+                    if (dto.FamilyNodeId.HasValue) product.FamilyNodeId = dto.FamilyNodeId;
+                    if (dto.GroupNodeId.HasValue) product.GroupNodeId = dto.GroupNodeId;
+                    if (dto.Status.HasValue) product.Status = (Data.Entities.Products.ProductStatus)(int)dto.Status.Value;
+                    if (dto.IsVatIncluded.HasValue) product.IsVatIncluded = dto.IsVatIncluded.Value;
+                    if (dto.ReorderPoint.HasValue) product.ReorderPoint = dto.ReorderPoint;
+                    if (dto.SafetyStock.HasValue) product.SafetyStock = dto.SafetyStock;
+                    if (dto.TargetStockLevel.HasValue) product.TargetStockLevel = dto.TargetStockLevel;
                     if (dto.AverageDailyDemand.HasValue) product.AverageDailyDemand = dto.AverageDailyDemand;
                     if (dto.PreferredSupplierId.HasValue) product.PreferredSupplierId = dto.PreferredSupplierId;
-                    if (dto.StationId.HasValue)          product.StationId = dto.StationId;
+                    if (dto.StationId.HasValue) product.StationId = dto.StationId;
 
                     product.ModifiedAt = now;
                     product.ModifiedBy = currentUser;

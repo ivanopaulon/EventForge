@@ -1,5 +1,5 @@
-using Prym.DTOs.Warehouse;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
 
@@ -16,147 +16,147 @@ public class InventoryDiagnosticService(
         try
         {
 
-        var report = new InventoryDiagnosticReportDto
-        {
-            DocumentId = documentId,
-            AnalyzedAt = DateTime.UtcNow,
-            IsHealthy = true
-        };
-
-        // 1. Get all document rows
-        var rows = await context.DocumentRows
-            .AsNoTracking()
-            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-            .ToListAsync(cancellationToken);
-
-        report.TotalRows = rows.Count;
-
-        if (rows.Count == 0)
-        {
-            report.IsHealthy = true;
-            return report;
-        }
-
-        // 2. Check for missing ProductId or LocationId
-        var rowsWithMissingData = rows.Where(r => r.ProductId == null || r.LocationId == null).ToList();
-        report.Stats.RowsWithMissingData = rowsWithMissingData.Count;
-
-        foreach (var row in rowsWithMissingData)
-        {
-            var missingFields = new List<string>();
-            if (row.ProductId is null) missingFields.Add("ProductId");
-            if (row.LocationId is null) missingFields.Add("LocationId");
-
-            report.Issues.Add(new InventoryDiagnosticIssue
+            var report = new InventoryDiagnosticReportDto
             {
-                RowId = row.Id,
-                IssueType = "MISSING_DATA",
-                Severity = "Error",
-                Description = $"Row missing required field(s): {string.Join(", ", missingFields)}",
-                CanAutoFix = false
-            });
-            report.IsHealthy = false;
-        }
+                DocumentId = documentId,
+                AnalyzedAt = DateTime.UtcNow,
+                IsHealthy = true
+            };
 
-        // 3. Check for invalid references (non-existent products/locations)
-        var productIds = rows.Where(r => r.ProductId != null).Select(r => r.ProductId!.Value).Distinct().ToList();
-        var locationIds = rows.Where(r => r.LocationId != null).Select(r => r.LocationId!.Value).Distinct().ToList();
+            // 1. Get all document rows
+            var rows = await context.DocumentRows
+                .AsNoTracking()
+                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .ToListAsync(cancellationToken);
 
-        var existingProductIds = await context.Products
-            .AsNoTracking()
-            .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
-            .Select(p => p.Id)
-            .ToListAsync(cancellationToken);
+            report.TotalRows = rows.Count;
 
-        var existingLocationIds = await context.StorageLocations
-            .AsNoTracking()
-            .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
-            .Select(l => l.Id)
-            .ToListAsync(cancellationToken);
-
-        var missingProductIds = productIds.Except(existingProductIds).ToHashSet();
-        var missingLocationIds = locationIds.Except(existingLocationIds).ToHashSet();
-
-        foreach (var row in rows.Where(r => r.ProductId.HasValue && missingProductIds.Contains(r.ProductId.Value)))
-        {
-            report.Issues.Add(new InventoryDiagnosticIssue
+            if (rows.Count == 0)
             {
-                RowId = row.Id,
-                IssueType = "INVALID_PRODUCT_REFERENCE",
-                Severity = "Error",
-                Description = $"Row references non-existent product {row.ProductId}",
-                CanAutoFix = true
-            });
-            report.Stats.InvalidReferences++;
-            report.IsHealthy = false;
-        }
+                report.IsHealthy = true;
+                return report;
+            }
 
-        foreach (var row in rows.Where(r => r.LocationId.HasValue && missingLocationIds.Contains(r.LocationId.Value)))
-        {
-            report.Issues.Add(new InventoryDiagnosticIssue
+            // 2. Check for missing ProductId or LocationId
+            var rowsWithMissingData = rows.Where(r => r.ProductId == null || r.LocationId == null).ToList();
+            report.Stats.RowsWithMissingData = rowsWithMissingData.Count;
+
+            foreach (var row in rowsWithMissingData)
             {
-                RowId = row.Id,
-                IssueType = "INVALID_LOCATION_REFERENCE",
-                Severity = "Error",
-                Description = $"Row references non-existent location {row.LocationId}",
-                CanAutoFix = true
-            });
-            report.Stats.InvalidReferences++;
-            report.IsHealthy = false;
-        }
+                var missingFields = new List<string>();
+                if (row.ProductId is null) missingFields.Add("ProductId");
+                if (row.LocationId is null) missingFields.Add("LocationId");
 
-        // 4. Check for duplicates (same ProductId + LocationId)
-        var duplicateGroups = rows
-            .Where(r => r.ProductId != null && r.LocationId != null)
-            .GroupBy(r => new { r.ProductId, r.LocationId })
-            .Where(g => g.Count() > 1)
-            .ToList();
+                report.Issues.Add(new InventoryDiagnosticIssue
+                {
+                    RowId = row.Id,
+                    IssueType = "MISSING_DATA",
+                    Severity = "Error",
+                    Description = $"Row missing required field(s): {string.Join(", ", missingFields)}",
+                    CanAutoFix = false
+                });
+                report.IsHealthy = false;
+            }
 
-        report.Stats.DuplicateProducts = duplicateGroups.Sum(g => g.Count() - 1);
+            // 3. Check for invalid references (non-existent products/locations)
+            var productIds = rows.Where(r => r.ProductId != null).Select(r => r.ProductId!.Value).Distinct().ToList();
+            var locationIds = rows.Where(r => r.LocationId != null).Select(r => r.LocationId!.Value).Distinct().ToList();
 
-        foreach (var group in duplicateGroups)
-        {
-            foreach (var row in group.Skip(1))
+            var existingProductIds = await context.Products
+                .AsNoTracking()
+                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
+
+            var existingLocationIds = await context.StorageLocations
+                .AsNoTracking()
+                .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
+                .Select(l => l.Id)
+                .ToListAsync(cancellationToken);
+
+            var missingProductIds = productIds.Except(existingProductIds).ToHashSet();
+            var missingLocationIds = locationIds.Except(existingLocationIds).ToHashSet();
+
+            foreach (var row in rows.Where(r => r.ProductId.HasValue && missingProductIds.Contains(r.ProductId.Value)))
             {
                 report.Issues.Add(new InventoryDiagnosticIssue
                 {
                     RowId = row.Id,
-                    IssueType = "DUPLICATE_ENTRY",
-                    Severity = "Warning",
-                    Description = $"Duplicate entry for Product {row.ProductId} at Location {row.LocationId}",
+                    IssueType = "INVALID_PRODUCT_REFERENCE",
+                    Severity = "Error",
+                    Description = $"Row references non-existent product {row.ProductId}",
                     CanAutoFix = true
                 });
-            }
-            if (report.Stats.DuplicateProducts > 0)
-            {
+                report.Stats.InvalidReferences++;
                 report.IsHealthy = false;
             }
-        }
 
-        // 5. Check for negative quantities
-        var rowsWithNegativeQty = rows.Where(r => r.Quantity < 0).ToList();
-        report.Stats.NegativeQuantities = rowsWithNegativeQty.Count;
-
-        foreach (var row in rowsWithNegativeQty)
-        {
-            report.Issues.Add(new InventoryDiagnosticIssue
+            foreach (var row in rows.Where(r => r.LocationId.HasValue && missingLocationIds.Contains(r.LocationId.Value)))
             {
-                RowId = row.Id,
-                IssueType = "NEGATIVE_QUANTITY",
-                Severity = "Warning",
-                Description = $"Row has negative quantity: {row.Quantity}",
-                CanAutoFix = true
-            });
-            report.IsHealthy = false;
-        }
+                report.Issues.Add(new InventoryDiagnosticIssue
+                {
+                    RowId = row.Id,
+                    IssueType = "INVALID_LOCATION_REFERENCE",
+                    Severity = "Error",
+                    Description = $"Row references non-existent location {row.LocationId}",
+                    CanAutoFix = true
+                });
+                report.Stats.InvalidReferences++;
+                report.IsHealthy = false;
+            }
 
-        report.TotalIssues = report.Issues.Count;
+            // 4. Check for duplicates (same ProductId + LocationId)
+            var duplicateGroups = rows
+                .Where(r => r.ProductId != null && r.LocationId != null)
+                .GroupBy(r => new { r.ProductId, r.LocationId })
+                .Where(g => g.Count() > 1)
+                .ToList();
 
-        logger.LogInformation(
-            "Diagnostic completed for document {DocumentId}. Total rows: {TotalRows}, Issues: {TotalIssues}, Healthy: {IsHealthy}",
-            documentId, report.TotalRows, report.TotalIssues, report.IsHealthy);
+            report.Stats.DuplicateProducts = duplicateGroups.Sum(g => g.Count() - 1);
 
-        return report;
+            foreach (var group in duplicateGroups)
+            {
+                foreach (var row in group.Skip(1))
+                {
+                    report.Issues.Add(new InventoryDiagnosticIssue
+                    {
+                        RowId = row.Id,
+                        IssueType = "DUPLICATE_ENTRY",
+                        Severity = "Warning",
+                        Description = $"Duplicate entry for Product {row.ProductId} at Location {row.LocationId}",
+                        CanAutoFix = true
+                    });
+                }
+                if (report.Stats.DuplicateProducts > 0)
+                {
+                    report.IsHealthy = false;
+                }
+            }
+
+            // 5. Check for negative quantities
+            var rowsWithNegativeQty = rows.Where(r => r.Quantity < 0).ToList();
+            report.Stats.NegativeQuantities = rowsWithNegativeQty.Count;
+
+            foreach (var row in rowsWithNegativeQty)
+            {
+                report.Issues.Add(new InventoryDiagnosticIssue
+                {
+                    RowId = row.Id,
+                    IssueType = "NEGATIVE_QUANTITY",
+                    Severity = "Warning",
+                    Description = $"Row has negative quantity: {row.Quantity}",
+                    CanAutoFix = true
+                });
+                report.IsHealthy = false;
+            }
+
+            report.TotalIssues = report.Issues.Count;
+
+            logger.LogInformation(
+                "Diagnostic completed for document {DocumentId}. Total rows: {TotalRows}, Issues: {TotalIssues}, Healthy: {IsHealthy}",
+                documentId, report.TotalRows, report.TotalIssues, report.IsHealthy);
+
+            return report;
         }
         catch
         {

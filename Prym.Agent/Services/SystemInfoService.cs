@@ -20,9 +20,9 @@ namespace Prym.Agent.Services;
 /// </summary>
 public class SystemInfoService
 {
-    public string MachineName    { get; } = GetMachineName();
-    public string OSVersion      { get; } = GetOSVersion();
-    public string DotNetVersion  { get; } = GetDotNetVersion();
+    public string MachineName { get; } = GetMachineName();
+    public string OSVersion { get; } = GetOSVersion();
+    public string DotNetVersion { get; } = GetDotNetVersion();
 
     /// <summary>
     /// The agent machine's LAN IP address (IPv4), resolved by asking the OS

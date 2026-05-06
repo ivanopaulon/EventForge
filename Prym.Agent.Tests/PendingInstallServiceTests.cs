@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Prym.Agent.Configuration;
 using Prym.Agent.Services;
 using Prym.DTOs.Agent;
-using static Prym.Agent.Configuration.AgentOptions;
 
 namespace Prym.Agent.Tests;
 

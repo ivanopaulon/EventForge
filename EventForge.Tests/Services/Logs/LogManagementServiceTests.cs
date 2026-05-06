@@ -1,5 +1,3 @@
-using Prym.DTOs.Common;
-using Prym.DTOs.SuperAdmin;
 using EventForge.Server.Data;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.Logs;
@@ -8,6 +6,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
+using Prym.DTOs.SuperAdmin;
 
 namespace EventForge.Tests.Services.Logs;
 

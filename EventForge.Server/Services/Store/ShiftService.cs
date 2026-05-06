@@ -1,6 +1,5 @@
-using Prym.DTOs.Store;
-using EventForge.Server.Data.Entities.Store;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Store;
 
 namespace EventForge.Server.Services.Store;
 

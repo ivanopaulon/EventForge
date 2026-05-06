@@ -1,5 +1,5 @@
-using Prym.DTOs.Tenants;
 using Microsoft.JSInterop;
+using Prym.DTOs.Tenants;
 
 namespace Prym.Web.Services;
 

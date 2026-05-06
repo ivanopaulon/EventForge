@@ -1,11 +1,11 @@
-using Prym.Web.Services;
-using Prym.Web.Shared.Components.Dialogs;
-using Prym.DTOs.Products;
-using Prym.DTOs.UnitOfMeasures;
-using Prym.DTOs.VatRates;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
+using Prym.DTOs.Products;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
+using Prym.Web.Services;
+using Prym.Web.Shared.Components.Dialogs;
 
 namespace Prym.Web.Shared.Components
 {

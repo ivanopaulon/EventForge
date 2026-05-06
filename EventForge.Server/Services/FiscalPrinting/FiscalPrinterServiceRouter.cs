@@ -1,7 +1,5 @@
-using Prym.DTOs.FiscalPrinting;
-using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Server.Services.FiscalPrinting;
 

@@ -14,10 +14,10 @@ public class ReportDefinitionService(
 
     /// <inheritdoc/>
     public async Task<PagedResult<ReportListItemDto>?> GetReportsAsync(
-        string? category   = null,
+        string? category = null,
         string? searchTerm = null,
-        int     page       = 1,
-        int     pageSize   = 25,
+        int page = 1,
+        int pageSize = 25,
         CancellationToken ct = default)
     {
         try

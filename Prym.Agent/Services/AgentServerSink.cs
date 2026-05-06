@@ -2,7 +2,6 @@
 using Serilog.Core;
 using Serilog.Debugging;
 using Serilog.Events;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace Prym.Agent.Services;
@@ -23,18 +22,18 @@ namespace Prym.Agent.Services;
 /// </summary>
 public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposable
 {
-    private const int BatchSize       = 20;
-    private const int MaxQueueDepth   = 500;
-    private static readonly TimeSpan  FlushInterval = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan  HttpTimeout   = TimeSpan.FromSeconds(4);
+    private const int BatchSize = 20;
+    private const int MaxQueueDepth = 500;
+    private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan HttpTimeout = TimeSpan.FromSeconds(4);
 
-    private readonly AgentOptions       _options;
-    private readonly HttpClient         _http;
-    private readonly string             _ingestUrl;
-    private readonly string             _maintenanceSecret;
+    private readonly AgentOptions _options;
+    private readonly HttpClient _http;
+    private readonly string _ingestUrl;
+    private readonly string _maintenanceSecret;
     private readonly Queue<AgentLogEntryDto> _queue = new();
-    private readonly SemaphoreSlim      _flushSemaphore = new(1, 1);
-    private readonly Timer              _timer;
+    private readonly SemaphoreSlim _flushSemaphore = new(1, 1);
+    private readonly Timer _timer;
 
     // Internal Serilog logger used ONLY to report sink-level problems without
     // causing infinite recursion.  SelfLog writes to the standard Serilog diagnostics
@@ -54,7 +53,7 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
             ? options.Logging.ServerIngestUrl.TrimEnd('/')
             : options.Components.Server.NotificationBaseUrl?.TrimEnd('/') ?? string.Empty;
 
-        _ingestUrl         = string.IsNullOrWhiteSpace(baseUrl) ? string.Empty : $"{baseUrl}/api/v1/agent-logs/batch";
+        _ingestUrl = string.IsNullOrWhiteSpace(baseUrl) ? string.Empty : $"{baseUrl}/api/v1/agent-logs/batch";
         _maintenanceSecret = options.Components.Server.MaintenanceSecret ?? string.Empty;
 
         _timer = new Timer(_ => _ = FlushAsync(CancellationToken.None), null, FlushInterval, FlushInterval);
@@ -67,10 +66,10 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
 
         var entry = new AgentLogEntryDto
         {
-            Timestamp     = logEvent.Timestamp.UtcDateTime,
-            Level         = MapLevel(logEvent.Level),
-            Message       = logEvent.RenderMessage(),
-            Exception     = logEvent.Exception?.ToString(),
+            Timestamp = logEvent.Timestamp.UtcDateTime,
+            Level = MapLevel(logEvent.Level),
+            Message = logEvent.RenderMessage(),
+            Exception = logEvent.Exception?.ToString(),
             SourceContext = logEvent.Properties.TryGetValue("SourceContext", out var sc)
                             ? sc.ToString().Trim('"') : null
         };
@@ -133,9 +132,9 @@ public sealed class AgentServerSink : ILogEventSink, IDisposable, IAsyncDisposab
         {
             var payload = new AgentLogBatchDto
             {
-                InstallationId   = _options.InstallationId,
+                InstallationId = _options.InstallationId,
                 InstallationName = _options.InstallationName,
-                Logs             = batch
+                Logs = batch
             };
 
             using var request = new HttpRequestMessage(HttpMethod.Post, _ingestUrl)

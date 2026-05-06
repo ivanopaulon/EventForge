@@ -21,10 +21,10 @@ public sealed class AgentPrinterService(
 {
     // ── Constants ──────────────────────────────────────────────────────────────
 
-    private const string DevicePathPrefix   = @"\\.\";
-    private const int ReadBufferSize        = 4096;
-    private const int DefaultReadTimeoutMs  = 5_000;
-    private const int TcpConnectTimeoutMs   = 10_000;
+    private const string DevicePathPrefix = @"\\.\";
+    private const int ReadBufferSize = 4096;
+    private const int DefaultReadTimeoutMs = 5_000;
+    private const int TcpConnectTimeoutMs = 10_000;
 
     // ── IAgentPrinterService – USB ─────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ public sealed class AgentPrinterService(
         Parallel.For(1, 100, i =>
         {
             var suffix = $"USB{i:D3}";
-            var path   = BuildDevicePath(suffix);
+            var path = BuildDevicePath(suffix);
 
             try
             {
@@ -184,7 +184,7 @@ public sealed class AgentPrinterService(
 
             using var tcpClient = new TcpClient();
             tcpClient.ReceiveTimeout = DefaultReadTimeoutMs;
-            tcpClient.SendTimeout    = TcpConnectTimeoutMs;
+            tcpClient.SendTimeout = TcpConnectTimeoutMs;
 
             await tcpClient.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
 
@@ -407,9 +407,9 @@ public sealed class AgentPrinterService(
             Arguments = "-NoProfile -NonInteractive -Command " +
                         "\"Get-Printer | Select-Object -ExpandProperty Name\"",
             RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            UseShellExecute        = false,
-            CreateNoWindow         = true
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
 
         using var proc = System.Diagnostics.Process.Start(psi);
@@ -442,9 +442,9 @@ public sealed class AgentPrinterService(
         var psi = new System.Diagnostics.ProcessStartInfo("lpstat", "-a")
         {
             RedirectStandardOutput = true,
-            RedirectStandardError  = true,
-            UseShellExecute        = false,
-            CreateNoWindow         = true
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
 
         using var proc = System.Diagnostics.Process.Start(psi);
@@ -496,7 +496,7 @@ public sealed class AgentPrinterService(
     private static string BuildTestReceiptText(string printerName)
     {
         var now = DateTime.Now;
-        var sb  = new StringBuilder();
+        var sb = new StringBuilder();
 
         sb.AppendLine("================================");
         sb.AppendLine("       STAMPA DI PROVA");
@@ -543,17 +543,17 @@ public sealed class AgentPrinterService(
 
             var psi = new System.Diagnostics.ProcessStartInfo
             {
-                FileName  = "powershell.exe",
+                FileName = "powershell.exe",
                 Arguments = "-NoProfile -NonInteractive -Command " +
                             "\"Get-Content -Path $env:EF_PRINT_FILE -Encoding UTF8 | " +
                             "Out-Printer -Name $env:EF_PRINTER_NAME\"",
                 RedirectStandardOutput = true,
-                RedirectStandardError  = true,
-                UseShellExecute        = false,
-                CreateNoWindow         = true
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             };
-            psi.Environment["EF_PRINT_FILE"]    = tempFile;
-            psi.Environment["EF_PRINTER_NAME"]  = printerName;
+            psi.Environment["EF_PRINT_FILE"] = tempFile;
+            psi.Environment["EF_PRINTER_NAME"] = printerName;
 
             using var proc = System.Diagnostics.Process.Start(psi);
             if (proc is null) return false;
@@ -596,9 +596,9 @@ public sealed class AgentPrinterService(
             var psi = new System.Diagnostics.ProcessStartInfo("lp")
             {
                 RedirectStandardOutput = true,
-                RedirectStandardError  = true,
-                UseShellExecute        = false,
-                CreateNoWindow         = true
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
             };
             psi.ArgumentList.Add("-d");
             psi.ArgumentList.Add(printerName);

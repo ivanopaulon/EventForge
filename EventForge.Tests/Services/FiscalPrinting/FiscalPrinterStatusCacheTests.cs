@@ -1,5 +1,5 @@
-using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Tests.Services.FiscalPrinting;
 

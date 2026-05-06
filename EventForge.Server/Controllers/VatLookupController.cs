@@ -1,7 +1,7 @@
-using Prym.DTOs.External;
 using EventForge.Server.Services.External;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Prym.DTOs.External;
 
 namespace EventForge.Server.Controllers;
 

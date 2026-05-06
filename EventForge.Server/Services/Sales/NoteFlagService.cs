@@ -1,6 +1,6 @@
-using Prym.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
 

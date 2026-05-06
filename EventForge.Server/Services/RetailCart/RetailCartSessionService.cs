@@ -1,7 +1,7 @@
-using Prym.DTOs.Promotions;
-using Prym.DTOs.RetailCart;
 using EventForge.Server.Services.Promotions;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Promotions;
+using Prym.DTOs.RetailCart;
 using System.Collections.Concurrent;
 
 namespace EventForge.Server.Services.RetailCart
@@ -10,11 +10,11 @@ namespace EventForge.Server.Services.RetailCart
     /// In-memory implementation of retail cart session service.
     /// Provides tenant-aware, user-scoped cart storage with promotion integration.
     /// </summary>
-        public class RetailCartSessionService(
-        ITenantContext tenantContext,
-        IPromotionService promotionService,
-        ILogger<RetailCartSessionService> logger,
-        IMemoryCache cache) : IRetailCartSessionService
+    public class RetailCartSessionService(
+    ITenantContext tenantContext,
+    IPromotionService promotionService,
+    ILogger<RetailCartSessionService> logger,
+    IMemoryCache cache) : IRetailCartSessionService
     {
         private readonly IMemoryCache _cache = cache;
 
@@ -49,9 +49,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await MapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -65,9 +65,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await MapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> AddItemAsync(Guid sessionId, AddCartItemDto addItemDto, CancellationToken cancellationToken = default)
@@ -107,9 +107,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId, CancellationToken cancellationToken = default)
@@ -132,9 +132,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> UpdateItemQuantityAsync(Guid sessionId, Guid itemId, UpdateCartItemDto updateDto, CancellationToken cancellationToken = default)
@@ -167,9 +167,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> ApplyCouponsAsync(Guid sessionId, ApplyCouponsDto applyCouponsDto, CancellationToken cancellationToken = default)
@@ -189,9 +189,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> ClearAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -211,9 +211,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         public async Task<CartSessionDto?> GetTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -227,9 +227,9 @@ namespace EventForge.Server.Services.RetailCart
                 return await RecalculateAndMapToDto(session, cancellationToken);
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         #region Private Methods
@@ -404,6 +404,6 @@ namespace EventForge.Server.Services.RetailCart
         }
 
         #endregion
-    
+
     }
 }

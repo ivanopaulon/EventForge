@@ -1,8 +1,6 @@
-using System.Globalization;
+using Prym.DTOs.FiscalPrinting;
 using System.Text;
 using System.Xml.Linq;
-using Prym.DTOs.FiscalPrinting;
-using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
 
 namespace EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
 

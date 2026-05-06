@@ -1,5 +1,3 @@
-using Prym.DTOs.Common;
-using Prym.DTOs.PriceLists;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -7,6 +5,8 @@ using EventForge.Server.Data.Entities.PriceList;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.PriceLists;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Common;
+using Prym.DTOs.PriceLists;
 using EntityBusinessPartyType = EventForge.Server.Data.Entities.Business.BusinessPartyType;
 using EntityPriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 

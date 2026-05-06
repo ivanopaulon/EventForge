@@ -1,5 +1,3 @@
-using Prym.ManagementHub.Configuration;
-
 namespace Prym.ManagementHub.Services;
 
 /// <summary>
@@ -17,8 +15,8 @@ public static class StartupValidator
         var ok = true;
 
         // ── Required directories ──────────────────────────────────────────────
-        ok &= EnsureDirectory(options.PackageStorePath,    "PackageStorePath",    logger, required: true);
-        ok &= EnsureDirectory(options.IncomingPackagesPath,"IncomingPackagesPath",logger, required: true);
+        ok &= EnsureDirectory(options.PackageStorePath, "PackageStorePath", logger, required: true);
+        ok &= EnsureDirectory(options.IncomingPackagesPath, "IncomingPackagesPath", logger, required: true);
 
         if (!string.IsNullOrWhiteSpace(options.Logging.DirectoryPath))
             ok &= EnsureDirectory(options.Logging.DirectoryPath, "Logging.DirectoryPath", logger, required: false);

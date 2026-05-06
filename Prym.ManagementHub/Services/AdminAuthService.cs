@@ -33,7 +33,7 @@ public class AdminAuthService(ManagementHubOptions hubOptions) : IAdminAuthServi
             return false;
 
         var expected = Encoding.UTF8.GetBytes(hubOptions.AdminApiKey);
-        var actual   = Encoding.UTF8.GetBytes(supplied);
+        var actual = Encoding.UTF8.GetBytes(supplied);
 
         // FixedTimeEquals requires equal-length arrays; pad/truncate is intentionally avoided —
         // different lengths already reveal a mismatch, so we use a constant-time compare only

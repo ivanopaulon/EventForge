@@ -1,6 +1,6 @@
-using System.Text;
 using Prym.UpdateShared.Auth;
 using Prym.UpdateShared.Security;
+using System.Text;
 
 namespace Prym.Agent.Tests;
 

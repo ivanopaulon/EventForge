@@ -1,6 +1,6 @@
-using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
+using Prym.DTOs.FiscalPrinting;
 using System.Net.Sockets;
 
 namespace EventForge.Server.Services.FiscalPrinting;

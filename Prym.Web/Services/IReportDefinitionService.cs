@@ -10,10 +10,10 @@ public interface IReportDefinitionService
 {
     /// <summary>Returns a paginated list of reports.</summary>
     Task<PagedResult<ReportListItemDto>?> GetReportsAsync(
-        string? category    = null,
-        string? searchTerm  = null,
-        int     page        = 1,
-        int     pageSize    = 25,
+        string? category = null,
+        string? searchTerm = null,
+        int page = 1,
+        int pageSize = 25,
         CancellationToken ct = default);
 
     /// <summary>Returns the full report definition (including RDLC content).</summary>

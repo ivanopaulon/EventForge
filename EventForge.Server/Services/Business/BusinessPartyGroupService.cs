@@ -1,5 +1,5 @@
-using Prym.DTOs.Business;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Business;
 
 namespace EventForge.Server.Services.Business;
 

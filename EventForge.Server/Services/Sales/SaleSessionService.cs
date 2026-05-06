@@ -1,12 +1,12 @@
-using Prym.DTOs.Documents;
-using Prym.DTOs.Promotions;
-using Prym.DTOs.Sales;
 using EventForge.Server.Data.Entities.Sales;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Store;
 using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Documents;
+using Prym.DTOs.Promotions;
+using Prym.DTOs.Sales;
 
 namespace EventForge.Server.Services.Sales;
 

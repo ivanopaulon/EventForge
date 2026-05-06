@@ -1,6 +1,4 @@
-using EventForge.Server.Data.Entities.Reports;
 using Microsoft.EntityFrameworkCore;
-using Prym.DTOs.Common;
 using Prym.DTOs.Reports;
 
 namespace EventForge.Server.Services.Reports;
@@ -19,10 +17,10 @@ public class ReportDefinitionService(
 
     /// <inheritdoc/>
     public async Task<PagedResult<ReportListItemDto>> GetReportsAsync(
-        string? category    = null,
-        string? searchTerm  = null,
-        int     page        = 1,
-        int     pageSize    = 25,
+        string? category = null,
+        string? searchTerm = null,
+        int page = 1,
+        int pageSize = 25,
         CancellationToken ct = default)
     {
         var tenantId = GetTenantIdOrThrow();
@@ -51,25 +49,25 @@ public class ReportDefinitionService(
             .Take(pageSize)
             .Select(r => new ReportListItemDto
             {
-                Id              = r.Id,
-                Name            = r.Name,
-                Description     = r.Description,
-                Category        = r.Category,
-                HasDesign       = r.ReportContent != null && r.ReportContent.Length > 0,
-                IsPublic        = r.IsPublic,
-                IsActive        = r.IsActive,
-                CreatedAt       = r.CreatedAt,
-                CreatedBy       = r.CreatedBy,
-                ModifiedAt      = r.ModifiedAt,
+                Id = r.Id,
+                Name = r.Name,
+                Description = r.Description,
+                Category = r.Category,
+                HasDesign = r.ReportContent != null && r.ReportContent.Length > 0,
+                IsPublic = r.IsPublic,
+                IsActive = r.IsActive,
+                CreatedAt = r.CreatedAt,
+                CreatedBy = r.CreatedBy,
+                ModifiedAt = r.ModifiedAt,
                 DataSourceCount = r.DataSources.Count(ds => !ds.IsDeleted),
             })
             .ToListAsync(ct);
 
         return new PagedResult<ReportListItemDto>
         {
-            Items      = items,
-            Page       = page,
-            PageSize   = pageSize,
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
             TotalCount = totalCount,
         };
     }
@@ -90,28 +88,28 @@ public class ReportDefinitionService(
     /// <inheritdoc/>
     public async Task<ReportDefinitionDto> CreateReportAsync(CreateReportDto dto, CancellationToken ct = default)
     {
-        var tenantId  = GetTenantIdOrThrow();
+        var tenantId = GetTenantIdOrThrow();
         var createdBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
         var report = new ReportDefinition
         {
-            TenantId    = tenantId,
-            Name        = dto.Name.Trim(),
+            TenantId = tenantId,
+            Name = dto.Name.Trim(),
             Description = dto.Description?.Trim(),
-            Category    = dto.Category?.Trim(),
-            IsPublic    = dto.IsPublic,
-            CreatedBy   = createdBy,
+            Category = dto.Category?.Trim(),
+            IsPublic = dto.IsPublic,
+            CreatedBy = createdBy,
         };
 
         foreach (var dsDto in dto.DataSources)
         {
             report.DataSources.Add(new ReportDataSource
             {
-                TenantId       = tenantId,
+                TenantId = tenantId,
                 DataSourceName = dsDto.DataSourceName.Trim(),
-                EntityType     = dsDto.EntityType.Trim(),
-                Description    = dsDto.Description?.Trim(),
-                CreatedBy      = createdBy,
+                EntityType = dsDto.EntityType.Trim(),
+                Description = dsDto.Description?.Trim(),
+                CreatedBy = createdBy,
             });
         }
 
@@ -127,7 +125,7 @@ public class ReportDefinitionService(
     /// <inheritdoc/>
     public async Task<ReportDefinitionDto?> UpdateReportAsync(Guid id, UpdateReportDto dto, CancellationToken ct = default)
     {
-        var tenantId   = GetTenantIdOrThrow();
+        var tenantId = GetTenantIdOrThrow();
         var modifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
         var report = await context.ReportDefinitions
@@ -136,13 +134,13 @@ public class ReportDefinitionService(
 
         if (report is null) return null;
 
-        report.Name        = dto.Name.Trim();
+        report.Name = dto.Name.Trim();
         report.Description = dto.Description?.Trim();
-        report.Category    = dto.Category?.Trim();
-        report.IsPublic    = dto.IsPublic;
-        report.IsActive    = dto.IsActive;
-        report.ModifiedAt  = DateTime.UtcNow;
-        report.ModifiedBy  = modifiedBy;
+        report.Category = dto.Category?.Trim();
+        report.IsPublic = dto.IsPublic;
+        report.IsActive = dto.IsActive;
+        report.ModifiedAt = DateTime.UtcNow;
+        report.ModifiedBy = modifiedBy;
 
         // Update RDLC content only when the caller explicitly passes a value
         if (dto.ReportContent is not null)
@@ -158,7 +156,7 @@ public class ReportDefinitionService(
     /// <inheritdoc/>
     public async Task<bool> SaveReportContentAsync(Guid id, string rdlcContent, CancellationToken ct = default)
     {
-        var tenantId   = GetTenantIdOrThrow();
+        var tenantId = GetTenantIdOrThrow();
         var modifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
         var report = await context.ReportDefinitions
@@ -167,8 +165,8 @@ public class ReportDefinitionService(
         if (report is null) return false;
 
         report.ReportContent = rdlcContent;
-        report.ModifiedAt    = DateTime.UtcNow;
-        report.ModifiedBy    = modifiedBy;
+        report.ModifiedAt = DateTime.UtcNow;
+        report.ModifiedBy = modifiedBy;
 
         await context.SaveChangesAsync(ct);
 
@@ -179,18 +177,18 @@ public class ReportDefinitionService(
     /// <inheritdoc/>
     public async Task<bool> DeleteReportAsync(Guid id, CancellationToken ct = default)
     {
-        var tenantId   = GetTenantIdOrThrow();
-        var deletedBy  = tenantContext.CurrentUserId?.ToString() ?? "System";
+        var tenantId = GetTenantIdOrThrow();
+        var deletedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
 
         var report = await context.ReportDefinitions
             .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == tenantId && !r.IsDeleted, ct);
 
         if (report is null) return false;
 
-        report.IsDeleted  = true;
-        report.IsActive   = false;
-        report.DeletedBy  = deletedBy;
-        report.DeletedAt  = DateTime.UtcNow;
+        report.IsDeleted = true;
+        report.IsActive = false;
+        report.DeletedBy = deletedBy;
+        report.DeletedAt = DateTime.UtcNow;
         await context.SaveChangesAsync(ct);
 
         logger.LogInformation("Deleted ReportDefinition {ReportId} for tenant {TenantId}", id, tenantId);
@@ -215,24 +213,24 @@ public class ReportDefinitionService(
 
     /// <inheritdoc/>
     public async Task<object> GetDataSourceDataAsync(
-        string    entityType,
+        string entityType,
         DateTime? dateFrom = null,
-        DateTime? dateTo   = null,
+        DateTime? dateTo = null,
         CancellationToken ct = default)
     {
         var tenantId = GetTenantIdOrThrow();
-        var from     = dateFrom ?? DateTime.UtcNow.AddMonths(-12);
-        var to       = dateTo   ?? DateTime.UtcNow;
+        var from = dateFrom ?? DateTime.UtcNow.AddMonths(-12);
+        var to = dateTo ?? DateTime.UtcNow;
 
         return entityType switch
         {
             ReportDataSourceEntityTypes.DocumentHeaders => await GetDocumentHeadersDataAsync(tenantId, from, to, ct),
-            ReportDataSourceEntityTypes.DocumentRows    => await GetDocumentRowsDataAsync(tenantId, from, to, ct),
-            ReportDataSourceEntityTypes.Products        => await GetProductsDataAsync(tenantId, ct),
+            ReportDataSourceEntityTypes.DocumentRows => await GetDocumentRowsDataAsync(tenantId, from, to, ct),
+            ReportDataSourceEntityTypes.Products => await GetProductsDataAsync(tenantId, ct),
             ReportDataSourceEntityTypes.BusinessParties => await GetBusinessPartiesDataAsync(tenantId, ct),
-            ReportDataSourceEntityTypes.Sales           => await GetSalesDataAsync(tenantId, from, to, ct),
-            ReportDataSourceEntityTypes.Warehouse       => await GetWarehouseDataAsync(tenantId, ct),
-            ReportDataSourceEntityTypes.Fiscal          => await GetFiscalDataAsync(tenantId, from, to, ct),
+            ReportDataSourceEntityTypes.Sales => await GetSalesDataAsync(tenantId, from, to, ct),
+            ReportDataSourceEntityTypes.Warehouse => await GetWarehouseDataAsync(tenantId, ct),
+            ReportDataSourceEntityTypes.Fiscal => await GetFiscalDataAsync(tenantId, from, to, ct),
             _ => throw new ArgumentException($"Unknown entity type: {entityType}", nameof(entityType)),
         };
     }
@@ -247,24 +245,24 @@ public class ReportDefinitionService(
 
     private static ReportDefinitionDto MapToDto(ReportDefinition r) => new()
     {
-        Id            = r.Id,
-        TenantId      = r.TenantId,
-        Name          = r.Name,
-        Description   = r.Description,
-        Category      = r.Category,
+        Id = r.Id,
+        TenantId = r.TenantId,
+        Name = r.Name,
+        Description = r.Description,
+        Category = r.Category,
         ReportContent = r.ReportContent,
-        IsPublic      = r.IsPublic,
-        IsActive      = r.IsActive,
-        CreatedAt     = r.CreatedAt,
-        CreatedBy     = r.CreatedBy,
-        ModifiedAt    = r.ModifiedAt,
-        ModifiedBy    = r.ModifiedBy,
-        DataSources   = r.DataSources.Select(ds => new ReportDataSourceDto
+        IsPublic = r.IsPublic,
+        IsActive = r.IsActive,
+        CreatedAt = r.CreatedAt,
+        CreatedBy = r.CreatedBy,
+        ModifiedAt = r.ModifiedAt,
+        ModifiedBy = r.ModifiedBy,
+        DataSources = r.DataSources.Select(ds => new ReportDataSourceDto
         {
-            Id             = ds.Id,
+            Id = ds.Id,
             DataSourceName = ds.DataSourceName,
-            EntityType     = ds.EntityType,
-            Description    = ds.Description,
+            EntityType = ds.EntityType,
+            Description = ds.Description,
         }).ToList(),
     };
 
@@ -282,11 +280,11 @@ public class ReportDefinitionService(
                 dh.Id,
                 dh.Number,
                 dh.Date,
-                TotalAmount      = dh.TotalNetAmount,
-                GrossAmount      = dh.TotalGrossAmount,
-                TotalDiscount    = dh.TotalDiscount,
+                TotalAmount = dh.TotalNetAmount,
+                GrossAmount = dh.TotalGrossAmount,
+                TotalDiscount = dh.TotalDiscount,
                 BusinessPartyName = dh.BusinessParty != null ? dh.BusinessParty.Name : null,
-                DocumentTypeName  = dh.DocumentType  != null ? dh.DocumentType.Name  : null,
+                DocumentTypeName = dh.DocumentType != null ? dh.DocumentType.Name : null,
                 dh.Status,
                 dh.CreatedAt,
             })
@@ -313,7 +311,7 @@ public class ReportDefinitionService(
                 dr.Description,
                 dr.Quantity,
                 dr.UnitPrice,
-                LineTotal        = dr.UnitPrice * dr.Quantity,
+                LineTotal = dr.UnitPrice * dr.Quantity,
                 dr.LineDiscountValue,
                 DocumentDate = dr.DocumentHeader != null ? dr.DocumentHeader.Date : (DateTime?)null,
                 dr.CreatedAt,
@@ -358,7 +356,7 @@ public class ReportDefinitionService(
                 bp.Name,
                 FiscalCode = bp.TaxCode,
                 bp.VatNumber,
-                PartyType  = bp.PartyType.ToString(),
+                PartyType = bp.PartyType.ToString(),
                 bp.IsActive,
                 bp.CreatedAt,
             })
@@ -379,7 +377,7 @@ public class ReportDefinitionService(
             {
                 ss.Id,
                 TotalAmount = ss.FinalTotal,
-                Status      = ss.Status.ToString(),
+                Status = ss.Status.ToString(),
                 ss.CreatedAt,
                 ss.ClosedAt,
             })
@@ -399,8 +397,8 @@ public class ReportDefinitionService(
             {
                 se.Id,
                 se.ProductId,
-                LocationId  = se.StorageLocationId,
-                Quantity    = se.Quantity,
+                LocationId = se.StorageLocationId,
+                Quantity = se.Quantity,
                 ReservedQty = se.ReservedQuantity,
                 se.ReorderPoint,
                 se.LastMovementDate,
@@ -422,7 +420,7 @@ public class ReportDefinitionService(
             .Select(dcr => new
             {
                 dcr.Id,
-                ClosureDate    = dcr.ClosedAt,
+                ClosureDate = dcr.ClosedAt,
                 dcr.TotalAmount,
                 dcr.ZReportNumber,
                 dcr.ReceiptCount,

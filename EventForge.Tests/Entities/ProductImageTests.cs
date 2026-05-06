@@ -1,6 +1,6 @@
-using Prym.DTOs.Common;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Data.Entities.Teams;
+using Prym.DTOs.Common;
 
 namespace EventForge.Tests.Entities;
 

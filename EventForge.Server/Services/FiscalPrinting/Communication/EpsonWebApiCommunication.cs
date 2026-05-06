@@ -1,5 +1,5 @@
-using System.Text;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
+using System.Text;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
 

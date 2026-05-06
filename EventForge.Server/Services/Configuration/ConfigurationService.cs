@@ -433,8 +433,8 @@ public class ConfigurationService(
     {
         var key = DeriveEncryptionKey();
         var nonce = new byte[AesGcm.NonceByteSizes.MaxSize];   // 12 bytes
-        var tag   = new byte[AesGcm.TagByteSizes.MaxSize];    // 16 bytes
-        var plaintext  = System.Text.Encoding.UTF8.GetBytes(value);
+        var tag = new byte[AesGcm.TagByteSizes.MaxSize];    // 16 bytes
+        var plaintext = System.Text.Encoding.UTF8.GetBytes(value);
         var ciphertext = new byte[plaintext.Length];
 
         RandomNumberGenerator.Fill(nonce);
@@ -445,7 +445,7 @@ public class ConfigurationService(
         // Format: nonce(12) + tag(16) + ciphertext — all Base64-encoded with prefix
         var blob = new byte[nonce.Length + tag.Length + ciphertext.Length];
         Buffer.BlockCopy(nonce, 0, blob, 0, nonce.Length);
-        Buffer.BlockCopy(tag,   0, blob, nonce.Length, tag.Length);
+        Buffer.BlockCopy(tag, 0, blob, nonce.Length, tag.Length);
         Buffer.BlockCopy(ciphertext, 0, blob, nonce.Length + tag.Length, ciphertext.Length);
 
         return AesPrefix + Convert.ToBase64String(blob);
@@ -469,14 +469,14 @@ public class ConfigurationService(
 
         try
         {
-            var blob  = Convert.FromBase64String(encryptedValue[AesPrefix.Length..]);
+            var blob = Convert.FromBase64String(encryptedValue[AesPrefix.Length..]);
             var nonceSize = AesGcm.NonceByteSizes.MaxSize;  // 12
-            var tagSize   = AesGcm.TagByteSizes.MaxSize;    // 16
+            var tagSize = AesGcm.TagByteSizes.MaxSize;    // 16
 
-            var nonce      = blob[..nonceSize];
-            var tag        = blob[nonceSize..(nonceSize + tagSize)];
+            var nonce = blob[..nonceSize];
+            var tag = blob[nonceSize..(nonceSize + tagSize)];
             var ciphertext = blob[(nonceSize + tagSize)..];
-            var plaintext  = new byte[ciphertext.Length];
+            var plaintext = new byte[ciphertext.Length];
 
             var key = DeriveEncryptionKey();
             using var aes = new AesGcm(key, tagSize);

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.SignalR.Client;
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
@@ -155,12 +154,12 @@ public class AgentWorker(
                     : Guid.Parse(options.InstallationId),
                 Location = options.Location,
                 Components = (int)MapComponents(),
-                MachineName   = systemInfo.MachineName,
-                OSVersion     = systemInfo.OSVersion,
+                MachineName = systemInfo.MachineName,
+                OSVersion = systemInfo.OSVersion,
                 DotNetVersion = systemInfo.DotNetVersion,
-                AgentVersion  = versionDetector.GetAgentVersion(),
+                AgentVersion = versionDetector.GetAgentVersion(),
                 LocalIpAddress = systemInfo.LocalIpAddress,
-                Tags          = options.Tags
+                Tags = options.Tags
             };
 
             var response = await http.PostAsJsonAsync(enrollUrl, body, ct);
@@ -260,10 +259,10 @@ public class AgentWorker(
         var client = options.Components.Client.Enabled;
         var result = (server, client) switch
         {
-            (true, true)  => 3,  // Both
+            (true, true) => 3,  // Both
             (true, false) => 1,  // Server
             (false, true) => 2,  // Client
-            _             => 0   // Neither
+            _ => 0   // Neither
         };
         if (result == 0 && !options.StandaloneMode)
             logger.LogWarning(
@@ -660,22 +659,22 @@ public class AgentWorker(
         agentStatus.LastKnownClientVersion = clientVerTask.Result ?? agentStatus.LastKnownClientVersion;
 
         await _connection.InvokeAsync("RegisterInstallation", new RegisterInstallationMessage(
-            InstallationId:   options.InstallationId,
+            InstallationId: options.InstallationId,
             InstallationName: options.InstallationName,
-            VersionServer:    serverVerTask.Result,
-            VersionClient:    clientVerTask.Result,
-            Components:       new InstallationComponentsDto(
+            VersionServer: serverVerTask.Result,
+            VersionClient: clientVerTask.Result,
+            Components: new InstallationComponentsDto(
                                   options.Components.Server.Enabled,
                                   options.Components.Client.Enabled),
             InstallationCode: options.InstallationCode,
-            Location:         options.Location,
-            Tags:             options.Tags.Count > 0 ? options.Tags : null,
-            MachineName:      systemInfo.MachineName,
-            OSVersion:        systemInfo.OSVersion,
-            DotNetVersion:    systemInfo.DotNetVersion,
-            AgentVersion:     versionDetector.GetAgentVersion(),
-            LocalIpAddress:   systemInfo.LocalIpAddress,
-            PublicIpAddress:  await systemInfo.GetPublicIpAddressAsync()),
+            Location: options.Location,
+            Tags: options.Tags.Count > 0 ? options.Tags : null,
+            MachineName: systemInfo.MachineName,
+            OSVersion: systemInfo.OSVersion,
+            DotNetVersion: systemInfo.DotNetVersion,
+            AgentVersion: versionDetector.GetAgentVersion(),
+            LocalIpAddress: systemInfo.LocalIpAddress,
+            PublicIpAddress: await systemInfo.GetPublicIpAddressAsync()),
             ct);
     }
 
@@ -683,23 +682,23 @@ public class AgentWorker(
     {
         if (_connection?.State != HubConnectionState.Connected) return;
 
-        var serverVerTask  = versionDetector.GetServerVersionAsync();
-        var clientVerTask  = versionDetector.GetClientVersionAsync();
-        var publicIpTask   = systemInfo.GetPublicIpAddressAsync();
+        var serverVerTask = versionDetector.GetServerVersionAsync();
+        var clientVerTask = versionDetector.GetClientVersionAsync();
+        var publicIpTask = systemInfo.GetPublicIpAddressAsync();
         await Task.WhenAll(serverVerTask, clientVerTask, publicIpTask);
 
         agentStatus.LastKnownServerVersion = serverVerTask.Result ?? agentStatus.LastKnownServerVersion;
         agentStatus.LastKnownClientVersion = clientVerTask.Result ?? agentStatus.LastKnownClientVersion;
 
         await _connection.InvokeAsync("Heartbeat", new HeartbeatMessage(
-            InstallationId:  options.InstallationId,
-            VersionServer:   serverVerTask.Result,
-            VersionClient:   clientVerTask.Result,
-            Status:          "Online",
-            Timestamp:       DateTime.UtcNow,
-            AgentVersion:    versionDetector.GetAgentVersion(),
-            Location:        options.Location,
-            Tags:            options.Tags.Count > 0 ? options.Tags : null,
+            InstallationId: options.InstallationId,
+            VersionServer: serverVerTask.Result,
+            VersionClient: clientVerTask.Result,
+            Status: "Online",
+            Timestamp: DateTime.UtcNow,
+            AgentVersion: versionDetector.GetAgentVersion(),
+            Location: options.Location,
+            Tags: options.Tags.Count > 0 ? options.Tags : null,
             PublicIpAddress: publicIpTask.Result),
             ct);
 
@@ -781,7 +780,7 @@ public class AgentWorker(
                 marker.HistoryId,
                 UpdatePhase.Completed.ToString(),
                 IsCompleted: true,
-                IsSuccess:   isSuccess,
+                IsSuccess: isSuccess,
                 ErrorMessage: isSuccess
                     ? null
                     : $"Versione Agent dopo self-update non corrispondente: attesa {marker.NewVersion}, in esecuzione {runningSemVer}");

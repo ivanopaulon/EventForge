@@ -11,9 +11,9 @@ namespace Prym.UpdateShared.Security;
 public static class PasswordHasher
 {
     private const int Iterations = 100_000;
-    private const int KeyLength  = 32; // 256 bits
+    private const int KeyLength = 32; // 256 bits
     private const int SaltLength = 16; // 128 bits
-    private const string Prefix  = "v1:";
+    private const string Prefix = "v1:";
 
     /// <summary>Returns <see langword="true"/> if <paramref name="stored"/> looks like a hashed value.</summary>
     public static bool IsHashed(string stored) =>
@@ -42,14 +42,14 @@ public static class PasswordHasher
         if (!stored.StartsWith(Prefix, StringComparison.Ordinal))
             return password == stored;
 
-        var rest  = stored[Prefix.Length..];
+        var rest = stored[Prefix.Length..];
         var colon = rest.IndexOf(':');
         if (colon < 0) return false;
 
         byte[] salt, expectedHash;
         try
         {
-            salt         = Convert.FromBase64String(rest[..colon]);
+            salt = Convert.FromBase64String(rest[..colon]);
             expectedHash = Convert.FromBase64String(rest[(colon + 1)..]);
         }
         catch (FormatException)

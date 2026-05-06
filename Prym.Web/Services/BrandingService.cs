@@ -1,5 +1,5 @@
-using Prym.DTOs.Configuration;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Configuration;
 
 namespace Prym.Web.Services;
 

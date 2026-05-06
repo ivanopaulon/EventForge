@@ -1,4 +1,3 @@
-using Prym.DTOs.Common;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Documents;
@@ -8,6 +7,7 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
 using Address = EventForge.Server.Data.Entities.Common.Address;
 using Contact = EventForge.Server.Data.Entities.Common.Contact;
 using PriceList = EventForge.Server.Data.Entities.PriceList.PriceList;

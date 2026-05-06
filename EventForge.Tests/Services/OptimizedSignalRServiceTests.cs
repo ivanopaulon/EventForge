@@ -1,8 +1,8 @@
-using Prym.Web.Services;
-using Prym.DTOs.Chat;
-using Prym.DTOs.Notifications;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Chat;
+using Prym.DTOs.Notifications;
+using Prym.Web.Services;
 using System.Reflection;
 
 namespace EventForge.Tests.Services;

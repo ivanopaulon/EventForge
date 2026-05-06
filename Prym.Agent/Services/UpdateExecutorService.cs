@@ -1,10 +1,8 @@
-﻿using System.Buffers;
+﻿using Prym.Agent.Extensions;
+using System.Buffers;
 using System.IO.Compression;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
-using Prym.Agent.Extensions;
 
 namespace Prym.Agent.Services;
 
@@ -221,10 +219,10 @@ public class UpdateExecutorService(
     public async Task InstallFromZipAsync(StartUpdateCommand command, string zipPath, CancellationToken ct)
     {
         var isServer = command.Component.Equals("Server", StringComparison.OrdinalIgnoreCase);
-        var isAgent  = command.Component.Equals("Agent",  StringComparison.OrdinalIgnoreCase);
+        var isAgent = command.Component.Equals("Agent", StringComparison.OrdinalIgnoreCase);
         var deployPath = isServer ? options.Components.Server.DeployPath : options.Components.Client.DeployPath;
-        var workDir   = ResolveAndEnsureDir(options.WorkPath);
-        var tempDir   = Path.Combine(workDir, $"ef-update-{command.PackageId:N}");
+        var workDir = ResolveAndEnsureDir(options.WorkPath);
+        var tempDir = Path.Combine(workDir, $"ef-update-{command.PackageId:N}");
         string? backupPath = null;
         // When true the finally block must not delete tempDir (Updater still needs it).
         var keepTempForUpdater = false;
@@ -312,11 +310,11 @@ public class UpdateExecutorService(
                                 $"--target \"{installDir.TrimEnd(Path.DirectorySeparatorChar)}\" " +
                                 $"{preserveArgs} " +
                                 $"--cleanup \"{tempDir}\"",
-                    UseShellExecute      = false,
-                    CreateNoWindow       = true,
-                    WorkingDirectory     = installDir,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = installDir,
                     RedirectStandardOutput = false,
-                    RedirectStandardError  = false
+                    RedirectStandardError = false
                 };
 
                 var updaterProcess = System.Diagnostics.Process.Start(psi)
@@ -611,7 +609,7 @@ public class UpdateExecutorService(
                     long resumeFrom = File.Exists(tmpPath) ? new FileInfo(tmpPath).Length : 0;
 
                     using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(options.DownloadTimeoutMinutes));
-                    using var linkedCts  = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+                    using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
 
                     using var request = CreateRequest(resumeFrom);
                     using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, linkedCts.Token);
@@ -672,61 +670,61 @@ public class UpdateExecutorService(
         var buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         try
         {
-        long written  = append ? resumeFrom : 0;
-        var lastLocalReport  = DateTime.UtcNow;
-        var lastServerNotify = DateTime.UtcNow;
-        int bytesRead;
+            long written = append ? resumeFrom : 0;
+            var lastLocalReport = DateTime.UtcNow;
+            var lastServerNotify = DateTime.UtcNow;
+            int bytesRead;
 
-        while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
-        {
-            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
-            written += bytesRead;
-
-            var now = DateTime.UtcNow;
-
-            if ((now - lastLocalReport).TotalMilliseconds >= 300)
+            while ((bytesRead = await responseStream.ReadAsync(buffer.AsMemory(0, bufferSize), ct)) > 0)
             {
-                downloadProgress.Update(packageId, written, totalBytes);
-                lastLocalReport = now;
-            }
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), ct);
+                written += bytesRead;
 
-            // Forward progress to the Server every 500 ms — near-real-time for the client dialog.
-            if ((now - lastServerNotify).TotalMilliseconds >= 500)
-            {
-                lastServerNotify = now;
-                var snap = downloadProgress.Current;
-                if (snap is not null)
+                var now = DateTime.UtcNow;
+
+                if ((now - lastLocalReport).TotalMilliseconds >= 300)
                 {
-                    var detail = snap.TotalBytes.HasValue
-                        ? $"{snap.FormattedDownloaded} / {snap.FormattedTotal}  {snap.FormattedSpeed}"
-                        : snap.FormattedDownloaded ?? string.Empty;
-                    _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
-                        percentComplete: snap.PercentComplete,
-                        formattedDownloaded: snap.FormattedDownloaded,
-                        formattedTotal: snap.TotalBytes.HasValue ? snap.FormattedTotal : null,
-                        formattedSpeed: snap.FormattedSpeed,
-                        eta: snap.Eta?.ToString(@"mm\:ss"),
-                        isManualInstall: command.IsManualInstall,
-                        packageId: command.PackageId,
-                        detail: detail);
+                    downloadProgress.Update(packageId, written, totalBytes);
+                    lastLocalReport = now;
+                }
+
+                // Forward progress to the Server every 500 ms — near-real-time for the client dialog.
+                if ((now - lastServerNotify).TotalMilliseconds >= 500)
+                {
+                    lastServerNotify = now;
+                    var snap = downloadProgress.Current;
+                    if (snap is not null)
+                    {
+                        var detail = snap.TotalBytes.HasValue
+                            ? $"{snap.FormattedDownloaded} / {snap.FormattedTotal}  {snap.FormattedSpeed}"
+                            : snap.FormattedDownloaded ?? string.Empty;
+                        _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+                            percentComplete: snap.PercentComplete,
+                            formattedDownloaded: snap.FormattedDownloaded,
+                            formattedTotal: snap.TotalBytes.HasValue ? snap.FormattedTotal : null,
+                            formattedSpeed: snap.FormattedSpeed,
+                            eta: snap.Eta?.ToString(@"mm\:ss"),
+                            isManualInstall: command.IsManualInstall,
+                            packageId: command.PackageId,
+                            detail: detail);
+                    }
                 }
             }
-        }
 
-        // Final local + server update
-        downloadProgress.Update(packageId, written, totalBytes);
-        var finalSnap = downloadProgress.Current;
-        if (finalSnap is not null)
-            _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
-                percentComplete: 100,
-                formattedDownloaded: finalSnap.FormattedDownloaded,
-                formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null,
-                formattedSpeed: finalSnap.FormattedSpeed,
-                isManualInstall: command.IsManualInstall,
-                packageId: command.PackageId,
-                detail: finalSnap.TotalBytes.HasValue
-                    ? $"Download completato: {finalSnap.FormattedTotal}"
-                    : "Download completato");
+            // Final local + server update
+            downloadProgress.Update(packageId, written, totalBytes);
+            var finalSnap = downloadProgress.Current;
+            if (finalSnap is not null)
+                _ = NotifyPhaseAsync(command, UpdatePhase.Downloading.ToString(),
+                    percentComplete: 100,
+                    formattedDownloaded: finalSnap.FormattedDownloaded,
+                    formattedTotal: finalSnap.TotalBytes.HasValue ? finalSnap.FormattedTotal : null,
+                    formattedSpeed: finalSnap.FormattedSpeed,
+                    isManualInstall: command.IsManualInstall,
+                    packageId: command.PackageId,
+                    detail: finalSnap.TotalBytes.HasValue
+                        ? $"Download completato: {finalSnap.FormattedTotal}"
+                        : "Download completato");
         }
         finally
         {
@@ -769,7 +767,7 @@ public class UpdateExecutorService(
             throw new InvalidOperationException($"Checksum mismatch. Expected: {expectedChecksum} Actual: {actual}");
     }
 
-    private static readonly JsonSerializerOptions _manifestOpts    = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _manifestOpts = new() { PropertyNameCaseInsensitive = true };
     private static readonly JsonSerializerOptions _writeIndentOpts = new() { WriteIndented = true };
 
     private static async Task<UpdateManifest> LoadManifestAsync(string extractedPath)
@@ -840,10 +838,10 @@ public class UpdateExecutorService(
     private static async Task MergeJsonFilesAsync(string templatePath, string targetPath, CancellationToken ct)
     {
         var templateJson = await File.ReadAllTextAsync(templatePath, ct);
-        var targetJson   = await File.ReadAllTextAsync(targetPath, ct);
+        var targetJson = await File.ReadAllTextAsync(targetPath, ct);
 
         using var templateDoc = JsonDocument.Parse(templateJson);
-        using var targetDoc   = JsonDocument.Parse(targetJson);
+        using var targetDoc = JsonDocument.Parse(targetJson);
 
         var merged = MergeJsonElements(targetDoc.RootElement, templateDoc.RootElement);
 
@@ -893,15 +891,15 @@ public class UpdateExecutorService(
 
     private static object? JsonElementToObject(JsonElement element) => element.ValueKind switch
     {
-        JsonValueKind.Object  => element.EnumerateObject()
+        JsonValueKind.Object => element.EnumerateObject()
                                         .ToDictionary(p => p.Name, p => JsonElementToObject(p.Value),
                                                       StringComparer.Ordinal),
-        JsonValueKind.Array   => element.EnumerateArray().Select(JsonElementToObject).ToList(),
-        JsonValueKind.String  => element.GetString(),
-        JsonValueKind.Number  => element.TryGetInt64(out var l) ? (object?)l : element.GetDouble(),
-        JsonValueKind.True    => true,
-        JsonValueKind.False   => false,
-        _                     => null
+        JsonValueKind.Array => element.EnumerateArray().Select(JsonElementToObject).ToList(),
+        JsonValueKind.String => element.GetString(),
+        JsonValueKind.Number => element.TryGetInt64(out var l) ? (object?)l : element.GetDouble(),
+        JsonValueKind.True => true,
+        JsonValueKind.False => false,
+        _ => null
     };
 
     private async Task VerifyDeployAsync(string deployPath, StartUpdateCommand command, CancellationToken ct)
@@ -949,8 +947,8 @@ public class UpdateExecutorService(
             return;
         }
 
-        var maxAttempts   = options.Install.HealthCheckMaxAttempts;
-        var delayMs       = options.Install.HealthCheckDelaySeconds * 1_000;
+        var maxAttempts = options.Install.HealthCheckMaxAttempts;
+        var delayMs = options.Install.HealthCheckDelaySeconds * 1_000;
         // Cap individual health-check requests to the configured delay + 5 s to avoid hanging forever.
         var requestTimeout = TimeSpan.FromMilliseconds(delayMs + 5_000);
 

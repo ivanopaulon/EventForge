@@ -54,39 +54,39 @@ public class GlobalExceptionHandlerMiddleware
         var userName = context.User?.Identity?.IsAuthenticated == true
             ? context.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
             : null;
-        var userId   = context.User?.FindFirst("user_id")?.Value;
+        var userId = context.User?.FindFirst("user_id")?.Value;
         var tenantId = context.User?.FindFirst("tenant_id")?.Value;
 
         switch (exception)
         {
             case ValidationException validationEx:
-            {
-                var errorsByField = validationEx.Errors
-                    .GroupBy(e => e.PropertyName)
-                    .ToDictionary(
-                        g => g.Key,
-                        g => g.Select(e => new { e.ErrorMessage, e.AttemptedValue, e.ErrorCode }).ToArray()
-                    );
+                {
+                    var errorsByField = validationEx.Errors
+                        .GroupBy(e => e.PropertyName)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(e => new { e.ErrorMessage, e.AttemptedValue, e.ErrorCode }).ToArray()
+                        );
 
-                _logger.LogWarning(
-                    "Validation failed for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
-                    "Errors: {@ValidationErrors}",
-                    method, path, queryString, exceptionType,
-                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
-                    errorsByField);
-                break;
-            }
+                    _logger.LogWarning(
+                        "Validation failed for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
+                        "Errors: {@ValidationErrors}",
+                        method, path, queryString, exceptionType,
+                        userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
+                        errorsByField);
+                    break;
+                }
 
             case BusinessValidationException businessEx:
-            {
-                _logger.LogWarning(
-                    "Business validation failed for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
-                    "ErrorCode: {ErrorCode}, Message: {Message}, Errors: {@ValidationErrors}",
-                    method, path, queryString, exceptionType,
-                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
-                    businessEx.ErrorCode, businessEx.Message, businessEx.ValidationErrors);
-                break;
-            }
+                {
+                    _logger.LogWarning(
+                        "Business validation failed for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. " +
+                        "ErrorCode: {ErrorCode}, Message: {Message}, Errors: {@ValidationErrors}",
+                        method, path, queryString, exceptionType,
+                        userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId,
+                        businessEx.ErrorCode, businessEx.Message, businessEx.ValidationErrors);
+                    break;
+                }
 
             case NotFoundException notFoundEx:
                 _logger.LogWarning(

@@ -1,11 +1,11 @@
-using Prym.Web.Services;
-using Prym.Web.Services.Sales;
-using Prym.Web.Services.Store;
 using Prym.DTOs.Business;
 using Prym.DTOs.Constants;
 using Prym.DTOs.Products;
 using Prym.DTOs.Sales;
 using Prym.DTOs.Store;
+using Prym.Web.Services;
+using Prym.Web.Services.Sales;
+using Prym.Web.Services.Store;
 using Timer = System.Timers.Timer;
 
 namespace Prym.Web.ViewModels;

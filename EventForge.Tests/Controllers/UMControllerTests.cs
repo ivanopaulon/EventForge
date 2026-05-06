@@ -1,9 +1,7 @@
-using Prym.DTOs.Common;
-using Prym.DTOs.UnitOfMeasures;
 using EventForge.Server.Controllers;
+using EventForge.Server.Services.Common;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Export;
-using EventForge.Server.Services.Common;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Promotions;
@@ -14,6 +12,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
+using Prym.DTOs.UnitOfMeasures;
 
 namespace EventForge.Tests.Controllers;
 

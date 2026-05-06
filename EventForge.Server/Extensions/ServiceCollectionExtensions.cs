@@ -18,6 +18,7 @@ using EventForge.Server.Services.Licensing;
 using EventForge.Server.Services.Logging;
 using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
+using EventForge.Server.Services.PaymentTerminal;
 using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.PriceLists.Strategies;
@@ -28,7 +29,6 @@ using EventForge.Server.Services.RetailCart;
 using EventForge.Server.Services.Sales;
 using EventForge.Server.Services.Station;
 using EventForge.Server.Services.Store;
-using EventForge.Server.Services.PaymentTerminal;
 using EventForge.Server.Services.Teams;
 using EventForge.Server.Services.UnitOfMeasures;
 using EventForge.Server.Services.VatRates;
@@ -283,7 +283,7 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(3);
 
             var username = cfg["Agent:Username"] ?? string.Empty;
-            var password  = cfg["Agent:Password"]  ?? string.Empty;
+            var password = cfg["Agent:Password"] ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
             {
                 var encoded = Convert.ToBase64String(

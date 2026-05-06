@@ -1,8 +1,8 @@
-using Prym.DTOs.PriceHistory;
 using EventForge.Server.Filters;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Prym.DTOs.PriceHistory;
 
 namespace EventForge.Server.Controllers;
 

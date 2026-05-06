@@ -1,7 +1,7 @@
-using Prym.DTOs.Notifications;
 using EventForge.Server.Services.Notifications;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Prym.DTOs.Notifications;
 using System.Security.Claims;
 
 namespace EventForge.Server.Hubs;

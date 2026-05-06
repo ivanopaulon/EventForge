@@ -24,10 +24,10 @@ public class ReportDataSourceDto
 public static class ReportDataSourceEntityTypes
 {
     public const string DocumentHeaders = "DocumentHeaders";
-    public const string DocumentRows    = "DocumentRows";
-    public const string Products        = "Products";
+    public const string DocumentRows = "DocumentRows";
+    public const string Products = "Products";
     public const string BusinessParties = "BusinessParties";
-    public const string Sales           = "Sales";
-    public const string Warehouse       = "Warehouse";
-    public const string Fiscal          = "Fiscal";
+    public const string Sales = "Sales";
+    public const string Warehouse = "Warehouse";
+    public const string Fiscal = "Fiscal";
 }

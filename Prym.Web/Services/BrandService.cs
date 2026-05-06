@@ -1,7 +1,7 @@
-using Prym.Web.Helpers;
+using Microsoft.Extensions.Caching.Memory;
 using Prym.DTOs.Common;
 using Prym.DTOs.Products;
-using Microsoft.Extensions.Caching.Memory;
+using Prym.Web.Helpers;
 using System.Net;
 
 namespace Prym.Web.Services;

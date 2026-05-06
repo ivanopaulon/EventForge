@@ -156,4 +156,4 @@ public class LogManagementService(
 
         return string.Join("&", queryItems);
     }
-    }
+}

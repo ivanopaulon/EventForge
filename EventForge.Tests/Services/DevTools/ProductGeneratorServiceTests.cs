@@ -1,9 +1,9 @@
-using Prym.DTOs.DevTools;
 using EventForge.Server.Data;
 using EventForge.Server.Services.DevTools;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Prym.DTOs.DevTools;
 
 namespace EventForge.Tests.Services.DevTools;
 

@@ -1,9 +1,9 @@
-using Prym.DTOs.Products;
-using Prym.DTOs.UnitOfMeasures;
-using Prym.DTOs.VatRates;
 using Microsoft.Extensions.Caching.Memory;
 using Polly;
 using Polly.Retry;
+using Prym.DTOs.Products;
+using Prym.DTOs.UnitOfMeasures;
+using Prym.DTOs.VatRates;
 
 namespace Prym.Web.Services;
 

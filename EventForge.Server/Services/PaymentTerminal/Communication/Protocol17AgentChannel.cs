@@ -1,6 +1,5 @@
 using Prym.Hardware.Interfaces;
 using Prym.Hardware.PrinterProxy;
-using System.Net.Http.Json;
 
 namespace EventForge.Server.Services.PaymentTerminal.Communication;
 

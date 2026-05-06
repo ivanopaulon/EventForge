@@ -40,16 +40,16 @@ internal static class BoldReportsJsonHelper
 
         return element.ValueKind switch
         {
-            JsonValueKind.String  => element.GetString() ?? string.Empty,
-            JsonValueKind.True    => true,
-            JsonValueKind.False   => false,
-            JsonValueKind.Null    => string.Empty,
-            JsonValueKind.Number  => element.TryGetInt64(out var l)  ? (object)l
+            JsonValueKind.String => element.GetString() ?? string.Empty,
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => string.Empty,
+            JsonValueKind.Number => element.TryGetInt64(out var l) ? (object)l
                                    : element.TryGetDouble(out var d) ? (object)d
                                    : element.GetRawText(),
-            JsonValueKind.Array   => ConvertArray(element),
-            JsonValueKind.Object  => ConvertObject(element),
-            _                     => element.GetRawText(),
+            JsonValueKind.Array => ConvertArray(element),
+            JsonValueKind.Object => ConvertObject(element),
+            _ => element.GetRawText(),
         };
     }
 

@@ -1,5 +1,3 @@
-using System.Net.Http.Json;
-
 namespace Prym.ManagementHub.Hubs;
 
 /// <summary>
@@ -83,18 +81,18 @@ public class AgentHub(
             await installationService.UpdateRegistrationInfoAsync(
                 installationId.Value,
                 new RegistrationInfo(
-                    Name:           msg.InstallationName,
-                    Location:       msg.Location,
-                    VersionServer:  msg.VersionServer,
-                    VersionClient:  msg.VersionClient,
-                    MachineName:    msg.MachineName,
-                    OSVersion:      msg.OSVersion,
-                    DotNetVersion:  msg.DotNetVersion,
-                    AgentVersion:   msg.AgentVersion,
-                    IpAddress:      ip,
+                    Name: msg.InstallationName,
+                    Location: msg.Location,
+                    VersionServer: msg.VersionServer,
+                    VersionClient: msg.VersionClient,
+                    MachineName: msg.MachineName,
+                    OSVersion: msg.OSVersion,
+                    DotNetVersion: msg.DotNetVersion,
+                    AgentVersion: msg.AgentVersion,
+                    IpAddress: ip,
                     LocalIpAddress: msg.LocalIpAddress,
-                    Tags:           msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
-                    Status:         InstallationStatus.Online));
+                    Tags: msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                    Status: InstallationStatus.Online));
 
             logger.LogInformation(
                 "Installation registered: {Name} Machine={Machine} OS={OS} Agent={AgentVer} IP={IP}",
@@ -130,18 +128,18 @@ public class AgentHub(
             await installationService.UpdateRegistrationInfoAsync(
                 installationId.Value,
                 new RegistrationInfo(
-                    Name:           null,
-                    Location:       msg.Location,
-                    VersionServer:  msg.VersionServer,
-                    VersionClient:  msg.VersionClient,
-                    MachineName:    null,
-                    OSVersion:      null,
-                    DotNetVersion:  null,
-                    AgentVersion:   msg.AgentVersion,
-                    IpAddress:      ip,
+                    Name: null,
+                    Location: msg.Location,
+                    VersionServer: msg.VersionServer,
+                    VersionClient: msg.VersionClient,
+                    MachineName: null,
+                    OSVersion: null,
+                    DotNetVersion: null,
+                    AgentVersion: msg.AgentVersion,
+                    IpAddress: ip,
                     LocalIpAddress: null,
-                    Tags:           msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
-                    Status:         status));
+                    Tags: msg.Tags is { Count: > 0 } t ? string.Join(",", t) : null,
+                    Status: status));
 
             logger.LogDebug("Heartbeat from Installation={InstallationId} Status={Status}", installationId, msg.Status);
         }
@@ -294,11 +292,11 @@ public class AgentHub(
 
         var payload = new
         {
-            phase       = "progress",
+            phase = "progress",
             currentPhase,
-            component   = pkgInfo?.Component?.ToString(),
-            version     = pkgInfo?.Version,
-            detail      = msg.IsCompleted && !msg.IsSuccess ? msg.ErrorMessage : null
+            component = pkgInfo?.Component?.ToString(),
+            version = pkgInfo?.Version,
+            detail = msg.IsCompleted && !msg.IsSuccess ? msg.ErrorMessage : null
         };
 
         try

@@ -1,9 +1,9 @@
-using Prym.Web.Helpers;
+using Microsoft.Extensions.Caching.Memory;
 using Prym.DTOs.Banks;
 using Prym.DTOs.Business;
 using Prym.DTOs.Common;
 using Prym.DTOs.VatRates;
-using Microsoft.Extensions.Caching.Memory;
+using Prym.Web.Helpers;
 
 namespace Prym.Web.Services
 {

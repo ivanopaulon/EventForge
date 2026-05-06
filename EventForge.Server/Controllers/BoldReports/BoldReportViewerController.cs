@@ -1,4 +1,3 @@
-using BoldReports.Web;
 using BoldReports.Web.ReportViewer;
 using EventForge.Server.Helpers;
 using EventForge.Server.Services.Reports;

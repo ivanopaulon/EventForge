@@ -3,7 +3,6 @@ using EventForge.Server.Data.Entities.Calendar;
 using EventForge.Server.Data.Entities.Chat;
 using EventForge.Server.Data.Entities.Notifications;
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Data.Entities.Store;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;

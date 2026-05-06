@@ -1,7 +1,3 @@
-using Prym.DTOs.Audit;
-using Prym.DTOs.Common;
-using Prym.DTOs.PriceLists;
-using Prym.DTOs.SuperAdmin;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Services.Audit;
@@ -9,6 +5,10 @@ using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.UnitOfMeasures;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Prym.DTOs.Audit;
+using Prym.DTOs.Common;
+using Prym.DTOs.PriceLists;
+using Prym.DTOs.SuperAdmin;
 
 namespace EventForge.Tests.Services.PriceLists;
 

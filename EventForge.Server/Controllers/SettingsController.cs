@@ -1,9 +1,9 @@
-using Prym.DTOs.Settings;
 using EventForge.Server.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Settings;
 using System.Diagnostics;
 using System.Text.Json;
 using SystemFile = System.IO.File;

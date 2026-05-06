@@ -1,5 +1,5 @@
-using Prym.Web.Services.Store;
 using Prym.DTOs.PaymentTerminal;
+using Prym.Web.Services.Store;
 
 namespace Prym.Web.ViewModels;
 

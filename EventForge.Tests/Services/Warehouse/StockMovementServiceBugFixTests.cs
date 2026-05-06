@@ -1,4 +1,3 @@
-using Prym.DTOs.Warehouse;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Data.Entities.Warehouse;
@@ -8,6 +7,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Tests.Services.Warehouse;
 

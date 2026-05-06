@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 
 namespace Prym.ManagementHub.Controllers;
 
@@ -118,7 +118,7 @@ public class PackagesController(
         if (pkg is null) return NotFound();
 
         var storeRoot = Path.GetFullPath(PackageStorePath);
-        var fullPath  = Path.GetFullPath(Path.Combine(PackageStorePath, pkg.FilePath));
+        var fullPath = Path.GetFullPath(Path.Combine(PackageStorePath, pkg.FilePath));
 
         // Guard against path traversal in FilePath stored in the database.
         if (!IsPathWithin(fullPath, storeRoot))
@@ -156,8 +156,15 @@ public class PackagesController(
         var packages = await packageService.GetByStatusAsync(PackageStatus.ReadyToDeploy);
         return Ok(packages.Select(p => new
         {
-            p.Id, p.Version, p.Component, p.ReleaseNotes,
-            p.Checksum, p.FileSizeBytes, p.UploadedAt, p.Status, p.GitCommit
+            p.Id,
+            p.Version,
+            p.Component,
+            p.ReleaseNotes,
+            p.Checksum,
+            p.FileSizeBytes,
+            p.UploadedAt,
+            p.Status,
+            p.GitCommit
         }));
     }
 

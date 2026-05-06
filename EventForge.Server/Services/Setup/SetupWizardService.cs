@@ -1,6 +1,6 @@
-using Prym.DTOs.Setup;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Setup;
 using System.Reflection;
 using System.Text.Json;
 

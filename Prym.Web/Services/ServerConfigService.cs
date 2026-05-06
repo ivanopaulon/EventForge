@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.JSInterop;
 
 namespace Prym.Web.Services;

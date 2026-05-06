@@ -1,10 +1,10 @@
-using Prym.DTOs.Health;
 using EventForge.Server.Controllers;
 using EventForge.Server.Data;
 using EventForge.Server.Services.Setup;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Health;
 
 namespace EventForge.Tests;
 

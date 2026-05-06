@@ -1,8 +1,8 @@
-using Prym.Web.Services;
-using Prym.DTOs.Common;
-using Prym.DTOs.Warehouse;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
+using Prym.DTOs.Warehouse;
+using Prym.Web.Services;
 
 namespace EventForge.Tests.Services;
 

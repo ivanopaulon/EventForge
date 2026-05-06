@@ -1,5 +1,5 @@
-using Prym.DTOs.Warehouse;
 using EventForge.Server.Data.Entities.Products;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Tests.Services;
 

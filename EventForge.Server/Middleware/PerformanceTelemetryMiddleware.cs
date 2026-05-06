@@ -74,7 +74,7 @@ public class PerformanceTelemetryMiddleware
                 var userName = context.User?.Identity?.IsAuthenticated == true
                     ? context.User.FindFirst(ClaimTypes.Name)?.Value
                     : null;
-                var userId   = context.User?.FindFirst("user_id")?.Value;
+                var userId = context.User?.FindFirst("user_id")?.Value;
                 var tenantId = context.User?.FindFirst("tenant_id")?.Value;
 
                 // Very slow requests (>2000ms by default)
@@ -96,7 +96,7 @@ public class PerformanceTelemetryMiddleware
                 var userName = context.User?.Identity?.IsAuthenticated == true
                     ? context.User.FindFirst(ClaimTypes.Name)?.Value
                     : null;
-                var userId   = context.User?.FindFirst("user_id")?.Value;
+                var userId = context.User?.FindFirst("user_id")?.Value;
                 var tenantId = context.User?.FindFirst("tenant_id")?.Value;
 
                 // Slow requests (>200ms by default)

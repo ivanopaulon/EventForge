@@ -1,5 +1,5 @@
-using Prym.DTOs.Common;
 using Microsoft.JSInterop;
+using Prym.DTOs.Common;
 using System.Net.Http.Json;
 using System.Text.Json;
 

@@ -15,10 +15,10 @@ public enum PresenceStatus { Online, Away, Busy, Offline }
 /// </summary>
 public sealed class MessageEntry
 {
-    public required string Text        { get; init; }
-    public bool            IsMe        { get; init; }
-    public required string SenderName  { get; init; }
-    public required string Time        { get; init; }
+    public required string Text { get; init; }
+    public bool IsMe { get; init; }
+    public required string SenderName { get; init; }
+    public required string Time { get; init; }
 }
 
 /// <summary>
@@ -26,16 +26,16 @@ public sealed class MessageEntry
 /// </summary>
 public sealed class ConversationItem
 {
-    public Guid              Id           { get; init; }
-    public required string   Name         { get; init; }
-    public required string   Initials     { get; init; }
-    public required string   AvatarColor  { get; init; }
-    public MessagingChannel  Channel      { get; init; }
-    public PresenceStatus    Presence     { get; set;  }
-    public required string   LastMessage  { get; set;  }
-    public required string   LastTime     { get; set;  }
-    public int               UnreadCount  { get; set;  }
-    public List<MessageEntry> Messages    { get; init; } = [];
+    public Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required string Initials { get; init; }
+    public required string AvatarColor { get; init; }
+    public MessagingChannel Channel { get; init; }
+    public PresenceStatus Presence { get; set; }
+    public required string LastMessage { get; set; }
+    public required string LastTime { get; set; }
+    public int UnreadCount { get; set; }
+    public List<MessageEntry> Messages { get; init; } = [];
 }
 
 /// <summary>
@@ -43,14 +43,14 @@ public sealed class ConversationItem
 /// </summary>
 public sealed class ContactItem
 {
-    public Guid             Id          { get; init; }
-    public required string  Name        { get; init; }
-    public required string  Initials    { get; init; }
-    public required string  AvatarColor { get; init; }
-    public MessagingChannel Channel     { get; init; }
-    public PresenceStatus   Presence    { get; init; }
+    public Guid Id { get; init; }
+    public required string Name { get; init; }
+    public required string Initials { get; init; }
+    public required string AvatarColor { get; init; }
+    public MessagingChannel Channel { get; init; }
+    public PresenceStatus Presence { get; init; }
     /// <summary>Role/department — for internal users only.</summary>
-    public string?          Role        { get; init; }
+    public string? Role { get; init; }
     /// <summary>Phone number — for WhatsApp contacts only.</summary>
-    public string?          Phone       { get; init; }
+    public string? Phone { get; init; }
 }

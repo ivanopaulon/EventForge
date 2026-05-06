@@ -1,6 +1,6 @@
+using Prym.Agent.Services;
 using System.IO.Compression;
 using System.Security;
-using Prym.Agent.Services;
 
 namespace Prym.Agent.Tests;
 

@@ -1,6 +1,6 @@
-using Prym.Web.Services.Sales;
 using Prym.DTOs.Common;
 using Prym.DTOs.Sales;
+using Prym.Web.Services.Sales;
 
 namespace Prym.Web.Shared.Management.Adapters;
 

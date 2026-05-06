@@ -1,9 +1,9 @@
-using Prym.Web.Services;
-using Prym.Web.ViewModels;
-using Prym.DTOs.Common;
-using Prym.DTOs.VatRates;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
+using Prym.DTOs.VatRates;
+using Prym.Web.Services;
+using Prym.Web.ViewModels;
 
 namespace EventForge.Tests.ViewModels;
 

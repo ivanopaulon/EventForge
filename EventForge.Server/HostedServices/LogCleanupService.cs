@@ -1,5 +1,4 @@
 using Dapper;
-using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -40,10 +39,10 @@ public class LogCleanupService : BackgroundService
     private readonly IHubContext<AppHub> _hubContext;
 
     // Defaults used when no SystemConfiguration row exists
-    private const string DefaultCron             = "0 2 * * *";
-    private const int    DefaultRetention        = 30;
-    private const bool   DefaultBackup           = true;
-    private const bool   DefaultAbortOnFailure   = true;
+    private const string DefaultCron = "0 2 * * *";
+    private const int DefaultRetention = 30;
+    private const bool DefaultBackup = true;
+    private const bool DefaultAbortOnFailure = true;
 
     public LogCleanupService(
         IServiceProvider serviceProvider,
@@ -51,10 +50,10 @@ public class LogCleanupService : BackgroundService
         IConfiguration configuration,
         IHubContext<AppHub> hubContext)
     {
-        _serviceProvider  = serviceProvider;
-        _logger           = logger;
-        _configuration    = configuration;
-        _hubContext        = hubContext;
+        _serviceProvider = serviceProvider;
+        _logger = logger;
+        _configuration = configuration;
+        _hubContext = hubContext;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -65,9 +64,9 @@ public class LogCleanupService : BackgroundService
         {
             // Re-read the cron expression on every iteration so config changes are
             // picked up without a restart.
-            var cronExpr  = await ReadConfigAsync("Logging.CleanupCron", DefaultCron, stoppingToken);
-            var schedule  = CrontabSchedule.Parse(cronExpr);
-            var nextRun   = schedule.GetNextOccurrence(DateTime.UtcNow);
+            var cronExpr = await ReadConfigAsync("Logging.CleanupCron", DefaultCron, stoppingToken);
+            var schedule = CrontabSchedule.Parse(cronExpr);
+            var nextRun = schedule.GetNextOccurrence(DateTime.UtcNow);
 
             _logger.LogInformation("LogCleanupService: next cleanup scheduled at {NextRun} UTC (cron: {Cron})",
                 nextRun, cronExpr);
@@ -100,13 +99,13 @@ public class LogCleanupService : BackgroundService
 
         try
         {
-            var retentionDaysStr   = await ReadConfigAsync("Logging.RetentionDays",        DefaultRetention.ToString(),      cancellationToken);
-            var retentionDays      = int.TryParse(retentionDaysStr, out var d) ? d : DefaultRetention;
-            var backupEnabledStr   = await ReadConfigAsync("Logging.BackupEnabled",         DefaultBackup.ToString(),         cancellationToken);
-            var backupEnabled      = !string.Equals(backupEnabledStr, "false", StringComparison.OrdinalIgnoreCase);
-            var abortOnFailureStr  = await ReadConfigAsync("Logging.BackupAbortOnFailure",  DefaultAbortOnFailure.ToString(), cancellationToken);
-            var abortOnFailure     = !string.Equals(abortOnFailureStr, "false", StringComparison.OrdinalIgnoreCase);
-            var backupDirectory    = await ReadConfigAsync("Logging.BackupDirectory",       string.Empty,                     cancellationToken);
+            var retentionDaysStr = await ReadConfigAsync("Logging.RetentionDays", DefaultRetention.ToString(), cancellationToken);
+            var retentionDays = int.TryParse(retentionDaysStr, out var d) ? d : DefaultRetention;
+            var backupEnabledStr = await ReadConfigAsync("Logging.BackupEnabled", DefaultBackup.ToString(), cancellationToken);
+            var backupEnabled = !string.Equals(backupEnabledStr, "false", StringComparison.OrdinalIgnoreCase);
+            var abortOnFailureStr = await ReadConfigAsync("Logging.BackupAbortOnFailure", DefaultAbortOnFailure.ToString(), cancellationToken);
+            var abortOnFailure = !string.Equals(abortOnFailureStr, "false", StringComparison.OrdinalIgnoreCase);
+            var backupDirectory = await ReadConfigAsync("Logging.BackupDirectory", string.Empty, cancellationToken);
 
             var cutoffDate = DateTime.UtcNow.AddDays(-retentionDays);
 
@@ -117,11 +116,11 @@ public class LogCleanupService : BackgroundService
             // ── Notify SuperAdmin clients that cleanup is about to start ─────
             await BroadcastToSuperAdminAsync(AppHub.LogCleanupStarted, new
             {
-                RetentionDays    = retentionDays,
-                CutoffDate       = cutoffDate,
-                BackupEnabled    = backupEnabled,
-                AbortOnFailure   = abortOnFailure,
-                StartedAt        = startedAt
+                RetentionDays = retentionDays,
+                CutoffDate = cutoffDate,
+                BackupEnabled = backupEnabled,
+                AbortOnFailure = abortOnFailure,
+                StartedAt = startedAt
             }, cancellationToken);
 
             // ── Optional backup before deletion ─────────────────────────────
@@ -130,10 +129,10 @@ public class LogCleanupService : BackgroundService
             {
                 await BroadcastToSuperAdminAsync(AppHub.LogCleanupPhaseChanged, new
                 {
-                    Phase           = "Backup",
-                    Detail          = "Creazione backup in corso…",
+                    Phase = "Backup",
+                    Detail = "Creazione backup in corso…",
                     BackupSucceeded = (bool?)null,
-                    ChangedAt       = DateTime.UtcNow
+                    ChangedAt = DateTime.UtcNow
                 }, cancellationToken);
 
                 backupFilePath = await CreateLogBackupAsync(cutoffDate, backupDirectory, cancellationToken);
@@ -146,29 +145,29 @@ public class LogCleanupService : BackgroundService
 
                     await BroadcastToSuperAdminAsync(AppHub.LogCleanupCompleted, new
                     {
-                        Success      = false,
+                        Success = false,
                         TotalDeleted = 0,
-                        Error        = abortReason,
-                        CompletedAt  = DateTime.UtcNow
+                        Error = abortReason,
+                        CompletedAt = DateTime.UtcNow
                     }, cancellationToken);
 
                     // Record the aborted run in operation log
                     try
                     {
-                        using var scope   = _serviceProvider.CreateScope();
-                        var dbContext     = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
+                        using var scope = _serviceProvider.CreateScope();
+                        var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
                         dbContext.SystemOperationLogs.Add(new SystemOperationLog
                         {
                             OperationType = "Maintenance",
-                            Operation     = "LogCleanup",
-                            Category      = "Maintenance",
-                            Severity      = "Error",
-                            Status        = "Aborted",
-                            Action        = "Delete",
-                            Details       = abortReason,
-                            CreatedAt     = DateTime.UtcNow,
-                            ExecutedAt    = DateTime.UtcNow,
-                            ExecutedBy    = "System"
+                            Operation = "LogCleanup",
+                            Category = "Maintenance",
+                            Severity = "Error",
+                            Status = "Aborted",
+                            Action = "Delete",
+                            Details = abortReason,
+                            CreatedAt = DateTime.UtcNow,
+                            ExecutedAt = DateTime.UtcNow,
+                            ExecutedBy = "System"
                         });
                         await dbContext.SaveChangesAsync(CancellationToken.None);
                     }
@@ -186,10 +185,10 @@ public class LogCleanupService : BackgroundService
             // phase regardless of whether backup was enabled.
             await BroadcastToSuperAdminAsync(AppHub.LogCleanupPhaseChanged, new
             {
-                Phase           = "Deleting",
-                Detail          = "Eliminazione log in corso…",
+                Phase = "Deleting",
+                Detail = "Eliminazione log in corso…",
                 BackupSucceeded = backupEnabled ? (bool?)(backupFilePath is not null) : null,
-                ChangedAt       = DateTime.UtcNow
+                ChangedAt = DateTime.UtcNow
             }, cancellationToken);
 
             // ── EF-managed tables ────────────────────────────────────────────
@@ -238,17 +237,17 @@ public class LogCleanupService : BackgroundService
             // ── Notify SuperAdmin clients that cleanup completed ──────────────
             await BroadcastToSuperAdminAsync(AppHub.LogCleanupCompleted, new
             {
-                Success           = true,
-                TotalDeleted      = totalDeleted,
-                LoginAudits       = deletedLoginAudits,
-                AuditTrails       = deletedAuditTrails,
-                OperationLogs     = deletedOperationLogs,
-                PerformanceLogs   = deletedPerformanceLogs,
-                SerilogLogs       = deletedSerilogLogs,
-                RetentionDays     = retentionDays,
-                BackupFile        = backupFilePath ?? "none",
-                ElapsedSeconds    = elapsedSeconds,
-                CompletedAt       = DateTime.UtcNow
+                Success = true,
+                TotalDeleted = totalDeleted,
+                LoginAudits = deletedLoginAudits,
+                AuditTrails = deletedAuditTrails,
+                OperationLogs = deletedOperationLogs,
+                PerformanceLogs = deletedPerformanceLogs,
+                SerilogLogs = deletedSerilogLogs,
+                RetentionDays = retentionDays,
+                BackupFile = backupFilePath ?? "none",
+                ElapsedSeconds = elapsedSeconds,
+                CompletedAt = DateTime.UtcNow
             }, cancellationToken);
 
             // ── Audit record for the cleanup itself ──────────────────────────
@@ -259,18 +258,18 @@ public class LogCleanupService : BackgroundService
                 dbContext.SystemOperationLogs.Add(new SystemOperationLog
                 {
                     OperationType = "Maintenance",
-                    Operation     = "LogCleanup",
-                    Category      = "Maintenance",
-                    Severity      = "Information",
-                    Status        = "Success",
-                    Action        = "Delete",
-                    Details       = $"Deleted {totalDeleted} log entries older than {retentionDays} days. " +
+                    Operation = "LogCleanup",
+                    Category = "Maintenance",
+                    Severity = "Information",
+                    Status = "Success",
+                    Action = "Delete",
+                    Details = $"Deleted {totalDeleted} log entries older than {retentionDays} days. " +
                                     $"LoginAudits={deletedLoginAudits}, AuditTrails={deletedAuditTrails}, " +
                                     $"OperationLogs={deletedOperationLogs}, PerformanceLogs={deletedPerformanceLogs}, " +
                                     $"SerilogLogs={deletedSerilogLogs}. BackupFile={backupFilePath ?? "none"}",
-                    CreatedAt     = DateTime.UtcNow,
-                    ExecutedAt    = DateTime.UtcNow,
-                    ExecutedBy    = "System"
+                    CreatedAt = DateTime.UtcNow,
+                    ExecutedAt = DateTime.UtcNow,
+                    ExecutedBy = "System"
                 });
 
                 await dbContext.SaveChangesAsync(cancellationToken);
@@ -289,10 +288,10 @@ public class LogCleanupService : BackgroundService
             {
                 await BroadcastToSuperAdminAsync(AppHub.LogCleanupCompleted, new
                 {
-                    Success      = false,
+                    Success = false,
                     TotalDeleted = 0,
-                    Error        = ex.Message,
-                    CompletedAt  = DateTime.UtcNow
+                    Error = ex.Message,
+                    CompletedAt = DateTime.UtcNow
                 }, CancellationToken.None);
             }
             catch { /* best-effort — do not mask original exception */ }
@@ -306,15 +305,15 @@ public class LogCleanupService : BackgroundService
                 dbContext.SystemOperationLogs.Add(new SystemOperationLog
                 {
                     OperationType = "Maintenance",
-                    Operation     = "LogCleanup",
-                    Category      = "Maintenance",
-                    Severity      = "Error",
-                    Status        = "Failed",
-                    Action        = "Delete",
-                    Details       = $"Cleanup failed: {ex.Message}",
-                    CreatedAt     = DateTime.UtcNow,
-                    ExecutedAt    = DateTime.UtcNow,
-                    ExecutedBy    = "System"
+                    Operation = "LogCleanup",
+                    Category = "Maintenance",
+                    Severity = "Error",
+                    Status = "Failed",
+                    Action = "Delete",
+                    Details = $"Cleanup failed: {ex.Message}",
+                    CreatedAt = DateTime.UtcNow,
+                    ExecutedAt = DateTime.UtcNow,
+                    ExecutedBy = "System"
                 });
 
                 await dbContext.SaveChangesAsync(CancellationToken.None);
@@ -375,14 +374,14 @@ public class LogCleanupService : BackgroundService
         try
         {
             using var scope = _serviceProvider.CreateScope();
-            var dbContext   = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
-            var env         = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+            var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
+            var env = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
 
-            var timestamp  = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-            var baseDir    = !string.IsNullOrWhiteSpace(configuredDirectory)
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+            var baseDir = !string.IsNullOrWhiteSpace(configuredDirectory)
                 ? configuredDirectory
                 : Path.Combine(env.ContentRootPath, "Backups");
-            var backupDir  = Path.Combine(baseDir, $"LogBackup_{timestamp}");
+            var backupDir = Path.Combine(baseDir, $"LogBackup_{timestamp}");
             Directory.CreateDirectory(backupDir);
 
             var options = new JsonSerializerOptions { WriteIndented = false };
@@ -476,8 +475,8 @@ public class LogCleanupService : BackgroundService
     {
         try
         {
-            using var scope   = _serviceProvider.CreateScope();
-            var dbContext     = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
+            using var scope = _serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<EventForgeDbContext>();
 
             var row = await dbContext.SystemConfigurations
                 .AsNoTracking()

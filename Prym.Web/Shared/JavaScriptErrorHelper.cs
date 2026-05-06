@@ -1,6 +1,6 @@
-using Prym.Web.Services;
 using Microsoft.JSInterop;
 using MudBlazor;
+using Prym.Web.Services;
 
 namespace Prym.Web.Shared
 {

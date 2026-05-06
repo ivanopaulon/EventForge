@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Prym.Agent.Services;
+using System.Text.Json;
 
 namespace Prym.Agent.Tests;
 
@@ -15,7 +15,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void ExistingKey_TargetValuePreserved()
     {
-        var target   = Parse("""{ "key": "target-value" }""");
+        var target = Parse("""{ "key": "target-value" }""");
         var template = Parse("""{ "key": "template-value" }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -26,7 +26,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void ExistingNumericKey_TargetValuePreserved()
     {
-        var target   = Parse("""{ "timeout": 30 }""");
+        var target = Parse("""{ "timeout": 30 }""");
         var template = Parse("""{ "timeout": 60 }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -39,7 +39,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void NewKeyInTemplate_IsAdded()
     {
-        var target   = Parse("""{ "existing": 1 }""");
+        var target = Parse("""{ "existing": 1 }""");
         var template = Parse("""{ "existing": 0, "newKey": "from-template" }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -51,7 +51,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void KeyOnlyInTarget_IsPreserved()
     {
-        var target   = Parse("""{ "onlyInTarget": true }""");
+        var target = Parse("""{ "onlyInTarget": true }""");
         var template = Parse("""{ "otherKey": false }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -66,7 +66,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void NestedObject_RecursivelyMerged()
     {
-        var target   = Parse("""{ "section": { "keep": "mine", "num": 10 } }""");
+        var target = Parse("""{ "section": { "keep": "mine", "num": 10 } }""");
         var template = Parse("""{ "section": { "keep": "default", "newProp": "added" } }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -80,7 +80,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void DeepNestedObject_RecursivelyMerged()
     {
-        var target   = Parse("""{ "a": { "b": { "keep": 1 } } }""");
+        var target = Parse("""{ "a": { "b": { "keep": 1 } } }""");
         var template = Parse("""{ "a": { "b": { "keep": 99, "new": 2 } } }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -96,7 +96,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void ArrayValue_InTarget_IsPreservedAsIs()
     {
-        var target   = Parse("""{ "items": [1, 2, 3] }""");
+        var target = Parse("""{ "items": [1, 2, 3] }""");
         var template = Parse("""{ "items": [4, 5] }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -110,7 +110,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void EmptyTarget_AllTemplateKeysAdded()
     {
-        var target   = Parse("{}");
+        var target = Parse("{}");
         var template = Parse("""{ "a": 1, "b": "two" }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -123,7 +123,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void EmptyTemplate_OnlyTargetKeysPresent()
     {
-        var target   = Parse("""{ "x": 42 }""");
+        var target = Parse("""{ "x": 42 }""");
         var template = Parse("{}");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);
@@ -137,7 +137,7 @@ public class MergeJsonElementsTests
     [Fact]
     public void NullValueInTarget_IsPreserved()
     {
-        var target   = Parse("""{ "key": null }""");
+        var target = Parse("""{ "key": null }""");
         var template = Parse("""{ "key": "default" }""");
 
         var result = UpdateExecutorService.MergeJsonElements(target, template);

@@ -1,6 +1,6 @@
-using Prym.DTOs.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Configuration;
 
 namespace EventForge.Server.Services.Configuration;
 

@@ -1,7 +1,6 @@
-﻿using Prym.Hardware.Exceptions;
+﻿using Microsoft.AspNetCore.Mvc;
+using Prym.Hardware.Exceptions;
 using Prym.Hardware.PrinterProxy;
-using Prym.Agent.Services;
-using Microsoft.AspNetCore.Mvc;
 using System.Text.RegularExpressions;
 
 namespace Prym.Agent.Controllers;

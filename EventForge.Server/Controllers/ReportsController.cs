@@ -1,7 +1,6 @@
 using EventForge.Server.Services.Reports;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Prym.DTOs.Common;
 using Prym.DTOs.Reports;
 
 namespace EventForge.Server.Controllers;
@@ -30,9 +29,9 @@ public class ReportsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PagedResult<ReportListItemDto>>> GetReports(
         [FromQuery] string? category = null,
-        [FromQuery] string? search   = null,
-        [FromQuery] int     page     = 1,
-        [FromQuery] int     pageSize = 25,
+        [FromQuery] string? search = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
         CancellationToken ct = default)
     {
         var tenantError = await ValidateTenantAccessAsync(tenantContext);
@@ -193,7 +192,7 @@ public class ReportsController(
     public async Task<IActionResult> GetDataSource(
         string entityType,
         [FromQuery] DateTime? from = null,
-        [FromQuery] DateTime? to   = null,
+        [FromQuery] DateTime? to = null,
         CancellationToken ct = default)
     {
         var tenantError = await ValidateTenantAccessAsync(tenantContext);

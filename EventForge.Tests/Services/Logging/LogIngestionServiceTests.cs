@@ -1,7 +1,7 @@
-using Prym.DTOs.Common;
 using EventForge.Server.Services.Logging;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
 
 namespace EventForge.Tests.Services.Logging;
 

@@ -29,7 +29,7 @@ public record PendingUpdate(
 /// </summary>
 public class PendingInstallService(AgentOptions options, ILogger<PendingInstallService> logger)
 {
-    private static readonly JsonSerializerOptions SerializeOptions   = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions SerializeOptions = new() { WriteIndented = true };
     private static readonly JsonSerializerOptions DeserializeOptions = new() { PropertyNameCaseInsensitive = true };
 
     private readonly List<PendingUpdate> _queue = [];
@@ -137,7 +137,7 @@ public class PendingInstallService(AgentOptions options, ILogger<PendingInstallS
     public PendingUpdate? GetNext()
     {
         PendingUpdate? head;
-        PendingUpdate? agentFirst  = null;
+        PendingUpdate? agentFirst = null;
         PendingUpdate? serverFirst = null;
 
         lock (_lock)

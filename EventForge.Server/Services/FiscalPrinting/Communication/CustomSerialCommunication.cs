@@ -1,5 +1,5 @@
-using System.IO.Ports;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
+using System.IO.Ports;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
 

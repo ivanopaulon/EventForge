@@ -1,5 +1,5 @@
-using Prym.Web.Shared.Components.Dashboard;
 using Prym.DTOs.VatRates;
+using Prym.Web.Shared.Components.Dashboard;
 
 namespace EventForge.Tests.Components.Dashboard;
 

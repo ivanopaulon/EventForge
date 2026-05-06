@@ -1,4 +1,3 @@
-using Prym.DTOs.Notifications;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Notifications;
@@ -10,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Notifications;
 
 namespace EventForge.Tests.Services;
 

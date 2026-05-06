@@ -1,9 +1,6 @@
+using EventForge.Server.Services.FiscalPrinting;
 using Prym.DTOs.FiscalPrinting;
 using Prym.Hardware.Exceptions;
-using EventForge.Server.Services.FiscalPrinting;
-using EventForge.Server.Services.FiscalPrinting.Communication;
-using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EventForge.Tests.Services.FiscalPrinting;
 

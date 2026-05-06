@@ -1,4 +1,3 @@
-using Prym.DTOs.Documents;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Services.Audit;
@@ -7,6 +6,7 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Documents;
 
 namespace EventForge.Tests.Services.Documents;
 

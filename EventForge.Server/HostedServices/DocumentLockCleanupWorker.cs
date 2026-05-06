@@ -1,4 +1,3 @@
-using EventForge.Server.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.HostedServices;

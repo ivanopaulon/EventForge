@@ -1,8 +1,8 @@
-using Prym.DTOs.Chat;
-using Prym.DTOs.External.WhatsApp;
 using EventForge.Server.Services.External.WhatsApp;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Prym.DTOs.Chat;
+using Prym.DTOs.External.WhatsApp;
 
 namespace EventForge.Server.Controllers;
 
@@ -79,8 +79,8 @@ public class WhatsAppWebhookController(
                             var stato = status.Status switch
                             {
                                 "delivered" => WhatsAppDeliveryStatus.Consegnato,
-                                "read"      => WhatsAppDeliveryStatus.Letto,
-                                _           => WhatsAppDeliveryStatus.Inviato
+                                "read" => WhatsAppDeliveryStatus.Letto,
+                                _ => WhatsAppDeliveryStatus.Inviato
                             };
                             await whatsAppConversazioneService.AggiornaStatoMessaggioAsync(status.Id, stato, tenantId);
                         }

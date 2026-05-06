@@ -1,6 +1,6 @@
-using Prym.Web.Services.Store;
 using Prym.DTOs.Common;
 using Prym.DTOs.Store;
+using Prym.Web.Services.Store;
 
 namespace Prym.Web.Shared.Management.Adapters;
 

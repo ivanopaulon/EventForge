@@ -1,5 +1,4 @@
 using EventForge.Server.Mappers;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Services.Auth;

@@ -1,5 +1,5 @@
-using Prym.Web.Services.Updates;
 using Prym.DTOs.Health;
+using Prym.Web.Services.Updates;
 using System.Net.Http.Json;
 
 namespace Prym.Web.Services

@@ -54,8 +54,8 @@ public class LogsModel(
         return new JsonResult(entries.Select(e => new
         {
             timestamp = e.Timestamp,
-            level     = e.Level,
-            message   = e.Message,
+            level = e.Level,
+            message = e.Message,
             exception = e.Exception
         }));
     }
@@ -127,21 +127,21 @@ public class LogsModel(
 
                 try
                 {
-                    var ts     = raw[1..9];
+                    var ts = raw[1..9];
                     var lvlEnd = raw.IndexOf(']', 10);
-                    var lvl    = lvlEnd > 0 ? raw[10..lvlEnd].Trim() : "INF";
-                    var msg    = lvlEnd > 0 && lvlEnd + 2 < raw.Length ? raw[(lvlEnd + 2)..] : raw;
+                    var lvl = lvlEnd > 0 ? raw[10..lvlEnd].Trim() : "INF";
+                    var msg = lvlEnd > 0 && lvlEnd + 2 < raw.Length ? raw[(lvlEnd + 2)..] : raw;
 
-                    pendingTs    = ts;
+                    pendingTs = ts;
                     pendingLevel = NormalizeLevel(lvl);
-                    pendingMsg   = msg;
+                    pendingMsg = msg;
                     pendingEx.Clear();
                 }
                 catch
                 {
-                    pendingTs    = "?";
+                    pendingTs = "?";
                     pendingLevel = "Information";
-                    pendingMsg   = raw;
+                    pendingMsg = raw;
                     pendingEx.Clear();
                 }
             }
@@ -164,13 +164,13 @@ public class LogsModel(
 
     private static string NormalizeLevel(string raw) => raw.ToUpperInvariant() switch
     {
-        "VRB" or "VERBOSE"                    => "Verbose",
-        "DBG" or "DEBUG"                      => "Debug",
-        "INF" or "INFORMATION" or "INFO"      => "Information",
-        "WRN" or "WARNING"     or "WARN"      => "Warning",
-        "ERR" or "ERROR"                      => "Error",
-        "FTL" or "FATAL"                      => "Fatal",
-        _                                     => raw.Length > 3 ? raw[..3] : raw
+        "VRB" or "VERBOSE" => "Verbose",
+        "DBG" or "DEBUG" => "Debug",
+        "INF" or "INFORMATION" or "INFO" => "Information",
+        "WRN" or "WARNING" or "WARN" => "Warning",
+        "ERR" or "ERROR" => "Error",
+        "FTL" or "FATAL" => "Fatal",
+        _ => raw.Length > 3 ? raw[..3] : raw
     };
 }
 

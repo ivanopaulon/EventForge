@@ -64,7 +64,7 @@ public class IisManagerService(AgentOptions options, ILogger<IisManagerService> 
             var stderrTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
             await process.WaitForExitAsync(timeoutCts.Token);
             var output = await stdoutTask;
-            var error  = await stderrTask;
+            var error = await stderrTask;
 
             if (process.ExitCode != 0)
                 // Non-zero exit is a warning, not an exception — the site may already be in the desired

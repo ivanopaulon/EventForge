@@ -1,4 +1,3 @@
-using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.FiscalPrinting;
@@ -9,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Tests.Controllers;
 

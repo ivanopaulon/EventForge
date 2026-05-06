@@ -1,6 +1,4 @@
-﻿using Prym.Agent.Configuration;
-
-namespace Prym.Agent.Services;
+﻿namespace Prym.Agent.Services;
 
 /// <summary>
 /// Validates the Agent configuration at startup: ensures required directories exist
@@ -23,10 +21,10 @@ public static class StartupValidator
 
         // ── Resolve work / processed dirs (same logic as UpdateExecutorService) ──
         var workPath = string.IsNullOrWhiteSpace(options.WorkPath) ? "work" : options.WorkPath;
-        var workDir  = Path.IsPathRooted(workPath) ? workPath : Path.Combine(AppContext.BaseDirectory, workPath);
+        var workDir = Path.IsPathRooted(workPath) ? workPath : Path.Combine(AppContext.BaseDirectory, workPath);
 
         var processedPath = string.IsNullOrWhiteSpace(options.ProcessedPackagesPath) ? "" : options.ProcessedPackagesPath;
-        var processedDir  = !string.IsNullOrEmpty(processedPath)
+        var processedDir = !string.IsNullOrEmpty(processedPath)
             ? (Path.IsPathRooted(processedPath) ? processedPath : Path.Combine(AppContext.BaseDirectory, processedPath))
             : null;
 

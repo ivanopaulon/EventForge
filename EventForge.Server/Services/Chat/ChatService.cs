@@ -1,7 +1,7 @@
-using Prym.DTOs.Chat;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Chat;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Chat;
@@ -329,194 +329,194 @@ public class ChatService(
     {
         try
         {
-        // Base query: threads where the user is an active member
-        var query = context.ChatThreads
-            .AsNoTracking()
-            .Where(ct => !ct.IsDeleted && ct.IsActive);
+            // Base query: threads where the user is an active member
+            var query = context.ChatThreads
+                .AsNoTracking()
+                .Where(ct => !ct.IsDeleted && ct.IsActive);
 
-        if (searchDto.TenantId.HasValue)
-            query = query.Where(ct => ct.TenantId == searchDto.TenantId.Value);
+            if (searchDto.TenantId.HasValue)
+                query = query.Where(ct => ct.TenantId == searchDto.TenantId.Value);
 
-        if (searchDto.UserId.HasValue)
-            query = query.Where(ct =>
-                // WhatsApp chats are tenant-scoped with no ChatMember records; any tenant user may access them.
-                ct.Type == ChatType.WhatsApp
-                || context.ChatMembers.Any(cm =>
-                    cm.ChatThreadId == ct.Id
-                    && cm.UserId == searchDto.UserId.Value
-                    && !cm.IsDeleted));
+            if (searchDto.UserId.HasValue)
+                query = query.Where(ct =>
+                    // WhatsApp chats are tenant-scoped with no ChatMember records; any tenant user may access them.
+                    ct.Type == ChatType.WhatsApp
+                    || context.ChatMembers.Any(cm =>
+                        cm.ChatThreadId == ct.Id
+                        && cm.UserId == searchDto.UserId.Value
+                        && !cm.IsDeleted));
 
-        if (searchDto.Types?.Count > 0)
-            query = query.Where(ct => searchDto.Types.Contains(ct.Type));
+            if (searchDto.Types?.Count > 0)
+                query = query.Where(ct => searchDto.Types.Contains(ct.Type));
 
-        if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
-            query = query.Where(ct => ct.Name != null && ct.Name.Contains(searchDto.SearchTerm));
+            if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
+                query = query.Where(ct => ct.Name != null && ct.Name.Contains(searchDto.SearchTerm));
 
-        if (searchDto.LastActivityAfter.HasValue)
-            query = query.Where(ct => ct.UpdatedAt >= searchDto.LastActivityAfter.Value);
+            if (searchDto.LastActivityAfter.HasValue)
+                query = query.Where(ct => ct.UpdatedAt >= searchDto.LastActivityAfter.Value);
 
-        if (searchDto.LastActivityBefore.HasValue)
-            query = query.Where(ct => ct.UpdatedAt <= searchDto.LastActivityBefore.Value);
+            if (searchDto.LastActivityBefore.HasValue)
+                query = query.Where(ct => ct.UpdatedAt <= searchDto.LastActivityBefore.Value);
 
-        // Unread filter – at least one message not read by the requesting user
-        if (searchDto.HasUnreadMessages == true && searchDto.UserId.HasValue)
-        {
-            var uid = searchDto.UserId.Value;
-            query = query.Where(ct =>
-                context.ChatMessages.Any(m =>
-                    m.ChatThreadId == ct.Id
-                    && !m.IsDeleted
-                    && m.SenderId != uid
-                    && !context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)));
-        }
+            // Unread filter – at least one message not read by the requesting user
+            if (searchDto.HasUnreadMessages == true && searchDto.UserId.HasValue)
+            {
+                var uid = searchDto.UserId.Value;
+                query = query.Where(ct =>
+                    context.ChatMessages.Any(m =>
+                        m.ChatThreadId == ct.Id
+                        && !m.IsDeleted
+                        && m.SenderId != uid
+                        && !context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)));
+            }
 
-        // Sorting
-        query = searchDto.SortBy?.ToLower() switch
-        {
-            "createdat" => searchDto.SortOrder == "asc"
-                ? query.OrderBy(ct => ct.CreatedAt)
-                : query.OrderByDescending(ct => ct.CreatedAt),
-            _ => searchDto.SortOrder == "asc"
-                ? query.OrderBy(ct => ct.UpdatedAt)
-                : query.OrderByDescending(ct => ct.UpdatedAt)
-        };
+            // Sorting
+            query = searchDto.SortBy?.ToLower() switch
+            {
+                "createdat" => searchDto.SortOrder == "asc"
+                    ? query.OrderBy(ct => ct.CreatedAt)
+                    : query.OrderByDescending(ct => ct.CreatedAt),
+                _ => searchDto.SortOrder == "asc"
+                    ? query.OrderBy(ct => ct.UpdatedAt)
+                    : query.OrderByDescending(ct => ct.UpdatedAt)
+            };
 
-        var totalCount = await query.CountAsync(cancellationToken);
+            var totalCount = await query.CountAsync(cancellationToken);
 
-        var page = Math.Max(1, searchDto.PageNumber);
-        var pageSize = Math.Clamp(searchDto.PageSize, 1, 100);
+            var page = Math.Max(1, searchDto.PageNumber);
+            var pageSize = Math.Clamp(searchDto.PageSize, 1, 100);
 
-        var threads = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
+            var threads = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(cancellationToken);
 
-        if (threads.Count == 0)
-        {
+            if (threads.Count == 0)
+            {
+                return new PagedResult<ChatResponseDto>
+                {
+                    Items = [],
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
+            }
+
+            var threadIds = threads.Select(t => t.Id).ToList();
+
+            // ── Batch load members for all threads in one query ──────────────────
+            var rawMembers = await context.ChatMembers
+                .AsNoTracking()
+                .Where(cm => threadIds.Contains(cm.ChatThreadId) && !cm.IsDeleted)
+                .Join(context.Users,
+                    cm => cm.UserId,
+                    u => u.Id,
+                    (cm, u) => new
+                    {
+                        cm.ChatThreadId,
+                        cm.UserId,
+                        u.Username,
+                        FullName = (u.FirstName + " " + u.LastName).Trim(),
+                        cm.Role,
+                        cm.JoinedAt,
+                        cm.LastSeenAt,
+                        cm.IsMuted
+                    })
+                .ToListAsync(cancellationToken);
+
+            var membersByThread = rawMembers
+                .GroupBy(m => m.ChatThreadId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(m => new ChatMemberDto
+                    {
+                        UserId = m.UserId,
+                        Username = m.Username,
+                        DisplayName = m.FullName.Length > 0 ? m.FullName : m.Username,
+                        Role = m.Role,
+                        JoinedAt = m.JoinedAt,
+                        LastSeenAt = m.LastSeenAt,
+                        IsOnline = onlineUserTracker.IsOnline(m.UserId),
+                        IsMuted = m.IsMuted
+                    }).ToList());
+
+            // ── Batch load last message per thread ───────────────────────────────
+            // Load all messages for these threads (ordered), group in memory
+            var allMessages = await context.ChatMessages
+                .AsNoTracking()
+                .Where(m => threadIds.Contains(m.ChatThreadId) && !m.IsDeleted)
+                .OrderByDescending(m => m.SentAt)
+                .Join(context.Users,
+                    m => m.SenderId,
+                    u => u.Id,
+                    (m, u) => new
+                    {
+                        m.ChatThreadId,
+                        m.Id,
+                        m.SenderId,
+                        SenderName = (u.FirstName + " " + u.LastName).Trim().Length > 0
+                            ? (u.FirstName + " " + u.LastName).Trim()
+                            : u.Username,
+                        m.Content,
+                        m.SentAt
+                    })
+                .ToListAsync(cancellationToken);
+
+            var lastMessageByThread = allMessages
+                .GroupBy(m => m.ChatThreadId)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        var first = g.First();
+                        return new ChatMessageDto
+                        {
+                            Id = first.Id,
+                            ChatId = first.ChatThreadId,
+                            SenderId = first.SenderId ?? Guid.Empty,
+                            SenderName = first.SenderName,
+                            Content = first.Content,
+                            SentAt = first.SentAt
+                        };
+                    });
+
+            // ── Batch load unread counts for all threads ─────────────────────────
+            var unreadByThread = new Dictionary<Guid, int>();
+            if (searchDto.UserId.HasValue)
+            {
+                var uid = searchDto.UserId.Value;
+                var unreadCounts = await context.ChatMessages
+                    .AsNoTracking()
+                    .Where(m => threadIds.Contains(m.ChatThreadId)
+                              && !m.IsDeleted
+                              && m.SenderId != uid)
+                    .Select(m => new
+                    {
+                        m.ChatThreadId,
+                        IsRead = context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)
+                    })
+                    .GroupBy(m => m.ChatThreadId)
+                    .Select(g => new { ChatId = g.Key, UnreadCount = g.Count(m => !m.IsRead) })
+                    .ToListAsync(cancellationToken);
+
+                unreadByThread = unreadCounts.ToDictionary(x => x.ChatId, x => x.UnreadCount);
+            }
+
+            // ── Assemble result DTOs ─────────────────────────────────────────────
+            var items = threads.Select(thread => MapToChatResponseDto(
+                thread,
+                membersByThread.GetValueOrDefault(thread.Id, []),
+                lastMessageByThread.GetValueOrDefault(thread.Id),
+                unreadByThread.GetValueOrDefault(thread.Id, 0)
+            )).ToList();
+
             return new PagedResult<ChatResponseDto>
             {
-                Items = [],
+                Items = items,
                 TotalCount = totalCount,
                 Page = page,
                 PageSize = pageSize
             };
-        }
-
-        var threadIds = threads.Select(t => t.Id).ToList();
-
-        // ── Batch load members for all threads in one query ──────────────────
-        var rawMembers = await context.ChatMembers
-            .AsNoTracking()
-            .Where(cm => threadIds.Contains(cm.ChatThreadId) && !cm.IsDeleted)
-            .Join(context.Users,
-                cm => cm.UserId,
-                u => u.Id,
-                (cm, u) => new
-                {
-                    cm.ChatThreadId,
-                    cm.UserId,
-                    u.Username,
-                    FullName = (u.FirstName + " " + u.LastName).Trim(),
-                    cm.Role,
-                    cm.JoinedAt,
-                    cm.LastSeenAt,
-                    cm.IsMuted
-                })
-            .ToListAsync(cancellationToken);
-
-        var membersByThread = rawMembers
-            .GroupBy(m => m.ChatThreadId)
-            .ToDictionary(
-                g => g.Key,
-                g => g.Select(m => new ChatMemberDto
-                {
-                    UserId = m.UserId,
-                    Username = m.Username,
-                    DisplayName = m.FullName.Length > 0 ? m.FullName : m.Username,
-                    Role = m.Role,
-                    JoinedAt = m.JoinedAt,
-                    LastSeenAt = m.LastSeenAt,
-                    IsOnline = onlineUserTracker.IsOnline(m.UserId),
-                    IsMuted = m.IsMuted
-                }).ToList());
-
-        // ── Batch load last message per thread ───────────────────────────────
-        // Load all messages for these threads (ordered), group in memory
-        var allMessages = await context.ChatMessages
-            .AsNoTracking()
-            .Where(m => threadIds.Contains(m.ChatThreadId) && !m.IsDeleted)
-            .OrderByDescending(m => m.SentAt)
-            .Join(context.Users,
-                m => m.SenderId,
-                u => u.Id,
-                (m, u) => new
-                {
-                    m.ChatThreadId,
-                    m.Id,
-                    m.SenderId,
-                    SenderName = (u.FirstName + " " + u.LastName).Trim().Length > 0
-                        ? (u.FirstName + " " + u.LastName).Trim()
-                        : u.Username,
-                    m.Content,
-                    m.SentAt
-                })
-            .ToListAsync(cancellationToken);
-
-        var lastMessageByThread = allMessages
-            .GroupBy(m => m.ChatThreadId)
-            .ToDictionary(
-                g => g.Key,
-                g =>
-                {
-                    var first = g.First();
-                    return new ChatMessageDto
-                    {
-                        Id = first.Id,
-                        ChatId = first.ChatThreadId,
-                        SenderId = first.SenderId ?? Guid.Empty,
-                        SenderName = first.SenderName,
-                        Content = first.Content,
-                        SentAt = first.SentAt
-                    };
-                });
-
-        // ── Batch load unread counts for all threads ─────────────────────────
-        var unreadByThread = new Dictionary<Guid, int>();
-        if (searchDto.UserId.HasValue)
-        {
-            var uid = searchDto.UserId.Value;
-            var unreadCounts = await context.ChatMessages
-                .AsNoTracking()
-                .Where(m => threadIds.Contains(m.ChatThreadId)
-                          && !m.IsDeleted
-                          && m.SenderId != uid)
-                .Select(m => new
-                {
-                    m.ChatThreadId,
-                    IsRead = context.MessageReadReceipts.Any(r => r.MessageId == m.Id && r.UserId == uid)
-                })
-                .GroupBy(m => m.ChatThreadId)
-                .Select(g => new { ChatId = g.Key, UnreadCount = g.Count(m => !m.IsRead) })
-                .ToListAsync(cancellationToken);
-
-            unreadByThread = unreadCounts.ToDictionary(x => x.ChatId, x => x.UnreadCount);
-        }
-
-        // ── Assemble result DTOs ─────────────────────────────────────────────
-        var items = threads.Select(thread => MapToChatResponseDto(
-            thread,
-            membersByThread.GetValueOrDefault(thread.Id, []),
-            lastMessageByThread.GetValueOrDefault(thread.Id),
-            unreadByThread.GetValueOrDefault(thread.Id, 0)
-        )).ToList();
-
-        return new PagedResult<ChatResponseDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = page,
-            PageSize = pageSize
-        };
         }
         catch
         {
@@ -2489,36 +2489,36 @@ public class ChatService(
         try
         {
 
-        // 1. Check if message.Locale == targetLocale (already localized)
-        if (message.Locale == targetLocale)
-        {
-            logger.LogDebug("Message {MessageId} is already in locale {Locale}", message.Id, targetLocale);
+            // 1. Check if message.Locale == targetLocale (already localized)
+            if (message.Locale == targetLocale)
+            {
+                logger.LogDebug("Message {MessageId} is already in locale {Locale}", message.Id, targetLocale);
+                return message;
+            }
+
+            // 2. Update message.Locale = targetLocale
+            message.Locale = targetLocale;
+
+            // 3. Store localized content in metadata
+            // For Phase 1: Simple implementation - just update Locale field
+            // Future: Integrate with translation service for actual content translation
+            if (message.Metadata is null)
+            {
+                message.Metadata = new Dictionary<string, object>();
+            }
+
+            message.Metadata["LocalizedTo"] = targetLocale;
+            message.Metadata["LocalizedAt"] = DateTime.UtcNow.ToString("O");
+            if (userId.HasValue)
+            {
+                message.Metadata["LocalizedBy"] = userId.Value.ToString();
+            }
+
+            // Note: Localization is transient (client-side only) and not persisted to database
+            await Task.CompletedTask; // Satisfy async signature
+
+            // 4. Return localized ChatMessageDto
             return message;
-        }
-
-        // 2. Update message.Locale = targetLocale
-        message.Locale = targetLocale;
-
-        // 3. Store localized content in metadata
-        // For Phase 1: Simple implementation - just update Locale field
-        // Future: Integrate with translation service for actual content translation
-        if (message.Metadata is null)
-        {
-            message.Metadata = new Dictionary<string, object>();
-        }
-
-        message.Metadata["LocalizedTo"] = targetLocale;
-        message.Metadata["LocalizedAt"] = DateTime.UtcNow.ToString("O");
-        if (userId.HasValue)
-        {
-            message.Metadata["LocalizedBy"] = userId.Value.ToString();
-        }
-
-        // Note: Localization is transient (client-side only) and not persisted to database
-        await Task.CompletedTask; // Satisfy async signature
-
-        // 4. Return localized ChatMessageDto
-        return message;
         }
         catch
         {
@@ -3000,7 +3000,7 @@ public class ChatService(
                 })
                 .Select(g => new
                 {
-                    ThreadId   = g.Key,
+                    ThreadId = g.Key,
                     OtherUserId = g.Select(cm => cm.UserId).First(id => id != userId)
                 })
                 .GroupBy(x => x.OtherUserId)
@@ -3029,7 +3029,7 @@ public class ChatService(
                     .OrderByDescending(x => threadMeta.TryGetValue(x.ThreadId, out var upd) ? upd : DateTime.MinValue)
                     .ToList();
 
-                var primaryId    = ordered[0].ThreadId;
+                var primaryId = ordered[0].ThreadId;
                 var secondaryIds = ordered.Skip(1).Select(x => x.ThreadId).ToList();
 
                 // 5. Re-parent messages from secondary threads to the primary thread
@@ -3056,7 +3056,7 @@ public class ChatService(
                 foreach (var member in membersToMove)
                 {
                     member.ChatThreadId = primaryId;
-                    member.ModifiedAt   = now;
+                    member.ModifiedAt = now;
                 }
 
                 // 7. Soft-delete secondary threads and their remaining members
@@ -3066,9 +3066,9 @@ public class ChatService(
 
                 foreach (var thread in secondaryThreads)
                 {
-                    thread.IsActive    = false;
-                    thread.IsDeleted   = true;
-                    thread.ModifiedAt  = now;
+                    thread.IsActive = false;
+                    thread.IsDeleted = true;
+                    thread.ModifiedAt = now;
                 }
 
                 var remainingSecondaryMembers = await context.ChatMembers
@@ -3077,8 +3077,8 @@ public class ChatService(
 
                 foreach (var member in remainingSecondaryMembers)
                 {
-                    member.IsDeleted  = true;
-                    member.IsActive   = false;
+                    member.IsDeleted = true;
+                    member.IsActive = false;
                     member.ModifiedAt = now;
                 }
 

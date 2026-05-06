@@ -24,17 +24,17 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         installation.LastSeen = DateTime.UtcNow;
         installation.Status = info.Status;
 
-        if (info.Name is not null)            installation.Name = info.Name;
-        if (info.Location is not null)        installation.Location = info.Location;
-        if (info.VersionServer is not null)   installation.InstalledVersionServer = info.VersionServer;
-        if (info.VersionClient is not null)   installation.InstalledVersionClient = info.VersionClient;
-        if (info.MachineName is not null)     installation.MachineName = info.MachineName;
-        if (info.OSVersion is not null)       installation.OSVersion = info.OSVersion;
-        if (info.DotNetVersion is not null)   installation.DotNetVersion = info.DotNetVersion;
-        if (info.AgentVersion is not null)    installation.AgentVersion = info.AgentVersion;
-        if (info.IpAddress is not null)       installation.IpAddress = info.IpAddress;
-        if (info.LocalIpAddress is not null)  installation.LocalIpAddress = info.LocalIpAddress;
-        if (info.Tags is not null)            installation.Tags = info.Tags;
+        if (info.Name is not null) installation.Name = info.Name;
+        if (info.Location is not null) installation.Location = info.Location;
+        if (info.VersionServer is not null) installation.InstalledVersionServer = info.VersionServer;
+        if (info.VersionClient is not null) installation.InstalledVersionClient = info.VersionClient;
+        if (info.MachineName is not null) installation.MachineName = info.MachineName;
+        if (info.OSVersion is not null) installation.OSVersion = info.OSVersion;
+        if (info.DotNetVersion is not null) installation.DotNetVersion = info.DotNetVersion;
+        if (info.AgentVersion is not null) installation.AgentVersion = info.AgentVersion;
+        if (info.IpAddress is not null) installation.IpAddress = info.IpAddress;
+        if (info.LocalIpAddress is not null) installation.LocalIpAddress = info.LocalIpAddress;
+        if (info.Tags is not null) installation.Tags = info.Tags;
 
         await db.SaveChangesAsync(ct);
     }
@@ -69,8 +69,8 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
             FromVersion = pkg?.Component switch
             {
                 PackageComponent.Server => fromVersionServer,
-                PackageComponent.Agent  => fromVersionAgent,
-                _                       => fromVersionClient
+                PackageComponent.Agent => fromVersionAgent,
+                _ => fromVersionClient
             },
             ToVersion = pkg?.Version,
             PhaseDescription = "Starting"
@@ -213,15 +213,15 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         var onlineIds = connectionTracker.GetOnlineInstallationIds();
 
         return rows.Select(h => new PendingInstallSummary(
-            InstallationId:  h.InstallationId,
+            InstallationId: h.InstallationId,
             InstallationName: h.Installation?.Name ?? h.InstallationId.ToString(),
-            IsConnected:     onlineIds.Contains(h.InstallationId),
-            HistoryId:       h.Id,
-            PackageId:       h.PackageId,
-            Component:       h.Package?.Component.ToString(),
-            Version:         h.Package?.Version,
+            IsConnected: onlineIds.Contains(h.InstallationId),
+            HistoryId: h.Id,
+            PackageId: h.PackageId,
+            Component: h.Package?.Component.ToString(),
+            Version: h.Package?.Version,
             IsManualInstall: h.Package?.IsManualInstall ?? false,
-            QueuedAt:        h.StartedAt)).ToList();
+            QueuedAt: h.StartedAt)).ToList();
     }
 
     public async Task<IReadOnlyList<Guid>> GetStaleInstallationsAsync(DateTime cutoff, CancellationToken ct = default)

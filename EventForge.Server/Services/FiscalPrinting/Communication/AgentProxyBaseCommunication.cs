@@ -1,7 +1,6 @@
-using Prym.Hardware.PrinterProxy;
 using Polly;
 using Polly.Retry;
-using System.Net.Http.Json;
+using Prym.Hardware.PrinterProxy;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
 
@@ -36,18 +35,18 @@ public abstract class AgentProxyBaseCommunication : ICustomPrinterCommunication
         ILogger logger,
         IHttpClientFactory httpClientFactory)
     {
-        AgentBaseUrl  = ValidateAndNormalizeUrl(agentBaseUrl);
-        TimeoutMs     = ValidateTimeout(timeoutMs);
-        _logger        = logger;
+        AgentBaseUrl = ValidateAndNormalizeUrl(agentBaseUrl);
+        TimeoutMs = ValidateTimeout(timeoutMs);
+        _logger = logger;
         HttpClientFactory = httpClientFactory;
 
         _retryPipeline = new ResiliencePipelineBuilder()
             .AddRetry(new RetryStrategyOptions
             {
                 MaxRetryAttempts = MaxRetryAttempts,
-                Delay            = TimeSpan.FromMilliseconds(RetryBaseDelayMs),
-                BackoffType      = DelayBackoffType.Exponential,
-                UseJitter        = true,
+                Delay = TimeSpan.FromMilliseconds(RetryBaseDelayMs),
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
                 ShouldHandle = new PredicateBuilder()
                     .Handle<HttpRequestException>()
                     .Handle<FiscalPrinterCommunicationException>(),

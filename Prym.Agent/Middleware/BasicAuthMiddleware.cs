@@ -1,5 +1,4 @@
-﻿using System.Text;
-using Prym.UpdateShared.Auth;
+﻿using Prym.UpdateShared.Auth;
 
 namespace Prym.Agent.Middleware;
 

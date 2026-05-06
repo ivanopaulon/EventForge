@@ -1,5 +1,5 @@
-using Prym.DTOs.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Prym.DTOs.Auth;
 using System.Net;
 using System.Net.Http.Json;
 

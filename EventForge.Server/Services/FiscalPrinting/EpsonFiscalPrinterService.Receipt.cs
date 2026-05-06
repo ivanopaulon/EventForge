@@ -1,5 +1,5 @@
-using Prym.DTOs.FiscalPrinting;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Server.Services.FiscalPrinting;
 

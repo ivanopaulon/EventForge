@@ -1,4 +1,3 @@
-using Prym.DTOs.Sales;
 using EventForge.Server.Filters;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Caching;
@@ -6,6 +5,7 @@ using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Prym.DTOs.Sales;
 
 namespace EventForge.Server.Controllers;
 

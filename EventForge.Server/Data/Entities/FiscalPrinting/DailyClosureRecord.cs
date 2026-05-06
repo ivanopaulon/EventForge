@@ -1,5 +1,3 @@
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.Server.Data.Entities.Common;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 

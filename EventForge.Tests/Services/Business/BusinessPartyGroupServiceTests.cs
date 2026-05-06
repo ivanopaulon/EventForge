@@ -1,5 +1,3 @@
-using Prym.DTOs.Business;
-using Prym.DTOs.Common;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Services.Audit;
@@ -8,6 +6,8 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
 
 namespace EventForge.Tests.Services.Business
 {

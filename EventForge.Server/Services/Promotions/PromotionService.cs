@@ -1,7 +1,7 @@
-using Prym.DTOs.Promotions;
 using EventForge.Server.Services.Monitoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Promotions;
 using System.Text.Json;
 
 namespace EventForge.Server.Services.Promotions;

@@ -1,4 +1,3 @@
-using Prym.DTOs.PriceHistory;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
@@ -8,6 +7,7 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.PriceHistory;
 
 namespace EventForge.Tests.Services.PriceHistory;
 

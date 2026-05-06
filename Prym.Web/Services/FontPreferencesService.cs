@@ -1,6 +1,6 @@
 using Blazored.LocalStorage;
-using Prym.DTOs.Profile;
 using Microsoft.JSInterop;
+using Prym.DTOs.Profile;
 
 namespace Prym.Web.Services;
 

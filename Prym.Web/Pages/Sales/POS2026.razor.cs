@@ -1,11 +1,7 @@
-using Prym.Web.Shared.Components.Sales.Pos26;
-using Prym.Web.Models.Sales;
-using Prym.Web.Services;
-using Prym.Web.Services.Sales;
-using Prym.Web.Shared.Components.Dialogs;
-using Prym.Web.Shared.Components.Dialogs.Sales;
-
-using Prym.Web.ViewModels;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.JSInterop;
+using MudBlazor;
 using Prym.DTOs.Analytics;
 using Prym.DTOs.Business;
 using Prym.DTOs.Common;
@@ -14,11 +10,10 @@ using Prym.DTOs.FiscalPrinting;
 using Prym.DTOs.Products;
 using Prym.DTOs.Sales;
 using Prym.DTOs.Store;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.JSInterop;
-using MudBlazor;
+using Prym.Web.Models.Sales;
+using Prym.Web.Shared.Components.Dialogs;
+using Prym.Web.Shared.Components.Dialogs.Sales;
+using Prym.Web.Shared.Components.Sales.Pos26;
 
 namespace Prym.Web.Pages.Sales;
 
@@ -228,8 +223,8 @@ public partial class POS2026 : IAsyncDisposable
             var filter = new AnalyticsFilterDto
             {
                 DateFrom = DateTime.UtcNow.AddMonths(-1).Date, // finestra di 1 mese per prestazioni query
-                DateTo   = DateTime.UtcNow.Date,
-                Top      = 50
+                DateTo = DateTime.UtcNow.Date,
+                Top = 50
             };
             var analytics = await AnalyticsService.GetSalesAnalyticsAsync(filter);
             if (analytics?.TopProducts is { Count: > 0 } topProducts)
@@ -422,17 +417,17 @@ public partial class POS2026 : IAsyncDisposable
         // Ordinamento — usa _categoryNodeDict per lookup O(1) nella sort per categoria
         source = _sortMode switch
         {
-            Pos26SortMode.Alfabetico     => source.OrderBy(p => p.Name),
-            Pos26SortMode.Prezzo         => source.OrderBy(p => p.DefaultPrice ?? 0),
-            Pos26SortMode.BestSeller     => source.OrderByDescending(p => _bestSellerIds.Contains(p.Id)).ThenBy(p => p.Name),
+            Pos26SortMode.Alfabetico => source.OrderBy(p => p.Name),
+            Pos26SortMode.Prezzo => source.OrderBy(p => p.DefaultPrice ?? 0),
+            Pos26SortMode.BestSeller => source.OrderByDescending(p => _bestSellerIds.Contains(p.Id)).ThenBy(p => p.Name),
             Pos26SortMode.UltimiAcquisti when ViewModel.SelectedCustomer != null
                                          => source.OrderByDescending(p => _lastPurchaseIds.Contains(p.Id)).ThenBy(p => p.Name),
             Pos26SortMode.UltimiAcquisti => source.OrderByDescending(p => _bestSellerIds.Contains(p.Id)).ThenBy(p => p.Name),
-            Pos26SortMode.Categoria      =>
+            Pos26SortMode.Categoria =>
                 _categoryNodeDict.Count > 0
                     ? source.OrderBy(p => p.CategoryNodeId.HasValue && _categoryNodeDict.TryGetValue(p.CategoryNodeId.Value, out var cn) ? cn : string.Empty).ThenBy(p => p.Name)
                     : source.OrderBy(p => p.VatRateName).ThenBy(p => p.Name),
-            _                            => source.OrderBy(p => p.Name)
+            _ => source.OrderBy(p => p.Name)
         };
 
         _filteredProducts = source.ToList();
@@ -677,7 +672,7 @@ public partial class POS2026 : IAsyncDisposable
         {
             var parameters = new DialogParameters
             {
-                ["Item"]         = item,
+                ["Item"] = item,
                 ["InitialNotes"] = item.Notes ?? string.Empty
             };
             var dialog = await DialogService.ShowAsync<ItemNotesDialog>(
@@ -689,10 +684,10 @@ public partial class POS2026 : IAsyncDisposable
                 var notes = result.Data as string ?? string.Empty;
                 var updateDto = new UpdateSaleItemDto
                 {
-                    Quantity       = item.Quantity,
-                    UnitPrice      = item.UnitPrice,
+                    Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice,
                     DiscountPercent = item.DiscountPercent,
-                    Notes          = notes
+                    Notes = notes
                 };
                 await SalesService.UpdateItemAsync(ViewModel.CurrentSession!.Id, item.Id, updateDto);
                 await ViewModel.ReloadSessionAsync();
@@ -763,11 +758,11 @@ public partial class POS2026 : IAsyncDisposable
 
             var parameters = new DialogParameters
             {
-                [nameof(Pos26PaymentDialog.TotaleOrdine)]    = ViewModel.GrandTotal,
+                [nameof(Pos26PaymentDialog.TotaleOrdine)] = ViewModel.GrandTotal,
                 [nameof(Pos26PaymentDialog.ScontoApplicato)] = ViewModel.CurrentSession?.DiscountAmount ?? 0m,
-                [nameof(Pos26PaymentDialog.Ordine)]          = ViewModel.CurrentSession,
-                [nameof(Pos26PaymentDialog.Cliente)]         = ViewModel.SelectedCustomer,
-                [nameof(Pos26PaymentDialog.PaymentMethods)]  = paymentMethods
+                [nameof(Pos26PaymentDialog.Ordine)] = ViewModel.CurrentSession,
+                [nameof(Pos26PaymentDialog.Cliente)] = ViewModel.SelectedCustomer,
+                [nameof(Pos26PaymentDialog.PaymentMethods)] = paymentMethods
             };
 
             var dialog = await DialogService.ShowAsync<Pos26PaymentDialog>(
@@ -907,7 +902,7 @@ public partial class POS2026 : IAsyncDisposable
             var dto = new AddSessionNoteDto
             {
                 NoteFlagId = _selectedNoteFlagId.Value,
-                Text       = _orderNoteText.Trim()
+                Text = _orderNoteText.Trim()
             };
             var session = await ViewModel.AddSessionNoteAsync(dto);
             if (session != null)
@@ -1394,9 +1389,9 @@ public partial class POS2026 : IAsyncDisposable
             if (_fiscalDrawerSummary == null) return;
             var parameters = new DialogParameters
             {
-                ["DrawerId"]        = _fiscalDrawerSummary.Id,
+                ["DrawerId"] = _fiscalDrawerSummary.Id,
                 ["TransactionType"] = type,
-                ["CurrencyCode"]    = _fiscalDrawerSummary.CurrencyCode
+                ["CurrencyCode"] = _fiscalDrawerSummary.CurrencyCode
             };
             var dialog = await DialogService.ShowAsync<FiscalDrawerTransactionDialog>(
                 type == FiscalDrawerTransactionType.Deposit ? "Versamento" : "Prelievo",
@@ -1437,8 +1432,8 @@ public partial class POS2026 : IAsyncDisposable
         {
             var parameters = new DialogParameters
             {
-                [nameof(DailyClosureDialog.PrinterId)]   = _fiscalPrinterId,
-                [nameof(DailyClosureDialog.PosId)]       = ViewModel.SelectedPosId,
+                [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId,
+                [nameof(DailyClosureDialog.PosId)] = ViewModel.SelectedPosId,
                 [nameof(DailyClosureDialog.PrinterName)] = _fiscalPrinterId.HasValue ? "Stampante POS" : null
             };
             var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
@@ -1488,17 +1483,17 @@ public partial class POS2026 : IAsyncDisposable
             return new FiscalReceiptItem
             {
                 Description = item.ProductName ?? item.ProductCode ?? "Articolo",
-                Quantity    = item.Quantity,
-                UnitPrice   = item.UnitPrice,
-                VatCode     = vatCode,
-                Department  = vatCode   // departments are configured to match the VAT code in standard setups
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                VatCode = vatCode,
+                Department = vatCode   // departments are configured to match the VAT code in standard setups
             };
         }).ToList();
 
         var payments = session.Payments.Select(p => new FiscalPayment
         {
-            Amount      = p.Amount,
-            MethodCode  = 1,
+            Amount = p.Amount,
+            MethodCode = 1,
             Description = p.PaymentMethodName ?? "Pagamento"
         }).ToList();
 
@@ -1520,10 +1515,10 @@ public partial class POS2026 : IAsyncDisposable
     {
         22m => 1,
         10m => 2,
-        5m  => 3,
-        4m  => 4,
-        0m  => 5,
-        _   => 1    // fallback: unknown rate defaults to code 1 (22%)
+        5m => 3,
+        4m => 4,
+        0m => 5,
+        _ => 1    // fallback: unknown rate defaults to code 1 (22%)
     };
 
     // =========================================================================

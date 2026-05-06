@@ -1,5 +1,3 @@
-using EventForge.Server.Hubs;
-using EventForge.Server.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;

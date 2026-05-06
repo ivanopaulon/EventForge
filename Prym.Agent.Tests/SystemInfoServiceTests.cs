@@ -1,5 +1,5 @@
-using System.Net;
 using Prym.Agent.Services;
+using System.Net;
 
 namespace Prym.Agent.Tests;
 

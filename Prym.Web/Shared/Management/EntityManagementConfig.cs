@@ -1,6 +1,6 @@
-using Prym.Web.Shared.Components;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using Prym.Web.Shared.Components;
 
 namespace Prym.Web.Shared.Management;
 

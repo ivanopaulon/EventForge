@@ -1,4 +1,3 @@
-using Prym.DTOs.SuperAdmin;
 using EventForge.Server.Services.Logs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

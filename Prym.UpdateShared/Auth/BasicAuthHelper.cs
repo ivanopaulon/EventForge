@@ -1,7 +1,7 @@
+using Prym.UpdateShared.Security;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
-using Prym.UpdateShared.Security;
 
 namespace Prym.UpdateShared.Auth;
 

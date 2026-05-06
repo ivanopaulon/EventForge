@@ -1,8 +1,8 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
+using Microsoft.AspNetCore.Components.Forms;
 using Prym.DTOs.Chat;
 using Prym.DTOs.Common;
-using Microsoft.AspNetCore.Components.Forms;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace Prym.Web.Services;
 
@@ -605,10 +605,10 @@ public class ChatService : IChatService
 
             return new MessageAttachmentDto
             {
-                Id          = result.AttachmentId,
-                FileName    = result.FileName,
-                FileUrl     = result.FileUrl ?? string.Empty,
-                FileSize    = result.FileSize,
+                Id = result.AttachmentId,
+                FileName = result.FileName,
+                FileUrl = result.FileUrl ?? string.Empty,
+                FileSize = result.FileSize,
                 ContentType = file.ContentType
             };
         }

@@ -1,4 +1,3 @@
-using EventForge.Server.Data.Entities.Reports;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;

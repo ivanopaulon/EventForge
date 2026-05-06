@@ -1,5 +1,5 @@
-using Prym.Web.Services;
 using Prym.DTOs.VatRates;
+using Prym.Web.Services;
 
 namespace Prym.Web.ViewModels;
 

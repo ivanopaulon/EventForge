@@ -1,7 +1,3 @@
-using Prym.DTOs.Banks;
-using Prym.DTOs.Business;
-using Prym.DTOs.Common;
-using Prym.DTOs.VatRates;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
@@ -12,6 +8,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Banks;
+using Prym.DTOs.Business;
+using Prym.DTOs.Common;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Tests.Controllers;
 

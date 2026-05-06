@@ -1,5 +1,5 @@
-using Prym.DTOs.Common;
 using FluentValidation;
+using Prym.DTOs.Common;
 
 namespace Prym.DTOs.Documents.Validators
 {

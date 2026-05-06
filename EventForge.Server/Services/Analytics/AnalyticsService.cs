@@ -1,7 +1,7 @@
-using Prym.DTOs.Analytics;
 using EventForge.Server.Services.Monitoring;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Analytics;
 
 namespace EventForge.Server.Services.Analytics;
 
@@ -33,7 +33,7 @@ public class AnalyticsService(
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
             var normDateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date.ToString("yyyyMMdd");
-            var normDateTo   = (filter.DateTo   ?? now).Date.ToString("yyyyMMdd");
+            var normDateTo = (filter.DateTo ?? now).Date.ToString("yyyyMMdd");
             var cacheKey = $"analytics_promotions_{tenantId}_{normDateFrom}_{normDateTo}_{filter.Top}_{filter.GroupBy}";
             if (cache.TryGetValue(cacheKey, out PromotionAnalyticsDashboardDto? cached) && cached is not null)
             {
@@ -143,7 +143,7 @@ public class AnalyticsService(
             var dateFrom = filter.DateFrom ?? now.AddMonths(-12);
             var dateTo = filter.DateTo ?? now;
             var normDateFrom = dateFrom.Date.ToString("yyyyMMdd");
-            var normDateTo   = dateTo.Date.ToString("yyyyMMdd");
+            var normDateTo = dateTo.Date.ToString("yyyyMMdd");
             var cacheKey = $"analytics_pricing_{tenantId}_{normDateFrom}_{normDateTo}_{filter.Top}_{filter.GroupBy}";
             if (cache.TryGetValue(cacheKey, out PricingAnalyticsDashboardDto? cached) && cached is not null)
             {
@@ -262,7 +262,7 @@ public class AnalyticsService(
             var now = DateTime.UtcNow;
             var top = filter.Top > 0 ? filter.Top : 10;
             var normDateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date.ToString("yyyyMMdd");
-            var normDateTo   = (filter.DateTo   ?? now).Date.ToString("yyyyMMdd");
+            var normDateTo = (filter.DateTo ?? now).Date.ToString("yyyyMMdd");
             var cacheKey = $"analytics_sales_{tenantId}_{normDateFrom}_{normDateTo}_{filter.Top}_{filter.GroupBy}";
             if (cache.TryGetValue(cacheKey, out SalesAnalyticsDashboardDto? cached) && cached is not null)
             {

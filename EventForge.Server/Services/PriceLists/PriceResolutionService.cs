@@ -1,14 +1,14 @@
-using Prym.DTOs.PriceLists;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.PriceLists;
 
 namespace EventForge.Server.Services.PriceLists
 {
     /// <summary>
     /// Service for resolving product prices based on price lists and business rules
     /// </summary>
-        public class PriceResolutionService(
-        EventForgeDbContext context,
-        ILogger<PriceResolutionService> logger) : IPriceResolutionService
+    public class PriceResolutionService(
+    EventForgeDbContext context,
+    ILogger<PriceResolutionService> logger) : IPriceResolutionService
     {
 
         /// <inheritdoc/>
@@ -143,9 +143,9 @@ namespace EventForge.Server.Services.PriceLists
                 };
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         /// <inheritdoc/>
@@ -207,9 +207,9 @@ namespace EventForge.Server.Services.PriceLists
                 return response;
             }
             catch
-        {
-            throw;
-        }
+            {
+                throw;
+            }
         }
 
         /// <summary>
@@ -283,6 +283,6 @@ namespace EventForge.Server.Services.PriceLists
 
             return null;
         }
-    
+
     }
 }

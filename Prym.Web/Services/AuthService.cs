@@ -1,6 +1,6 @@
+using Microsoft.JSInterop;
 using Prym.DTOs.Auth;
 using Prym.DTOs.Tenants;
-using Microsoft.JSInterop;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 

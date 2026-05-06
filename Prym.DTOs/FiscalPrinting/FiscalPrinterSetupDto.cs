@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations;
 using Prym.DTOs.Common;
+using System.ComponentModel.DataAnnotations;
 
 namespace Prym.DTOs.FiscalPrinting;
 

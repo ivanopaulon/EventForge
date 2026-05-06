@@ -1,4 +1,3 @@
-using Prym.DTOs.Common;
 using Prym.DTOs.Reports;
 
 namespace EventForge.Server.Services.Reports;

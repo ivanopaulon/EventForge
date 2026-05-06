@@ -1,5 +1,5 @@
-using Prym.Hardware.PrinterProxy;
 using EventForge.Server.Services.FiscalPrinting.EpsonProtocol;
+using Prym.Hardware.PrinterProxy;
 
 namespace EventForge.Server.Services.FiscalPrinting.Communication;
 

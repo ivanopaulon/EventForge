@@ -170,8 +170,8 @@ public class LogIngestionService(ILogger<LogIngestionService> logger) : ILogInge
         var options = new BoundedChannelOptions(DefaultChannelCapacity)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
-            SingleReader = true, 
-            SingleWriter = false 
+            SingleReader = true,
+            SingleWriter = false
         };
         return Channel.CreateBounded<ClientLogDto>(options);
     }

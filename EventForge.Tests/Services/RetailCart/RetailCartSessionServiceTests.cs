@@ -1,11 +1,11 @@
-using Prym.DTOs.Promotions;
-using Prym.DTOs.RetailCart;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.RetailCart;
 using EventForge.Server.Services.Tenants;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Promotions;
+using Prym.DTOs.RetailCart;
 
 namespace EventForge.Tests.Services.RetailCart
 {

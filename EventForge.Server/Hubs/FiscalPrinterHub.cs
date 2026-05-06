@@ -1,4 +1,3 @@
-using Prym.DTOs.FiscalPrinting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 

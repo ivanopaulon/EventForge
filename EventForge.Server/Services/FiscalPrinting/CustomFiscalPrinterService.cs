@@ -1,8 +1,7 @@
-using Prym.DTOs.FiscalPrinting;
-using EventForge.Server.Data;
 using EventForge.Server.Services.FiscalPrinting.Communication;
 using EventForge.Server.Services.FiscalPrinting.CustomProtocol;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.FiscalPrinting;
 
 namespace EventForge.Server.Services.FiscalPrinting;
 

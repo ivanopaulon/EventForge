@@ -1,7 +1,7 @@
-﻿using System.Text.Json;
-using System.Text.Json.Nodes;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Prym.Agent.Pages;
 

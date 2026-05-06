@@ -1,9 +1,9 @@
-using Prym.Web.Services.Updates;
+using Microsoft.AspNetCore.SignalR.Client;
 using Prym.DTOs.Chat;
 using Prym.DTOs.Documents;
 using Prym.DTOs.FiscalPrinting;
 using Prym.DTOs.Notifications;
-using Microsoft.AspNetCore.SignalR.Client;
+using Prym.Web.Services.Updates;
 using System.Collections.Concurrent;
 
 namespace Prym.Web.Services;
@@ -767,14 +767,14 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
                 bool? backupSucceeded = null;
                 if (data.TryGetProperty("backupSucceeded", out var bs))
                 {
-                    if (bs.ValueKind == System.Text.Json.JsonValueKind.True)  backupSucceeded = true;
+                    if (bs.ValueKind == System.Text.Json.JsonValueKind.True) backupSucceeded = true;
                     if (bs.ValueKind == System.Text.Json.JsonValueKind.False) backupSucceeded = false;
                 }
                 var payload = new LogCleanupPhaseChangedPayload(
-                    Phase:          data.TryGetProperty("phase", out var ph) ? ph.GetString() ?? string.Empty : string.Empty,
-                    Detail:         data.TryGetProperty("detail", out var det) ? det.GetString() : null,
+                    Phase: data.TryGetProperty("phase", out var ph) ? ph.GetString() ?? string.Empty : string.Empty,
+                    Detail: data.TryGetProperty("detail", out var det) ? det.GetString() : null,
                     BackupSucceeded: backupSucceeded,
-                    ChangedAt:      data.TryGetProperty("changedAt", out var ca) ? ca.GetDateTime() : DateTime.UtcNow);
+                    ChangedAt: data.TryGetProperty("changedAt", out var ca) ? ca.GetDateTime() : DateTime.UtcNow);
                 LogCleanupPhaseChanged?.Invoke(payload);
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse LogCleanupPhaseChanged payload"); }
@@ -785,18 +785,18 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
             try
             {
                 var payload = new LogCleanupCompletedPayload(
-                    Success:        data.TryGetProperty("success", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.True,
-                    TotalDeleted:   data.TryGetProperty("totalDeleted", out var td) && td.ValueKind == System.Text.Json.JsonValueKind.Number ? td.GetInt32() : 0,
-                    LoginAudits:    data.TryGetProperty("loginAudits", out var la) && la.ValueKind == System.Text.Json.JsonValueKind.Number ? la.GetInt32() : 0,
-                    AuditTrails:    data.TryGetProperty("auditTrails", out var at) && at.ValueKind == System.Text.Json.JsonValueKind.Number ? at.GetInt32() : 0,
-                    OperationLogs:  data.TryGetProperty("operationLogs", out var ol) && ol.ValueKind == System.Text.Json.JsonValueKind.Number ? ol.GetInt32() : 0,
-                    PerformanceLogs:data.TryGetProperty("performanceLogs", out var pl) && pl.ValueKind == System.Text.Json.JsonValueKind.Number ? pl.GetInt32() : 0,
-                    SerilogLogs:    data.TryGetProperty("serilogLogs", out var sl) && sl.ValueKind == System.Text.Json.JsonValueKind.Number ? sl.GetInt32() : 0,
-                    RetentionDays:  data.TryGetProperty("retentionDays", out var rd) && rd.ValueKind == System.Text.Json.JsonValueKind.Number ? rd.GetInt32() : 0,
-                    BackupFile:     data.TryGetProperty("backupFile", out var bf) ? bf.GetString() ?? "none" : "none",
+                    Success: data.TryGetProperty("success", out var s) && s.ValueKind == System.Text.Json.JsonValueKind.True,
+                    TotalDeleted: data.TryGetProperty("totalDeleted", out var td) && td.ValueKind == System.Text.Json.JsonValueKind.Number ? td.GetInt32() : 0,
+                    LoginAudits: data.TryGetProperty("loginAudits", out var la) && la.ValueKind == System.Text.Json.JsonValueKind.Number ? la.GetInt32() : 0,
+                    AuditTrails: data.TryGetProperty("auditTrails", out var at) && at.ValueKind == System.Text.Json.JsonValueKind.Number ? at.GetInt32() : 0,
+                    OperationLogs: data.TryGetProperty("operationLogs", out var ol) && ol.ValueKind == System.Text.Json.JsonValueKind.Number ? ol.GetInt32() : 0,
+                    PerformanceLogs: data.TryGetProperty("performanceLogs", out var pl) && pl.ValueKind == System.Text.Json.JsonValueKind.Number ? pl.GetInt32() : 0,
+                    SerilogLogs: data.TryGetProperty("serilogLogs", out var sl) && sl.ValueKind == System.Text.Json.JsonValueKind.Number ? sl.GetInt32() : 0,
+                    RetentionDays: data.TryGetProperty("retentionDays", out var rd) && rd.ValueKind == System.Text.Json.JsonValueKind.Number ? rd.GetInt32() : 0,
+                    BackupFile: data.TryGetProperty("backupFile", out var bf) ? bf.GetString() ?? "none" : "none",
                     ElapsedSeconds: data.TryGetProperty("elapsedSeconds", out var es) && es.ValueKind == System.Text.Json.JsonValueKind.Number ? es.GetDouble() : 0,
-                    CompletedAt:    data.TryGetProperty("completedAt", out var ca) ? ca.GetDateTime() : DateTime.UtcNow,
-                    Error:          data.TryGetProperty("error", out var err) ? err.GetString() : null);
+                    CompletedAt: data.TryGetProperty("completedAt", out var ca) ? ca.GetDateTime() : DateTime.UtcNow,
+                    Error: data.TryGetProperty("error", out var err) ? err.GetString() : null);
                 LogCleanupCompleted?.Invoke(payload);
             }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to parse LogCleanupCompleted payload"); }

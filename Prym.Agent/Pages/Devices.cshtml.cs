@@ -21,7 +21,7 @@ public class DevicesModel(
     /// <summary>Serial / COM ports present on the machine (Windows: COMx; Linux: /dev/ttySx etc.).</summary>
     public IReadOnlyList<string> SerialPorts { get; private set; } = [];
 
-    public string InstallationId   => agentOptions.InstallationId;
+    public string InstallationId => agentOptions.InstallationId;
     public string InstallationName => agentOptions.InstallationName;
 
     public async Task OnGetAsync(CancellationToken ct)
@@ -29,7 +29,7 @@ public class DevicesModel(
         try
         {
             var printersTask = printerService.ListSystemPrintersAsync(ct);
-            var serialTask   = printerService.ListSerialPortsAsync(ct);
+            var serialTask = printerService.ListSerialPortsAsync(ct);
 
             // ListDevices() is synchronous; run on a thread-pool thread so it does not
             // block the request thread while probing up to 99 USB device paths in parallel.
@@ -37,9 +37,9 @@ public class DevicesModel(
 
             await Task.WhenAll(usbTask, printersTask, serialTask).ConfigureAwait(false);
 
-            UsbDevices     = await usbTask;
+            UsbDevices = await usbTask;
             SystemPrinters = await printersTask;
-            SerialPorts    = await serialTask;
+            SerialPorts = await serialTask;
         }
         catch (Exception ex)
         {

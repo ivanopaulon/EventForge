@@ -1,5 +1,5 @@
-using Prym.DTOs.Dashboard;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Dashboard;
 using System.Diagnostics;
 
 namespace EventForge.Server.Services.Dashboard;

@@ -1,4 +1,3 @@
-using Prym.DTOs.Warehouse;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.PriceList;
@@ -10,8 +9,8 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
 using EntityDocumentStatus = Prym.DTOs.Common.DocumentStatus;
+using PriceListDirection = Prym.DTOs.Common.PriceListDirection;
 
 namespace EventForge.Tests.Services.Warehouse;
 
@@ -197,7 +196,7 @@ public class StockSnapshotServiceTests : IDisposable
     {
         _context.StockMovements.AddRange(
             MakeMovement(_productId, _locationId, null, 100m, RefDate.AddDays(-10)),
-            MakeMovement(_productId, null, _locationId, 30m,  RefDate.AddDays(-3)));
+            MakeMovement(_productId, null, _locationId, 30m, RefDate.AddDays(-3)));
         await _context.SaveChangesAsync();
 
         var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
@@ -292,7 +291,7 @@ public class StockSnapshotServiceTests : IDisposable
     public async Task GetStockSnapshotAsync_LocationFilter_RestrictsResults()
     {
         _context.StockMovements.AddRange(
-            MakeMovement(_productId, _locationId,  null, 80m, RefDate.AddDays(-5)),
+            MakeMovement(_productId, _locationId, null, 80m, RefDate.AddDays(-5)),
             MakeMovement(_productId, _location2Id, null, 20m, RefDate.AddDays(-5)));
         await _context.SaveChangesAsync();
 
@@ -311,7 +310,7 @@ public class StockSnapshotServiceTests : IDisposable
     public async Task GetStockSnapshotAsync_SearchByName_ReturnsMatchOnly()
     {
         _context.StockMovements.AddRange(
-            MakeMovement(_productId,  _locationId, null, 10m, RefDate.AddDays(-1)),  // Alpha
+            MakeMovement(_productId, _locationId, null, 10m, RefDate.AddDays(-1)),  // Alpha
             MakeMovement(_product2Id, _locationId, null, 20m, RefDate.AddDays(-1))); // Beta
         await _context.SaveChangesAsync();
 
@@ -325,7 +324,7 @@ public class StockSnapshotServiceTests : IDisposable
     public async Task GetStockSnapshotAsync_SearchByCode_ReturnsMatchOnly()
     {
         _context.StockMovements.AddRange(
-            MakeMovement(_productId,  _locationId, null, 10m, RefDate.AddDays(-1)),
+            MakeMovement(_productId, _locationId, null, 10m, RefDate.AddDays(-1)),
             MakeMovement(_product2Id, _locationId, null, 20m, RefDate.AddDays(-1)));
         await _context.SaveChangesAsync();
 
@@ -344,7 +343,7 @@ public class StockSnapshotServiceTests : IDisposable
     {
         _context.StockMovements.AddRange(
             MakeMovement(_productId, _locationId, null, 50m, RefDate.AddDays(-10), unitCost: 5.00m),
-            MakeMovement(_productId, _locationId, null, 50m, RefDate.AddDays(-5),  unitCost: 7.50m)); // later → wins
+            MakeMovement(_productId, _locationId, null, 50m, RefDate.AddDays(-5), unitCost: 7.50m)); // later → wins
         await _context.SaveChangesAsync();
 
         var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
@@ -408,7 +407,7 @@ public class StockSnapshotServiceTests : IDisposable
     public async Task GetStockSnapshotAsync_NegativeQuantity_TotalValuesStillComputed()
     {
         _context.StockMovements.AddRange(
-            MakeMovement(_productId, _locationId, null, 5m,  RefDate.AddDays(-5), unitCost: 10.00m),
+            MakeMovement(_productId, _locationId, null, 5m, RefDate.AddDays(-5), unitCost: 10.00m),
             MakeMovement(_productId, null, _locationId, 20m, RefDate.AddDays(-2))); // oversold
         await _context.SaveChangesAsync();
 
@@ -479,9 +478,9 @@ public class StockSnapshotServiceTests : IDisposable
     public async Task GetStockSnapshotAsync_OrderedByProductCodeThenLocationCode()
     {
         _context.StockMovements.AddRange(
-            MakeMovement(_product2Id, _locationId,  null, 1m, RefDate.AddDays(-1)), // PROD-002 LOC-A
-            MakeMovement(_productId,  _location2Id, null, 1m, RefDate.AddDays(-1)), // PROD-001 LOC-B
-            MakeMovement(_productId,  _locationId,  null, 1m, RefDate.AddDays(-1)), // PROD-001 LOC-A
+            MakeMovement(_product2Id, _locationId, null, 1m, RefDate.AddDays(-1)), // PROD-002 LOC-A
+            MakeMovement(_productId, _location2Id, null, 1m, RefDate.AddDays(-1)), // PROD-001 LOC-B
+            MakeMovement(_productId, _locationId, null, 1m, RefDate.AddDays(-1)), // PROD-001 LOC-A
             MakeMovement(_product2Id, _location2Id, null, 1m, RefDate.AddDays(-1)));// PROD-002 LOC-B
         await _context.SaveChangesAsync();
 
@@ -667,34 +666,58 @@ public class StockSnapshotServiceTests : IDisposable
     {
         var pl1 = new PriceList
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, Name = "Listino P10",
-            Direction = PriceListDirection.Output, Status = PriceListStatus.Active,
-            Priority = 10, ValidFrom = null, ValidTo = null,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Listino P10",
+            Direction = PriceListDirection.Output,
+            Status = PriceListStatus.Active,
+            Priority = 10,
+            ValidFrom = null,
+            ValidTo = null,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
         var pl2 = new PriceList
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, Name = "Listino P1",
-            Direction = PriceListDirection.Output, Status = PriceListStatus.Active,
-            Priority = 1,  ValidFrom = null, ValidTo = null,  // higher priority
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Listino P1",
+            Direction = PriceListDirection.Output,
+            Status = PriceListStatus.Active,
+            Priority = 1,
+            ValidFrom = null,
+            ValidTo = null,  // higher priority
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
         _context.PriceLists.AddRange(pl1, pl2);
 
         _context.PriceListEntries.AddRange(
             new PriceListEntry
             {
-                Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = pl1.Id,
-                ProductId = _productId, Price = 50.00m,
-                Status = PriceListEntryStatus.Active, MinQuantity = 0, MaxQuantity = 0,
-                CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                PriceListId = pl1.Id,
+                ProductId = _productId,
+                Price = 50.00m,
+                Status = PriceListEntryStatus.Active,
+                MinQuantity = 0,
+                MaxQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             },
             new PriceListEntry
             {
-                Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = pl2.Id,
-                ProductId = _productId, Price = 30.00m,  // this should win (Priority=1)
-                Status = PriceListEntryStatus.Active, MinQuantity = 0, MaxQuantity = 0,
-                CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                PriceListId = pl2.Id,
+                ProductId = _productId,
+                Price = 30.00m,  // this should win (Priority=1)
+                Status = PriceListEntryStatus.Active,
+                MinQuantity = 0,
+                MaxQuantity = 0,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             });
 
         _context.StockMovements.Add(
@@ -717,19 +740,30 @@ public class StockSnapshotServiceTests : IDisposable
     {
         var priceList = new PriceList
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, Name = "Listino Acquisto",
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Listino Acquisto",
             Direction = PriceListDirection.Input,   // wrong direction for sale price
             Status = PriceListStatus.Active,
-            Priority = 0, ValidFrom = null, ValidTo = null,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Priority = 0,
+            ValidFrom = null,
+            ValidTo = null,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
         _context.PriceLists.Add(priceList);
         _context.PriceListEntries.Add(new PriceListEntry
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = priceList.Id,
-            ProductId = _productId, Price = 77.00m,
-            Status = PriceListEntryStatus.Active, MinQuantity = 0, MaxQuantity = 0,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            PriceListId = priceList.Id,
+            ProductId = _productId,
+            Price = 77.00m,
+            Status = PriceListEntryStatus.Active,
+            MinQuantity = 0,
+            MaxQuantity = 0,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         _context.StockMovements.Add(
@@ -891,7 +925,7 @@ public class StockSnapshotServiceTests : IDisposable
 
         _context.StockMovements.AddRange(
             MakeMovement(_productId, _locationId, null, 100m, jan01),
-            MakeMovement(_productId, null, _locationId, 25m,  jan01.AddDays(30)));
+            MakeMovement(_productId, null, _locationId, 25m, jan01.AddDays(30)));
 
         await _context.SaveChangesAsync();
 
@@ -1079,11 +1113,11 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
     private readonly EventForgeDbContext _context;
     private readonly StockService _stockService;
 
-    private readonly Guid _tenantId  = Guid.NewGuid();
+    private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _warehouseId = Guid.NewGuid();
-    private readonly Guid _locationId  = Guid.NewGuid();
+    private readonly Guid _locationId = Guid.NewGuid();
     private readonly Guid _location2Id = Guid.NewGuid();
-    private readonly Guid _productId   = Guid.NewGuid();
+    private readonly Guid _productId = Guid.NewGuid();
 
     private static readonly DateTime RefDate = new DateTime(2025, 6, 15);
 
@@ -1094,9 +1128,9 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
             .Options;
         _context = new EventForgeDbContext(options);
 
-        var mockAudit   = new Mock<IAuditLogService>();
-        var mockTenant  = new Mock<ITenantContext>();
-        var mockLogger  = new Mock<ILogger<StockService>>();
+        var mockAudit = new Mock<IAuditLogService>();
+        var mockTenant = new Mock<ITenantContext>();
+        var mockLogger = new Mock<ILogger<StockService>>();
 
         mockTenant.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
@@ -1109,16 +1143,25 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
         // Seed warehouse + two locations + product
         _context.StorageFacilities.Add(new StorageFacility
         {
-            Id = _warehouseId, TenantId = _tenantId, Name = "WH", Code = "WH",
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = _warehouseId,
+            TenantId = _tenantId,
+            Name = "WH",
+            Code = "WH",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
         _context.StorageLocations.AddRange(
-            new StorageLocation { Id = _locationId,  TenantId = _tenantId, WarehouseId = _warehouseId, Code = "LOC-A", CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
+            new StorageLocation { Id = _locationId, TenantId = _tenantId, WarehouseId = _warehouseId, Code = "LOC-A", CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
             new StorageLocation { Id = _location2Id, TenantId = _tenantId, WarehouseId = _warehouseId, Code = "LOC-B", CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
         _context.Products.Add(new Product
         {
-            Id = _productId, TenantId = _tenantId, Code = "P01", Name = "Product",
-            DefaultPrice = 10m, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = _productId,
+            TenantId = _tenantId,
+            Code = "P01",
+            Name = "Product",
+            DefaultPrice = 10m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
         _context.SaveChanges();
     }
@@ -1126,8 +1169,11 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
     private StockMovement MakeMovement(Guid? toId, Guid? fromId, decimal quantity, MovementStatus status = MovementStatus.Completed)
         => new StockMovement
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
-            ToLocationId = toId, FromLocationId = fromId,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            ProductId = _productId,
+            ToLocationId = toId,
+            FromLocationId = fromId,
             Quantity = quantity,
             MovementType = toId.HasValue && fromId.HasValue
                 ? StockMovementType.Transfer
@@ -1135,7 +1181,8 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
             Status = status,
             MovementDate = RefDate.AddDays(-1),
             Reason = StockMovementReason.Purchase,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -1167,8 +1214,8 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
     {
         // 100 in (normal positive), then 30 out stored as -30 (legacy)
         _context.StockMovements.AddRange(
-            MakeMovement(toId: _locationId,   fromId: null,      quantity: 100m),
-            MakeMovement(toId: null,           fromId: _locationId, quantity: -30m));
+            MakeMovement(toId: _locationId, fromId: null, quantity: 100m),
+            MakeMovement(toId: null, fromId: _locationId, quantity: -30m));
         await _context.SaveChangesAsync();
 
         var result = (await _stockService.GetStockSnapshotAsync(RefDate)).ToList();
@@ -1207,7 +1254,7 @@ public class StockSnapshotNegativeQuantityTests : IDisposable
     {
         // Seed 100 into LOC-A, then transfer 40 from LOC-A to LOC-B
         _context.StockMovements.AddRange(
-            MakeMovement(toId: _locationId,  fromId: null,       quantity: 100m),
+            MakeMovement(toId: _locationId, fromId: null, quantity: 100m),
             MakeMovement(toId: _location2Id, fromId: _locationId, quantity: 40m));
         await _context.SaveChangesAsync();
 
@@ -1240,13 +1287,13 @@ public class InventoryDocumentQuantitiesTests : IDisposable
     private readonly EventForgeDbContext _context;
     private readonly StockService _stockService;
 
-    private readonly Guid _tenantId    = Guid.NewGuid();
+    private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _warehouseId = Guid.NewGuid();
-    private readonly Guid _locationId  = Guid.NewGuid();
+    private readonly Guid _locationId = Guid.NewGuid();
     private readonly Guid _location2Id = Guid.NewGuid();
-    private readonly Guid _productId   = Guid.NewGuid();
-    private readonly Guid _product2Id  = Guid.NewGuid();
-    private readonly Guid _docTypeId   = Guid.NewGuid();
+    private readonly Guid _productId = Guid.NewGuid();
+    private readonly Guid _product2Id = Guid.NewGuid();
+    private readonly Guid _docTypeId = Guid.NewGuid();
 
     public InventoryDocumentQuantitiesTests()
     {
@@ -1255,7 +1302,7 @@ public class InventoryDocumentQuantitiesTests : IDisposable
             .Options;
         _context = new EventForgeDbContext(options);
 
-        var mockAudit  = new Mock<IAuditLogService>();
+        var mockAudit = new Mock<IAuditLogService>();
         var mockTenant = new Mock<ITenantContext>();
         var mockLogger = new Mock<ILogger<StockService>>();
         mockTenant.Setup(x => x.CurrentTenantId).Returns(_tenantId);
@@ -1265,22 +1312,32 @@ public class InventoryDocumentQuantitiesTests : IDisposable
         // Seed warehouse, locations, products
         _context.StorageFacilities.Add(new StorageFacility
         {
-            Id = _warehouseId, TenantId = _tenantId, Name = "WH", Code = "WH",
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = _warehouseId,
+            TenantId = _tenantId,
+            Name = "WH",
+            Code = "WH",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
         _context.StorageLocations.AddRange(
-            new StorageLocation { Id = _locationId,  TenantId = _tenantId, WarehouseId = _warehouseId, Code = "L1", CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
+            new StorageLocation { Id = _locationId, TenantId = _tenantId, WarehouseId = _warehouseId, Code = "L1", CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
             new StorageLocation { Id = _location2Id, TenantId = _tenantId, WarehouseId = _warehouseId, Code = "L2", CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
         _context.Products.AddRange(
-            new Product { Id = _productId,  TenantId = _tenantId, Code = "P1", Name = "Product One", DefaultPrice = 20m, CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
-            new Product { Id = _product2Id, TenantId = _tenantId, Code = "P2", Name = "Product Two", DefaultPrice = 5m,  CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
+            new Product { Id = _productId, TenantId = _tenantId, Code = "P1", Name = "Product One", DefaultPrice = 20m, CreatedAt = DateTime.UtcNow, CreatedBy = "test" },
+            new Product { Id = _product2Id, TenantId = _tenantId, Code = "P2", Name = "Product Two", DefaultPrice = 5m, CreatedAt = DateTime.UtcNow, CreatedBy = "test" });
 
         // Seed inventory document type
         _context.DocumentTypes.Add(new DocumentType
         {
-            Id = _docTypeId, TenantId = _tenantId, Code = "INV", Name = "Inventory",
-            IsInventoryDocument = true, CreatesStockMovements = false,
-            IsActive = true, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = _docTypeId,
+            TenantId = _tenantId,
+            Code = "INV",
+            Name = "Inventory",
+            IsInventoryDocument = true,
+            CreatesStockMovements = false,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         _context.SaveChanges();
@@ -1289,20 +1346,29 @@ public class InventoryDocumentQuantitiesTests : IDisposable
     private DocumentHeader MakeHeader(EntityDocumentStatus status = EntityDocumentStatus.Closed, DateTime? date = null)
         => new DocumentHeader
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, DocumentTypeId = _docTypeId,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = _docTypeId,
             Number = $"INV-{Guid.NewGuid():N}",
             Date = date ?? new DateTime(2025, 3, 1, 0, 0, 0, DateTimeKind.Utc),
             Status = status,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
 
     private DocumentRow MakeRow(Guid documentHeaderId, Guid productId, Guid locationId, decimal quantity)
         => new DocumentRow
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, DocumentHeaderId = documentHeaderId,
-            ProductId = productId, LocationId = locationId, Description = "count",
-            Quantity = quantity, UnitPrice = 0m,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = documentHeaderId,
+            ProductId = productId,
+            LocationId = locationId,
+            Description = "count",
+            Quantity = quantity,
+            UnitPrice = 0m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
 
     /// <summary>Returns the raw inventoried quantity directly from the document row.</summary>
@@ -1330,17 +1396,17 @@ public class InventoryDocumentQuantitiesTests : IDisposable
         var header = MakeHeader();
         _context.DocumentHeaders.Add(header);
         _context.DocumentRows.AddRange(
-            MakeRow(header.Id, _productId,  _locationId,  10m),
-            MakeRow(header.Id, _product2Id, _locationId,  25m),
-            MakeRow(header.Id, _productId,  _location2Id, 7m));
+            MakeRow(header.Id, _productId, _locationId, 10m),
+            MakeRow(header.Id, _product2Id, _locationId, 25m),
+            MakeRow(header.Id, _productId, _location2Id, 7m));
         await _context.SaveChangesAsync();
 
         var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();
 
         Assert.Equal(3, result.Count);
-        Assert.Equal(10m, result.Single(r => r.ProductId == _productId  && r.LocationId == _locationId).Quantity);
+        Assert.Equal(10m, result.Single(r => r.ProductId == _productId && r.LocationId == _locationId).Quantity);
         Assert.Equal(25m, result.Single(r => r.ProductId == _product2Id && r.LocationId == _locationId).Quantity);
-        Assert.Equal(7m,  result.Single(r => r.ProductId == _productId  && r.LocationId == _location2Id).Quantity);
+        Assert.Equal(7m, result.Single(r => r.ProductId == _productId && r.LocationId == _location2Id).Quantity);
     }
 
     /// <summary>
@@ -1400,18 +1466,28 @@ public class InventoryDocumentQuantitiesTests : IDisposable
         var priceListId = Guid.NewGuid();
         _context.PriceLists.Add(new PriceList
         {
-            Id = priceListId, TenantId = _tenantId, Name = "Standard", Code = "STD",
-            Direction = PriceListDirection.Output, Priority = 1,
+            Id = priceListId,
+            TenantId = _tenantId,
+            Name = "Standard",
+            Code = "STD",
+            Direction = PriceListDirection.Output,
+            Priority = 1,
             Status = PriceListStatus.Active,
-            ValidFrom = docDate.AddDays(-30), ValidTo = null,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            ValidFrom = docDate.AddDays(-30),
+            ValidTo = null,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
         _context.PriceListEntries.Add(new PriceListEntry
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId, PriceListId = priceListId,
-            ProductId = _productId, Price = 55m,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            PriceListId = priceListId,
+            ProductId = _productId,
+            Price = 55m,
             Status = PriceListEntryStatus.Active,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         await _context.SaveChangesAsync();
@@ -1454,27 +1530,48 @@ public class InventoryDocumentQuantitiesTests : IDisposable
         _context.StockMovements.AddRange(
             new StockMovement
             {
-                Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
-                ToLocationId = _locationId, Quantity = 50m, UnitCost = 8m,
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                ProductId = _productId,
+                ToLocationId = _locationId,
+                Quantity = 50m,
+                UnitCost = 8m,
                 MovementDate = docDate.AddDays(-10),
-                MovementType = StockMovementType.Inbound, Status = MovementStatus.Completed,
-                Reason = StockMovementReason.Purchase, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                MovementType = StockMovementType.Inbound,
+                Status = MovementStatus.Completed,
+                Reason = StockMovementReason.Purchase,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             },
             new StockMovement
             {
-                Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
-                ToLocationId = _locationId, Quantity = 30m, UnitCost = 12m, // more recent
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                ProductId = _productId,
+                ToLocationId = _locationId,
+                Quantity = 30m,
+                UnitCost = 12m, // more recent
                 MovementDate = docDate.AddDays(-2),
-                MovementType = StockMovementType.Inbound, Status = MovementStatus.Completed,
-                Reason = StockMovementReason.Purchase, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                MovementType = StockMovementType.Inbound,
+                Status = MovementStatus.Completed,
+                Reason = StockMovementReason.Purchase,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             },
             new StockMovement
             {
-                Id = Guid.NewGuid(), TenantId = _tenantId, ProductId = _productId,
-                ToLocationId = _locationId, Quantity = 20m, UnitCost = 99m, // after doc — excluded
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                ProductId = _productId,
+                ToLocationId = _locationId,
+                Quantity = 20m,
+                UnitCost = 99m, // after doc — excluded
                 MovementDate = docDate.AddDays(5),
-                MovementType = StockMovementType.Inbound, Status = MovementStatus.Completed,
-                Reason = StockMovementReason.Purchase, CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                MovementType = StockMovementType.Inbound,
+                Status = MovementStatus.Completed,
+                Reason = StockMovementReason.Purchase,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             });
 
         await _context.SaveChangesAsync();
@@ -1489,24 +1586,32 @@ public class InventoryDocumentQuantitiesTests : IDisposable
     [Fact]
     public async Task GetInventoryDocumentQuantitiesAsync_WarehouseFilter_LimitsResults()
     {
-        var wh2Id  = Guid.NewGuid();
+        var wh2Id = Guid.NewGuid();
         var loc3Id = Guid.NewGuid();
         _context.StorageFacilities.Add(new StorageFacility
         {
-            Id = wh2Id, TenantId = _tenantId, Name = "WH2", Code = "WH2",
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = wh2Id,
+            TenantId = _tenantId,
+            Name = "WH2",
+            Code = "WH2",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
         _context.StorageLocations.Add(new StorageLocation
         {
-            Id = loc3Id, TenantId = _tenantId, WarehouseId = wh2Id, Code = "L3",
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = loc3Id,
+            TenantId = _tenantId,
+            WarehouseId = wh2Id,
+            Code = "L3",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         var header = MakeHeader();
         _context.DocumentHeaders.Add(header);
         _context.DocumentRows.AddRange(
             MakeRow(header.Id, _productId, _locationId, 10m),  // WH1
-            MakeRow(header.Id, _productId, loc3Id,      25m)); // WH2
+            MakeRow(header.Id, _productId, loc3Id, 25m)); // WH2
         await _context.SaveChangesAsync();
 
         var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id, warehouseId: _warehouseId)).ToList();
@@ -1523,9 +1628,9 @@ public class InventoryDocumentQuantitiesTests : IDisposable
         var header = MakeHeader();
         _context.DocumentHeaders.Add(header);
         _context.DocumentRows.AddRange(
-            MakeRow(header.Id, _product2Id, _locationId,  5m),  // P2 / L1
-            MakeRow(header.Id, _productId,  _location2Id, 3m),  // P1 / L2
-            MakeRow(header.Id, _productId,  _locationId,  7m)); // P1 / L1
+            MakeRow(header.Id, _product2Id, _locationId, 5m),  // P2 / L1
+            MakeRow(header.Id, _productId, _location2Id, 3m),  // P1 / L2
+            MakeRow(header.Id, _productId, _locationId, 7m)); // P1 / L1
         await _context.SaveChangesAsync();
 
         var result = (await _stockService.GetInventoryDocumentQuantitiesAsync(header.Id)).ToList();

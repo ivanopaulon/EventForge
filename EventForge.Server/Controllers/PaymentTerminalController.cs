@@ -1,8 +1,7 @@
-using Prym.DTOs.PaymentTerminal;
 using EventForge.Server.Services.PaymentTerminal;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Prym.DTOs.PaymentTerminal;
 
 namespace EventForge.Server.Controllers;
 

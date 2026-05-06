@@ -1,16 +1,15 @@
-using Prym.Web.Models.Documents;
-using Prym.Web.Services;
-using Prym.Web.Services.Common;
-using Prym.Web.Services.Documents;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+using MudBlazor;
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
 using Prym.DTOs.Products;
 using Prym.DTOs.UnitOfMeasures;
 using Prym.DTOs.VatRates;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.JSInterop;
-using MudBlazor;
+using Prym.Web.Models.Documents;
+using Prym.Web.Services;
+using Prym.Web.Services.Documents;
 using static Prym.Web.Shared.Components.Dialogs.Documents.DocumentRowDialogConstants;
 
 namespace Prym.Web.Shared.Components.Dialogs.Documents;
@@ -156,17 +155,17 @@ public partial class DocumentRowDialog : IAsyncDisposable
         {
             var field = key switch
             {
-                "validation.descriptionRequired"           => "description",
-                "validation.quantityMustBePositive"        => "quantity",
-                "validation.quantityTooLarge"              => "quantity",
-                "validation.unitPriceCannotBeNegative"     => "unitPrice",
-                "validation.unitPriceTooLarge"             => "unitPrice",
-                "validation.unitOfMeasureRequired"         => "unitOfMeasure",
-                "validation.vatRateInvalid"                => "vatRate",
-                "validation.discountPercentageInvalid"     => "discount",
+                "validation.descriptionRequired" => "description",
+                "validation.quantityMustBePositive" => "quantity",
+                "validation.quantityTooLarge" => "quantity",
+                "validation.unitPriceCannotBeNegative" => "unitPrice",
+                "validation.unitPriceTooLarge" => "unitPrice",
+                "validation.unitOfMeasureRequired" => "unitOfMeasure",
+                "validation.vatRateInvalid" => "vatRate",
+                "validation.discountPercentageInvalid" => "discount",
                 "validation.discountValueCannotBeNegative" => "discount",
-                "validation.discountValueExceedsTotal"     => "discount",
-                _                                          => (string?)null
+                "validation.discountValueExceedsTotal" => "discount",
+                _ => (string?)null
             };
             if (field is not null && !_state.Validation.FieldErrors.ContainsKey(field))
             {
@@ -178,17 +177,17 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     private static string GetFieldDefaultMessage(string key) => key switch
     {
-        "validation.descriptionRequired"           => "Obbligatorio",
-        "validation.quantityMustBePositive"        => "Deve essere > 0",
-        "validation.quantityTooLarge"              => "Valore troppo elevato",
-        "validation.unitPriceCannotBeNegative"     => "Non può essere negativo",
-        "validation.unitPriceTooLarge"             => "Valore troppo elevato",
-        "validation.unitOfMeasureRequired"         => "Obbligatorio",
-        "validation.vatRateInvalid"                => "Deve essere tra 0 e 100",
-        "validation.discountPercentageInvalid"     => "Deve essere tra 0 e 100",
+        "validation.descriptionRequired" => "Obbligatorio",
+        "validation.quantityMustBePositive" => "Deve essere > 0",
+        "validation.quantityTooLarge" => "Valore troppo elevato",
+        "validation.unitPriceCannotBeNegative" => "Non può essere negativo",
+        "validation.unitPriceTooLarge" => "Valore troppo elevato",
+        "validation.unitOfMeasureRequired" => "Obbligatorio",
+        "validation.vatRateInvalid" => "Deve essere tra 0 e 100",
+        "validation.discountPercentageInvalid" => "Deve essere tra 0 e 100",
         "validation.discountValueCannotBeNegative" => "Non può essere negativo",
-        "validation.discountValueExceedsTotal"     => "Supera il totale riga",
-        _                                          => "Valore non valido"
+        "validation.discountValueExceedsTotal" => "Supera il totale riga",
+        _ => "Valore non valido"
     };
 
     #endregion
@@ -1476,10 +1475,10 @@ public partial class DocumentRowDialog : IAsyncDisposable
             _state.Model.MergeDuplicateProducts);
 
         // Capture product state before reset (needed for the incomplete-product offer)
-        var productToCheck   = _state.SelectedProduct;
-        var savedUoMId       = _state.Model.UnitOfMeasureId;
-        var savedVatRateId   = _state.SelectedVatRateId;
-        var savedPrice       = _state.Model.UnitPrice;
+        var productToCheck = _state.SelectedProduct;
+        var savedUoMId = _state.Model.UnitOfMeasureId;
+        var savedVatRateId = _state.SelectedVatRateId;
+        var savedPrice = _state.Model.UnitPrice;
         var productHadNoUoMs = _availableUnits.Count == 0;
 
         var result = await ExecuteWithErrorHandlingAsync(
@@ -1574,9 +1573,9 @@ public partial class DocumentRowDialog : IAsyncDisposable
         Guid? savedVatRateId,
         decimal savedPrice)
     {
-        bool missingUoM      = productHadNoConfiguredUoMs && savedUoMId.HasValue;
-        bool missingVatRate  = !product.VatRateId.HasValue && savedVatRateId.HasValue;
-        bool missingPrice    = (!product.DefaultPrice.HasValue || product.DefaultPrice == 0m) && savedPrice > 0m;
+        bool missingUoM = productHadNoConfiguredUoMs && savedUoMId.HasValue;
+        bool missingVatRate = !product.VatRateId.HasValue && savedVatRateId.HasValue;
+        bool missingPrice = (!product.DefaultPrice.HasValue || product.DefaultPrice == 0m) && savedPrice > 0m;
 
         if (!missingUoM && !missingVatRate && !missingPrice)
             return;
@@ -1612,7 +1611,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
             TranslationService.GetTranslation("documents.incompleteProductTitle", "Prodotto incompleto"),
             (MarkupString)message.Replace("\n", "<br/>"),
             yesText: TranslationService.GetTranslation("common.update", "Aggiorna prodotto"),
-            noText:  TranslationService.GetTranslation("common.skip",   "Non aggiornare"));
+            noText: TranslationService.GetTranslation("common.skip", "Non aggiornare"));
 
         if (confirmed != true)
             return;
@@ -1623,26 +1622,26 @@ public partial class DocumentRowDialog : IAsyncDisposable
             // the ones the operator provided.
             var updateDto = new UpdateProductDto
             {
-                Name              = product.Name,
-                ShortDescription  = product.ShortDescription ?? string.Empty,
-                Description       = product.Description ?? string.Empty,
-                ImageUrl          = product.ImageUrl ?? string.Empty,
-                ImageDocumentId   = product.ImageDocumentId,
-                Status            = product.Status,
-                IsVatIncluded     = product.IsVatIncluded,
-                DefaultPrice      = missingPrice ? savedPrice : product.DefaultPrice,
-                VatRateId         = missingVatRate ? savedVatRateId : product.VatRateId,
-                UnitOfMeasureId   = missingUoM   ? savedUoMId     : product.UnitOfMeasureId,
-                CategoryNodeId    = product.CategoryNodeId,
-                FamilyNodeId      = product.FamilyNodeId,
-                GroupNodeId       = product.GroupNodeId,
-                StationId         = product.StationId,
-                BrandId           = product.BrandId,
-                ModelId           = product.ModelId,
+                Name = product.Name,
+                ShortDescription = product.ShortDescription ?? string.Empty,
+                Description = product.Description ?? string.Empty,
+                ImageUrl = product.ImageUrl ?? string.Empty,
+                ImageDocumentId = product.ImageDocumentId,
+                Status = product.Status,
+                IsVatIncluded = product.IsVatIncluded,
+                DefaultPrice = missingPrice ? savedPrice : product.DefaultPrice,
+                VatRateId = missingVatRate ? savedVatRateId : product.VatRateId,
+                UnitOfMeasureId = missingUoM ? savedUoMId : product.UnitOfMeasureId,
+                CategoryNodeId = product.CategoryNodeId,
+                FamilyNodeId = product.FamilyNodeId,
+                GroupNodeId = product.GroupNodeId,
+                StationId = product.StationId,
+                BrandId = product.BrandId,
+                ModelId = product.ModelId,
                 PreferredSupplierId = product.PreferredSupplierId,
-                ReorderPoint      = product.ReorderPoint,
-                SafetyStock       = product.SafetyStock,
-                TargetStockLevel  = product.TargetStockLevel,
+                ReorderPoint = product.ReorderPoint,
+                SafetyStock = product.SafetyStock,
+                TargetStockLevel = product.TargetStockLevel,
                 AverageDailyDemand = product.AverageDailyDemand,
             };
 
@@ -1654,9 +1653,9 @@ public partial class DocumentRowDialog : IAsyncDisposable
             {
                 var createUnitDto = new CreateProductUnitDto
                 {
-                    ProductId        = product.Id,
-                    UnitOfMeasureId  = savedUoMId.Value,
-                    UnitType         = "Base",
+                    ProductId = product.Id,
+                    UnitOfMeasureId = savedUoMId.Value,
+                    UnitType = "Base",
                     ConversionFactor = 1m,
                 };
                 await ProductService.CreateProductUnitAsync(createUnitDto);

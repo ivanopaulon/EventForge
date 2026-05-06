@@ -1,5 +1,3 @@
-using Prym.DTOs.Common;
-using Prym.DTOs.Sales;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.Sales;
 using EventForge.Server.Services.Tenants;
@@ -7,6 +5,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
+using Prym.DTOs.Sales;
 
 namespace EventForge.Tests.Controllers;
 

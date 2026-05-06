@@ -1,4 +1,3 @@
-using EventForge.Server.Services.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -25,8 +24,8 @@ public class LogBackupsModel : PageModel
         ILogger<LogBackupsModel> logger)
     {
         _configService = configService;
-        _env           = env;
-        _logger        = logger;
+        _env = env;
+        _logger = logger;
     }
 
     // ── Page data ─────────────────────────────────────────────────────────────
@@ -36,33 +35,33 @@ public class LogBackupsModel : PageModel
     public string? ErrorMessage { get; set; }
 
     // ── File viewer state (populated by OnGetViewFileAsync) ───────────────────
-    [BindProperty(SupportsGet = true)] public string? ViewBackupName  { get; set; }
-    [BindProperty(SupportsGet = true)] public string? ViewFileName    { get; set; }
-    public string? ViewFileContent   { get; set; }
-    public bool    ViewFileTruncated { get; set; }
+    [BindProperty(SupportsGet = true)] public string? ViewBackupName { get; set; }
+    [BindProperty(SupportsGet = true)] public string? ViewFileName { get; set; }
+    public string? ViewFileContent { get; set; }
+    public bool ViewFileTruncated { get; set; }
 
     // ── Inner models ──────────────────────────────────────────────────────────
 
     public sealed class BackupInfo
     {
-        public string   DirectoryName   { get; init; } = string.Empty;
-        public DateTime Timestamp       { get; init; }
-        public long     TotalSizeBytes  { get; init; }
-        public List<FileEntry> Files    { get; init; } = [];
+        public string DirectoryName { get; init; } = string.Empty;
+        public DateTime Timestamp { get; init; }
+        public long TotalSizeBytes { get; init; }
+        public List<FileEntry> Files { get; init; } = [];
     }
 
     public sealed class FileEntry
     {
-        public string FileName   { get; init; } = string.Empty;
-        public long   SizeBytes  { get; init; }
+        public string FileName { get; init; } = string.Empty;
+        public long SizeBytes { get; init; }
     }
 
     // ── Handlers ──────────────────────────────────────────────────────────────
 
     public async Task OnGetAsync()
     {
-        if (TempData["SuccessMessage"] is string ok)  SuccessMessage = ok;
-        if (TempData["ErrorMessage"]   is string err) ErrorMessage   = err;
+        if (TempData["SuccessMessage"] is string ok) SuccessMessage = ok;
+        if (TempData["ErrorMessage"] is string err) ErrorMessage = err;
 
         BackupDirectoryPath = await ResolveBackupDirectoryAsync(HttpContext.RequestAborted);
         Backups = LoadBackups(BackupDirectoryPath);
@@ -87,12 +86,12 @@ public class LogBackupsModel : PageModel
                             var buffer = new byte[ViewLimitBytes];
                             await using var fs = System.IO.File.OpenRead(filePath);
                             var read = await fs.ReadAsync(buffer, HttpContext.RequestAborted);
-                            ViewFileContent   = System.Text.Encoding.UTF8.GetString(buffer, 0, read);
+                            ViewFileContent = System.Text.Encoding.UTF8.GetString(buffer, 0, read);
                             ViewFileTruncated = true;
                         }
                         else
                         {
-                            ViewFileContent   = await System.IO.File.ReadAllTextAsync(filePath, HttpContext.RequestAborted);
+                            ViewFileContent = await System.IO.File.ReadAllTextAsync(filePath, HttpContext.RequestAborted);
                             ViewFileTruncated = false;
                         }
                     }
@@ -175,9 +174,9 @@ public class LogBackupsModel : PageModel
         foreach (var dir in Directory.EnumerateDirectories(baseDir, "LogBackup_*")
                                      .OrderByDescending(d => d))
         {
-            var dirName  = Path.GetFileName(dir);
-            var ts       = ParseTimestamp(dirName);
-            var files    = new List<FileEntry>();
+            var dirName = Path.GetFileName(dir);
+            var ts = ParseTimestamp(dirName);
+            var files = new List<FileEntry>();
 
             foreach (var f in Directory.EnumerateFiles(dir, "*.json").OrderBy(f => f))
             {
@@ -187,10 +186,10 @@ public class LogBackupsModel : PageModel
 
             result.Add(new BackupInfo
             {
-                DirectoryName  = dirName,
-                Timestamp      = ts,
+                DirectoryName = dirName,
+                Timestamp = ts,
                 TotalSizeBytes = files.Sum(f => f.SizeBytes),
-                Files          = files
+                Files = files
             });
         }
 
@@ -231,7 +230,7 @@ public class LogBackupsModel : PageModel
             return false;
 
         var candidate = Path.GetFullPath(Path.Combine(baseDir, backupName, fileName));
-        var safeBase  = Path.GetFullPath(baseDir) + Path.DirectorySeparatorChar;
+        var safeBase = Path.GetFullPath(baseDir) + Path.DirectorySeparatorChar;
 
         if (!candidate.StartsWith(safeBase, StringComparison.OrdinalIgnoreCase))
             return false;

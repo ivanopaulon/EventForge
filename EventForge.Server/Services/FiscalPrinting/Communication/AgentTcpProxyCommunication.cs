@@ -22,7 +22,7 @@ public sealed class AgentTcpProxyCommunication(
     : AgentProxyBaseCommunication(agentBaseUrl, timeoutMs, logger, httpClientFactory)
 {
     private readonly string _printerHost = ValidateHost(printerHost);
-    private readonly int _printerPort    = ValidatePort(printerPort);
+    private readonly int _printerPort = ValidatePort(printerPort);
 
     // ── ICustomPrinterCommunication ────────────────────────────────────────────
 

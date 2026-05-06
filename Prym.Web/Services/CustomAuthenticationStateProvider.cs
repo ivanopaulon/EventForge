@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
 namespace Prym.Web.Services

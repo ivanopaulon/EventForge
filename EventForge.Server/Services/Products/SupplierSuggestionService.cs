@@ -1,8 +1,8 @@
-using Prym.DTOs.Products.SupplierSuggestion;
 using EventForge.Server.Services.Alerts;
 using EventForge.Server.Services.PriceHistory;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Products.SupplierSuggestion;
 
 namespace EventForge.Server.Services.Products;
 

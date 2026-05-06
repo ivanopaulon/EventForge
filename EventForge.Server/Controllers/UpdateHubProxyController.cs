@@ -1,7 +1,6 @@
 using EventForge.Server.Services.Updates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 
 namespace EventForge.Server.Controllers;
 

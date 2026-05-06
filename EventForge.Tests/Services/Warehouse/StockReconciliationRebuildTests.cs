@@ -1,4 +1,3 @@
-using Prym.DTOs.Warehouse;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Documents;
 using EventForge.Server.Data.Entities.Products;
@@ -9,6 +8,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Warehouse;
 
 namespace EventForge.Tests.Services.Warehouse;
 
@@ -22,12 +22,12 @@ public class StockReconciliationRebuildTests : IDisposable
     private readonly EventForgeDbContext _context;
     private readonly StockReconciliationService _reconciliationService;
 
-    private readonly Guid _tenantId         = Guid.NewGuid();
-    private readonly Guid _warehouseId      = Guid.NewGuid();
-    private readonly Guid _locationAId      = Guid.NewGuid();  // Code = "A"
-    private readonly Guid _locationBId      = Guid.NewGuid();  // Code = "B"
-    private readonly Guid _productId        = Guid.NewGuid();
-    private readonly Guid _documentTypeInId  = Guid.NewGuid(); // IsStockIncrease = true
+    private readonly Guid _tenantId = Guid.NewGuid();
+    private readonly Guid _warehouseId = Guid.NewGuid();
+    private readonly Guid _locationAId = Guid.NewGuid();  // Code = "A"
+    private readonly Guid _locationBId = Guid.NewGuid();  // Code = "B"
+    private readonly Guid _productId = Guid.NewGuid();
+    private readonly Guid _documentTypeInId = Guid.NewGuid(); // IsStockIncrease = true
     private readonly Guid _documentTypeOutId = Guid.NewGuid(); // IsStockIncrease = false
 
     public StockReconciliationRebuildTests()
@@ -37,10 +37,10 @@ public class StockReconciliationRebuildTests : IDisposable
             .Options;
         _context = new EventForgeDbContext(options);
 
-        var mockAudit   = new Mock<IAuditLogService>();
-        var mockTenant  = new Mock<ITenantContext>();
+        var mockAudit = new Mock<IAuditLogService>();
+        var mockTenant = new Mock<ITenantContext>();
         var mockSmLogger = new Mock<ILogger<StockMovementService>>();
-        var mockLogger  = new Mock<ILogger<StockReconciliationService>>();
+        var mockLogger = new Mock<ILogger<StockReconciliationService>>();
 
         mockTenant.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
@@ -64,9 +64,12 @@ public class StockReconciliationRebuildTests : IDisposable
     {
         _context.StorageFacilities.Add(new StorageFacility
         {
-            Id = _warehouseId, TenantId = _tenantId,
-            Name = "WH", Code = "WH",
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = _warehouseId,
+            TenantId = _tenantId,
+            Name = "WH",
+            Code = "WH",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         // Two locations — Code "A" sorts before "B" alphabetically
@@ -76,37 +79,50 @@ public class StockReconciliationRebuildTests : IDisposable
 
         _context.Products.Add(new Product
         {
-            Id = _productId, TenantId = _tenantId,
-            Code = "P01", Name = "Product",
+            Id = _productId,
+            TenantId = _tenantId,
+            Code = "P01",
+            Name = "Product",
             DefaultPrice = 10m,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         _context.DocumentTypes.AddRange(
             new DocumentType
             {
-                Id = _documentTypeInId, TenantId = _tenantId,
-                Name = "Acquisto", Code = "ACQ",
+                Id = _documentTypeInId,
+                TenantId = _tenantId,
+                Name = "Acquisto",
+                Code = "ACQ",
                 IsStockIncrease = true,
                 DefaultWarehouseId = _warehouseId,
-                CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             },
             new DocumentType
             {
-                Id = _documentTypeOutId, TenantId = _tenantId,
-                Name = "Vendita", Code = "VEN",
+                Id = _documentTypeOutId,
+                TenantId = _tenantId,
+                Name = "Vendita",
+                Code = "VEN",
                 IsStockIncrease = false,
                 DefaultWarehouseId = _warehouseId,
-                CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             });
 
         // Initial stock at location A
         _context.Stocks.Add(new Stock
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId,
-            ProductId = _productId, StorageLocationId = _locationAId,
-            Quantity = 100m, ReservedQuantity = 0m,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            ProductId = _productId,
+            StorageLocationId = _locationAId,
+            Quantity = 100m,
+            ReservedQuantity = 0m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         });
 
         _context.SaveChanges();
@@ -115,26 +131,30 @@ public class StockReconciliationRebuildTests : IDisposable
     private DocumentHeader MakeClosedApprovedHeader(Guid documentTypeId, string number)
         => new DocumentHeader
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
             DocumentTypeId = documentTypeId,
             Number = number,
             Date = DateTime.UtcNow,
             Status = Prym.DTOs.Common.DocumentStatus.Closed,
             ApprovalStatus = ApprovalStatus.Approved,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
 
     private DocumentRow MakeRow(Guid documentHeaderId, Guid? locationId = null)
         => new DocumentRow
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
             DocumentHeaderId = documentHeaderId,
             ProductId = _productId,
             Description = "Test Product",
             Quantity = 10m,
             UnitPrice = 5m,
             LocationId = locationId,
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -147,20 +167,22 @@ public class StockReconciliationRebuildTests : IDisposable
         // Approved but still Open (not Closed) → should NOT generate movements
         var header = new DocumentHeader
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
             DocumentTypeId = _documentTypeInId,
             Number = "DOC-OPEN",
             Date = DateTime.UtcNow,
             Status = Prym.DTOs.Common.DocumentStatus.Open,        // Open
             ApprovalStatus = ApprovalStatus.Approved,             // Approved
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
         _context.DocumentHeaders.Add(header);
         _context.DocumentRows.Add(MakeRow(header.Id, _locationAId));
         await _context.SaveChangesAsync();
 
         var request = new RebuildMovementsRequestDto { DryRun = true };
-        var result  = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
+        var result = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
 
         // Default filter: Approved + Closed (AND).  Open document must be excluded.
         Assert.Equal(0, result.DocumentsScanned);
@@ -177,20 +199,22 @@ public class StockReconciliationRebuildTests : IDisposable
     {
         var header = new DocumentHeader
         {
-            Id = Guid.NewGuid(), TenantId = _tenantId,
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
             DocumentTypeId = _documentTypeInId,
             Number = "DOC-NOTAPPROVED",
             Date = DateTime.UtcNow,
             Status = Prym.DTOs.Common.DocumentStatus.Closed,     // Closed
             ApprovalStatus = ApprovalStatus.None,                 // NOT approved
-            CreatedAt = DateTime.UtcNow, CreatedBy = "test"
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
         };
         _context.DocumentHeaders.Add(header);
         _context.DocumentRows.Add(MakeRow(header.Id, _locationAId));
         await _context.SaveChangesAsync();
 
         var request = new RebuildMovementsRequestDto { DryRun = true };
-        var result  = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
+        var result = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
 
         Assert.Equal(0, result.DocumentsScanned);
         Assert.Equal(0, result.MovementsCreated);
@@ -209,7 +233,7 @@ public class StockReconciliationRebuildTests : IDisposable
         await _context.SaveChangesAsync();
 
         var request = new RebuildMovementsRequestDto { DryRun = true };
-        var result  = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
+        var result = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
 
         Assert.Equal(1, result.DocumentsScanned);
         Assert.Equal(1, result.RowsScanned);
@@ -232,7 +256,7 @@ public class StockReconciliationRebuildTests : IDisposable
         await _context.SaveChangesAsync();
 
         var request = new RebuildMovementsRequestDto { DryRun = false };
-        var result  = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
+        var result = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, "test");
 
         Assert.Equal(1, result.MovementsCreated);
 
@@ -259,7 +283,7 @@ public class StockReconciliationRebuildTests : IDisposable
 
         // First rebuild — creates the movement
         var firstRequest = new RebuildMovementsRequestDto { DryRun = false };
-        var firstResult  = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(firstRequest, "test");
+        var firstResult = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(firstRequest, "test");
         Assert.Equal(1, firstResult.MovementsCreated);
         Assert.Equal(0, firstResult.MovementsUpdated);
 
@@ -271,7 +295,7 @@ public class StockReconciliationRebuildTests : IDisposable
 
         // Second rebuild with UpdateExisting=true — should UPDATE, not create a new movement
         var secondRequest = new RebuildMovementsRequestDto { DryRun = false, UpdateExisting = true };
-        var secondResult  = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(secondRequest, "test");
+        var secondResult = await _reconciliationService.RebuildMissingMovementsFromDocumentsAsync(secondRequest, "test");
 
         Assert.Equal(0, secondResult.MovementsCreated);
         Assert.Equal(1, secondResult.MovementsUpdated);

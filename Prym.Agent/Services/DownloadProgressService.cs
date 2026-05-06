@@ -21,8 +21,8 @@ public class DownloadProgressService
             : null;
 
         public string FormattedDownloaded => FormatBytes(BytesDownloaded);
-        public string FormattedTotal       => TotalBytes.HasValue ? FormatBytes(TotalBytes.Value) : "?";
-        public string FormattedSpeed       => $"{FormatBytes((long)SpeedBytesPerSecond)}/s";
+        public string FormattedTotal => TotalBytes.HasValue ? FormatBytes(TotalBytes.Value) : "?";
+        public string FormattedSpeed => $"{FormatBytes((long)SpeedBytesPerSecond)}/s";
 
         public TimeSpan? Eta => TotalBytes.HasValue && SpeedBytesPerSecond > 0
             ? TimeSpan.FromSeconds((TotalBytes.Value - BytesDownloaded) / SpeedBytesPerSecond)
@@ -31,9 +31,9 @@ public class DownloadProgressService
         private static string FormatBytes(long bytes) => bytes switch
         {
             >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F1} GB",
-            >= 1_048_576     => $"{bytes / 1_048_576.0:F1} MB",
-            >= 1_024         => $"{bytes / 1_024.0:F0} KB",
-            _                => $"{bytes} B"
+            >= 1_048_576 => $"{bytes / 1_048_576.0:F1} MB",
+            >= 1_024 => $"{bytes / 1_024.0:F0} KB",
+            _ => $"{bytes} B"
         };
     }
 
@@ -51,7 +51,7 @@ public class DownloadProgressService
         lock (_lock)
         {
             _lastReportedBytes = 0;
-            _lastReportedAt    = DateTime.UtcNow;
+            _lastReportedAt = DateTime.UtcNow;
             _current = new DownloadSnapshot(packageId, component, version,
                 BytesDownloaded: 0, TotalBytes: null,
                 SpeedBytesPerSecond: 0, StartedAt: DateTime.UtcNow);
@@ -65,20 +65,20 @@ public class DownloadProgressService
         {
             if (_current is null || _current.PackageId != packageId) return;
 
-            var now     = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
             var elapsed = (now - _lastReportedAt).TotalSeconds;
-            var speed   = elapsed > 0
+            var speed = elapsed > 0
                 ? (bytesDownloaded - _lastReportedBytes) / elapsed
                 : _current.SpeedBytesPerSecond;
 
             _lastReportedBytes = bytesDownloaded;
-            _lastReportedAt    = now;
+            _lastReportedAt = now;
 
             _current = _current with
             {
-                BytesDownloaded      = bytesDownloaded,
-                TotalBytes           = totalBytes,
-                SpeedBytesPerSecond  = Math.Max(0, speed)
+                BytesDownloaded = bytesDownloaded,
+                TotalBytes = totalBytes,
+                SpeedBytesPerSecond = Math.Max(0, speed)
             };
         }
     }

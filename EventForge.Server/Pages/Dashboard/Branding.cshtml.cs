@@ -1,8 +1,8 @@
-using Prym.DTOs.Configuration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Configuration;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Pages.Dashboard;

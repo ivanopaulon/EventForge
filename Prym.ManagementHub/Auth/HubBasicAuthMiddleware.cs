@@ -1,5 +1,3 @@
-using System.Text;
-using Prym.ManagementHub.Configuration;
 using Prym.UpdateShared.Auth;
 
 namespace Prym.ManagementHub.Auth;

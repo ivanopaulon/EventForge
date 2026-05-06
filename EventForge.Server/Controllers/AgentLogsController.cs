@@ -1,8 +1,7 @@
-using Prym.DTOs.Common;
-using Prym.DTOs.Logging;
 using EventForge.Server.Services.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Prym.DTOs.Logging;
 
 namespace EventForge.Server.Controllers;
 
@@ -60,18 +59,18 @@ public class AgentLogsController(
             // Map each agent entry to a ClientLogDto so the existing ingestion pipeline
             // handles it transparently.  The [Agent:...] prefix in the message makes the
             // source immediately visible in the dashboard without schema changes.
-            var agentLabel   = string.IsNullOrWhiteSpace(batch.InstallationName)
+            var agentLabel = string.IsNullOrWhiteSpace(batch.InstallationName)
                                ? "Agent"
                                : batch.InstallationName;
             var sourcePrefix = $"[Agent:{agentLabel}]";
 
             var clientLogs = batch.Logs.Select(e => new ClientLogDto
             {
-                Level       = e.Level,
-                Message     = $"{sourcePrefix} {e.Message}",
-                Exception   = e.Exception,
-                Timestamp   = e.Timestamp,
-                Category    = e.SourceContext ?? $"Agent.{agentLabel}",
+                Level = e.Level,
+                Message = $"{sourcePrefix} {e.Message}",
+                Exception = e.Exception,
+                Timestamp = e.Timestamp,
+                Category = e.SourceContext ?? $"Agent.{agentLabel}",
                 // Leave UserId/TenantId/Page null — agent has no user session context
             }).ToList();
 

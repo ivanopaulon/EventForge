@@ -94,7 +94,7 @@ public class PackageBuildService(
         {
             PackageComponent.Server => ["EventForge.Server.dll", "EventForge.Server.exe"],
             PackageComponent.Client => ["Prym.Web.dll"],
-            PackageComponent.Agent  => ["Prym.Agent.exe", "Prym.Agent.dll"],
+            PackageComponent.Agent => ["Prym.Agent.exe", "Prym.Agent.dll"],
             _ => ["EventForge.Server.dll", "EventForge.Server.exe", "Prym.Web.dll", "Prym.Agent.exe"]
         };
 
@@ -228,15 +228,15 @@ public class PackageBuildService(
                 ? Path.Combine(folderPath, "Migrations")
                 : null;
 
-        var preMigrationScripts    = new List<string>();
-        var postMigrationScripts   = new List<string>();
-        var rollbackScripts        = new List<string>();
+        var preMigrationScripts = new List<string>();
+        var postMigrationScripts = new List<string>();
+        var rollbackScripts = new List<string>();
 
         if (migrationsRoot is not null)
         {
             // Sub-folder layout takes priority over flat layout.
-            var preDir      = Path.Combine(migrationsRoot, "pre");
-            var postDir     = Path.Combine(migrationsRoot, "post");
+            var preDir = Path.Combine(migrationsRoot, "pre");
+            var postDir = Path.Combine(migrationsRoot, "post");
             var rollbackDir = Path.Combine(migrationsRoot, "rollback");
 
             if (Directory.Exists(preDir) || Directory.Exists(postDir) || Directory.Exists(rollbackDir))

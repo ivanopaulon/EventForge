@@ -1,6 +1,3 @@
-using Prym.DTOs.Banks;
-using Prym.DTOs.Business;
-using Prym.DTOs.VatRates;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Banks;
 using EventForge.Server.Services.Business;
@@ -9,6 +6,9 @@ using EventForge.Server.Services.VatRates;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Prym.DTOs.Banks;
+using Prym.DTOs.Business;
+using Prym.DTOs.VatRates;
 
 namespace EventForge.Server.Controllers;
 

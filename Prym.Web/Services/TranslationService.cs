@@ -226,7 +226,7 @@ public class TranslationService(
             if (string.IsNullOrWhiteSpace(key))
             {
                 var result = !string.IsNullOrWhiteSpace(fallback) ? fallback : "[EMPTY_KEY]";
-            logger.LogWarning("Empty or null translation key provided. Using: {Result}", result);
+                logger.LogWarning("Empty or null translation key provided. Using: {Result}", result);
                 return result;
             }
 

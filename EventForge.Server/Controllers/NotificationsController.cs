@@ -1,10 +1,9 @@
-using Prym.DTOs.Notifications;
 using EventForge.Server.ModelBinders;
 using EventForge.Server.Services.Notifications;
-using EventForge.Server.Services.Tenants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Prym.DTOs.Notifications;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using System.Text.Json;

@@ -1,9 +1,6 @@
-using Prym.ManagementHub.Auth;
-using Prym.ManagementHub.Configuration;
-using Prym.ManagementHub.Hubs;
-using Prym.ManagementHub.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Prym.ManagementHub.Auth;
 using Serilog;
 using System.Threading.RateLimiting;
 
@@ -48,7 +45,7 @@ builder.Host.UseSerilog();
 // ── Kestrel endpoint binding (standalone / non-IIS) ──────────────────────
 // Under IIS in-process, UseUrls is overridden by the IIS module — safe to call unconditionally.
 var urls = new List<string>();
-if (hubOptions.UI.HttpPort > 0)  urls.Add($"http://*:{hubOptions.UI.HttpPort}");
+if (hubOptions.UI.HttpPort > 0) urls.Add($"http://*:{hubOptions.UI.HttpPort}");
 if (hubOptions.UI.HttpsPort > 0) urls.Add($"https://*:{hubOptions.UI.HttpsPort}");
 if (urls.Count > 0) builder.WebHost.UseUrls([.. urls]);
 

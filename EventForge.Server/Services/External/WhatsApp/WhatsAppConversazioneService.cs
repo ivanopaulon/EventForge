@@ -1,12 +1,8 @@
-using Prym.DTOs.Chat;
-using Prym.DTOs.Common;
-using Prym.DTOs.External.WhatsApp;
-using EventForge.Server.Data;
-using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Chat;
-using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Chat;
+using Prym.DTOs.External.WhatsApp;
 using System.Collections.Concurrent;
 
 namespace EventForge.Server.Services.External.WhatsApp;

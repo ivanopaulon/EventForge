@@ -1,4 +1,3 @@
-using EventForge.Server.Hubs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 

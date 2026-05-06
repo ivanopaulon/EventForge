@@ -1,4 +1,3 @@
-using Prym.DTOs.Promotions;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Promotions;
 using EventForge.Server.Services.Audit;
@@ -9,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Promotions;
 using DtoPromotionRuleType = Prym.DTOs.Common.PromotionRuleType;
 using EntityPromotionRuleType = EventForge.Server.Data.Entities.Promotions.PromotionRuleType;
 

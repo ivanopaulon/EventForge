@@ -1,4 +1,3 @@
-using Prym.DTOs.External;
 using EventForge.Server.Controllers;
 using EventForge.Server.Services.External;
 using Microsoft.AspNetCore.Http;
@@ -6,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.External;
 
 namespace EventForge.Tests.Controllers;
 

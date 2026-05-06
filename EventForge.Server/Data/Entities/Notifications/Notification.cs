@@ -1,5 +1,5 @@
-using Prym.DTOs.Notifications;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.Notifications;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 

@@ -1,9 +1,8 @@
-using Prym.DTOs.External.WhatsApp;
-using EventForge.Server.Data;
 using EventForge.Server.Services.External.WhatsApp;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Prym.DTOs.External.WhatsApp;
 
 namespace EventForge.Server.Controllers;
 
@@ -22,12 +21,12 @@ public class WhatsAppConfigController(
     ILogger<WhatsAppConfigController> logger) : BaseApiController
 {
     private const string KeyPhoneNumberId = "WhatsApp:PhoneNumberId";
-    private const string KeyAccessToken    = "WhatsApp:AccessToken";
-    private const string KeyVerifyToken    = "WhatsApp:VerifyToken";
-    private const string KeyApiVersion     = "WhatsApp:ApiVersion";
-    private const string KeyEnabled        = "WhatsApp:Enabled";
-    private const string CategoryWhatsApp  = "WhatsApp";
-    private const char   TokenMaskChar     = '•';
+    private const string KeyAccessToken = "WhatsApp:AccessToken";
+    private const string KeyVerifyToken = "WhatsApp:VerifyToken";
+    private const string KeyApiVersion = "WhatsApp:ApiVersion";
+    private const string KeyEnabled = "WhatsApp:Enabled";
+    private const string CategoryWhatsApp = "WhatsApp";
+    private const char TokenMaskChar = '•';
 
     /// <summary>Returns the current WhatsApp configuration (AccessToken is masked).</summary>
     [HttpGet]
@@ -56,10 +55,10 @@ public class WhatsAppConfigController(
             return Ok(new WhatsAppConfigDto
             {
                 PhoneNumberId = Get(KeyPhoneNumberId, string.Empty),
-                AccessToken   = maskedToken,
-                VerifyToken   = Get(KeyVerifyToken, string.Empty),
-                ApiVersion    = Get(KeyApiVersion, "v19.0"),
-                IsEnabled     = bool.TryParse(Get(KeyEnabled, "false"), out var enabled) && enabled
+                AccessToken = maskedToken,
+                VerifyToken = Get(KeyVerifyToken, string.Empty),
+                ApiVersion = Get(KeyApiVersion, "v19.0"),
+                IsEnabled = bool.TryParse(Get(KeyEnabled, "false"), out var enabled) && enabled
             });
         }
         catch (Exception ex)
@@ -84,14 +83,14 @@ public class WhatsAppConfigController(
             if (!ModelState.IsValid) return CreateValidationProblemDetails();
 
             var user = GetCurrentUser();
-            var now  = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
             var keysToSave = new Dictionary<string, string>
             {
                 [KeyPhoneNumberId] = dto.PhoneNumberId,
-                [KeyApiVersion]    = dto.ApiVersion,
-                [KeyVerifyToken]   = dto.VerifyToken,
-                [KeyEnabled]       = dto.IsEnabled.ToString().ToLower()
+                [KeyApiVersion] = dto.ApiVersion,
+                [KeyVerifyToken] = dto.VerifyToken,
+                [KeyEnabled] = dto.IsEnabled.ToString().ToLower()
             };
 
             // Only update AccessToken when the caller sends a real value (not masked)
@@ -107,18 +106,18 @@ public class WhatsAppConfigController(
                 {
                     dbContext.SystemConfigurations.Add(new EventForge.Server.Data.Entities.Configuration.SystemConfiguration
                     {
-                        Key         = key,
-                        Value       = value,
-                        Category    = CategoryWhatsApp,
+                        Key = key,
+                        Value = value,
+                        Category = CategoryWhatsApp,
                         Description = $"WhatsApp integration: {key}",
                         IsEncrypted = key == KeyAccessToken,
-                        CreatedBy   = user,
-                        TenantId    = Guid.Empty  // system-wide setting
+                        CreatedBy = user,
+                        TenantId = Guid.Empty  // system-wide setting
                     });
                 }
                 else
                 {
-                    existing.Value      = value;
+                    existing.Value = value;
                     existing.ModifiedAt = now;
                     existing.ModifiedBy = user;
                 }

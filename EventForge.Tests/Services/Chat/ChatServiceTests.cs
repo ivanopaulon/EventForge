@@ -1,4 +1,3 @@
-using Prym.DTOs.Chat;
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Audit;
 using EventForge.Server.Data.Entities.Auth;
@@ -12,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Chat;
 
 namespace EventForge.Tests.Services.Chat;
 
