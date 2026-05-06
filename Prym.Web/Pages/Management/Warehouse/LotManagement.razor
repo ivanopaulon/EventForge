@@ -263,7 +263,7 @@
         {
             var reason = (dialogResult.Data as string) ?? string.Empty;
             if (string.IsNullOrWhiteSpace(reason))
-                reason = "Blocco manuale da operatore";
+                reason = TranslationService.GetTranslation("warehouse.defaultBlockReason", "Blocco manuale da operatore");
 
             try
             {

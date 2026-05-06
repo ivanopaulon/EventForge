@@ -400,7 +400,7 @@
         if (confirmed != true) return;
         try
         {
-            var result = await LotService.BlockLotAsync(ViewModel.Entity.Id, TranslationService.GetTranslation("warehouse.blockedViaDialog", "Blocked via dialog"));
+            var result = await LotService.BlockLotAsync(ViewModel.Entity.Id, TranslationService.GetTranslation("warehouse.defaultBlockReason", "Blocco manuale da operatore"));
             if (result)
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
