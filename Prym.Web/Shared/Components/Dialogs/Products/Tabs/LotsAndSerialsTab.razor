@@ -45,6 +45,22 @@
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
                           Class="mb-2" />
+
+            @if (_lotsTotalCount > _lots.Count())
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                    @TranslationService.GetTranslation("lot.truncatedList", "Visualizzati i primi {0} lotti su {1}. Usa la pagina Gestione Lotti per vedere tutti.", _lots.Count(), _lotsTotalCount)
+                </MudAlert>
+            }
+
+            @if (!FilteredLots.Any())
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+                    @TranslationService.GetTranslation("lot.noLotsFound", "Nessun lotto corrisponde alla ricerca")
+                </MudText>
+            }
+            else
+            {
             <MudTable Items="@FilteredLots" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
                       Elevation="0" Class="pa-0">
                 <HeaderContent>
@@ -97,9 +113,16 @@
                                            Color="Color.Primary"
                                            OnClick="@(() => OpenEditLotDialogAsync(context.Id))" />
                         </MudTooltip>
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteLotAsync(context))" />
+                        </MudTooltip>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+            }
         }
     </MudPaper>
 
@@ -139,6 +162,22 @@
                           Variant="Variant.Outlined"
                           Margin="Margin.Dense"
                           Class="mb-2" />
+
+            @if (_serialsTotalCount > _serials.Count())
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-2">
+                    @TranslationService.GetTranslation("serial.truncatedList", "Visualizzate le prime {0} matricole su {1}. Usa la pagina Gestione Matricole per vedere tutte.", _serials.Count(), _serialsTotalCount)
+                </MudAlert>
+            }
+
+            @if (!FilteredSerials.Any())
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary pa-2">
+                    @TranslationService.GetTranslation("serial.noSerialsFound", "Nessuna matricola corrisponde alla ricerca")
+                </MudText>
+            }
+            else
+            {
             <MudTable Items="@FilteredSerials" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
                       Elevation="0" Class="pa-0">
                 <HeaderContent>
@@ -169,7 +208,30 @@
                         }
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("serial.warrantyExpiry", "Scad. Garanzia")">
-                        @(context.WarrantyExpiry?.ToString("dd/MM/yyyy") ?? "-")
+                        @if (context.WarrantyExpiry.HasValue)
+                        {
+                            var daysLeft = (context.WarrantyExpiry.Value - DateTime.Now).Days;
+                            <MudText Typo="Typo.body2"
+                                     Color="@(daysLeft <= 0 ? Color.Error : daysLeft <= 30 ? Color.Warning : Color.Default)">
+                                @context.WarrantyExpiry.Value.ToString("dd/MM/yyyy")
+                            </MudText>
+                            @if (daysLeft <= 0)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Error">
+                                    @TranslationService.GetTranslation("warehouse.expired", "Scaduta")
+                                </MudText>
+                            }
+                            else if (daysLeft <= 30)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">
+                                    @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysLeft)
+                                </MudText>
+                            }
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione")">
                         @(context.CurrentLocationCode ?? "-")
@@ -181,9 +243,16 @@
                                            Color="Color.Primary"
                                            OnClick="@(() => OpenEditSerialDialogAsync(context.Id))" />
                         </MudTooltip>
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                           Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeleteSerialAsync(context))" />
+                        </MudTooltip>
                     </MudTd>
                 </RowTemplate>
             </MudTable>
+            }
         }
     </MudPaper>
 
@@ -200,6 +269,8 @@
     private bool _isLoadingSerials = false;
     private IEnumerable<LotDto> _lots = Enumerable.Empty<LotDto>();
     private IEnumerable<SerialDto> _serials = Enumerable.Empty<SerialDto>();
+    private int _lotsTotalCount = 0;
+    private int _serialsTotalCount = 0;
     private Guid _lastLoadedProductId = Guid.Empty;
     private string? _searchLot;
     private string? _searchSerial;
@@ -234,6 +305,7 @@
         {
             var result = await LotService.GetLotsAsync(1, 200, productId: Product.Id);
             _lots = result?.Items?.ToList() ?? new List<LotDto>();
+            _lotsTotalCount = result?.TotalCount ?? _lots.Count();
             if (OnLotsCountChanged.HasDelegate)
                 await OnLotsCountChanged.InvokeAsync(((List<LotDto>)_lots).Count);
         }
@@ -256,6 +328,7 @@
         {
             var result = await SerialService.GetSerialsAsync(1, 200, productId: Product.Id);
             _serials = result?.Items?.ToList() ?? new List<SerialDto>();
+            _serialsTotalCount = result?.TotalCount ?? _serials.Count();
             if (OnSerialsCountChanged.HasDelegate)
                 await OnSerialsCountChanged.InvokeAsync(((List<SerialDto>)_serials).Count);
         }
@@ -317,6 +390,62 @@
         var result = await dialog.Result;
         if (result is { Canceled: false })
             await LoadSerialsAsync();
+    }
+
+    private async Task DeleteLotAsync(LotDto lot)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirmDelete", "Conferma eliminazione"),
+            TranslationService.GetTranslation("lot.confirmDelete", "Eliminare il lotto '{0}'?", lot.Code),
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+        try
+        {
+            var result = await LotService.DeleteLotAsync(lot.Id);
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("lot.deleted", "Lotto eliminato"));
+                await LoadLotsAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Impossibile eliminare il lotto"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting lot {LotId}", lot.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore durante l'eliminazione"));
+        }
+    }
+
+    private async Task DeleteSerialAsync(SerialDto serial)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirmDelete", "Conferma eliminazione"),
+            TranslationService.GetTranslation("serial.confirmDelete", "Eliminare la matricola '{0}'?", serial.SerialNumber),
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+        try
+        {
+            var result = await SerialService.DeleteSerialAsync(serial.Id);
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.deleted", "Matricola eliminata"));
+                await LoadSerialsAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Impossibile eliminare la matricola"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting serial {SerialId}", serial.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore durante l'eliminazione"));
+        }
     }
 
 }
