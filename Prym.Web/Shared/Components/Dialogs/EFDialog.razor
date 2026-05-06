@@ -32,6 +32,10 @@
                     @Title
                 </MudText>
                 <MudSpacer />
+                @if (TitleActions != null)
+                {
+                    @TitleActions
+                }
                 <MudIconButton Icon="@Icons.Material.Outlined.Close"
                                Size="Size.Small"
                                Disabled="@IsProcessing"
@@ -73,6 +77,7 @@
         : $"height:{Height}; max-height:{Height};";
     [Parameter] public RenderFragment? ChildContent { get; set; }
     [Parameter] public RenderFragment? DialogActions { get; set; }
+    [Parameter] public RenderFragment? TitleActions { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
     [Parameter] public EventCallback<KeyboardEventArgs> OnKeyDown { get; set; }
 

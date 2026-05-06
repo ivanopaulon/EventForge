@@ -118,6 +118,94 @@ namespace EventForge.Tests.Services.Business
             Assert.Equal(2, result.Items.Count());
         }
 
+        [Fact]
+        public async Task UpdateGroupAsync_PersistsChangesToDatabase()
+        {
+            // Arrange — create a group directly in the DB
+            var group = new BusinessPartyGroup
+            {
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                Name = "Original Name",
+                Code = "ORIG",
+                Description = "Original description",
+                GroupType = BusinessPartyGroupType.Customer,
+                ColorHex = "#1976D2",
+                Priority = 50,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _testUser
+            };
+
+            _context.BusinessPartyGroups.Add(group);
+            await _context.SaveChangesAsync();
+
+            var updateDto = new UpdateBusinessPartyGroupDto
+            {
+                Name = "Updated Name",
+                Code = "UPD",
+                Description = "Updated description",
+                GroupType = BusinessPartyGroupType.Supplier,
+                ColorHex = "#FF0000",
+                Priority = 80,
+                IsActive = true
+            };
+
+            // Act
+            var result = await _service.UpdateGroupAsync(group.Id, updateDto, _testUser);
+
+            // Assert — returned DTO reflects the update
+            Assert.NotNull(result);
+            Assert.Equal("Updated Name", result.Name);
+            Assert.Equal("UPD", result.Code);
+            Assert.Equal("Updated description", result.Description);
+            Assert.Equal(BusinessPartyGroupType.Supplier, result.GroupType);
+            Assert.Equal("#FF0000", result.ColorHex);
+            Assert.Equal(80, result.Priority);
+
+            // Assert — changes are actually persisted in the database
+            var persisted = await _context.BusinessPartyGroups.FindAsync(group.Id);
+            Assert.NotNull(persisted);
+            Assert.Equal("Updated Name", persisted!.Name);
+            Assert.Equal("UPD", persisted.Code);
+            Assert.Equal("#FF0000", persisted.ColorHex);
+            Assert.Equal(BusinessPartyGroupType.Supplier, persisted.GroupType);
+            Assert.Equal(80, persisted.Priority);
+        }
+
+        [Fact]
+        public async Task DeleteGroupAsync_SoftDeletesPersistsToDatabase()
+        {
+            // Arrange
+            var group = new BusinessPartyGroup
+            {
+                Id = Guid.NewGuid(),
+                TenantId = _tenantId,
+                Name = "To Delete",
+                GroupType = BusinessPartyGroupType.Customer,
+                Priority = 50,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _testUser
+            };
+
+            _context.BusinessPartyGroups.Add(group);
+            await _context.SaveChangesAsync();
+
+            // Act
+            var deleted = await _service.DeleteGroupAsync(group.Id, _testUser);
+
+            // Assert — operation reported success
+            Assert.True(deleted);
+
+            // Assert — record is soft-deleted in the database
+            var persisted = await _context.BusinessPartyGroups.FindAsync(group.Id);
+            Assert.NotNull(persisted);
+            Assert.True(persisted!.IsDeleted);
+            Assert.NotNull(persisted.DeletedAt);
+            Assert.Equal(_testUser, persisted.DeletedBy);
+        }
+
         public void Dispose()
         {
             _context?.Dispose();
