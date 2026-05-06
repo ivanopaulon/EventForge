@@ -75,8 +75,8 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
             var productsTask = _productService.GetProductsAsync(1, 200, ct: ct);
             var lotsTask = _lotService.GetLotsAsync(1, 500, ct: ct);
             await Task.WhenAll(productsTask, lotsTask);
-            Products = productsTask.Result?.Items ?? new List<ProductDto>();
-            Lots = lotsTask.Result?.Items ?? new List<LotDto>();
+            Products = (await productsTask)?.Items ?? new List<ProductDto>();
+            Lots = (await lotsTask)?.Items ?? new List<LotDto>();
         }
         catch (Exception ex)
         {

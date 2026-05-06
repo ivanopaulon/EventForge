@@ -233,14 +233,14 @@
         try
         {
             var result = await LotService.GetLotsAsync(1, 200, productId: Product.Id);
-            _lots = result?.Items ?? Enumerable.Empty<LotDto>();
+            _lots = result?.Items?.ToList() ?? new List<LotDto>();
             if (OnLotsCountChanged.HasDelegate)
-                await OnLotsCountChanged.InvokeAsync(_lots.Count());
+                await OnLotsCountChanged.InvokeAsync(((List<LotDto>)_lots).Count);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading lots for product {ProductId}", Product.Id);
-            _lots = Enumerable.Empty<LotDto>();
+            _lots = new List<LotDto>();
         }
         finally
         {
@@ -255,14 +255,14 @@
         try
         {
             var result = await SerialService.GetSerialsAsync(1, 200, productId: Product.Id);
-            _serials = result?.Items ?? Enumerable.Empty<SerialDto>();
+            _serials = result?.Items?.ToList() ?? new List<SerialDto>();
             if (OnSerialsCountChanged.HasDelegate)
-                await OnSerialsCountChanged.InvokeAsync(_serials.Count());
+                await OnSerialsCountChanged.InvokeAsync(((List<SerialDto>)_serials).Count);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading serials for product {ProductId}", Product.Id);
-            _serials = Enumerable.Empty<SerialDto>();
+            _serials = new List<SerialDto>();
         }
         finally
         {
