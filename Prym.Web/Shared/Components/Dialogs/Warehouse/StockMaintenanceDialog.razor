@@ -76,8 +76,8 @@
                 }
                 else if (_recon_calculated)
                 {
-                    @* Summary row *@
-                    <div class="d-flex flex-wrap align-center gap-2 mb-4">
+                    @* Summary chips row *@
+                    <div class="d-flex flex-wrap align-center gap-2 mb-2">
                         <MudChip T="string" Icon="@Icons.Material.Outlined.CheckCircle" Color="Color.Success" Size="Size.Small">
                             @TranslationService.GetTranslationFormatted("stock.reconciliation.correct",
                                 "{0} correct{1}", _recon_correctCount, _recon_correctCount == 1 ? "a" : "e")
@@ -88,14 +88,19 @@
                                 @TranslationService.GetTranslationFormatted("stock.reconciliation.discrepancies",
                                     "{0} discrepanz{1}", ReconDiscrepancyCount, ReconDiscrepancyCount == 1 ? "a" : "e")
                             </MudChip>
-                            <MudSpacer />
+                        }
+                    </div>
+
+                    @* Action buttons row — always fully visible above the table *@
+                    @if (ReconDiscrepancyCount > 0)
+                    {
+                        <div class="d-flex flex-wrap gap-2 mb-3">
                             <MudButton Variant="Variant.Outlined"
                                        Color="Color.Secondary"
                                        Size="Size.Small"
                                        StartIcon="@Icons.Material.Outlined.FileDownload"
                                        OnClick="ExportReconciliationReportAsync"
-                                       Disabled="@(_recon_isExporting || _recon_isLoading)"
-                                       Class="mr-1">
+                                       Disabled="@(_recon_isExporting || _recon_isLoading)">
                                 @if (_recon_isExporting)
                                 {
                                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -115,8 +120,8 @@
                                 @TranslationService.GetTranslationFormatted("stock.bulkApplyReconciled.button",
                                     "Applica tutte ({0})", ReconDiscrepancyCount)
                             </MudButton>
-                        }
-                    </div>
+                        </div>
+                    }
 
                     @if (ReconDiscrepancyCount == 0)
                     {
@@ -127,32 +132,33 @@
                     }
                     else
                     {
-                        <div style="max-height:380px; overflow-y:auto;">
+                        @* max-height reduced to 360px (from 380px) to leave room for the action-buttons row above *@
+                        <div style="max-height:360px; overflow-x:auto; overflow-y:auto;">
                             <MudTable Items="@ReconDiscrepancies"
                                       Dense="true" Striped="true" Hover="true" Elevation="0"
                                       FixedHeader="true">
                                 <HeaderContent>
-                                    <MudTh>@TranslationService.GetTranslation("field.productCode", "Codice")</MudTh>
-                                    <MudTh>@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
-                                    <MudTh>@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTh>
-                                    <MudTh>@TranslationService.GetTranslation("field.location", "Ubicazione")</MudTh>
-                                    <MudTh Class="text-right">@TranslationService.GetTranslation("field.quantity", "Attuale")</MudTh>
-                                    <MudTh Class="text-right">@TranslationService.GetTranslation("stock.reconciliation.calculated", "Calcolata")</MudTh>
-                                    <MudTh Class="text-right">Δ</MudTh>
-                                    <MudTh>@TranslationService.GetTranslation("field.severity", "Severità")</MudTh>
+                                    <MudTh Style="min-width:80px; width:80px">@TranslationService.GetTranslation("field.productCode", "Codice")</MudTh>
+                                    <MudTh Style="min-width:140px; max-width:160px">@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
+                                    <MudTh Style="min-width:90px; max-width:110px">@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTh>
+                                    <MudTh Style="min-width:80px; max-width:100px">@TranslationService.GetTranslation("field.location", "Ubicazione")</MudTh>
+                                    <MudTh Class="text-right" Style="min-width:75px; width:75px">@TranslationService.GetTranslation("field.quantity", "Attuale")</MudTh>
+                                    <MudTh Class="text-right" Style="min-width:75px; width:75px">@TranslationService.GetTranslation("stock.reconciliation.calculated", "Calcolata")</MudTh>
+                                    <MudTh Class="text-right" Style="min-width:70px; width:70px">Δ</MudTh>
+                                    <MudTh Style="min-width:85px; width:85px">@TranslationService.GetTranslation("field.severity", "Severità")</MudTh>
                                 </HeaderContent>
                                 <RowTemplate>
-                                    <MudTd>
+                                    <MudTd Style="max-width:80px">
                                         <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.ProductCode</MudChip>
                                     </MudTd>
-                                    <MudTd>
-                                        <MudText Typo="Typo.body2" Class="text-truncate ef-max-200">@context.ProductName</MudText>
+                                    <MudTd Style="max-width:160px">
+                                        <MudText Typo="Typo.body2" Class="text-truncate ef-max-160">@context.ProductName</MudText>
                                     </MudTd>
-                                    <MudTd>
-                                        <MudText Typo="Typo.body2">@context.WarehouseName</MudText>
+                                    <MudTd Style="max-width:110px">
+                                        <MudText Typo="Typo.body2" Class="text-truncate">@context.WarehouseName</MudText>
                                     </MudTd>
-                                    <MudTd>
-                                        <MudText Typo="Typo.body2">@context.LocationCode</MudText>
+                                    <MudTd Style="max-width:100px">
+                                        <MudText Typo="Typo.body2" Class="text-truncate">@context.LocationCode</MudText>
                                     </MudTd>
                                     <MudTd Class="text-right">
                                         <MudText Typo="Typo.body2">@context.CurrentQuantity.ToString("N2")</MudText>
