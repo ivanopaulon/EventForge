@@ -38,7 +38,14 @@
         }
         else
         {
-            <MudTable Items="@_lots" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+            <MudTextField @bind-Value="_searchLot"
+                          Placeholder="@TranslationService.GetTranslation("common.search", "Cerca")"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-2" />
+            <MudTable Items="@FilteredLots" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
                       Elevation="0" Class="pa-0">
                 <HeaderContent>
                     <MudTh>@TranslationService.GetTranslation("warehouse.lotCode", "Codice")</MudTh>
@@ -125,7 +132,14 @@
         }
         else
         {
-            <MudTable Items="@_serials" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+            <MudTextField @bind-Value="_searchSerial"
+                          Placeholder="@TranslationService.GetTranslation("common.search", "Cerca")"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Outlined.Search"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Class="mb-2" />
+            <MudTable Items="@FilteredSerials" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
                       Elevation="0" Class="pa-0">
                 <HeaderContent>
                     <MudTh>@TranslationService.GetTranslation("serial.number", "Matricola")</MudTh>
@@ -179,11 +193,30 @@
     [Parameter, EditorRequired]
     public ProductDto Product { get; set; } = null!;
 
+    [Parameter] public EventCallback<int> OnLotsCountChanged { get; set; }
+    [Parameter] public EventCallback<int> OnSerialsCountChanged { get; set; }
+
     private bool _isLoadingLots = false;
     private bool _isLoadingSerials = false;
     private IEnumerable<LotDto> _lots = Enumerable.Empty<LotDto>();
     private IEnumerable<SerialDto> _serials = Enumerable.Empty<SerialDto>();
     private Guid _lastLoadedProductId = Guid.Empty;
+    private string? _searchLot;
+    private string? _searchSerial;
+
+    private IEnumerable<LotDto> FilteredLots => string.IsNullOrWhiteSpace(_searchLot)
+        ? _lots
+        : _lots.Where(l =>
+            (l.Code?.Contains(_searchLot, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (l.Barcode?.Contains(_searchLot, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (l.ProductName?.Contains(_searchLot, StringComparison.OrdinalIgnoreCase) ?? false));
+
+    private IEnumerable<SerialDto> FilteredSerials => string.IsNullOrWhiteSpace(_searchSerial)
+        ? _serials
+        : _serials.Where(s =>
+            (s.SerialNumber?.Contains(_searchSerial, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (s.Barcode?.Contains(_searchSerial, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (s.LotCode?.Contains(_searchSerial, StringComparison.OrdinalIgnoreCase) ?? false));
 
     protected override async Task OnParametersSetAsync()
     {
@@ -201,6 +234,8 @@
         {
             var result = await LotService.GetLotsAsync(1, 200, productId: Product.Id);
             _lots = result?.Items ?? Enumerable.Empty<LotDto>();
+            if (OnLotsCountChanged.HasDelegate)
+                await OnLotsCountChanged.InvokeAsync(_lots.Count());
         }
         catch (Exception ex)
         {
@@ -221,6 +256,8 @@
         {
             var result = await SerialService.GetSerialsAsync(1, 200, productId: Product.Id);
             _serials = result?.Items ?? Enumerable.Empty<SerialDto>();
+            if (OnSerialsCountChanged.HasDelegate)
+                await OnSerialsCountChanged.InvokeAsync(_serials.Count());
         }
         catch (Exception ex)
         {

@@ -101,9 +101,13 @@
 
                 @if (!ViewModel.IsNewEntity)
                 {
-                    <MudTabPanel Text="@TranslationService.GetTranslation("product.lotsAndSerials", "Lotti e Matricole")"
+                    <MudTabPanel Text="@(_lotsCount + _serialsCount > 0
+                                         ? $"{TranslationService.GetTranslation("product.lotsAndSerials", "Lotti e Matricole")} ({_lotsCount + _serialsCount})"
+                                         : TranslationService.GetTranslation("product.lotsAndSerials", "Lotti e Matricole"))"
                                  Icon="@Icons.Material.Outlined.QrCode">
-                        <LotsAndSerialsTab Product="@ViewModel.Entity" />
+                        <LotsAndSerialsTab Product="@ViewModel.Entity"
+                                           OnLotsCountChanged="@(n => { _lotsCount = n; StateHasChanged(); })"
+                                           OnSerialsCountChanged="@(n => { _serialsCount = n; StateHasChanged(); })" />
                     </MudTabPanel>
                 }
             </MudTabs>
@@ -125,6 +129,8 @@
     [Parameter] public Guid? EntityId { get; set; }
 
     private int _activeTab = 0;
+    private int _lotsCount = 0;
+    private int _serialsCount = 0;
 
     protected override async Task OnInitializedAsync()
     {
