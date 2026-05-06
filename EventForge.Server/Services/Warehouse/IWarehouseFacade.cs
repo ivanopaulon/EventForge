@@ -367,6 +367,29 @@ public interface IWarehouseFacade
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<SerialDto?> GetSerialByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Updates an existing serial number.
+    /// </summary>
+    /// <param name="id">Serial unique identifier</param>
+    /// <param name="updateDto">Serial update data</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Updated serial DTO or null if not found</returns>
+    /// <exception cref="ArgumentNullException">Thrown when updateDto or currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<SerialDto?> UpdateSerialAsync(Guid id, UpdateSerialDto updateDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a serial number by its unique identifier.
+    /// </summary>
+    /// <param name="id">Serial unique identifier</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>True if deleted, false if not found</returns>
+    /// <exception cref="ArgumentNullException">Thrown when currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<bool> DeleteSerialAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Stock Movement Operations

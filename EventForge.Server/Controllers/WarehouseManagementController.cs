@@ -1201,6 +1201,71 @@ public class WarehouseManagementController(
         }
     }
 
+    /// <summary>
+    /// Updates a serial.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="updateDto">Serial update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated serial</returns>
+    [HttpPut("serials/{id:guid}")]
+    [ProducesResponseType(typeof(SerialDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSerial(
+        Guid id,
+        [FromBody] UpdateSerialDto updateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.UpdateSerialAsync(id, updateDto, GetCurrentUser(), cancellationToken);
+            return result is not null ? Ok(result) : NotFound();
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+        {
+            return CreateConflictProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the serial.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a serial.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    [HttpDelete("serials/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteSerial(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.DeleteSerialAsync(id, GetCurrentUser(), cancellationToken);
+            return result ? NoContent() : NotFound();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the serial.", ex);
+        }
+    }
+
     #endregion
 
     #region Inventory

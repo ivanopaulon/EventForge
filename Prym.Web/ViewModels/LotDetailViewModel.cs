@@ -61,16 +61,10 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
-        if (IsNewEntity)
-        {
-            Products = new List<ProductDto>();
-            return;
-        }
-
         try
         {
             // Load products for dropdown selection
-            var productsResult = await _productService.GetProductsAsync(1, 100);
+            var productsResult = await _productService.GetProductsAsync(1, 200);
             Products = productsResult?.Items ?? new List<ProductDto>();
 
             Logger.LogInformation("Loaded {Count} products for lot {Id}",
@@ -80,6 +74,25 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
         {
             Logger.LogError(ex, "Error loading related entities for lot {Id}", entityId);
             Products = new List<ProductDto>();
+        }
+    }
+
+    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
+    {
+        await base.LoadEntityAsync(entityId, ct);
+
+        if (IsNewEntity)
+        {
+            try
+            {
+                var productsResult = await _productService.GetProductsAsync(1, 200);
+                Products = productsResult?.Items ?? new List<ProductDto>();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading products for new lot");
+                Products = new List<ProductDto>();
+            }
         }
     }
 

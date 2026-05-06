@@ -140,6 +140,12 @@ public class WarehouseFacade(
     public Task<SerialDto?> GetSerialByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => serialService.GetSerialByIdAsync(id, cancellationToken);
 
+    public Task<SerialDto?> UpdateSerialAsync(Guid id, UpdateSerialDto updateDto, string currentUser, CancellationToken cancellationToken = default)
+        => serialService.UpdateSerialAsync(id, updateDto, currentUser, cancellationToken);
+
+    public Task<bool> DeleteSerialAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+        => serialService.DeleteSerialAsync(id, currentUser, cancellationToken);
+
     #endregion
 
     #region Stock Movement Operations

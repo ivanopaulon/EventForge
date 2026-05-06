@@ -135,6 +135,11 @@
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.lotManagement", "Lotti")
                     </MudNavLink>
+                    <MudNavLink Href="/warehouse/serial-management"
+                                Icon="@Icons.Material.Outlined.Numbers"
+                                Match="NavLinkMatch.All">
+                        @TranslationService.GetTranslation("nav.serialManagement", "Matricole")
+                    </MudNavLink>
                     <MudNavGroup title="@TranslationService.GetTranslation("nav.inventoryManagement", "Inventari")"
                                  Icon="@Icons.Material.Outlined.Checklist"
                                  Expanded="false">

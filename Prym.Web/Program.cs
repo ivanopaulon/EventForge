@@ -155,6 +155,7 @@ builder.Services.AddScoped<ITablePreferencesService, TablePreferencesService>();
 
 // Add warehouse management services
 builder.Services.AddScoped<ILotService, LotService>();
+builder.Services.AddScoped<ISerialService, SerialService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 builder.Services.AddScoped<IWarehouseService, WarehouseService>();
 builder.Services.AddScoped<IStorageLocationService, StorageLocationService>();
@@ -188,6 +189,7 @@ builder.Services.AddScoped<Prym.Web.ViewModels.InventoryDetailViewModel>();
 builder.Services.AddScoped<Prym.Web.ViewModels.WarehouseDetailViewModel>();
 builder.Services.AddScoped<Prym.Web.ViewModels.StorageLocationDetailViewModel>();
 builder.Services.AddScoped<Prym.Web.ViewModels.LotDetailViewModel>();
+builder.Services.AddScoped<Prym.Web.ViewModels.SerialDetailViewModel>();
 
 // Onda 2: Documents & Financial ViewModels
 builder.Services.AddScoped<Prym.Web.ViewModels.DocumentTypeDetailViewModel>();

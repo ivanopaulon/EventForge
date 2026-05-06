@@ -6,7 +6,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<LotManagement> Logger
-@inject NavigationManager NavigationManager
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 
@@ -14,7 +13,9 @@
                       @ref="_managementPage"
                       Config="_config"
                       Service="_service"
-                      AdditionalFilter="@(l => string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus)">
+                      AdditionalFilter="@(l => string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus)"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
     <AdditionalToolbarContent>
         <PrymSelect T="string"
                     @bind-Value="_selectedStatus"
@@ -317,4 +318,24 @@
         "OnHold" => Color.Info,
         _ => Color.Default
     };
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(LotDetailDialog.EntityId)] = id
+            };
+            var dialog = await DialogService.ShowAsync<LotDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening lot detail dialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
+    }
 }

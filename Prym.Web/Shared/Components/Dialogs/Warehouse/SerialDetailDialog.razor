@@ -1,0 +1,331 @@
+@using Prym.DTOs.Warehouse
+@using Prym.DTOs.Products
+@attribute [Authorize]
+@inject SerialDetailViewModel ViewModel
+@inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<SerialDetailDialog> Logger
+@implements IDisposable
+
+<EFDialog Icon="@Icons.Material.Outlined.Numbers"
+          Title="@(ViewModel.IsNewEntity ? TranslationService.GetTranslation("serial.newSerial", "Nuova Matricola") : TranslationService.GetTranslation("serial.detail", "Dettaglio Matricola"))"
+          IsProcessing="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        @if (ViewModel.IsLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (ViewModel.Entity == null)
+        {
+            <MudAlert Severity="Severity.Error">
+                @TranslationService.GetTranslation("serial.notFound", "Matricola non trovata")
+            </MudAlert>
+        }
+        else
+        {
+            @if (!ViewModel.IsNewEntity)
+            {
+                <div class="d-flex align-center gap-4 flex-wrap mb-3">
+                    <div class="d-flex align-center gap-2">
+                        <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                            <MudIcon Icon="@Icons.Material.Outlined.Numbers" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body1" Class="fw-semibold">@ViewModel.Entity.SerialNumber</MudText>
+                            @if (!string.IsNullOrEmpty(ViewModel.Entity.ProductName))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @TranslationService.GetTranslation("field.product", "Prodotto"): @ViewModel.Entity.ProductName
+                                </MudText>
+                            }
+                        </div>
+                    </div>
+                    <MudChip T="string" Size="Size.Medium" Color="@GetStatusColor(ViewModel.Entity.Status)" Icon="@GetStatusIcon(ViewModel.Entity.Status)">
+                        @GetStatusText(ViewModel.Entity.Status)
+                    </MudChip>
+                    @if (!string.IsNullOrEmpty(ViewModel.Entity.LotCode))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.QrCode">
+                            @TranslationService.GetTranslation("warehouse.lot", "Lotto"): @ViewModel.Entity.LotCode
+                        </MudChip>
+                    }
+                </div>
+                <MudDivider Class="mb-3" />
+            }
+
+            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" PanelClass="pa-4" @bind-ActivePanelIndex="_activeTab">
+
+                <MudTabPanel Text="@TranslationService.GetTranslation("serial.generalInfo", "Informazioni Generali")" Icon="@Icons.Material.Filled.Info">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" md="6">
+                            <PrymTextField @bind-Value="ViewModel.Entity.SerialNumber"
+                                           Label="@($"{TranslationService.GetTranslation("serial.number", "Numero Matricola")} *")"
+                                           MaxLength="100"
+                                           Required="true"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Filled.Numbers"
+                                           @bind-Value:after="ViewModel.NotifyEntityChanged"
+                                           HelperText="@TranslationService.GetTranslation("serial.numberHelper", "Numero seriale univoco")" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="Guid"
+                                       @bind-Value="ViewModel.Entity.ProductId"
+                                       Label="@($"{TranslationService.GetTranslation("field.product", "Prodotto")} *")"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Disabled="@(!ViewModel.IsNewEntity)"
+                                       @bind-Value:after="ViewModel.NotifyEntityChanged">
+                                @foreach (var product in ViewModel.Products ?? Enumerable.Empty<ProductDto>())
+                                {
+                                    <MudSelectItem Value="@product.Id">@product.Name (@product.Code)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="Guid?"
+                                       @bind-Value="ViewModel.Entity.LotId"
+                                       Label="@TranslationService.GetTranslation("warehouse.lot", "Lotto")"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Clearable="true"
+                                       @bind-Value:after="ViewModel.NotifyEntityChanged">
+                                @foreach (var lot in ViewModel.Lots ?? Enumerable.Empty<LotDto>())
+                                {
+                                    <MudSelectItem Value="@((Guid?)lot.Id)">@lot.Code @(lot.ProductName != null ? $"({lot.ProductName})" : string.Empty)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker Date="@ViewModel.Entity.ManufacturingDate"
+                                           Label="@TranslationService.GetTranslation("serial.manufacturingDate", "Data Produzione")"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           DateChanged="@(d => { ViewModel.Entity.ManufacturingDate = d; ViewModel.NotifyEntityChanged(); })"
+                                           Clearable="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker Date="@ViewModel.Entity.WarrantyExpiry"
+                                           Label="@TranslationService.GetTranslation("serial.warrantyExpiry", "Scadenza Garanzia")"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           DateChanged="@(d => { ViewModel.Entity.WarrantyExpiry = d; ViewModel.NotifyEntityChanged(); })"
+                                           Clearable="true" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymTextField @bind-Value="ViewModel.Entity.Barcode"
+                                           Label="@TranslationService.GetTranslation("field.barcode", "Barcode")"
+                                           MaxLength="50"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Filled.QrCodeScanner"
+                                           @bind-Value:after="ViewModel.NotifyEntityChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymTextField @bind-Value="ViewModel.Entity.RfidTag"
+                                           Label="@TranslationService.GetTranslation("serial.rfidTag", "RFID Tag")"
+                                           MaxLength="50"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Filled.Wifi"
+                                           @bind-Value:after="ViewModel.NotifyEntityChanged" />
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <PrymTextField @bind-Value="ViewModel.Entity.Notes"
+                                           Label="@TranslationService.GetTranslation("field.notes", "Note")"
+                                           Lines="3"
+                                           MaxLength="500"
+                                           @bind-Value:after="ViewModel.NotifyEntityChanged" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@TranslationService.GetTranslation("serial.statusPosition", "Stato e Posizione")" Icon="@Icons.Material.Filled.LocationOn">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="string"
+                                       @bind-Value="ViewModel.Entity.Status"
+                                       Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       @bind-Value:after="ViewModel.NotifyEntityChanged">
+                                <MudSelectItem Value="@("Available")">@TranslationService.GetTranslation("serial.available", "Disponibile")</MudSelectItem>
+                                <MudSelectItem Value="@("Sold")">@TranslationService.GetTranslation("serial.sold", "Venduto")</MudSelectItem>
+                                <MudSelectItem Value="@("InMaintenance")">@TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione")</MudSelectItem>
+                                <MudSelectItem Value="@("Defective")">@TranslationService.GetTranslation("serial.defective", "Difettoso")</MudSelectItem>
+                                <MudSelectItem Value="@("Retired")">@TranslationService.GetTranslation("serial.retired", "Fuori Servizio")</MudSelectItem>
+                                <MudSelectItem Value="@("Lost")">@TranslationService.GetTranslation("serial.lost", "Perso")</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        @if (!ViewModel.IsNewEntity)
+                        {
+                            <MudItem xs="12" md="6">
+                                <MudTextField Value="@(ViewModel.Entity.CurrentLocationCode ?? "-")"
+                                              Label="@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione Corrente")"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              ReadOnly="true" />
+                            </MudItem>
+
+                            @if (ViewModel.Entity.Status == "Sold")
+                            {
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Value="@(ViewModel.Entity.OwnerName ?? "-")"
+                                                  Label="@TranslationService.GetTranslation("serial.owner", "Proprietario")"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  ReadOnly="true" />
+                                </MudItem>
+
+                                <MudItem xs="12" md="6">
+                                    <MudTextField Value="@(ViewModel.Entity.SaleDate?.ToString("dd/MM/yyyy") ?? "-")"
+                                                  Label="@TranslationService.GetTranslation("serial.saleDate", "Data Vendita")"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  ReadOnly="true" />
+                                </MudItem>
+                            }
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField Value="@ViewModel.Entity.CreatedAt.ToString("dd/MM/yyyy HH:mm")"
+                                              Label="@TranslationService.GetTranslation("common.createdAt", "Creato il")"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              ReadOnly="true" />
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudTextField Value="@(ViewModel.Entity.ModifiedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")"
+                                              Label="@TranslationService.GetTranslation("common.modifiedAt", "Modificato il")"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense"
+                                              ReadOnly="true" />
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudTabPanel>
+
+            </MudTabs>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="ViewModel.IsSaving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveAsync" Disabled="ViewModel.IsSaving || ViewModel.IsLoading || ViewModel.Entity == null">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? EntityId { get; set; }
+    [Parameter] public Guid? InitialProductId { get; set; }
+
+    private int _activeTab = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ViewModel.StateChanged += OnViewModelStateChanged;
+        try
+        {
+            if (InitialProductId.HasValue && (EntityId == null || EntityId == Guid.Empty))
+            {
+                ViewModel.InitialProductId = InitialProductId;
+            }
+            await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading serial {SerialId}.", EntityId);
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento della matricola.");
+        }
+    }
+
+    private void OnViewModelStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task SaveAsync()
+    {
+        try
+        {
+            var success = await ViewModel.SaveEntityAsync();
+            if (success)
+                MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving serial {SerialId}.", EntityId);
+            AppNotification.ShowWarning("Si è verificato un errore nel salvataggio della matricola.");
+        }
+    }
+
+    private async Task Cancel()
+    {
+        if (ViewModel.HasUnsavedChanges())
+        {
+            var result = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("common.confirm", "Conferma"),
+                TranslationService.GetTranslation("serial.unsavedChanges", "Ci sono modifiche non salvate. Vuoi salvare prima di uscire?"),
+                yesText: TranslationService.GetTranslation("common.save", "Salva"),
+                noText: TranslationService.GetTranslation("common.discard", "Non salvare"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+            if (result == null) return;
+            if (result == true) { await SaveAsync(); return; }
+        }
+        MudDialog.Close();
+    }
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "Available" => Color.Success,
+        "Sold" => Color.Primary,
+        "InMaintenance" => Color.Warning,
+        "Defective" => Color.Error,
+        "Retired" => Color.Default,
+        "Lost" => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusIcon(string status) => status switch
+    {
+        "Available" => Icons.Material.Outlined.CheckCircle,
+        "Sold" => Icons.Material.Outlined.ShoppingCart,
+        "InMaintenance" => Icons.Material.Outlined.Build,
+        "Defective" => Icons.Material.Outlined.BugReport,
+        "Retired" => Icons.Material.Outlined.Archive,
+        "Lost" => Icons.Material.Outlined.SearchOff,
+        _ => Icons.Material.Outlined.Circle
+    };
+
+    private string GetStatusText(string status) => status switch
+    {
+        "Available" => TranslationService.GetTranslation("serial.available", "Disponibile"),
+        "Sold" => TranslationService.GetTranslation("serial.sold", "Venduto"),
+        "InMaintenance" => TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione"),
+        "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
+        "Retired" => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
+        "Lost" => TranslationService.GetTranslation("serial.lost", "Perso"),
+        _ => status
+    };
+
+    public void Dispose()
+    {
+        ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
+}
