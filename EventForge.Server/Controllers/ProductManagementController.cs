@@ -2799,6 +2799,13 @@ public class ProductManagementController(
             return BadRequest("Either ProductIds or at least one filter must be specified.");
         }
 
+        if (!dto.VatRateId.HasValue && !dto.UnitOfMeasureId.HasValue && !dto.BrandId.HasValue &&
+            !dto.ModelId.HasValue && !dto.CategoryNodeId.HasValue && !dto.FamilyNodeId.HasValue &&
+            !dto.GroupNodeId.HasValue)
+        {
+            return BadRequest("At least one update field must be specified (VatRateId, UnitOfMeasureId, BrandId, ModelId, CategoryNodeId, FamilyNodeId, or GroupNodeId).");
+        }
+
         try
         {
             var currentUser = GetCurrentUser();

@@ -53,7 +53,7 @@ public class ClassificationNodeManagementService : IEntityManagementService<Clas
             {
                 Id = node.Id,
                 Code = node.Code,
-                Name = (depth > 0 ? new string(' ', depth * 2) + "└ " : string.Empty) + node.Name,
+                Name = (depth > 0 ? new string(' ', depth * 2) + "• " : string.Empty) + node.Name,
                 Description = node.Description,
                 Type = node.Type,
                 Status = node.Status,

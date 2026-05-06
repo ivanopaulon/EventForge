@@ -2912,8 +2912,6 @@ public class ProductService(
             {
                 try
                 {
-                    var original = new { product.UnitOfMeasureId, product.VatRateId, product.BrandId, product.ModelId, product.CategoryNodeId, product.FamilyNodeId, product.GroupNodeId };
-
                     if (dto.UnitOfMeasureId.HasValue)      product.UnitOfMeasureId = dto.UnitOfMeasureId;
                     if (dto.VatRateId.HasValue)             product.VatRateId = dto.VatRateId;
                     if (dto.BrandId.HasValue)               product.BrandId = dto.BrandId;

@@ -390,6 +390,16 @@
     private void ClearFamilyNode() { _selectedFamilyNode = null; _dto.FamilyNodeId = null; }
     private void ClearGroupNode() { _selectedGroupNode = null; _dto.GroupNodeId = null; }
 
+    private void ClearClassificationNode(ProductClassificationType type)
+    {
+        switch (type)
+        {
+            case ProductClassificationType.Category: ClearCategoryNode(); break;
+            case ProductClassificationType.Family: ClearFamilyNode(); break;
+            default: ClearGroupNode(); break;
+        }
+    }
+
     private async Task ExecuteUpdateAsync()
     {
         _isSaving = true;
