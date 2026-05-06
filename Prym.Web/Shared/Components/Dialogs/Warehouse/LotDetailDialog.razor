@@ -211,6 +211,44 @@
                                               Margin="Margin.Dense"
                                               ReadOnly="true" />
                             </MudItem>
+
+                            <MudItem xs="12">
+                                <MudDivider Class="my-2" />
+                                <MudText Typo="Typo.subtitle2" Class="mb-3">
+                                    @TranslationService.GetTranslation("lot.changeQuality", "Modifica Stato Qualità")
+                                </MudText>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="string"
+                                           @bind-Value="_pendingQualityStatus"
+                                           Label="@TranslationService.GetTranslation("warehouse.newQualityStatus", "Nuovo Stato Qualità")"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)">
+                                    <MudSelectItem Value="@("Approved")">@TranslationService.GetTranslation("warehouse.approved", "Approvato")</MudSelectItem>
+                                    <MudSelectItem Value="@("Rejected")">@TranslationService.GetTranslation("warehouse.rejected", "Rifiutato")</MudSelectItem>
+                                    <MudSelectItem Value="@("Pending")">@TranslationService.GetTranslation("warehouse.pending", "In Attesa")</MudSelectItem>
+                                    <MudSelectItem Value="@("OnHold")">@TranslationService.GetTranslation("warehouse.onHold", "In Sospeso")</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+
+                            <MudItem xs="12" md="6">
+                                <PrymTextField @bind-Value="_qualityChangeNotes"
+                                               Label="@TranslationService.GetTranslation("lot.qualityChangeNotes", "Note (opzionali)")"
+                                               MaxLength="500"
+                                               Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           Disabled="@(string.IsNullOrEmpty(_pendingQualityStatus) || _pendingQualityStatus == ViewModel.Entity.QualityStatus || ViewModel.IsLoading || ViewModel.IsSaving)"
+                                           OnClick="ApplyQualityStatusAsync">
+                                    @TranslationService.GetTranslation("lot.applyQuality", "Applica")
+                                </MudButton>
+                            </MudItem>
                         </MudGrid>
                     </MudTabPanel>
                 }
@@ -237,6 +275,8 @@
     private int _activeTab = 0;
     private DateTime? _productionDateLocal;
     private DateTime? _expiryDateLocal;
+    private string _pendingQualityStatus = string.Empty;
+    private string? _qualityChangeNotes;
 
     protected override async Task OnInitializedAsync()
     {
@@ -250,6 +290,7 @@
             await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
             _productionDateLocal = ViewModel.Entity?.ProductionDate;
             _expiryDateLocal = ViewModel.Entity?.ExpiryDate;
+            _pendingQualityStatus = ViewModel.Entity?.QualityStatus ?? string.Empty;
         }
         catch (Exception ex)
         {
@@ -265,6 +306,7 @@
         {
             _productionDateLocal = ViewModel.Entity.ProductionDate;
             _expiryDateLocal = ViewModel.Entity.ExpiryDate;
+            _pendingQualityStatus = ViewModel.Entity.QualityStatus;
         }
         InvokeAsync(StateHasChanged);
     }
@@ -321,6 +363,30 @@
     public void Dispose()
     {
         ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
+
+    private async Task ApplyQualityStatusAsync()
+    {
+        if (ViewModel.Entity == null || string.IsNullOrEmpty(_pendingQualityStatus)) return;
+        try
+        {
+            var result = await LotService.UpdateQualityStatusAsync(ViewModel.Entity.Id, _pendingQualityStatus, _qualityChangeNotes);
+            if (result)
+            {
+                _qualityChangeNotes = null;
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("lot.qualityUpdated", "Stato qualità aggiornato"));
+                await ViewModel.ReloadEntityAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating quality status for lot {LotId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento dello stato qualità.");
+        }
     }
 
     private async Task BlockLotAsync()

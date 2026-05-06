@@ -160,6 +160,29 @@
         }
     </RowTemplate>
 
+    <AdditionalRowActions Context="item">
+        @if (item.Status == "Available" || item.Status == "InMaintenance")
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna difettosa")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.BugReport"
+                                Color="Color.Warning"
+                                Size="Size.Small"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => MarkSerialDefective(item))" />
+            </MudTooltip>
+        }
+        @if (item.Status == "InMaintenance" || item.Status == "Defective")
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("serial.makeAvailable", "Rimetti disponibile")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                Color="Color.Success"
+                                Size="Size.Small"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => MarkSerialAvailable(item))" />
+            </MudTooltip>
+        }
+    </AdditionalRowActions>
+
 </EntityManagementPage>
 
 @code {
@@ -241,6 +264,50 @@
         {
             Logger.LogError(ex, "Error opening serial detail dialog for ID {Id}.", id);
             AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
+    }
+
+    private async Task MarkSerialDefective(SerialDto serial)
+    {
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(serial.Id, "Defective");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedDefective", "Matricola segnata come difettosa"));
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking serial {SerialId} as defective.", serial.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento dello stato.");
+        }
+    }
+
+    private async Task MarkSerialAvailable(SerialDto serial)
+    {
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(serial.Id, "Available");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.madeAvailable", "Matricola rimessa disponibile"));
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error making serial {SerialId} available.", serial.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento dello stato.");
         }
     }
 

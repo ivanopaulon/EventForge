@@ -3,6 +3,7 @@
 @using Prym.Web.ViewModels
 @attribute [Authorize]
 @inject SerialDetailViewModel ViewModel
+@inject ISerialService SerialService
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
@@ -15,6 +16,28 @@
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
           MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <TitleActions>
+        @if (!ViewModel.IsNewEntity && ViewModel.Entity != null)
+        {
+            @if (ViewModel.Entity.Status == "Available" || ViewModel.Entity.Status == "InMaintenance")
+            {
+                <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna come difettosa")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.BugReport"
+                                   Color="Color.Warning"
+                                   Size="Size.Small"
+                                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+                                   OnClick="MarkDefectiveAsync" />
+                </MudTooltip>
+                <MudTooltip Text="@TranslationService.GetTranslation("serial.markRetired", "Ritira matricola")">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Archive"
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   Disabled="@(ViewModel.IsLoading || ViewModel.IsSaving)"
+                                   OnClick="MarkRetiredAsync" />
+                </MudTooltip>
+            }
+        }
+    </TitleActions>
     <ChildContent>
         @if (ViewModel.IsLoading)
         {
@@ -294,5 +317,63 @@
     public void Dispose()
     {
         ViewModel.StateChanged -= OnViewModelStateChanged;
+    }
+
+    private async Task MarkDefectiveAsync()
+    {
+        if (ViewModel.Entity == null) return;
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("serial.confirmDefective", "Segnare la matricola '{0}' come difettosa?", ViewModel.Entity.SerialNumber),
+            yesText: TranslationService.GetTranslation("serial.markDefective", "Segna difettosa"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(ViewModel.Entity.Id, "Defective");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedDefective", "Matricola segnata come difettosa"));
+                await ViewModel.ReloadEntityAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking serial {SerialId} as defective.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento dello stato.");
+        }
+    }
+
+    private async Task MarkRetiredAsync()
+    {
+        if (ViewModel.Entity == null) return;
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirm", "Conferma"),
+            TranslationService.GetTranslation("serial.confirmRetired", "Ritirare la matricola '{0}'?", ViewModel.Entity.SerialNumber),
+            yesText: TranslationService.GetTranslation("serial.markRetired", "Ritira"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(ViewModel.Entity.Id, "Retired");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedRetired", "Matricola ritirata"));
+                await ViewModel.ReloadEntityAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error retiring serial {SerialId}.", ViewModel.Entity.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nel ritiro della matricola.");
+        }
     }
 }
