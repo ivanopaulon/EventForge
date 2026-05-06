@@ -98,7 +98,8 @@
                                        Margin="Margin.Dense"
                                        Clearable="true"
                                        @bind-Value:after="ViewModel.NotifyEntityChanged">
-                                @foreach (var lot in ViewModel.Lots ?? Enumerable.Empty<LotDto>())
+                                @foreach (var lot in (ViewModel.Lots ?? Enumerable.Empty<LotDto>())
+                                    .Where(l => ViewModel.Entity.ProductId == Guid.Empty || l.ProductId == ViewModel.Entity.ProductId))
                                 {
                                     <MudSelectItem Value="@((Guid?)lot.Id)">@lot.Code @(lot.ProductName != null ? $"({lot.ProductName})" : string.Empty)</MudSelectItem>
                                 }
