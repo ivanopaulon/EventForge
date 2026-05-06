@@ -69,7 +69,7 @@ public class ProductService(
         }
     }
 
-    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default)
+    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken ct = default)
     {
         try
         {
@@ -77,6 +77,10 @@ public class ProductService(
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
                 url += $"&searchTerm={Uri.EscapeDataString(searchTerm)}";
+            }
+            if (classificationNodeId.HasValue)
+            {
+                url += $"&classificationNodeId={classificationNodeId.Value}";
             }
             return await httpClientService.GetAsync<PagedResult<ProductDto>>(url, ct);
         }
@@ -784,6 +788,22 @@ public class ProductService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error performing bulk price update");
+            return null;
+        }
+    }
+
+    public async Task<BulkUpdateResult?> BulkUpdateProductCatalogAsync(BulkUpdateProductsDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<BulkUpdateProductsDto, BulkUpdateResult>(
+                $"{BaseUrl}/bulk-catalog-update",
+                dto,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error performing bulk product catalog update");
             return null;
         }
     }

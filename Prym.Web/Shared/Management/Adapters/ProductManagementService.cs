@@ -12,7 +12,13 @@ public class ProductManagementService : IEntityManagementService<ProductDto>
         => _productService = productService;
 
     public async Task<PagedResult<ProductDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
-        => await _productService.GetProductsAsync(page, pageSize, null, ct) ?? new PagedResult<ProductDto>();
+    {
+        Guid? classificationNodeId = null;
+        if (filters != null && filters.TryGetValue("ClassificationNodeId", out var rawId) && rawId is Guid guid)
+            classificationNodeId = guid;
+
+        return await _productService.GetProductsAsync(page, pageSize, searchTerm, classificationNodeId, ct) ?? new PagedResult<ProductDto>();
+    }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
         => await _productService.DeleteProductAsync(id, ct);

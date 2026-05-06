@@ -16,7 +16,7 @@ public interface IProductService
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
-    Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a lean product list for POS catalog display.
@@ -391,6 +391,11 @@ public interface IProductService
     /// <returns>Result of the bulk update operation</returns>
     Task<Prym.DTOs.Bulk.BulkUpdateResultDto> BulkUpdatePricesAsync(
         Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    Task<BulkUpdateResult> BulkUpdateProductsAsync(
+        BulkUpdateProductsDto dto,
         string currentUser,
         CancellationToken cancellationToken = default);
 }

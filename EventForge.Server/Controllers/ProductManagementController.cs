@@ -65,13 +65,14 @@ public class ProductManagementController(
     public async Task<ActionResult<PagedResult<ProductDto>>> GetProducts(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] string? searchTerm = null,
+        [FromQuery] Guid? classificationNodeId = null,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await productService.GetProductsAsync(pagination, searchTerm, cancellationToken);
+            var result = await productService.GetProductsAsync(pagination, searchTerm, classificationNodeId, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -2767,6 +2768,46 @@ public class ProductManagementController(
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while updating the associations.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Bulk updates catalog fields (UoM, VAT, brand, model, classification) for a set of products.
+    /// Only non-null fields in the request body are applied. Products can be identified by explicit IDs
+    /// or by filter criteria (brand, classification, VAT, UoM).
+    /// </summary>
+    /// <param name="dto">Bulk update specification</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Result with success/failure counts</returns>
+    /// <response code="200">Returns the bulk update result</response>
+    /// <response code="400">If the request is invalid</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("products/bulk-catalog-update")]
+    [ProducesResponseType(typeof(BulkUpdateResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<BulkUpdateResult>> BulkUpdateProductCatalog(
+        [FromBody] BulkUpdateProductsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        if (dto == null || (dto.ProductIds?.Count == 0 &&
+            !dto.FilterBrandId.HasValue && !dto.FilterClassificationNodeId.HasValue &&
+            !dto.FilterVatRateId.HasValue && !dto.FilterUnitOfMeasureId.HasValue))
+        {
+            return BadRequest("Either ProductIds or at least one filter must be specified.");
+        }
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await productService.BulkUpdateProductsAsync(dto, currentUser, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred during the bulk catalog update.", ex);
         }
     }
 

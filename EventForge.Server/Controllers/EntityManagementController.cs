@@ -769,6 +769,33 @@ public class EntityManagementController(
     }
 
     /// <summary>
+    /// Gets the full classification node hierarchy as a tree.
+    /// Returns root nodes with nested Children populated recursively.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Root nodes with their full descendant tree</returns>
+    /// <response code="200">Returns the full classification tree</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("classification-nodes/tree")]
+    [ProducesResponseType(typeof(IEnumerable<ClassificationNodeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<ClassificationNodeDto>>> GetClassificationNodesTree(
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var tree = await classificationNodeService.GetTreeAsync(cancellationToken);
+            return Ok(tree);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the classification node tree.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets children of a classification node.
     /// </summary>
     /// <param name="id">Parent classification node ID</param>

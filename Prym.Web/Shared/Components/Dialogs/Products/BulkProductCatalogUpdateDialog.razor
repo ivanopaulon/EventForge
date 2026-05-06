@@ -1,0 +1,425 @@
+@using Prym.DTOs.Products
+@using Prym.DTOs.Common
+@using Prym.DTOs.VatRates
+@using Prym.DTOs.UnitOfMeasures
+@attribute [Authorize]
+@inject IProductService ProductService
+@inject IEntityManagementService EntityManagementService
+@inject ILookupCacheService LookupCacheService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<BulkProductCatalogUpdateDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.AutoFixHigh"
+          Title="@TranslationService.GetTranslation("product.bulkCatalogUpdate", "Aggiornamento Catalogo in Blocco")"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudTabs Position="Position.Left" Rounded="true" Border="true" MinimumTabWidth="160px" PanelClass="pa-4">
+
+                <!-- TAB 1: Selezione prodotti -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.bulkUpdate.scope", "Ambito")"
+                             Icon="@Icons.Material.Outlined.FilterAlt">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Info" Dense Variant="Variant.Outlined">
+                                @TranslationService.GetTranslation("product.bulkUpdate.scopeHint",
+                                    "Seleziona i prodotti da aggiornare tramite filtri oppure specificando gli ID. Se non vengono applicati filtri, tutti i prodotti attivi del tenant verranno selezionati.")
+                            </MudAlert>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="Guid?" @bind-Value="_dto.FilterBrandId"
+                                        Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
+                                        Clearable="true">
+                                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                                @foreach (var brand in _brands)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="Guid?" @bind-Value="_dto.FilterVatRateId"
+                                        Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
+                                        Clearable="true">
+                                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                                @foreach (var vat in _vatRates)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="Guid?" @bind-Value="_dto.FilterUnitOfMeasureId"
+                                        Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
+                                        Clearable="true">
+                                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                                @foreach (var um in _uoms)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                @if (_selectedFilterClassificationNode != null)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" OnClose="ClearFilterClassification">
+                                        @_selectedFilterClassificationNode.Name
+                                    </MudChip>
+                                }
+                                <MudButton Variant="Variant.Outlined"
+                                           StartIcon="@Icons.Material.Outlined.AccountTree"
+                                           Size="Size.Small"
+                                           OnClick="OpenFilterClassificationPickerAsync">
+                                    @TranslationService.GetTranslation("product.bulkUpdate.filterByClassification", "Filtra per Classificazione")
+                                </MudButton>
+                            </MudStack>
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <!-- TAB 2: Campi da aggiornare -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("product.bulkUpdate.fields", "Campi")"
+                             Icon="@Icons.Material.Outlined.Edit">
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Warning" Dense Variant="Variant.Outlined">
+                                @TranslationService.GetTranslation("product.bulkUpdate.fieldsHint",
+                                    "Solo i campi valorizzati verranno aggiornati. I campi lasciati vuoti non vengono modificati.")
+                            </MudAlert>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="Guid?" @bind-Value="_dto.VatRateId"
+                                        Label="@TranslationService.GetTranslation("product.bulkUpdate.newVatRate", "Nuova Aliquota IVA")"
+                                        Clearable="true">
+                                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
+                                @foreach (var vat in _vatRates)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)vat.Id)">@vat.Name (@vat.Percentage%)</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="Guid?" @bind-Value="_dto.UnitOfMeasureId"
+                                        Label="@TranslationService.GetTranslation("product.bulkUpdate.newUoM", "Nuova Unità di Misura")"
+                                        Clearable="true">
+                                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
+                                @foreach (var um in _uoms)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="Guid?" @bind-Value="_dto.BrandId"
+                                        Label="@TranslationService.GetTranslation("product.bulkUpdate.newBrand", "Nuovo Marchio")"
+                                        Clearable="true">
+                                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
+                                @foreach (var brand in _brands)
+                                {
+                                    <MudSelectItem T="Guid?" Value="@((Guid?)brand.Id)">@brand.Name</MudSelectItem>
+                                }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.bulkUpdate.newCategory", "Nuova Categoria")</MudText>
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                    @if (_selectedCategoryNode != null)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" OnClose="ClearCategoryNode">
+                                            @_selectedCategoryNode.Name
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudText>
+                                    }
+                                    <MudIconButton Icon="@Icons.Material.Outlined.AccountTree"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OpenClassificationPickerAsync(ProductClassificationType.Category))" />
+                                </MudStack>
+                            </MudStack>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.bulkUpdate.newFamily", "Nuova Famiglia")</MudText>
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                    @if (_selectedFamilyNode != null)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" OnClose="ClearFamilyNode">
+                                            @_selectedFamilyNode.Name
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudText>
+                                    }
+                                    <MudIconButton Icon="@Icons.Material.Outlined.GroupWork"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OpenClassificationPickerAsync(ProductClassificationType.Family))" />
+                                </MudStack>
+                            </MudStack>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <MudStack Spacing="1">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.bulkUpdate.newGroup", "Nuovo Gruppo Merceologico")</MudText>
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                    @if (_selectedGroupNode != null)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Tertiary" OnClose="ClearGroupNode">
+                                            @_selectedGroupNode.Name
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudText>
+                                    }
+                                    <MudIconButton Icon="@Icons.Material.Outlined.LocalOffer"
+                                                   Size="Size.Small"
+                                                   OnClick="@(() => OpenClassificationPickerAsync(ProductClassificationType.MerchandiseGroup))" />
+                                </MudStack>
+                            </MudStack>
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <!-- TAB 3: Risultato -->
+                @if (_result != null)
+                {
+                    <MudTabPanel Text="@TranslationService.GetTranslation("product.bulkUpdate.result", "Risultato")"
+                                 Icon="@Icons.Material.Outlined.CheckCircle"
+                                 BadgeData="@_result.SuccessCount.ToString()"
+                                 BadgeDot="@(_result.SuccessCount > 0)">
+                        <MudGrid Spacing="3">
+                            <MudItem xs="4">
+                                <MudPaper Elevation="1" Class="pa-4 text-center">
+                                    <MudText Typo="Typo.h4" Color="Color.Primary">@_result.TotalRequested</MudText>
+                                    <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.bulkUpdate.totalRequested", "Totale Richiesti")</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="4">
+                                <MudPaper Elevation="1" Class="pa-4 text-center">
+                                    <MudText Typo="Typo.h4" Color="Color.Success">@_result.SuccessCount</MudText>
+                                    <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.bulkUpdate.success", "Aggiornati")</MudText>
+                                </MudPaper>
+                            </MudItem>
+                            <MudItem xs="4">
+                                <MudPaper Elevation="1" Class="pa-4 text-center">
+                                    <MudText Typo="Typo.h4" Color="@(_result.FailureCount > 0 ? Color.Error : Color.Default)">@_result.FailureCount</MudText>
+                                    <MudText Typo="Typo.caption">@TranslationService.GetTranslation("product.bulkUpdate.errors", "Errori")</MudText>
+                                </MudPaper>
+                            </MudItem>
+
+                            @if (_result.Errors.Any())
+                            {
+                                <MudItem xs="12">
+                                    <MudAlert Severity="Severity.Error" Dense>
+                                        <MudList T="string" Dense>
+                                            @foreach (var error in _result.Errors.Take(10))
+                                            {
+                                                <MudListItem T="string" Icon="@Icons.Material.Outlined.Error">
+                                                    @error.ErrorMessage
+                                                </MudListItem>
+                                            }
+                                        </MudList>
+                                    </MudAlert>
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudTabPanel>
+                }
+            </MudTabs>
+        }
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Intent="PrymButton.ButtonIntent.Ghost" OnClick="Cancel" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </PrymButton>
+        <PrymButton StartIcon="@Icons.Material.Filled.AutoFixHigh"
+                    Color="Color.Warning"
+                    OnClick="ExecuteUpdateAsync"
+                    Disabled="@(_isSaving || _isLoading || !HasFieldsToUpdate())">
+            @TranslationService.GetTranslation("product.bulkUpdate.execute", "Esegui Aggiornamento")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Inject] IDialogService DialogService { get; set; } = null!;
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+
+    private BulkUpdateProductsDto _dto = new();
+    private BulkUpdateResult? _result;
+
+    private ClassificationNodeDto? _selectedFilterClassificationNode;
+    private ClassificationNodeDto? _selectedCategoryNode;
+    private ClassificationNodeDto? _selectedFamilyNode;
+    private ClassificationNodeDto? _selectedGroupNode;
+
+    private IEnumerable<BrandDto> _brands = [];
+    private IEnumerable<VatRateDto> _vatRates = [];
+    private IEnumerable<UMDto> _uoms = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadLookupsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error initializing BulkProductCatalogUpdateDialog.");
+            AppNotification.ShowError("Errore nel caricamento dei dati di riferimento.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var brandsTask = LookupCacheService.GetBrandsRawAsync();
+        var vatTask = LookupCacheService.GetVatRatesRawAsync();
+        var uomTask = LookupCacheService.GetUnitsOfMeasureRawAsync();
+        await Task.WhenAll(brandsTask, vatTask, uomTask);
+        _brands = await brandsTask;
+        _vatRates = await vatTask;
+        _uoms = await uomTask;
+    }
+
+    private bool HasFieldsToUpdate() =>
+        _dto.VatRateId.HasValue || _dto.UnitOfMeasureId.HasValue || _dto.BrandId.HasValue ||
+        _dto.ModelId.HasValue || _dto.CategoryNodeId.HasValue || _dto.FamilyNodeId.HasValue ||
+        _dto.GroupNodeId.HasValue;
+
+    private async Task OpenFilterClassificationPickerAsync()
+    {
+        var node = await OpenPickerAsync(ProductClassificationType.Category, _selectedFilterClassificationNode?.Id);
+        if (node != null)
+        {
+            _selectedFilterClassificationNode = node;
+            _dto.FilterClassificationNodeId = node.Id;
+        }
+    }
+
+    private void ClearFilterClassification()
+    {
+        _selectedFilterClassificationNode = null;
+        _dto.FilterClassificationNodeId = null;
+    }
+
+    private async Task OpenClassificationPickerAsync(ProductClassificationType type)
+    {
+        var current = type switch
+        {
+            ProductClassificationType.Category => _selectedCategoryNode,
+            ProductClassificationType.Family => _selectedFamilyNode,
+            _ => _selectedGroupNode
+        };
+
+        var node = await OpenPickerAsync(type, current?.Id);
+        if (node == null) return;
+
+        switch (type)
+        {
+            case ProductClassificationType.Category:
+                _selectedCategoryNode = node;
+                _dto.CategoryNodeId = node.Id;
+                break;
+            case ProductClassificationType.Family:
+                _selectedFamilyNode = node;
+                _dto.FamilyNodeId = node.Id;
+                break;
+            default:
+                _selectedGroupNode = node;
+                _dto.GroupNodeId = node.Id;
+                break;
+        }
+    }
+
+    private async Task<ClassificationNodeDto?> OpenPickerAsync(ProductClassificationType type, Guid? initialId)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Type", type },
+                { "InitialSelectedId", initialId },
+                { "FilterApplicableTo", ClassificationApplicableTo.Products }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<ClassificationNodePicker>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && result.Data is ClassificationNodeDto selected)
+                return selected;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening classification picker.");
+        }
+        return null;
+    }
+
+    private void ClearCategoryNode() { _selectedCategoryNode = null; _dto.CategoryNodeId = null; }
+    private void ClearFamilyNode() { _selectedFamilyNode = null; _dto.FamilyNodeId = null; }
+    private void ClearGroupNode() { _selectedGroupNode = null; _dto.GroupNodeId = null; }
+
+    private async Task ExecuteUpdateAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            _result = await ProductService.BulkUpdateProductCatalogAsync(_dto);
+            if (_result == null)
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("product.bulkUpdate.error", "Errore durante l'aggiornamento in blocco."));
+            }
+            else if (_result.FailureCount == 0)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("product.bulkUpdate.success", $"{_result.SuccessCount} prodotti aggiornati con successo."));
+            }
+            else
+            {
+                AppNotification.ShowWarning($"{_result.SuccessCount} prodotti aggiornati, {_result.FailureCount} errori.");
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing bulk catalog update.");
+            AppNotification.ShowError("Errore durante l'aggiornamento in blocco.");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

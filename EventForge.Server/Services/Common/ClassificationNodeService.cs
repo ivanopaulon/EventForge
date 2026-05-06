@@ -47,6 +47,7 @@ public class ClassificationNodeService(
                     Type = cn.Type.ToDto(),
                     Status = cn.Status.ToDto(),
                     Level = cn.Level,
+                    ApplicableTo = cn.ApplicableTo,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
                     IsActive = cn.IsActive,
@@ -89,6 +90,7 @@ public class ClassificationNodeService(
                     Type = cn.Type.ToDto(),
                     Status = cn.Status.ToDto(),
                     Level = cn.Level,
+                    ApplicableTo = cn.ApplicableTo,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
                     IsActive = cn.IsActive,
@@ -127,6 +129,7 @@ public class ClassificationNodeService(
                     Type = cn.Type.ToDto(),
                     Status = cn.Status.ToDto(),
                     Level = cn.Level,
+                    ApplicableTo = cn.ApplicableTo,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
                     IsActive = cn.IsActive,
@@ -165,6 +168,7 @@ public class ClassificationNodeService(
                     Type = cn.Type.ToDto(),
                     Status = cn.Status.ToDto(),
                     Level = cn.Level,
+                    ApplicableTo = cn.ApplicableTo,
                     Order = cn.Order,
                     ParentId = cn.ParentId,
                     IsActive = cn.IsActive,
@@ -228,6 +232,7 @@ public class ClassificationNodeService(
                 Level = createDto.Level,
                 Order = createDto.Order,
                 ParentId = createDto.ParentId,
+                ApplicableTo = createDto.ApplicableTo,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
@@ -249,6 +254,7 @@ public class ClassificationNodeService(
                 Type = node.Type.ToDto(),
                 Status = node.Status.ToDto(),
                 Level = node.Level,
+                ApplicableTo = node.ApplicableTo,
                 Order = node.Order,
                 ParentId = node.ParentId,
                 IsActive = node.IsActive,
@@ -335,6 +341,7 @@ public class ClassificationNodeService(
             node.Status = updateDto.Status.ToEntity();
             node.Level = updateDto.Level;
             node.Order = updateDto.Order;
+            node.ApplicableTo = updateDto.ApplicableTo;
 
             if (updateDto.ParentId.HasValue)
                 node.ParentId = updateDto.ParentId;
@@ -357,6 +364,7 @@ public class ClassificationNodeService(
                 Type = node.Type.ToDto(),
                 Status = node.Status.ToDto(),
                 Level = node.Level,
+                ApplicableTo = node.ApplicableTo,
                 Order = node.Order,
                 ParentId = node.ParentId,
                 IsActive = node.IsActive,
@@ -365,6 +373,68 @@ public class ClassificationNodeService(
                 ModifiedAt = node.ModifiedAt,
                 ModifiedBy = node.ModifiedBy
             };
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<ClassificationNodeDto>> GetTreeAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            logger.LogDebug("Getting full classification node tree");
+
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for classification node operations.");
+            }
+
+            // Load ALL non-deleted nodes in a single query
+            var allNodes = await context.ClassificationNodes
+                .AsNoTracking()
+                .Where(cn => !cn.IsDeleted)
+                .OrderBy(cn => cn.Order)
+                .ThenBy(cn => cn.Name)
+                .Select(cn => new ClassificationNodeDto
+                {
+                    Id = cn.Id,
+                    Code = cn.Code,
+                    Name = cn.Name,
+                    Description = cn.Description,
+                    Type = cn.Type.ToDto(),
+                    Status = cn.Status.ToDto(),
+                    Level = cn.Level,
+                    ApplicableTo = cn.ApplicableTo,
+                    Order = cn.Order,
+                    ParentId = cn.ParentId,
+                    IsActive = cn.IsActive,
+                    CreatedAt = cn.CreatedAt,
+                    CreatedBy = cn.CreatedBy,
+                    ModifiedAt = cn.ModifiedAt,
+                    ModifiedBy = cn.ModifiedBy
+                })
+                .ToListAsync(cancellationToken);
+
+            // Build the tree in memory
+            var lookup = allNodes.ToDictionary(n => n.Id);
+            var roots = new List<ClassificationNodeDto>();
+
+            foreach (var node in allNodes)
+            {
+                if (node.ParentId.HasValue && lookup.TryGetValue(node.ParentId.Value, out var parent))
+                {
+                    parent.Children.Add(node);
+                }
+                else
+                {
+                    roots.Add(node);
+                }
+            }
+
+            return roots;
         }
         catch
         {

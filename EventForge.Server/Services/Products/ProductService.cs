@@ -30,7 +30,7 @@ public class ProductService(
 
     // Product CRUD operations
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -50,6 +50,19 @@ public class ProductService(
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
+            }
+
+            // Apply classification node filter (including descendants)
+            if (classificationNodeId.HasValue)
+            {
+                // Collect all descendant IDs in a single query set (works for moderate-sized trees)
+                var descendantIds = await GetDescendantNodeIdsAsync(classificationNodeId.Value, cancellationToken);
+                descendantIds.Add(classificationNodeId.Value);
+
+                query = query.Where(p =>
+                    (p.CategoryNodeId.HasValue && descendantIds.Contains(p.CategoryNodeId.Value)) ||
+                    (p.FamilyNodeId.HasValue && descendantIds.Contains(p.FamilyNodeId.Value)) ||
+                    (p.GroupNodeId.HasValue && descendantIds.Contains(p.GroupNodeId.Value)));
             }
 
             query = query
@@ -79,6 +92,36 @@ public class ProductService(
         {
             throw;
         }
+    }
+
+    /// <summary>
+    /// Returns all descendant node IDs for a given parent node (recursive, in-memory).
+    /// </summary>
+    private async Task<HashSet<Guid>> GetDescendantNodeIdsAsync(Guid parentId, CancellationToken cancellationToken)
+    {
+        var result = new HashSet<Guid>();
+        var allNodes = await context.ClassificationNodes
+            .AsNoTracking()
+            .Where(cn => !cn.IsDeleted)
+            .Select(cn => new { cn.Id, cn.ParentId })
+            .ToListAsync(cancellationToken);
+
+        var childLookup = allNodes.ToLookup(n => n.ParentId);
+        var queue = new Queue<Guid>();
+        foreach (var child in childLookup[parentId])
+            queue.Enqueue(child.Id);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (result.Add(current))
+            {
+                foreach (var child in childLookup[current])
+                    queue.Enqueue(child.Id);
+            }
+        }
+
+        return result;
     }
 
     public async Task<PagedResult<ProductDto>> GetProductsForPosCatalogAsync(PaginationParameters pagination, string? searchTerm = null, CancellationToken cancellationToken = default)
@@ -2811,6 +2854,99 @@ public class ProductService(
                 currentPrice - (dto.Amount ?? 0),
             _ => currentPrice
         };
+    }
+
+    #endregion
+
+    #region Bulk Product Maintenance
+
+    public async Task<BulkUpdateResult> BulkUpdateProductsAsync(BulkUpdateProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+                throw new InvalidOperationException("Tenant context is required for bulk product operations.");
+
+            IQueryable<Data.Entities.Products.Product> query;
+
+            if (dto.ProductIds?.Count > 0)
+            {
+                // Use explicit list
+                query = context.Products.WhereActiveTenant(currentTenantId.Value)
+                    .Where(p => dto.ProductIds.Contains(p.Id));
+            }
+            else
+            {
+                // Apply filter parameters
+                query = context.Products.WhereActiveTenant(currentTenantId.Value);
+
+                if (dto.FilterBrandId.HasValue)
+                    query = query.Where(p => p.BrandId == dto.FilterBrandId.Value);
+
+                if (dto.FilterVatRateId.HasValue)
+                    query = query.Where(p => p.VatRateId == dto.FilterVatRateId.Value);
+
+                if (dto.FilterUnitOfMeasureId.HasValue)
+                    query = query.Where(p => p.UnitOfMeasureId == dto.FilterUnitOfMeasureId.Value);
+
+                if (dto.FilterClassificationNodeId.HasValue)
+                {
+                    var descendantIds = await GetDescendantNodeIdsAsync(dto.FilterClassificationNodeId.Value, cancellationToken);
+                    descendantIds.Add(dto.FilterClassificationNodeId.Value);
+                    query = query.Where(p =>
+                        (p.CategoryNodeId.HasValue && descendantIds.Contains(p.CategoryNodeId.Value)) ||
+                        (p.FamilyNodeId.HasValue && descendantIds.Contains(p.FamilyNodeId.Value)) ||
+                        (p.GroupNodeId.HasValue && descendantIds.Contains(p.GroupNodeId.Value)));
+                }
+            }
+
+            var products = await query.ToListAsync(cancellationToken);
+
+            var result = new BulkUpdateResult
+            {
+                TotalRequested = products.Count
+            };
+
+            foreach (var product in products)
+            {
+                try
+                {
+                    var original = new { product.UnitOfMeasureId, product.VatRateId, product.BrandId, product.ModelId, product.CategoryNodeId, product.FamilyNodeId, product.GroupNodeId };
+
+                    if (dto.UnitOfMeasureId.HasValue)      product.UnitOfMeasureId = dto.UnitOfMeasureId;
+                    if (dto.VatRateId.HasValue)             product.VatRateId = dto.VatRateId;
+                    if (dto.BrandId.HasValue)               product.BrandId = dto.BrandId;
+                    if (dto.ModelId.HasValue)               product.ModelId = dto.ModelId;
+                    if (dto.CategoryNodeId.HasValue)        product.CategoryNodeId = dto.CategoryNodeId;
+                    if (dto.FamilyNodeId.HasValue)          product.FamilyNodeId = dto.FamilyNodeId;
+                    if (dto.GroupNodeId.HasValue)           product.GroupNodeId = dto.GroupNodeId;
+
+                    product.ModifiedAt = DateTime.UtcNow;
+                    product.ModifiedBy = currentUser;
+
+                    result.SuccessCount++;
+                }
+                catch (Exception ex)
+                {
+                    result.FailureCount++;
+                    result.Errors.Add(new BulkUpdateError { ProductId = product.Id, ErrorMessage = ex.Message });
+                    logger.LogWarning(ex, "Error updating product {ProductId} during bulk update.", product.Id);
+                }
+            }
+
+            if (result.SuccessCount > 0)
+            {
+                await context.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Bulk update completed: {Success}/{Total} products updated by {User}.", result.SuccessCount, result.TotalRequested, currentUser);
+            }
+
+            return result;
+        }
+        catch
+        {
+            throw;
+        }
     }
 
     #endregion

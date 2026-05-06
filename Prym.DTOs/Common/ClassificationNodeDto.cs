@@ -42,6 +42,11 @@ namespace Prym.DTOs.Common
         public int Level { get; set; }
 
         /// <summary>
+        /// Specifies which entity types this classification node is applicable to.
+        /// </summary>
+        public ClassificationApplicableTo ApplicableTo { get; set; } = ClassificationApplicableTo.Products;
+
+        /// <summary>
         /// Order for sorting nodes at the same level.
         /// </summary>
         public int Order { get; set; }
@@ -80,5 +85,10 @@ namespace Prym.DTOs.Common
         /// User who last modified the classification node.
         /// </summary>
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// Child nodes (populated when retrieving the full tree).
+        /// </summary>
+        public List<ClassificationNodeDto> Children { get; set; } = new();
     }
 }
