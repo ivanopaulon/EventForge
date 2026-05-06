@@ -99,4 +99,18 @@ public interface IStockService
         Guid? warehouseId = null,
         Guid? locationId = null,
         CancellationToken ct = default);
+    /// <summary>
+    /// Gets stock movements for a specific product at a specific location, ordered by date descending.
+    /// </summary>
+    Task<PagedResult<StockMovementDto>?> GetStockMovementsByProductAndLocationAsync(
+        Guid productId,
+        Guid locationId,
+        int page = 1,
+        int pageSize = 50,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a quick stock transfer between two locations.
+    /// </summary>
+    Task<StockMovementDto?> QuickStockTransferAsync(QuickStockTransferDto request, CancellationToken ct = default);
 }

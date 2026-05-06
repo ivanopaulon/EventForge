@@ -52,6 +52,17 @@
                             @TranslationService.GetTranslation("stock.reconciliation.calculate", "Calcola")
                         </MudButton>
                     </MudItem>
+                    <MudItem xs="12" sm="6" md="4" Class="d-flex align-center gap-2">
+                        <MudNumericField @bind-Value="_recon_discrepancyThreshold"
+                                         T="decimal"
+                                         Label='@TranslationService.GetTranslation("stock.reconciliation.discrepancyThreshold", "Soglia discrepanza %")'
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="0"
+                                         Max="100"
+                                         Step="1"
+                                         Class="ef-input-120" />
+                    </MudItem>
                 </MudGrid>
 
                 @if (_recon_isLoading)
@@ -78,6 +89,19 @@
                                     "{0} discrepanz{1}", ReconDiscrepancyCount, ReconDiscrepancyCount == 1 ? "a" : "e")
                             </MudChip>
                             <MudSpacer />
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Secondary"
+                                       Size="Size.Small"
+                                       StartIcon="@Icons.Material.Outlined.FileDownload"
+                                       OnClick="ExportReconciliationReportAsync"
+                                       Disabled="@(_recon_isExporting || _recon_isLoading)"
+                                       Class="mr-1">
+                                @if (_recon_isExporting)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                }
+                                @TranslationService.GetTranslation("stock.reconciliation.exportReport", "Esporta Excel")
+                            </MudButton>
                             <MudButton Variant="Variant.Filled"
                                        Color="Color.Warning"
                                        Size="Size.Small"
@@ -833,7 +857,7 @@
     [Parameter] public int InitialTab { get; set; } = 0;
 
     // ── General ──────────────────────────────────────────────
-    private bool _isProcessing => _recon_isLoading || _recon_isBulkApplying || _rebuild_isLoading || _snapshot_isLoading;
+    private bool _isProcessing => _recon_isLoading || _recon_isBulkApplying || _recon_isExporting || _rebuild_isLoading || _snapshot_isLoading;
     private int _activeTab = 0;
     private bool _shouldReload = false;
     private bool _tab1Initialized = false;
@@ -848,9 +872,11 @@
     private Guid? _recon_warehouseId;
     private bool _recon_isLoading = false;
     private bool _recon_isBulkApplying = false;
+    private bool _recon_isExporting = false;
     private bool _recon_calculated = false;
     private Dictionary<Guid, StockReconciliationItemDto> _recon_data = new();
     private int _recon_correctCount = 0;
+    private decimal _recon_discrepancyThreshold = 10m;
 
     private IEnumerable<StockReconciliationItemDto> ReconDiscrepancies =>
         _recon_data.Values.Where(r => r.Severity != ReconciliationSeverity.Correct);
@@ -870,7 +896,8 @@
                 IncludeDocuments = true,
                 IncludeInventories = true,
                 IncludeStockMovements = true,
-                OnlyWithDiscrepancies = false
+                OnlyWithDiscrepancies = false,
+                DiscrepancyThreshold = _recon_discrepancyThreshold
             };
 
             var result = await StockReconciliationService.CalculateReconciliationAsync(request);
@@ -889,6 +916,47 @@
         finally
         {
             _recon_isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportReconciliationReportAsync()
+    {
+        try
+        {
+            _recon_isExporting = true;
+            StateHasChanged();
+
+            var request = new StockReconciliationRequestDto
+            {
+                WarehouseId = _recon_warehouseId,
+                IncludeDocuments = true,
+                IncludeInventories = true,
+                IncludeStockMovements = true,
+                OnlyWithDiscrepancies = false,
+                DiscrepancyThreshold = _recon_discrepancyThreshold
+            };
+
+            var bytes = await StockReconciliationService.ExportReconciliationAsync(request);
+            if (bytes is { Length: > 0 })
+            {
+                var fileName = $"RiconciliazioneStock_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                await JSRuntime.InvokeVoidAsync("downloadFileFromBytes", fileName, bytes);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("stock.reconciliation.exportSuccess", "Report Excel scaricato."));
+            }
+            else
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("stock.reconciliation.exportEmpty", "Nessun dato da esportare."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error exporting reconciliation report");
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.reconciliation.exportError", "Errore durante l'esportazione."));
+        }
+        finally
+        {
+            _recon_isExporting = false;
             StateHasChanged();
         }
     }

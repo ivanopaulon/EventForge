@@ -146,10 +146,17 @@ public class StockReconciliationService(
                 allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
             }
 
+            // Build O(1) lookup: latest inventory row per (ProductId, LocationId)
+            var latestInventoryByKey = allInventoryRows
+                .GroupBy(dr => (dr.ProductId!.Value, dr.LocationId!.Value))
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
+
             // Process each stock using pre-loaded in-memory data
             foreach (var stock in stocks)
             {
-                var item = CalculateStockItem(stock, request, allInventoryRows, allDocumentRows, allManualMovements);
+                var item = CalculateStockItem(stock, request, latestInventoryByKey, allDocumentRows, allManualMovements);
 
                 // Filter by discrepancies if requested
                 if (!request.OnlyWithDiscrepancies || item.Severity != ReconciliationSeverity.Correct)
@@ -178,7 +185,7 @@ public class StockReconciliationService(
     private StockReconciliationItemDto CalculateStockItem(
         Data.Entities.Warehouse.Stock stock,
         StockReconciliationRequestDto request,
-        List<Data.Entities.Documents.DocumentRow> allInventoryRows,
+        Dictionary<(Guid ProductId, Guid LocationId), Data.Entities.Documents.DocumentRow> latestInventoryByKey,
         List<Data.Entities.Documents.DocumentRow> allDocumentRows,
         List<Data.Entities.Warehouse.StockMovement> allManualMovements)
     {
@@ -200,10 +207,7 @@ public class StockReconciliationService(
         // 1. Find the most recent closed inventory document for this stock (replaces starting quantity)
         if (request.IncludeInventories)
         {
-            var lastInventoryRow = allInventoryRows
-                .Where(dr => dr.ProductId == stock.ProductId && dr.LocationId == stock.StorageLocationId)
-                .OrderByDescending(dr => dr.DocumentHeader!.Date)
-                .FirstOrDefault();
+            latestInventoryByKey.TryGetValue((stock.ProductId, stock.StorageLocationId), out var lastInventoryRow);
 
             if (lastInventoryRow is not null)
             {
@@ -930,9 +934,10 @@ public class StockReconciliationService(
                             existing.ModifiedBy = currentUser ?? "System";
                             updatedCount++;
                         }
-
-                        _ = await context.SaveChangesAsync(cancellationToken);
                     }
+
+                    // Single SaveChangesAsync after all entity mutations — reduces DB round-trips
+                    _ = await context.SaveChangesAsync(cancellationToken);
 
                     result.MovementsUpdated += updatedCount;
                     foreach (var m in movementsToUpdate.Where(_ => updatedCount > 0 || result.Errors == 0))
