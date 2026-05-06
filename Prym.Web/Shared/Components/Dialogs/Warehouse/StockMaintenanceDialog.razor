@@ -563,7 +563,7 @@
                         {
                             <MudButton Color="Color.Primary"
                                        Variant="Variant.Filled"
-                                       OnClick="RebuildResetAsync"
+                                       OnClick="RebuildReset"
                                        StartIcon="@Icons.Material.Outlined.Refresh">
                                 @TranslationService.GetTranslation("rebuildMovements.newSearch", "Nuova ricerca")
                             </MudButton>
@@ -1089,7 +1089,9 @@
         _rebuild_applyResult = null;
         _progressLog.Clear();
         _applyStartTime = DateTimeOffset.UtcNow;
-        _ = StartProgressTrackerAsync();
+        _ = StartProgressTrackerAsync().ContinueWith(
+            t => Logger.LogError(t.Exception, "Unexpected error in progress tracker"),
+            TaskContinuationOptions.OnlyOnFaulted);
         StateHasChanged();
         try
         {
@@ -1110,7 +1112,7 @@
         }
     }
 
-    private void RebuildResetAsync()
+    private void RebuildReset()
     {
         _rebuild_step = 0;
         _rebuild_previewResult = null;
