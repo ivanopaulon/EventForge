@@ -102,13 +102,13 @@ public class ProductService(
         // Use a request-scoped cache to avoid re-fetching the full tree on subsequent calls.
         if (_classificationNodesCache == null)
         {
-            _classificationNodesCache = await context.ClassificationNodes
+            var raw = await context.ClassificationNodes
                 .AsNoTracking()
                 .Where(cn => !cn.IsDeleted)
                 .Select(cn => new { cn.Id, cn.ParentId })
-                .ToListAsync(cancellationToken)
-                .ContinueWith(t => t.Result.Select(x => (x.Id, x.ParentId)).ToList(),
-                    TaskContinuationOptions.ExecuteSynchronously);
+                .ToListAsync(cancellationToken);
+
+            _classificationNodesCache = raw.Select(x => (x.Id, x.ParentId)).ToList();
         }
 
         var result = new HashSet<Guid>();
@@ -2984,9 +2984,9 @@ public class ProductService(
 
                     result.SuccessCount++;
 
-                    logger.LogInformation(
-                        "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}. Reason: {Reason}",
-                        product.Id, product.Name, currentUser, dto.Reason ?? "N/A");
+                    logger.LogDebug(
+                        "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}.",
+                        product.Id, product.Name, currentUser);
                 }
                 catch (Exception ex)
                 {

@@ -427,6 +427,7 @@
 
     // Debounce timer for the count preview
     private Timer? _countDebounceTimer;
+    private bool _isDisposed;
     private const int CountDebounceMs = 800;
 
     protected override async Task OnInitializedAsync()
@@ -469,13 +470,23 @@
     /// </summary>
     private void ScheduleCountPreview()
     {
+        _previewCount = null;
         _countDebounceTimer?.Dispose();
-        _countDebounceTimer = new Timer(async _ =>
+        _countDebounceTimer = new Timer(_ =>
         {
-            await InvokeAsync(async () =>
+            InvokeAsync(async () =>
             {
-                await RefreshCountPreviewAsync();
-                StateHasChanged();
+                try
+                {
+                    if (_isDisposed) return;
+                    await RefreshCountPreviewAsync();
+                    if (!_isDisposed)
+                        StateHasChanged();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Error refreshing bulk product count preview.");
+                }
             });
         }, null, CountDebounceMs, Timeout.Infinite);
     }
@@ -667,6 +678,7 @@
 
     public void Dispose()
     {
+        _isDisposed = true;
         _countDebounceTimer?.Dispose();
     }
 }
