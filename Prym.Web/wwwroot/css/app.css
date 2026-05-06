@@ -1531,7 +1531,8 @@ kbd {
 /* Touch target sizes for MudIconButton */
 .touch-44       { min-width: 44px !important; height: 44px !important; }
 .touch-52       { min-width: 52px !important; height: 52px !important; }
-.icon-btn-muted { color: rgba(255, 255, 255, 0.70); flex-shrink: 0; }
+.icon-btn-muted { color: var(--mud-palette-text-secondary); flex-shrink: 0; }
+.icon-btn-muted:hover { color: var(--mud-palette-text-primary) !important; }
 
 /* MudNumericField/MudTextField width constraints */
 .ef-input-60  { max-width:  60px; }
