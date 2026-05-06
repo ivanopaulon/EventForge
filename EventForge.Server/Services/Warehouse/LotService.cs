@@ -19,6 +19,7 @@ public class LotService(
         Guid? productId = null,
         string? status = null,
         bool? expiringSoon = null,
+        string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -50,6 +51,13 @@ public class LotService(
             {
                 var expiryThreshold = DateTime.UtcNow.AddDays(30);
                 query = query.Where(l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= expiryThreshold);
+            }
+
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                query = query.Where(l => l.Code.Contains(searchTerm) ||
+                                         (l.Barcode != null && l.Barcode.Contains(searchTerm)) ||
+                                         (l.Notes != null && l.Notes.Contains(searchTerm)));
             }
 
             // Get total count

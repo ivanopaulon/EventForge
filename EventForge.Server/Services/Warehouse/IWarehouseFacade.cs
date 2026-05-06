@@ -166,7 +166,7 @@ public interface IWarehouseFacade
     /// <returns>Paginated list of lots</returns>
     /// <exception cref="ArgumentNullException">Thrown when pagination is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, string? searchTerm = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Unblocks a previously blocked lot.

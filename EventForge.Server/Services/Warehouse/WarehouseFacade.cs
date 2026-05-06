@@ -81,8 +81,8 @@ public class WarehouseFacade(
     public Task<LotDto?> GetLotByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => lotService.GetLotByIdAsync(id, cancellationToken);
 
-    public Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken cancellationToken = default)
-        => lotService.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
+    public Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, string? searchTerm = null, CancellationToken cancellationToken = default)
+        => lotService.GetLotsAsync(pagination, productId, status, expiringSoon, searchTerm, cancellationToken);
 
     public Task<bool> UnblockLotAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
         => lotService.UnblockLotAsync(id, currentUser, cancellationToken);

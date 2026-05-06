@@ -21,6 +21,7 @@ public interface ILotService
         Guid? productId = null,
         string? status = null,
         bool? expiringSoon = null,
+        string? searchTerm = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

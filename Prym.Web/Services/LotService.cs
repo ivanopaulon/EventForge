@@ -12,7 +12,7 @@ public class LotService(
 {
     private const string BaseUrl = "api/v1/warehouse/lots";
 
-    public async Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken ct = default)
+    public async Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null, string? searchTerm = null, CancellationToken ct = default)
     {
         try
         {
@@ -30,6 +30,9 @@ public class LotService(
 
             if (expiringSoon.HasValue)
                 queryParams.Add($"expiringSoon={expiringSoon.Value}");
+
+            if (!string.IsNullOrEmpty(searchTerm))
+                queryParams.Add($"searchTerm={Uri.EscapeDataString(searchTerm)}");
 
             var query = string.Join("&", queryParams);
             return await httpClientService.GetAsync<PagedResult<LotDto>>($"{BaseUrl}?{query}", ct);

@@ -68,20 +68,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
-        try
-        {
-            // Load products for dropdown selection
-            var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
-            Products = productsResult?.Items ?? new List<ProductDto>();
-
-            Logger.LogInformation("Loaded {Count} products for lot {Id}",
-                Products.Count(), entityId);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading related entities for lot {Id}", entityId);
-            Products = new List<ProductDto>();
-        }
+        await EnsureProductsLoadedAsync(ct);
     }
 
     public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
@@ -90,16 +77,22 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
         if (IsNewEntity)
         {
-            try
-            {
-                var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
-                Products = productsResult?.Items ?? new List<ProductDto>();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error loading products for new lot");
-                Products = new List<ProductDto>();
-            }
+            await EnsureProductsLoadedAsync(ct);
+        }
+    }
+
+    private async Task EnsureProductsLoadedAsync(CancellationToken ct = default)
+    {
+        if (Products != null) return;
+        try
+        {
+            var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
+            Products = productsResult?.Items ?? new List<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading products for lot");
+            Products = new List<ProductDto>();
         }
     }
 

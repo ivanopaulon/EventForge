@@ -296,13 +296,14 @@ public class WarehouseManagementController(
         [FromQuery] Guid? productId = null,
         [FromQuery] string? status = null,
         [FromQuery] bool? expiringSoon = null,
+        [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
+            var result = await warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, searchTerm, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 

@@ -8,7 +8,7 @@ namespace Prym.Web.Services;
 /// </summary>
 public interface ILotService
 {
-    Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken ct = default);
+    Task<PagedResult<LotDto>?> GetLotsAsync(int page = 1, int pageSize = 20, Guid? productId = null, string? status = null, bool? expiringSoon = null, string? searchTerm = null, CancellationToken ct = default);
     Task<LotDto?> GetLotByIdAsync(Guid id, CancellationToken ct = default);
     Task<LotDto?> GetLotByCodeAsync(string code, CancellationToken ct = default);
     Task<IEnumerable<LotDto>?> GetExpiringLotsAsync(int daysAhead = 30, CancellationToken ct = default);
