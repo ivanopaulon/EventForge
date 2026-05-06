@@ -111,7 +111,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
             return serial?.ToSerialDto();
         }
@@ -138,7 +138,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .FirstOrDefaultAsync(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
             return serial?.ToSerialDto();
         }
@@ -165,7 +165,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .Where(s => s.ProductId == productId && s.TenantId == currentTenantId.Value)
+                .Where(s => s.ProductId == productId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .OrderBy(s => s.SerialNumber)
                 .ToListAsync(cancellationToken);
 
@@ -194,7 +194,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
+                .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .OrderBy(s => s.SerialNumber)
                 .ToListAsync(cancellationToken);
 
@@ -223,7 +223,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .Where(s => s.CurrentLocationId == locationId && s.TenantId == currentTenantId.Value)
+                .Where(s => s.CurrentLocationId == locationId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .OrderBy(s => s.Product!.Name)
                 .ThenBy(s => s.SerialNumber)
                 .ToListAsync(cancellationToken);
@@ -253,7 +253,7 @@ public class SerialService(
                 .Include(s => s.CurrentLocation)
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
-                .Where(s => s.OwnerId == ownerId && s.TenantId == currentTenantId.Value)
+                .Where(s => s.OwnerId == ownerId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
                 .OrderBy(s => s.Product!.Name)
                 .ThenBy(s => s.SerialNumber)
                 .ToListAsync(cancellationToken);
@@ -286,6 +286,8 @@ public class SerialService(
                     .ThenInclude(cl => cl!.Warehouse)
                 .Include(s => s.Owner)
                 .Where(s => s.TenantId == currentTenantId.Value &&
+                           !s.IsDeleted &&
+                           (s.Status == SerialStatus.Available || s.Status == SerialStatus.InUse || s.Status == SerialStatus.Maintenance) &&
                            s.WarrantyExpiry.HasValue &&
                            s.WarrantyExpiry.Value <= thresholdDate &&
                            s.WarrantyExpiry.Value > DateTime.UtcNow)
@@ -310,10 +312,10 @@ public class SerialService(
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            // Check if serial number is unique
+            // Check if serial number is unique (excluding soft-deleted)
             var existingSerial = await context.Serials
                 .AsNoTracking()
-                .FirstOrDefaultAsync(s => s.SerialNumber == createDto.SerialNumber && s.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(s => s.SerialNumber == createDto.SerialNumber && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
             if (existingSerial is not null)
             {
@@ -599,7 +601,7 @@ public class SerialService(
 
             var query = context.Serials
                 .AsNoTracking()
-                .Where(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value);
+                .Where(s => s.SerialNumber == serialNumber && s.TenantId == currentTenantId.Value && !s.IsDeleted);
 
             if (excludeId.HasValue)
             {
@@ -625,14 +627,18 @@ public class SerialService(
             }
 
             var serial = await context.Serials
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
             if (serial is null)
             {
                 return false;
             }
 
-            _ = context.Serials.Remove(serial);
+            // Soft delete — keeps the record for audit trail and preserves StockMovement references
+            serial.IsDeleted = true;
+            serial.DeletedAt = DateTime.UtcNow;
+            serial.DeletedBy = currentUser;
+
             _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
                 $"Deleted serial number {serial.SerialNumber}", currentUser);
             try
@@ -645,6 +651,7 @@ public class SerialService(
                 throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
+            logger.LogInformation("Soft-deleted serial {SerialId} ({SerialNumber}) for tenant {TenantId}", serial.Id, serial.SerialNumber, currentTenantId.Value);
             return true;
         }
         catch (DbUpdateConcurrencyException)

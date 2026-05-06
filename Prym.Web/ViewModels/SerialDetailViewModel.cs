@@ -70,10 +70,14 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
 
     private async Task LoadDropdownDataAsync(CancellationToken ct = default)
     {
+        if (Products != null && Lots != null) return;
+
         try
         {
+            // If a product is already known, scope lots to that product to reduce payload
+            var lotProductId = InitialProductId;
             var productsTask = _productService.GetProductsAsync(1, 200, ct: ct);
-            var lotsTask = _lotService.GetLotsAsync(1, 500, ct: ct);
+            var lotsTask = _lotService.GetLotsAsync(1, 500, productId: lotProductId, ct: ct);
             await Task.WhenAll(productsTask, lotsTask);
             Products = (await productsTask)?.Items ?? new List<ProductDto>();
             Lots = (await lotsTask)?.Items ?? new List<LotDto>();

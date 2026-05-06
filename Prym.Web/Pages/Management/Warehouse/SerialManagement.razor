@@ -15,7 +15,8 @@
                       Service="_service"
                       AdditionalFilter="@(s => string.IsNullOrEmpty(_selectedStatus) || s.Status == _selectedStatus)"
                       OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
-                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      OnQuickFilterChanged="@OnQuickFilterChanged">
     <AdditionalToolbarContent>
         <PrymSelect T="string"
                     @bind-Value="_selectedStatus"
@@ -28,6 +29,7 @@
             <MudSelectItem Value="@("InMaintenance")">@TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione")</MudSelectItem>
             <MudSelectItem Value="@("Defective")">@TranslationService.GetTranslation("serial.defective", "Difettoso")</MudSelectItem>
             <MudSelectItem Value="@("Retired")">@TranslationService.GetTranslation("serial.retired", "Fuori Servizio")</MudSelectItem>
+            <MudSelectItem Value="@("Lost")">@TranslationService.GetTranslation("serial.lost", "Perso")</MudSelectItem>
         </PrymSelect>
     </AdditionalToolbarContent>
 
@@ -249,6 +251,7 @@
                 new() { Id = "sold", Label = "Vendute", Predicate = s => s.Status == "Sold", Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingCart, Description = "Matricole vendute" },
                 new() { Id = "maintenance", Label = "In Manutenzione", Predicate = s => s.Status == "InMaintenance", Color = Color.Warning, Icon = Icons.Material.Outlined.Build, Description = "In manutenzione" },
                 new() { Id = "defective", Label = "Difettose", Predicate = s => s.Status == "Defective", Color = Color.Error, Icon = Icons.Material.Outlined.BugReport, Description = "Matricole difettose" },
+                new() { Id = "retired", Label = "Fuori Servizio", Predicate = s => s.Status == "Retired", Color = Color.Default, Icon = Icons.Material.Outlined.Archive, Description = "Matricole fuori servizio" },
                 new() { Id = "lost", Label = "Persi", Predicate = s => s.Status == "Lost", Color = Color.Error, Icon = Icons.Material.Outlined.SearchOff, Description = "Matricole perse" }
             }
         };
@@ -257,6 +260,14 @@
     private void OnFilterChanged()
     {
         StateHasChanged();
+    }
+
+    private Task OnQuickFilterChanged(QuickFilter<SerialDto>? filter)
+    {
+        // When a QuickFilter is activated, clear the status dropdown to avoid silent AND-filtering
+        _selectedStatus = null;
+        StateHasChanged();
+        return Task.CompletedTask;
     }
 
     private async Task OpenDetailDialogAsync(Guid? id)

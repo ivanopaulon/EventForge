@@ -15,7 +15,8 @@
                       Service="_service"
                       AdditionalFilter="@(l => string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus)"
                       OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
-                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      OnQuickFilterChanged="@OnQuickFilterChanged">
     <AdditionalToolbarContent>
         <PrymSelect T="string"
                     @bind-Value="_selectedStatus"
@@ -224,6 +225,7 @@
                 new() { Id = "active", Label = "Attivi", Predicate = l => l.Status == "Active", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Solo lotti attivi" },
                 new() { Id = "blocked", Label = "Bloccati", Predicate = l => l.Status == "Blocked", Color = Color.Error, Icon = Icons.Material.Outlined.Block, Description = "Lotti bloccati" },
                 new() { Id = "expired", Label = "Scaduti", Predicate = l => l.Status == "Expired", Color = Color.Default, Icon = Icons.Material.Outlined.EventBusy, Description = "Lotti scaduti" },
+                new() { Id = "recalled", Label = "Richiamati", Predicate = l => l.Status == "Recalled", Color = Color.Error, Icon = Icons.Material.Outlined.Report, Description = "Lotti richiamati" },
                 new() { Id = "expiring_soon", Label = "In Scadenza", Predicate = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= DateTime.UtcNow.AddDays(30) && l.ExpiryDate.Value > DateTime.UtcNow, Color = Color.Warning, Icon = Icons.Material.Outlined.Warning, Description = "Lotti in scadenza entro 30 giorni" },
                 new() { Id = "recent", Label = "Recenti", Predicate = l => l.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
             }
@@ -235,19 +237,37 @@
         StateHasChanged();
     }
 
+    private Task OnQuickFilterChanged(QuickFilter<LotDto>? filter)
+    {
+        // When a QuickFilter is activated, clear the status dropdown to avoid silent AND-filtering
+        _selectedStatus = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
     private async Task BlockLot(LotDto lot)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("warehouse.confirmBlock", "Bloccare il lotto '{0}'?", lot.Code),
-            yesText: TranslationService.GetTranslation("warehouse.block", "Blocca"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirmed == true)
+        var parameters = new DialogParameters
         {
+            [nameof(LotBlockDialog.LotCode)] = lot.Code
+        };
+        var dialog = await DialogService.ShowAsync<LotBlockDialog>(string.Empty, parameters, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = false
+        });
+        var dialogResult = await dialog.Result;
+
+        if (dialogResult is { Canceled: false })
+        {
+            var reason = (dialogResult.Data as string) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(reason))
+                reason = "Blocco manuale da operatore";
+
             try
             {
-                var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
+                var result = await LotService.BlockLotAsync(lot.Id, reason);
                 if (result)
                 {
                     AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));

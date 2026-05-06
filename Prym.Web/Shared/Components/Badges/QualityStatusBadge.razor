@@ -1,10 +1,11 @@
 @inject ITranslationService TranslationService
 
-<MudChip T="string" Size="@Size" Color="@GetColor()">@GetText()</MudChip>
+<MudChip T="string" Size="@Size" Color="@GetColor()" Icon="@(ShowIcon ? GetIcon() : string.Empty)">@GetText()</MudChip>
 
 @code {
     [Parameter, EditorRequired] public string Status { get; set; } = string.Empty;
     [Parameter] public Size Size { get; set; } = Size.Small;
+    [Parameter] public bool ShowIcon { get; set; } = false;
 
     private Color GetColor() => Status switch
     {
@@ -13,6 +14,15 @@
         "Pending"  => Color.Warning,
         "OnHold"   => Color.Info,
         _          => Color.Default
+    };
+
+    private string GetIcon() => Status switch
+    {
+        "Approved" => Icons.Material.Outlined.Verified,
+        "Rejected" => Icons.Material.Outlined.Cancel,
+        "Pending"  => Icons.Material.Outlined.HourglassEmpty,
+        "OnHold"   => Icons.Material.Outlined.PauseCircle,
+        _          => Icons.Material.Outlined.Circle
     };
 
     private string GetText() => Status switch

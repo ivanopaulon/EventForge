@@ -407,11 +407,6 @@ public class LotService(
             lot.ModifiedBy = currentUser;
             lot.ModifiedAt = DateTime.UtcNow;
 
-            if (!string.IsNullOrEmpty(notes))
-            {
-                lot.Notes = notes;
-            }
-
             _ = await context.SaveChangesAsync(cancellationToken);
 
             // Log audit event

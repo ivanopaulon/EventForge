@@ -259,6 +259,12 @@
     [Parameter] public Guid? InitialProductId { get; set; }
 
     private int _activeTab = 0;
+    private string? _originalStatus;
+
+    private static readonly HashSet<string> _terminalStatuses = new(StringComparer.Ordinal)
+    {
+        "Defective", "Retired", "Lost"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -270,6 +276,7 @@
                 ViewModel.InitialProductId = InitialProductId;
             }
             await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+            _originalStatus = ViewModel.Entity?.Status;
         }
         catch (Exception ex)
         {
@@ -287,6 +294,29 @@
     {
         try
         {
+            // Warn when moving to a terminal status that is not reversible
+            var newStatus = ViewModel.Entity?.Status ?? string.Empty;
+            if (!string.IsNullOrEmpty(_originalStatus) &&
+                _originalStatus != newStatus &&
+                _terminalStatuses.Contains(newStatus))
+            {
+                var terminalLabel = newStatus switch
+                {
+                    "Defective" => TranslationService.GetTranslation("serial.defective", "Difettoso"),
+                    "Retired"   => TranslationService.GetTranslation("serial.retired", "Fuori Servizio"),
+                    "Lost"      => TranslationService.GetTranslation("serial.lost", "Perso"),
+                    _           => newStatus
+                };
+                var confirmed = await DialogService.ShowMessageBoxAsync(
+                    TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    TranslationService.GetTranslation("serial.confirmTerminalStatus",
+                        "Stai impostando lo stato su '{0}'. Questa operazione potrebbe essere irreversibile. Continuare?",
+                        terminalLabel),
+                    yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+                    cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+                if (confirmed != true) return;
+            }
+
             var success = await ViewModel.SaveEntityAsync();
             if (success)
                 MudDialog.Close(DialogResult.Ok(true));

@@ -66,6 +66,7 @@
                 <HeaderContent>
                     <MudTh>@TranslationService.GetTranslation("warehouse.lotCode", "Codice")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")</MudTh>
                     <MudTh>@TranslationService.GetTranslation("warehouse.expiryDate", "Scadenza")</MudTh>
                     <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
@@ -76,6 +77,9 @@
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
                         <LotStatusBadge Status="@context.Status" />
+                    </MudTd>
+                    <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")">
+                        <QualityStatusBadge Status="@context.QualityStatus" />
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.availableQuantity", "Disponibile")">
                         @context.AvailableQuantity.ToString("N2")
@@ -243,6 +247,24 @@
                                            Color="Color.Primary"
                                            OnClick="@(() => OpenEditSerialDialogAsync(context.Id))" />
                         </MudTooltip>
+                        @if (context.Status == "Available" || context.Status == "InMaintenance")
+                        {
+                            <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna difettosa")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.BugReport"
+                                               Size="Size.Small"
+                                               Color="Color.Warning"
+                                               OnClick="@(() => MarkSerialDefectiveAsync(context))" />
+                            </MudTooltip>
+                        }
+                        @if (context.Status == "InMaintenance" || context.Status == "Defective")
+                        {
+                            <MudTooltip Text="@TranslationService.GetTranslation("serial.makeAvailable", "Rimetti disponibile")">
+                                <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                               Size="Size.Small"
+                                               Color="Color.Success"
+                                               OnClick="@(() => MarkSerialAvailableAsync(context))" />
+                            </MudTooltip>
+                        }
                         <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
                             <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                            Size="Size.Small"
@@ -420,6 +442,50 @@
         }
     }
 
+    private async Task MarkSerialDefectiveAsync(SerialDto serial)
+    {
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(serial.Id, "Defective");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedDefective", "Matricola segnata come difettosa"));
+                await LoadSerialsAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking serial {SerialId} as defective", serial.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore durante l'aggiornamento"));
+        }
+    }
+
+    private async Task MarkSerialAvailableAsync(SerialDto serial)
+    {
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(serial.Id, "Available");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.madeAvailable", "Matricola rimessa disponibile"));
+                await LoadSerialsAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error making serial {SerialId} available", serial.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore durante l'aggiornamento"));
+        }
+    }
+
     private async Task DeleteSerialAsync(SerialDto serial)
     {
         var confirmed = await DialogService.ShowMessageBoxAsync(
@@ -449,3 +515,4 @@
     }
 
 }
+
