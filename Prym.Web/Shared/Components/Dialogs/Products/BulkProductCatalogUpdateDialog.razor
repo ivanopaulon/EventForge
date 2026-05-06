@@ -43,7 +43,8 @@
                             <PrymSelect T="Guid?" @bind-Value="_dto.FilterBrandId"
                                         @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
                                 @foreach (var brand in _brands)
                                 {
@@ -56,7 +57,8 @@
                             <PrymSelect T="Guid?" @bind-Value="_dto.FilterVatRateId"
                                         @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
                                 @foreach (var vat in _vatRates)
                                 {
@@ -69,7 +71,8 @@
                             <PrymSelect T="Guid?" @bind-Value="_dto.FilterUnitOfMeasureId"
                                         @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
                                 @foreach (var um in _uoms)
                                 {
@@ -82,7 +85,8 @@
                             <PrymSelect T="ProductStatus?" @bind-Value="_dto.FilterStatus"
                                         @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.status", "Stato")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
                                 <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Active)">Attivo</MudSelectItem>
                                 <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Suspended)">Sospeso</MudSelectItem>
@@ -94,7 +98,8 @@
                             <PrymSelect T="bool?" @bind-Value="_dto.FilterIsBundle"
                                         @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("product.bulkUpdate.filterBundle", "Tipo Prodotto")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="bool?" Value="@((bool?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
                                 <MudSelectItem T="bool?" Value="@((bool?)false)">Solo prodotti semplici</MudSelectItem>
                                 <MudSelectItem T="bool?" Value="@((bool?)true)">Solo bundle</MudSelectItem>
@@ -112,6 +117,7 @@
                                 <MudButton Variant="Variant.Outlined"
                                            StartIcon="@Icons.Material.Outlined.AccountTree"
                                            Size="Size.Small"
+                                           Disabled="@_isSaving"
                                            OnClick="OpenFilterClassificationPickerAsync">
                                     @TranslationService.GetTranslation("product.bulkUpdate.filterByClassification", "Filtra per Classificazione")
                                 </MudButton>
@@ -151,7 +157,8 @@
                         <MudItem xs="12" md="6">
                             <PrymSelect T="ProductStatus?" @bind-Value="_dto.Status"
                                         Label="@TranslationService.GetTranslation("field.newStatus", "Nuovo Stato")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
                                 <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Active)">Attivo</MudSelectItem>
                                 <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Suspended)">Sospeso ⚠</MudSelectItem>
@@ -173,10 +180,12 @@
                                 <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
                                     <MudSwitch T="bool?" @bind-Value="_dto.IsVatIncluded"
                                                Color="Color.Primary"
+                                               Disabled="@_isSaving"
                                                Label="@(_dto.IsVatIncluded == true ? "Sì" : _dto.IsVatIncluded == false ? "No" : "Nessuna modifica")" />
                                     @if (_dto.IsVatIncluded.HasValue)
                                     {
                                         <MudIconButton Icon="@Icons.Material.Outlined.Clear" Size="Size.Small"
+                                                       Disabled="@_isSaving"
                                                        OnClick="@(() => _dto.IsVatIncluded = null)" />
                                     }
                                 </MudStack>
@@ -186,7 +195,8 @@
                         <MudItem xs="12" md="6">
                             <PrymSelect T="Guid?" @bind-Value="_dto.VatRateId"
                                         Label="@TranslationService.GetTranslation("product.bulkUpdate.newVatRate", "Nuova Aliquota IVA")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
                                 @foreach (var vat in _vatRates)
                                 {
@@ -198,7 +208,8 @@
                         <MudItem xs="12" md="6">
                             <PrymSelect T="Guid?" @bind-Value="_dto.UnitOfMeasureId"
                                         Label="@TranslationService.GetTranslation("product.bulkUpdate.newUoM", "Nuova Unità di Misura")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
                                 @foreach (var um in _uoms)
                                 {
@@ -210,7 +221,8 @@
                         <MudItem xs="12" md="6">
                             <PrymSelect T="Guid?" @bind-Value="_dto.BrandId"
                                         Label="@TranslationService.GetTranslation("product.bulkUpdate.newBrand", "Nuovo Marchio")"
-                                        Clearable="true">
+                                        Clearable="true"
+                                        Disabled="@_isSaving">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
                                 @foreach (var brand in _brands)
                                 {
@@ -235,6 +247,7 @@
                                     }
                                     <MudIconButton Icon="@Icons.Material.Outlined.AccountTree"
                                                    Size="Size.Small"
+                                                   Disabled="@_isSaving"
                                                    OnClick="@(() => OpenClassificationPickerAsync(ProductClassificationType.Category))" />
                                 </MudStack>
                             </MudStack>
@@ -256,6 +269,7 @@
                                     }
                                     <MudIconButton Icon="@Icons.Material.Outlined.GroupWork"
                                                    Size="Size.Small"
+                                                   Disabled="@_isSaving"
                                                    OnClick="@(() => OpenClassificationPickerAsync(ProductClassificationType.Family))" />
                                 </MudStack>
                             </MudStack>
@@ -277,6 +291,7 @@
                                     }
                                     <MudIconButton Icon="@Icons.Material.Outlined.LocalOffer"
                                                    Size="Size.Small"
+                                                   Disabled="@_isSaving"
                                                    OnClick="@(() => OpenClassificationPickerAsync(ProductClassificationType.MerchandiseGroup))" />
                                 </MudStack>
                             </MudStack>
@@ -293,6 +308,7 @@
                                              Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
                                              Clearable="true"
                                              Format="N2"
+                                             Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
@@ -301,6 +317,7 @@
                                              Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
                                              Clearable="true"
                                              Format="N2"
+                                             Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
@@ -309,6 +326,7 @@
                                              Label="@TranslationService.GetTranslation("field.targetStock", "Scorta Obiettivo")"
                                              Clearable="true"
                                              Format="N2"
+                                             Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
@@ -317,6 +335,7 @@
                                              Label="@TranslationService.GetTranslation("field.avgDailyDemand", "Domanda Media Giornaliera")"
                                              Clearable="true"
                                              Format="N2"
+                                             Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
@@ -328,6 +347,7 @@
                                           Variant="Variant.Outlined"
                                           MaxLength="500"
                                           Class="mt-2"
+                                          Disabled="@_isSaving"
                                           Adornment="Adornment.End"
                                           AdornmentIcon="@Icons.Material.Outlined.Notes" />
                         </MudItem>
@@ -525,6 +545,7 @@
 
     private void ClearFilterClassification()
     {
+        if (_isSaving) return;
         _selectedFilterClassificationNode = null;
         _dto.FilterClassificationNodeId = null;
         _previewCount = null;
@@ -583,9 +604,9 @@
         return null;
     }
 
-    private void ClearCategoryNode() { _selectedCategoryNode = null; _dto.CategoryNodeId = null; }
-    private void ClearFamilyNode() { _selectedFamilyNode = null; _dto.FamilyNodeId = null; }
-    private void ClearGroupNode() { _selectedGroupNode = null; _dto.GroupNodeId = null; }
+    private void ClearCategoryNode() { if (_isSaving) return; _selectedCategoryNode = null; _dto.CategoryNodeId = null; }
+    private void ClearFamilyNode() { if (_isSaving) return; _selectedFamilyNode = null; _dto.FamilyNodeId = null; }
+    private void ClearGroupNode() { if (_isSaving) return; _selectedGroupNode = null; _dto.GroupNodeId = null; }
 
     private void ClearClassificationNode(ProductClassificationType type)
     {
