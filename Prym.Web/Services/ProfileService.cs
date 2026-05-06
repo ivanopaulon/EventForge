@@ -57,6 +57,21 @@ public class ProfileService(
         }
     }
 
+    public async Task<UserDisplayPreferencesDto?> UpdateDisplayPreferencesAsync(UserDisplayPreferencesDto preferences, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PatchAsync<UserDisplayPreferencesDto, UserDisplayPreferencesDto>(
+                "/api/v1/profile/display-preferences", preferences, ct);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating display preferences");
+            return null;
+        }
+    }
+
     public async Task<UserProfileDto?> UploadAvatarAsync(Stream fileStream, string fileName, string contentType, CancellationToken ct = default)
     {
         var httpClient = httpClientFactory.CreateClient("ApiClient");

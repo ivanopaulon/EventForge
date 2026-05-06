@@ -1,10 +1,10 @@
 using Microsoft.JSInterop;
+using Prym.DTOs.Profile;
 
 namespace Prym.Web.Services;
 
 /// <summary>
-/// Service for managing light/dark theme with localStorage persistence.
-/// Keeps a minimal compatible API used across the app.
+/// Service for managing light/dark theme with localStorage persistence and server-profile sync.
 /// </summary>
 public interface IThemeService
 {
@@ -15,6 +15,10 @@ public interface IThemeService
     Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default);
     Task SetThemeAsync(string themeKey, CancellationToken ct = default);
     Task InitializeAsync(CancellationToken ct = default);
+    /// <summary>Loads theme from an already-fetched profile (called after login).</summary>
+    Task LoadFromProfileAsync(UserProfileDto? profile, CancellationToken ct = default);
+    /// <summary>Resets to default theme and clears localStorage entry (called on logout).</summary>
+    Task ResetToDefaultsAsync(CancellationToken ct = default);
 }
 
 public class ThemeInfo
@@ -46,6 +50,8 @@ public class ThemeInfo
 
 public class ThemeService(
     IJSRuntime jsRuntime,
+    IProfileService profileService,
+    IAuthService authService,
     ILogger<ThemeService> logger) : IThemeService
 {
     private const string ThemeKey = "eventforge-theme";
@@ -66,6 +72,21 @@ public class ThemeService(
     {
         try
         {
+            // 1. If authenticated, prefer the server-side profile value
+            if (await authService.IsAuthenticatedAsync())
+            {
+                var profile = await profileService.GetProfileAsync(ct);
+                var serverTheme = profile?.DisplayPreferences?.PreferredTheme;
+                if (!string.IsNullOrWhiteSpace(serverTheme) && AvailableThemes.Any(t => t.Key == serverTheme))
+                {
+                    _currentTheme = serverTheme;
+                    await ApplyThemeToDocumentAsync();
+                    OnThemeChanged?.Invoke();
+                    return;
+                }
+            }
+
+            // 2. Fallback to localStorage
             var stored = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
 
             // Backward compatibility with old "light"/"dark" values
@@ -85,6 +106,40 @@ public class ThemeService(
         {
             logger.LogWarning(ex, "Failed to initialize theme from localStorage, using default");
             _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+        }
+    }
+
+    public async Task LoadFromProfileAsync(UserProfileDto? profile, CancellationToken ct = default)
+    {
+        try
+        {
+            var serverTheme = profile?.DisplayPreferences?.PreferredTheme;
+            if (!string.IsNullOrWhiteSpace(serverTheme) && AvailableThemes.Any(t => t.Key == serverTheme))
+            {
+                _currentTheme = serverTheme;
+                await jsRuntime.InvokeVoidAsync("localStorage.setItem", ThemeKey, _currentTheme);
+                await ApplyThemeToDocumentAsync();
+                OnThemeChanged?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to load theme from profile");
+        }
+    }
+
+    public async Task ResetToDefaultsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", ThemeKey);
+            await ApplyThemeToDocumentAsync();
+            OnThemeChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to reset theme to defaults");
         }
     }
 
@@ -126,6 +181,29 @@ public class ThemeService(
         }
 
         OnThemeChanged?.Invoke();
+
+        // Background-sync to server profile (fire and forget, non-critical)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                if (!await authService.IsAuthenticatedAsync())
+                    return;
+
+                var profile = await profileService.GetProfileAsync();
+                if (profile == null)
+                    return;
+
+                // Update only PreferredTheme; preserve all other display preference fields
+                var prefs = profile.DisplayPreferences ?? new UserDisplayPreferencesDto();
+                prefs.PreferredTheme = _currentTheme;
+                await profileService.UpdateDisplayPreferencesAsync(prefs);
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "Background sync of theme to server profile failed");
+            }
+        });
     }
 
     private async Task ApplyThemeToDocumentAsync()

@@ -10,6 +10,7 @@
 @inject ISessionKeepaliveService SessionKeepaliveService
 @inject IThemeService ThemeService
 @inject IFontPreferencesService FontPreferencesService
+@inject IProfileService ProfileService
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject IAppNotificationService AppNotification
@@ -251,6 +252,19 @@
                 Logger.LogInformation("User authenticated, starting session keepalive service");
                 SessionKeepaliveService.Start();
 
+                // Load user display preferences (theme + fonts) from server profile
+                // Single fetch reused by both services to avoid redundant API calls
+                try
+                {
+                    var profile = await ProfileService.GetProfileAsync();
+                    await ThemeService.LoadFromProfileAsync(profile);
+                    await FontPreferencesService.LoadFromProfileAsync(profile);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to load display preferences from server profile after login");
+                }
+
                 // Check roles and start fiscal hub if appropriate
                 _isManagerOrAbove = await AuthService.IsInRoleAsync("Admin")
                     || await AuthService.IsInRoleAsync("Manager")
@@ -266,6 +280,18 @@
                 Logger.LogInformation("User logged out, stopping session keepalive service");
                 SessionKeepaliveService.Stop();
                 _isManagerOrAbove = false;
+
+                // Reset theme and fonts to defaults and clear localStorage
+                // so the next user on this device starts with clean defaults
+                try
+                {
+                    await ThemeService.ResetToDefaultsAsync();
+                    await FontPreferencesService.ResetToDefaultsAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Failed to reset display preferences on logout");
+                }
             }
             
             StateHasChanged();

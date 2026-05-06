@@ -11,6 +11,10 @@ public interface IFontPreferencesService
     Task InitializeAsync(CancellationToken ct = default);
     Task UpdatePreferencesAsync(UserDisplayPreferencesDto preferences, CancellationToken ct = default);
     Task ApplyPreferencesAsync(CancellationToken ct = default);
+    /// <summary>Loads font preferences from an already-fetched profile (called after login).</summary>
+    Task LoadFromProfileAsync(UserProfileDto? profile, CancellationToken ct = default);
+    /// <summary>Resets to default font preferences and clears localStorage entry (called on logout).</summary>
+    Task ResetToDefaultsAsync(CancellationToken ct = default);
 }
 
 public class FontPreferencesService(
@@ -75,6 +79,9 @@ public class FontPreferencesService(
 
     public async Task UpdatePreferencesAsync(UserDisplayPreferencesDto preferences, CancellationToken ct = default)
     {
+        // Preserve the current theme preference so a font change never overwrites it on the server
+        if (!string.IsNullOrWhiteSpace(_currentPreferences.PreferredTheme))
+            preferences.PreferredTheme = _currentPreferences.PreferredTheme;
         _currentPreferences = preferences;
 
         // Salva in localStorage
@@ -83,26 +90,12 @@ public class FontPreferencesService(
         // Applica CSS
         await ApplyPreferencesAsync();
 
-        // Aggiorna profilo server (opzionale, in background)
+        // Aggiorna display-preferences sul server (opzionale, in background)
         _ = Task.Run(async () =>
         {
             try
             {
-                var profile = await profileService.GetProfileAsync();
-                if (profile != null)
-                {
-                    var updateDto = new UpdateProfileDto
-                    {
-                        FirstName = profile.FirstName,
-                        LastName = profile.LastName,
-                        Email = profile.Email,
-                        PhoneNumber = profile.PhoneNumber,
-                        PreferredLanguage = profile.PreferredLanguage,
-                        TimeZone = profile.TimeZone,
-                        DisplayPreferences = preferences
-                    };
-                    await profileService.UpdateProfileAsync(updateDto);
-                }
+                await profileService.UpdateDisplayPreferencesAsync(preferences);
             }
             catch (HttpRequestException ex)
             {
@@ -112,6 +105,50 @@ public class FontPreferencesService(
         });
 
         OnPreferencesChanged?.Invoke();
+    }
+
+    public async Task LoadFromProfileAsync(UserProfileDto? profile, CancellationToken ct = default)
+    {
+        try
+        {
+            if (profile?.DisplayPreferences != null)
+            {
+                _currentPreferences = profile.DisplayPreferences;
+                await localStorage.SetItemAsync(StorageKey, _currentPreferences);
+                await ApplyPreferencesAsync();
+                OnPreferencesChanged?.Invoke();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading font preferences from profile");
+        }
+    }
+
+    public async Task ResetToDefaultsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            _currentPreferences = new UserDisplayPreferencesDto
+            {
+                BodyFont = "Noto Sans",
+                HeadingsFont = "Noto Sans Display",
+                MonospaceFont = "Noto Sans Mono",
+                ContentFont = "Noto Serif",
+                BaseFontSize = 16,
+                UseSystemFonts = false,
+                EnableExtendedScripts = false,
+                EnabledScripts = new()
+            };
+
+            await localStorage.RemoveItemAsync(StorageKey);
+            await ApplyPreferencesAsync();
+            OnPreferencesChanged?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error resetting font preferences to defaults");
+        }
     }
 
     public async Task ApplyPreferencesAsync(CancellationToken ct = default)
