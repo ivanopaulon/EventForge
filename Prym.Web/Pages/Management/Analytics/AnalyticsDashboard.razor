@@ -81,7 +81,8 @@
                 <MudItem xs="12" sm="6" md="2">
                     <MudSelect T="string" Label="@TranslationService.GetTranslation("analytics.groupBy", "Raggruppa per")"
                                @bind-Value="_filter.GroupBy"
-                    Variant="Variant.Outlined">
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
                         <MudSelectItem Value="@("month")">@TranslationService.GetTranslation("analytics.groupBy.month", "Mese")</MudSelectItem>
                         <MudSelectItem Value="@("week")">@TranslationService.GetTranslation("analytics.groupBy.week", "Settimana")</MudSelectItem>
                         <MudSelectItem Value="@("day")">@TranslationService.GetTranslation("analytics.groupBy.day", "Giorno")</MudSelectItem>
@@ -90,7 +91,8 @@
                 <MudItem xs="12" sm="6" md="2">
                     <MudSelect T="int" Label="@TranslationService.GetTranslation("analytics.top", "Top N")"
                                @bind-Value="_topValue"
-                    Variant="Variant.Outlined">
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense">
                         <MudSelectItem Value="5">Top 5</MudSelectItem>
                         <MudSelectItem Value="10">Top 10</MudSelectItem>
                         <MudSelectItem Value="20">Top 20</MudSelectItem>
@@ -156,58 +158,65 @@
                         </MudItem>
                     </MudGrid>
 
-                    <!-- Sales trend chart -->
-                    @if (_salesSeries.Count > 0)
-                    {
-                        <MudPaper Elevation="1" Class="pa-4 mb-4">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2">
-                                @TranslationService.GetTranslation("analytics.sales.trendChart", "Trend Vendite")
-                            </MudText>
-                            <MudChart T="double" ChartType="ChartType.Line"
-                                      ChartSeries="@_salesSeries"
-                                      ChartLabels="@_salesLabels"
-                                      Width="100%" Height="300px" />
-                        </MudPaper>
-                    }
+                    <!-- Sales trend chart + Top products side by side -->
+                    <MudGrid Spacing="3">
+                        @if (_salesSeries.Count > 0)
+                        {
+                            <MudItem xs="12" md="8">
+                                <MudPaper Elevation="1" Class="pa-4">
+                                    <MudText Typo="Typo.subtitle1" Class="mb-2">
+                                        @TranslationService.GetTranslation("analytics.sales.trendChart", "Trend Vendite")
+                                    </MudText>
+                                    <MudChart T="double" ChartType="ChartType.Line"
+                                              ChartSeries="@_salesSeries"
+                                              ChartLabels="@_salesLabels"
+                                              Width="100%" Height="300px" />
+                                </MudPaper>
+                            </MudItem>
+                        }
 
-                    <!-- Top products table -->
-                    @if (_salesData.TopProducts.Count > 0)
-                    {
-                        <MudPaper Elevation="1" Class="pa-4">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2">
-                                @TranslationService.GetTranslation("analytics.sales.topProducts", "Top Prodotti")
-                            </MudText>
-                            <MudSimpleTable Dense="true" Hover="true">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>@TranslationService.GetTranslation("analytics.product", "Prodotto")</th>
-                                        <th>@TranslationService.GetTranslation("analytics.quantity", "Quantità")</th>
-                                        <th>@TranslationService.GetTranslation("analytics.revenue", "Fatturato")</th>
-                                        <th>@TranslationService.GetTranslation("analytics.discount", "Sconto")</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var p in _salesData.TopProducts)
-                                    {
-                                        <tr>
-                                            <td>@p.Rank</td>
-                                            <td>@p.ProductName</td>
-                                            <td>@p.TotalQuantity.ToString("N2")</td>
-                                            <td>@p.TotalRevenue.ToString("N2")</td>
-                                            <td>@p.TotalDiscount.ToString("N2")</td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </MudSimpleTable>
-                        </MudPaper>
-                    }
-                    else
-                    {
-                        <MudText Color="Color.Secondary">
-                            @TranslationService.GetTranslation("analytics.noData", "Nessun dato disponibile")
-                        </MudText>
-                    }
+                        @if (_salesData.TopProducts.Count > 0)
+                        {
+                            <MudItem xs="12" md="@(_salesSeries.Count > 0 ? 4 : 12)">
+                                <MudPaper Elevation="1" Class="pa-4">
+                                    <MudText Typo="Typo.subtitle1" Class="mb-2">
+                                        @TranslationService.GetTranslation("analytics.sales.topProducts", "Top Prodotti")
+                                    </MudText>
+                                    <MudSimpleTable Dense="true" Hover="true">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>@TranslationService.GetTranslation("analytics.product", "Prodotto")</th>
+                                                <th>@TranslationService.GetTranslation("analytics.quantity", "Quantità")</th>
+                                                <th>@TranslationService.GetTranslation("analytics.revenue", "Fatturato")</th>
+                                                <th>@TranslationService.GetTranslation("analytics.discount", "Sconto")</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var p in _salesData.TopProducts)
+                                            {
+                                                <tr>
+                                                    <td>@p.Rank</td>
+                                                    <td>@p.ProductName</td>
+                                                    <td>@p.TotalQuantity.ToString("N2")</td>
+                                                    <td>@p.TotalRevenue.ToString("N2")</td>
+                                                    <td>@p.TotalDiscount.ToString("N2")</td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </MudSimpleTable>
+                                </MudPaper>
+                            </MudItem>
+                        }
+                        else
+                        {
+                            <MudItem xs="12">
+                                <MudText Color="Color.Secondary">
+                                    @TranslationService.GetTranslation("analytics.noData", "Nessun dato disponibile")
+                                </MudText>
+                            </MudItem>
+                        }
+                    </MudGrid>
                 }
             </MudTabPanel>
 
