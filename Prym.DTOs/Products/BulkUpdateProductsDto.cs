@@ -5,13 +5,11 @@ namespace Prym.DTOs.Products
     /// <summary>
     /// Request DTO for bulk updating product catalog fields.
     /// Only non-null fields are applied during the update.
-    /// Maximum 500 products per operation (explicit list or filter result).
     /// </summary>
     public class BulkUpdateProductsDto
     {
         /// <summary>
         /// Explicit list of product IDs to update. When provided, filter parameters are ignored.
-        /// Maximum 500 IDs.
         /// </summary>
         public List<Guid>? ProductIds { get; set; }
 
