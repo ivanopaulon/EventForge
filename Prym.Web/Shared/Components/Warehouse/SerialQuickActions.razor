@@ -1,0 +1,30 @@
+@inject ITranslationService TranslationService
+
+@if (Status is "Available" or "Maintenance" or "Recalled")
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna difettosa")">
+        <PrymIconButton Icon="@Icons.Material.Outlined.BugReport"
+                        Color="Color.Warning"
+                        Size="Size.Small"
+                        Class="@CssClass"
+                        OnClick="@OnMarkDefective" />
+    </MudTooltip>
+}
+
+@if (Status is "Maintenance" or "Defective" or "Recalled")
+{
+    <MudTooltip Text="@TranslationService.GetTranslation("serial.makeAvailable", "Rimetti disponibile")">
+        <PrymIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                        Color="Color.Success"
+                        Size="Size.Small"
+                        Class="@CssClass"
+                        OnClick="@OnMakeAvailable" />
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = string.Empty;
+    [Parameter] public EventCallback OnMarkDefective { get; set; }
+    [Parameter] public EventCallback OnMakeAvailable { get; set; }
+    [Parameter] public string? CssClass { get; set; } = "ef-row-actionbutton";
+}

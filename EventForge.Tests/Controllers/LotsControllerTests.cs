@@ -143,6 +143,7 @@ public class LotsControllerTests
             null,
             null,
             null,
+            null,
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

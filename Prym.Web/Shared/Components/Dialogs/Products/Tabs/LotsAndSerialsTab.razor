@@ -1,5 +1,6 @@
 @using Prym.DTOs.Products
 @using Prym.DTOs.Warehouse
+@using Prym.Web.Shared.Components.Warehouse
 @inject ILotService LotService
 @inject ISerialService SerialService
 @inject ITranslationService TranslationService
@@ -38,6 +39,12 @@
         }
         else
         {
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-2">
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@TranslationService.GetTranslation("common.total", "Totale"): @_lotsTotalCount</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Success">@TranslationService.GetTranslation("warehouse.active", "Attivi"): @_lots.Count(l => l.Status == "Active")</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning">@TranslationService.GetTranslation("warehouse.expiringSoon", "In scadenza"): @_lots.Count(l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= DateTime.UtcNow.AddDays(30) && l.ExpiryDate.Value > DateTime.UtcNow)</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Error">@TranslationService.GetTranslation("warehouse.blocked", "Bloccati"): @_lots.Count(l => l.Status == "Blocked")</MudChip>
+            </MudStack>
             <MudTextField @bind-Value="_searchLot"
                           Placeholder="@TranslationService.GetTranslation("common.search", "Cerca")"
                           Adornment="Adornment.Start"
@@ -167,6 +174,12 @@
         }
         else
         {
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mb-2">
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@TranslationService.GetTranslation("common.total", "Totale"): @_serialsTotalCount</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Success">@TranslationService.GetTranslation("serial.available", "Disponibili"): @_serials.Count(s => s.Status == "Available")</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary">@TranslationService.GetTranslation("serial.sold", "Vendute"): @_serials.Count(s => s.Status == "Sold")</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning">@TranslationService.GetTranslation("serial.warrantyExpiry", "Garanzia in scadenza"): @_serials.Count(s => s.WarrantyExpiry.HasValue && s.WarrantyExpiry.Value <= DateTime.UtcNow.AddDays(30) && s.WarrantyExpiry.Value > DateTime.UtcNow)</MudChip>
+            </MudStack>
             <MudTextField @bind-Value="_searchSerial"
                           Placeholder="@TranslationService.GetTranslation("common.search", "Cerca")"
                           Adornment="Adornment.Start"
@@ -255,24 +268,10 @@
                                            Color="Color.Primary"
                                            OnClick="@(() => OpenEditSerialDialogAsync(context.Id))" />
                         </MudTooltip>
-                        @if (context.Status == "Available" || context.Status == "Maintenance" || context.Status == "Recalled")
-                        {
-                            <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna difettosa")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.BugReport"
-                                               Size="Size.Small"
-                                               Color="Color.Warning"
-                                               OnClick="@(() => MarkSerialDefectiveAsync(context))" />
-                            </MudTooltip>
-                        }
-                        @if (context.Status == "Maintenance" || context.Status == "Defective" || context.Status == "Recalled")
-                        {
-                            <MudTooltip Text="@TranslationService.GetTranslation("serial.makeAvailable", "Rimetti disponibile")">
-                                <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle"
-                                               Size="Size.Small"
-                                               Color="Color.Success"
-                                               OnClick="@(() => MarkSerialAvailableAsync(context))" />
-                            </MudTooltip>
-                        }
+                        <SerialQuickActions Status="@context.Status"
+                                            CssClass=""
+                                            OnMarkDefective="@(() => MarkSerialDefectiveAsync(context))"
+                                            OnMakeAvailable="@(() => MarkSerialAvailableAsync(context))" />
                         <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
                             <MudIconButton Icon="@Icons.Material.Outlined.Delete"
                                            Size="Size.Small"

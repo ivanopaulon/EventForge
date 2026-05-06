@@ -1,5 +1,6 @@
 @page "/warehouse/serial-management"
 @using Prym.DTOs.Warehouse
+@using Prym.Web.Shared.Components.Warehouse
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject ISerialService SerialService
 @inject IAppNotificationService AppNotification
@@ -176,26 +177,9 @@
     </RowTemplate>
 
     <AdditionalRowActions Context="item">
-        @if (item.Status == "Available" || item.Status == "Maintenance")
-        {
-            <MudTooltip Text="@TranslationService.GetTranslation("serial.markDefective", "Segna difettosa")">
-                <PrymIconButton Icon="@Icons.Material.Outlined.BugReport"
-                                Color="Color.Warning"
-                                Size="Size.Small"
-                                Class="ef-row-actionbutton"
-                                OnClick="@(() => MarkSerialDefective(item))" />
-            </MudTooltip>
-        }
-        @if (item.Status == "Maintenance" || item.Status == "Defective" || item.Status == "Recalled")
-        {
-            <MudTooltip Text="@TranslationService.GetTranslation("serial.makeAvailable", "Rimetti disponibile")">
-                <PrymIconButton Icon="@Icons.Material.Outlined.CheckCircle"
-                                Color="Color.Success"
-                                Size="Size.Small"
-                                Class="ef-row-actionbutton"
-                                OnClick="@(() => MarkSerialAvailable(item))" />
-            </MudTooltip>
-        }
+        <SerialQuickActions Status="@item.Status"
+                            OnMarkDefective="@(() => MarkSerialDefective(item))"
+                            OnMakeAvailable="@(() => MarkSerialAvailable(item))" />
     </AdditionalRowActions>
 
 </EntityManagementPage>

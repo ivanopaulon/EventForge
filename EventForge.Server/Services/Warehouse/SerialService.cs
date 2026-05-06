@@ -53,8 +53,6 @@ public class SerialService(
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
-            createDto.SerialNumber = createDto.SerialNumber.Trim();
-
             var query = context.Serials
                 .AsNoTracking()
                 .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
@@ -403,6 +401,8 @@ public class SerialService(
                 throw new InvalidOperationException("Current tenant ID is not available.");
             }
 
+            createDto.SerialNumber = createDto.SerialNumber.Trim();
+
             // Check if serial number is unique (excluding soft-deleted)
             var existingSerial = await context.Serials
                 .AsNoTracking()
@@ -685,7 +685,8 @@ public class SerialService(
                                            !bp.IsDeleted, cancellationToken);
 
             if (customer is null ||
-                (customer.Type != BusinessPartyType.Cliente && customer.Type != BusinessPartyType.ClienteFornitore))
+                (customer.PartyType != EventForge.Server.Data.Entities.Business.BusinessPartyType.Cliente &&
+                 customer.PartyType != EventForge.Server.Data.Entities.Business.BusinessPartyType.ClienteFornitore))
             {
                 throw new InvalidOperationException("Customer not found.");
             }
