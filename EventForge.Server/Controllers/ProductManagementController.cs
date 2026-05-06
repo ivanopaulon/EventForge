@@ -2792,18 +2792,22 @@ public class ProductManagementController(
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
-        if (dto == null || (dto.ProductIds?.Count == 0 &&
+        if (dto == null || (!(dto.ProductIds?.Count > 0) &&
             !dto.FilterBrandId.HasValue && !dto.FilterClassificationNodeId.HasValue &&
-            !dto.FilterVatRateId.HasValue && !dto.FilterUnitOfMeasureId.HasValue))
+            !dto.FilterVatRateId.HasValue && !dto.FilterUnitOfMeasureId.HasValue &&
+            !dto.FilterStatus.HasValue && !dto.FilterIsBundle.HasValue &&
+            !dto.FilterModelId.HasValue && !dto.FilterStationId.HasValue))
         {
             return BadRequest("Either ProductIds or at least one filter must be specified.");
         }
 
         if (!dto.VatRateId.HasValue && !dto.UnitOfMeasureId.HasValue && !dto.BrandId.HasValue &&
             !dto.ModelId.HasValue && !dto.CategoryNodeId.HasValue && !dto.FamilyNodeId.HasValue &&
-            !dto.GroupNodeId.HasValue)
+            !dto.GroupNodeId.HasValue && !dto.Status.HasValue && !dto.IsVatIncluded.HasValue &&
+            !dto.ReorderPoint.HasValue && !dto.SafetyStock.HasValue && !dto.TargetStockLevel.HasValue &&
+            !dto.AverageDailyDemand.HasValue && !dto.PreferredSupplierId.HasValue && !dto.StationId.HasValue)
         {
-            return BadRequest("At least one update field must be specified (VatRateId, UnitOfMeasureId, BrandId, ModelId, CategoryNodeId, FamilyNodeId, or GroupNodeId).");
+            return BadRequest("At least one update field must be specified.");
         }
 
         try
@@ -2812,9 +2816,50 @@ public class ProductManagementController(
             var result = await productService.BulkUpdateProductsAsync(dto, currentUser, cancellationToken);
             return Ok(result);
         }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred during the bulk catalog update.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Returns the count of products that would be selected by the given filters,
+    /// without performing any update. Use before executing a bulk update to preview the scope.
+    /// </summary>
+    /// <response code="200">Returns the matching product count.</response>
+    /// <response code="400">If no selection criteria are specified.</response>
+    /// <response code="403">If the user doesn't have access to the current tenant.</response>
+    [HttpPost("products/bulk-catalog-count")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<int>> GetBulkCatalogCount(
+        [FromBody] BulkUpdateProductsDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        if (dto == null || (!(dto.ProductIds?.Count > 0) &&
+            !dto.FilterBrandId.HasValue && !dto.FilterClassificationNodeId.HasValue &&
+            !dto.FilterVatRateId.HasValue && !dto.FilterUnitOfMeasureId.HasValue &&
+            !dto.FilterStatus.HasValue && !dto.FilterIsBundle.HasValue &&
+            !dto.FilterModelId.HasValue && !dto.FilterStationId.HasValue))
+        {
+            return BadRequest("At least one selection criterion must be specified.");
+        }
+
+        try
+        {
+            var count = await productService.CountProductsMatchingFiltersAsync(dto, cancellationToken);
+            return Ok(count);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while counting matching products.", ex);
         }
     }
 

@@ -2,6 +2,7 @@
 @using Prym.DTOs.Common
 @using Prym.DTOs.VatRates
 @using Prym.DTOs.UnitOfMeasures
+@implements IDisposable
 @attribute [Authorize]
 @inject IProductService ProductService
 @inject IEntityManagementService EntityManagementService
@@ -40,6 +41,7 @@
 
                         <MudItem xs="12" md="6">
                             <PrymSelect T="Guid?" @bind-Value="_dto.FilterBrandId"
+                                        @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.brand", "Marchio")"
                                         Clearable="true">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
@@ -52,6 +54,7 @@
 
                         <MudItem xs="12" md="6">
                             <PrymSelect T="Guid?" @bind-Value="_dto.FilterVatRateId"
+                                        @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.vatRate", "Aliquota IVA")"
                                         Clearable="true">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
@@ -64,6 +67,7 @@
 
                         <MudItem xs="12" md="6">
                             <PrymSelect T="Guid?" @bind-Value="_dto.FilterUnitOfMeasureId"
+                                        @bind-Value:after="ScheduleCountPreview"
                                         Label="@TranslationService.GetTranslation("field.unitOfMeasure", "Unità di Misura")"
                                         Clearable="true">
                                 <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
@@ -71,6 +75,29 @@
                                 {
                                     <MudSelectItem T="Guid?" Value="@((Guid?)um.Id)">@um.Name (@um.Symbol)</MudSelectItem>
                                 }
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="ProductStatus?" @bind-Value="_dto.FilterStatus"
+                                        @bind-Value:after="ScheduleCountPreview"
+                                        Label="@TranslationService.GetTranslation("field.status", "Stato")"
+                                        Clearable="true">
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Active)">Attivo</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Suspended)">Sospeso</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.OutOfStock)">Esaurito</MudSelectItem>
+                            </PrymSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="bool?" @bind-Value="_dto.FilterIsBundle"
+                                        @bind-Value:after="ScheduleCountPreview"
+                                        Label="@TranslationService.GetTranslation("product.bulkUpdate.filterBundle", "Tipo Prodotto")"
+                                        Clearable="true">
+                                <MudSelectItem T="bool?" Value="@((bool?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)false)">Solo prodotti semplici</MudSelectItem>
+                                <MudSelectItem T="bool?" Value="@((bool?)true)">Solo bundle</MudSelectItem>
                             </PrymSelect>
                         </MudItem>
 
@@ -90,6 +117,22 @@
                                 </MudButton>
                             </MudStack>
                         </MudItem>
+
+                        @if (_previewCount.HasValue)
+                        {
+                            <MudItem xs="12">
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined"
+                                         Icon="@Icons.Material.Outlined.Inventory2">
+                                    ~@_previewCount prodotti saranno aggiornati
+                                </MudChip>
+                            </MudItem>
+                        }
+                        else if (_isCountLoading)
+                        {
+                            <MudItem xs="12">
+                                <MudProgressLinear Indeterminate="true" Size="Size.Small" />
+                            </MudItem>
+                        }
                     </MudGrid>
                 </MudTabPanel>
 
@@ -102,6 +145,42 @@
                                 @TranslationService.GetTranslation("product.bulkUpdate.fieldsHint",
                                     "Solo i campi valorizzati verranno aggiornati. I campi lasciati vuoti non vengono modificati.")
                             </MudAlert>
+                        </MudItem>
+
+                        <!-- Stato prodotto con avviso -->
+                        <MudItem xs="12" md="6">
+                            <PrymSelect T="ProductStatus?" @bind-Value="_dto.Status"
+                                        Label="@TranslationService.GetTranslation("field.newStatus", "Nuovo Stato")"
+                                        Clearable="true">
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)null)">@TranslationService.GetTranslation("common.noChange", "Nessuna modifica")</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Active)">Attivo</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Suspended)">Sospeso ⚠</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.OutOfStock)">Esaurito</MudSelectItem>
+                                <MudSelectItem T="ProductStatus?" Value="@((ProductStatus?)ProductStatus.Deleted)">Eliminato 🚫</MudSelectItem>
+                            </PrymSelect>
+                            @if (_dto.Status is ProductStatus.Suspended or ProductStatus.Deleted)
+                            {
+                                <MudAlert Severity="Severity.Error" Dense Class="mt-1">
+                                    Attenzione: questa operazione @(_dto.Status == ProductStatus.Deleted ? "disabiliterà definitivamente" : "sospenderà") tutti i prodotti selezionati.
+                                </MudAlert>
+                            }
+                        </MudItem>
+
+                        <!-- IVA inclusa -->
+                        <MudItem xs="12" md="6" Class="d-flex align-center">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("field.vatIncluded", "IVA Inclusa nel Prezzo")</MudText>
+                                <MudStack Row AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudSwitch T="bool?" @bind-Value="_dto.IsVatIncluded"
+                                               Color="Color.Primary"
+                                               Label="@(_dto.IsVatIncluded == true ? "Sì" : _dto.IsVatIncluded == false ? "No" : "Nessuna modifica")" />
+                                    @if (_dto.IsVatIncluded.HasValue)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Clear" Size="Size.Small"
+                                                       OnClick="@(() => _dto.IsVatIncluded = null)" />
+                                    }
+                                </MudStack>
+                            </MudStack>
                         </MudItem>
 
                         <MudItem xs="12" md="6">
@@ -202,6 +281,56 @@
                                 </MudStack>
                             </MudStack>
                         </MudItem>
+
+                        <!-- Scorte -->
+                        <MudItem xs="12">
+                            <MudDivider />
+                            <MudText Typo="Typo.subtitle2" Class="mt-2 mb-1">@TranslationService.GetTranslation("product.bulkUpdate.stockSection", "Parametri Scorte")</MudText>
+                        </MudItem>
+
+                        <MudItem xs="12" md="3">
+                            <MudNumericField T="decimal?" @bind-Value="_dto.ReorderPoint"
+                                             Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
+                                             Clearable="true"
+                                             Format="N2"
+                                             Min="0" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="3">
+                            <MudNumericField T="decimal?" @bind-Value="_dto.SafetyStock"
+                                             Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
+                                             Clearable="true"
+                                             Format="N2"
+                                             Min="0" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="3">
+                            <MudNumericField T="decimal?" @bind-Value="_dto.TargetStockLevel"
+                                             Label="@TranslationService.GetTranslation("field.targetStock", "Scorta Obiettivo")"
+                                             Clearable="true"
+                                             Format="N2"
+                                             Min="0" />
+                        </MudItem>
+
+                        <MudItem xs="12" md="3">
+                            <MudNumericField T="decimal?" @bind-Value="_dto.AverageDailyDemand"
+                                             Label="@TranslationService.GetTranslation("field.avgDailyDemand", "Domanda Media Giornaliera")"
+                                             Clearable="true"
+                                             Format="N2"
+                                             Min="0" />
+                        </MudItem>
+
+                        <!-- Motivazione -->
+                        <MudItem xs="12">
+                            <MudDivider />
+                            <MudTextField @bind-Value="_dto.Reason"
+                                          Label="@TranslationService.GetTranslation("product.bulkUpdate.reason", "Motivazione (opzionale)")"
+                                          Variant="Variant.Outlined"
+                                          MaxLength="500"
+                                          Class="mt-2"
+                                          Adornment="Adornment.End"
+                                          AdornmentIcon="@Icons.Material.Outlined.Notes" />
+                        </MudItem>
                     </MudGrid>
                 </MudTabPanel>
 
@@ -213,6 +342,15 @@
                                  BadgeData="@_result.SuccessCount.ToString()"
                                  BadgeDot="@(_result.SuccessCount > 0)">
                         <MudGrid Spacing="3">
+                            @if (_result.RolledBack)
+                            {
+                                <MudItem xs="12">
+                                    <MudAlert Severity="Severity.Error">
+                                        L'operazione è stata annullata (rollback). Nessuna modifica è stata salvata.
+                                    </MudAlert>
+                                </MudItem>
+                            }
+
                             <MudItem xs="4">
                                 <MudPaper Elevation="1" Class="pa-4 text-center">
                                     <MudText Typo="Typo.h4" Color="Color.Primary">@_result.TotalRequested</MudText>
@@ -272,9 +410,11 @@
 
     private bool _isLoading = true;
     private bool _isSaving;
+    private bool _isCountLoading;
 
     private BulkUpdateProductsDto _dto = new();
     private BulkUpdateResult? _result;
+    private int? _previewCount;
 
     private ClassificationNodeDto? _selectedFilterClassificationNode;
     private ClassificationNodeDto? _selectedCategoryNode;
@@ -284,6 +424,10 @@
     private IEnumerable<BrandDto> _brands = [];
     private IEnumerable<VatRateDto> _vatRates = [];
     private IEnumerable<UMDto> _uoms = [];
+
+    // Debounce timer for the count preview
+    private Timer? _countDebounceTimer;
+    private const int CountDebounceMs = 800;
 
     protected override async Task OnInitializedAsync()
     {
@@ -316,7 +460,57 @@
     private bool HasFieldsToUpdate() =>
         _dto.VatRateId.HasValue || _dto.UnitOfMeasureId.HasValue || _dto.BrandId.HasValue ||
         _dto.ModelId.HasValue || _dto.CategoryNodeId.HasValue || _dto.FamilyNodeId.HasValue ||
-        _dto.GroupNodeId.HasValue;
+        _dto.GroupNodeId.HasValue || _dto.Status.HasValue || _dto.IsVatIncluded.HasValue ||
+        _dto.ReorderPoint.HasValue || _dto.SafetyStock.HasValue || _dto.TargetStockLevel.HasValue ||
+        _dto.AverageDailyDemand.HasValue || _dto.PreferredSupplierId.HasValue || _dto.StationId.HasValue;
+
+    /// <summary>
+    /// Schedules a debounced count preview request to show ~N products affected by current filters.
+    /// </summary>
+    private void ScheduleCountPreview()
+    {
+        _countDebounceTimer?.Dispose();
+        _countDebounceTimer = new Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                await RefreshCountPreviewAsync();
+                StateHasChanged();
+            });
+        }, null, CountDebounceMs, Timeout.Infinite);
+    }
+
+    private async Task RefreshCountPreviewAsync()
+    {
+        // Only call the count endpoint when at least one filter or explicit IDs are set
+        bool hasFilters = _dto.ProductIds?.Count > 0 ||
+            _dto.FilterBrandId.HasValue || _dto.FilterVatRateId.HasValue ||
+            _dto.FilterUnitOfMeasureId.HasValue || _dto.FilterClassificationNodeId.HasValue ||
+            _dto.FilterStatus.HasValue || _dto.FilterIsBundle.HasValue ||
+            _dto.FilterModelId.HasValue || _dto.FilterStationId.HasValue;
+
+        if (!hasFilters)
+        {
+            _previewCount = null;
+            _isCountLoading = false;
+            return;
+        }
+
+        _isCountLoading = true;
+        try
+        {
+            _previewCount = await ProductService.BulkCatalogCountAsync(_dto);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Count preview request failed.");
+            _previewCount = null;
+        }
+        finally
+        {
+            _isCountLoading = false;
+        }
+    }
 
     private async Task OpenFilterClassificationPickerAsync()
     {
@@ -325,6 +519,7 @@
         {
             _selectedFilterClassificationNode = node;
             _dto.FilterClassificationNodeId = node.Id;
+            ScheduleCountPreview();
         }
     }
 
@@ -332,6 +527,8 @@
     {
         _selectedFilterClassificationNode = null;
         _dto.FilterClassificationNodeId = null;
+        _previewCount = null;
+        ScheduleCountPreview();
     }
 
     private async Task OpenClassificationPickerAsync(ProductClassificationType type)
@@ -402,6 +599,16 @@
 
     private async Task ExecuteUpdateAsync()
     {
+        // Destructive confirmation for Suspended or Deleted status
+        if (_dto.Status is ProductStatus.Suspended or ProductStatus.Deleted)
+        {
+            var actionLabel = _dto.Status == ProductStatus.Deleted ? "eliminare" : "sospendere";
+            var countLabel = _previewCount.HasValue ? $"~{_previewCount}" : "tutti i";
+            bool confirmed = await ConfirmDestructiveAsync(
+                $"Stai per {actionLabel} {countLabel} prodotti selezionati. Questa operazione non può essere annullata facilmente. Continuare?");
+            if (!confirmed) return;
+        }
+
         _isSaving = true;
         try
         {
@@ -409,6 +616,10 @@
             if (_result == null)
             {
                 AppNotification.ShowError(TranslationService.GetTranslation("product.bulkUpdate.error", "Errore durante l'aggiornamento in blocco."));
+            }
+            else if (_result.RolledBack)
+            {
+                AppNotification.ShowError("Operazione annullata (rollback). Nessun prodotto è stato aggiornato.");
             }
             else if (_result.FailureCount == 0)
             {
@@ -423,7 +634,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error executing bulk catalog update.");
-            AppNotification.ShowError("Errore durante l'aggiornamento in blocco.");
+            AppNotification.ShowError("Si è verificato un errore durante l'aggiornamento.");
         }
         finally
         {
@@ -431,5 +642,33 @@
         }
     }
 
-    private void Cancel() => MudDialog.Cancel();
+    private async Task<bool> ConfirmDestructiveAsync(string message)
+    {
+        try
+        {
+            var result = await DialogService.ShowMessageBoxAsync(
+                "Conferma operazione critica",
+                message,
+                yesText: "Confermo",
+                cancelText: "Annulla");
+            return result == true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void Cancel()
+    {
+        _countDebounceTimer?.Dispose();
+        MudDialog?.Close(_result != null ? DialogResult.Ok(_result) : DialogResult.Cancel());
+    }
+
+    public void Dispose()
+    {
+        _countDebounceTimer?.Dispose();
+    }
 }
+
+

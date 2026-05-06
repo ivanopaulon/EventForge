@@ -60,6 +60,7 @@ public class ClassificationNodeManagementService : IEntityManagementService<Clas
                 Level = node.Level,
                 Order = node.Order,
                 ParentId = node.ParentId,
+                ApplicableTo = node.ApplicableTo,
                 IsActive = node.IsActive,
                 CreatedAt = node.CreatedAt,
                 CreatedBy = node.CreatedBy,

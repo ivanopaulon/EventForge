@@ -28,6 +28,9 @@ public class ProductService(
     // Maximum retry attempts for unique constraint violations
     private const int MaxRetryAttempts = 3;
 
+    // Request-scoped cache for classification nodes (avoids redundant DB round-trips within a single request)
+    private List<(Guid Id, Guid? ParentId)>? _classificationNodesCache;
+
     // Product CRUD operations
 
     public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken cancellationToken = default)
@@ -65,12 +68,9 @@ public class ProductService(
                     (p.GroupNodeId.HasValue && descendantIds.Contains(p.GroupNodeId.Value)));
             }
 
-            query = query
-                .Include(p => p.Codes.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value))
-                .Include(p => p.Units.Where(u => !u.IsDeleted && u.TenantId == currentTenantId.Value))
-                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted && bi.TenantId == currentTenantId.Value))
-                .Include(p => p.ImageDocument);
-
+            // For the paginated list view, navigation collections (Codes, Units, BundleItems, ImageDocument)
+            // are not shown in the grid and are skipped here to avoid 4 extra JOINs per request.
+            // CountX fields in the DTO will be 0; full collections are loaded in GetProductDetailAsync.
             var totalCount = await query.CountAsync(cancellationToken);
             var products = await query
                 .OrderBy(p => p.Name)
@@ -99,14 +99,20 @@ public class ProductService(
     /// </summary>
     private async Task<HashSet<Guid>> GetDescendantNodeIdsAsync(Guid parentId, CancellationToken cancellationToken)
     {
-        var result = new HashSet<Guid>();
-        var allNodes = await context.ClassificationNodes
-            .AsNoTracking()
-            .Where(cn => !cn.IsDeleted)
-            .Select(cn => new { cn.Id, cn.ParentId })
-            .ToListAsync(cancellationToken);
+        // Use a request-scoped cache to avoid re-fetching the full tree on subsequent calls.
+        if (_classificationNodesCache == null)
+        {
+            _classificationNodesCache = await context.ClassificationNodes
+                .AsNoTracking()
+                .Where(cn => !cn.IsDeleted)
+                .Select(cn => new { cn.Id, cn.ParentId })
+                .ToListAsync(cancellationToken)
+                .ContinueWith(t => t.Result.Select(x => (x.Id, x.ParentId)).ToList(),
+                    TaskContinuationOptions.ExecuteSynchronously);
+        }
 
-        var childLookup = allNodes.ToLookup(n => n.ParentId);
+        var result = new HashSet<Guid>();
+        var childLookup = _classificationNodesCache.ToLookup(n => n.ParentId);
         var queue = new Queue<Guid>();
         foreach (var child in childLookup[parentId])
             queue.Enqueue(child.Id);
@@ -2860,70 +2866,127 @@ public class ProductService(
 
     #region Bulk Product Maintenance
 
+    /// <summary>
+    /// Builds the filter query for bulk product operations without loading entities.
+    /// Used by both CountProductsMatchingFiltersAsync and BulkUpdateProductsAsync.
+    /// </summary>
+    private async Task<IQueryable<Data.Entities.Products.Product>> BuildBulkFilterQueryAsync(
+        BulkUpdateProductsDto dto, Guid tenantId, CancellationToken cancellationToken)
+    {
+        IQueryable<Data.Entities.Products.Product> query;
+
+        if (dto.ProductIds?.Count > 0)
+        {
+            query = context.Products.WhereActiveTenant(tenantId)
+                .Where(p => dto.ProductIds.Contains(p.Id));
+        }
+        else
+        {
+            query = context.Products.WhereActiveTenant(tenantId);
+
+            if (dto.FilterBrandId.HasValue)
+                query = query.Where(p => p.BrandId == dto.FilterBrandId.Value);
+
+            if (dto.FilterVatRateId.HasValue)
+                query = query.Where(p => p.VatRateId == dto.FilterVatRateId.Value);
+
+            if (dto.FilterUnitOfMeasureId.HasValue)
+                query = query.Where(p => p.UnitOfMeasureId == dto.FilterUnitOfMeasureId.Value);
+
+            if (dto.FilterModelId.HasValue)
+                query = query.Where(p => p.ModelId == dto.FilterModelId.Value);
+
+            if (dto.FilterStationId.HasValue)
+                query = query.Where(p => p.StationId == dto.FilterStationId.Value);
+
+            if (dto.FilterStatus.HasValue)
+                query = query.Where(p => (int)p.Status == (int)dto.FilterStatus.Value);
+
+            if (dto.FilterIsBundle.HasValue)
+                query = query.Where(p => p.IsBundle == dto.FilterIsBundle.Value);
+
+            if (dto.FilterClassificationNodeId.HasValue)
+            {
+                var descendantIds = await GetDescendantNodeIdsAsync(dto.FilterClassificationNodeId.Value, cancellationToken);
+                descendantIds.Add(dto.FilterClassificationNodeId.Value);
+                query = query.Where(p =>
+                    (p.CategoryNodeId.HasValue && descendantIds.Contains(p.CategoryNodeId.Value)) ||
+                    (p.FamilyNodeId.HasValue && descendantIds.Contains(p.FamilyNodeId.Value)) ||
+                    (p.GroupNodeId.HasValue && descendantIds.Contains(p.GroupNodeId.Value)));
+            }
+        }
+
+        return query;
+    }
+
+    public async Task<int> CountProductsMatchingFiltersAsync(BulkUpdateProductsDto dto, CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for bulk product operations.");
+
+        var query = await BuildBulkFilterQueryAsync(dto, currentTenantId.Value, cancellationToken);
+        return await query.CountAsync(cancellationToken);
+    }
+
     public async Task<BulkUpdateResult> BulkUpdateProductsAsync(BulkUpdateProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for bulk product operations.");
+
+        const int maxBatchSize = 500;
+
+        // Enforce batch size limit for explicit ID lists
+        if (dto.ProductIds?.Count > maxBatchSize)
+            throw new ArgumentException($"Maximum {maxBatchSize} products can be updated at once in explicit-ID mode.");
+
+        var query = await BuildBulkFilterQueryAsync(dto, currentTenantId.Value, cancellationToken);
+
+        // For filter-based mode, enforce the limit before loading entities
+        if (!(dto.ProductIds?.Count > 0))
+        {
+            var candidateCount = await query.CountAsync(cancellationToken);
+            if (candidateCount > maxBatchSize)
+                throw new ArgumentException($"The applied filters match {candidateCount} products, which exceeds the maximum of {maxBatchSize}. Use a more restrictive filter.");
+        }
+
+        var products = await query.ToListAsync(cancellationToken);
+
+        var result = new BulkUpdateResult { TotalRequested = products.Count };
+
+        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-                throw new InvalidOperationException("Tenant context is required for bulk product operations.");
-
-            IQueryable<Data.Entities.Products.Product> query;
-
-            if (dto.ProductIds?.Count > 0)
-            {
-                // Use explicit list
-                query = context.Products.WhereActiveTenant(currentTenantId.Value)
-                    .Where(p => dto.ProductIds.Contains(p.Id));
-            }
-            else
-            {
-                // Apply filter parameters
-                query = context.Products.WhereActiveTenant(currentTenantId.Value);
-
-                if (dto.FilterBrandId.HasValue)
-                    query = query.Where(p => p.BrandId == dto.FilterBrandId.Value);
-
-                if (dto.FilterVatRateId.HasValue)
-                    query = query.Where(p => p.VatRateId == dto.FilterVatRateId.Value);
-
-                if (dto.FilterUnitOfMeasureId.HasValue)
-                    query = query.Where(p => p.UnitOfMeasureId == dto.FilterUnitOfMeasureId.Value);
-
-                if (dto.FilterClassificationNodeId.HasValue)
-                {
-                    var descendantIds = await GetDescendantNodeIdsAsync(dto.FilterClassificationNodeId.Value, cancellationToken);
-                    descendantIds.Add(dto.FilterClassificationNodeId.Value);
-                    query = query.Where(p =>
-                        (p.CategoryNodeId.HasValue && descendantIds.Contains(p.CategoryNodeId.Value)) ||
-                        (p.FamilyNodeId.HasValue && descendantIds.Contains(p.FamilyNodeId.Value)) ||
-                        (p.GroupNodeId.HasValue && descendantIds.Contains(p.GroupNodeId.Value)));
-                }
-            }
-
-            var products = await query.ToListAsync(cancellationToken);
-
-            var result = new BulkUpdateResult
-            {
-                TotalRequested = products.Count
-            };
-
+            var now = DateTime.UtcNow;
             foreach (var product in products)
             {
                 try
                 {
-                    if (dto.UnitOfMeasureId.HasValue)      product.UnitOfMeasureId = dto.UnitOfMeasureId;
-                    if (dto.VatRateId.HasValue)             product.VatRateId = dto.VatRateId;
-                    if (dto.BrandId.HasValue)               product.BrandId = dto.BrandId;
-                    if (dto.ModelId.HasValue)               product.ModelId = dto.ModelId;
-                    if (dto.CategoryNodeId.HasValue)        product.CategoryNodeId = dto.CategoryNodeId;
-                    if (dto.FamilyNodeId.HasValue)          product.FamilyNodeId = dto.FamilyNodeId;
-                    if (dto.GroupNodeId.HasValue)           product.GroupNodeId = dto.GroupNodeId;
+                    if (dto.UnitOfMeasureId.HasValue)    product.UnitOfMeasureId = dto.UnitOfMeasureId;
+                    if (dto.VatRateId.HasValue)          product.VatRateId = dto.VatRateId;
+                    if (dto.BrandId.HasValue)            product.BrandId = dto.BrandId;
+                    if (dto.ModelId.HasValue)            product.ModelId = dto.ModelId;
+                    if (dto.CategoryNodeId.HasValue)     product.CategoryNodeId = dto.CategoryNodeId;
+                    if (dto.FamilyNodeId.HasValue)       product.FamilyNodeId = dto.FamilyNodeId;
+                    if (dto.GroupNodeId.HasValue)        product.GroupNodeId = dto.GroupNodeId;
+                    if (dto.Status.HasValue)             product.Status = (Data.Entities.Products.ProductStatus)(int)dto.Status.Value;
+                    if (dto.IsVatIncluded.HasValue)      product.IsVatIncluded = dto.IsVatIncluded.Value;
+                    if (dto.ReorderPoint.HasValue)       product.ReorderPoint = dto.ReorderPoint;
+                    if (dto.SafetyStock.HasValue)        product.SafetyStock = dto.SafetyStock;
+                    if (dto.TargetStockLevel.HasValue)   product.TargetStockLevel = dto.TargetStockLevel;
+                    if (dto.AverageDailyDemand.HasValue) product.AverageDailyDemand = dto.AverageDailyDemand;
+                    if (dto.PreferredSupplierId.HasValue) product.PreferredSupplierId = dto.PreferredSupplierId;
+                    if (dto.StationId.HasValue)          product.StationId = dto.StationId;
 
-                    product.ModifiedAt = DateTime.UtcNow;
+                    product.ModifiedAt = now;
                     product.ModifiedBy = currentUser;
 
                     result.SuccessCount++;
+
+                    logger.LogInformation(
+                        "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}. Reason: {Reason}",
+                        product.Id, product.Name, currentUser, dto.Reason ?? "N/A");
                 }
                 catch (Exception ex)
                 {
@@ -2936,14 +2999,24 @@ public class ProductService(
             if (result.SuccessCount > 0)
             {
                 await context.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("Bulk update completed: {Success}/{Total} products updated by {User}.", result.SuccessCount, result.TotalRequested, currentUser);
+                await transaction.CommitAsync(cancellationToken);
+                logger.LogInformation("Bulk catalog update committed: {Success}/{Total} products updated by {User}.",
+                    result.SuccessCount, result.TotalRequested, currentUser);
+            }
+            else
+            {
+                await transaction.RollbackAsync(cancellationToken);
             }
 
             return result;
         }
-        catch
+        catch (Exception ex)
         {
-            throw;
+            await transaction.RollbackAsync(cancellationToken);
+            result.RolledBack = true;
+            logger.LogError(ex, "Bulk catalog update rolled back. {Success} updates were lost. User: {User}.",
+                result.SuccessCount, currentUser);
+            return result;
         }
     }
 

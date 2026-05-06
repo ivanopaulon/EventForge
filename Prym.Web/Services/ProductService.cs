@@ -807,6 +807,22 @@ public class ProductService(
             return null;
         }
     }
+
+    public async Task<int?> BulkCatalogCountAsync(BulkUpdateProductsDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<BulkUpdateProductsDto, int>(
+                $"{BaseUrl}/bulk-catalog-count",
+                dto,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving bulk catalog product count");
+            return null;
+        }
+    }
 }
 
 public class ImageUploadResultDto

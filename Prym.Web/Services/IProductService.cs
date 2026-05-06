@@ -93,4 +93,10 @@ public interface IProductService
     Task<Prym.DTOs.Bulk.BulkUpdateResultDto?> BulkUpdatePricesAsync(Prym.DTOs.Bulk.BulkUpdatePricesDto bulkUpdateDto, CancellationToken ct = default);
 
     Task<BulkUpdateResult?> BulkUpdateProductCatalogAsync(BulkUpdateProductsDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the count of products matching the given filters without performing any update.
+    /// Returns null on error.
+    /// </summary>
+    Task<int?> BulkCatalogCountAsync(BulkUpdateProductsDto dto, CancellationToken ct = default);
 }

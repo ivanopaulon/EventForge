@@ -398,4 +398,10 @@ public interface IProductService
         BulkUpdateProductsDto dto,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the count of products that would be selected by the given filters,
+    /// without performing any update. Used for preview before executing a bulk update.
+    /// </summary>
+    Task<int> CountProductsMatchingFiltersAsync(BulkUpdateProductsDto dto, CancellationToken cancellationToken = default);
 }
