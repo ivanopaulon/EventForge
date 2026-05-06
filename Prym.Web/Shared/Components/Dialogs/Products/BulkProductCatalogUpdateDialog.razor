@@ -396,7 +396,7 @@
             @TranslationService.GetTranslation("common.close", "Chiudi")
         </PrymButton>
         <PrymButton StartIcon="@(_isSaving ? Icons.Material.Outlined.HourglassTop : Icons.Material.Filled.AutoFixHigh)"
-                    Color="Color.Warning"
+                    Intent="PrymButton.ButtonIntent.Warning"
                     OnClick="ExecuteUpdateAsync"
                     Disabled="@(_isSaving || _isLoading || !HasFieldsToUpdate())">
             @(_isSaving
