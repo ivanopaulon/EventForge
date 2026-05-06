@@ -104,6 +104,13 @@
                     <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">
                         @TranslationService.GetTranslation("rebuildMovements.updateExistingHint", "Se attivo, i movimenti già collegati ai documenti vengono riallineati con i dati del documento.")
                     </MudText>
+                    <MudDivider Class="my-2" />
+                    <MudCheckBox @bind-Value="_forceRecalculate" Dense="true" Color="Color.Error"
+                                 Label="@TranslationService.GetTranslation("rebuildMovements.forceRecalculate", "Forza ricalcolo giacenze dai movimenti")"
+                                 Class="mt-1" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">
+                        @TranslationService.GetTranslation("rebuildMovements.forceRecalculateHint", "Se attivo, sovrascrive la quantità di ogni giacenza con il netto calcolato dai movimenti storici (Entrate − Uscite). Usa questa opzione per correggere saldi negativi dovuti a movimenti mancanti o errati.")
+                    </MudText>
                 </MudItem>
             </MudGrid>
             </MudStep>
@@ -299,6 +306,17 @@
                             </MudPaper>
                         </MudItem>
                     }
+                    @if (_applyResult.StocksForceRecalculated > 0)
+                    {
+                        <MudItem xs="6" sm="3">
+                            <MudPaper Class="pa-3 text-center border-error-l-3" Elevation="2">
+                                <MudText Typo="Typo.h5" Color="Color.Error">@_applyResult.StocksForceRecalculated</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @TranslationService.GetTranslation("rebuildMovements.stocksRecalculated", "Giacenze ricalcolate")
+                                </MudText>
+                            </MudPaper>
+                        </MudItem>
+                    }
                     @if (_applyResult.Errors > 0)
                     {
                         <MudItem xs="6" sm="3">
@@ -423,6 +441,7 @@
     private bool _includeDraft = false;
     private bool _includeCancelled = false;
     private bool _updateExisting = true;
+    private bool _forceRecalculate = false;
 
     // ── Reference data ──
     private List<StorageFacilityDto> _warehouses = new();
@@ -579,7 +598,8 @@
             DocumentTypeId = _documentTypeId,
             ApprovalStatuses = approvalStatuses.Count > 0 ? approvalStatuses : null,
             DocumentStatuses = documentStatuses.Count > 0 ? documentStatuses : null,
-            UpdateExisting = _updateExisting
+            UpdateExisting = _updateExisting,
+            ForceRecalculateFromMovements = _forceRecalculate
         };
     }
 

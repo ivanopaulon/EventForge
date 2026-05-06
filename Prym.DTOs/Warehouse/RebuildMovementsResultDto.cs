@@ -46,6 +46,12 @@ public class RebuildMovementsResultDto
     public int Errors { get; set; }
 
     /// <summary>
+    /// Number of Stock rows whose quantity was overwritten from the full movement history
+    /// when <see cref="RebuildMovementsRequestDto.ForceRecalculateFromMovements"/> is true.
+    /// </summary>
+    public int StocksForceRecalculated { get; set; }
+
+    /// <summary>
     /// Detailed line items for the operation result.
     /// </summary>
     public List<RebuildMovementsRowResultDto> Items { get; set; } = new();

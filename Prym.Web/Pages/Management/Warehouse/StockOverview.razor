@@ -102,6 +102,18 @@
                                    OnClick="OpenRebuildMovementsDialogAsync"
                                    Class="ml-2" />
                 </MudTooltip>
+                @if (_reconciliationCalculated && _reconciliationData.Values.Any(r => r.CalculatedQuantity != _stockItems.FirstOrDefault(s => s.StockId == r.StockId)?.Quantity))
+                {
+                    var discrepantCount = _reconciliationData.Values.Count(r =>
+                        _stockItems.Any(s => s.StockId == r.StockId && s.Quantity != r.CalculatedQuantity));
+                    <MudTooltip Text="@TranslationService.GetTranslationFormatted("stock.bulkApplyReconciled.tooltip", "Applica massivamente le {0} quantità riconciliate con discrepanza", discrepantCount)">
+                        <MudIconButton Icon="@Icons.Material.Outlined.PlaylistAddCheck"
+                                       Color="Color.Warning"
+                                       OnClick="BulkApplyReconciledAsync"
+                                       Disabled="@_isBulkApplying"
+                                       Class="ml-2" />
+                    </MudTooltip>
+                }
                 <MudTooltip Text="@TranslationService.GetTranslation("stock.snapshot.tooltipBtn", "Estrai giacenze ad una data specifica con prezzi di acquisto e vendita")">
                     <MudIconButton Icon="@Icons.Material.Outlined.EventNote"
                                    Color="Color.Info"
@@ -700,6 +712,9 @@
     private List<StorageLocationDto> _locations = new();
     private HashSet<StockLocationDetail> _selectedStockItems = new();
 
+    // Bulk apply reconciliation state
+    private bool _isBulkApplying = false;
+
     // EFTable reference
     private EFTable<StockLocationDetail> _efTable = null!;
 
@@ -1222,6 +1237,88 @@
         {
             Logger.LogError(ex, "Error calculating stock reconciliation");
             AppNotification.ShowError(TranslationService.GetTranslation("stock.reconciliationError", "Errore nel calcolo della riconciliazione"));
+        }
+    }
+
+    /// <summary>
+    /// Applies all reconciled quantities that differ from the current stock in bulk,
+    /// creating an adjustment movement for each changed row.
+    /// Only visible when reconciliation data has been calculated and contains discrepancies.
+    /// </summary>
+    private async Task BulkApplyReconciledAsync()
+    {
+        try
+        {
+            // Collect only IDs where the calculated quantity differs from current stock
+            var itemsToApply = _reconciliationData.Values
+                .Where(r => _stockItems.Any(s => s.StockId == r.StockId && s.Quantity != r.CalculatedQuantity))
+                .Select(r => r.StockId)
+                .ToList();
+
+            if (itemsToApply.Count == 0)
+            {
+                AppNotification.ShowInfo(TranslationService.GetTranslation("stock.bulkApplyReconciled.nothingToApply", "Nessuna discrepanza da correggere."));
+                return;
+            }
+
+            var confirm = await DialogService.ShowMessageBoxAsync(
+                TranslationService.GetTranslation("stock.bulkApplyReconciled.confirmTitle", "Applica quantità riconciliate"),
+                TranslationService.GetTranslationFormatted(
+                    "stock.bulkApplyReconciled.confirmMessage",
+                    "Verranno aggiornate {0} giacenze con le quantità calcolate dai movimenti. Per ogni modifica sarà creato un movimento di rettifica. Continuare?",
+                    itemsToApply.Count),
+                yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+                cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+            if (confirm != true)
+                return;
+
+            _isBulkApplying = true;
+            StateHasChanged();
+
+            var applyRequest = new StockReconciliationApplyRequestDto
+            {
+                ItemsToApply = itemsToApply,
+                Reason = TranslationService.GetTranslation("stock.bulkApplyReconciled.reason", "Applicazione massiva quantità riconciliate da movimenti"),
+                CreateAdjustmentMovements = true,
+                ReconciliationFilters = new StockReconciliationRequestDto
+                {
+                    WarehouseId = _filters.WarehouseId,
+                    LocationId = _filters.LocationId,
+                    IncludeDocuments = true,
+                    IncludeInventories = true,
+                    IncludeStockMovements = true,
+                    OnlyWithDiscrepancies = false
+                }
+            };
+
+            var applyResult = await StockReconciliationService.ApplyReconciliationAsync(applyRequest);
+
+            if (applyResult?.Success == true)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(
+                    "stock.bulkApplyReconciled.success",
+                    "Giacenze aggiornate: {0}. Movimenti di rettifica creati: {1}.",
+                    applyResult.UpdatedCount, applyResult.MovementsCreated));
+                await LoadAndReconcileAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslationFormatted(
+                    "stock.bulkApplyReconciled.error",
+                    "Errore durante l'applicazione: {0}",
+                    applyResult?.ErrorMessage ?? "Errore sconosciuto"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in BulkApplyReconciledAsync.");
+            AppNotification.ShowError(TranslationService.GetTranslation("stock.bulkApplyReconciled.exception", "Errore imprevisto durante l'applicazione massiva."));
+        }
+        finally
+        {
+            _isBulkApplying = false;
+            StateHasChanged();
         }
     }
 
