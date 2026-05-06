@@ -68,7 +68,7 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -104,7 +104,7 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 50
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -130,7 +130,7 @@ public class LotsControllerTests
             Page = 2,
             PageSize = 50
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -139,6 +139,7 @@ public class LotsControllerTests
         // Assert
         _mockService.Verify(s => s.GetLotsAsync(
             It.Is<PaginationParameters>(p => p.Page == 2 && p.PageSize == 50),
+            null,
             null,
             null,
             null,
@@ -157,7 +158,7 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -182,7 +183,7 @@ public class LotsControllerTests
             Page = 1,
             PageSize = 20
         };
-        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, It.IsAny<CancellationToken>()))
+        _mockService.Setup(s => s.GetLotsAsync(It.IsAny<PaginationParameters>(), null, null, null, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -191,6 +192,7 @@ public class LotsControllerTests
         // Assert
         _mockService.Verify(s => s.GetLotsAsync(
             It.IsAny<PaginationParameters>(),
+            null,
             null,
             null,
             null,

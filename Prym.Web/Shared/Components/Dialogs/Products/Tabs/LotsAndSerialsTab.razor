@@ -270,8 +270,7 @@
     private IEnumerable<LotDto> _lots = Enumerable.Empty<LotDto>();
     private IEnumerable<SerialDto> _serials = Enumerable.Empty<SerialDto>();
     private int _lotsTotalCount = 0;
-    private int _serialsTotalCount = 0;
-    private Guid _lastLoadedProductId = Guid.Empty;
+    private int _serialsTotalCount = 0;    private Guid _lastLoadedProductId = Guid.Empty;
     private string? _searchLot;
     private string? _searchSerial;
 
@@ -305,7 +304,7 @@
         {
             var result = await LotService.GetLotsAsync(1, 200, productId: Product.Id);
             _lots = result?.Items?.ToList() ?? new List<LotDto>();
-            _lotsTotalCount = result?.TotalCount ?? _lots.Count();
+            _lotsTotalCount = (int)(result?.TotalCount ?? (long)_lots.Count());
             if (OnLotsCountChanged.HasDelegate)
                 await OnLotsCountChanged.InvokeAsync(((List<LotDto>)_lots).Count);
         }
@@ -328,7 +327,7 @@
         {
             var result = await SerialService.GetSerialsAsync(1, 200, productId: Product.Id);
             _serials = result?.Items?.ToList() ?? new List<SerialDto>();
-            _serialsTotalCount = result?.TotalCount ?? _serials.Count();
+            _serialsTotalCount = (int)(result?.TotalCount ?? (long)_serials.Count());
             if (OnSerialsCountChanged.HasDelegate)
                 await OnSerialsCountChanged.InvokeAsync(((List<SerialDto>)_serials).Count);
         }
