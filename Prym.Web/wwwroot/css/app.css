@@ -213,38 +213,112 @@ a, .btn-link {
         content: "An error has occurred."
     }
 
-.loading-progress {
-    position: relative;
+/* ===== BRANDED SPLASH SCREEN ===== */
+.ef-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--background, #F5F5F5);
+}
+
+.ef-splash-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.ef-splash-icon {
+    height: 48px;
+    width: 48px;
+    object-fit: contain;
+}
+
+.ef-splash-wordmark {
+    height: 32px;
+    width: auto;
+}
+
+/* Light wordmark: shown by default, hidden in dark mode */
+.ef-splash-wordmark--light {
     display: block;
-    width: 8rem;
-    height: 8rem;
-    margin: 20vh auto 1rem auto;
 }
 
-    .loading-progress circle {
-        fill: none;
-        stroke: var(--border-secondary);
-        stroke-width: 0.6rem;
-        transform-origin: 50% 50%;
-        transform: rotate(-90deg);
-    }
-
-        .loading-progress circle:last-child {
-            stroke: var(--secondary);
-            stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
-            transition: stroke-dasharray 0.05s ease-in-out;
-        }
-
-.loading-progress-text {
-    position: absolute;
-    text-align: center;
-    font-weight: bold;
-    inset: calc(20vh + 3.25rem) 0 auto 0.2rem;
+.ef-splash-wordmark--dark {
+    display: none;
 }
 
-    .loading-progress-text:after {
-        content: var(--blazor-load-percentage-text, "Loading");
+[data-theme*="dark"] .ef-splash {
+    background: var(--background, #121212);
+}
+
+[data-theme*="dark"] .ef-splash-wordmark--light {
+    display: none;
+}
+
+[data-theme*="dark"] .ef-splash-wordmark--dark {
+    display: block;
+}
+
+.ef-splash-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    margin: 24px 0 12px;
+}
+
+/* Phase text — populated by Blazor via --blazor-load-percentage-text */
+.ef-splash-phase::after {
+    content: var(--blazor-load-percentage-text, "Avvio in corso...");
+    color: var(--text-secondary, #6B7280);
+    font-size: 0.875rem;
+}
+
+/* Numeric percentage — populated by Blazor via --blazor-load-percentage */
+.ef-splash-pct::after {
+    content: var(--blazor-load-percentage, "0%");
+    color: var(--primary, #1F2F46);
+    font-weight: 600;
+    font-size: 1.125rem;
+}
+
+.ef-splash-bar-track {
+    width: min(320px, 80vw);
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border-secondary, rgba(0, 0, 0, 0.08));
+    overflow: hidden;
+}
+
+/* Linear bar fill — width driven by --blazor-load-percentage */
+.ef-splash-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--secondary, #247BFF);
+    width: var(--blazor-load-percentage, 0%);
+    transition: width 0.1s ease-in-out;
+}
+
+@media (max-width: 480px) {
+    .ef-splash-icon {
+        height: 36px;
+        width: 36px;
     }
+
+    .ef-splash-wordmark {
+        height: 24px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ef-splash-bar-fill {
+        transition: none;
+    }
+}
 
 code {
     color: var(--accent);
