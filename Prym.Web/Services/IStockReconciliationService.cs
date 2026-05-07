@@ -13,6 +13,16 @@ public interface IStockReconciliationService
     Task<StockReconciliationResultDto?> CalculateReconciliationAsync(StockReconciliationRequestDto request, CancellationToken ct = default);
 
     /// <summary>
+    /// Retrieves the stock ids that match the reconciliation filters.
+    /// </summary>
+    Task<List<Guid>?> GetReconciliationStockIdsAsync(StockReconciliationRequestDto request, CancellationToken ct = default);
+
+    /// <summary>
+    /// Calculates reconciliation for a specific batch of stock ids.
+    /// </summary>
+    Task<StockReconciliationResultDto?> CalculateReconciliationBatchAsync(StockReconciliationBatchRequestDto request, CancellationToken ct = default);
+
+    /// <summary>
     /// Applies the calculated reconciliation corrections to the stock.
     /// </summary>
     Task<StockReconciliationApplyResultDto?> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request, CancellationToken ct = default);

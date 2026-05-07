@@ -21,164 +21,224 @@ public class StockReconciliationService(
         StockReconciliationRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = GetCurrentTenantId();
+        ValidateRequest(request);
+
+        var stocks = await BuildFilteredStocksQuery(currentTenantId, request, includeDetails: true)
+            .ToListAsync(cancellationToken);
+
+        return await CalculateForStocksAsync(currentTenantId, request, stocks, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Guid>> GetStockIdsForReconciliationAsync(
+        StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = GetCurrentTenantId();
+        ValidateRequest(request);
+
+        return await BuildFilteredStocksQuery(currentTenantId, request, includeDetails: false)
+            .OrderBy(s => s.Id)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<StockReconciliationResultDto> CalculateReconciledStockForStocksAsync(
+        IReadOnlyCollection<Guid> stockIds,
+        StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(stockIds);
+
+        if (stockIds.Count == 0)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            return new StockReconciliationResultDto
             {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
+                Summary = new StockReconciliationSummaryDto()
+            };
+        }
 
-            // Server-side date validation
-            if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate > request.ToDate)
-            {
-                throw new ArgumentException("FromDate cannot be after ToDate.");
-            }
+        var currentTenantId = GetCurrentTenantId();
+        ValidateRequest(request);
 
+        var stocks = await BuildFilteredStocksQuery(currentTenantId, request, stockIds, includeDetails: true)
+            .ToListAsync(cancellationToken);
 
-            var result = new StockReconciliationResultDto();
+        return await CalculateForStocksAsync(currentTenantId, request, stocks, cancellationToken);
+    }
 
-            // Get stocks based on filters
-            var stocksQuery = context.Stocks
-                .AsNoTracking()
+    private Guid GetCurrentTenantId()
+        => tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+    private static void ValidateRequest(StockReconciliationRequestDto request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (request.FromDate.HasValue && request.ToDate.HasValue && request.FromDate > request.ToDate)
+        {
+            throw new ArgumentException("FromDate cannot be after ToDate.");
+        }
+    }
+
+    private IQueryable<Data.Entities.Warehouse.Stock> BuildFilteredStocksQuery(
+        Guid tenantId,
+        StockReconciliationRequestDto request,
+        IReadOnlyCollection<Guid>? stockIds = null,
+        bool includeDetails = true)
+    {
+        IQueryable<Data.Entities.Warehouse.Stock> stocksQuery = context.Stocks
+            .AsNoTracking()
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted);
+
+        if (includeDetails)
+        {
+            stocksQuery = stocksQuery
                 .Include(s => s.Product)
                 .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl!.Warehouse)
-                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
+                    .ThenInclude(sl => sl!.Warehouse);
+        }
 
-            // Apply filters
-            if (request.ProductId.HasValue)
+        if (stockIds is { Count: > 0 })
+        {
+            // Defensive sanitization: tolerate duplicates and empty identifiers from client payloads.
+            var stockIdList = stockIds
+                .Distinct()
+                .Where(id => id != Guid.Empty)
+                .ToList();
+
+            if (stockIdList.Count == 0)
             {
-                stocksQuery = stocksQuery.Where(s => s.ProductId == request.ProductId.Value);
+                return stocksQuery.Where(_ => false);
             }
 
-            if (request.LocationId.HasValue)
-            {
-                stocksQuery = stocksQuery.Where(s => s.StorageLocationId == request.LocationId.Value);
-            }
+            stocksQuery = stocksQuery.Where(s => stockIdList.Contains(s.Id));
+        }
 
-            if (request.WarehouseId.HasValue)
-            {
-                stocksQuery = stocksQuery.Where(s => s.StorageLocation!.WarehouseId == request.WarehouseId.Value);
-            }
+        if (request.ProductId.HasValue)
+        {
+            stocksQuery = stocksQuery.Where(s => s.ProductId == request.ProductId.Value);
+        }
 
-            var stocks = await stocksQuery.ToListAsync(cancellationToken);
+        if (request.LocationId.HasValue)
+        {
+            stocksQuery = stocksQuery.Where(s => s.StorageLocationId == request.LocationId.Value);
+        }
 
+        if (request.WarehouseId.HasValue)
+        {
+            stocksQuery = stocksQuery.Where(s => s.StorageLocation!.WarehouseId == request.WarehouseId.Value);
+        }
 
-            if (stocks.Count == 0)
-            {
-                result.Summary = CalculateSummary(result.Items);
-                return result;
-            }
+        return stocksQuery;
+    }
 
-            // Batch pre-load all relevant data to avoid N+1 queries.
-            var productIds = stocks.Select(s => s.ProductId).Distinct().ToList();
-            var locationIds = stocks.Select(s => s.StorageLocationId).Distinct().ToList();
+    private async Task<StockReconciliationResultDto> CalculateForStocksAsync(
+        Guid tenantId,
+        StockReconciliationRequestDto request,
+        List<Data.Entities.Warehouse.Stock> stocks,
+        CancellationToken cancellationToken)
+    {
+        var result = new StockReconciliationResultDto();
 
-            // Batch load inventory document rows (only closed inventory documents)
-            var allInventoryRows = new List<Data.Entities.Documents.DocumentRow>();
-            if (request.IncludeInventories)
-            {
-                var invQuery = context.DocumentRows
-                    .AsNoTracking()
-                    .Include(dr => dr.DocumentHeader)
-                        .ThenInclude(dh => dh!.DocumentType)
-                    .Where(dr => dr.TenantId == currentTenantId.Value &&
-                                !dr.IsDeleted &&
-                                dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
-                                dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
-                                dr.DocumentHeader != null &&
-                                dr.DocumentHeader.DocumentType != null &&
-                                dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                                dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed);
-
-                if (request.FromDate.HasValue)
-                    invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
-                if (request.ToDate.HasValue)
-                    invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
-
-                allInventoryRows = await invQuery.ToListAsync(cancellationToken);
-            }
-
-            // Batch load regular (non-inventory) document rows in Open or Closed status.
-            // We do NOT apply the per-stock effectiveFromDate here; it is applied in-memory per stock.
-            var allDocumentRows = new List<Data.Entities.Documents.DocumentRow>();
-            if (request.IncludeDocuments)
-            {
-                var docQuery = context.DocumentRows
-                    .AsNoTracking()
-                    .Include(dr => dr.DocumentHeader)
-                        .ThenInclude(dh => dh!.DocumentType)
-                    .Where(dr => dr.TenantId == currentTenantId.Value &&
-                                !dr.IsDeleted &&
-                                dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
-                                dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
-                                dr.DocumentHeader != null &&
-                                dr.DocumentHeader.DocumentType != null &&
-                                !dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                                (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Open ||
-                                 dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed));
-
-                if (request.FromDate.HasValue)
-                    docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
-                if (request.ToDate.HasValue)
-                    docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
-
-                allDocumentRows = await docQuery.ToListAsync(cancellationToken);
-            }
-
-            // Batch load manual stock movements.
-            // We do NOT apply the per-stock effectiveFromDate here; it is applied in-memory per stock.
-            var allManualMovements = new List<StockMovement>();
-            if (request.IncludeStockMovements)
-            {
-                var manualMovQuery = context.StockMovements
-                    .AsNoTracking()
-                    .Where(sm => sm.TenantId == currentTenantId.Value &&
-                                !sm.IsDeleted &&
-                                productIds.Contains(sm.ProductId) &&
-                                (sm.FromLocationId.HasValue && locationIds.Contains(sm.FromLocationId.Value) ||
-                                 sm.ToLocationId.HasValue && locationIds.Contains(sm.ToLocationId.Value)));
-
-                if (request.FromDate.HasValue)
-                    manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate >= request.FromDate.Value);
-                if (request.ToDate.HasValue)
-                    manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate <= request.ToDate.Value);
-
-                allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
-            }
-
-            // Build O(1) lookup: latest inventory row per (ProductId, LocationId)
-            var latestInventoryByKey = allInventoryRows
-                .GroupBy(dr => (dr.ProductId!.Value, dr.LocationId!.Value))
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
-
-            // Process each stock using pre-loaded in-memory data
-            foreach (var stock in stocks)
-            {
-                var item = CalculateStockItem(stock, request, latestInventoryByKey, allDocumentRows, allManualMovements);
-
-                // Filter by discrepancies if requested
-                if (!request.OnlyWithDiscrepancies || item.Severity != ReconciliationSeverity.Correct)
-                {
-                    result.Items.Add(item);
-                }
-            }
-
-            // Calculate summary
+        if (stocks.Count == 0)
+        {
             result.Summary = CalculateSummary(result.Items);
-
-            logger.LogInformation("Reconciliation calculation completed. Total items: {Total}, With discrepancies: {Discrepancies}",
-                result.Summary.TotalProducts, result.Summary.TotalProducts - result.Summary.CorrectCount);
-
             return result;
         }
-        catch
+
+        var productIds = stocks.Select(s => s.ProductId).Distinct().ToList();
+        var locationIds = stocks.Select(s => s.StorageLocationId).Distinct().ToList();
+
+        var allInventoryRows = new List<Data.Entities.Documents.DocumentRow>();
+        if (request.IncludeInventories)
         {
-            throw;
+            var invQuery = context.DocumentRows
+                .AsNoTracking()
+                .Include(dr => dr.DocumentHeader)
+                    .ThenInclude(dh => dh!.DocumentType)
+                .Where(dr => dr.TenantId == tenantId &&
+                            !dr.IsDeleted &&
+                            dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
+                            dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
+                            dr.DocumentHeader != null &&
+                            dr.DocumentHeader.DocumentType != null &&
+                            dr.DocumentHeader.DocumentType.IsInventoryDocument &&
+                            dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed);
+
+            if (request.FromDate.HasValue)
+                invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
+            if (request.ToDate.HasValue)
+                invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
+
+            allInventoryRows = await invQuery.ToListAsync(cancellationToken);
         }
+
+        var allDocumentRows = new List<Data.Entities.Documents.DocumentRow>();
+        if (request.IncludeDocuments)
+        {
+            var docQuery = context.DocumentRows
+                .AsNoTracking()
+                .Include(dr => dr.DocumentHeader)
+                    .ThenInclude(dh => dh!.DocumentType)
+                .Where(dr => dr.TenantId == tenantId &&
+                            !dr.IsDeleted &&
+                            dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
+                            dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
+                            dr.DocumentHeader != null &&
+                            dr.DocumentHeader.DocumentType != null &&
+                            !dr.DocumentHeader.DocumentType.IsInventoryDocument &&
+                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Open ||
+                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed));
+
+            if (request.FromDate.HasValue)
+                docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
+            if (request.ToDate.HasValue)
+                docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
+
+            allDocumentRows = await docQuery.ToListAsync(cancellationToken);
+        }
+
+        var allManualMovements = new List<StockMovement>();
+        if (request.IncludeStockMovements)
+        {
+            var manualMovQuery = context.StockMovements
+                .AsNoTracking()
+                .Where(sm => sm.TenantId == tenantId &&
+                            !sm.IsDeleted &&
+                            productIds.Contains(sm.ProductId) &&
+                            (sm.FromLocationId.HasValue && locationIds.Contains(sm.FromLocationId.Value) ||
+                             sm.ToLocationId.HasValue && locationIds.Contains(sm.ToLocationId.Value)));
+
+            if (request.FromDate.HasValue)
+                manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate >= request.FromDate.Value);
+            if (request.ToDate.HasValue)
+                manualMovQuery = manualMovQuery.Where(sm => sm.MovementDate <= request.ToDate.Value);
+
+            allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
+        }
+
+        var latestInventoryByKey = allInventoryRows
+            .GroupBy(dr => (dr.ProductId!.Value, dr.LocationId!.Value))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
+
+        foreach (var stock in stocks)
+        {
+            var item = CalculateStockItem(stock, request, latestInventoryByKey, allDocumentRows, allManualMovements);
+
+            if (!request.OnlyWithDiscrepancies || item.Severity != ReconciliationSeverity.Correct)
+            {
+                result.Items.Add(item);
+            }
+        }
+
+        result.Summary = CalculateSummary(result.Items);
+
+        logger.LogInformation("Reconciliation calculation completed. Total items: {Total}, With discrepancies: {Discrepancies}",
+            result.Summary.TotalProducts, result.Summary.TotalProducts - result.Summary.CorrectCount);
+
+        return result;
     }
 
     /// <summary>

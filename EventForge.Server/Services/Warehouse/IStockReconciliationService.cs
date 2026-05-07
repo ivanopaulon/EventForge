@@ -20,6 +20,21 @@ public interface IStockReconciliationService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the stock ids matching the reconciliation filters.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetStockIdsForReconciliationAsync(
+        StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calculates reconciled stock for a specific set of stock ids.
+    /// </summary>
+    Task<StockReconciliationResultDto> CalculateReconciledStockForStocksAsync(
+        IReadOnlyCollection<Guid> stockIds,
+        StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Applies stock reconciliation corrections to selected items.
     /// Updates stock quantities and creates adjustment movements.
     /// </summary>
