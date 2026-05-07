@@ -34,25 +34,27 @@
                                    Rounded="true" Size="Size.Small" Class="mb-1" />
                 @if (progress != null)
                 {
-                    <MudText Typo="Typo.caption" Class="ef-dl-snackbar-stats">
-                        <span>@TranslatePhase(progress.Phase)</span>
-                        @if (progress.FormattedDownloaded != null || progress.FormattedTotal != null ||
-                             progress.FormattedSpeed != null || progress.Eta != null || progress.PercentComplete != null)
-                        {
+                    var statParts = new System.Collections.Generic.List<string>();
+                    if (progress.FormattedTotal != null)
+                        statParts.Add($"{progress.FormattedDownloaded} / {progress.FormattedTotal}");
+                    else if (progress.FormattedDownloaded != null)
+                        statParts.Add(progress.FormattedDownloaded);
+                    if (progress.FormattedSpeed != null) statParts.Add(progress.FormattedSpeed);
+                    if (progress.Eta != null) statParts.Add($"ETA {progress.Eta}");
+                    if (progress.PercentComplete != null) statParts.Add($"{progress.PercentComplete}%");
+
+                    if (statParts.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="ef-dl-snackbar-stats">
+                            <span>@TranslatePhase(progress.Phase)</span>
                             <span class="ef-dl-snackbar-sep"> · </span>
-                        }
-                        @if (progress.FormattedTotal != null)
-                        {
-                            <span>@progress.FormattedDownloaded / @progress.FormattedTotal</span>
-                        }
-                        else if (progress.FormattedDownloaded != null)
-                        {
-                            <span>@progress.FormattedDownloaded</span>
-                        }
-                        @if (progress.FormattedSpeed != null) { <span class="ef-dl-snackbar-sep"> · </span><span>@progress.FormattedSpeed</span> }
-                        @if (progress.Eta != null) { <span class="ef-dl-snackbar-sep"> · </span><span>ETA @progress.Eta</span> }
-                        @if (progress.PercentComplete != null) { <span class="ef-dl-snackbar-sep"> · </span><span>@progress.PercentComplete%</span> }
-                    </MudText>
+                            <span>@string.Join(" · ", statParts)</span>
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="ef-dl-snackbar-stats">@TranslatePhase(progress.Phase)</MudText>
+                    }
                 }
             </div>
         </div>
