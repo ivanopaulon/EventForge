@@ -3446,7 +3446,7 @@ public class WarehouseManagementController(
 
             if (!result.Success)
             {
-                return BadRequest(new { message = result.ErrorMessage });
+                return CreateValidationProblemDetails(result.ErrorMessage ?? "An error occurred while applying stock reconciliation.");
             }
 
             return Ok(result);
