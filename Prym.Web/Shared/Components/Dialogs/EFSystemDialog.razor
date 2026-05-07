@@ -2,6 +2,7 @@
 @using Prym.DTOs.Configuration
 @inject IThemeService ThemeService
 @inject IBrandingService BrandingService
+@inject ILogger<EFSystemDialog> Logger
 
 <MudDialog CloseButton="false"
            CloseOnEscapeKey="false"
@@ -103,8 +104,9 @@
         {
             _branding = await BrandingService.GetBrandingAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Failed to load branding configuration in EFSystemDialog; using default logo.");
             _branding = null;
         }
     }
