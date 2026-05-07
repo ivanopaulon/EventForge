@@ -93,7 +93,11 @@ public class LotDetailViewModelTests : IDisposable
         Assert.Equal("Active", _viewModel.Entity.Status);
         Assert.False(_viewModel.IsNewEntity);
         Assert.NotNull(_viewModel.Products);
-        Assert.Equal(2, _viewModel.Products.Count());
+        Assert.Single(_viewModel.Products);
+        Assert.Contains(_viewModel.Products, p => p.Id == productId);
+        _mockProductService.Verify(
+            s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 
     [Fact]
@@ -187,18 +191,10 @@ public class LotDetailViewModelTests : IDisposable
             IsActive = true
         };
 
-        var products = new PagedResult<ProductDto>
-        {
-            Items = new List<ProductDto>(),
-            TotalCount = 0,
-            Page = 1,
-            PageSize = 100
-        };
-
         _mockLotService.Setup(s => s.GetLotByIdAsync(lotId))
             .ReturnsAsync(existingLot);
-        _mockProductService.Setup(s => s.GetProductsAsync(1, 100))
-            .ReturnsAsync(products);
+        _mockProductService.Setup(s => s.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductDto { Id = productId, Name = "Product A", Code = "PROD-A" });
 
         await _viewModel.LoadEntityAsync(lotId);
 
@@ -286,13 +282,11 @@ public class LotDetailViewModelTests : IDisposable
 
         // Assert
         Assert.NotNull(_viewModel.Products);
-        Assert.Equal(3, _viewModel.Products.Count());
+        Assert.Single(_viewModel.Products);
         Assert.Contains(_viewModel.Products, p => p.Code == "PROD-A");
-        Assert.Contains(_viewModel.Products, p => p.Code == "PROD-B");
-        Assert.Contains(_viewModel.Products, p => p.Code == "PROD-C");
         _mockProductService.Verify(
             s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
-            Times.AtLeastOnce);
+            Times.Never);
     }
 
     [Fact]
@@ -326,18 +320,10 @@ public class LotDetailViewModelTests : IDisposable
             IsActive = true
         };
 
-        var products = new PagedResult<ProductDto>
-        {
-            Items = new List<ProductDto>(),
-            TotalCount = 0,
-            Page = 1,
-            PageSize = 100
-        };
-
         _mockLotService.Setup(s => s.GetLotByIdAsync(lotId))
             .ReturnsAsync(expectedLot);
-        _mockProductService.Setup(s => s.GetProductsAsync(1, 100))
-            .ReturnsAsync(products);
+        _mockProductService.Setup(s => s.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductDto { Id = productId, Name = "Product A", Code = "PROD-A" });
 
         // Act
         await _viewModel.LoadEntityAsync(lotId);

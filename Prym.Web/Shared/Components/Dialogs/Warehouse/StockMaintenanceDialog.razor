@@ -209,6 +209,13 @@
                             @TranslationService.GetTranslation("stock.reconciliation.hint",
                                 "Seleziona il magazzino (opzionale) e premi Calcola per verificare le discrepanze.")
                         </MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Calculate"
+                                   OnClick="CalculateReconciliationInDialogAsync"
+                                   Disabled="@_recon_isLoading">
+                            @TranslationService.GetTranslation("stock.reconciliation.calculateNow", "Calcola ora")
+                        </MudButton>
                     </div>
                 }
             </MudTabPanel>
@@ -1018,6 +1025,8 @@
             var totalUpdatedCount = 0;
             var totalMovementsCreated = 0;
             const int batchSize = 500;
+            var currentBatch = 0;
+            var totalBatches = (int)Math.Ceiling((double)itemsToApply.Count / batchSize);
             var reconciliationFilters = new StockReconciliationRequestDto
             {
                 WarehouseId = _recon_warehouseId,
@@ -1029,6 +1038,7 @@
 
             foreach (var batch in itemsToApply.Chunk(batchSize))
             {
+                currentBatch++;
                 var applyRequest = new StockReconciliationApplyRequestDto
                 {
                     ItemsToApply = batch.ToList(),
@@ -1041,8 +1051,12 @@
                 if (applyResult?.Success != true)
                 {
                     AppNotification.ShowError(TranslationService.GetTranslationFormatted(
-                        "stock.bulkApplyReconciled.error",
-                        "Errore durante l'applicazione: {0}",
+                        "stock.bulkApplyReconciled.errorWithProgress",
+                        "Applicate {0} su {1} correzioni — Errore al batch {2}/{3}: {4}",
+                        totalUpdatedCount,
+                        _recon_bulkApplyTotal,
+                        currentBatch,
+                        totalBatches,
                         applyResult?.ErrorMessage ?? "Errore sconosciuto"));
                     return;
                 }

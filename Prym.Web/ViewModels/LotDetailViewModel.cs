@@ -68,7 +68,6 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
-        await EnsureProductSeedLoadedAsync(ct);
         await InitializeSelectedProductAsync(ct);
     }
 
@@ -77,28 +76,12 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
         await base.LoadEntityAsync(entityId, ct);
     }
 
-    private async Task EnsureProductSeedLoadedAsync(CancellationToken ct = default)
-    {
-        if (Products.Any())
-            return;
-
-        try
-        {
-            var productsResult = await _productService.GetProductsAsync(1, ProductSearchPageSize, ct: ct);
-            Products = productsResult?.Items ?? Array.Empty<ProductDto>();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading seed products for lot");
-            Products = Array.Empty<ProductDto>();
-        }
-    }
-
     private async Task InitializeSelectedProductAsync(CancellationToken ct = default)
     {
         if (Entity == null || Entity.ProductId == Guid.Empty)
         {
             SelectedProduct = null;
+            Products = Array.Empty<ProductDto>();
             return;
         }
 
@@ -116,12 +99,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
                 Name = Entity.ProductName ?? string.Empty,
                 Code = Entity.ProductCode ?? string.Empty
             };
-            if (!Products.Any(p => p.Id == SelectedProduct.Id))
-            {
-                var products = Products.ToList();
-                products.Add(SelectedProduct);
-                Products = products;
-            }
+            Products = [SelectedProduct];
         }
         catch (Exception ex)
         {
@@ -132,12 +110,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
                 Name = Entity.ProductName ?? string.Empty,
                 Code = Entity.ProductCode ?? string.Empty
             };
-            if (!Products.Any(p => p.Id == SelectedProduct.Id))
-            {
-                var products = Products.ToList();
-                products.Add(SelectedProduct);
-                Products = products;
-            }
+            Products = [SelectedProduct];
         }
     }
 
@@ -163,6 +136,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     public void SetSelectedProduct(ProductDto? product)
     {
         SelectedProduct = product;
+        Products = product is null ? Array.Empty<ProductDto>() : [product];
 
         if (Entity == null)
             return;

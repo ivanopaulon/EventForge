@@ -61,39 +61,10 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         await LoadDropdownDataAsync(ct);
     }
 
-    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
-    {
-        await base.LoadEntityAsync(entityId, ct);
-
-        // For new entities we still need the products/lots lists for dropdowns
-        if (IsNewEntity)
-        {
-            await LoadDropdownDataAsync(ct);
-        }
-    }
-
     private async Task LoadDropdownDataAsync(CancellationToken ct = default)
     {
-        await EnsureProductSeedLoadedAsync(ct);
         await InitializeSelectedProductAsync(ct);
         await RefreshLotsForProductAsync(SelectedProduct?.Id, notifyStateChanged: false, ct);
-    }
-
-    private async Task EnsureProductSeedLoadedAsync(CancellationToken ct = default)
-    {
-        if (Products.Any())
-            return;
-
-        try
-        {
-            var result = await _productService.GetProductsAsync(1, ProductSearchPageSize, ct: ct);
-            Products = result?.Items ?? Array.Empty<ProductDto>();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading seed products for serial");
-            Products = Array.Empty<ProductDto>();
-        }
     }
 
     private async Task InitializeSelectedProductAsync(CancellationToken ct = default)
@@ -101,6 +72,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         if (Entity == null || Entity.ProductId == Guid.Empty)
         {
             SelectedProduct = null;
+            Products = Array.Empty<ProductDto>();
             return;
         }
 
@@ -116,12 +88,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
                 Name = Entity.ProductName ?? string.Empty,
                 Code = Entity.ProductCode ?? string.Empty
             };
-            if (!Products.Any(p => p.Id == SelectedProduct.Id))
-            {
-                var products = Products.ToList();
-                products.Add(SelectedProduct);
-                Products = products;
-            }
+            Products = [SelectedProduct];
         }
         catch (Exception ex)
         {
@@ -132,12 +99,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
                 Name = Entity.ProductName ?? string.Empty,
                 Code = Entity.ProductCode ?? string.Empty
             };
-            if (!Products.Any(p => p.Id == SelectedProduct.Id))
-            {
-                var products = Products.ToList();
-                products.Add(SelectedProduct);
-                Products = products;
-            }
+            Products = [SelectedProduct];
         }
     }
 
@@ -161,12 +123,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
     public async Task SetSelectedProductAsync(ProductDto? product, CancellationToken ct = default)
     {
         SelectedProduct = product;
-        if (product is not null && !Products.Any(p => p.Id == product.Id))
-        {
-            var products = Products.ToList();
-            products.Add(product);
-            Products = products;
-        }
+        Products = product is null ? Array.Empty<ProductDto>() : [product];
 
         if (Entity == null)
             return;

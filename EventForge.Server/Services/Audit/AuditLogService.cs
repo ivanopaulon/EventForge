@@ -15,6 +15,7 @@ public class AuditLogService(
     IMemoryCache memoryCache,
     ILogger<AuditLogService> logger) : IAuditLogService
 {
+    private const int EntityDisplayNameMaxLength = 500;
     private static string ExportCacheKey(Guid exportId) => $"audit_export_{exportId}";
 
     /// <summary>
@@ -41,7 +42,7 @@ public class AuditLogService(
             var changeLog = new EntityChangeLog
             {
                 EntityName = entityName,
-                EntityDisplayName = entityDisplayName,
+                EntityDisplayName = TruncateEntityDisplayName(entityDisplayName),
                 EntityId = entityId,
                 PropertyName = propertyName,
                 OperationType = operationType,
@@ -64,6 +65,14 @@ public class AuditLogService(
         {
             throw;
         }
+    }
+
+    private static string? TruncateEntityDisplayName(string? entityDisplayName)
+    {
+        if (string.IsNullOrEmpty(entityDisplayName) || entityDisplayName.Length <= EntityDisplayNameMaxLength)
+            return entityDisplayName;
+
+        return entityDisplayName[..(EntityDisplayNameMaxLength - 1)] + "…";
     }
 
     /// <summary>
