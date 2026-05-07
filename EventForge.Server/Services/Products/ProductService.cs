@@ -1315,10 +1315,13 @@ public class ProductService(
             logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.",
                 bundleItem.Id, createProductBundleItemDto.BundleProductId, currentUser);
 
-            // Reload with navigation to populate component product name/code
-            await context.Entry(bundleItem).Reference(bi => bi.ComponentProduct).LoadAsync(cancellationToken);
+            // Reload with navigation property to populate ComponentProductName/Code in the DTO
+            var savedItem = await context.ProductBundleItems
+                .Include(bi => bi.ComponentProduct)
+                .Where(bi => bi.Id == bundleItem.Id)
+                .FirstAsync(cancellationToken);
 
-            return MapToProductBundleItemDto(bundleItem);
+            return MapToProductBundleItemDto(savedItem);
         }
         catch
         {
