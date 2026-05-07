@@ -28,7 +28,7 @@ public class EntityChangeLog
     /// <summary>
     /// Optional display name for the entity (for UI purposes).
     /// </summary>
-    [MaxLength(100, ErrorMessage = "The display name cannot exceed 100 characters.")]
+    [MaxLength(500, ErrorMessage = "The display name cannot exceed 500 characters.")]
     [Display(Name = "Display Name", Description = "Human-readable name of the entity (optional).")]
     public string? EntityDisplayName { get; set; }
 

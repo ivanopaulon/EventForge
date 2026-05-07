@@ -29,7 +29,7 @@ public class StockReconciliationService(
     {
         try
         {
-            return await httpClientService.PostAsync<StockReconciliationApplyRequestDto, StockReconciliationApplyResultDto>(
+            return await httpClientService.PostLongRunningAsync<StockReconciliationApplyRequestDto, StockReconciliationApplyResultDto>(
                 $"{BaseUrl}/apply", request, ct);
         }
         catch (Exception ex)

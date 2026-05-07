@@ -12,7 +12,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
     private readonly ISerialService _serialService;
     private readonly IProductService _productService;
     private readonly ILotService _lotService;
-    private const int MaxProductDropdownItems = 200;
+    private const int ProductSearchPageSize = 50;
     private const int MaxLotDropdownItems = 200;
 
     public SerialDetailViewModel(
@@ -27,7 +27,8 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         _lotService = lotService;
     }
 
-    public IEnumerable<ProductDto>? Products { get; private set; }
+    public IEnumerable<ProductDto> Products { get; private set; } = Array.Empty<ProductDto>();
+    public ProductDto? SelectedProduct { get; private set; }
     public IEnumerable<LotDto>? Lots { get; private set; }
     public Guid? LoadedLotsProductId { get; private set; }
 
@@ -64,32 +65,92 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
     {
         await base.LoadEntityAsync(entityId, ct);
 
-        // For new entities we still need the products/lots lists for dropdowns
-        if (IsNewEntity)
-        {
+        // When creating a new serial with a pre-set product (e.g. opened from product context),
+        // the base class skips LoadRelatedEntitiesAsync, so we must resolve the product and its
+        // lots here so the autocomplete and lot dropdown are pre-populated correctly.
+        if (IsNewEntity && Entity?.ProductId != Guid.Empty)
             await LoadDropdownDataAsync(ct);
-        }
     }
 
     private async Task LoadDropdownDataAsync(CancellationToken ct = default)
     {
-        await EnsureProductsLoadedAsync(ct);
-        await RefreshLotsForProductAsync(InitialProductId ?? Entity?.ProductId, notifyStateChanged: false, ct);
+        await InitializeSelectedProductAsync(ct);
+
+        // Only preload lots when a product is already selected — loading all lots
+        // (productId: null) is an expensive call on large catalogues.
+        if (SelectedProduct != null)
+            await RefreshLotsForProductAsync(SelectedProduct.Id, notifyStateChanged: false, ct);
     }
 
-    private async Task EnsureProductsLoadedAsync(CancellationToken ct = default)
+    private async Task InitializeSelectedProductAsync(CancellationToken ct = default)
     {
-        if (Products != null) return;
+        if (Entity == null || Entity.ProductId == Guid.Empty)
+        {
+            SelectedProduct = null;
+            Products = Array.Empty<ProductDto>();
+            return;
+        }
+
+        if (SelectedProduct?.Id == Entity.ProductId)
+            return;
+
         try
         {
-            var productsTask = _productService.GetProductsAsync(1, MaxProductDropdownItems, ct: ct);
-            Products = (await productsTask)?.Items ?? new List<ProductDto>();
+            var product = await _productService.GetProductByIdAsync(Entity.ProductId, ct);
+            SelectedProduct = product ?? new ProductDto
+            {
+                Id = Entity.ProductId,
+                Name = Entity.ProductName ?? string.Empty,
+                Code = Entity.ProductCode ?? string.Empty
+            };
+            Products = [SelectedProduct];
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading products for serial");
-            Products = new List<ProductDto>();
+            Logger.LogError(ex, "Error initializing selected product for serial");
+            SelectedProduct = new ProductDto
+            {
+                Id = Entity.ProductId,
+                Name = Entity.ProductName ?? string.Empty,
+                Code = Entity.ProductCode ?? string.Empty
+            };
+            Products = [SelectedProduct];
         }
+    }
+
+    public async Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return Array.Empty<ProductDto>();
+
+        try
+        {
+            var result = await _productService.GetProductsAsync(1, ProductSearchPageSize, searchTerm.Trim(), ct: ct);
+            return result?.Items ?? [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching products for serial");
+            return Array.Empty<ProductDto>();
+        }
+    }
+
+    public async Task SetSelectedProductAsync(ProductDto? product, CancellationToken ct = default)
+    {
+        SelectedProduct = product;
+        Products = product is null ? Array.Empty<ProductDto>() : [product];
+
+        if (Entity == null)
+            return;
+
+        Entity.ProductId = product?.Id ?? Guid.Empty;
+        Entity.ProductName = product?.Name;
+        Entity.ProductCode = product?.Code;
+        Entity.LotId = null;
+        Entity.LotCode = null;
+        NotifyEntityChanged();
+
+        await RefreshLotsForProductAsync(Entity.ProductId, notifyStateChanged: false, ct);
     }
 
     public async Task RefreshLotsForProductAsync(Guid? productId, bool notifyStateChanged = true, CancellationToken ct = default)

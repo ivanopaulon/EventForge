@@ -15,6 +15,7 @@ public class AuditLogService(
     IMemoryCache memoryCache,
     ILogger<AuditLogService> logger) : IAuditLogService
 {
+    private const int EntityDisplayNameMaxLength = 500;
     private static string ExportCacheKey(Guid exportId) => $"audit_export_{exportId}";
 
     /// <summary>
@@ -36,34 +37,35 @@ public class AuditLogService(
         ArgumentException.ThrowIfNullOrWhiteSpace(operationType);
         ArgumentException.ThrowIfNullOrWhiteSpace(changedBy);
 
-        try
+        var changeLog = new EntityChangeLog
         {
-            var changeLog = new EntityChangeLog
-            {
-                EntityName = entityName,
-                EntityDisplayName = entityDisplayName,
-                EntityId = entityId,
-                PropertyName = propertyName,
-                OperationType = operationType,
-                OldValue = oldValue,
-                NewValue = newValue,
-                ChangedBy = changedBy,
-                ChangedAt = DateTime.UtcNow
-            };
+            EntityName = entityName,
+            EntityDisplayName = TruncateEntityDisplayName(entityDisplayName),
+            EntityId = entityId,
+            PropertyName = propertyName,
+            OperationType = operationType,
+            OldValue = oldValue,
+            NewValue = newValue,
+            ChangedBy = changedBy,
+            ChangedAt = DateTime.UtcNow
+        };
 
-            _ = context.EntityChangeLogs.Add(changeLog);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = context.EntityChangeLogs.Add(changeLog);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation(
-                "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
-                operationType, entityName, entityId, propertyName, changedBy);
+        logger.LogInformation(
+            "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
+            operationType, entityName, entityId, propertyName, changedBy);
 
-            return changeLog;
-        }
-        catch
-        {
-            throw;
-        }
+        return changeLog;
+    }
+
+    private static string? TruncateEntityDisplayName(string? entityDisplayName)
+    {
+        if (string.IsNullOrEmpty(entityDisplayName) || entityDisplayName.Length <= EntityDisplayNameMaxLength)
+            return entityDisplayName;
+
+        return entityDisplayName[..(EntityDisplayNameMaxLength - 1)] + "…";
     }
 
     /// <summary>

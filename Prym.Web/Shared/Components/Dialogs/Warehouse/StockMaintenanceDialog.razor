@@ -65,6 +65,24 @@
                     </MudItem>
                 </MudGrid>
 
+                @if (_recon_isBulkApplying)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                        @TranslationService.GetTranslation("stock.bulkApplyReconciled.inProgress",
+                            "Applicazione in corso... non chiudere la finestra.")
+                    </MudAlert>
+                    <MudProgressLinear Color="Color.Warning"
+                                       Class="mb-3"
+                                       Value="@(_recon_bulkApplyTotal > 0 ? (double)_recon_bulkApplyProcessed * 100d / _recon_bulkApplyTotal : 0d)" />
+                    <MudText Typo="Typo.caption" Class="mb-3">
+                        @TranslationService.GetTranslationFormatted(
+                            "stock.bulkApplyReconciled.progress",
+                            "{0}/{1} correzioni applicate",
+                            _recon_bulkApplyProcessed,
+                            _recon_bulkApplyTotal)
+                    </MudText>
+                }
+
                 @if (_recon_isLoading)
                 {
                     <div class="d-flex flex-column align-center justify-center pa-8 gap-3">
@@ -191,6 +209,13 @@
                             @TranslationService.GetTranslation("stock.reconciliation.hint",
                                 "Seleziona il magazzino (opzionale) e premi Calcola per verificare le discrepanze.")
                         </MudText>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Calculate"
+                                   OnClick="CalculateReconciliationInDialogAsync"
+                                   Disabled="@(_recon_isLoading || _recon_isBulkApplying)">
+                            @TranslationService.GetTranslation("stock.reconciliation.calculateNow", "Calcola ora")
+                        </MudButton>
                     </div>
                 }
             </MudTabPanel>
@@ -875,6 +900,7 @@
     // ══════════════════════════════════════════════════════════
     // TAB 0 – Riconciliazione
     // ══════════════════════════════════════════════════════════
+    private const int BulkApplyBatchSize = 500;
     private Guid? _recon_warehouseId;
     private bool _recon_isLoading = false;
     private bool _recon_isBulkApplying = false;
@@ -883,10 +909,15 @@
     private Dictionary<Guid, StockReconciliationItemDto> _recon_data = new();
     private int _recon_correctCount = 0;
     private decimal _recon_discrepancyThreshold = 10m;
+    private int _recon_bulkApplyTotal = 0;
+    private int _recon_bulkApplyProcessed = 0;
 
-    private IEnumerable<StockReconciliationItemDto> ReconDiscrepancies =>
-        _recon_data.Values.Where(r => r.Severity != ReconciliationSeverity.Correct);
-    private int ReconDiscrepancyCount => ReconDiscrepancies.Count();
+    // Materialised once per calculation to avoid O(N) LINQ re-evaluation on every render.
+    private List<StockReconciliationItemDto> _recon_discrepancyCache = new();
+    private int _recon_discrepancyCount = 0;
+
+    private IEnumerable<StockReconciliationItemDto> ReconDiscrepancies => _recon_discrepancyCache;
+    private int ReconDiscrepancyCount => _recon_discrepancyCount;
 
     private async Task CalculateReconciliationInDialogAsync()
     {
@@ -911,6 +942,10 @@
             {
                 _recon_data = result.Items.ToDictionary(i => i.StockId);
                 _recon_correctCount = result.Items.Count(i => i.Severity == ReconciliationSeverity.Correct);
+                _recon_discrepancyCache = result.Items
+                    .Where(i => i.Severity != ReconciliationSeverity.Correct)
+                    .ToList();
+                _recon_discrepancyCount = _recon_discrepancyCache.Count;
                 _recon_calculated = true;
             }
         }
@@ -991,42 +1026,61 @@
         try
         {
             _recon_isBulkApplying = true;
+            _recon_bulkApplyTotal = itemsToApply.Count;
+            _recon_bulkApplyProcessed = 0;
             StateHasChanged();
 
-            var applyRequest = new StockReconciliationApplyRequestDto
+            var totalUpdatedCount = 0;
+            var totalMovementsCreated = 0;
+            var currentBatch = 0;
+            var totalBatches = (int)Math.Ceiling((double)itemsToApply.Count / BulkApplyBatchSize);
+            var reconciliationFilters = new StockReconciliationRequestDto
             {
-                ItemsToApply = itemsToApply,
-                Reason = TranslationService.GetTranslation("stock.bulkApplyReconciled.reason", "Applicazione massiva quantità riconciliate da movimenti"),
-                CreateAdjustmentMovements = true,
-                ReconciliationFilters = new StockReconciliationRequestDto
-                {
-                    WarehouseId = _recon_warehouseId,
-                    IncludeDocuments = true,
-                    IncludeInventories = true,
-                    IncludeStockMovements = true,
-                    OnlyWithDiscrepancies = false
-                }
+                WarehouseId = _recon_warehouseId,
+                IncludeDocuments = true,
+                IncludeInventories = true,
+                IncludeStockMovements = true,
+                OnlyWithDiscrepancies = false
             };
 
-            var applyResult = await StockReconciliationService.ApplyReconciliationAsync(applyRequest);
+            foreach (var batch in itemsToApply.Chunk(BulkApplyBatchSize))
+            {
+                currentBatch++;
+                var applyRequest = new StockReconciliationApplyRequestDto
+                {
+                    ItemsToApply = batch.ToList(),
+                    Reason = TranslationService.GetTranslation("stock.bulkApplyReconciled.reason", "Applicazione massiva quantità riconciliate da movimenti"),
+                    CreateAdjustmentMovements = true,
+                    ReconciliationFilters = reconciliationFilters
+                };
 
-            if (applyResult?.Success == true)
-            {
-                AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(
-                    "stock.bulkApplyReconciled.success",
-                    "Giacenze aggiornate: {0}. Movimenti di rettifica creati: {1}.",
-                    applyResult.UpdatedCount, applyResult.MovementsCreated));
-                _shouldReload = true;
-                // Refresh reconciliation data to reflect the applied changes
-                await CalculateReconciliationInDialogAsync();
+                var applyResult = await StockReconciliationService.ApplyReconciliationAsync(applyRequest);
+                if (applyResult?.Success != true)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslationFormatted(
+                        "stock.bulkApplyReconciled.errorWithProgress",
+                        "Applicate {0} su {1} correzioni — Errore al batch {2}/{3}: {4}",
+                        totalUpdatedCount,
+                        _recon_bulkApplyTotal,
+                        currentBatch,
+                        totalBatches,
+                        applyResult?.ErrorMessage ?? "Errore sconosciuto"));
+                    return;
+                }
+
+                totalUpdatedCount += applyResult.UpdatedCount;
+                totalMovementsCreated += applyResult.MovementsCreated;
+                _recon_bulkApplyProcessed += batch.Length;
+                StateHasChanged();
             }
-            else
-            {
-                AppNotification.ShowError(TranslationService.GetTranslationFormatted(
-                    "stock.bulkApplyReconciled.error",
-                    "Errore durante l'applicazione: {0}",
-                    applyResult?.ErrorMessage ?? "Errore sconosciuto"));
-            }
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(
+                "stock.bulkApplyReconciled.success",
+                "Giacenze aggiornate: {0}. Movimenti di rettifica creati: {1}.",
+                totalUpdatedCount, totalMovementsCreated));
+            _shouldReload = true;
+            // Refresh reconciliation data to reflect the applied changes
+            await CalculateReconciliationInDialogAsync();
         }
         catch (Exception ex)
         {
@@ -1036,6 +1090,8 @@
         finally
         {
             _recon_isBulkApplying = false;
+            _recon_bulkApplyTotal = 0;
+            _recon_bulkApplyProcessed = 0;
             StateHasChanged();
         }
     }
@@ -1432,9 +1488,6 @@
         {
             Logger.LogError(ex, "Error loading warehouses in StockMaintenanceDialog");
         }
-
-        // Tab 0 always loads on open (reconciliation is fast enough for background load)
-        _ = CalculateReconciliationInDialogAsync();
 
         // Tabs 1 and 2 are lazy-init
         if (_activeTab == 1) await EnsureTab1InitializedAsync();

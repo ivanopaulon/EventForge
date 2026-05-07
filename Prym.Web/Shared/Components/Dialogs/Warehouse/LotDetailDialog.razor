@@ -97,18 +97,21 @@
                         </MudItem>
 
                         <MudItem xs="12" md="6">
-                            <MudSelect T="Guid"
-                                       @bind-Value="ViewModel.Entity.ProductId"
-                                       Label="@($"{TranslationService.GetTranslation("field.product", "Prodotto")} *")"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense"
-                                       Disabled="@(!ViewModel.IsNewEntity)"
-                                       @bind-Value:after="ViewModel.NotifyEntityChanged">
-                                @foreach (var product in ViewModel.Products ?? Enumerable.Empty<ProductDto>())
-                                {
-                                    <MudSelectItem Value="@product.Id">@product.Name (@product.Code)</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="ProductDto"
+                                             Value="_selectedProduct"
+                                             ValueChanged="OnProductSelectedAsync"
+                                             SearchFunc="ViewModel.SearchProductsAsync"
+                                             ToStringFunc="@(p => p != null ? $"{p.Name} ({p.Code})" : string.Empty)"
+                                             Label="@($"{TranslationService.GetTranslation("field.product", "Prodotto")} *")"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             ShowProgressIndicator="true"
+                                             MinCharacters="1"
+                                             DebounceInterval="250"
+                                             Clearable="true"
+                                             CoerceText="false"
+                                             CoerceValue="false"
+                                             Disabled="@(!ViewModel.IsNewEntity)" />
                         </MudItem>
 
                         <MudItem xs="12" md="6">
@@ -286,6 +289,7 @@
     private string? _qualityChangeNotes;
     private bool _isLoadingHistory;
     private IEnumerable<StockMovementDto> _history = Enumerable.Empty<StockMovementDto>();
+    private ProductDto? _selectedProduct;
 
     protected override async Task OnInitializedAsync()
     {
@@ -297,6 +301,7 @@
                 ViewModel.InitialProductId = InitialProductId;
             }
             await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+            _selectedProduct = ViewModel.SelectedProduct;
             _productionDateLocal = ViewModel.Entity?.ProductionDate;
             _expiryDateLocal = ViewModel.Entity?.ExpiryDate;
             _pendingQualityStatus = ViewModel.Entity?.QualityStatus ?? string.Empty;
@@ -315,6 +320,7 @@
         // Re-sync local date pickers whenever the entity is reloaded (e.g. after Block/Unblock)
         if (ViewModel.Entity != null)
         {
+            _selectedProduct = ViewModel.SelectedProduct;
             _productionDateLocal = ViewModel.Entity.ProductionDate;
             _expiryDateLocal = ViewModel.Entity.ExpiryDate;
             _pendingQualityStatus = ViewModel.Entity.QualityStatus;
@@ -353,6 +359,13 @@
             Logger.LogError(ex, "Error saving lot {LotId}.", EntityId);
             AppNotification.ShowWarning("Si è verificato un errore nel salvataggio del lotto.");
         }
+    }
+
+    private Task OnProductSelectedAsync(ProductDto? product)
+    {
+        _selectedProduct = product;
+        ViewModel.SetSelectedProduct(product);
+        return Task.CompletedTask;
     }
 
     private async Task Cancel()

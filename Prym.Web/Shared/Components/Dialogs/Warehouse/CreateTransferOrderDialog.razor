@@ -422,11 +422,8 @@
 
         try
         {
-            var result = await ProductService.GetProductsAsync(1, 50);
-            return result?.Items.Where(p =>
-                (p.Name?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                (p.Code?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-            ) ?? Array.Empty<ProductDto>();
+            var result = await ProductService.GetProductsAsync(1, 50, searchTerm.Trim(), ct: cancellationToken);
+            return result?.Items ?? Array.Empty<ProductDto>();
         }
         catch (Exception ex)
         {
