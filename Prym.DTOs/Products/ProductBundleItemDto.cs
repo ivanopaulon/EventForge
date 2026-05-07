@@ -27,6 +27,16 @@ namespace Prym.DTOs.Products
         public int Quantity { get; set; }
 
         /// <summary>
+        /// Name of the component product (populated by server for display purposes).
+        /// </summary>
+        public string? ComponentProductName { get; set; }
+
+        /// <summary>
+        /// Code of the component product (populated by server for display purposes).
+        /// </summary>
+        public string? ComponentProductCode { get; set; }
+
+        /// <summary>
         /// Date and time when the bundle item was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

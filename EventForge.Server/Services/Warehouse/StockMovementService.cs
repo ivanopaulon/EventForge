@@ -276,6 +276,8 @@ public class StockMovementService(
                     : StockMovementReason.Other,
                 Notes = createDto.Notes,
                 UserId = currentUser,
+                IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
+                ReconciliationRunId = createDto.ReconciliationRunId,
                 Status = MovementStatus.Completed,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUser
@@ -346,6 +348,8 @@ public class StockMovementService(
                             : StockMovementReason.Other,
                         Notes = createDto.Notes,
                         UserId = currentUser,
+                        IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
+                        ReconciliationRunId = createDto.ReconciliationRunId,
                         Status = MovementStatus.Completed,
                         CreatedAt = DateTime.UtcNow,
                         CreatedBy = currentUser
@@ -492,6 +496,8 @@ public class StockMovementService(
         string? notes = null,
         string? currentUser = null,
         DateTime? movementDate = null,
+        bool isReconciliationAdjustment = false,
+        Guid? reconciliationRunId = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -506,7 +512,9 @@ public class StockMovementService(
                 LotId = lotId,
                 Notes = $"{reason} - {notes}",
                 Reason = "Adjustment",
-                MovementDate = movementDate ?? DateTime.UtcNow
+                MovementDate = movementDate ?? DateTime.UtcNow,
+                IsReconciliationAdjustment = isReconciliationAdjustment,
+                ReconciliationRunId = reconciliationRunId
             };
 
             return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);

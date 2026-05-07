@@ -44,5 +44,15 @@ namespace Prym.DTOs.Warehouse
         public string? UserId { get; set; }
 
         public Guid? MovementPlanId { get; set; }
+
+        /// <summary>
+        /// True when this movement is a technical reconciliation adjustment.
+        /// </summary>
+        public bool IsReconciliationAdjustment { get; set; }
+
+        /// <summary>
+        /// Reconciliation run identifier for technical adjustment movements.
+        /// </summary>
+        public Guid? ReconciliationRunId { get; set; }
     }
 }

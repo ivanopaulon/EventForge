@@ -194,7 +194,7 @@ public class WarehouseFacade(
     #region Stock Movement Operations
 
     public Task<StockMovementDto> ProcessAdjustmentMovementAsync(Guid productId, Guid locationId, decimal adjustmentQuantity, string reason, Guid? lotId = null, string? notes = null, string? currentUser = null, DateTime? movementDate = null, CancellationToken cancellationToken = default)
-        => stockMovementService.ProcessAdjustmentMovementAsync(productId, locationId, adjustmentQuantity, reason, lotId, notes, currentUser, movementDate, cancellationToken);
+        => stockMovementService.ProcessAdjustmentMovementAsync(productId, locationId, adjustmentQuantity, reason, lotId, notes, currentUser, movementDate, cancellationToken: cancellationToken);
 
     public Task<IEnumerable<InventoryExportDto>> GetInventoryForExportAsync(PaginationParameters pagination, CancellationToken ct = default)
         => stockMovementService.GetInventoryForExportAsync(pagination, ct);

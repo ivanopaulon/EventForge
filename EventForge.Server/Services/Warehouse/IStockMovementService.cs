@@ -121,6 +121,8 @@ public interface IStockMovementService
         string? notes = null,
         string? currentUser = null,
         DateTime? movementDate = null,
+        bool isReconciliationAdjustment = false,
+        Guid? reconciliationRunId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

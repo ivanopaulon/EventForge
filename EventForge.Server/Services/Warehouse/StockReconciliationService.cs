@@ -1,6 +1,7 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using EventForge.Server.Data.Entities.Audit;
+using EventForge.Server.Data.Entities.Warehouse;
 using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -331,6 +332,11 @@ public class StockReconciliationService(
         //    generated from a document row to avoid double-counting the same quantity.
         var manualMovements = allManualMovements
             .Where(sm => sm.ProductId == stock.ProductId &&
+                         !sm.IsReconciliationAdjustment &&
+                         !(sm.MovementType == StockMovementType.Adjustment &&
+                           sm.Reason == StockMovementReason.Adjustment &&
+                           sm.Notes != null &&
+                           sm.Notes.StartsWith("Stock Reconciliation -")) &&
                          (!request.IncludeDocuments || !sm.DocumentRowId.HasValue) &&
                          (sm.FromLocationId == stock.StorageLocationId || sm.ToLocationId == stock.StorageLocationId) &&
                          (effectiveFromDate == null || sm.MovementDate >= effectiveFromDate.Value))
@@ -466,6 +472,7 @@ public class StockReconciliationService(
                     .ToDictionaryAsync(s => s.Id, cancellationToken);
 
                 var auditEntries = new List<EntityChangeLog>(itemsToUpdate.Count);
+                var reconciliationRunId = Guid.NewGuid();
 
                 foreach (var item in itemsToUpdate)
                 {
@@ -497,6 +504,8 @@ public class StockReconciliationService(
                             notes: $"{request.Reason}. Adjusted from {oldQuantity} to {newQuantity}",
                             currentUser: currentUser,
                             movementDate: DateTime.UtcNow,
+                            isReconciliationAdjustment: true,
+                            reconciliationRunId: reconciliationRunId,
                             cancellationToken: cancellationToken);
 
                         result.MovementsCreated++;

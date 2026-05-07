@@ -347,5 +347,114 @@ public class StockReconciliationRebuildTests : IDisposable
         Assert.Equal(StockMovementReason.Sale, movement.Reason);
     }
 
+    [Fact]
+    public async Task CalculateReconciliation_ExcludesTechnicalReconciliationAdjustments()
+    {
+        var header = MakeClosedApprovedHeader(_documentTypeInId, "DOC-REC-EXCL");
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = header.Id,
+            ProductId = _productId,
+            Description = "Reconciliation exclusion test",
+            Quantity = 100m,
+            UnitPrice = 5m,
+            LocationId = _locationAId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        _context.StockMovements.Add(new StockMovement
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            MovementType = StockMovementType.Adjustment,
+            ProductId = _productId,
+            FromLocationId = _locationAId,
+            Quantity = 20m,
+            Reason = StockMovementReason.Adjustment,
+            Notes = "Stock Reconciliation - legacy technical adjustment",
+            IsReconciliationAdjustment = true,
+            ReconciliationRunId = Guid.NewGuid(),
+            Status = MovementStatus.Completed,
+            MovementDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        var result = await _reconciliationService.CalculateReconciledStockAsync(new StockReconciliationRequestDto
+        {
+            ProductId = _productId,
+            LocationId = _locationAId,
+            IncludeInventories = false,
+            IncludeDocuments = true,
+            IncludeStockMovements = true
+        });
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal(100m, item.CurrentQuantity);
+        Assert.Equal(100m, item.CalculatedQuantity);
+        Assert.Equal(0m, item.Difference);
+        Assert.Equal(0, item.TotalManualMovements);
+    }
+
+    [Fact]
+    public async Task CalculateReconciliation_IncludesNonTechnicalManualAdjustments()
+    {
+        var header = MakeClosedApprovedHeader(_documentTypeInId, "DOC-REC-INCL");
+        _context.DocumentHeaders.Add(header);
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = header.Id,
+            ProductId = _productId,
+            Description = "Reconciliation include test",
+            Quantity = 100m,
+            UnitPrice = 5m,
+            LocationId = _locationAId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        _context.StockMovements.Add(new StockMovement
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            MovementType = StockMovementType.Adjustment,
+            ProductId = _productId,
+            FromLocationId = _locationAId,
+            Quantity = 20m,
+            Reason = StockMovementReason.Adjustment,
+            Notes = "Manual adjustment for spoilage",
+            IsReconciliationAdjustment = false,
+            Status = MovementStatus.Completed,
+            MovementDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        var result = await _reconciliationService.CalculateReconciledStockAsync(new StockReconciliationRequestDto
+        {
+            ProductId = _productId,
+            LocationId = _locationAId,
+            IncludeInventories = false,
+            IncludeDocuments = true,
+            IncludeStockMovements = true
+        });
+
+        var item = Assert.Single(result.Items);
+        Assert.Equal(100m, item.CurrentQuantity);
+        Assert.Equal(80m, item.CalculatedQuantity);
+        Assert.Equal(-20m, item.Difference);
+        Assert.Equal(1, item.TotalManualMovements);
+    }
+
     public void Dispose() => _context?.Dispose();
 }

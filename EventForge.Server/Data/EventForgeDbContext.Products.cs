@@ -44,6 +44,12 @@ public partial class EventForgeDbContext
             .HasForeignKey(b => b.ComponentProductId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        _ = modelBuilder.Entity<ProductBundleItem>()
+            .HasIndex(b => new { b.BundleProductId, b.ComponentProductId })
+            .HasFilter("[IsDeleted] = 0")
+            .IsUnique()
+            .HasDatabaseName("UX_ProductBundleItem_BundleProduct_ComponentProduct");
+
         // Brand / Model / Product / ProductSupplier
         _ = modelBuilder.Entity<Model>()
             .HasOne(m => m.Brand)
