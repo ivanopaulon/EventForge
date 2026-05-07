@@ -190,13 +190,6 @@
                             @TranslationService.GetTranslation("stock.reconciliation.hint",
                                 "Seleziona il magazzino (opzionale) e premi Calcola per verificare le discrepanze.")
                         </MudText>
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   StartIcon="@Icons.Material.Outlined.Calculate"
-                                   OnClick="CalculateReconciliationInDialogAsync"
-                                   Disabled="@(_recon_isLoading || _recon_isBulkApplying)">
-                            @TranslationService.GetTranslation("stock.reconciliation.calculateNow", "Calcola ora")
-                        </MudButton>
                     </div>
                 }
             </MudTabPanel>
@@ -216,7 +209,7 @@
                 {
                     <MudStepper Class="min-h-0" @ref="_rebuild_stepper"
                                 ActiveIndex="@_rebuild_step"
-                                ActiveIndexChanged="@(i => _rebuild_step = i)"
+                                ActiveIndexChanged="@(async i => await OnRebuildStepChangedAsync(i))"
                                 NonLinear="false"
                                 Color="Color.Primary"
                                 Variant="Variant.Filled"
@@ -527,8 +520,8 @@
                                        Variant="Variant.Filled"
                                        OnClick="RebuildGoToPreviewAsync"
                                        Disabled="_rebuild_isLoading"
-                                       StartIcon="@Icons.Material.Outlined.Preview">
-                                @TranslationService.GetTranslation("rebuildMovements.preview", "Anteprima")
+                                       StartIcon="@Icons.Material.Outlined.NavigateNext">
+                                @TranslationService.GetTranslation("rebuildMovements.goToPreview", "Avanti — Calcola Anteprima")
                             </MudButton>
                         }
                         else if (_rebuild_step == 1 && !_rebuild_isLoading)
@@ -621,6 +614,7 @@
                             <MudDatePicker @bind-Date="_snapshot_referenceDate"
                                            Label="@TranslationService.GetTranslation("stock.snapshot.referenceDate", "Data di riferimento")"
                                            Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
                                            DateFormat="dd/MM/yyyy"
                                            MaxDate="@DateTime.Today"
                                            Editable="true"
@@ -630,6 +624,7 @@
                             <MudSelect @bind-Value="_snapshot_warehouseId"
                                        Label="@TranslationService.GetTranslation("stock.warehouse", "Magazzino")"
                                        Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
                                        Clearable="true"
                                        Class="mb-0">
                                 @foreach (var wh in _warehouses)
@@ -1141,9 +1136,23 @@
         }
     }
 
+    private async Task OnRebuildStepChangedAsync(int i)
+    {
+        var previous = _rebuild_step;
+        _rebuild_step = i;
+        // When the stepper navigates forward from step 0 to step 1, trigger the preview automatically
+        if (i == 1 && previous == 0)
+            await LoadRebuildPreviewAsync();
+    }
+
     private async Task RebuildGoToPreviewAsync()
     {
         _rebuild_step = 1;
+        await LoadRebuildPreviewAsync();
+    }
+
+    private async Task LoadRebuildPreviewAsync()
+    {
         _rebuild_isLoading = true;
         _rebuild_previewResult = null;
         StateHasChanged();
