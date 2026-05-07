@@ -42,6 +42,8 @@ public static class StockMovementMapper
             UserId = stockMovement.UserId,
             Reference = stockMovement.Reference,
             MovementPlanId = stockMovement.MovementPlanId,
+            IsReconciliationAdjustment = stockMovement.IsReconciliationAdjustment,
+            ReconciliationRunId = stockMovement.ReconciliationRunId,
             CreatedAt = stockMovement.CreatedAt,
             CreatedBy = stockMovement.CreatedBy
         };
@@ -72,6 +74,8 @@ public static class StockMovementMapper
             UserId = createDto.UserId,
             Reference = createDto.Reference,
             MovementPlanId = createDto.MovementPlanId,
+            IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
+            ReconciliationRunId = createDto.ReconciliationRunId,
             Status = MovementStatus.Completed,
             CreatedBy = createdBy,
             CreatedAt = DateTime.UtcNow,

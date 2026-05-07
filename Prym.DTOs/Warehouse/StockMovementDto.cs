@@ -62,6 +62,8 @@ namespace Prym.DTOs.Warehouse
         public string? Reference { get; set; }
 
         public Guid? MovementPlanId { get; set; }
+        public bool IsReconciliationAdjustment { get; set; }
+        public Guid? ReconciliationRunId { get; set; }
 
         public DateTime CreatedAt { get; set; }
         public string? CreatedBy { get; set; }
