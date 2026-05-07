@@ -76,7 +76,7 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
     {
         await EnsureProductSeedLoadedAsync(ct);
         await InitializeSelectedProductAsync(ct);
-        await RefreshLotsForProductAsync(Entity?.ProductId, notifyStateChanged: false, ct);
+        await RefreshLotsForProductAsync(SelectedProduct?.Id, notifyStateChanged: false, ct);
     }
 
     private async Task EnsureProductSeedLoadedAsync(CancellationToken ct = default)
