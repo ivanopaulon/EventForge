@@ -697,6 +697,16 @@ public interface IWarehouseFacade
     Task<StockReconciliationResultDto> CalculateReconciledStockAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Returns the stock ids matching the reconciliation filters.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetStockIdsForReconciliationAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Calculates reconciled stock for a specific set of stock ids.
+    /// </summary>
+    Task<StockReconciliationResultDto> CalculateReconciledStockForStocksAsync(IReadOnlyCollection<Guid> stockIds, StockReconciliationRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Rebuilds missing stock movements from approved/closed documents.
     /// </summary>
     /// <param name="request">Rebuild request parameters</param>

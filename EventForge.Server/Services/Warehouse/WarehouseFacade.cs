@@ -288,6 +288,12 @@ public class WarehouseFacade(
     public Task<StockReconciliationResultDto> CalculateReconciledStockAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default)
         => stockReconciliationService.CalculateReconciledStockAsync(request, cancellationToken);
 
+    public Task<IReadOnlyList<Guid>> GetStockIdsForReconciliationAsync(StockReconciliationRequestDto request, CancellationToken cancellationToken = default)
+        => stockReconciliationService.GetStockIdsForReconciliationAsync(request, cancellationToken);
+
+    public Task<StockReconciliationResultDto> CalculateReconciledStockForStocksAsync(IReadOnlyCollection<Guid> stockIds, StockReconciliationRequestDto request, CancellationToken cancellationToken = default)
+        => stockReconciliationService.CalculateReconciledStockForStocksAsync(stockIds, request, cancellationToken);
+
     public Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(RebuildMovementsRequestDto request, string currentUser, CancellationToken cancellationToken = default)
         => stockReconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, currentUser, cancellationToken);
 

@@ -25,6 +25,38 @@ public class StockReconciliationService(
         }
     }
 
+    public async Task<List<Guid>?> GetReconciliationStockIdsAsync(StockReconciliationRequestDto request, CancellationToken ct = default)
+    {
+        try
+        {
+            var query = BuildQueryString(request);
+            var url = string.IsNullOrWhiteSpace(query)
+                ? $"{BaseUrl}/stock-ids"
+                : $"{BaseUrl}/stock-ids?{query}";
+
+            return await httpClientService.GetAsync<List<Guid>>(url, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving stock ids for reconciliation");
+            return null;
+        }
+    }
+
+    public async Task<StockReconciliationResultDto?> CalculateReconciliationBatchAsync(StockReconciliationBatchRequestDto request, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostLongRunningAsync<StockReconciliationBatchRequestDto, StockReconciliationResultDto>(
+                $"{BaseUrl}/calculate-batch", request, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error calculating stock reconciliation batch");
+            return null;
+        }
+    }
+
     public async Task<StockReconciliationApplyResultDto?> ApplyReconciliationAsync(StockReconciliationApplyRequestDto request, CancellationToken ct = default)
     {
         try
@@ -43,28 +75,8 @@ public class StockReconciliationService(
     {
         try
         {
-            List<string> queryParams = [];
-
-            if (request.FromDate.HasValue)
-                queryParams.Add($"fromDate={request.FromDate.Value:O}");
-            if (request.ToDate.HasValue)
-                queryParams.Add($"toDate={request.ToDate.Value:O}");
-            if (request.WarehouseId.HasValue)
-                queryParams.Add($"warehouseId={request.WarehouseId.Value}");
-            if (request.LocationId.HasValue)
-                queryParams.Add($"locationId={request.LocationId.Value}");
-            if (request.ProductId.HasValue)
-                queryParams.Add($"productId={request.ProductId.Value}");
-            if (request.StartingQuantity.HasValue)
-                queryParams.Add($"startingQuantity={request.StartingQuantity.Value}");
-
-            queryParams.Add($"includeDocuments={request.IncludeDocuments.ToString().ToLower()}");
-            queryParams.Add($"includeInventories={request.IncludeInventories.ToString().ToLower()}");
-            queryParams.Add($"onlyWithDiscrepancies={request.OnlyWithDiscrepancies.ToString().ToLower()}");
-            queryParams.Add($"discrepancyThreshold={request.DiscrepancyThreshold}");
-
-            var query = string.Join("&", queryParams);
-            var url = queryParams.Count > 0 ? $"{BaseUrl}/export?{query}" : $"{BaseUrl}/export";
+            var query = BuildQueryString(request);
+            var url = string.IsNullOrWhiteSpace(query) ? $"{BaseUrl}/export" : $"{BaseUrl}/export?{query}";
 
             return await httpClientService.GetAsync<byte[]>(url, ct);
         }
@@ -101,5 +113,31 @@ public class StockReconciliationService(
             logger.LogError(ex, "Error executing rebuild of missing stock movements");
             return null;
         }
+    }
+
+    private static string BuildQueryString(StockReconciliationRequestDto request)
+    {
+        List<string> queryParams = [];
+
+        if (request.FromDate.HasValue)
+            queryParams.Add($"fromDate={request.FromDate.Value:O}");
+        if (request.ToDate.HasValue)
+            queryParams.Add($"toDate={request.ToDate.Value:O}");
+        if (request.WarehouseId.HasValue)
+            queryParams.Add($"warehouseId={request.WarehouseId.Value}");
+        if (request.LocationId.HasValue)
+            queryParams.Add($"locationId={request.LocationId.Value}");
+        if (request.ProductId.HasValue)
+            queryParams.Add($"productId={request.ProductId.Value}");
+        if (request.StartingQuantity.HasValue)
+            queryParams.Add($"startingQuantity={request.StartingQuantity.Value}");
+
+        queryParams.Add($"includeDocuments={request.IncludeDocuments.ToString().ToLowerInvariant()}");
+        queryParams.Add($"includeInventories={request.IncludeInventories.ToString().ToLowerInvariant()}");
+        queryParams.Add($"includeStockMovements={request.IncludeStockMovements.ToString().ToLowerInvariant()}");
+        queryParams.Add($"onlyWithDiscrepancies={request.OnlyWithDiscrepancies.ToString().ToLowerInvariant()}");
+        queryParams.Add($"discrepancyThreshold={request.DiscrepancyThreshold}");
+
+        return string.Join("&", queryParams);
     }
 }

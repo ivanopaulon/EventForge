@@ -3417,6 +3417,77 @@ public class WarehouseManagementController(
     }
 
     /// <summary>
+    /// Returns the stock ids that match the reconciliation filters.
+    /// </summary>
+    /// <param name="request">Reconciliation request with filters and options</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of stock ids that should be processed by the client</returns>
+    [HttpGet("stock-reconciliation/stock-ids")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(List<Guid>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetStockReconciliationStockIds(
+        [FromQuery] StockReconciliationRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await warehouseFacade.GetStockIdsForReconciliationAsync(request, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving stock reconciliation ids.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Calculates stock reconciliation for a specific batch of stock ids.
+    /// </summary>
+    /// <param name="request">Batch request with stock ids and shared filters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Reconciliation result for the requested batch</returns>
+    [HttpPost("stock-reconciliation/calculate-batch")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(StockReconciliationResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> CalculateStockReconciliationBatch(
+        [FromBody] StockReconciliationBatchRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (request.StockIds.Count == 0)
+            {
+                return BadRequest(new { message = "At least one stock id is required." });
+            }
+
+            var result = await warehouseFacade.CalculateReconciledStockForStocksAsync(
+                request.StockIds,
+                request.Filters,
+                cancellationToken);
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while calculating stock reconciliation batch.", ex);
+        }
+    }
+
+    /// <summary>
     /// Applies stock reconciliation corrections to selected items.
     /// Updates stock quantities and creates adjustment movements with full audit trail.
     /// This operation is atomic - either all updates succeed or all fail.
