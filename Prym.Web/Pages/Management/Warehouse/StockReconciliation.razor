@@ -691,7 +691,7 @@
     private IDisposable? _locationChangingRegistration;
     private bool _allowNavigationWhileBusy = false;
     private bool _isNavigationConfirmationOpen = false;
-    private const int ReconciliationBatchSize = 200;
+    private const int ReconciliationBatchSize = 200; // Keeps batches responsive without creating too many round-trips.
 
     /// <summary>
     /// When true the component is embedded inside another page (e.g. StockManagement tabs)
@@ -771,6 +771,7 @@
 
     protected override void OnInitialized()
     {
+        // Prevent users from navigating away while a blocking reconciliation/apply operation is still running.
         _locationChangingRegistration = NavigationManager.RegisterLocationChangingHandler(HandleLocationChangingAsync);
     }
 

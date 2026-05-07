@@ -100,6 +100,7 @@ public class StockReconciliationService(
 
         if (stockIds is { Count: > 0 })
         {
+            // Defensive de-duplication: client batches should already be unique, but the API tolerates duplicates safely.
             var stockIdList = stockIds.Distinct().ToList();
             stocksQuery = stocksQuery.Where(s => stockIdList.Contains(s.Id));
         }
