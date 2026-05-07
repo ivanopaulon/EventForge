@@ -24,7 +24,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     }
 
     // Related entity collections
-    public IEnumerable<ProductDto>? Products { get; private set; }
+    public IEnumerable<ProductDto> Products { get; private set; } = Array.Empty<ProductDto>();
     public ProductDto? SelectedProduct { get; private set; }
 
     /// <summary>
@@ -68,13 +68,32 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
+        await EnsureProductSeedLoadedAsync(ct);
         await InitializeSelectedProductAsync(ct);
     }
 
     public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         await base.LoadEntityAsync(entityId, ct);
+        await EnsureProductSeedLoadedAsync(ct);
         await InitializeSelectedProductAsync(ct);
+    }
+
+    private async Task EnsureProductSeedLoadedAsync(CancellationToken ct = default)
+    {
+        if (Products.Any())
+            return;
+
+        try
+        {
+            var productsResult = await _productService.GetProductsAsync(1, ProductSearchPageSize, ct: ct);
+            Products = productsResult?.Items ?? Array.Empty<ProductDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading seed products for lot");
+            Products = Array.Empty<ProductDto>();
+        }
     }
 
     private async Task InitializeSelectedProductAsync(CancellationToken ct = default)
@@ -97,8 +116,12 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             {
                 Id = Entity.ProductId,
                 Name = Entity.ProductName ?? string.Empty,
-                Code = Entity.ProductCode
+                Code = Entity.ProductCode ?? string.Empty
             };
+            if (!Products.Any(p => p.Id == SelectedProduct.Id))
+            {
+                Products = Products.Append(SelectedProduct).ToList();
+            }
         }
         catch (Exception ex)
         {
@@ -107,8 +130,12 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             {
                 Id = Entity.ProductId,
                 Name = Entity.ProductName ?? string.Empty,
-                Code = Entity.ProductCode
+                Code = Entity.ProductCode ?? string.Empty
             };
+            if (!Products.Any(p => p.Id == SelectedProduct.Id))
+            {
+                Products = Products.Append(SelectedProduct).ToList();
+            }
         }
     }
 
