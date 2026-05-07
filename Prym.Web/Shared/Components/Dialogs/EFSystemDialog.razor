@@ -1,6 +1,5 @@
 @namespace Prym.Web.Shared.Components.Dialogs
 @using Prym.DTOs.Configuration
-@inject IThemeService ThemeService
 @inject IBrandingService BrandingService
 @inject ILogger<EFSystemDialog> Logger
 
@@ -64,6 +63,8 @@
     [Parameter] public string CardWidth { get; set; } = "420px";
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    private const string DefaultLogoPath = "/logoWhite.svg";
+
     private string TopBarClass => TopBar switch
     {
         EFTopBar.Primary => "efsd-tb-primary",
@@ -91,9 +92,9 @@
     private string GetLogoSrc()
     {
         var configuredUrl = _branding?.LogoUrl;
-        if (!string.IsNullOrEmpty(configuredUrl) && configuredUrl != "/logoWhite.svg")
+        if (!string.IsNullOrEmpty(configuredUrl) && configuredUrl != DefaultLogoPath)
             return configuredUrl;
-        return "/logoWhite.svg";
+        return DefaultLogoPath;
     }
 
     private BrandingConfigurationDto? _branding;
