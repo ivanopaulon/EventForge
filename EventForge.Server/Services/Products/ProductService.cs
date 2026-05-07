@@ -1193,10 +1193,17 @@ public class ProductService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             var bundleItems = await context.ProductBundleItems
                 .AsNoTracking()
-                .Where(pbi => pbi.BundleProductId == bundleProductId && !pbi.IsDeleted)
-                .OrderBy(pbi => pbi.ComponentProductId)
+                .Include(pbi => pbi.ComponentProduct)
+                .Where(pbi => pbi.BundleProductId == bundleProductId && pbi.TenantId == currentTenantId.Value && !pbi.IsDeleted)
+                .OrderBy(pbi => pbi.ComponentProduct!.Name)
                 .ToListAsync(cancellationToken);
 
             return bundleItems.Select(MapToProductBundleItemDto);
@@ -1211,9 +1218,16 @@ public class ProductService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             var bundleItem = await context.ProductBundleItems
                 .AsNoTracking()
-                .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
+                .Include(pbi => pbi.ComponentProduct)
+                .Where(pbi => pbi.Id == id && pbi.TenantId == currentTenantId.Value && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return bundleItem is not null ? MapToProductBundleItemDto(bundleItem) : null;
@@ -1231,20 +1245,60 @@ public class ProductService(
             ArgumentNullException.ThrowIfNull(createProductBundleItemDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            // Check if bundle product exists
-            if (!await ProductExistsAsync(createProductBundleItemDto.BundleProductId, cancellationToken))
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
+            // Enforce self-reference guard
+            if (createProductBundleItemDto.BundleProductId == createProductBundleItemDto.ComponentProductId)
+            {
+                throw new ArgumentException("A product cannot be a component of itself.");
+            }
+
+            // Check if bundle product exists and is actually a bundle
+            var bundleProduct = await context.Products
+                .AsNoTracking()
+                .Where(p => p.Id == createProductBundleItemDto.BundleProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted)
+                .Select(p => new { p.Id, p.IsBundle })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (bundleProduct is null)
             {
                 throw new ArgumentException($"Bundle product with ID {createProductBundleItemDto.BundleProductId} does not exist.");
             }
 
-            // Check if component product exists
-            if (!await ProductExistsAsync(createProductBundleItemDto.ComponentProductId, cancellationToken))
+            if (!bundleProduct.IsBundle)
+            {
+                throw new InvalidOperationException($"Product {createProductBundleItemDto.BundleProductId} is not a bundle product.");
+            }
+
+            // Check if component product exists in the same tenant
+            if (!await context.Products.AsNoTracking().AnyAsync(
+                p => p.Id == createProductBundleItemDto.ComponentProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken))
             {
                 throw new ArgumentException($"Component product with ID {createProductBundleItemDto.ComponentProductId} does not exist.");
             }
 
+            // Check for duplicate component in the same bundle
+            var duplicateExists = await context.ProductBundleItems
+                .AsNoTracking()
+                .AnyAsync(pbi =>
+                    pbi.BundleProductId == createProductBundleItemDto.BundleProductId &&
+                    pbi.ComponentProductId == createProductBundleItemDto.ComponentProductId &&
+                    pbi.TenantId == currentTenantId.Value &&
+                    !pbi.IsDeleted,
+                    cancellationToken);
+
+            if (duplicateExists)
+            {
+                throw new InvalidOperationException("This component product is already part of the bundle.");
+            }
+
             var bundleItem = new ProductBundleItem
             {
+                TenantId = currentTenantId.Value,
                 BundleProductId = createProductBundleItemDto.BundleProductId,
                 ComponentProductId = createProductBundleItemDto.ComponentProductId,
                 Quantity = createProductBundleItemDto.Quantity,
@@ -1261,6 +1315,9 @@ public class ProductService(
             logger.LogInformation("Bundle item created with ID {BundleItemId} for bundle {BundleProductId} by user {User}.",
                 bundleItem.Id, createProductBundleItemDto.BundleProductId, currentUser);
 
+            // Reload with navigation to populate component product name/code
+            await context.Entry(bundleItem).Reference(bi => bi.ComponentProduct).LoadAsync(cancellationToken);
+
             return MapToProductBundleItemDto(bundleItem);
         }
         catch
@@ -1276,8 +1333,14 @@ public class ProductService(
             ArgumentNullException.ThrowIfNull(updateProductBundleItemDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             var bundleItem = await context.ProductBundleItems
-                .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
+                .Where(pbi => pbi.Id == id && pbi.TenantId == currentTenantId.Value && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (bundleItem is null)
@@ -1286,8 +1349,9 @@ public class ProductService(
                 return null;
             }
 
-            // Check if component product exists
-            if (!await ProductExistsAsync(updateProductBundleItemDto.ComponentProductId, cancellationToken))
+            // Check if component product exists in the same tenant
+            if (!await context.Products.AsNoTracking().AnyAsync(
+                p => p.Id == updateProductBundleItemDto.ComponentProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken))
             {
                 throw new ArgumentException($"Component product with ID {updateProductBundleItemDto.ComponentProductId} does not exist.");
             }
@@ -1332,8 +1396,14 @@ public class ProductService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Current tenant ID is not available.");
+            }
+
             var bundleItem = await context.ProductBundleItems
-                .Where(pbi => pbi.Id == id && !pbi.IsDeleted)
+                .Where(pbi => pbi.Id == id && pbi.TenantId == currentTenantId.Value && !pbi.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (bundleItem is null)
@@ -1742,6 +1812,8 @@ public class ProductService(
             BundleProductId = bundleItem.BundleProductId,
             ComponentProductId = bundleItem.ComponentProductId,
             Quantity = bundleItem.Quantity,
+            ComponentProductName = bundleItem.ComponentProduct?.Name,
+            ComponentProductCode = bundleItem.ComponentProduct?.Code,
             CreatedAt = bundleItem.CreatedAt,
             CreatedBy = bundleItem.CreatedBy,
             ModifiedAt = bundleItem.ModifiedAt,
