@@ -1,5 +1,6 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
+using EventForge.Server.Data.Entities.Audit;
 using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -14,6 +15,7 @@ public class StockReconciliationService(
     ITenantContext tenantContext,
     ILogger<StockReconciliationService> logger) : IStockReconciliationService
 {
+    private const int ReconciliationAuditDisplayNameMaxLength = 100;
 
     public async Task<StockReconciliationResultDto> CalculateReconciledStockAsync(
         StockReconciliationRequestDto request,
@@ -388,16 +390,26 @@ public class StockReconciliationService(
                 };
                 var reconciliation = await CalculateReconciledStockAsync(recalcRequest, cancellationToken);
 
+                var requestedStockIds = request.ItemsToApply
+                    .Where(id => id != Guid.Empty)
+                    .ToHashSet();
+
                 var itemsToUpdate = reconciliation.Items
-                    .Where(i => request.ItemsToApply.Contains(i.StockId))
+                    .Where(i => requestedStockIds.Contains(i.StockId))
                     .ToList();
+
+                var stockIdsToUpdate = itemsToUpdate.Select(i => i.StockId).ToList();
+                var stocksById = await context.Stocks
+                    .Include(s => s.Product)
+                    .Include(s => s.StorageLocation)
+                    .Where(s => stockIdsToUpdate.Contains(s.Id) && s.TenantId == currentTenantId.Value)
+                    .ToDictionaryAsync(s => s.Id, cancellationToken);
+
+                var auditEntries = new List<EntityChangeLog>(itemsToUpdate.Count);
 
                 foreach (var item in itemsToUpdate)
                 {
-                    var stock = await context.Stocks
-                        .FirstOrDefaultAsync(s => s.Id == item.StockId && s.TenantId == currentTenantId.Value, cancellationToken);
-
-                    if (stock is null)
+                    if (!stocksById.TryGetValue(item.StockId, out var stock))
                     {
                         logger.LogWarning("Stock {StockId} not found", item.StockId);
                         continue;
@@ -437,17 +449,29 @@ public class StockReconciliationService(
                         stock.ModifiedBy = currentUser;
                     }
 
-                    // Audit log — include the reconciliation reason for a complete audit trail
-                    await auditLogService.LogEntityChangeAsync(
-                        entityName: "Stock",
-                        entityId: stock.Id,
-                        propertyName: "Quantity",
-                        operationType: "Reconciliation",
-                        oldValue: oldQuantity.ToString(),
-                        newValue: newQuantity.ToString(),
-                        changedBy: currentUser,
-                        entityDisplayName: $"{stock.Product?.Name ?? "Unknown"} @ {stock.StorageLocation?.Code ?? "Unknown"} - {request.Reason}",
-                        cancellationToken: cancellationToken);
+                    var entityDisplayName = BuildReconciliationAuditDisplayName(
+                        stock.Product?.Name,
+                        stock.StorageLocation?.Code,
+                        request.Reason);
+
+                    auditEntries.Add(new EntityChangeLog
+                    {
+                        EntityName = "Stock",
+                        EntityId = stock.Id,
+                        PropertyName = "Quantity",
+                        OperationType = "Reconciliation",
+                        OldValue = oldQuantity.ToString(),
+                        NewValue = newQuantity.ToString(),
+                        ChangedBy = currentUser,
+                        ChangedAt = DateTime.UtcNow,
+                        TenantId = currentTenantId.Value,
+                        EntityDisplayName = entityDisplayName
+                    });
+                }
+
+                if (auditEntries.Count > 0)
+                {
+                    context.EntityChangeLogs.AddRange(auditEntries);
                 }
 
                 await context.SaveChangesAsync(cancellationToken);
@@ -475,6 +499,22 @@ public class StockReconciliationService(
                 ErrorMessage = ex.Message
             };
         }
+    }
+
+    private static string BuildReconciliationAuditDisplayName(string? productName, string? locationCode, string? reason)
+    {
+        var displayName = $"{productName ?? "Unknown"} @ {locationCode ?? "Unknown"}";
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            displayName = $"{displayName} - {reason}";
+        }
+
+        if (displayName.Length <= ReconciliationAuditDisplayNameMaxLength)
+        {
+            return displayName;
+        }
+
+        return displayName[..(ReconciliationAuditDisplayNameMaxLength - 1)] + "…";
     }
 
     public async Task<byte[]> ExportReconciliationReportAsync(

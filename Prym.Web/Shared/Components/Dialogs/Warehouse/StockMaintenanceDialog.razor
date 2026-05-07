@@ -65,6 +65,14 @@
                     </MudItem>
                 </MudGrid>
 
+                @if (_recon_isBulkApplying)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                        @TranslationService.GetTranslation("stock.bulkApplyReconciled.inProgress",
+                            "Applicazione in corso... non chiudere la finestra.")
+                    </MudAlert>
+                }
+
                 @if (_recon_isLoading)
                 {
                     <div class="d-flex flex-column align-center justify-center pa-8 gap-3">
@@ -1432,9 +1440,6 @@
         {
             Logger.LogError(ex, "Error loading warehouses in StockMaintenanceDialog");
         }
-
-        // Tab 0 always loads on open (reconciliation is fast enough for background load)
-        _ = CalculateReconciliationInDialogAsync();
 
         // Tabs 1 and 2 are lazy-init
         if (_activeTab == 1) await EnsureTab1InitializedAsync();

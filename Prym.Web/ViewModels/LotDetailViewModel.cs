@@ -11,8 +11,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 {
     private readonly ILotService _lotService;
     private readonly IProductService _productService;
-
-    private const int MaxDropdownItems = 200;
+    private const int ProductSearchPageSize = 50;
 
     public LotDetailViewModel(
         ILotService lotService,
@@ -26,6 +25,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     // Related entity collections
     public IEnumerable<ProductDto>? Products { get; private set; }
+    public ProductDto? SelectedProduct { get; private set; }
 
     /// <summary>
     /// Optional pre-set product ID (used when opening dialog from product context).
@@ -68,32 +68,80 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
-        await EnsureProductsLoadedAsync(ct);
+        await InitializeSelectedProductAsync(ct);
     }
 
     public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         await base.LoadEntityAsync(entityId, ct);
-
-        if (IsNewEntity)
-        {
-            await EnsureProductsLoadedAsync(ct);
-        }
+        await InitializeSelectedProductAsync(ct);
     }
 
-    private async Task EnsureProductsLoadedAsync(CancellationToken ct = default)
+    private async Task InitializeSelectedProductAsync(CancellationToken ct = default)
     {
-        if (Products != null) return;
+        if (Entity == null || Entity.ProductId == Guid.Empty)
+        {
+            SelectedProduct = null;
+            return;
+        }
+
+        if (SelectedProduct?.Id == Entity.ProductId)
+        {
+            return;
+        }
+
         try
         {
-            var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
-            Products = productsResult?.Items ?? new List<ProductDto>();
+            var product = await _productService.GetProductByIdAsync(Entity.ProductId, ct);
+            SelectedProduct = product ?? new ProductDto
+            {
+                Id = Entity.ProductId,
+                Name = Entity.ProductName ?? string.Empty,
+                Code = Entity.ProductCode
+            };
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading products for lot");
-            Products = new List<ProductDto>();
+            Logger.LogError(ex, "Error initializing selected product for lot");
+            SelectedProduct = new ProductDto
+            {
+                Id = Entity.ProductId,
+                Name = Entity.ProductName ?? string.Empty,
+                Code = Entity.ProductCode
+            };
         }
+    }
+
+    public async Task<IEnumerable<ProductDto>> SearchProductsAsync(string searchTerm, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return Array.Empty<ProductDto>();
+        }
+
+        try
+        {
+            var productsResult = await _productService.GetProductsAsync(1, ProductSearchPageSize, searchTerm.Trim(), ct: ct);
+            return productsResult?.Items ?? [];
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching products for lot");
+            return Array.Empty<ProductDto>();
+        }
+    }
+
+    public void SetSelectedProduct(ProductDto? product)
+    {
+        SelectedProduct = product;
+
+        if (Entity == null)
+            return;
+
+        Entity.ProductId = product?.Id ?? Guid.Empty;
+        Entity.ProductName = product?.Name;
+        Entity.ProductCode = product?.Code;
+        NotifyEntityChanged();
     }
 
     protected override CreateLotDto MapToCreateDto(LotDto entity)
