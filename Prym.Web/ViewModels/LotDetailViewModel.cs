@@ -75,8 +75,6 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         await base.LoadEntityAsync(entityId, ct);
-        await EnsureProductSeedLoadedAsync(ct);
-        await InitializeSelectedProductAsync(ct);
     }
 
     private async Task EnsureProductSeedLoadedAsync(CancellationToken ct = default)

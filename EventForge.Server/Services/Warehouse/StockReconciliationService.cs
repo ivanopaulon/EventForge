@@ -15,7 +15,7 @@ public class StockReconciliationService(
     ITenantContext tenantContext,
     ILogger<StockReconciliationService> logger) : IStockReconciliationService
 {
-    private const int ReconciliationAuditDisplayNameMaxLength = 100;
+    private const int ReconciliationAuditDisplayNameMaxLength = 500;
 
     public async Task<StockReconciliationResultDto> CalculateReconciledStockAsync(
         StockReconciliationRequestDto request,

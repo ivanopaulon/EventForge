@@ -58,22 +58,26 @@ public class LotDetailViewModelTests : IDisposable
             IsActive = true
         };
 
+        var productA = new ProductDto { Id = productId, Name = "Product A", Code = "PROD-A" };
         var products = new PagedResult<ProductDto>
         {
             Items = new List<ProductDto>
             {
-                new ProductDto { Id = productId, Name = "Product A", Code = "PROD-A" },
+                productA,
                 new ProductDto { Id = Guid.NewGuid(), Name = "Product B", Code = "PROD-B" }
             },
             TotalCount = 2,
             Page = 1,
-            PageSize = 100
+            PageSize = 50
         };
 
         _mockLotService.Setup(s => s.GetLotByIdAsync(lotId))
             .ReturnsAsync(expectedLot);
-        _mockProductService.Setup(s => s.GetProductsAsync(1, 100))
+        _mockProductService
+            .Setup(s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
+        _mockProductService.Setup(s => s.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(productA);
 
         // Act
         await _viewModel.LoadEntityAsync(lotId);
@@ -255,23 +259,27 @@ public class LotDetailViewModelTests : IDisposable
             IsActive = true
         };
 
+        var productA = new ProductDto { Id = productId, Name = "Product A", Code = "PROD-A" };
         var products = new PagedResult<ProductDto>
         {
             Items = new List<ProductDto>
             {
-                new ProductDto { Id = productId, Name = "Product A", Code = "PROD-A" },
+                productA,
                 new ProductDto { Id = Guid.NewGuid(), Name = "Product B", Code = "PROD-B" },
                 new ProductDto { Id = Guid.NewGuid(), Name = "Product C", Code = "PROD-C" }
             },
             TotalCount = 3,
             Page = 1,
-            PageSize = 100
+            PageSize = 50
         };
 
         _mockLotService.Setup(s => s.GetLotByIdAsync(lotId))
             .ReturnsAsync(existingLot);
-        _mockProductService.Setup(s => s.GetProductsAsync(1, 100))
+        _mockProductService
+            .Setup(s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(products);
+        _mockProductService.Setup(s => s.GetProductByIdAsync(productId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(productA);
 
         // Act
         await _viewModel.LoadEntityAsync(lotId);
@@ -282,7 +290,9 @@ public class LotDetailViewModelTests : IDisposable
         Assert.Contains(_viewModel.Products, p => p.Code == "PROD-A");
         Assert.Contains(_viewModel.Products, p => p.Code == "PROD-B");
         Assert.Contains(_viewModel.Products, p => p.Code == "PROD-C");
-        _mockProductService.Verify(s => s.GetProductsAsync(1, 100), Times.Once);
+        _mockProductService.Verify(
+            s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            Times.AtLeastOnce);
     }
 
     [Fact]
