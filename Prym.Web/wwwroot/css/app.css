@@ -1799,8 +1799,9 @@ kbd {
 }
 
 .plsd-elapsed {
-    color: var(--mud-palette-text-disabled);
-    font-size: 0.72rem;
+    color: var(--mud-palette-text-secondary);
+    font-size: 0.78rem;
+    letter-spacing: 0.01em;
     margin-top: 2px;
 }
 
