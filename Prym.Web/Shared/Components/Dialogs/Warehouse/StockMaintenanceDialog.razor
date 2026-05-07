@@ -10,7 +10,6 @@
 @inject IHttpClientService HttpClientService
 @inject IJSRuntime JSRuntime
 @inject ILogger<StockMaintenanceDialog> Logger
-@implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Tune"
           Title='@TranslationService.GetTranslation("stock.maintenance.title", "Strumenti Magazzino")'
@@ -64,24 +63,6 @@
                                          Class="ef-input-120" />
                     </MudItem>
                 </MudGrid>
-
-                @if (_recon_isBulkApplying)
-                {
-                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
-                        @TranslationService.GetTranslation("stock.bulkApplyReconciled.inProgress",
-                            "Applicazione in corso... non chiudere la finestra.")
-                    </MudAlert>
-                    <MudProgressLinear Color="Color.Warning"
-                                       Class="mb-3"
-                                       Value="@(_recon_bulkApplyTotal > 0 ? (double)_recon_bulkApplyProcessed * 100d / _recon_bulkApplyTotal : 0d)" />
-                    <MudText Typo="Typo.caption" Class="mb-3">
-                        @TranslationService.GetTranslationFormatted(
-                            "stock.bulkApplyReconciled.progress",
-                            "{0}/{1} correzioni applicate",
-                            _recon_bulkApplyProcessed,
-                            _recon_bulkApplyTotal)
-                    </MudText>
-                }
 
                 @if (_recon_isLoading)
                 {
@@ -446,53 +427,8 @@
                             }
                         </MudStep>
 
-                        <MudStep Title="Applicazione" Icon="@Icons.Material.Outlined.PlayArrow">
-                            @if (_rebuild_isLoading)
-                            {
-                                <div class="d-flex flex-column align-center pa-4 gap-4">
-                                    <div class="d-flex align-center gap-3">
-                                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
-                                        <div>
-                                            <MudText Typo="Typo.body1">
-                                                @TranslationService.GetTranslation("rebuildMovements.applying", "Creazione movimenti in corso...")
-                                            </MudText>
-                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                                @TranslationService.GetTranslationFormatted("rebuildMovements.elapsed", "{0}s trascorsi",
-                                                    (int)(DateTimeOffset.UtcNow - _applyStartTime).TotalSeconds)
-                                            </MudText>
-                                        </div>
-                                    </div>
-                                    @if (_progressLog.Count > 0)
-                                    {
-                                        <MudPaper Outlined="true" Class="pa-3" Style="width:100%; min-height:90px;">
-                                            <div class="d-flex flex-column gap-2">
-                                                @for (var i = 0; i < _progressLog.Count; i++)
-                                                {
-                                                    var logMsg = _progressLog[i];
-                                                    var logOpacity = i == 0 ? "1" : i == 1 ? "0.65" : "0.35";
-                                                    var isFirst = i == 0;
-                                                    <div class="d-flex align-center gap-2" style="opacity:@logOpacity">
-                                                        @if (isFirst)
-                                                        {
-                                                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
-                                                        }
-                                                        else
-                                                        {
-                                                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircleOutline" Size="Size.Small" Color="Color.Success" />
-                                                        }
-                                                        <MudText Typo="Typo.body2"
-                                                                 Color="@(isFirst ? Color.Primary : Color.Default)"
-                                                                 Style="@(isFirst ? "font-weight:600" : "")">
-                                                            @logMsg
-                                                        </MudText>
-                                                    </div>
-                                                }
-                                            </div>
-                                        </MudPaper>
-                                    }
-                                </div>
-                            }
-                            else if (_rebuild_applyResult != null)
+                        <MudStep Title="Risultati" Icon="@Icons.Material.Outlined.CheckCircle">
+                            @if (_rebuild_applyResult != null)
                             {
                                 <MudAlert Severity="@(_rebuild_applyResult.Errors == 0 ? Severity.Success : Severity.Warning)" Class="mb-4">
                                     @if (_rebuild_applyResult.Errors == 0)
@@ -909,8 +845,6 @@
     private Dictionary<Guid, StockReconciliationItemDto> _recon_data = new();
     private int _recon_correctCount = 0;
     private decimal _recon_discrepancyThreshold = 10m;
-    private int _recon_bulkApplyTotal = 0;
-    private int _recon_bulkApplyProcessed = 0;
 
     // Materialised once per calculation to avoid O(N) LINQ re-evaluation on every render.
     private List<StockReconciliationItemDto> _recon_discrepancyCache = new();
@@ -1023,11 +957,19 @@
         if (confirm != true)
             return;
 
+        var state = new PageLoadingState
+        {
+            Message = TranslationService.GetTranslation("stock.bulkApplyReconciled.inProgress", "Applicazione in corso..."),
+            ShowProgressLog = true,
+            ProgressMessages = _bulkApplyProgressMessages,
+            ShowElapsedTime = true,
+            Animation = PageLoadingState.AnimationType.Pulse
+        };
+        var dp = new DialogParameters<PageLoadingSystemDialog> { { x => x.State, state } };
+        var loadingRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _loadingDialogOptions);
         try
         {
             _recon_isBulkApplying = true;
-            _recon_bulkApplyTotal = itemsToApply.Count;
-            _recon_bulkApplyProcessed = 0;
             StateHasChanged();
 
             var totalUpdatedCount = 0;
@@ -1061,7 +1003,7 @@
                         "stock.bulkApplyReconciled.errorWithProgress",
                         "Applicate {0} su {1} correzioni — Errore al batch {2}/{3}: {4}",
                         totalUpdatedCount,
-                        _recon_bulkApplyTotal,
+                        itemsToApply.Count,
                         currentBatch,
                         totalBatches,
                         applyResult?.ErrorMessage ?? "Errore sconosciuto"));
@@ -1070,8 +1012,6 @@
 
                 totalUpdatedCount += applyResult.UpdatedCount;
                 totalMovementsCreated += applyResult.MovementsCreated;
-                _recon_bulkApplyProcessed += batch.Length;
-                StateHasChanged();
             }
 
             AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(
@@ -1089,9 +1029,8 @@
         }
         finally
         {
+            loadingRef.Close();
             _recon_isBulkApplying = false;
-            _recon_bulkApplyTotal = 0;
-            _recon_bulkApplyProcessed = 0;
             StateHasChanged();
         }
     }
@@ -1145,12 +1084,24 @@
     private RebuildMovementsResultDto? _rebuild_previewResult;
     private RebuildMovementsResultDto? _rebuild_applyResult;
 
-    // Progress tracker
-    private readonly List<string> _progressLog = new();
-    private DateTimeOffset _applyStartTime;
-    private CancellationTokenSource? _progressCts;
+    private static readonly DialogOptions _loadingDialogOptions = new()
+    {
+        BackdropClick = false,
+        CloseButton = false,
+        CloseOnEscapeKey = false,
+        Position = DialogPosition.Center,
+    };
 
-    private static readonly string[] _progressMessages =
+    private static readonly string[] _bulkApplyProgressMessages =
+    [
+        "Calcolo aggiustamenti in corso...",
+        "Creazione movimenti di rettifica...",
+        "Aggiornamento giacenze...",
+        "Salvataggio su database...",
+        "Verifica coerenza dati..."
+    ];
+
+    private static readonly string[] _rebuildProgressMessages =
     [
         "Caricamento intestazioni documento...",
         "Verifica movimenti già esistenti...",
@@ -1217,12 +1168,17 @@
         _rebuild_step = 2;
         _rebuild_isLoading = true;
         _rebuild_applyResult = null;
-        _progressLog.Clear();
-        _applyStartTime = DateTimeOffset.UtcNow;
-        _ = StartProgressTrackerAsync().ContinueWith(
-            t => Logger.LogError(t.Exception, "Unexpected error in progress tracker"),
-            TaskContinuationOptions.OnlyOnFaulted);
         StateHasChanged();
+        var state = new PageLoadingState
+        {
+            Message = TranslationService.GetTranslation("rebuildMovements.applying", "Creazione movimenti in corso..."),
+            ShowProgressLog = true,
+            ProgressMessages = _rebuildProgressMessages,
+            ShowElapsedTime = true,
+            Animation = PageLoadingState.AnimationType.Pulse
+        };
+        var dp = new DialogParameters<PageLoadingSystemDialog> { { x => x.State, state } };
+        var loadingRef = await DialogService.ShowAsync<PageLoadingSystemDialog>(string.Empty, dp, _loadingDialogOptions);
         try
         {
             var request = BuildRebuildRequest(dryRun: false);
@@ -1237,7 +1193,7 @@
         }
         finally
         {
-            StopProgressTracker();
+            loadingRef.Close();
             _rebuild_isLoading = false;
         }
     }
@@ -1247,7 +1203,6 @@
         _rebuild_step = 0;
         _rebuild_previewResult = null;
         _rebuild_applyResult = null;
-        _progressLog.Clear();
     }
 
     private RebuildMovementsRequestDto BuildRebuildRequest(bool dryRun)
@@ -1277,35 +1232,6 @@
             ForceRecalculateFromMovements = _rebuild_forceRecalculate
         };
     }
-
-    private async Task StartProgressTrackerAsync()
-    {
-        _progressCts = new CancellationTokenSource();
-        var msgIndex = 0;
-        try
-        {
-            while (!_progressCts.Token.IsCancellationRequested)
-            {
-                await Task.Delay(2500, _progressCts.Token);
-                var msg = _progressMessages[msgIndex % _progressMessages.Length];
-                _progressLog.Insert(0, msg);
-                if (_progressLog.Count > 3)
-                    _progressLog.RemoveAt(3);
-                msgIndex++;
-                await InvokeAsync(StateHasChanged);
-            }
-        }
-        catch (TaskCanceledException) { /* expected */ }
-    }
-
-    private void StopProgressTracker()
-    {
-        _progressCts?.Cancel();
-        _progressCts?.Dispose();
-        _progressCts = null;
-    }
-
-    public void Dispose() => StopProgressTracker();
 
     // ══════════════════════════════════════════════════════════
     // TAB 2 – Snapshot storico
