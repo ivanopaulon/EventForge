@@ -71,7 +71,12 @@ public class StockMovement : AuditableEntity
     public StorageLocation? ToLocation { get; set; }
 
     /// <summary>
-    /// Quantity moved (positive for inbound, negative for outbound).
+    /// Quantity of the movement. Always stored as a positive value.
+    /// The direction (inbound vs. outbound) is determined by <see cref="MovementType"/>,
+    /// <see cref="ToLocationId"/> (destination — set for inbound/transfer-in movements), and
+    /// <see cref="FromLocationId"/> (source — set for outbound/transfer-out movements).
+    /// Legacy rows created before this convention was established may have a negative value;
+    /// use <see cref="Math.Abs(decimal)"/> when summing quantities across mixed history.
     /// </summary>
     [Required(ErrorMessage = "Quantity is required.")]
     [Display(Name = "Quantity", Description = "Quantity moved.")]

@@ -3004,6 +3004,21 @@ public class ProductService(
         return await query.CountAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Number of products processed per <see cref="BulkUpdateProductsAsync"/> database round-trip.
+    /// Keeping batches small avoids long-running transactions and prevents excessive memory pressure
+    /// when a filter matches tens of thousands of products.
+    /// </summary>
+    private const int BulkCatalogUpdateBatchSize = 500;
+
+    /// <summary>
+    /// Updates product catalog fields (VAT rate, UoM, brand, classification, stock parameters, …)
+    /// for all products that match the filters or explicit ID list in <paramref name="dto"/>.
+    /// There is no hard limit on the number of products that can be updated; processing is split
+    /// into batches of <see cref="BulkCatalogUpdateBatchSize"/> to limit memory pressure and keep
+    /// individual DB round-trips short. All batches run inside a single transaction so the overall
+    /// operation is still atomic.
+    /// </summary>
     public async Task<BulkUpdateResult> BulkUpdateProductsAsync(BulkUpdateProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
         var currentTenantId = tenantContext.CurrentTenantId;
@@ -3012,54 +3027,82 @@ public class ProductService(
 
         var query = await BuildBulkFilterQueryAsync(dto, currentTenantId.Value, cancellationToken);
 
-        var products = await query.ToListAsync(cancellationToken);
+        // Fetch only IDs up-front so the filter is evaluated once before any rows are mutated.
+        // This avoids Skip/Take instability that could arise if updated fields overlap with filter predicates.
+        var productIds = await query.Select(p => p.Id).ToListAsync(cancellationToken);
 
-        var result = new BulkUpdateResult { TotalRequested = products.Count };
+        var result = new BulkUpdateResult { TotalRequested = productIds.Count };
+
+        if (productIds.Count == 0)
+            return result;
 
         using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             var now = DateTime.UtcNow;
-            foreach (var product in products)
+
+            for (int batchStart = 0; batchStart < productIds.Count; batchStart += BulkCatalogUpdateBatchSize)
             {
-                try
+                var batchIds = productIds
+                    .Skip(batchStart)
+                    .Take(BulkCatalogUpdateBatchSize)
+                    .ToList();
+
+                var batch = await context.Products
+                    .Where(p => batchIds.Contains(p.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var product in batch)
                 {
-                    if (dto.UnitOfMeasureId.HasValue) product.UnitOfMeasureId = dto.UnitOfMeasureId;
-                    if (dto.VatRateId.HasValue) product.VatRateId = dto.VatRateId;
-                    if (dto.BrandId.HasValue) product.BrandId = dto.BrandId;
-                    if (dto.ModelId.HasValue) product.ModelId = dto.ModelId;
-                    if (dto.CategoryNodeId.HasValue) product.CategoryNodeId = dto.CategoryNodeId;
-                    if (dto.FamilyNodeId.HasValue) product.FamilyNodeId = dto.FamilyNodeId;
-                    if (dto.GroupNodeId.HasValue) product.GroupNodeId = dto.GroupNodeId;
-                    if (dto.Status.HasValue) product.Status = (Data.Entities.Products.ProductStatus)(int)dto.Status.Value;
-                    if (dto.IsVatIncluded.HasValue) product.IsVatIncluded = dto.IsVatIncluded.Value;
-                    if (dto.ReorderPoint.HasValue) product.ReorderPoint = dto.ReorderPoint;
-                    if (dto.SafetyStock.HasValue) product.SafetyStock = dto.SafetyStock;
-                    if (dto.TargetStockLevel.HasValue) product.TargetStockLevel = dto.TargetStockLevel;
-                    if (dto.AverageDailyDemand.HasValue) product.AverageDailyDemand = dto.AverageDailyDemand;
-                    if (dto.PreferredSupplierId.HasValue) product.PreferredSupplierId = dto.PreferredSupplierId;
-                    if (dto.StationId.HasValue) product.StationId = dto.StationId;
+                    try
+                    {
+                        if (dto.UnitOfMeasureId.HasValue) product.UnitOfMeasureId = dto.UnitOfMeasureId;
+                        if (dto.VatRateId.HasValue) product.VatRateId = dto.VatRateId;
+                        if (dto.BrandId.HasValue) product.BrandId = dto.BrandId;
+                        if (dto.ModelId.HasValue) product.ModelId = dto.ModelId;
+                        if (dto.CategoryNodeId.HasValue) product.CategoryNodeId = dto.CategoryNodeId;
+                        if (dto.FamilyNodeId.HasValue) product.FamilyNodeId = dto.FamilyNodeId;
+                        if (dto.GroupNodeId.HasValue) product.GroupNodeId = dto.GroupNodeId;
+                        if (dto.Status.HasValue) product.Status = (Data.Entities.Products.ProductStatus)(int)dto.Status.Value;
+                        if (dto.IsVatIncluded.HasValue) product.IsVatIncluded = dto.IsVatIncluded.Value;
+                        if (dto.ReorderPoint.HasValue) product.ReorderPoint = dto.ReorderPoint;
+                        if (dto.SafetyStock.HasValue) product.SafetyStock = dto.SafetyStock;
+                        if (dto.TargetStockLevel.HasValue) product.TargetStockLevel = dto.TargetStockLevel;
+                        if (dto.AverageDailyDemand.HasValue) product.AverageDailyDemand = dto.AverageDailyDemand;
+                        if (dto.PreferredSupplierId.HasValue) product.PreferredSupplierId = dto.PreferredSupplierId;
+                        if (dto.StationId.HasValue) product.StationId = dto.StationId;
 
-                    product.ModifiedAt = now;
-                    product.ModifiedBy = currentUser;
+                        product.ModifiedAt = now;
+                        product.ModifiedBy = currentUser;
 
-                    result.SuccessCount++;
+                        result.SuccessCount++;
 
-                    logger.LogDebug(
-                        "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}.",
-                        product.Id, product.Name, currentUser);
+                        logger.LogDebug(
+                            "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}.",
+                            product.Id, product.Name, currentUser);
+                    }
+                    catch (Exception ex)
+                    {
+                        result.FailureCount++;
+                        result.Errors.Add(new BulkUpdateError { ProductId = product.Id, ErrorMessage = ex.Message });
+                        logger.LogWarning(ex, "Error updating product {ProductId} during bulk update.", product.Id);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    result.FailureCount++;
-                    result.Errors.Add(new BulkUpdateError { ProductId = product.Id, ErrorMessage = ex.Message });
-                    logger.LogWarning(ex, "Error updating product {ProductId} during bulk update.", product.Id);
-                }
+
+                await context.SaveChangesAsync(cancellationToken);
+
+                // Detach processed entities so the change tracker does not accumulate all rows in
+                // memory across batches.  The transaction remains open — commit happens after all batches.
+                context.ChangeTracker.Clear();
+
+                logger.LogDebug(
+                    "Bulk catalog update: batch {BatchEnd}/{Total} saved.",
+                    Math.Min(batchStart + BulkCatalogUpdateBatchSize, productIds.Count),
+                    productIds.Count);
             }
 
             if (result.SuccessCount > 0)
             {
-                await context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 logger.LogInformation("Bulk catalog update committed: {Success}/{Total} products updated by {User}.",
                     result.SuccessCount, result.TotalRequested, currentUser);
@@ -3067,6 +3110,8 @@ public class ProductService(
             else
             {
                 await transaction.RollbackAsync(cancellationToken);
+                logger.LogWarning("Bulk catalog update: no products were updated (all {Total} failed). Transaction rolled back. User: {User}.",
+                    result.TotalRequested, currentUser);
             }
 
             return result;
