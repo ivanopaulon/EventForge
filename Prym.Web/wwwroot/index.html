@@ -138,11 +138,9 @@
 <body>
     <div id="app">
         <div class="ef-splash">
-            <!-- Brand row: icon logo + text logo inline -->
+            <!-- Brand row: text logo only -->
             <div class="ef-splash-brand-row" role="img" aria-label="PRYM">
-                <img class="ef-splash-icon" src="trace.svg" alt="" aria-hidden="true" />
-                <img class="ef-splash-wordmark ef-splash-wordmark--light" src="logo.svg" alt="" aria-hidden="true" />
-                <img class="ef-splash-wordmark ef-splash-wordmark--dark" src="logoWhite.svg" alt="" aria-hidden="true" />
+                <img class="ef-splash-wordmark" src="logoWhite.svg" alt="" aria-hidden="true" />
             </div>
 
             <!-- Loading phase text + percentage -->
@@ -166,8 +164,96 @@
     <!-- Console filter to suppress harmless Mono runtime diagnostics (must load before Blazor) -->
     <script src="js/console-filter.js"></script>
 
-    <!-- Blazor runtime (must load first) -->
-    <script src="_framework/blazor.webassembly.js"></script>
+    <!-- Blazor runtime bootstrap (deferred until server health check is reachable) -->
+    <script>
+        (function () {
+            const HEALTH_PATH = "api/v1/health";
+            const RETRY_DELAY_MS = 4000;
+            const REQUEST_TIMEOUT_MS = 5000;
+            const PROGRESS_CAP = 95;
+            const PROGRESS_STEP = 5;
+
+            function normalizeUrl(url) {
+                const trimmed = (url || "").trim();
+                if (!trimmed) return "";
+                return trimmed.endsWith("/") ? trimmed : `${trimmed}/`;
+            }
+
+            function resolveServerBaseUrl() {
+                try {
+                    const local = normalizeUrl(localStorage.getItem("ef_server_url"));
+                    if (local) return local;
+                } catch (e) { /* localStorage unavailable */ }
+
+                return normalizeUrl(window.location.origin);
+            }
+
+            function setSplashStatus(text, percent) {
+                document.documentElement.style.setProperty("--blazor-load-percentage-text", `"${text}"`);
+                document.documentElement.style.setProperty("--blazor-load-percentage", `${Math.max(0, Math.min(100, percent))}%`);
+            }
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function isServerReachable(healthUrl) {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+                try {
+                    const response = await fetch(healthUrl, {
+                        method: "GET",
+                        cache: "no-store",
+                        signal: controller.signal
+                    });
+                    return response.ok;
+                } catch {
+                    return false;
+                } finally {
+                    clearTimeout(timeout);
+                }
+            }
+
+            async function waitForServerReady() {
+                const baseUrl = resolveServerBaseUrl();
+                const healthUrl = new URL(HEALTH_PATH, baseUrl).toString();
+                let visualProgress = 0;
+
+                while (true) {
+                    setSplashStatus("Verifica connessione server...", visualProgress);
+
+                    if (await isServerReachable(healthUrl)) {
+                        setSplashStatus("Connessione stabilita, avvio applicazione...", 100);
+                        return;
+                    }
+
+                    visualProgress = Math.min(PROGRESS_CAP, visualProgress + PROGRESS_STEP);
+                    await sleep(RETRY_DELAY_MS);
+                }
+            }
+
+            function loadBlazorRuntime() {
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src = "_framework/blazor.webassembly.js";
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.body.appendChild(script);
+                });
+            }
+
+            (async function bootstrapAfterHealthCheck() {
+                try {
+                    await waitForServerReady();
+                    await loadBlazorRuntime();
+                } catch (error) {
+                    console.error("[PRYM] Bootstrap pre-check failed:", error);
+                    setSplashStatus("Errore inizializzazione. Riprova...", 0);
+                }
+            })();
+        })();
+    </script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 
     <!-- EventForge general-purpose JS interop (theming, Syncfusion CSS swap) -->
