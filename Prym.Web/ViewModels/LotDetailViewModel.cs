@@ -74,6 +74,11 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
     {
         await base.LoadEntityAsync(entityId, ct);
+
+        // When creating a new lot with a pre-set product (e.g. opened from product context),
+        // the base class skips LoadRelatedEntitiesAsync, so we must resolve the product here.
+        if (IsNewEntity && Entity?.ProductId != Guid.Empty)
+            await InitializeSelectedProductAsync(ct);
     }
 
     private async Task InitializeSelectedProductAsync(CancellationToken ct = default)

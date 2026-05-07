@@ -61,10 +61,25 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         await LoadDropdownDataAsync(ct);
     }
 
+    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
+    {
+        await base.LoadEntityAsync(entityId, ct);
+
+        // When creating a new serial with a pre-set product (e.g. opened from product context),
+        // the base class skips LoadRelatedEntitiesAsync, so we must resolve the product and its
+        // lots here so the autocomplete and lot dropdown are pre-populated correctly.
+        if (IsNewEntity && Entity?.ProductId != Guid.Empty)
+            await LoadDropdownDataAsync(ct);
+    }
+
     private async Task LoadDropdownDataAsync(CancellationToken ct = default)
     {
         await InitializeSelectedProductAsync(ct);
-        await RefreshLotsForProductAsync(SelectedProduct?.Id, notifyStateChanged: false, ct);
+
+        // Only preload lots when a product is already selected — loading all lots
+        // (productId: null) is an expensive call on large catalogues.
+        if (SelectedProduct != null)
+            await RefreshLotsForProductAsync(SelectedProduct.Id, notifyStateChanged: false, ct);
     }
 
     private async Task InitializeSelectedProductAsync(CancellationToken ct = default)

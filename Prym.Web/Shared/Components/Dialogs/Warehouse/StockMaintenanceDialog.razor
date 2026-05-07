@@ -213,7 +213,7 @@
                                    Color="Color.Primary"
                                    StartIcon="@Icons.Material.Outlined.Calculate"
                                    OnClick="CalculateReconciliationInDialogAsync"
-                                   Disabled="@_recon_isLoading">
+                                   Disabled="@(_recon_isLoading || _recon_isBulkApplying)">
                             @TranslationService.GetTranslation("stock.reconciliation.calculateNow", "Calcola ora")
                         </MudButton>
                     </div>
@@ -900,6 +900,7 @@
     // ══════════════════════════════════════════════════════════
     // TAB 0 – Riconciliazione
     // ══════════════════════════════════════════════════════════
+    private const int BulkApplyBatchSize = 500;
     private Guid? _recon_warehouseId;
     private bool _recon_isLoading = false;
     private bool _recon_isBulkApplying = false;
@@ -911,9 +912,12 @@
     private int _recon_bulkApplyTotal = 0;
     private int _recon_bulkApplyProcessed = 0;
 
-    private IEnumerable<StockReconciliationItemDto> ReconDiscrepancies =>
-        _recon_data.Values.Where(r => r.Severity != ReconciliationSeverity.Correct);
-    private int ReconDiscrepancyCount => ReconDiscrepancies.Count();
+    // Materialised once per calculation to avoid O(N) LINQ re-evaluation on every render.
+    private List<StockReconciliationItemDto> _recon_discrepancyCache = new();
+    private int _recon_discrepancyCount = 0;
+
+    private IEnumerable<StockReconciliationItemDto> ReconDiscrepancies => _recon_discrepancyCache;
+    private int ReconDiscrepancyCount => _recon_discrepancyCount;
 
     private async Task CalculateReconciliationInDialogAsync()
     {
@@ -938,6 +942,10 @@
             {
                 _recon_data = result.Items.ToDictionary(i => i.StockId);
                 _recon_correctCount = result.Items.Count(i => i.Severity == ReconciliationSeverity.Correct);
+                _recon_discrepancyCache = result.Items
+                    .Where(i => i.Severity != ReconciliationSeverity.Correct)
+                    .ToList();
+                _recon_discrepancyCount = _recon_discrepancyCache.Count;
                 _recon_calculated = true;
             }
         }
@@ -1024,9 +1032,8 @@
 
             var totalUpdatedCount = 0;
             var totalMovementsCreated = 0;
-            const int batchSize = 500;
             var currentBatch = 0;
-            var totalBatches = (int)Math.Ceiling((double)itemsToApply.Count / batchSize);
+            var totalBatches = (int)Math.Ceiling((double)itemsToApply.Count / BulkApplyBatchSize);
             var reconciliationFilters = new StockReconciliationRequestDto
             {
                 WarehouseId = _recon_warehouseId,
@@ -1036,7 +1043,7 @@
                 OnlyWithDiscrepancies = false
             };
 
-            foreach (var batch in itemsToApply.Chunk(batchSize))
+            foreach (var batch in itemsToApply.Chunk(BulkApplyBatchSize))
             {
                 currentBatch++;
                 var applyRequest = new StockReconciliationApplyRequestDto

@@ -37,34 +37,27 @@ public class AuditLogService(
         ArgumentException.ThrowIfNullOrWhiteSpace(operationType);
         ArgumentException.ThrowIfNullOrWhiteSpace(changedBy);
 
-        try
+        var changeLog = new EntityChangeLog
         {
-            var changeLog = new EntityChangeLog
-            {
-                EntityName = entityName,
-                EntityDisplayName = TruncateEntityDisplayName(entityDisplayName),
-                EntityId = entityId,
-                PropertyName = propertyName,
-                OperationType = operationType,
-                OldValue = oldValue,
-                NewValue = newValue,
-                ChangedBy = changedBy,
-                ChangedAt = DateTime.UtcNow
-            };
+            EntityName = entityName,
+            EntityDisplayName = TruncateEntityDisplayName(entityDisplayName),
+            EntityId = entityId,
+            PropertyName = propertyName,
+            OperationType = operationType,
+            OldValue = oldValue,
+            NewValue = newValue,
+            ChangedBy = changedBy,
+            ChangedAt = DateTime.UtcNow
+        };
 
-            _ = context.EntityChangeLogs.Add(changeLog);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = context.EntityChangeLogs.Add(changeLog);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            logger.LogInformation(
-                "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
-                operationType, entityName, entityId, propertyName, changedBy);
+        logger.LogInformation(
+            "Audit log created: {OperationType} on {EntityName} [{EntityId}] property {PropertyName} by {ChangedBy}",
+            operationType, entityName, entityId, propertyName, changedBy);
 
-            return changeLog;
-        }
-        catch
-        {
-            throw;
-        }
+        return changeLog;
     }
 
     private static string? TruncateEntityDisplayName(string? entityDisplayName)
