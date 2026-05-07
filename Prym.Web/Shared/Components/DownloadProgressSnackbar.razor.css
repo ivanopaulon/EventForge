@@ -15,20 +15,27 @@
 .ef-dl-snackbar-header {
     display: flex;
     align-items: center;
-    gap: .5rem;
-    padding: .75rem 1rem .5rem;
+    gap: .4rem;
+    padding: .6rem .75rem .4rem;
 }
 
 .ef-dl-snackbar-body {
-    padding: .25rem 1rem .75rem;
+    padding: .15rem .75rem .6rem;
 }
 
 .ef-dl-snackbar-stats {
     font-size: .78rem;
     color: var(--mud-palette-text-secondary);
-    margin-top: .4rem;
+    margin-top: .25rem;
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    line-height: 1.4;
+}
+
+.ef-dl-snackbar-sep {
+    color: var(--mud-palette-text-disabled);
 }
 
 .ef-dl-restore-btn {

@@ -22,20 +22,14 @@
                 </div>
             }
 
-            @* Header: logo + title + optional subtitle *@
+            @* Header: text logo + optional subtitle *@
             <div class="efo-header">
-                <div class="efo-logo-col">
-                    <img src="trace.svg" width="72" height="72"
-                         class="efo-logo @LogoClass" alt="PRYM logo" />
-                </div>
-                <div class="efo-title-col">
-                    <div class="efo-title">@Title</div>
-                    <div class="efo-hrdiv"></div>
-                    @if (!string.IsNullOrEmpty(Subtitle))
-                    {
-                        <div class="efo-subtitle">@Subtitle</div>
-                    }
-                </div>
+                <img src="logoWhite.svg" class="efo-wordmark @LogoClass" alt="@Title" />
+                <div class="efo-hrdiv"></div>
+                @if (!string.IsNullOrEmpty(Subtitle))
+                {
+                    <div class="efo-subtitle">@Subtitle</div>
+                }
             </div>
 
             @* Body content slot *@
@@ -146,50 +140,28 @@
         flex-shrink: 0;
     }
 
-    /* ── Header: logo (left) + title block (right) ── */
+    /* ── Header: text logo + subtitle (vertical, centred) ── */
     .efo-header {
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         align-items: center;
-        gap: 16px;
-        padding: 20px 24px 16px 20px;
+        gap: 0;
+        padding: 22px 24px 14px;
         flex-shrink: 0;
     }
 
-    .efo-logo-col {
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .efo-logo {
+    .efo-wordmark {
+        height: 28px;
+        width: auto;
         display: block;
         object-fit: contain;
-        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
-    }
-
-    .efo-title-col {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-    }
-
-    .efo-title {
-        color: white;
-        font-size: 1.35rem;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-        line-height: 1.2;
     }
 
     .efo-hrdiv {
         height: 1px;
+        width: 100%;
         background: rgba(255, 255, 255, 0.15);
-        margin: 5px 0 7px 0;
+        margin: 10px 0 8px;
     }
 
     .efo-subtitle {
@@ -197,6 +169,7 @@
         font-size: 0.88rem;
         font-weight: 500;
         line-height: 1.4;
+        text-align: center;
     }
 
     /* ── Body slot ── */
@@ -325,7 +298,7 @@
         color: rgba(255, 255, 255, 0.85) !important;
     }
 
-    /* ── Logo animations ── */
+    /* ── Wordmark animations (gentle opacity pulse — fits horizontal text logo) ── */
     .efo-logo-pulse {
         animation: efo-pulse-blue 1.8s infinite ease-in-out;
     }
@@ -339,21 +312,21 @@
     }
 
     @@keyframes efo-pulse-blue {
-        0%   { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
-        50%  { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(100, 160, 255, 0.6)); }
-        100% { transform: scale(1);    filter: drop-shadow(0 0 10px rgba(100, 160, 255, 0.3)); }
+        0%   { opacity: 0.70; }
+        50%  { opacity: 1.00; }
+        100% { opacity: 0.70; }
     }
 
     @@keyframes efo-pulse-red {
-        0%   { filter: drop-shadow(0 0 8px  rgba(239, 83, 80, 0.3)); transform: scale(1);    }
-        50%  { filter: drop-shadow(0 0 20px rgba(239, 83, 80, 0.7)); transform: scale(1.06); }
-        100% { filter: drop-shadow(0 0 8px  rgba(239, 83, 80, 0.3)); transform: scale(1);    }
+        0%   { opacity: 0.60; filter: brightness(0.9) saturate(0); }
+        50%  { opacity: 1.00; filter: brightness(1.0) saturate(1); }
+        100% { opacity: 0.60; filter: brightness(0.9) saturate(0); }
     }
 
     @@keyframes efo-pulse-green {
-        0%   { filter: drop-shadow(0 0 8px  rgba(102, 187, 106, 0.3)); transform: scale(1);    }
-        50%  { filter: drop-shadow(0 0 24px rgba(102, 187, 106, 0.8)); transform: scale(1.08); }
-        100% { filter: drop-shadow(0 0 8px  rgba(102, 187, 106, 0.3)); transform: scale(1);    }
+        0%   { opacity: 0.70; }
+        50%  { opacity: 1.00; }
+        100% { opacity: 0.70; }
     }
 
     /* ── Mobile ── */
@@ -365,10 +338,7 @@
         }
 
         .efo-header {
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            padding: 16px 16px 12px 16px;
+            padding: 16px 16px 10px;
         }
 
         .efo-body {
@@ -381,6 +351,7 @@
         .efo-logo-pulse-red,
         .efo-logo-pulse-green {
             animation: none !important;
+            opacity: 1 !important;
         }
     }
 </style>

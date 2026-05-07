@@ -6,6 +6,7 @@
 @inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
 @inject ITranslationService TranslationService
+@inject IThemeService ThemeService
 @inject ILogger<Login> Logger
 @implements IDisposable
 
@@ -22,13 +23,10 @@
               role="main"
               Style="@PaperStyle"
               aria-hidden="@_isLoading">
-        <MudStack Row>
-            <MudImage Src="/trace.svg" Width="48" Height="48"></MudImage>
-            <MudText Typo="Typo.h5"
-                     Align="Align.Center">
-                @TranslationService.GetTranslation("auth.login", "PRYM Login")
-            </MudText>
-            <MudSpacer/>
+        <MudStack Row AlignItems="AlignItems.Center" Class="mb-1">
+            <img src="@(ThemeService.IsDarkMode ? "/logoWhite.svg" : "/logo.svg")"
+                 alt="PRYM"
+                 style="height:28px;width:auto" />
         </MudStack>
 
         <!-- Compact login form with improved accessibility -->
@@ -185,6 +183,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        ThemeService.OnThemeChanged += OnThemeChanged;
+
         // Load available tenants for selection (call should be lightweight, cached by browser/service if needed)
         await LoadTenantsAsync();
 
@@ -266,8 +266,11 @@
         }
     }
 
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
     public void Dispose()
     {
+        ThemeService.OnThemeChanged -= OnThemeChanged;
         CancelRetry();
     }
 

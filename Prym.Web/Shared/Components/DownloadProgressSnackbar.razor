@@ -12,45 +12,49 @@
     {
         <div class="ef-dl-snackbar">
             <div class="ef-dl-snackbar-header">
-                <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Color="Color.Primary" Size="Size.Small" />
-                <MudText Typo="Typo.subtitle2" Class="flex-grow-1">Aggiornamento in corso</MudText>
-                @if (progress?.Component != null)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@progress.Component</MudChip>
-                }
-                @if (progress?.Version != null)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">v@progress.Version</MudChip>
-                }
+                <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Color="Color.Primary" Size="Size.Small" Class="me-1" />
+                <MudText Typo="Typo.subtitle2" Class="flex-grow-1 text-truncate">
+                    @if (progress?.Component != null)
+                    {
+                        @($"Aggiornamento: {progress.Component}{(progress.Version != null ? $" v{progress.Version}" : "")}")
+                    }
+                    else
+                    {
+                        @("Aggiornamento in corso")
+                    }
+                </MudText>
                 <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small"
-                               OnClick="@(() => _isHidden = true)" Title="Nascondi" />
+                               OnClick="@(() => _isHidden = true)" Title="Nascondi" Class="ms-1" />
             </div>
             <div class="ef-dl-snackbar-body">
-                <MudText Typo="Typo.caption" Class="d-block mb-1">@TranslatePhase(progress?.Phase)</MudText>
                 <MudProgressLinear Color="Color.Primary"
                                    Value="@(progress?.PercentComplete ?? 0)"
                                    Max="100"
                                    Indeterminate="@(progress?.PercentComplete == null)"
-                                   Rounded="true" Size="Size.Small" />
+                                   Rounded="true" Size="Size.Small" Class="mb-1" />
                 @if (progress != null)
                 {
-                    <div class="ef-dl-snackbar-stats">
-                        <span>
-                            @if (progress.FormattedTotal != null)
-                            {
-                                @($"{progress.FormattedDownloaded} / {progress.FormattedTotal}")
-                            }
-                            else if (progress.FormattedDownloaded != null)
-                            {
-                                @progress.FormattedDownloaded
-                            }
-                        </span>
-                        <span>
-                            @if (progress.FormattedSpeed != null) { <span>@progress.FormattedSpeed</span> }
-                            @if (progress.Eta != null) { <span class="ms-2">ETA @progress.Eta</span> }
-                            @if (progress.PercentComplete != null) { <span class="ms-2">@progress.PercentComplete%</span> }
-                        </span>
-                    </div>
+                    var statParts = new System.Collections.Generic.List<string>();
+                    if (progress.FormattedTotal != null)
+                        statParts.Add($"{progress.FormattedDownloaded} / {progress.FormattedTotal}");
+                    else if (progress.FormattedDownloaded != null)
+                        statParts.Add(progress.FormattedDownloaded);
+                    if (progress.FormattedSpeed != null) statParts.Add(progress.FormattedSpeed);
+                    if (progress.Eta != null) statParts.Add($"ETA {progress.Eta}");
+                    if (progress.PercentComplete != null) statParts.Add($"{progress.PercentComplete}%");
+
+                    if (statParts.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="ef-dl-snackbar-stats">
+                            <span>@TranslatePhase(progress.Phase)</span>
+                            <span class="ef-dl-snackbar-sep"> · </span>
+                            <span>@string.Join(" · ", statParts)</span>
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="ef-dl-snackbar-stats">@TranslatePhase(progress.Phase)</MudText>
+                    }
                 }
             </div>
         </div>
