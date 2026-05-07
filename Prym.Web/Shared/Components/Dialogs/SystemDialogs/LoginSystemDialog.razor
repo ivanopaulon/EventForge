@@ -3,6 +3,7 @@
 @inject IAuthService AuthService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject IServerConfigOverlayService ServerConfigOverlayService
 @inject ILogger<LoginSystemDialog> Logger
 @implements IDisposable
 
@@ -26,6 +27,16 @@
                 <span class="plsd-log-text plsd-log-text-active">@_subtitle</span>
             </div>
         </div>
+        @if (_serverError)
+        {
+            <MudStack Row="true" Justify="Justify.Center" Class="mt-3">
+                <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                            StartIcon="@Icons.Material.Outlined.Settings"
+                            OnClick="OpenServerConfig">
+                    @TranslationService.GetTranslation("auth.configureServer", "Configura server")
+                </PrymButton>
+            </MudStack>
+        }
     }
     else if (_isChangePasswordMode)
     {
@@ -122,6 +133,9 @@
     private bool _changePasswordIsMandatory = false;
     private bool _serverError = false;
     private CancellationTokenSource? _retryCts;
+    private System.Threading.Timer? _countdownTimer;
+    private int _retryCountdown = 0;
+    private const int RetryIntervalSeconds = 5;
     private MudForm _form = null!;
     private readonly LoginRequestDto _loginRequest = new();
     private List<TenantResponseDto> _tenants = new();
@@ -139,6 +153,7 @@
     {
         Color.Success => EFSystemDialog.EFTopBar.Success,
         Color.Error   => EFSystemDialog.EFTopBar.Error,
+        Color.Warning => EFSystemDialog.EFTopBar.Warning,
         _             => EFSystemDialog.EFTopBar.Primary
     };
 
@@ -156,8 +171,10 @@
 
     private async Task LoadTenantsAsync()
     {
+        StopCountdownTimer();
         _isLoadingTenants = true;
         _subtitle = "Connessione al server...";
+        _progressColor = Color.Primary;
         await InvokeAsync(StateHasChanged);
         try
         {
@@ -178,8 +195,19 @@
         }
         finally
         {
-            _isLoadingTenants = false;
-            _subtitle = "Accedi al sistema";
+            if (_serverError)
+            {
+                // Keep the spinner visible and signal the degraded state via the
+                // warning colour; the countdown timer drives the subtitle update.
+                _progressColor = Color.Warning;
+                StartCountdownTimer();
+            }
+            else
+            {
+                _isLoadingTenants = false;
+                _subtitle = "Accedi al sistema";
+                _progressColor = Color.Primary;
+            }
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -365,9 +393,44 @@
         }
     }
 
+    private void StartCountdownTimer()
+    {
+        StopCountdownTimer();
+        Interlocked.Exchange(ref _retryCountdown, RetryIntervalSeconds);
+        UpdateCountdownSubtitle();
+        _countdownTimer = new System.Threading.Timer(_ =>
+        {
+            var remaining = Interlocked.Decrement(ref _retryCountdown);
+            if (remaining < 0) Interlocked.Exchange(ref _retryCountdown, 0);
+            UpdateCountdownSubtitle();
+            _ = InvokeAsync(StateHasChanged);
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private void StopCountdownTimer()
+    {
+        _countdownTimer?.Change(Timeout.Infinite, Timeout.Infinite);
+        _countdownTimer?.Dispose();
+        _countdownTimer = null;
+    }
+
+    private void UpdateCountdownSubtitle()
+    {
+        var remaining = Volatile.Read(ref _retryCountdown);
+        _subtitle = remaining > 0
+            ? $"Server non raggiungibile. Nuovo tentativo tra {remaining}s..."
+            : "Server non raggiungibile. Nuovo tentativo in corso...";
+    }
+
+    private void OpenServerConfig()
+    {
+        ServerConfigOverlayService.Show();
+    }
+
     public void Dispose()
     {
         CancelRetry();
+        StopCountdownTimer();
     }
 }
 
