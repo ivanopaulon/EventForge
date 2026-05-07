@@ -6,7 +6,6 @@
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject ILogger<LotManagement> Logger
-@inject NavigationManager NavigationManager
 
 <PageTitle>@TranslationService.GetTranslation("warehouse.lotManagement", "Gestione Lotti")</PageTitle>
 
@@ -14,7 +13,11 @@
                       @ref="_managementPage"
                       Config="_config"
                       Service="_service"
-                      AdditionalFilter="@(l => string.IsNullOrEmpty(_selectedStatus) || l.Status == _selectedStatus)">
+                      ExternalFilters="_filters"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      OnQuickFilterChanged="@OnQuickFilterChanged"
+                      OnClearFilters="@ClearFiltersAsync">
     <AdditionalToolbarContent>
         <PrymSelect T="string"
                     @bind-Value="_selectedStatus"
@@ -102,17 +105,13 @@
             else if (column.PropertyName == "Status")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
-                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">
-                        @TranslationService.GetTranslation($"warehouse.{ctx.Item.Status.ToLower()}", ctx.Item.Status)
-                    </MudChip>
+                    <LotStatusBadge Status="@ctx.Item.Status" />
                 </MudTd>
             }
             else if (column.PropertyName == "QualityStatus")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.qualityStatus", "Qualità")">
-                    <MudChip T="string" Size="Size.Small" Color="@GetQualityStatusColor(ctx.Item.QualityStatus)">
-                        @TranslationService.GetTranslation($"warehouse.{ctx.Item.QualityStatus.ToLower()}", ctx.Item.QualityStatus)
-                    </MudChip>
+                    <QualityStatusBadge Status="@ctx.Item.QualityStatus" />
                 </MudTd>
             }
             else if (column.PropertyName == "AvailableQuantity")
@@ -182,6 +181,7 @@
     private EntityManagementConfig<LotDto> _config = null!;
 
     private string? _selectedStatus;
+    private readonly Dictionary<string, object?> _filters = new();
 
     protected override void OnInitialized()
     {
@@ -193,10 +193,12 @@
             PageTitleDefault = "Gestione Lotti",
             EntityIcon = Icons.Material.Outlined.QrCode,
             PageRootCssClass = "lot-page-root",
-            BaseRoute = "/warehouse/lots",
+            BaseRoute = "/warehouse/lot-management",
             ExcelFileName = "Lotti",
             SearchPlaceholderKey = "common.search",
             SearchPlaceholderDefault = "Cerca",
+            DefaultPageSize = 25,
+            UseServerSidePaging = true,
             CreateTooltip = "common.create",
             EntityTypeName = "Lot",
             ShowView = true,
@@ -227,30 +229,85 @@
                 new() { Id = "active", Label = "Attivi", Predicate = l => l.Status == "Active", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Solo lotti attivi" },
                 new() { Id = "blocked", Label = "Bloccati", Predicate = l => l.Status == "Blocked", Color = Color.Error, Icon = Icons.Material.Outlined.Block, Description = "Lotti bloccati" },
                 new() { Id = "expired", Label = "Scaduti", Predicate = l => l.Status == "Expired", Color = Color.Default, Icon = Icons.Material.Outlined.EventBusy, Description = "Lotti scaduti" },
+                new() { Id = "recalled", Label = "Richiamati", Predicate = l => l.Status == "Recalled", Color = Color.Error, Icon = Icons.Material.Outlined.Report, Description = "Lotti richiamati" },
                 new() { Id = "expiring_soon", Label = "In Scadenza", Predicate = l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= DateTime.UtcNow.AddDays(30) && l.ExpiryDate.Value > DateTime.UtcNow, Color = Color.Warning, Icon = Icons.Material.Outlined.Warning, Description = "Lotti in scadenza entro 30 giorni" },
                 new() { Id = "recent", Label = "Recenti", Predicate = l => l.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Info, Icon = Icons.Material.Outlined.NewReleases, Description = "Creati negli ultimi 30 giorni" }
             }
         };
     }
 
-    private void OnFilterChanged()
+    private async Task OnFilterChanged()
     {
-        StateHasChanged();
+        if (string.IsNullOrWhiteSpace(_selectedStatus))
+            _filters.Remove("status");
+        else
+            _filters["status"] = _selectedStatus;
+
+        _filters.Remove("expiringSoon");
+        _filters.Remove("recent");
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task OnQuickFilterChanged(QuickFilter<LotDto>? filter)
+    {
+        _selectedStatus = null;
+        _filters.Clear();
+
+        switch (filter?.Id)
+        {
+            case "active":
+                _filters["status"] = "Active";
+                break;
+            case "blocked":
+                _filters["status"] = "Blocked";
+                break;
+            case "expired":
+                _filters["status"] = "Expired";
+                break;
+            case "recalled":
+                _filters["status"] = "Recalled";
+                break;
+            case "expiring_soon":
+                _filters["expiringSoon"] = true;
+                break;
+            case "recent":
+                _filters["recent"] = true;
+                break;
+        }
+
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _selectedStatus = null;
+        _filters.Clear();
+        await _managementPage.RefreshAsync();
     }
 
     private async Task BlockLot(LotDto lot)
     {
-        var confirmed = await DialogService.ShowMessageBoxAsync(
-            TranslationService.GetTranslation("common.confirm", "Conferma"),
-            TranslationService.GetTranslation("warehouse.confirmBlock", "Bloccare il lotto '{0}'?", lot.Code),
-            yesText: TranslationService.GetTranslation("warehouse.block", "Blocca"),
-            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
-
-        if (confirmed == true)
+        var parameters = new DialogParameters
         {
+            [nameof(LotBlockDialog.LotCode)] = lot.Code
+        };
+        var dialog = await DialogService.ShowAsync<LotBlockDialog>(string.Empty, parameters, new DialogOptions
+        {
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true,
+            CloseButton = false
+        });
+        var dialogResult = await dialog.Result;
+
+        if (dialogResult is { Canceled: false })
+        {
+            var reason = (dialogResult.Data as string) ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(reason))
+                reason = TranslationService.GetTranslation("warehouse.defaultBlockReason", "Blocco manuale da operatore");
+
             try
             {
-                var result = await LotService.BlockLotAsync(lot.Id, "Blocked via UI");
+                var result = await LotService.BlockLotAsync(lot.Id, reason);
                 if (result)
                 {
                     AppNotification.ShowSuccess(TranslationService.GetTranslation("warehouse.lotBlocked", "Lotto bloccato"));
@@ -300,21 +357,23 @@
         }
     }
 
-    private Color GetStatusColor(string status) => status switch
+    private async Task OpenDetailDialogAsync(Guid? id)
     {
-        "Active" => Color.Success,
-        "Blocked" => Color.Error,
-        "Expired" => Color.Warning,
-        "Recalled" => Color.Error,
-        _ => Color.Default
-    };
-
-    private Color GetQualityStatusColor(string qualityStatus) => qualityStatus switch
-    {
-        "Approved" => Color.Success,
-        "Rejected" => Color.Error,
-        "Pending" => Color.Warning,
-        "OnHold" => Color.Info,
-        _ => Color.Default
-    };
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(LotDetailDialog.EntityId)] = id
+            };
+            var dialog = await DialogService.ShowAsync<LotDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening lot detail dialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
+    }
 }

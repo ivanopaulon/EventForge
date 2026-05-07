@@ -166,7 +166,12 @@ public interface IWarehouseFacade
     /// <returns>Paginated list of lots</returns>
     /// <exception cref="ArgumentNullException">Thrown when pagination is null</exception>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<LotDto>> GetLotsAsync(PaginationParameters pagination, Guid? productId = null, string? status = null, bool? expiringSoon = null, bool? recent = null, string? searchTerm = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves lot movement history.
+    /// </summary>
+    Task<IEnumerable<StockMovementDto>> GetLotHistoryAsync(Guid lotId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Unblocks a previously blocked lot.
@@ -378,6 +383,55 @@ public interface IWarehouseFacade
     /// <returns>Serial number DTO or null if not found</returns>
     /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
     Task<SerialDto?> GetSerialByIdAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Updates an existing serial number.
+    /// </summary>
+    /// <param name="id">Serial unique identifier</param>
+    /// <param name="updateDto">Serial update data</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Updated serial DTO or null if not found</returns>
+    /// <exception cref="ArgumentNullException">Thrown when updateDto or currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<SerialDto?> UpdateSerialAsync(Guid id, UpdateSerialDto updateDto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Deletes a serial number by its unique identifier.
+    /// </summary>
+    /// <param name="id">Serial unique identifier</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>True if deleted, false if not found</returns>
+    /// <exception cref="ArgumentNullException">Thrown when currentUser is null</exception>
+    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
+    Task<bool> DeleteSerialAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Moves a serial to a new storage location.
+    /// </summary>
+    /// <param name="id">Serial unique identifier</param>
+    /// <param name="newLocationId">Target location ID</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="notes">Optional notes</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>True if moved successfully, false if not found</returns>
+    Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string currentUser, string? notes = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sells a serial to a customer.
+    /// </summary>
+    Task<bool> SellSerialAsync(Guid id, Guid customerId, DateTime saleDate, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns a sold serial to stock.
+    /// </summary>
+    Task<bool> ReturnSerialAsync(Guid id, Guid? newLocationId, string currentUser, string? reason = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Retrieves serial movement history.
+    /// </summary>
+    Task<IEnumerable<StockMovementDto>> GetSerialHistoryAsync(Guid serialId, CancellationToken cancellationToken = default);
 
     #endregion
 

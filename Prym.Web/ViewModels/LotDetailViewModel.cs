@@ -12,6 +12,8 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     private readonly ILotService _lotService;
     private readonly IProductService _productService;
 
+    private const int MaxDropdownItems = 200;
+
     public LotDetailViewModel(
         ILotService lotService,
         IProductService productService,
@@ -25,6 +27,11 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
     // Related entity collections
     public IEnumerable<ProductDto>? Products { get; private set; }
 
+    /// <summary>
+    /// Optional pre-set product ID (used when opening dialog from product context).
+    /// </summary>
+    public Guid? InitialProductId { get; set; }
+
     protected override LotDto CreateNewEntity()
     {
         return new LotDto
@@ -32,7 +39,7 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             Id = Guid.Empty,
             TenantId = Guid.Empty,
             Code = string.Empty,
-            ProductId = Guid.Empty,
+            ProductId = InitialProductId ?? Guid.Empty,
             ProductName = null,
             ProductCode = null,
             ProductionDate = DateTime.UtcNow,
@@ -61,24 +68,30 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
 
     protected override async Task LoadRelatedEntitiesAsync(Guid entityId, CancellationToken ct = default)
     {
+        await EnsureProductsLoadedAsync(ct);
+    }
+
+    public override async Task LoadEntityAsync(Guid entityId, CancellationToken ct = default)
+    {
+        await base.LoadEntityAsync(entityId, ct);
+
         if (IsNewEntity)
         {
-            Products = new List<ProductDto>();
-            return;
+            await EnsureProductsLoadedAsync(ct);
         }
+    }
 
+    private async Task EnsureProductsLoadedAsync(CancellationToken ct = default)
+    {
+        if (Products != null) return;
         try
         {
-            // Load products for dropdown selection
-            var productsResult = await _productService.GetProductsAsync(1, 100);
+            var productsResult = await _productService.GetProductsAsync(1, MaxDropdownItems);
             Products = productsResult?.Items ?? new List<ProductDto>();
-
-            Logger.LogInformation("Loaded {Count} products for lot {Id}",
-                Products.Count(), entityId);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading related entities for lot {Id}", entityId);
+            Logger.LogError(ex, "Error loading products for lot");
             Products = new List<ProductDto>();
         }
     }

@@ -296,13 +296,15 @@ public class WarehouseManagementController(
         [FromQuery] Guid? productId = null,
         [FromQuery] string? status = null,
         [FromQuery] bool? expiringSoon = null,
+        [FromQuery] bool? recent = null,
+        [FromQuery] string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, cancellationToken);
+            var result = await warehouseFacade.GetLotsAsync(pagination, productId, status, expiringSoon, recent, searchTerm, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
@@ -339,6 +341,24 @@ public class WarehouseManagementController(
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while retrieving the lot.", ex);
+        }
+    }
+
+    [HttpGet("lots/{id:guid}/history")]
+    [ProducesResponseType(typeof(IEnumerable<StockMovementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetLotHistory(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.GetLotHistoryAsync(id, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the lot history.", ex);
         }
     }
 
@@ -1189,6 +1209,24 @@ public class WarehouseManagementController(
         }
     }
 
+    [HttpGet("serials/{id:guid}/history")]
+    [ProducesResponseType(typeof(IEnumerable<StockMovementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetSerialHistory(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.GetSerialHistoryAsync(id, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the serial history.", ex);
+        }
+    }
+
     /// <summary>
     /// Creates a new serial.
     /// </summary>
@@ -1259,9 +1297,192 @@ public class WarehouseManagementController(
             logger.LogWarning(ex, "Validation error occurred during request processing");
             return CreateValidationProblemDetails(ex.Message);
         }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogWarning(ex, "Business rule error occurred during request processing");
+            return CreateValidationProblemDetails(ex.Message);
+        }
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while updating the serial status.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates a serial.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="updateDto">Serial update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated serial</returns>
+    [HttpPut("serials/{id:guid}")]
+    [ProducesResponseType(typeof(SerialDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSerial(
+        Guid id,
+        [FromBody] UpdateSerialDto updateDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.UpdateSerialAsync(id, updateDto, GetCurrentUser(), cancellationToken);
+            return result is not null ? Ok(result) : NotFound();
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("already exists"))
+        {
+            return CreateConflictProblem(ex.Message);
+        }
+        catch (ArgumentException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the serial.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a serial.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    [HttpDelete("serials/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DeleteSerial(Guid id, CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.DeleteSerialAsync(id, GetCurrentUser(), cancellationToken);
+            return result ? NoContent() : NotFound();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the serial.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Moves a serial to a new location.
+    /// </summary>
+    /// <param name="id">Serial ID</param>
+    /// <param name="newLocationId">Target location ID</param>
+    /// <param name="notes">Optional notes</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Success status</returns>
+    [HttpPut("serials/{id:guid}/move")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MoveSerial(
+        Guid id,
+        [FromQuery] Guid newLocationId,
+        [FromQuery] string? notes = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (newLocationId == Guid.Empty)
+        {
+            return CreateValidationProblemDetails("newLocationId is required.");
+        }
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.MoveSerialAsync(id, newLocationId, GetCurrentUser(), notes, cancellationToken);
+            return result ? Ok() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while moving the serial.", ex);
+        }
+    }
+
+    [HttpPost("serials/{id:guid}/sell")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> SellSerial(
+        Guid id,
+        [FromBody] SellSerialRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid || request.CustomerId == Guid.Empty)
+        {
+            return CreateValidationProblemDetails("CustomerId is required.");
+        }
+
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.SellSerialAsync(id, request.CustomerId, request.SaleDate, GetCurrentUser(), cancellationToken);
+            return result ? Ok() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while selling the serial.", ex);
+        }
+    }
+
+    [HttpPost("serials/{id:guid}/return")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ReturnSerial(
+        Guid id,
+        [FromBody] ReturnSerialRequestDto? request,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await warehouseFacade.ReturnSerialAsync(
+                id,
+                request?.NewLocationId,
+                GetCurrentUser(),
+                request?.Reason,
+                cancellationToken);
+            return result ? Ok() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while returning the serial.", ex);
         }
     }
 

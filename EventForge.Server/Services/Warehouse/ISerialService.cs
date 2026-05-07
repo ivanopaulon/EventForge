@@ -99,4 +99,5 @@ public interface ISerialService
     /// Gets serial movement history.
     /// </summary>
     Task<IEnumerable<StockMovementDto>> GetSerialHistoryAsync(Guid serialId, CancellationToken cancellationToken = default);
+
 }

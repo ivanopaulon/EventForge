@@ -1,0 +1,45 @@
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.Lock"
+          Title="@TranslationService.GetTranslation("warehouse.blockLot", "Blocca Lotto")"
+          IsProcessing="false"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            @TranslationService.GetTranslation("warehouse.confirmBlock", "Bloccare il lotto '{0}'?", LotCode)
+        </MudText>
+        <MudTextField @bind-Value="_reason"
+                      Label="@TranslationService.GetTranslation("warehouse.blockReason", "Motivo (opzionale)")"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Lines="2"
+                      MaxLength="500"
+                      Immediate="true"
+                      Class="mb-2" />
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Warning"
+                   Variant="Variant.Filled"
+                   OnClick="Submit"
+                   StartIcon="@Icons.Material.Outlined.Lock">
+            @TranslationService.GetTranslation("warehouse.block", "Blocca")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public string LotCode { get; set; } = string.Empty;
+
+    private string _reason = string.Empty;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_reason));
+}

@@ -1,0 +1,359 @@
+@page "/warehouse/serial-management"
+@using Prym.DTOs.Warehouse
+@using Prym.Web.Shared.Components.Warehouse
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@inject ISerialService SerialService
+@inject IAppNotificationService AppNotification
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<SerialManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("warehouse.serialManagement", "Gestione Matricole")</PageTitle>
+
+<EntityManagementPage TEntity="SerialDto"
+                      @ref="_managementPage"
+                      Config="_config"
+                      Service="_service"
+                      ExternalFilters="_filters"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      OnQuickFilterChanged="@OnQuickFilterChanged"
+                      OnClearFilters="@ClearFiltersAsync">
+    <AdditionalToolbarContent>
+        <PrymSelect T="string"
+                    @bind-Value="_selectedStatus"
+                    @bind-Value:after="OnFilterChanged"
+                    Label="@TranslationService.GetTranslation("warehouse.status", "Stato")"
+                    Clearable="true"
+                    Class="ml-2 min-width-150">
+            <MudSelectItem Value="@("Available")">@TranslationService.GetTranslation("serial.available", "Disponibile")</MudSelectItem>
+            <MudSelectItem Value="@("Sold")">@TranslationService.GetTranslation("serial.sold", "Venduto")</MudSelectItem>
+            <MudSelectItem Value="@("Maintenance")">@TranslationService.GetTranslation("serial.inMaintenance", "In Manutenzione")</MudSelectItem>
+            <MudSelectItem Value="@("Defective")">@TranslationService.GetTranslation("serial.defective", "Difettoso")</MudSelectItem>
+            <MudSelectItem Value="@("Scrapped")">@TranslationService.GetTranslation("serial.scrapped", "Rottamata")</MudSelectItem>
+            <MudSelectItem Value="@("Recalled")">@TranslationService.GetTranslation("serial.recalled", "Richiamata")</MudSelectItem>
+        </PrymSelect>
+    </AdditionalToolbarContent>
+
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "SerialNumber")
+            {
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="SerialNumber">
+                    <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.SerialNumber))">@TranslationService.GetTranslation("serial.number", "Matricola")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ProductName")
+            {
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="ProductName">
+                    <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.ProductName ?? string.Empty))">@TranslationService.GetTranslation("field.product", "Prodotto")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "LotCode")
+            {
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="LotCode">
+                    <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.LotCode ?? string.Empty))">@TranslationService.GetTranslation("warehouse.lot", "Lotto")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.Status))">@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "WarrantyExpiry")
+            {
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="WarrantyExpiry">
+                    <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.WarrantyExpiry ?? DateTime.MaxValue))">@TranslationService.GetTranslation("serial.warrantyExpiry", "Scad. Garanzia")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CurrentLocationCode")
+            {
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="CurrentLocationCode">
+                    <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.CurrentLocationCode ?? string.Empty))">@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center" Style="min-width:120px;">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "SerialNumber")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("serial.number", "Matricola")">
+                    <div>
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.SerialNumber</MudText>
+                        @if (!string.IsNullOrEmpty(ctx.Item.Barcode))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.Barcode</MudText>
+                        }
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ProductName")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.product", "Prodotto")">
+                    <div>
+                        <MudText Typo="Typo.body2">@ctx.Item.ProductName</MudText>
+                        @if (!string.IsNullOrEmpty(ctx.Item.ProductCode))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.ProductCode</MudText>
+                        }
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "LotCode")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.lot", "Lotto")">
+                    @if (!string.IsNullOrEmpty(ctx.Item.LotCode))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.QrCode">
+                            @ctx.Item.LotCode
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("warehouse.status", "Stato")">
+                    <SerialStatusBadge Status="@ctx.Item.Status" />
+                </MudTd>
+            }
+            else if (column.PropertyName == "WarrantyExpiry")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("serial.warrantyExpiry", "Scad. Garanzia")">
+                    @if (ctx.Item.WarrantyExpiry.HasValue)
+                    {
+                        var daysLeft = (ctx.Item.WarrantyExpiry.Value - DateTime.Now).Days;
+                        <MudText Typo="Typo.body2" Color="@(daysLeft <= 0 ? Color.Error : daysLeft <= 30 ? Color.Warning : Color.Default)">
+                            @ctx.Item.WarrantyExpiry.Value.ToString("dd/MM/yyyy")
+                        </MudText>
+                        @if (daysLeft <= 0)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error">
+                                @TranslationService.GetTranslation("warehouse.expired", "Scaduta")
+                            </MudText>
+                        }
+                        else if (daysLeft <= 30)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning">
+                                @TranslationService.GetTranslation("warehouse.expireInDays", "{0} giorni", daysLeft)
+                            </MudText>
+                        }
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "CurrentLocationCode")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione")">
+                    @if (!string.IsNullOrEmpty(ctx.Item.CurrentLocationCode))
+                    {
+                        <div>
+                            <MudText Typo="Typo.body2">@ctx.Item.CurrentLocationCode</MudText>
+                            @if (!string.IsNullOrEmpty(ctx.Item.WarehouseName))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@ctx.Item.WarehouseName</MudText>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">-</MudText>
+                    }
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="item">
+        <SerialQuickActions Status="@item.Status"
+                            OnMarkDefective="@(() => MarkSerialDefective(item))"
+                            OnMakeAvailable="@(() => MarkSerialAvailable(item))" />
+    </AdditionalRowActions>
+
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<SerialDto> _managementPage = null!;
+    private IEntityManagementService<SerialDto> _service = null!;
+    private EntityManagementConfig<SerialDto> _config = null!;
+
+    private string? _selectedStatus;
+    private readonly Dictionary<string, object?> _filters = new();
+
+    protected override void OnInitialized()
+    {
+        _service = new SerialManagementService(SerialService);
+        _config = new EntityManagementConfig<SerialDto>
+        {
+            ComponentKey = "SerialManagement",
+            PageTitleKey = "warehouse.serialManagement",
+            PageTitleDefault = "Gestione Matricole",
+            EntityIcon = Icons.Material.Outlined.Numbers,
+            PageRootCssClass = "serial-page-root",
+            BaseRoute = "/warehouse/serial-management",
+            ExcelFileName = "Matricole",
+            SearchPlaceholderKey = "common.search",
+            SearchPlaceholderDefault = "Cerca",
+            DefaultPageSize = 25,
+            UseServerSidePaging = true,
+            CreateTooltip = "common.create",
+            EntityTypeName = "Serial",
+            ShowView = true,
+            ShowEdit = true,
+            ShowDelete = true,
+            ShowAuditLog = false,
+            ShowToggleStatus = false,
+            GetDisplayName = s => s.SerialNumber,
+            GetId = s => s.Id,
+            BreadcrumbItems = new List<BreadcrumbItem>
+            {
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Magazzino", null, disabled: true),
+                new BreadcrumbItem("Gestione Matricole", null, disabled: true)
+            },
+            Columns = new()
+            {
+                new() { PropertyName = "SerialNumber", DisplayName = "Matricola", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "ProductName", DisplayName = "Prodotto", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "LotCode", DisplayName = "Lotto", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "WarrantyExpiry", DisplayName = "Scad. Garanzia", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "CurrentLocationCode", DisplayName = "Ubicazione", IsVisible = true, Order = 5, IsSearchable = false }
+            },
+            QuickFilters = new()
+            {
+                new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutte le matricole" },
+                new() { Id = "available", Label = "Disponibili", Predicate = s => s.Status == "Available", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Matricole disponibili" },
+                new() { Id = "sold", Label = "Vendute", Predicate = s => s.Status == "Sold", Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingCart, Description = "Matricole vendute" },
+                new() { Id = "maintenance", Label = "In Manutenzione", Predicate = s => s.Status == "Maintenance", Color = Color.Warning, Icon = Icons.Material.Outlined.Build, Description = "In manutenzione" },
+                new() { Id = "defective", Label = "Difettose", Predicate = s => s.Status == "Defective", Color = Color.Error, Icon = Icons.Material.Outlined.BugReport, Description = "Matricole difettose" },
+                new() { Id = "scrapped", Label = "Rottamate", Predicate = s => s.Status == "Scrapped", Color = Color.Default, Icon = Icons.Material.Outlined.Archive, Description = "Matricole rottamate" },
+                new() { Id = "recalled", Label = "Richiamate", Predicate = s => s.Status == "Recalled", Color = Color.Error, Icon = Icons.Material.Outlined.Report, Description = "Matricole richiamate" }
+            }
+        };
+    }
+
+    private async Task OnFilterChanged()
+    {
+        if (string.IsNullOrWhiteSpace(_selectedStatus))
+            _filters.Remove("status");
+        else
+            _filters["status"] = _selectedStatus;
+
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task OnQuickFilterChanged(QuickFilter<SerialDto>? filter)
+    {
+        _selectedStatus = null;
+        _filters.Clear();
+
+        switch (filter?.Id)
+        {
+            case "available":
+                _filters["status"] = "Available";
+                break;
+            case "sold":
+                _filters["status"] = "Sold";
+                break;
+            case "maintenance":
+                _filters["status"] = "Maintenance";
+                break;
+            case "defective":
+                _filters["status"] = "Defective";
+                break;
+            case "scrapped":
+                _filters["status"] = "Scrapped";
+                break;
+            case "recalled":
+                _filters["status"] = "Recalled";
+                break;
+        }
+
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _selectedStatus = null;
+        _filters.Clear();
+        await _managementPage.RefreshAsync();
+    }
+
+    private async Task OpenDetailDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(SerialDetailDialog.EntityId)] = id
+            };
+            var dialog = await DialogService.ShowAsync<SerialDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening serial detail dialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+        }
+    }
+
+    private async Task MarkSerialDefective(SerialDto serial)
+    {
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(serial.Id, "Defective");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.markedDefective", "Matricola segnata come difettosa"));
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking serial {SerialId} as defective.", serial.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento dello stato.");
+        }
+    }
+
+    private async Task MarkSerialAvailable(SerialDto serial)
+    {
+        try
+        {
+            var result = await SerialService.UpdateSerialStatusAsync(serial.Id, "Available");
+            if (result)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("serial.madeAvailable", "Matricola rimessa disponibile"));
+                await (_managementPage?.RefreshAsync() ?? Task.CompletedTask);
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("common.error", "Errore"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error making serial {SerialId} available.", serial.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'aggiornamento dello stato.");
+        }
+    }
+
+}

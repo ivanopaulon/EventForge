@@ -1,0 +1,71 @@
+@using Prym.DTOs.Warehouse
+@inject IStorageLocationService StorageLocationService
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.AssignmentReturn"
+          Title="@TranslationService.GetTranslation("serial.return", "Rientro matricola")"
+          IsProcessing="_isLoading"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudGrid Spacing="2">
+            <MudItem xs="12">
+                <MudSelect T="Guid?"
+                           @bind-Value="_locationId"
+                           Label="@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione di rientro")"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Clearable="true">
+                    @foreach (var location in _locations)
+                    {
+                        <MudSelectItem Value="@((Guid?)location.Id)">@location.Code</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_reason"
+                              Label="@TranslationService.GetTranslation("serial.returnReason", "Motivazione")"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="3"
+                              MaxLength="500" />
+            </MudItem>
+        </MudGrid>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Submit">
+            @TranslationService.GetTranslation("serial.return", "Registra rientro")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    private readonly List<StorageLocationDto> _locations = [];
+    private bool _isLoading;
+    private Guid? _locationId;
+    private string? _reason;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var locations = await StorageLocationService.GetStorageLocationsAsync(1, 200);
+            if (locations?.Items != null)
+                _locations.AddRange(locations.Items);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(new ReturnSerialRequestDto
+    {
+        NewLocationId = _locationId,
+        Reason = _reason
+    }));
+}

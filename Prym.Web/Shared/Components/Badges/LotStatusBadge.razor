@@ -1,0 +1,39 @@
+@inject ITranslationService TranslationService
+
+<MudChip T="string" Size="@Size" Color="@GetColor()" Icon="@(ShowIcon ? GetIcon() : string.Empty)">@GetText()</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public string Status { get; set; } = string.Empty;
+    [Parameter] public Size Size { get; set; } = Size.Small;
+    [Parameter] public bool ShowIcon { get; set; } = false;
+
+    private Color GetColor() => Status switch
+    {
+        "Active"   => Color.Success,
+        "Blocked"  => Color.Error,
+        "Expired"  => Color.Warning,
+        "Recalled" => Color.Error,
+        "Consumed" => Color.Default,
+        _          => Color.Default
+    };
+
+    private string GetIcon() => Status switch
+    {
+        "Active"   => Icons.Material.Outlined.CheckCircle,
+        "Blocked"  => Icons.Material.Outlined.Block,
+        "Expired"  => Icons.Material.Outlined.EventBusy,
+        "Recalled" => Icons.Material.Outlined.Report,
+        "Consumed" => Icons.Material.Outlined.Archive,
+        _          => Icons.Material.Outlined.Circle
+    };
+
+    private string GetText() => Status switch
+    {
+        "Active"   => TranslationService.GetTranslation("warehouse.active",   "Attivo"),
+        "Blocked"  => TranslationService.GetTranslation("warehouse.blocked",  "Bloccato"),
+        "Expired"  => TranslationService.GetTranslation("warehouse.expired",  "Scaduto"),
+        "Recalled" => TranslationService.GetTranslation("warehouse.recalled", "Richiamato"),
+        "Consumed" => TranslationService.GetTranslation("warehouse.consumed", "Consumato"),
+        _          => Status
+    };
+}

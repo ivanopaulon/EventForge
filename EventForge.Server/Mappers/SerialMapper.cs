@@ -72,26 +72,23 @@ public static class SerialMapper
     /// </summary>
     public static void UpdateFromDto(this Serial serial, UpdateSerialDto updateDto, string modifiedBy)
     {
-        if (!string.IsNullOrEmpty(updateDto.SerialNumber))
-            serial.SerialNumber = updateDto.SerialNumber;
-        if (updateDto.LotId.HasValue)
-            serial.LotId = updateDto.LotId.Value;
-        if (updateDto.CurrentLocationId.HasValue)
-            serial.CurrentLocationId = updateDto.CurrentLocationId.Value;
-        if (updateDto.ManufacturingDate.HasValue)
-            serial.ManufacturingDate = updateDto.ManufacturingDate.Value;
-        if (updateDto.WarrantyExpiry.HasValue)
-            serial.WarrantyExpiry = updateDto.WarrantyExpiry.Value;
-        if (updateDto.OwnerId.HasValue)
-            serial.OwnerId = updateDto.OwnerId.Value;
-        if (updateDto.SaleDate.HasValue)
-            serial.SaleDate = updateDto.SaleDate.Value;
-        if (!string.IsNullOrEmpty(updateDto.Notes))
-            serial.Notes = updateDto.Notes;
-        if (!string.IsNullOrEmpty(updateDto.Barcode))
-            serial.Barcode = updateDto.Barcode;
-        if (!string.IsNullOrEmpty(updateDto.RfidTag))
-            serial.RfidTag = updateDto.RfidTag;
+        serial.SerialNumber = updateDto.SerialNumber.Trim();
+        serial.LotId = updateDto.LotId;
+        serial.CurrentLocationId = updateDto.CurrentLocationId;
+        serial.ManufacturingDate = updateDto.ManufacturingDate;
+        serial.WarrantyExpiry = updateDto.WarrantyExpiry;
+        serial.OwnerId = updateDto.OwnerId;
+        serial.SaleDate = updateDto.SaleDate;
+        serial.Notes = string.IsNullOrWhiteSpace(updateDto.Notes) ? null : updateDto.Notes.Trim();
+        serial.Barcode = string.IsNullOrWhiteSpace(updateDto.Barcode) ? null : updateDto.Barcode.Trim();
+        serial.RfidTag = string.IsNullOrWhiteSpace(updateDto.RfidTag) ? null : updateDto.RfidTag.Trim();
+
+        if (!string.IsNullOrWhiteSpace(updateDto.Status) &&
+            Enum.TryParse<SerialStatus>(updateDto.Status, out var status))
+        {
+            serial.Status = status;
+        }
+
         if (updateDto.IsActive.HasValue)
             serial.IsActive = updateDto.IsActive.Value;
 
