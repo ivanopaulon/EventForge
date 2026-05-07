@@ -12,45 +12,47 @@
     {
         <div class="ef-dl-snackbar">
             <div class="ef-dl-snackbar-header">
-                <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Color="Color.Primary" Size="Size.Small" />
-                <MudText Typo="Typo.subtitle2" Class="flex-grow-1">Aggiornamento in corso</MudText>
-                @if (progress?.Component != null)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">@progress.Component</MudChip>
-                }
-                @if (progress?.Version != null)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">v@progress.Version</MudChip>
-                }
+                <MudIcon Icon="@Icons.Material.Filled.SystemUpdate" Color="Color.Primary" Size="Size.Small" Class="me-1" />
+                <MudText Typo="Typo.subtitle2" Class="flex-grow-1 text-truncate">
+                    @if (progress?.Component != null)
+                    {
+                        @($"Aggiornamento: {progress.Component}{(progress.Version != null ? $" v{progress.Version}" : "")}")
+                    }
+                    else
+                    {
+                        @("Aggiornamento in corso")
+                    }
+                </MudText>
                 <MudIconButton Icon="@Icons.Material.Filled.VisibilityOff" Size="Size.Small"
-                               OnClick="@(() => _isHidden = true)" Title="Nascondi" />
+                               OnClick="@(() => _isHidden = true)" Title="Nascondi" Class="ms-1" />
             </div>
             <div class="ef-dl-snackbar-body">
-                <MudText Typo="Typo.caption" Class="d-block mb-1">@TranslatePhase(progress?.Phase)</MudText>
                 <MudProgressLinear Color="Color.Primary"
                                    Value="@(progress?.PercentComplete ?? 0)"
                                    Max="100"
                                    Indeterminate="@(progress?.PercentComplete == null)"
-                                   Rounded="true" Size="Size.Small" />
+                                   Rounded="true" Size="Size.Small" Class="mb-1" />
                 @if (progress != null)
                 {
-                    <div class="ef-dl-snackbar-stats">
-                        <span>
-                            @if (progress.FormattedTotal != null)
-                            {
-                                @($"{progress.FormattedDownloaded} / {progress.FormattedTotal}")
-                            }
-                            else if (progress.FormattedDownloaded != null)
-                            {
-                                @progress.FormattedDownloaded
-                            }
-                        </span>
-                        <span>
-                            @if (progress.FormattedSpeed != null) { <span>@progress.FormattedSpeed</span> }
-                            @if (progress.Eta != null) { <span class="ms-2">ETA @progress.Eta</span> }
-                            @if (progress.PercentComplete != null) { <span class="ms-2">@progress.PercentComplete%</span> }
-                        </span>
-                    </div>
+                    <MudText Typo="Typo.caption" Class="ef-dl-snackbar-stats">
+                        <span>@TranslatePhase(progress.Phase)</span>
+                        @if (progress.FormattedDownloaded != null || progress.FormattedTotal != null ||
+                             progress.FormattedSpeed != null || progress.Eta != null || progress.PercentComplete != null)
+                        {
+                            <span class="ef-dl-snackbar-sep"> · </span>
+                        }
+                        @if (progress.FormattedTotal != null)
+                        {
+                            <span>@progress.FormattedDownloaded / @progress.FormattedTotal</span>
+                        }
+                        else if (progress.FormattedDownloaded != null)
+                        {
+                            <span>@progress.FormattedDownloaded</span>
+                        }
+                        @if (progress.FormattedSpeed != null) { <span class="ef-dl-snackbar-sep"> · </span><span>@progress.FormattedSpeed</span> }
+                        @if (progress.Eta != null) { <span class="ef-dl-snackbar-sep"> · </span><span>ETA @progress.Eta</span> }
+                        @if (progress.PercentComplete != null) { <span class="ef-dl-snackbar-sep"> · </span><span>@progress.PercentComplete%</span> }
+                    </MudText>
                 }
             </div>
         </div>

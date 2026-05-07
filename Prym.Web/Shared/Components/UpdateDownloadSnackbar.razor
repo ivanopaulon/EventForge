@@ -20,92 +20,78 @@
 {
     <div class="ef-download-snackbar @(_progress.IsManualInstall == true ? "ef-download-snackbar--manual" : "ef-download-snackbar--auto")">
 
-        @* ── Icon + title ── *@
+        @* ── Header ── *@
         <div class="ef-download-snackbar__header">
             @if (_isAwaiting)
             {
-                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="me-1" />
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" Class="me-1 flex-shrink-0" />
             }
             else
             {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" Class="me-1" />
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" Class="me-1 flex-shrink-0" />
             }
-            <MudText Typo="Typo.body2" Class="fw-semibold flex-grow-1">
-                @if (_isAwaiting)
-                {
-                    @((_progress.IsManualInstall == true ? "Scaricato" : "In attesa finestra") + @$" — {_progress.Component} v{_progress.Version}")
-                }
-                else
-                {
-                    @($"Pacchetto in arrivo — {_progress.Component} v{_progress.Version}")
-                }
+            <MudText Typo="Typo.body2" Class="fw-semibold flex-grow-1 text-truncate">
+                @($"{_progress.Component} v{_progress.Version}")
             </MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Dismiss"
-                           Class="ms-1" aria-label="Chiudi" />
-        </div>
-
-        @* ── Body *@
-        <div class="ef-download-snackbar__body">
-
-            @* Mode chip *@
             @if (_progress.IsManualInstall == true)
             {
-                <MudChip T="string" Size="Size.Small" Color="Color.Warning"
-                         Icon="@Icons.Material.Outlined.PanTool" Text="Installazione manuale" Class="me-2" />
+                <span class="ef-download-snackbar__mode-badge ef-download-snackbar__mode-badge--manual">manuale</span>
             }
             else
             {
-                <MudChip T="string" Size="Size.Small" Color="Color.Success"
-                         Icon="@Icons.Material.Outlined.FlashOn" Text="Installazione automatica" Class="me-2" />
+                <span class="ef-download-snackbar__mode-badge ef-download-snackbar__mode-badge--auto">automatico</span>
             }
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="Dismiss"
+                           Class="ms-1 flex-shrink-0" aria-label="Chiudi" />
+        </div>
 
-            @* Maintenance window info for auto mode *@
-            @if (_progress.IsManualInstall != true && !string.IsNullOrWhiteSpace(_progress.NextWindowAt))
+        @* ── Status line ── *@
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ef-download-snackbar__status">
+            @if (_isAwaiting)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    Prossima finestra: @_progress.NextWindowAt
-                </MudText>
-            }
-
-            @* Manual package: switch + install button *@
-            @if (_progress.IsManualInstall == true)
-            {
-                <div class="ef-download-snackbar__manual-row mt-1">
-                    <MudSwitch T="bool"
-                               @bind-Value="_autoInstallOnComplete"
-                               Color="Color.Primary"
-                               Label="Installa al termine del download"
-                               Size="Size.Small" />
-                </div>
-
-                @if (_isAwaiting)
+                @(_progress.IsManualInstall == true ? "Download completato — in attesa di installazione" : "Download completato")
+                @if (!string.IsNullOrWhiteSpace(_progress.NextWindowAt))
                 {
-                    @if (_autoInstallOnComplete)
-                    {
-                        @* Switch was ON when download completed → trigger and close *@
-                        @* (handled in OnUpdateProgress; this branch should not be visible long) *@
-                        <MudText Typo="Typo.caption" Color="Color.Success" Class="mt-1">
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Success" Class="me-1" />
-                            Avvio installazione…
-                        </MudText>
-                    }
-                    else
-                    {
-                        <div class="d-flex align-items-center gap-2 mt-1">
-                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                                       StartIcon="@Icons.Material.Filled.PlayArrow"
-                                       OnClick="InstallNowAsync"
-                                       Disabled="@_isInstalling">
-                                @(_isInstalling ? "Avvio…" : "Installa ora")
-                            </MudButton>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                oppure apri il dialogo aggiornamenti
-                            </MudText>
-                        </div>
-                    }
+                    <span> · Prossima finestra: @_progress.NextWindowAt</span>
                 }
             }
-        </div>
+            else
+            {
+                @("Pacchetto in arrivo…")
+            }
+        </MudText>
+
+        @* ── Actions (manual only) ── *@
+        @if (_progress.IsManualInstall == true)
+        {
+            <div class="ef-download-snackbar__actions">
+                <MudSwitch T="bool"
+                           @bind-Value="_autoInstallOnComplete"
+                           Color="Color.Primary"
+                           Label="Installa al termine"
+                           Size="Size.Small" />
+
+                @if (_isAwaiting && !_autoInstallOnComplete)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.PlayArrow"
+                               FullWidth="true"
+                               OnClick="InstallNowAsync"
+                               Disabled="@_isInstalling"
+                               Class="mt-1">
+                        @(_isInstalling ? "Avvio…" : "Installa ora")
+                    </MudButton>
+                }
+                @if (_isAwaiting && _autoInstallOnComplete)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Success" Class="mt-1 d-flex align-center gap-1">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Success" />
+                        Avvio installazione…
+                    </MudText>
+                }
+            </div>
+        }
+
     </div>
 }
 
@@ -115,12 +101,12 @@
         bottom: 80px;
         right: 16px;
         z-index: 1300;
-        width: min(400px, calc(100vw - 32px));
+        width: min(360px, calc(100vw - 32px));
         background: var(--mud-palette-surface);
         border: 1px solid var(--mud-palette-lines-default);
-        border-radius: 8px;
+        border-radius: 10px;
         box-shadow: 0 4px 16px rgba(0,0,0,.18);
-        padding: 10px 12px;
+        padding: 10px 12px 10px;
         animation: ef-snackbar-in .2s ease-out;
     }
 
@@ -136,18 +122,40 @@
         display: flex;
         align-items: center;
         gap: 4px;
+        margin-bottom: 3px;
+    }
+
+    .ef-download-snackbar__status {
+        display: block;
         margin-bottom: 6px;
+        font-size: .78rem;
     }
 
-    .ef-download-snackbar__body {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 4px;
+    .ef-download-snackbar__mode-badge {
+        font-size: .68rem;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
 
-    .ef-download-snackbar__manual-row {
-        width: 100%;
+    .ef-download-snackbar__mode-badge--manual {
+        background: rgba(255, 152, 0, 0.15);
+        color: var(--mud-palette-warning);
+        border: 1px solid rgba(255, 152, 0, 0.35);
+    }
+
+    .ef-download-snackbar__mode-badge--auto {
+        background: rgba(102, 187, 106, 0.15);
+        color: var(--mud-palette-success);
+        border: 1px solid rgba(102, 187, 106, 0.35);
+    }
+
+    .ef-download-snackbar__actions {
+        border-top: 1px solid var(--mud-palette-lines-default);
+        padding-top: 6px;
+        margin-top: 2px;
     }
 
     @@keyframes ef-snackbar-in {
