@@ -1,4 +1,5 @@
 using Prym.DTOs.Warehouse;
+using System.Globalization;
 
 namespace Prym.Web.Services;
 
@@ -117,27 +118,28 @@ public class StockReconciliationService(
 
     private static string BuildQueryString(StockReconciliationRequestDto request)
     {
-        List<string> queryParams = [];
+        List<KeyValuePair<string, string>> queryParams = [];
 
         if (request.FromDate.HasValue)
-            queryParams.Add($"fromDate={request.FromDate.Value:O}");
+            queryParams.Add(new("fromDate", request.FromDate.Value.ToString("O", CultureInfo.InvariantCulture)));
         if (request.ToDate.HasValue)
-            queryParams.Add($"toDate={request.ToDate.Value:O}");
+            queryParams.Add(new("toDate", request.ToDate.Value.ToString("O", CultureInfo.InvariantCulture)));
         if (request.WarehouseId.HasValue)
-            queryParams.Add($"warehouseId={request.WarehouseId.Value}");
+            queryParams.Add(new("warehouseId", request.WarehouseId.Value.ToString()));
         if (request.LocationId.HasValue)
-            queryParams.Add($"locationId={request.LocationId.Value}");
+            queryParams.Add(new("locationId", request.LocationId.Value.ToString()));
         if (request.ProductId.HasValue)
-            queryParams.Add($"productId={request.ProductId.Value}");
+            queryParams.Add(new("productId", request.ProductId.Value.ToString()));
         if (request.StartingQuantity.HasValue)
-            queryParams.Add($"startingQuantity={request.StartingQuantity.Value}");
+            queryParams.Add(new("startingQuantity", request.StartingQuantity.Value.ToString(CultureInfo.InvariantCulture)));
 
-        queryParams.Add($"includeDocuments={request.IncludeDocuments.ToString().ToLowerInvariant()}");
-        queryParams.Add($"includeInventories={request.IncludeInventories.ToString().ToLowerInvariant()}");
-        queryParams.Add($"includeStockMovements={request.IncludeStockMovements.ToString().ToLowerInvariant()}");
-        queryParams.Add($"onlyWithDiscrepancies={request.OnlyWithDiscrepancies.ToString().ToLowerInvariant()}");
-        queryParams.Add($"discrepancyThreshold={request.DiscrepancyThreshold}");
+        queryParams.Add(new("includeDocuments", request.IncludeDocuments.ToString().ToLowerInvariant()));
+        queryParams.Add(new("includeInventories", request.IncludeInventories.ToString().ToLowerInvariant()));
+        queryParams.Add(new("includeStockMovements", request.IncludeStockMovements.ToString().ToLowerInvariant()));
+        queryParams.Add(new("onlyWithDiscrepancies", request.OnlyWithDiscrepancies.ToString().ToLowerInvariant()));
+        queryParams.Add(new("discrepancyThreshold", request.DiscrepancyThreshold.ToString(CultureInfo.InvariantCulture)));
 
-        return string.Join("&", queryParams);
+        return string.Join("&", queryParams.Select(p =>
+            $"{Uri.EscapeDataString(p.Key)}={Uri.EscapeDataString(p.Value)}"));
     }
 }

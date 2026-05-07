@@ -10,6 +10,7 @@ namespace Prym.DTOs.Warehouse
         /// <summary>
         /// Specific stock ids to reconcile in the current batch.
         /// </summary>
+        [Required]
         [MinLength(1)]
         public List<Guid> StockIds { get; set; } = new();
 

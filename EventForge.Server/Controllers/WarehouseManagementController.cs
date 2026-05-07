@@ -3469,13 +3469,28 @@ public class WarehouseManagementController(
                 return BadRequest(ModelState);
             }
 
-            if (request.StockIds.Count == 0)
+            if (request.Filters is null)
+            {
+                return BadRequest(new { message = "Filters payload is required." });
+            }
+
+            if (request.StockIds is null || request.StockIds.Count == 0)
             {
                 return BadRequest(new { message = "At least one stock id is required." });
             }
 
+            var requestedStockIds = request.StockIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (requestedStockIds.Count == 0)
+            {
+                return BadRequest(new { message = "At least one non-empty stock id is required." });
+            }
+
             var result = await warehouseFacade.CalculateReconciledStockForStocksAsync(
-                request.StockIds,
+                requestedStockIds,
                 request.Filters,
                 cancellationToken);
 
