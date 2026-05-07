@@ -397,29 +397,37 @@
     {
         StopCountdownTimer();
         Interlocked.Exchange(ref _retryCountdown, RetryIntervalSeconds);
-        UpdateCountdownSubtitle();
+        UpdateCountdownSubtitle(RetryIntervalSeconds);
         _countdownTimer = new System.Threading.Timer(_ =>
         {
             var remaining = Interlocked.Decrement(ref _retryCountdown);
-            if (remaining < 0) Interlocked.Exchange(ref _retryCountdown, 0);
-            UpdateCountdownSubtitle();
+            if (remaining < 0)
+            {
+                Interlocked.Exchange(ref _retryCountdown, 0);
+                remaining = 0;
+            }
+            UpdateCountdownSubtitle(remaining);
             _ = InvokeAsync(StateHasChanged);
         }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
     private void StopCountdownTimer()
     {
+        // Change() stops pending callbacks before Dispose() to avoid a callback
+        // firing concurrently with disposal — this is the established pattern in
+        // the codebase (see PageLoadingSystemDialog.StopElapsedTimer).
         _countdownTimer?.Change(Timeout.Infinite, Timeout.Infinite);
         _countdownTimer?.Dispose();
         _countdownTimer = null;
     }
 
-    private void UpdateCountdownSubtitle()
+    private void UpdateCountdownSubtitle(int remaining)
     {
-        var remaining = Volatile.Read(ref _retryCountdown);
         _subtitle = remaining > 0
-            ? $"Server non raggiungibile. Nuovo tentativo tra {remaining}s..."
-            : "Server non raggiungibile. Nuovo tentativo in corso...";
+            ? TranslationService.GetTranslation("auth.serverUnreachableCountdown",
+                $"Server non raggiungibile. Nuovo tentativo tra {remaining}s...")
+            : TranslationService.GetTranslation("auth.serverUnreachableRetrying",
+                "Server non raggiungibile. Nuovo tentativo in corso...");
     }
 
     private void OpenServerConfig()
