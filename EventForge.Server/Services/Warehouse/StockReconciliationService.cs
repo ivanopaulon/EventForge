@@ -100,8 +100,17 @@ public class StockReconciliationService(
 
         if (stockIds is { Count: > 0 })
         {
-            // Defensive de-duplication: client batches should already be unique, but the API tolerates duplicates safely.
-            var stockIdList = stockIds.Distinct().ToList();
+            // Defensive sanitization: tolerate duplicates and empty identifiers from client payloads.
+            var stockIdList = stockIds
+                .Distinct()
+                .Where(id => id != Guid.Empty)
+                .ToList();
+
+            if (stockIdList.Count == 0)
+            {
+                return stocksQuery.Where(_ => false);
+            }
+
             stocksQuery = stocksQuery.Where(s => stockIdList.Contains(s.Id));
         }
 

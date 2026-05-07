@@ -3479,18 +3479,8 @@ public class WarehouseManagementController(
                 return BadRequest(new { message = "At least one stock id is required." });
             }
 
-            var requestedStockIds = request.StockIds
-                .Where(id => id != Guid.Empty)
-                .Distinct()
-                .ToList();
-
-            if (requestedStockIds.Count == 0)
-            {
-                return BadRequest(new { message = "At least one non-empty stock id is required." });
-            }
-
             var result = await warehouseFacade.CalculateReconciledStockForStocksAsync(
-                requestedStockIds,
+                request.StockIds,
                 request.Filters,
                 cancellationToken);
 
