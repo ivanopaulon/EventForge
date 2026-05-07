@@ -118,7 +118,9 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
             };
             if (!Products.Any(p => p.Id == SelectedProduct.Id))
             {
-                Products = Products.Append(SelectedProduct).ToList();
+                var products = Products.ToList();
+                products.Add(SelectedProduct);
+                Products = products;
             }
         }
         catch (Exception ex)
@@ -132,7 +134,9 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
             };
             if (!Products.Any(p => p.Id == SelectedProduct.Id))
             {
-                Products = Products.Append(SelectedProduct).ToList();
+                var products = Products.ToList();
+                products.Add(SelectedProduct);
+                Products = products;
             }
         }
     }
@@ -159,7 +163,9 @@ public class SerialDetailViewModel : BaseEntityDetailViewModel<SerialDto, Create
         SelectedProduct = product;
         if (product is not null && !Products.Any(p => p.Id == product.Id))
         {
-            Products = Products.Append(product).ToList();
+            var products = Products.ToList();
+            products.Add(product);
+            Products = products;
         }
 
         if (Entity == null)

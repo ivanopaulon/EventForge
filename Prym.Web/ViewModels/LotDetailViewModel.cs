@@ -120,7 +120,9 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             };
             if (!Products.Any(p => p.Id == SelectedProduct.Id))
             {
-                Products = Products.Append(SelectedProduct).ToList();
+                var products = Products.ToList();
+                products.Add(SelectedProduct);
+                Products = products;
             }
         }
         catch (Exception ex)
@@ -134,7 +136,9 @@ public class LotDetailViewModel : BaseEntityDetailViewModel<LotDto, CreateLotDto
             };
             if (!Products.Any(p => p.Id == SelectedProduct.Id))
             {
-                Products = Products.Append(SelectedProduct).ToList();
+                var products = Products.ToList();
+                products.Add(SelectedProduct);
+                Products = products;
             }
         }
     }
