@@ -3025,6 +3025,18 @@ public class ProductService(
         if (!currentTenantId.HasValue)
             throw new InvalidOperationException("Tenant context is required for bulk product operations.");
 
+        // Validate that at least one field is specified for update.
+        // Without this guard the operation would open a transaction, load all matching products,
+        // call SaveChangesAsync (writing nothing) and commit — a no-op with real DB cost.
+        if (!dto.UnitOfMeasureId.HasValue && !dto.VatRateId.HasValue && !dto.BrandId.HasValue &&
+            !dto.ModelId.HasValue && !dto.CategoryNodeId.HasValue && !dto.FamilyNodeId.HasValue &&
+            !dto.GroupNodeId.HasValue && !dto.Status.HasValue && !dto.IsVatIncluded.HasValue &&
+            !dto.ReorderPoint.HasValue && !dto.SafetyStock.HasValue && !dto.TargetStockLevel.HasValue &&
+            !dto.AverageDailyDemand.HasValue && !dto.PreferredSupplierId.HasValue && !dto.StationId.HasValue)
+        {
+            throw new ArgumentException("At least one field must be specified for bulk catalog update.");
+        }
+
         var query = await BuildBulkFilterQueryAsync(dto, currentTenantId.Value, cancellationToken);
 
         // Fetch only IDs up-front so the filter is evaluated once before any rows are mutated.
@@ -3078,8 +3090,8 @@ public class ProductService(
                         result.SuccessCount++;
 
                         logger.LogDebug(
-                            "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}.",
-                            product.Id, product.Name, currentUser);
+                            "Bulk catalog update: Product {ProductId} ({ProductName}) updated by {User}. Reason: {Reason}.",
+                            product.Id, product.Name, currentUser, dto.Reason ?? "N/A");
                     }
                     catch (Exception ex)
                     {
@@ -3104,8 +3116,8 @@ public class ProductService(
             if (result.SuccessCount > 0)
             {
                 await transaction.CommitAsync(cancellationToken);
-                logger.LogInformation("Bulk catalog update committed: {Success}/{Total} products updated by {User}.",
-                    result.SuccessCount, result.TotalRequested, currentUser);
+                logger.LogInformation("Bulk catalog update committed: {Success}/{Total} products updated by {User}. Reason: {Reason}.",
+                    result.SuccessCount, result.TotalRequested, currentUser, dto.Reason ?? "N/A");
             }
             else
             {
@@ -3120,8 +3132,12 @@ public class ProductService(
         {
             await transaction.RollbackAsync(cancellationToken);
             result.RolledBack = true;
-            logger.LogError(ex, "Bulk catalog update rolled back. {Success} updates were lost. User: {User}.",
+            logger.LogError(ex, "Bulk catalog update rolled back. {Lost} updates were lost. User: {User}.",
                 result.SuccessCount, currentUser);
+            // Reset counters to reflect actual DB state: the transaction was rolled back,
+            // so no products were persisted regardless of how many were processed in memory.
+            result.SuccessCount = 0;
+            result.FailureCount = result.TotalRequested;
             return result;
         }
     }
