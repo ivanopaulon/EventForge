@@ -133,6 +133,7 @@ namespace Prym.Web.Services
             {
                 // [ADR] Fire-and-forget: async body must have its own catch(Exception) so that
                 // any unobserved exception is logged rather than crashing the finalizer thread.
+                // See ClientLogService.OnFlushTimer for the full architectural decision rationale.
                 _ = Task.Run(async () =>
                 {
                     try

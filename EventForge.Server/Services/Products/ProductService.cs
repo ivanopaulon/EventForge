@@ -1234,9 +1234,10 @@ public class ProductService(
             throw new ArgumentException("A product cannot be a component of itself.");
 
         // Check if bundle product exists and is actually a bundle.
-        // Note: a bundle component may itself be a bundle — nested bundles are allowed
-        // by design so that kits can include sub-kits. Circular references are prevented
-        // only at the direct self-reference level above.
+        // Note: a bundle component may itself be a bundle — nested bundles (kits containing sub-kits)
+        // are allowed by design. Only direct self-reference (A contains A) is blocked above.
+        // Indirect circular references (A→B→A) are not detected here; callers must enforce
+        // cycle-free hierarchies through UI constraints or a separate graph check if required.
         var bundleProduct = await context.Products
             .AsNoTracking()
             .Where(p => p.Id == createProductBundleItemDto.BundleProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted)
@@ -3108,7 +3109,8 @@ public class ProductService(
         {
             await transaction.RollbackAsync(cancellationToken);
             result.RolledBack = true;
-            logger.LogError(ex, "Bulk catalog update rolled back. {Lost} updates were lost. User: {User}.",
+            // Log before resetting counters so the message reflects how many in-memory mutations were abandoned.
+            logger.LogError(ex, "Bulk catalog update rolled back. {RolledBackCount} in-memory mutations were discarded. User: {User}.",
                 result.SuccessCount, currentUser);
             // Reset counters to reflect actual DB state: the transaction was rolled back,
             // so no products were persisted regardless of how many were processed in memory.
