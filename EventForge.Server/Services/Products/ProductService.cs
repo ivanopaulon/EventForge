@@ -3019,6 +3019,14 @@ public class ProductService(
     /// individual DB round-trips short. All batches run inside a single transaction so the overall
     /// operation is still atomic.
     /// </summary>
+    /// <remarks>
+    /// <b>ProductIds vs. filter predicates</b>: when <see cref="BulkUpdateProductsDto.ProductIds"/>
+    /// is non-null and non-empty the explicit ID list is used exclusively (filter predicates are
+    /// ignored). An <em>empty</em> <see cref="BulkUpdateProductsDto.ProductIds"/> list (Count == 0)
+    /// is treated the same as a null list — i.e. filter predicates are applied instead.  Callers
+    /// must not pass an empty list expecting zero products to be updated; pass null or omit the
+    /// property to activate filter-predicate mode.
+    /// </remarks>
     public async Task<BulkUpdateResult> BulkUpdateProductsAsync(BulkUpdateProductsDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
         var currentTenantId = tenantContext.CurrentTenantId;
