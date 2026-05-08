@@ -97,7 +97,7 @@ public class FontPreferencesService(
             {
                 await profileService.UpdateDisplayPreferencesAsync(preferences);
             }
-            catch (HttpRequestException ex)
+            catch (Exception ex)
             {
                 // Background sync failed, not critical (already logged by HttpClientService)
                 logger.LogDebug(ex, "Background sync font preferences failed");
