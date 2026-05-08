@@ -131,8 +131,19 @@ namespace Prym.Web.Services
 
             try
             {
-                // Execute the refresh asynchronously but don't await to avoid blocking the timer thread
-                _ = Task.Run(async () => await RefreshTokenWithRetryAsync(_cts?.Token ?? default));
+                // [ADR] Fire-and-forget: async body must have its own catch(Exception) so that
+                // any unobserved exception is logged rather than crashing the finalizer thread.
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await RefreshTokenWithRetryAsync(_cts?.Token ?? default);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Unhandled exception in SessionKeepaliveService token refresh task.");
+                    }
+                });
             }
             catch (Exception ex)
             {
