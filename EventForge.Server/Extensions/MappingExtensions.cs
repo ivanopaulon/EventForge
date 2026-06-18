@@ -60,7 +60,6 @@ public static class MappingExtensions
             Notes = entity.Notes,
             Status = (Prym.DTOs.Common.DocumentStatus)entity.Status,
             PaymentStatus = (Prym.DTOs.Common.PaymentStatus)entity.PaymentStatus,
-            ApprovalStatus = MapApprovalStatus(entity.ApprovalStatus),
             TotalNetAmount = entity.TotalNetAmount,
             VatAmount = entity.VatAmount,
             TotalGrossAmount = entity.TotalGrossAmount,
@@ -74,8 +73,6 @@ public static class MappingExtensions
             DestinationWarehouseName = entity.DestinationWarehouse?.Name,
             IsFiscal = entity.IsFiscal,
             IsProforma = entity.IsProforma,
-            ApprovedBy = entity.ApprovedBy,
-            ApprovedAt = entity.ApprovedAt,
             ClosedAt = entity.ClosedAt,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
@@ -223,21 +220,4 @@ public static class MappingExtensions
         };
     }
 
-    /// <summary>
-    /// Maps entity ApprovalStatus to DTO ApprovalStatus.
-    /// Entity has: None(0), Pending(1), Approved(2), Rejected(3)
-    /// DTO now has: None(0), Pending(1), Approved(2), Rejected(3) — values are aligned.
-    /// </summary>
-    private static Prym.DTOs.Common.ApprovalStatus MapApprovalStatus(
-        EventForge.Server.Data.Entities.Documents.ApprovalStatus entityStatus)
-    {
-        return entityStatus switch
-        {
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.None => Prym.DTOs.Common.ApprovalStatus.None,
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Pending => Prym.DTOs.Common.ApprovalStatus.Pending,
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved => Prym.DTOs.Common.ApprovalStatus.Approved,
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected => Prym.DTOs.Common.ApprovalStatus.Rejected,
-            _ => Prym.DTOs.Common.ApprovalStatus.None
-        };
-    }
 }

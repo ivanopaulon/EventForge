@@ -46,13 +46,6 @@ public interface IDocumentHeaderService
     Task<bool> DeleteDocumentHeaderAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
-    /// Approves a document header.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <returns>Approved document header or null if not found</returns>
-    Task<DocumentHeaderDto?> ApproveDocumentAsync(Guid id, CancellationToken ct = default);
-
-    /// <summary>
     /// Adds a row to a document.
     /// </summary>
     /// <param name="createRowDto">Document row creation data</param>
@@ -80,11 +73,6 @@ public interface IDocumentHeaderService
     /// <param name="documentId">Document header ID</param>
     /// <returns>Document header with updated totals or null if not found</returns>
     Task<DocumentHeaderDto?> CalculateDocumentTotalsAsync(Guid documentId, CancellationToken ct = default);
-
-    /// <summary>
-    /// Performs bulk approval of multiple documents.
-    /// </summary>
-    Task<Prym.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default);
 
     /// <summary>
     /// Performs bulk status change of multiple documents.

@@ -160,7 +160,6 @@ public interface IBusinessPartyService
     /// <param name="toDate">Optional end date filter</param>
     /// <param name="documentTypeId">Optional document type filter</param>
     /// <param name="searchNumber">Optional number/series search</param>
-    /// <param name="approvalStatus">Optional approval status filter</param>
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of document headers</returns>
@@ -170,7 +169,6 @@ public interface IBusinessPartyService
         DateTime? toDate = null,
         Guid? documentTypeId = null,
         string? searchNumber = null,
-        Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
         PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default);
 

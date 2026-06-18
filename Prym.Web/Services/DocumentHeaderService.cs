@@ -80,19 +80,6 @@ public class DocumentHeaderService(
         }
     }
 
-    public async Task<DocumentHeaderDto?> ApproveDocumentAsync(Guid id, CancellationToken ct = default)
-    {
-        try
-        {
-            return await httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/approve", new { }, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error approving document with ID {Id}", id);
-            return null;
-        }
-    }
-
     public async Task<DocumentRowDto?> AddDocumentRowAsync(CreateDocumentRowDto createRowDto, CancellationToken ct = default)
     {
         try
@@ -144,31 +131,6 @@ public class DocumentHeaderService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error calculating document totals for {DocumentId}", documentId);
-            return null;
-        }
-    }
-
-    public async Task<Prym.DTOs.Bulk.BulkApprovalResultDto?> BulkApproveAsync(Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto, CancellationToken ct = default)
-    {
-        try
-        {
-            logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
-            var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkApprovalDto, Prym.DTOs.Bulk.BulkApprovalResultDto>(
-                $"{BaseUrl}/bulk-approve",
-                bulkApprovalDto,
-                ct);
-
-            if (result is not null)
-            {
-                logger.LogInformation("Bulk approval completed. Success: {SuccessCount}, Failed: {FailedCount}",
-                    result.SuccessCount, result.FailedCount);
-            }
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error performing bulk approval");
             return null;
         }
     }
@@ -233,9 +195,6 @@ public class DocumentHeaderService(
 
         if (parameters.PaymentStatus.HasValue)
             queryParams.Add($"paymentStatus={parameters.PaymentStatus.Value}");
-
-        if (parameters.ApprovalStatus.HasValue)
-            queryParams.Add($"approvalStatus={parameters.ApprovalStatus.Value}");
 
         if (parameters.TeamId.HasValue)
             queryParams.Add($"teamId={parameters.TeamId.Value}");

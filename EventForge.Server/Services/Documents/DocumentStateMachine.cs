@@ -16,37 +16,21 @@ public static class DocumentStateMachine
     /// </summary>
     private static readonly Dictionary<DocumentStatus, List<DocumentStatus>> AllowedTransitions = new()
     {
-        // DRAFT → può diventare ACTIVE o CANCELLED
-        {
-            DocumentStatus.Draft,
-            new List<DocumentStatus>
-            {
-                DocumentStatus.Active,
-                DocumentStatus.Cancelled
-            }
-        },
-        
-        // ACTIVE → può tornare DRAFT, essere CANCELLED, o essere ARCHIVED
+        // ACTIVE ↔ ARCHIVED
         {
             DocumentStatus.Active,
             new List<DocumentStatus>
             {
-                DocumentStatus.Draft,
-                DocumentStatus.Cancelled,
                 DocumentStatus.Archived
             }
         },
-        
-        // CANCELLED → IMMUTABILE (nessuna transizione)
-        {
-            DocumentStatus.Cancelled,
-            new List<DocumentStatus>()
-        },
-
-        // ARCHIVED → IMMUTABILE (nessuna transizione)
+        // ARCHIVED → può tornare ACTIVE
         {
             DocumentStatus.Archived,
-            new List<DocumentStatus>()
+            new List<DocumentStatus>
+            {
+                DocumentStatus.Active
+            }
         }
     };
 
@@ -66,7 +50,7 @@ public static class DocumentStateMachine
 
     public static bool IsImmutable(DocumentStatus status)
     {
-        return status == DocumentStatus.Cancelled || status == DocumentStatus.Archived;
+        return false;
     }
 
     public static List<DocumentStatus> GetAvailableTransitions(DocumentStatus currentStatus)
@@ -90,8 +74,6 @@ public static class DocumentStateMachine
         return newStatus switch
         {
             DocumentStatus.Active => ValidateTransitionToActive(document),
-            DocumentStatus.Cancelled => ValidateTransitionToCancelled(document),
-            DocumentStatus.Draft => ValidateTransitionToDraft(document),
             DocumentStatus.Archived => ValidateTransitionToArchived(document),
             _ => StateTransitionValidationResult.Success()
         };
@@ -115,23 +97,6 @@ public static class DocumentStateMachine
             return StateTransitionValidationResult.Fail(
                 "Impossibile attivare il documento: seleziona un tipo di documento",
                 StateTransitionErrorCode.MissingDocumentType);
-        }
-
-        return StateTransitionValidationResult.Success();
-    }
-
-    private static StateTransitionValidationResult ValidateTransitionToCancelled(DocumentHeaderDto document)
-    {
-        return StateTransitionValidationResult.Success();
-    }
-
-    private static StateTransitionValidationResult ValidateTransitionToDraft(DocumentHeaderDto document)
-    {
-        if (document.Status != DocumentStatus.Active)
-        {
-            return StateTransitionValidationResult.Fail(
-                "Si può riportare in bozza solo un documento attivo",
-                StateTransitionErrorCode.InvalidTransition);
         }
 
         return StateTransitionValidationResult.Success();
@@ -178,17 +143,13 @@ public static class DocumentStateMachine
     {
         return (from, to) switch
         {
-            (DocumentStatus.Draft, DocumentStatus.Active) =>
-                "Attivare il documento? Sarà pronto per la lavorazione.",
-
-            (DocumentStatus.Active, DocumentStatus.Draft) =>
-                "Riportare il documento in bozza? Potrai continuare a modificarlo.",
+            (DocumentStatus.Active, DocumentStatus.Active) =>
+                "Il documento è già attivo.",
 
             (DocumentStatus.Active, DocumentStatus.Archived) =>
                 "Archiviare il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
-
-            (_, DocumentStatus.Cancelled) =>
-                "Annullare il documento? Questa azione è IRREVERSIBILE.",
+            (DocumentStatus.Archived, DocumentStatus.Active) =>
+                "Riattivare il documento archiviato?",
 
             _ => $"Confermare la transizione da {from} a {to}?"
         };

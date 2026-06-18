@@ -879,7 +879,6 @@ public class BusinessPartyService(
         DateTime? toDate = null,
         Guid? documentTypeId = null,
         string? searchNumber = null,
-        Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
         PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {
@@ -919,11 +918,6 @@ public class BusinessPartyService(
                                          (dh.Series != null && dh.Series.Contains(searchNumber)));
             }
 
-            if (approvalStatus.HasValue)
-            {
-                query = query.Where(dh => (int)dh.ApprovalStatus == (int)approvalStatus.Value);
-            }
-
             var totalCount = await query.CountAsync(cancellationToken);
 
             var documents = await query
@@ -944,7 +938,6 @@ public class BusinessPartyService(
                     TotalNetAmount = dh.TotalNetAmount,
                     TotalGrossAmount = dh.TotalGrossAmount,
                     VatAmount = dh.VatAmount,
-                    ApprovalStatus = (Prym.DTOs.Common.ApprovalStatus)dh.ApprovalStatus,
                     Status = (Prym.DTOs.Common.DocumentStatus)dh.Status,
                     CreatedAt = dh.CreatedAt,
                     CreatedBy = dh.CreatedBy,

@@ -201,25 +201,13 @@
                                        Variant="Variant.Outlined"
                                        Margin="Margin.Dense"
                                        Disabled="@(!IsDocumentEditable() || _isReadOnly)">
-                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Draft))
-                                {
-                                    <MudSelectItem Value="@DocumentStatus.Draft">
-                                        @TranslationService.GetTranslation("status.draft", "Bozza")
-                                    </MudSelectItem>
-                                }
                                 @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Active))
                                 {
                                     <MudSelectItem Value="@DocumentStatus.Active">
                                         @TranslationService.GetTranslation("status.active", "Attivo")
                                     </MudSelectItem>
                                 }
-                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Cancelled))
-                                {
-                                    <MudSelectItem Value="@DocumentStatus.Cancelled">
-                                        @TranslationService.GetTranslation("status.cancelled", "Annullato")
-                                    </MudSelectItem>
-                                }
-                                @if (_availableTransitions.Contains(DocumentStatus.Archived))
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Archived))
                                 {
                                     <MudSelectItem Value="@DocumentStatus.Archived">
                                         @TranslationService.GetTranslation("status.archived", "Archiviato")
@@ -543,7 +531,7 @@
     private string? _headerPriceListName;
 
     // Document status binding
-    private DocumentStatus _documentStatus = DocumentStatus.Draft;
+    private DocumentStatus _documentStatus = DocumentStatus.Active;
     // Available state-machine transitions for the current document (populated from the server).
     // Empty list = no document loaded yet → show all options (safe default for new documents).
     private List<DocumentStatus> _availableTransitions = new();
@@ -597,12 +585,11 @@
     private List<EFTableColumnConfiguration> _documentRowColumns = new();
 
     /// <summary>
-    /// Checks if the document can be modified (not closed, cancelled or archived)
+    /// Checks if the document can be modified (active only)
     /// </summary>
     private bool IsDocumentEditable()
     {
-        return _currentDocument?.Status != DocumentStatus.Cancelled &&
-               _currentDocument?.Status != DocumentStatus.Archived;
+        return _currentDocument?.Status == DocumentStatus.Active;
     }
 
     protected override async Task OnInitializedAsync()
@@ -679,7 +666,7 @@
         else
         {
             _model.Date = DateTime.UtcNow;
-            _documentStatus = DocumentStatus.Draft;
+            _documentStatus = DocumentStatus.Active;
 
             var defaultDocType = _documentTypes.FirstOrDefault(dt => dt.Code == "DDT_VEND");
             if (defaultDocType != null)
@@ -725,9 +712,9 @@
 
     private async Task SetupCollaborationAsync(Guid documentId)
     {
-        // Documents with immutable status (Closed/Cancelled/Archived) are opened in read-only mode
+        // Archived documents are opened in read-only mode
         // without attempting to acquire an edit lock.
-        if (_documentStatus == DocumentStatus.Cancelled || _documentStatus == DocumentStatus.Archived)
+        if (_documentStatus == DocumentStatus.Archived)
         {
             _isReadOnly = true;
             _isReadOnlyDueToStatus = true;

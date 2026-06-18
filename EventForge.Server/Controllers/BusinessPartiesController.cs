@@ -595,7 +595,6 @@ public class BusinessPartiesController(
     /// <param name="toDate">Optional end date filter</param>
     /// <param name="documentTypeId">Optional document type filter</param>
     /// <param name="searchNumber">Optional number/series search</param>
-    /// <param name="approvalStatus">Optional approval status filter</param>
     /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of document headers</returns>
@@ -614,7 +613,6 @@ public class BusinessPartiesController(
         [FromQuery] DateTime? toDate = null,
         [FromQuery] Guid? documentTypeId = null,
         [FromQuery] string? searchNumber = null,
-        [FromQuery] Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination = default!,
         CancellationToken cancellationToken = default)
     {
@@ -630,7 +628,7 @@ public class BusinessPartiesController(
             }
 
             var result = await businessPartyService.GetBusinessPartyDocumentsAsync(
-                businessPartyId, fromDate, toDate, documentTypeId, searchNumber, approvalStatus, pagination, cancellationToken);
+                businessPartyId, fromDate, toDate, documentTypeId, searchNumber, pagination, cancellationToken);
 
             // Add pagination metadata headers
             SetPaginationHeaders(result, pagination);

@@ -260,32 +260,13 @@
 
                                 <MudItem xs="12" sm="6">
                                     <MudText Typo="Typo.subtitle2" Class="mb-1">
-                                        @TranslationService.GetTranslation("rebuildMovements.approvalStatus", "Stato Approvazione")
-                                    </MudText>
-                                    <div class="d-flex flex-column gap-0">
-                                        <MudCheckBox @bind-Value="_rebuild_includeApproved" Dense="true" Color="Color.Success"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.approved", "Approvato")" />
-                                        <MudCheckBox @bind-Value="_rebuild_includePending" Dense="true" Color="Color.Warning"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.pending", "In Attesa")" />
-                                        <MudCheckBox @bind-Value="_rebuild_includeRejected" Dense="true" Color="Color.Error"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.rejected", "Rifiutato")" />
-                                        <MudCheckBox @bind-Value="_rebuild_includeNoneApproval" Dense="true" Color="Color.Default"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.approvalNone", "Nessuna")" />
-                                    </div>
-                                </MudItem>
-                                <MudItem xs="12" sm="6">
-                                    <MudText Typo="Typo.subtitle2" Class="mb-1">
                                         @TranslationService.GetTranslation("rebuildMovements.documentStatus", "Stato Documento")
                                     </MudText>
                                     <div class="d-flex flex-column gap-0">
-                                        <MudCheckBox @bind-Value="_rebuild_includeClosed" Dense="true" Color="Color.Primary"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.closed", "Chiuso")" />
-                                        <MudCheckBox @bind-Value="_rebuild_includeOpen" Dense="true" Color="Color.Info"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.open", "Aperto")" />
-                                        <MudCheckBox @bind-Value="_rebuild_includeDraft" Dense="true" Color="Color.Default"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.draft", "Bozza")" />
-                                        <MudCheckBox @bind-Value="_rebuild_includeCancelled" Dense="true" Color="Color.Error"
-                                                     Label="@TranslationService.GetTranslation("rebuildMovements.cancelled", "Annullato")" />
+                                        <MudCheckBox @bind-Value="_rebuild_includeActive" Dense="true" Color="Color.Info"
+                                                     Label="@TranslationService.GetTranslation("rebuildMovements.active", "Attivo")" />
+                                        <MudCheckBox @bind-Value="_rebuild_includeArchived" Dense="true" Color="Color.Primary"
+                                                     Label="@TranslationService.GetTranslation("rebuildMovements.archived", "Archiviato")" />
                                     </div>
                                 </MudItem>
 
@@ -1061,14 +1042,8 @@
     private DateTime? _rebuild_toDate;
     private Guid? _rebuild_warehouseId;
     private Guid? _rebuild_documentTypeId;
-    private bool _rebuild_includeApproved = true;
-    private bool _rebuild_includePending = false;
-    private bool _rebuild_includeRejected = false;
-    private bool _rebuild_includeNoneApproval = false;
-    private bool _rebuild_includeClosed = true;
-    private bool _rebuild_includeOpen = false;
-    private bool _rebuild_includeDraft = false;
-    private bool _rebuild_includeCancelled = false;
+    private bool _rebuild_includeActive = false;
+    private bool _rebuild_includeArchived = true;
     private bool _rebuild_updateExisting = true;
     private bool _rebuild_forceRecalculate = false;
 
@@ -1217,17 +1192,9 @@
 
     private RebuildMovementsRequestDto BuildRebuildRequest(bool dryRun)
     {
-        var approvalStatuses = new List<int>();
-        if (_rebuild_includeApproved) approvalStatuses.Add(2);
-        if (_rebuild_includePending) approvalStatuses.Add(1);
-        if (_rebuild_includeRejected) approvalStatuses.Add(3);
-        if (_rebuild_includeNoneApproval) approvalStatuses.Add(0);
-
         var documentStatuses = new List<int>();
-        if (_rebuild_includeClosed) documentStatuses.Add(2);
-        if (_rebuild_includeOpen) documentStatuses.Add(1);
-        if (_rebuild_includeDraft) documentStatuses.Add(0);
-        if (_rebuild_includeCancelled) documentStatuses.Add(3);
+        if (_rebuild_includeActive) documentStatuses.Add(1);
+        if (_rebuild_includeArchived) documentStatuses.Add(4);
 
         return new RebuildMovementsRequestDto
         {
@@ -1236,7 +1203,6 @@
             ToDate = _rebuild_toDate.HasValue ? DateTime.SpecifyKind(_rebuild_toDate.Value, DateTimeKind.Utc) : null,
             WarehouseId = _rebuild_warehouseId,
             DocumentTypeId = _rebuild_documentTypeId,
-            ApprovalStatuses = approvalStatuses.Count > 0 ? approvalStatuses : null,
             DocumentStatuses = documentStatuses.Count > 0 ? documentStatuses : null,
             UpdateExisting = _rebuild_updateExisting,
             ForceRecalculateFromMovements = _rebuild_forceRecalculate

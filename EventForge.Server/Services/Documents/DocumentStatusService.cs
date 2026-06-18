@@ -44,13 +44,6 @@ public class DocumentStatusService(
             document.ModifiedAt = DateTime.UtcNow;
             document.ModifiedBy = GetCurrentUser();
 
-            // When a document is reverted to Draft, clear its approval status so a previously
-            // approved document doesn't remain "Approved" while it can still be freely edited.
-            if (newStatus == DocumentStatus.Draft)
-            {
-                document.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.None;
-            }
-
             // Create status history record
             var statusHistory = new DocumentStatusHistory
             {

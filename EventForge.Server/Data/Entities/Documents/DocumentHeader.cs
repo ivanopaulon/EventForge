@@ -195,23 +195,12 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Total Discount Amount", Description = "Overall discount amount on the document (absolute value).")]
     public decimal TotalDiscountAmount { get; set; } = 0m;
 
-    // --- Workflow and approval ---
-    [Display(Name = "Approval Status", Description = "Approval status of the document.")]
-    public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.None;
-
-    [MaxLength(100, ErrorMessage = "Approved by cannot exceed 100 characters.")]
-    [Display(Name = "Approved By", Description = "User who approved the document.")]
-    public string? ApprovedBy { get; set; }
-
-    [Display(Name = "Approved At", Description = "Date and time of approval.")]
-    public DateTime? ApprovedAt { get; set; }
-
     // --- Status and closure ---
     [Display(Name = "Closed At", Description = "Date and time when the document was closed.")]
     public DateTime? ClosedAt { get; set; }
 
     [Display(Name = "Status", Description = "Document status.")]
-    public DocumentStatus Status { get; set; } = DocumentStatus.Draft;
+    public DocumentStatus Status { get; set; } = DocumentStatus.Active;
 
     // --- Document links ---
     [Display(Name = "Reference Document", Description = "Reference to another document (for links, corrections, etc.).")]
@@ -394,15 +383,4 @@ public enum PaymentStatus
     PartiallyPaid,
     Paid,
     Overdue
-}
-
-/// <summary>
-/// Approval status enumeration.
-/// </summary>
-public enum ApprovalStatus
-{
-    None,
-    Pending,
-    Approved,
-    Rejected
 }

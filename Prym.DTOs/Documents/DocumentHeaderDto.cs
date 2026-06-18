@@ -249,21 +249,6 @@ namespace Prym.DTOs.Documents
         public decimal TotalDiscountAmount { get; set; }
 
         /// <summary>
-        /// Approval status of the document.
-        /// </summary>
-        public ApprovalStatus ApprovalStatus { get; set; }
-
-        /// <summary>
-        /// User who approved the document.
-        /// </summary>
-        public string? ApprovedBy { get; set; }
-
-        /// <summary>
-        /// Date and time of approval.
-        /// </summary>
-        public DateTime? ApprovedAt { get; set; }
-
-        /// <summary>
         /// Date and time when the document was closed.
         /// </summary>
         public DateTime? ClosedAt { get; set; }

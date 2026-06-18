@@ -5,10 +5,9 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Prym.DTOs.Bulk;
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
-using DtoApprovalStatus = Prym.DTOs.Common.ApprovalStatus;
+using Prym.DTOs.Bulk;
 
 namespace EventForge.Tests.Services.Documents;
 
@@ -29,33 +28,6 @@ public class DocumentFacadeBulkOperationsTests : IDisposable
     }
 
     [Fact]
-    public async Task BulkApproveAsync_WhenDocumentIsDraft_UsesValidatedStateFlowBeforeApproval()
-    {
-        var documentId = SeedDocument(DocumentStatus.Draft, "DOC-APP-1");
-        var facade = CreateFacade();
-
-        _documentStatusService
-            .Setup(x => x.ValidateTransitionAsync(documentId, DocumentStatus.Active, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(StateTransitionValidationResult.Success());
-        _documentStatusService
-            .Setup(x => x.ChangeStatusAsync(documentId, DocumentStatus.Active, "bulk", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DocumentHeaderDto { Id = documentId, Status = DocumentStatus.Active });
-        _documentHeaderService
-            .Setup(x => x.ApproveDocumentAsync(documentId, "tester", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DocumentHeaderDto { Id = documentId, Status = DocumentStatus.Active, ApprovalStatus = DtoApprovalStatus.Approved });
-
-        var result = await facade.BulkApproveAsync(
-            new BulkApprovalDto { DocumentIds = new List<Guid> { documentId }, ApprovalNotes = "bulk" },
-            "tester");
-
-        Assert.Equal(1, result.SuccessCount);
-        Assert.Equal(0, result.FailedCount);
-        _documentStatusService.Verify(x => x.ValidateTransitionAsync(documentId, DocumentStatus.Active, It.IsAny<CancellationToken>()), Times.Once);
-        _documentStatusService.Verify(x => x.ChangeStatusAsync(documentId, DocumentStatus.Active, "bulk", It.IsAny<CancellationToken>()), Times.Once);
-        _documentHeaderService.Verify(x => x.ApproveDocumentAsync(documentId, "tester", It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async Task BulkStatusChangeAsync_WhenSomeItemsInvalid_ReturnsPerItemErrorsAndContinues()
     {
         var validDocumentId = SeedDocument(DocumentStatus.Active, "DOC-OK");
@@ -63,29 +35,29 @@ public class DocumentFacadeBulkOperationsTests : IDisposable
         var facade = CreateFacade();
 
         _documentStatusService
-            .Setup(x => x.ValidateTransitionAsync(validDocumentId, DocumentStatus.Draft, It.IsAny<CancellationToken>()))
+            .Setup(x => x.ValidateTransitionAsync(validDocumentId, DocumentStatus.Archived, It.IsAny<CancellationToken>()))
             .ReturnsAsync(StateTransitionValidationResult.Success());
         _documentStatusService
-            .Setup(x => x.ValidateTransitionAsync(invalidDocumentId, DocumentStatus.Draft, It.IsAny<CancellationToken>()))
+            .Setup(x => x.ValidateTransitionAsync(invalidDocumentId, DocumentStatus.Archived, It.IsAny<CancellationToken>()))
             .ReturnsAsync(StateTransitionValidationResult.Fail("Invalid transition", StateTransitionErrorCode.InvalidTransition));
         _documentStatusService
-            .Setup(x => x.ChangeStatusAsync(validDocumentId, DocumentStatus.Draft, "reset", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DocumentHeaderDto { Id = validDocumentId, Status = DocumentStatus.Draft });
+            .Setup(x => x.ChangeStatusAsync(validDocumentId, DocumentStatus.Archived, "archive", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new DocumentHeaderDto { Id = validDocumentId, Status = DocumentStatus.Archived });
 
         var result = await facade.BulkStatusChangeAsync(
             new BulkStatusChangeDto
             {
                 DocumentIds = new List<Guid> { validDocumentId, invalidDocumentId },
-                NewStatus = nameof(DocumentStatus.Draft),
-                Reason = "reset"
+                NewStatus = nameof(DocumentStatus.Archived),
+                Reason = "archive"
             },
             "tester");
 
         Assert.Equal(1, result.SuccessCount);
         Assert.Equal(1, result.FailedCount);
         Assert.Contains(result.Errors, e => e.ItemId == invalidDocumentId);
-        _documentStatusService.Verify(x => x.ChangeStatusAsync(validDocumentId, DocumentStatus.Draft, "reset", It.IsAny<CancellationToken>()), Times.Once);
-        _documentStatusService.Verify(x => x.ChangeStatusAsync(invalidDocumentId, DocumentStatus.Draft, "reset", It.IsAny<CancellationToken>()), Times.Never);
+        _documentStatusService.Verify(x => x.ChangeStatusAsync(validDocumentId, DocumentStatus.Archived, "archive", It.IsAny<CancellationToken>()), Times.Once);
+        _documentStatusService.Verify(x => x.ChangeStatusAsync(invalidDocumentId, DocumentStatus.Archived, "archive", It.IsAny<CancellationToken>()), Times.Never);
     }
 
     private Guid SeedDocument(DocumentStatus status, string number)

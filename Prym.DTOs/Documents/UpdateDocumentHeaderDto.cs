@@ -203,11 +203,6 @@ namespace Prym.DTOs.Documents
         public decimal TotalDiscountAmount { get; set; }
 
         /// <summary>
-        /// Approval status of the document.
-        /// </summary>
-        public ApprovalStatus ApprovalStatus { get; set; }
-
-        /// <summary>
         /// Document status.
         /// </summary>
         public DocumentStatus Status { get; set; }

@@ -550,10 +550,8 @@ public class DocumentExportService(
         var dtoStatus = doc.Status switch
         {
             DocumentStatus.Active => DocumentStatus.Active,
-            DocumentStatus.Cancelled => DocumentStatus.Cancelled,
-            DocumentStatus.Draft => DocumentStatus.Draft,
             DocumentStatus.Archived => DocumentStatus.Archived,
-            _ => DocumentStatus.Draft
+            _ => DocumentStatus.Active
         };
 
         // Map entity PaymentStatus to DTO PaymentStatus

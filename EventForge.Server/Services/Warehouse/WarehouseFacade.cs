@@ -723,7 +723,7 @@ public class WarehouseFacade(
             if (documentEntity is null)
                 return false;
 
-            documentEntity.Status = DocumentStatus.Cancelled;
+            documentEntity.Status = DocumentStatus.Archived;
             documentEntity.ModifiedAt = DateTime.UtcNow;
             documentEntity.ModifiedBy = currentUser;
 
@@ -788,7 +788,7 @@ public class WarehouseFacade(
 
             foreach (var documentEntity in documentEntities)
             {
-                documentEntity.Status = DocumentStatus.Cancelled;
+                documentEntity.Status = DocumentStatus.Archived;
                 documentEntity.ModifiedAt = now;
                 documentEntity.ModifiedBy = currentUser;
                 cancelledCount++;

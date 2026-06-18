@@ -94,25 +94,6 @@ public class DocumentVersion : AuditableEntity
     public WorkflowState? WorkflowState { get; set; }
 
     /// <summary>
-    /// Approval status for this version
-    /// </summary>
-    [Display(Name = "Approval Status", Description = "Approval status for this version.")]
-    public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.None;
-
-    /// <summary>
-    /// User who approved this version
-    /// </summary>
-    [StringLength(100, ErrorMessage = "Approved by cannot exceed 100 characters.")]
-    [Display(Name = "Approved By", Description = "User who approved this version.")]
-    public string? ApprovedBy { get; set; }
-
-    /// <summary>
-    /// Date and time when this version was approved
-    /// </summary>
-    [Display(Name = "Approved At", Description = "Date and time when this version was approved.")]
-    public DateTime? ApprovedAt { get; set; }
-
-    /// <summary>
     /// Digital signatures for this version
     /// </summary>
     [Display(Name = "Version Signatures", Description = "Digital signatures for this version.")]

@@ -35,19 +35,6 @@
                     Margin="Margin.Dense"/>
             </MudItem>
             <MudItem xs="12" sm="6" md="2">
-                <MudSelect T="ApprovalStatus?" @bind-Value="_selectedApprovalStatus"
-                          Label="@TranslationService.GetTranslation("document.approvalStatus", "Stato Approvazione")"
-                          Variant="Variant.Outlined"
-                          Clearable="true"
-                          Density="Density.Compact">
-                    <MudSelectItem T="ApprovalStatus?" Value="@((ApprovalStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
-                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.None">@TranslationService.GetTranslation("approval.none", "Non Richiesta")</MudSelectItem>
-                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Pending">@TranslationService.GetTranslation("approval.pending", "In Attesa")</MudSelectItem>
-                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Approved">@TranslationService.GetTranslation("approval.approved", "Approvato")</MudSelectItem>
-                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Rejected">@TranslationService.GetTranslation("approval.rejected", "Rifiutato")</MudSelectItem>
-                </MudSelect>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="2">
                 <MudButton Variant="Variant.Filled"
                           Color="Color.Primary"
                           StartIcon="@Icons.Material.Filled.Search"
@@ -90,7 +77,7 @@
             <MudTh>@TranslationService.GetTranslation("document.number", "Numero")</MudTh>
             <MudTh >@TranslationService.GetTranslation("document.totalNet", "Totale Netto")</MudTh>
             <MudTh >@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")</MudTh>
-            <MudTh>@TranslationService.GetTranslation("document.approvalStatus", "Stato")</MudTh>
+            <MudTh>@TranslationService.GetTranslation("document.status", "Stato")</MudTh>
             <MudTh >@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
         </HeaderContent>
         <RowTemplate Context="context">
@@ -112,9 +99,9 @@
             <MudTd DataLabel="@TranslationService.GetTranslation("document.totalGross", "Totale Lordo")" >
                 @context.TotalGrossAmount.ToString("C2")
             </MudTd>
-            <MudTd DataLabel="@TranslationService.GetTranslation("document.approvalStatus", "Stato")">
-                <MudChip T="string" Size="Size.Small" Color="@GetApprovalStatusColor(context.ApprovalStatus)">
-                    @GetApprovalStatusText(context.ApprovalStatus)
+            <MudTd DataLabel="@TranslationService.GetTranslation("document.status", "Stato")">
+                <MudChip T="string" Size="Size.Small" Color="@GetDocumentStatusColor(context.Status)">
+                    @GetDocumentStatusText(context.Status)
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="@TranslationService.GetTranslation("common.actions", "Azioni")" >
@@ -140,7 +127,6 @@
     private int _totalCount = 0;
     private DateRange? _dateRange;
     private string? _searchNumber;
-    private ApprovalStatus? _selectedApprovalStatus;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -164,7 +150,6 @@
                 _dateRange?.End,
                 null, // documentTypeId - could be added as filter
                 _searchNumber,
-                _selectedApprovalStatus,
                 page,
                 pageSize);
 
@@ -214,7 +199,6 @@
         {
             _dateRange = null;
             _searchNumber = null;
-            _selectedApprovalStatus = null;
             await LoadDocumentsAsync();
         }
         catch (Exception ex)
@@ -253,26 +237,22 @@
         }
     }
 
-    private Color GetApprovalStatusColor(ApprovalStatus status)
+    private Color GetDocumentStatusColor(DocumentStatus status)
     {
         return status switch
         {
-            ApprovalStatus.Approved => Color.Success,
-            ApprovalStatus.Rejected => Color.Error,
-            ApprovalStatus.Pending => Color.Warning,
-            ApprovalStatus.None => Color.Default,
+            DocumentStatus.Active => Color.Success,
+            DocumentStatus.Archived => Color.Default,
             _ => Color.Default
         };
     }
 
-    private string GetApprovalStatusText(ApprovalStatus status)
+    private string GetDocumentStatusText(DocumentStatus status)
     {
         return status switch
         {
-            ApprovalStatus.Approved => TranslationService.GetTranslation("approval.approved", "Approvato"),
-            ApprovalStatus.Rejected => TranslationService.GetTranslation("approval.rejected", "Rifiutato"),
-            ApprovalStatus.Pending => TranslationService.GetTranslation("approval.pending", "In Attesa"),
-            ApprovalStatus.None => TranslationService.GetTranslation("approval.none", "Non Richiesta"),
+            DocumentStatus.Active => TranslationService.GetTranslation("document.status.active", "Attivo"),
+            DocumentStatus.Archived => TranslationService.GetTranslation("document.status.archived", "Archiviato"),
             _ => status.ToString()
         };
     }
