@@ -110,7 +110,8 @@ public class ProductDetailViewModel : BaseEntityDetailViewModel<ProductDto, Crea
             ReorderPoint = entity.ReorderPoint,
             SafetyStock = entity.SafetyStock,
             TargetStockLevel = entity.TargetStockLevel,
-            AverageDailyDemand = entity.AverageDailyDemand
+            AverageDailyDemand = entity.AverageDailyDemand,
+            IsBundle = entity.IsBundle
         };
     }
 

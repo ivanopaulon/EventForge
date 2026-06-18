@@ -33,7 +33,7 @@ namespace Prym.DTOs.Products
         /// <summary>
         /// Product code (SKU or similar).
         /// </summary>
-        [MaxLength(50, ErrorMessage = "The product code cannot exceed 50 characters.")]
+        [MaxLength(100, ErrorMessage = "The product code cannot exceed 100 characters.")]
         [Display(Name = "Code", Description = "Product code (SKU or similar).")]
         public string Code { get; set; } = string.Empty;
 
