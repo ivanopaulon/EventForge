@@ -907,6 +907,14 @@
     /// </summary>
     private void ApplyHeaderDto(DocumentHeaderDto doc)
     {
+        // When the header-save endpoint returns a DTO without rows (e.g. because
+        // UpdateDocumentHeaderAsync didn't include rows in its query), preserve the
+        // rows already loaded in the current document so the VAT summary and totals
+        // card don't go blank.  This is a defensive fallback; the server-side fix
+        // (Include rows in UpdateDocumentHeaderAsync) is the primary solution.
+        if ((doc.Rows == null || doc.Rows.Count == 0) && _currentDocument?.Rows?.Count > 0)
+            doc.Rows = _currentDocument.Rows;
+
         _currentDocument = doc;
         _model.DocumentTypeId = doc.DocumentTypeId;
         _model.Series = doc.Series;
@@ -1389,6 +1397,12 @@
                 _currentDocument.TotalNetAmount = updated.TotalNetAmount;
                 _currentDocument.VatAmount = updated.VatAmount;
                 _currentDocument.TotalGrossAmount = updated.TotalGrossAmount;
+
+                // CalculateDocumentTotalsAsync returns the full document with rows.
+                // Sync them so DocumentVatSummary always reflects fresh per-row
+                // LineTotal / VatTotal values after any row modification.
+                if (updated.Rows?.Count > 0)
+                    _currentDocument.Rows = updated.Rows;
 
                 Logger.LogInformation("Recalculated document totals: Net={Net}, VAT={VAT}, Gross={Gross}",
                     updated.TotalNetAmount, updated.VatAmount, updated.TotalGrossAmount);
