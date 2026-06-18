@@ -1,6 +1,7 @@
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
 using Prym.Web.Services;
+using System.Linq;
 
 namespace Prym.Web.Shared.Management.Adapters;
 
@@ -67,7 +68,7 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
         };
 
         _availableTransitionsByDocumentId = new Dictionary<Guid, IReadOnlyList<DocumentStatus>>();
-        if (_documentStatusService is not null && pagedResult.Items.Count > 0)
+        if (_documentStatusService is not null && pagedResult.Items.Any())
         {
             var transitionsTasks = pagedResult.Items
                 .Select(async item =>

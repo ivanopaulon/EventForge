@@ -8,6 +8,7 @@ using Moq;
 using Prym.DTOs.Bulk;
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
+using DtoApprovalStatus = Prym.DTOs.Common.ApprovalStatus;
 
 namespace EventForge.Tests.Services.Documents;
 
@@ -41,7 +42,7 @@ public class DocumentFacadeBulkOperationsTests : IDisposable
             .ReturnsAsync(new DocumentHeaderDto { Id = documentId, Status = DocumentStatus.Active });
         _documentHeaderService
             .Setup(x => x.ApproveDocumentAsync(documentId, "tester", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new DocumentHeaderDto { Id = documentId, Status = DocumentStatus.Active, ApprovalStatus = ApprovalStatus.Approved });
+            .ReturnsAsync(new DocumentHeaderDto { Id = documentId, Status = DocumentStatus.Active, ApprovalStatus = DtoApprovalStatus.Approved });
 
         var result = await facade.BulkApproveAsync(
             new BulkApprovalDto { DocumentIds = new List<Guid> { documentId }, ApprovalNotes = "bulk" },
