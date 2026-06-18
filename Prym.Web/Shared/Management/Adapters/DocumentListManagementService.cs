@@ -14,8 +14,9 @@ namespace Prym.Web.Shared.Management.Adapters;
 public class DocumentListManagementService : IEntityManagementService<DocumentHeaderDto>
 {
     private readonly IDocumentHeaderService _service;
-    private readonly IDocumentStatusService? _documentStatusService;
-    private Dictionary<Guid, IReadOnlyList<DocumentStatus>> _availableTransitionsByDocumentId = new();
+    private readonly IDocumentStatusService _documentStatusService;
+    // Component-scoped service state; accessed on Blazor UI flow (not thread-safe by design).
+    private readonly Dictionary<Guid, IReadOnlyList<DocumentStatus>> _availableTransitionsByDocumentId = new();
 
     /// <summary>
     /// Optional filter by document type ID. Set by the hosting page before triggering a refresh.
@@ -29,7 +30,7 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
 
     public DocumentListManagementService(
         IDocumentHeaderService service,
-        IDocumentStatusService? documentStatusService = null)
+        IDocumentStatusService documentStatusService)
     {
         _service = service;
         _documentStatusService = documentStatusService;
@@ -67,8 +68,8 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
             PageSize = queryParams.PageSize
         };
 
-        _availableTransitionsByDocumentId = new Dictionary<Guid, IReadOnlyList<DocumentStatus>>();
-        if (_documentStatusService is not null && pagedResult.Items.Any())
+        _availableTransitionsByDocumentId.Clear();
+        if (pagedResult.Items.Any())
         {
             var transitionsTasks = pagedResult.Items
                 .Select(async item =>
@@ -83,7 +84,10 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
                 .ToList();
 
             var transitionsByDocument = await Task.WhenAll(transitionsTasks);
-            _availableTransitionsByDocumentId = transitionsByDocument.ToDictionary(x => x.Id, x => x.Transitions);
+            foreach (var transition in transitionsByDocument)
+            {
+                _availableTransitionsByDocumentId[transition.Id] = transition.Transitions;
+            }
         }
 
         return pagedResult;

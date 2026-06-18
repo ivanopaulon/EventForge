@@ -24,7 +24,7 @@ public static class DocumentStateMachine
                 DocumentStatus.Archived
             }
         },
-        // ARCHIVED → può tornare ACTIVE
+        // ARCHIVED → can return to ACTIVE
         {
             DocumentStatus.Archived,
             new List<DocumentStatus>
@@ -46,11 +46,6 @@ public static class DocumentStateMachine
         }
 
         return allowedStates.Contains(to);
-    }
-
-    public static bool IsImmutable(DocumentStatus status)
-    {
-        return false;
     }
 
     public static List<DocumentStatus> GetAvailableTransitions(DocumentStatus currentStatus)
@@ -143,9 +138,6 @@ public static class DocumentStateMachine
     {
         return (from, to) switch
         {
-            (DocumentStatus.Active, DocumentStatus.Active) =>
-                "Il documento è già attivo.",
-
             (DocumentStatus.Active, DocumentStatus.Archived) =>
                 "Archiviare il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
             (DocumentStatus.Archived, DocumentStatus.Active) =>

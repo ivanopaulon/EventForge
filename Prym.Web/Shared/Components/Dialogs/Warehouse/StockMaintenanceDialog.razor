@@ -1042,6 +1042,7 @@
     private DateTime? _rebuild_toDate;
     private Guid? _rebuild_warehouseId;
     private Guid? _rebuild_documentTypeId;
+    // Rebuild targets finalized documents by default; Active can be enabled explicitly.
     private bool _rebuild_includeActive = false;
     private bool _rebuild_includeArchived = true;
     private bool _rebuild_updateExisting = true;

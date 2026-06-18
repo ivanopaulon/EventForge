@@ -1,8 +1,10 @@
 -- Rollback: 20260618_RemoveDocumentApprovalAndTwoStateStatus
 -- Description:
 --   Restores approval columns and re-expands status values best-effort.
---   NOTE: Status rollback is lossy because Active(1) now includes former Draft(0),
---   and Archived(4) now includes former Cancelled(3).
+--   ⚠️ WARNING: Status rollback is lossy because forward migration merged:
+--     Draft(0) + Open(1) -> Active(1), and Closed(2) + Cancelled(3) -> Archived(4).
+--   Rollback cannot distinguish original values inside each merged group.
+--   Use only for emergency rollback.
 -- Date: 2026-06-18
 
 BEGIN TRANSACTION;
@@ -18,8 +20,9 @@ ALTER TABLE "DocumentVersions" ADD COLUMN IF NOT EXISTS "ApprovedBy" varchar(100
 ALTER TABLE "DocumentVersions" ADD COLUMN IF NOT EXISTS "ApprovedAt" timestamp NULL;
 
 -- 3) Best-effort status rollback:
---    Active(1)   -> Draft(0)
---    Archived(4) -> Cancelled(3)
+--    Active(1)   -> Draft(0)      [arbitrary inside former Draft/Open merged group]
+--    Archived(4) -> Cancelled(3)  [arbitrary inside former Closed/Cancelled merged group]
+--    NOTE: original distinctions cannot be reconstructed after the forward merge.
 UPDATE "DocumentHeaders"
 SET    "Status" = 0,
        "ModifiedAt" = NOW() AT TIME ZONE 'UTC',
@@ -51,4 +54,3 @@ SET    "ToStatus" = 3
 WHERE  "ToStatus" = 4;
 
 COMMIT;
-

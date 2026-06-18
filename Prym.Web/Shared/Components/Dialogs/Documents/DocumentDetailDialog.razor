@@ -585,7 +585,8 @@
     private List<EFTableColumnConfiguration> _documentRowColumns = new();
 
     /// <summary>
-    /// Checks if the document can be modified (active only)
+    /// Checks if the document can be modified.
+    /// Under the two-state model, only Active documents are editable.
     /// </summary>
     private bool IsDocumentEditable()
     {

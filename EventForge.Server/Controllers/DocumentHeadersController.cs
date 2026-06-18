@@ -15,7 +15,7 @@ namespace EventForge.Server.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
-[Obsolete("Use /api/v1/documents endpoints. This legacy controller is kept for backward compatibility.")]
+[Obsolete("Use /api/v1/documents endpoints. Deprecated since v2026.06 and scheduled for removal in v2026.12.")]
 public class DocumentHeadersController(
     IDocumentHeaderService documentHeaderService,
     IDocumentFacade documentFacade,
