@@ -10,10 +10,12 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// REST API controller for document header management with multi-tenant support.
 /// Provides comprehensive CRUD operations for document headers within the authenticated user's tenant context.
+/// Deprecated: prefer <c>/api/v1/documents</c> for the canonical unified document contract.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
+[Obsolete("Use /api/v1/documents endpoints. This legacy controller is kept for backward compatibility.")]
 public class DocumentHeadersController(
     IDocumentHeaderService documentHeaderService,
     IDocumentFacade documentFacade,

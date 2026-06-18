@@ -1,4 +1,5 @@
 @page "/documents/list"
+@using System.Linq
 @using Prym.DTOs.Documents
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @inject IDocumentHeaderService DocumentHeaderService
@@ -158,7 +159,9 @@
             </MudTooltip>
         }
         @{
-            var transitions = GetAvailableStatusTransitions(doc.Status);
+            var transitions = _service.GetAvailableTransitions(doc.Id)
+                .Where(status => status != doc.Status)
+                .ToList();
         }
         @if (transitions.Count > 0)
         {
@@ -195,7 +198,7 @@
 
     protected override void OnInitialized()
     {
-        _service = new DocumentListManagementService(DocumentHeaderService);
+        _service = new DocumentListManagementService(DocumentHeaderService, DocumentStatusService);
         _config = new EntityManagementConfig<DocumentHeaderDto>
         {
             ComponentKey = "DocumentManagement",
@@ -330,13 +333,6 @@
             AppNotification.ShowError(TranslationService.GetTranslation("documents.statusChangeError", "Errore durante il cambio di stato del documento"));
         }
     }
-
-    private static List<DocumentStatus> GetAvailableStatusTransitions(DocumentStatus status) => status switch
-    {
-        DocumentStatus.Draft => new() { DocumentStatus.Active, DocumentStatus.Cancelled },
-        DocumentStatus.Active => new() { DocumentStatus.Draft, DocumentStatus.Cancelled, DocumentStatus.Archived },
-        _ => new()
-    };
 
     private static string GetStatusTransitionLabel(DocumentStatus status) => status switch
     {

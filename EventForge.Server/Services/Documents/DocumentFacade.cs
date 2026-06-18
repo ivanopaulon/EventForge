@@ -1031,127 +1031,108 @@ public class DocumentFacade(
         var errors = new List<Prym.DTOs.Bulk.BulkItemError>();
         var successCount = 0;
 
-        // Validate batch size
         if (bulkApprovalDto.DocumentIds.Count > 500)
         {
             throw new ArgumentException("Maximum 500 documents can be approved at once.");
         }
 
-        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for bulk approval operations.");
+        }
+
+        var distinctDocumentIds = bulkApprovalDto.DocumentIds.Distinct().ToList();
+        foreach (var documentId in distinctDocumentIds)
+        {
+            try
             {
-                throw new InvalidOperationException("Tenant context is required for bulk approval operations.");
-            }
+                var documentInfo = await context.DocumentHeaders
+                    .AsNoTracking()
+                    .Where(d => d.Id == documentId && d.TenantId == currentTenantId.Value && !d.IsDeleted)
+                    .Select(d => new { d.Id, d.Number, d.Status })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            var approvalDate = bulkApprovalDto.ApprovalDate ?? DateTime.UtcNow;
-
-            // Fetch all documents in one query
-            var documents = await context.DocumentHeaders
-                .Where(d => bulkApprovalDto.DocumentIds.Contains(d.Id) && d.TenantId == currentTenantId.Value)
-                .ToListAsync(cancellationToken);
-
-            // Check for missing documents
-            var foundIds = documents.Select(d => d.Id).ToHashSet();
-            var missingIds = bulkApprovalDto.DocumentIds.Where(id => !foundIds.Contains(id)).ToList();
-            foreach (var missingId in missingIds)
-            {
-                errors.Add(new Prym.DTOs.Bulk.BulkItemError
-                {
-                    ItemId = missingId,
-                    ErrorMessage = "Document not found or does not belong to the current tenant."
-                });
-            }
-
-            // Approve documents
-            foreach (var document in documents)
-            {
-                try
-                {
-                    // Update document status to Active (approved)
-                    var oldStatus = document.Status;
-                    document.Status = DocumentStatus.Active;
-                    document.ApprovedAt = approvalDate;
-                    document.ApprovedBy = currentUser;
-                    document.ModifiedAt = DateTime.UtcNow;
-                    document.ModifiedBy = currentUser;
-
-                    // Add status history entry
-                    var statusHistory = new EventForge.Server.Data.Entities.Documents.DocumentStatusHistory
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = currentTenantId.Value,
-                        DocumentHeaderId = document.Id,
-                        FromStatus = oldStatus,
-                        ToStatus = DocumentStatus.Active,
-                        Reason = bulkApprovalDto.ApprovalNotes,
-                        ChangedBy = currentUser,
-                        ChangedAt = approvalDate,
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = currentUser
-                    };
-                    context.DocumentStatusHistories.Add(statusHistory);
-
-                    successCount++;
-
-                    logger.LogInformation(
-                        "Bulk approval: Document {DocumentId} approved. Notes: {Notes}",
-                        document.Id, bulkApprovalDto.ApprovalNotes ?? "N/A");
-                }
-                catch (Exception ex)
+                if (documentInfo is null)
                 {
                     errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
-                        ItemId = document.Id,
-                        ItemName = document.Number,
-                        ErrorMessage = ex.Message
+                        ItemId = documentId,
+                        ErrorMessage = "Document not found or does not belong to the current tenant."
                     });
+                    continue;
                 }
-            }
 
-            await context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Bulk approval completed: {SuccessCount} successful, {FailureCount} failed",
-                successCount, errors.Count);
-
-            return new Prym.DTOs.Bulk.BulkApprovalResultDto
-            {
-                TotalCount = bulkApprovalDto.DocumentIds.Count,
-                SuccessCount = successCount,
-                FailedCount = errors.Count,
-                Errors = errors,
-                ProcessedAt = DateTime.UtcNow,
-                ProcessingTime = DateTime.UtcNow - startTime,
-                RolledBack = false
-            };
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            logger.LogError(ex, "Bulk approval failed and was rolled back");
-
-            return new Prym.DTOs.Bulk.BulkApprovalResultDto
-            {
-                TotalCount = bulkApprovalDto.DocumentIds.Count,
-                SuccessCount = 0,
-                FailedCount = bulkApprovalDto.DocumentIds.Count,
-                Errors = new List<Prym.DTOs.Bulk.BulkItemError>
+                if (documentInfo.Status != DocumentStatus.Active)
                 {
-                    new Prym.DTOs.Bulk.BulkItemError
+                    var validation = await documentStatusService.ValidateTransitionAsync(documentId, DocumentStatus.Active, cancellationToken);
+                    if (!validation.IsValid)
                     {
-                        ItemId = Guid.Empty,
-                        ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
+                        errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                        {
+                            ItemId = documentId,
+                            ItemName = documentInfo.Number,
+                            ErrorMessage = validation.ErrorMessage ?? "Invalid status transition to Active."
+                        });
+                        continue;
                     }
-                },
-                ProcessedAt = DateTime.UtcNow,
-                ProcessingTime = DateTime.UtcNow - startTime,
-                RolledBack = true
-            };
+
+                    var activated = await documentStatusService.ChangeStatusAsync(
+                        documentId,
+                        DocumentStatus.Active,
+                        bulkApprovalDto.ApprovalNotes,
+                        cancellationToken);
+
+                    if (activated is null)
+                    {
+                        errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                        {
+                            ItemId = documentId,
+                            ItemName = documentInfo.Number,
+                            ErrorMessage = "Unable to activate document before approval."
+                        });
+                        continue;
+                    }
+                }
+
+                var approved = await documentHeaderService.ApproveDocumentAsync(documentId, currentUser, cancellationToken);
+                if (approved is null)
+                {
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = documentId,
+                        ItemName = documentInfo.Number,
+                        ErrorMessage = "Unable to approve document."
+                    });
+                    continue;
+                }
+
+                successCount++;
+            }
+            catch (Exception ex)
+            {
+                errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                {
+                    ItemId = documentId,
+                    ErrorMessage = ex.Message
+                });
+            }
         }
+
+        logger.LogInformation(
+            "Bulk approval completed: {SuccessCount} successful, {FailureCount} failed",
+            successCount, errors.Count);
+
+        return new Prym.DTOs.Bulk.BulkApprovalResultDto
+        {
+            TotalCount = bulkApprovalDto.DocumentIds.Count,
+            SuccessCount = successCount,
+            FailedCount = errors.Count,
+            Errors = errors,
+            ProcessedAt = DateTime.UtcNow,
+            ProcessingTime = DateTime.UtcNow - startTime,
+            RolledBack = false
+        };
     }
 
     /// <inheritdoc />
@@ -1164,142 +1145,109 @@ public class DocumentFacade(
         var errors = new List<Prym.DTOs.Bulk.BulkItemError>();
         var successCount = 0;
 
-        // Validate batch size
         if (bulkStatusChangeDto.DocumentIds.Count > 500)
         {
             throw new ArgumentException("Maximum 500 documents can have their status changed at once.");
         }
 
-        // Parse the new status
         if (!Enum.TryParse<DocumentStatus>(bulkStatusChangeDto.NewStatus, true, out var newStatus))
         {
             throw new ArgumentException($"Invalid status: {bulkStatusChangeDto.NewStatus}");
         }
 
-        using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for bulk status change operations.");
+        }
+
+        var distinctDocumentIds = bulkStatusChangeDto.DocumentIds.Distinct().ToList();
+        foreach (var documentId in distinctDocumentIds)
+        {
+            try
             {
-                throw new InvalidOperationException("Tenant context is required for bulk status change operations.");
-            }
+                var documentInfo = await context.DocumentHeaders
+                    .AsNoTracking()
+                    .Where(d => d.Id == documentId && d.TenantId == currentTenantId.Value && !d.IsDeleted)
+                    .Select(d => new { d.Id, d.Number, d.Status })
+                    .FirstOrDefaultAsync(cancellationToken);
 
-            var changeDate = bulkStatusChangeDto.ChangeDate ?? DateTime.UtcNow;
-
-            // Fetch all documents in one query
-            var documents = await context.DocumentHeaders
-                .Where(d => bulkStatusChangeDto.DocumentIds.Contains(d.Id) && d.TenantId == currentTenantId.Value)
-                .ToListAsync(cancellationToken);
-
-            // Check for missing documents
-            var foundIds = documents.Select(d => d.Id).ToHashSet();
-            var missingIds = bulkStatusChangeDto.DocumentIds.Where(id => !foundIds.Contains(id)).ToList();
-            foreach (var missingId in missingIds)
-            {
-                errors.Add(new Prym.DTOs.Bulk.BulkItemError
-                {
-                    ItemId = missingId,
-                    ErrorMessage = "Document not found or does not belong to the current tenant."
-                });
-            }
-
-            // Change document statuses
-            foreach (var document in documents)
-            {
-                try
-                {
-                    // Check if status change is valid
-                    if (document.Status == newStatus)
-                    {
-                        errors.Add(new Prym.DTOs.Bulk.BulkItemError
-                        {
-                            ItemId = document.Id,
-                            ItemName = document.Number,
-                            ErrorMessage = $"Document already has status {newStatus}."
-                        });
-                        continue;
-                    }
-
-                    var oldStatus = document.Status;
-                    document.Status = newStatus;
-                    document.ModifiedAt = DateTime.UtcNow;
-                    document.ModifiedBy = currentUser;
-
-                    // Add status history entry
-                    var statusHistory = new EventForge.Server.Data.Entities.Documents.DocumentStatusHistory
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = currentTenantId.Value,
-                        DocumentHeaderId = document.Id,
-                        FromStatus = oldStatus,
-                        ToStatus = newStatus,
-                        Reason = bulkStatusChangeDto.Reason,
-                        ChangedBy = currentUser,
-                        ChangedAt = changeDate,
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = currentUser
-                    };
-                    context.DocumentStatusHistories.Add(statusHistory);
-
-                    successCount++;
-
-                    logger.LogInformation(
-                        "Bulk status change: Document {DocumentId} status changed from {OldStatus} to {NewStatus}. Reason: {Reason}",
-                        document.Id, oldStatus, newStatus, bulkStatusChangeDto.Reason ?? "N/A");
-                }
-                catch (Exception ex)
+                if (documentInfo is null)
                 {
                     errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
-                        ItemId = document.Id,
-                        ItemName = document.Number,
-                        ErrorMessage = ex.Message
+                        ItemId = documentId,
+                        ErrorMessage = "Document not found or does not belong to the current tenant."
                     });
+                    continue;
                 }
-            }
 
-            await context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Bulk status change completed: {SuccessCount} successful, {FailureCount} failed",
-                successCount, errors.Count);
-
-            return new Prym.DTOs.Bulk.BulkStatusChangeResultDto
-            {
-                TotalCount = bulkStatusChangeDto.DocumentIds.Count,
-                SuccessCount = successCount,
-                FailedCount = errors.Count,
-                Errors = errors,
-                ProcessedAt = DateTime.UtcNow,
-                ProcessingTime = DateTime.UtcNow - startTime,
-                RolledBack = false
-            };
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            logger.LogError(ex, "Bulk status change failed and was rolled back");
-
-            return new Prym.DTOs.Bulk.BulkStatusChangeResultDto
-            {
-                TotalCount = bulkStatusChangeDto.DocumentIds.Count,
-                SuccessCount = 0,
-                FailedCount = bulkStatusChangeDto.DocumentIds.Count,
-                Errors = new List<Prym.DTOs.Bulk.BulkItemError>
+                if (documentInfo.Status == newStatus)
                 {
-                    new Prym.DTOs.Bulk.BulkItemError
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
                     {
-                        ItemId = Guid.Empty,
-                        ErrorMessage = $"Transaction failed and was rolled back: {ex.Message}"
-                    }
-                },
-                ProcessedAt = DateTime.UtcNow,
-                ProcessingTime = DateTime.UtcNow - startTime,
-                RolledBack = true
-            };
+                        ItemId = documentId,
+                        ItemName = documentInfo.Number,
+                        ErrorMessage = $"Document already has status {newStatus}."
+                    });
+                    continue;
+                }
+
+                var validation = await documentStatusService.ValidateTransitionAsync(documentId, newStatus, cancellationToken);
+                if (!validation.IsValid)
+                {
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = documentId,
+                        ItemName = documentInfo.Number,
+                        ErrorMessage = validation.ErrorMessage ?? $"Invalid transition from {documentInfo.Status} to {newStatus}."
+                    });
+                    continue;
+                }
+
+                var changed = await documentStatusService.ChangeStatusAsync(
+                    documentId,
+                    newStatus,
+                    bulkStatusChangeDto.Reason,
+                    cancellationToken);
+
+                if (changed is null)
+                {
+                    errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                    {
+                        ItemId = documentId,
+                        ItemName = documentInfo.Number,
+                        ErrorMessage = "Unable to change document status."
+                    });
+                    continue;
+                }
+
+                successCount++;
+            }
+            catch (Exception ex)
+            {
+                errors.Add(new Prym.DTOs.Bulk.BulkItemError
+                {
+                    ItemId = documentId,
+                    ErrorMessage = ex.Message
+                });
+            }
         }
+
+        logger.LogInformation(
+            "Bulk status change completed: {SuccessCount} successful, {FailureCount} failed",
+            successCount, errors.Count);
+
+        return new Prym.DTOs.Bulk.BulkStatusChangeResultDto
+        {
+            TotalCount = bulkStatusChangeDto.DocumentIds.Count,
+            SuccessCount = successCount,
+            FailedCount = errors.Count,
+            Errors = errors,
+            ProcessedAt = DateTime.UtcNow,
+            ProcessingTime = DateTime.UtcNow - startTime,
+            RolledBack = false
+        };
     }
 
     #endregion

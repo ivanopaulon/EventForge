@@ -10,7 +10,8 @@ public class DocumentHeaderService(
     IHttpClientService httpClientService,
     ILogger<DocumentHeaderService> logger) : IDocumentHeaderService
 {
-    private const string BaseUrl = "api/v1/documentheaders";
+    // Canonical unified endpoint. Legacy `/api/v1/documentheaders` is kept server-side only for compatibility.
+    private const string BaseUrl = "api/v1/documents";
 
     public async Task<PagedResult<DocumentHeaderDto>?> GetPagedDocumentHeadersAsync(DocumentHeaderQueryParameters queryParameters, CancellationToken ct = default)
     {
@@ -98,7 +99,7 @@ public class DocumentHeaderService(
         {
             // The AddDocumentRow is exposed via DocumentHeaderService on the server
             // We need to check the actual endpoint - it might be in a different controller
-            return await httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>("api/v1/documents/rows", createRowDto, ct);
+            return await httpClientService.PostAsync<CreateDocumentRowDto, DocumentRowDto>($"{BaseUrl}/rows", createRowDto, ct);
         }
         catch (Exception ex)
         {
@@ -111,7 +112,7 @@ public class DocumentHeaderService(
     {
         try
         {
-            return await httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"api/v1/documents/rows/{rowId}", updateRowDto, ct);
+            return await httpClientService.PutAsync<UpdateDocumentRowDto, DocumentRowDto>($"{BaseUrl}/rows/{rowId}", updateRowDto, ct);
         }
         catch (Exception ex)
         {
@@ -124,7 +125,7 @@ public class DocumentHeaderService(
     {
         try
         {
-            await httpClientService.DeleteAsync($"api/v1/documents/rows/{rowId}", ct);
+            await httpClientService.DeleteAsync($"{BaseUrl}/rows/{rowId}", ct);
             return true;
         }
         catch (Exception ex)
@@ -153,7 +154,7 @@ public class DocumentHeaderService(
         {
             logger.LogInformation("Starting bulk approval for {Count} documents", bulkApprovalDto.DocumentIds.Count);
             var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkApprovalDto, Prym.DTOs.Bulk.BulkApprovalResultDto>(
-                "api/v1/documents/bulk-approve",
+                $"{BaseUrl}/bulk-approve",
                 bulkApprovalDto,
                 ct);
 
@@ -179,7 +180,7 @@ public class DocumentHeaderService(
             logger.LogInformation("Starting bulk status change for {Count} documents to status '{Status}'",
                 bulkStatusChangeDto.DocumentIds.Count, bulkStatusChangeDto.NewStatus);
             var result = await httpClientService.PostAsync<Prym.DTOs.Bulk.BulkStatusChangeDto, Prym.DTOs.Bulk.BulkStatusChangeResultDto>(
-                "api/v1/documents/bulk-status-change",
+                $"{BaseUrl}/bulk-status-change",
                 bulkStatusChangeDto,
                 ct);
 

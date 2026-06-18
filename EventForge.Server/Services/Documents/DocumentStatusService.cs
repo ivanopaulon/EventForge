@@ -122,18 +122,18 @@ public class DocumentStatusService(
     {
         try
         {
-            var document = await context.DocumentHeaders
+            var currentStatus = await context.DocumentHeaders
                 .Where(d => d.Id == documentId && !d.IsDeleted)
-                .Select(d => d.Status)
+                .Select(d => (DocumentStatus?)d.Status)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (document == default)
+            if (currentStatus is null)
             {
                 logger.LogWarning("Document with ID {DocumentId} not found", documentId);
                 return [];
             }
 
-            return DocumentStateMachine.GetAvailableTransitions(document);
+            return DocumentStateMachine.GetAvailableTransitions(currentStatus.Value);
         }
         catch
         {

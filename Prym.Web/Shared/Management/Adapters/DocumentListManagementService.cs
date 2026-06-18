@@ -13,6 +13,8 @@ namespace Prym.Web.Shared.Management.Adapters;
 public class DocumentListManagementService : IEntityManagementService<DocumentHeaderDto>
 {
     private readonly IDocumentHeaderService _service;
+    private readonly IDocumentStatusService? _documentStatusService;
+    private Dictionary<Guid, IReadOnlyList<DocumentStatus>> _availableTransitionsByDocumentId = new();
 
     /// <summary>
     /// Optional filter by document type ID. Set by the hosting page before triggering a refresh.
@@ -24,8 +26,18 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
     /// </summary>
     public DocumentStatus? Status { get; set; }
 
-    public DocumentListManagementService(IDocumentHeaderService service)
-        => _service = service;
+    public DocumentListManagementService(
+        IDocumentHeaderService service,
+        IDocumentStatusService? documentStatusService = null)
+    {
+        _service = service;
+        _documentStatusService = documentStatusService;
+    }
+
+    public IReadOnlyList<DocumentStatus> GetAvailableTransitions(Guid documentId)
+        => _availableTransitionsByDocumentId.TryGetValue(documentId, out var transitions)
+            ? transitions
+            : [];
 
     public async Task<PagedResult<DocumentHeaderDto>> GetPagedAsync(
         int page,
@@ -46,13 +58,34 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
         };
 
         var result = await _service.GetPagedDocumentHeadersAsync(queryParams);
-        return result ?? new PagedResult<DocumentHeaderDto>
+        var pagedResult = result ?? new PagedResult<DocumentHeaderDto>
         {
             Items = Array.Empty<DocumentHeaderDto>(),
             TotalCount = 0,
             Page = page,
             PageSize = queryParams.PageSize
         };
+
+        _availableTransitionsByDocumentId = new Dictionary<Guid, IReadOnlyList<DocumentStatus>>();
+        if (_documentStatusService is not null && pagedResult.Items.Count > 0)
+        {
+            var transitionsTasks = pagedResult.Items
+                .Select(async item =>
+                {
+                    var transitions = await _documentStatusService.GetAvailableTransitionsAsync(item.Id, ct);
+                    return new
+                    {
+                        item.Id,
+                        Transitions = (IReadOnlyList<DocumentStatus>)(transitions ?? [])
+                    };
+                })
+                .ToList();
+
+            var transitionsByDocument = await Task.WhenAll(transitionsTasks);
+            _availableTransitionsByDocumentId = transitionsByDocument.ToDictionary(x => x.Id, x => x.Transitions);
+        }
+
+        return pagedResult;
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
