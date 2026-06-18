@@ -606,14 +606,22 @@
                 
                 if (!hasCodeReference)
                 {
+                    // BUG-2 fix: cap total length to ProductCodeWithUnitDto.Code MaxLength (100).
+                    // Suffix is "-{UnitType}" (1 + UnitType.Length chars); trim the base code if needed.
+                    const int MaxCodeLength = 100;
+                    var suffix = $"-{unit.UnitType}";
+                    var baseCode = _model.Code.Length + suffix.Length > MaxCodeLength
+                        ? _model.Code[..(MaxCodeLength - suffix.Length)]
+                        : _model.Code;
+
                     codesWithUnits.Add(new ProductCodeWithUnitDto
                     {
                         CodeType = "Internal",
-                        Code = $"{_model.Code}-{unit.UnitType}",
+                        Code = $"{baseCode}{suffix}",
                         UnitType = unit.UnitType,
                         UnitOfMeasureId = unit.UnitOfMeasureId,
                         ConversionFactor = unit.ConversionFactor,
-                        AlternativeDescription = unit.Description
+                        UnitDescription = unit.Description  // BUG-1 fix: was AlternativeDescription — unit description must go to UnitDescription
                     });
                 }
             }

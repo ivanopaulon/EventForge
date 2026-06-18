@@ -1969,8 +1969,11 @@
             // Set the current product and show the inventory entry dialog directly
             _currentProduct = createdProduct;
             
-            // Track the barcode assignment for the new product
-            TrackBarcodeAssignment(_scannedBarcode, createdProduct, "EAN", null, 1m);
+            // Track the barcode assignment for the new product.
+            // BUG-3 fix: the scanned barcode is treated as a generic barcode by the dialog
+            // (AdvancedQuickCreateProductDialog defaults to "Barcode" type), so use "Barcode" here
+            // rather than the incorrect "EAN" that was previously hardcoded.
+            TrackBarcodeAssignment(_scannedBarcode, createdProduct, "Barcode", null, 1m);
             
             AppNotification.ShowSuccess(TranslationService.GetTranslation("products.productCreatedWithCodesUnits", "Prodotto creato con codici e UoM: {0}", createdProduct.Name));
             
