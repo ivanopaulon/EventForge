@@ -224,8 +224,8 @@ public class WarehouseFacade(
 
     #region Document Operations
 
-    public Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
-        => documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+    public Task<DocumentHeaderDto?> ArchiveDocumentAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+        => documentHeaderService.ArchiveDocumentAsync(id, currentUser, cancellationToken);
 
     public Task<DocumentHeaderDto?> GetDocumentHeaderByIdAsync(Guid id, bool includeRows = false, CancellationToken cancellationToken = default)
         => documentHeaderService.GetDocumentHeaderByIdAsync(id, includeRows, cancellationToken);
@@ -478,7 +478,7 @@ public class WarehouseFacade(
                 .AsNoTracking()
                 .Where(d => d.TenantId == tenantId
                             && d.DocumentTypeId == inventoryDocType.Id
-                            && d.Status == DocumentStatus.Open
+                            && d.Status == DocumentStatus.Active
                             && !d.IsDeleted)
                 .OrderByDescending(d => d.CreatedAt)
                 .Select(d => new InventoryDocumentHeaderDto

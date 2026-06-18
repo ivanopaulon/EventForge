@@ -126,19 +126,7 @@ public interface IDocumentHeaderService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Closes a document header.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <param name="currentUser">Current user for auditing</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Updated document header DTO or null if not found</returns>
-    Task<DocumentHeaderDto?> CloseDocumentAsync(
-        Guid id,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Archives a document header (Closed → Archived). Archived documents are excluded from
+    /// Archives a document header (Active → Archived). Archived documents are excluded from
     /// default list views but their stock movements remain unchanged.
     /// </summary>
     /// <param name="id">Document header ID</param>

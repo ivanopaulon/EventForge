@@ -207,16 +207,10 @@
                                         @TranslationService.GetTranslation("status.draft", "Bozza")
                                     </MudSelectItem>
                                 }
-                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Open))
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Active))
                                 {
-                                    <MudSelectItem Value="@DocumentStatus.Open">
-                                        @TranslationService.GetTranslation("status.open", "Aperto")
-                                    </MudSelectItem>
-                                }
-                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Closed))
-                                {
-                                    <MudSelectItem Value="@DocumentStatus.Closed">
-                                        @TranslationService.GetTranslation("status.closed", "Chiuso")
+                                    <MudSelectItem Value="@DocumentStatus.Active">
+                                        @TranslationService.GetTranslation("status.active", "Attivo")
                                     </MudSelectItem>
                                 }
                                 @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Cancelled))
@@ -607,8 +601,7 @@
     /// </summary>
     private bool IsDocumentEditable()
     {
-        return _currentDocument?.Status != DocumentStatus.Closed &&
-               _currentDocument?.Status != DocumentStatus.Cancelled &&
+        return _currentDocument?.Status != DocumentStatus.Cancelled &&
                _currentDocument?.Status != DocumentStatus.Archived;
     }
 
@@ -734,7 +727,7 @@
     {
         // Documents with immutable status (Closed/Cancelled/Archived) are opened in read-only mode
         // without attempting to acquire an edit lock.
-        if (_documentStatus == DocumentStatus.Closed || _documentStatus == DocumentStatus.Cancelled || _documentStatus == DocumentStatus.Archived)
+        if (_documentStatus == DocumentStatus.Cancelled || _documentStatus == DocumentStatus.Archived)
         {
             _isReadOnly = true;
             _isReadOnlyDueToStatus = true;
@@ -886,7 +879,7 @@
     {
         if (_isEditMode && !IsDocumentEditable())
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"));
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento archiviato o annullato"));
             return;
         }
 

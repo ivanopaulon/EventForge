@@ -599,79 +599,6 @@ public class DocumentHeaderService(
         }
     }
 
-    public async Task<DocumentHeaderDto?> CloseDocumentAsync(
-        Guid id,
-        string currentUser,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var originalHeader = await context.DocumentHeaders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (originalHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for closing.", id);
-                return null;
-            }
-
-            var documentHeader = await context.DocumentHeaders
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for closing.", id);
-                return null;
-            }
-
-            documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Closed;
-            documentHeader.ClosedAt = DateTime.UtcNow;
-            documentHeader.ModifiedBy = currentUser;
-            documentHeader.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict closing document {DocumentHeaderId}.", id);
-                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
-
-            logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
-
-            return documentHeader.ToDto();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
-    public async Task<bool> DocumentHeaderExistsAsync(
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            return await context.DocumentHeaders
-                .AsNoTracking()
-                .AnyAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
     public async Task<DocumentHeaderDto?> ArchiveDocumentAsync(
         Guid id,
         string currentUser,
@@ -689,9 +616,9 @@ public class DocumentHeaderService(
                 return null;
             }
 
-            if (originalHeader.Status != Prym.DTOs.Common.DocumentStatus.Closed)
+            if (originalHeader.Status != Prym.DTOs.Common.DocumentStatus.Active)
             {
-                throw new InvalidOperationException("Solo i documenti nello stato Chiuso possono essere archiviati.");
+                throw new InvalidOperationException("Solo i documenti nello stato Attivo possono essere archiviati.");
             }
 
             var documentHeader = await context.DocumentHeaders
@@ -730,6 +657,22 @@ public class DocumentHeaderService(
         catch (DbUpdateConcurrencyException)
         {
             throw;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task<bool> DocumentHeaderExistsAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await context.DocumentHeaders
+                .AsNoTracking()
+                .AnyAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
         }
         catch
         {

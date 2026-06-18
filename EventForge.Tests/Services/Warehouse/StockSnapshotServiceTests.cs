@@ -802,7 +802,7 @@ public class StockSnapshotServiceTests : IDisposable
 
     private DocumentHeader MakeInventoryHeader(
         DateTime date,
-        EntityDocumentStatus status = EntityDocumentStatus.Closed)
+        EntityDocumentStatus status = EntityDocumentStatus.Archived)
     {
         return new DocumentHeader
         {
@@ -956,7 +956,7 @@ public class StockSnapshotServiceTests : IDisposable
             MakeMovement(_productId, null, _locationId, 10m, jan01.AddDays(5)));
 
         // Inventory document that is Open (not Closed) — must not be used as anchor
-        var inventoryHeader = MakeInventoryHeader(feb06, EntityDocumentStatus.Open);
+        var inventoryHeader = MakeInventoryHeader(feb06, EntityDocumentStatus.Active);
         _context.DocumentHeaders.Add(inventoryHeader);
         _context.DocumentRows.Add(MakeInventoryRow(inventoryHeader.Id, _productId, _locationId, 999m));
 
@@ -1043,14 +1043,14 @@ public class StockSnapshotServiceTests : IDisposable
 
         foreach (var d in dates)
         {
-            var header = MakeInventoryHeader(d, EntityDocumentStatus.Closed);
+            var header = MakeInventoryHeader(d, EntityDocumentStatus.Archived);
             _context.DocumentHeaders.Add(header);
         }
 
         // An open inventory document — must NOT be included.
         _context.DocumentHeaders.Add(MakeInventoryHeader(
             new DateTime(2025, 4, 1, 0, 0, 0, DateTimeKind.Utc),
-            EntityDocumentStatus.Open));
+            EntityDocumentStatus.Active));
 
         await _context.SaveChangesAsync();
 
@@ -1343,7 +1343,7 @@ public class InventoryDocumentQuantitiesTests : IDisposable
         _context.SaveChanges();
     }
 
-    private DocumentHeader MakeHeader(EntityDocumentStatus status = EntityDocumentStatus.Closed, DateTime? date = null)
+    private DocumentHeader MakeHeader(EntityDocumentStatus status = EntityDocumentStatus.Archived, DateTime? date = null)
         => new DocumentHeader
         {
             Id = Guid.NewGuid(),
@@ -1433,7 +1433,7 @@ public class InventoryDocumentQuantitiesTests : IDisposable
     [Fact]
     public async Task GetInventoryDocumentQuantitiesAsync_OpenDocument_ReturnsEmpty()
     {
-        var header = MakeHeader(EntityDocumentStatus.Open);
+        var header = MakeHeader(EntityDocumentStatus.Active);
         _context.DocumentHeaders.Add(header);
         _context.DocumentRows.Add(MakeRow(header.Id, _productId, _locationId, 99m));
         await _context.SaveChangesAsync();

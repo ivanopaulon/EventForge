@@ -92,19 +92,6 @@ public class DocumentHeaderService(
         }
     }
 
-    public async Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id, CancellationToken ct = default)
-    {
-        try
-        {
-            return await httpClientService.PostAsync<object, DocumentHeaderDto>($"{BaseUrl}/{id}/close", new { }, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error closing document with ID {Id}", id);
-            return null;
-        }
-    }
-
     public async Task<DocumentRowDto?> AddDocumentRowAsync(CreateDocumentRowDto createRowDto, CancellationToken ct = default)
     {
         try

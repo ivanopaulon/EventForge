@@ -368,50 +368,14 @@ public class DocumentsController(
     }
 
     /// <summary>
-    /// Closes a document header.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Closed document header</returns>
-    /// <response code="200">Returns the closed document header</response>
-    /// <response code="404">If the document header is not found</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpPost("{id:guid}/close")]
-    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<DocumentHeaderDto>> CloseDocument(
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        var tenantError = await ValidateTenantAccessAsync(tenantContext);
-        if (tenantError != null) return tenantError;
-
-        try
-        {
-            var currentUser = GetCurrentUser();
-            var documentHeader = await documentFacade.CloseDocumentAsync(id, currentUser, cancellationToken);
-
-            if (documentHeader == null)
-                return CreateNotFoundProblem($"Document header with ID {id} not found.");
-
-            return Ok(documentHeader);
-        }
-        catch (Exception ex)
-        {
-            return CreateInternalServerErrorProblem("An error occurred while closing the document.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Archives a document header (Closed → Archived).
+    /// Archives a document header (Active → Archived).
     /// Archived documents are excluded from default list views but their stock movements remain unchanged.
     /// </summary>
     /// <param name="id">Document header ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Updated document header DTO</returns>
     /// <response code="200">Returns the archived document header</response>
-    /// <response code="400">If the document is not in Closed status</response>
+    /// <response code="400">If the document is not in Active status</response>
     /// <response code="404">If the document header is not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("{id:guid}/archive")]

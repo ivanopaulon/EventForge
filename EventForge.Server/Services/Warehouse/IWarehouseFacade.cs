@@ -513,15 +513,13 @@ public interface IWarehouseFacade
     #region Document Operations
 
     /// <summary>
-    /// Closes a document and finalizes its state.
+    /// Archives a document (Active → Archived).
     /// </summary>
     /// <param name="id">Document unique identifier</param>
     /// <param name="currentUser">Current user identifier for audit logging</param>
     /// <param name="cancellationToken">Cancellation token for async operation</param>
-    /// <returns>Closed document header DTO or null if not found</returns>
-    /// <exception cref="ArgumentNullException">Thrown when currentUser is null</exception>
-    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
+    /// <returns>Archived document header DTO or null if not found</returns>
+    Task<DocumentHeaderDto?> ArchiveDocumentAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves a document header by its unique identifier, optionally including rows.

@@ -169,8 +169,7 @@ public class StockReconciliationService(
                             dr.DocumentHeader != null &&
                             dr.DocumentHeader.DocumentType != null &&
                             dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed ||
-                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived) &&
+                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived) &&
                             dr.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                             // Primary match: exact storage location.
                             // Fallback match: when LocationId is null on the row (legacy inventory data),
@@ -216,8 +215,7 @@ public class StockReconciliationService(
                             dr.DocumentHeader != null &&
                             dr.DocumentHeader.DocumentType != null &&
                             !dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Open ||
-                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed ||
+                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Active ||
                              dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived));
 
             if (request.FromDate.HasValue)
@@ -828,7 +826,7 @@ public class StockReconciliationService(
 
         var documentStatusFilter = (request.DocumentStatuses is not null && request.DocumentStatuses.Count > 0)
             ? request.DocumentStatuses.Select(v => (Prym.DTOs.Common.DocumentStatus)v).ToList()
-            : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Closed, Prym.DTOs.Common.DocumentStatus.Archived };
+            : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Archived };
 
         // Build query on DocumentHeaders.
         // Both filters are required (AND): a document must satisfy the approval-status

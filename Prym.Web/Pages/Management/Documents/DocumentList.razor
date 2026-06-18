@@ -36,8 +36,7 @@
                     ValueChanged="@OnStatusChanged"
                     Clearable="true">
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Draft">@TranslationService.GetTranslation("status.draft", "Bozza")</MudSelectItem>
-            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Open">@TranslationService.GetTranslation("status.open", "Aperto")</MudSelectItem>
-            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Closed">@TranslationService.GetTranslation("status.closed", "Chiuso")</MudSelectItem>
+            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Cancelled">@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Archived">@TranslationService.GetTranslation("status.archived", "Archiviato")</MudSelectItem>
         </PrymSelect>
@@ -238,8 +237,7 @@
             {
                 new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutti i documenti" },
                 new() { Id = "draft", Label = "Bozze", Predicate = d => d.Status == DocumentStatus.Draft, Color = Color.Default, Icon = Icons.Material.Outlined.Edit, Description = "Documenti in bozza" },
-                new() { Id = "open", Label = "Aperti", Predicate = d => d.Status == DocumentStatus.Open, Color = Color.Info, Icon = Icons.Material.Outlined.Description, Description = "Documenti aperti" },
-                new() { Id = "closed", Label = "Chiusi", Predicate = d => d.Status == DocumentStatus.Closed, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Documenti chiusi" },
+                new() { Id = "active", Label = "Attivi", Predicate = d => d.Status == DocumentStatus.Active, Color = Color.Info, Icon = Icons.Material.Outlined.Description, Description = "Documenti attivi" },
                 new() { Id = "cancelled", Label = "Annullati", Predicate = d => d.Status == DocumentStatus.Cancelled, Color = Color.Error, Icon = Icons.Material.Outlined.Cancel, Description = "Documenti annullati" },
                 new() { Id = "archived", Label = "Archiviati", Predicate = d => d.Status == DocumentStatus.Archived, Color = Color.Secondary, Icon = Icons.Material.Outlined.Archive, Description = "Documenti archiviati" },
                 new() { Id = "recent", Label = "Recenti", Predicate = d => d.Date >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Documenti degli ultimi 30 giorni" }
@@ -296,8 +294,7 @@
     private Color GetStatusColor(DocumentStatus status) => status switch
     {
         DocumentStatus.Draft => Color.Default,
-        DocumentStatus.Open => Color.Success,
-        DocumentStatus.Closed => Color.Warning,
+        DocumentStatus.Active => Color.Success,
         DocumentStatus.Cancelled => Color.Error,
         DocumentStatus.Archived => Color.Secondary,
         _ => Color.Default
@@ -336,16 +333,14 @@
 
     private static List<DocumentStatus> GetAvailableStatusTransitions(DocumentStatus status) => status switch
     {
-        DocumentStatus.Draft => new() { DocumentStatus.Open, DocumentStatus.Cancelled },
-        DocumentStatus.Open => new() { DocumentStatus.Closed, DocumentStatus.Draft, DocumentStatus.Cancelled },
-        DocumentStatus.Closed => new() { DocumentStatus.Archived },
+        DocumentStatus.Draft => new() { DocumentStatus.Active, DocumentStatus.Cancelled },
+        DocumentStatus.Active => new() { DocumentStatus.Draft, DocumentStatus.Cancelled, DocumentStatus.Archived },
         _ => new()
     };
 
     private static string GetStatusTransitionLabel(DocumentStatus status) => status switch
     {
-        DocumentStatus.Open => "Apri",
-        DocumentStatus.Closed => "Chiudi",
+        DocumentStatus.Active => "Attiva",
         DocumentStatus.Draft => "Riporta in bozza",
         DocumentStatus.Cancelled => "Annulla",
         DocumentStatus.Archived => "Archivia",
@@ -354,8 +349,7 @@
 
     private static string GetStatusIcon(DocumentStatus status) => status switch
     {
-        DocumentStatus.Open => Icons.Material.Outlined.LockOpen,
-        DocumentStatus.Closed => Icons.Material.Outlined.Lock,
+        DocumentStatus.Active => Icons.Material.Outlined.LockOpen,
         DocumentStatus.Draft => Icons.Material.Outlined.Edit,
         DocumentStatus.Cancelled => Icons.Material.Outlined.Cancel,
         DocumentStatus.Archived => Icons.Material.Outlined.Archive,
@@ -364,10 +358,9 @@
 
     private static string GetStatusTransitionConfirmation(DocumentStatus from, DocumentStatus to) => (from, to) switch
     {
-        (DocumentStatus.Draft, DocumentStatus.Open) => "Aprire il documento? Sarà pronto per la lavorazione.",
-        (DocumentStatus.Open, DocumentStatus.Closed) => "Chiudere il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
-        (DocumentStatus.Open, DocumentStatus.Draft) => "Riportare il documento in bozza? Potrai continuare a modificarlo.",
-        (DocumentStatus.Closed, DocumentStatus.Archived) => "Archiviare il documento? Sarà nascosto dalle visualizzazioni predefinite.",
+        (DocumentStatus.Draft, DocumentStatus.Active) => "Attivare il documento? Sarà pronto per la lavorazione.",
+        (DocumentStatus.Active, DocumentStatus.Draft) => "Riportare il documento in bozza? Potrai continuare a modificarlo.",
+        (DocumentStatus.Active, DocumentStatus.Archived) => "Archiviare il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
         (_, DocumentStatus.Cancelled) => "Annullare il documento? Questa azione è IRREVERSIBILE.",
         _ => $"Confermare la transizione di stato?"
     };

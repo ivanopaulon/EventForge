@@ -173,7 +173,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -264,7 +264,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "SO-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -354,7 +354,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "SI-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -418,7 +418,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-002",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -494,7 +494,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-003",
             Date = documentDate,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -563,7 +563,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-004",
             Date = originalDate,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -956,7 +956,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
     }
 
     [Fact]
-    public async Task CloseDocumentAsync_WithStockIncreaseDocument_CreatesInboundMovement()
+    public async Task ArchiveDocumentAsync_WithStockIncreaseDocument_CreatesInboundMovement()
     {
         // Arrange
         var documentType = new DocumentType
@@ -981,7 +981,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "DDT-ACQ-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1011,11 +1011,11 @@ public class DocumentHeaderStockMovementTests : IDisposable
         // Act — movements are now generated on save (via TriggerStockMovementsForDocumentAsync),
         // not on close. Call the explicit trigger first, then close the document.
         await _documentHeaderService.TriggerStockMovementsForDocumentAsync(documentHeader.Id, "test");
-        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+        var result = await _documentHeaderService.ArchiveDocumentAsync(documentHeader.Id, "test");
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Closed, result.Status);
+        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Archived, result.Status);
 
         // Check that stock movement was created by the trigger (not by close)
         var movements = await _context.StockMovements
@@ -1038,7 +1038,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
     }
 
     [Fact]
-    public async Task CloseDocumentAsync_WithStockDecreaseDocument_CreatesOutboundMovement()
+    public async Task ArchiveDocumentAsync_WithStockDecreaseDocument_CreatesOutboundMovement()
     {
         // Arrange
         var documentType = new DocumentType
@@ -1074,7 +1074,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "DDT-VEND-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1103,11 +1103,11 @@ public class DocumentHeaderStockMovementTests : IDisposable
 
         // Act — movements are generated on save/trigger, not on close
         await _documentHeaderService.TriggerStockMovementsForDocumentAsync(documentHeader.Id, "test");
-        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+        var result = await _documentHeaderService.ArchiveDocumentAsync(documentHeader.Id, "test");
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Closed, result.Status);
+        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Archived, result.Status);
 
         // Check that stock movement was created by the trigger (not by close)
         var movements = await _context.StockMovements
@@ -1130,7 +1130,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
     }
 
     [Fact]
-    public async Task CloseDocumentAsync_WithoutStockManagement_DoesNotCreateMovements()
+    public async Task ArchiveDocumentAsync_WithoutStockManagement_DoesNotCreateMovements()
     {
         // Arrange
         var documentType = new DocumentType
@@ -1165,7 +1165,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "INV-SRV-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1189,11 +1189,11 @@ public class DocumentHeaderStockMovementTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+        var result = await _documentHeaderService.ArchiveDocumentAsync(documentHeader.Id, "test");
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Closed, result.Status);
+        Assert.Equal(Prym.DTOs.Common.DocumentStatus.Archived, result.Status);
 
         // Check that NO stock movement was created
         var movements = await _context.StockMovements
@@ -1204,7 +1204,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
     }
 
     [Fact]
-    public async Task CloseDocumentAsync_AlreadyClosed_DoesNotDuplicateMovements()
+    public async Task ArchiveDocumentAsync_AlreadyArchived_DoesNotDuplicateMovements()
     {
         // Arrange
         var documentType = new DocumentType
@@ -1229,7 +1229,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-002",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1253,7 +1253,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
         await _context.SaveChangesAsync();
 
         // Close the document first time (movements are NOT generated by close)
-        await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+        await _documentHeaderService.ArchiveDocumentAsync(documentHeader.Id, "test");
 
         // Generate movements via explicit trigger (once)
         await _documentHeaderService.TriggerStockMovementsForDocumentAsync(documentHeader.Id, "test");
@@ -1267,7 +1267,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
         var docToReclose = await _context.DocumentHeaders.FindAsync(documentHeader.Id);
         if (docToReclose != null)
         {
-            docToReclose.Status = Prym.DTOs.Common.DocumentStatus.Open;
+            docToReclose.Status = Prym.DTOs.Common.DocumentStatus.Active;
             await _context.SaveChangesAsync();
         }
 
@@ -1319,7 +1319,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "INV-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1370,7 +1370,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
     /// StockMovements.  Inventory documents are quantity anchors, not stock deltas.
     /// </summary>
     [Fact]
-    public async Task CloseDocumentAsync_InventoryDocument_DoesNotCreateStockMovements()
+    public async Task ArchiveDocumentAsync_InventoryDocument_DoesNotCreateStockMovements()
     {
         // Arrange
         var inventoryDocType = new DocumentType
@@ -1397,6 +1397,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "INV-002",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.Approved,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1424,7 +1425,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             .SumAsync(s => s.Quantity);
 
         // Act
-        var result = await _documentHeaderService.CloseDocumentAsync(documentHeader.Id, "test");
+        var result = await _documentHeaderService.ArchiveDocumentAsync(documentHeader.Id, "test");
 
         // Assert — document closed but NO movements created
         Assert.NotNull(result);
@@ -1473,7 +1474,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-REG-001",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,
+            Status = Prym.DTOs.Common.DocumentStatus.Active,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"

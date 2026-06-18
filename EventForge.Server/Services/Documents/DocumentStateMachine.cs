@@ -16,32 +16,23 @@ public static class DocumentStateMachine
     /// </summary>
     private static readonly Dictionary<DocumentStatus, List<DocumentStatus>> AllowedTransitions = new()
     {
-        // DRAFT → può diventare OPEN o CANCELLED
+        // DRAFT → può diventare ACTIVE o CANCELLED
         {
             DocumentStatus.Draft,
             new List<DocumentStatus>
             {
-                DocumentStatus.Open,
+                DocumentStatus.Active,
                 DocumentStatus.Cancelled
             }
         },
         
-        // OPEN → può diventare CLOSED, tornare DRAFT, o essere CANCELLED
+        // ACTIVE → può tornare DRAFT, essere CANCELLED, o essere ARCHIVED
         {
-            DocumentStatus.Open,
+            DocumentStatus.Active,
             new List<DocumentStatus>
             {
-                DocumentStatus.Closed,
                 DocumentStatus.Draft,
-                DocumentStatus.Cancelled
-            }
-        },
-        
-        // CLOSED → può diventare ARCHIVED
-        {
-            DocumentStatus.Closed,
-            new List<DocumentStatus>
-            {
+                DocumentStatus.Cancelled,
                 DocumentStatus.Archived
             }
         },
@@ -98,8 +89,7 @@ public static class DocumentStateMachine
 
         return newStatus switch
         {
-            DocumentStatus.Open => ValidateTransitionToOpen(document),
-            DocumentStatus.Closed => ValidateTransitionToClosed(document),
+            DocumentStatus.Active => ValidateTransitionToActive(document),
             DocumentStatus.Cancelled => ValidateTransitionToCancelled(document),
             DocumentStatus.Draft => ValidateTransitionToDraft(document),
             DocumentStatus.Archived => ValidateTransitionToArchived(document),
@@ -111,53 +101,20 @@ public static class DocumentStateMachine
 
     #region Business Rules
 
-    private static StateTransitionValidationResult ValidateTransitionToOpen(DocumentHeaderDto document)
+    private static StateTransitionValidationResult ValidateTransitionToActive(DocumentHeaderDto document)
     {
         if (document.BusinessPartyId == Guid.Empty)
         {
             return StateTransitionValidationResult.Fail(
-                "Impossibile aprire il documento: seleziona prima un cliente o fornitore",
+                "Impossibile attivare il documento: seleziona prima un cliente o fornitore",
                 StateTransitionErrorCode.MissingBusinessParty);
         }
 
         if (document.DocumentTypeId == Guid.Empty)
         {
             return StateTransitionValidationResult.Fail(
-                "Impossibile aprire il documento: seleziona un tipo di documento",
+                "Impossibile attivare il documento: seleziona un tipo di documento",
                 StateTransitionErrorCode.MissingDocumentType);
-        }
-
-        return StateTransitionValidationResult.Success();
-    }
-
-    private static StateTransitionValidationResult ValidateTransitionToClosed(DocumentHeaderDto document)
-    {
-        if (document.Rows is null || !document.Rows.Any())
-        {
-            return StateTransitionValidationResult.Fail(
-                "Impossibile chiudere il documento: deve contenere almeno una riga",
-                StateTransitionErrorCode.NoRows);
-        }
-
-        if (document.TotalGrossAmount <= 0)
-        {
-            return StateTransitionValidationResult.Fail(
-                "Impossibile chiudere il documento: il totale deve essere maggiore di zero",
-                StateTransitionErrorCode.ZeroTotal);
-        }
-
-        if (document.BusinessPartyId == Guid.Empty)
-        {
-            return StateTransitionValidationResult.Fail(
-                "Impossibile chiudere il documento: seleziona un cliente o fornitore",
-                StateTransitionErrorCode.MissingBusinessParty);
-        }
-
-        if (string.IsNullOrWhiteSpace(document.Number))
-        {
-            return StateTransitionValidationResult.Fail(
-                "Impossibile chiudere il documento: assegna un numero al documento",
-                StateTransitionErrorCode.MissingNumber);
         }
 
         return StateTransitionValidationResult.Success();
@@ -165,22 +122,15 @@ public static class DocumentStateMachine
 
     private static StateTransitionValidationResult ValidateTransitionToCancelled(DocumentHeaderDto document)
     {
-        if (document.Status == DocumentStatus.Closed)
-        {
-            return StateTransitionValidationResult.Fail(
-                "Impossibile annullare un documento chiuso. Crea una nota di credito.",
-                StateTransitionErrorCode.CannotCancelClosed);
-        }
-
         return StateTransitionValidationResult.Success();
     }
 
     private static StateTransitionValidationResult ValidateTransitionToDraft(DocumentHeaderDto document)
     {
-        if (document.Status != DocumentStatus.Open)
+        if (document.Status != DocumentStatus.Active)
         {
             return StateTransitionValidationResult.Fail(
-                "Si può riportare in bozza solo un documento aperto",
+                "Si può riportare in bozza solo un documento attivo",
                 StateTransitionErrorCode.InvalidTransition);
         }
 
@@ -189,8 +139,34 @@ public static class DocumentStateMachine
 
     private static StateTransitionValidationResult ValidateTransitionToArchived(DocumentHeaderDto document)
     {
-        // Archiving is only allowed from Closed; the state machine transition matrix already
-        // enforces this, so no additional business rule checks are needed here.
+        if (document.Rows is null || !document.Rows.Any())
+        {
+            return StateTransitionValidationResult.Fail(
+                "Impossibile archiviare il documento: deve contenere almeno una riga",
+                StateTransitionErrorCode.NoRows);
+        }
+
+        if (document.TotalGrossAmount <= 0)
+        {
+            return StateTransitionValidationResult.Fail(
+                "Impossibile archiviare il documento: il totale deve essere maggiore di zero",
+                StateTransitionErrorCode.ZeroTotal);
+        }
+
+        if (document.BusinessPartyId == Guid.Empty)
+        {
+            return StateTransitionValidationResult.Fail(
+                "Impossibile archiviare il documento: seleziona un cliente o fornitore",
+                StateTransitionErrorCode.MissingBusinessParty);
+        }
+
+        if (string.IsNullOrWhiteSpace(document.Number))
+        {
+            return StateTransitionValidationResult.Fail(
+                "Impossibile archiviare il documento: assegna un numero al documento",
+                StateTransitionErrorCode.MissingNumber);
+        }
+
         return StateTransitionValidationResult.Success();
     }
 
@@ -202,17 +178,14 @@ public static class DocumentStateMachine
     {
         return (from, to) switch
         {
-            (DocumentStatus.Draft, DocumentStatus.Open) =>
-                "Aprire il documento? Sarà pronto per la lavorazione.",
+            (DocumentStatus.Draft, DocumentStatus.Active) =>
+                "Attivare il documento? Sarà pronto per la lavorazione.",
 
-            (DocumentStatus.Open, DocumentStatus.Closed) =>
-                "Chiudere il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
-
-            (DocumentStatus.Open, DocumentStatus.Draft) =>
+            (DocumentStatus.Active, DocumentStatus.Draft) =>
                 "Riportare il documento in bozza? Potrai continuare a modificarlo.",
 
-            (DocumentStatus.Closed, DocumentStatus.Archived) =>
-                "Archiviare il documento? Sarà nascosto dalle viste predefinite ma i movimenti di magazzino restano invariati.",
+            (DocumentStatus.Active, DocumentStatus.Archived) =>
+                "Archiviare il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
 
             (_, DocumentStatus.Cancelled) =>
                 "Annullare il documento? Questa azione è IRREVERSIBILE.",
@@ -251,8 +224,7 @@ public enum StateTransitionErrorCode
     MissingDocumentType,
     NoRows,
     ZeroTotal,
-    MissingNumber,
-    CannotCancelClosed
+    MissingNumber
 }
 
 #endregion

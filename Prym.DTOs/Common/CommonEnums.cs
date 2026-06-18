@@ -160,11 +160,11 @@ namespace Prym.DTOs.Common
     /// </summary>
     public enum DocumentStatus
     {
-        Draft,      // Document is in draft state
-        Open,       // Document is open and being worked on
-        Closed,     // Document is closed (finalized)
-        Cancelled,  // Document is cancelled
-        Archived    // Document is archived (read-only, hidden from default views)
+        Draft = 0,      // Document is in draft state
+        Active = 1,     // Document is active and being worked on (formerly Open)
+        // Value 2 (Closed) was removed. Do not reuse this value to avoid breaking existing data.
+        Cancelled = 3,  // Document is cancelled
+        Archived = 4    // Document is archived (read-only, hidden from default views)
     }
 
     /// <summary>

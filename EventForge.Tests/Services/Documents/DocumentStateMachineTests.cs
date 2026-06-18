@@ -13,10 +13,10 @@ public class DocumentStateMachineTests
     #region CanTransition Tests
 
     [Fact]
-    public void CanTransition_FromDraftToOpen_ReturnsTrue()
+    public void CanTransition_FromDraftToActive_ReturnsTrue()
     {
         // Act
-        var result = DocumentStateMachine.CanTransition(DocumentStatus.Draft, DocumentStatus.Open);
+        var result = DocumentStateMachine.CanTransition(DocumentStatus.Draft, DocumentStatus.Active);
 
         // Assert
         Assert.True(result);
@@ -33,59 +33,41 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void CanTransition_FromDraftToClosed_ReturnsFalse()
+    public void CanTransition_FromDraftToArchived_ReturnsFalse()
     {
-        // Act
-        var result = DocumentStateMachine.CanTransition(DocumentStatus.Draft, DocumentStatus.Closed);
+        // Draft cannot jump directly to Archived
+        var result = DocumentStateMachine.CanTransition(DocumentStatus.Draft, DocumentStatus.Archived);
 
-        // Assert
         Assert.False(result);
     }
 
     [Fact]
-    public void CanTransition_FromOpenToClosed_ReturnsTrue()
+    public void CanTransition_FromActiveToDraft_ReturnsTrue()
     {
         // Act
-        var result = DocumentStateMachine.CanTransition(DocumentStatus.Open, DocumentStatus.Closed);
+        var result = DocumentStateMachine.CanTransition(DocumentStatus.Active, DocumentStatus.Draft);
 
         // Assert
         Assert.True(result);
     }
 
     [Fact]
-    public void CanTransition_FromOpenToDraft_ReturnsTrue()
+    public void CanTransition_FromActiveToCancelled_ReturnsTrue()
     {
         // Act
-        var result = DocumentStateMachine.CanTransition(DocumentStatus.Open, DocumentStatus.Draft);
+        var result = DocumentStateMachine.CanTransition(DocumentStatus.Active, DocumentStatus.Cancelled);
 
         // Assert
         Assert.True(result);
     }
 
     [Fact]
-    public void CanTransition_FromOpenToCancelled_ReturnsTrue()
+    public void CanTransition_FromActiveToArchived_ReturnsTrue()
     {
-        // Act
-        var result = DocumentStateMachine.CanTransition(DocumentStatus.Open, DocumentStatus.Cancelled);
+        // Active can directly transition to Archived (terminal state)
+        var result = DocumentStateMachine.CanTransition(DocumentStatus.Active, DocumentStatus.Archived);
 
-        // Assert
         Assert.True(result);
-    }
-
-    [Fact]
-    public void CanTransition_FromClosedToAnyState_ReturnsFalse()
-    {
-        // Closed can only go to Archived; transitions to other states are not allowed
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Draft));
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Open));
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Cancelled));
-    }
-
-    [Fact]
-    public void CanTransition_FromClosedToArchived_ReturnsTrue()
-    {
-        // Act & Assert
-        Assert.True(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Archived));
     }
 
     [Fact]
@@ -93,22 +75,13 @@ public class DocumentStateMachineTests
     {
         // Act & Assert
         Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Cancelled, DocumentStatus.Draft));
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Cancelled, DocumentStatus.Open));
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Cancelled, DocumentStatus.Closed));
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Cancelled, DocumentStatus.Active));
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Cancelled, DocumentStatus.Archived));
     }
 
     #endregion
 
     #region IsImmutable Tests
-
-    [Fact]
-    public void IsImmutable_ClosedStatus_ReturnsFalse()
-    {
-        // Closed is no longer immutable — it can transition to Archived
-        var result = DocumentStateMachine.IsImmutable(DocumentStatus.Closed);
-
-        Assert.False(result);
-    }
 
     [Fact]
     public void IsImmutable_CancelledStatus_ReturnsTrue()
@@ -140,10 +113,10 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void IsImmutable_OpenStatus_ReturnsFalse()
+    public void IsImmutable_ActiveStatus_ReturnsFalse()
     {
         // Act
-        var result = DocumentStateMachine.IsImmutable(DocumentStatus.Open);
+        var result = DocumentStateMachine.IsImmutable(DocumentStatus.Active);
 
         // Assert
         Assert.False(result);
@@ -154,37 +127,27 @@ public class DocumentStateMachineTests
     #region GetAvailableTransitions Tests
 
     [Fact]
-    public void GetAvailableTransitions_FromDraft_ReturnsOpenAndCancelled()
+    public void GetAvailableTransitions_FromDraft_ReturnsActiveAndCancelled()
     {
         // Act
         var transitions = DocumentStateMachine.GetAvailableTransitions(DocumentStatus.Draft);
 
         // Assert
         Assert.Equal(2, transitions.Count);
-        Assert.Contains(DocumentStatus.Open, transitions);
+        Assert.Contains(DocumentStatus.Active, transitions);
         Assert.Contains(DocumentStatus.Cancelled, transitions);
     }
 
     [Fact]
-    public void GetAvailableTransitions_FromOpen_ReturnsClosedDraftAndCancelled()
+    public void GetAvailableTransitions_FromActive_ReturnsDraftCancelledAndArchived()
     {
         // Act
-        var transitions = DocumentStateMachine.GetAvailableTransitions(DocumentStatus.Open);
+        var transitions = DocumentStateMachine.GetAvailableTransitions(DocumentStatus.Active);
 
         // Assert
         Assert.Equal(3, transitions.Count);
-        Assert.Contains(DocumentStatus.Closed, transitions);
         Assert.Contains(DocumentStatus.Draft, transitions);
         Assert.Contains(DocumentStatus.Cancelled, transitions);
-    }
-
-    [Fact]
-    public void GetAvailableTransitions_FromClosed_ReturnsArchived()
-    {
-        // Closed documents can only be archived
-        var transitions = DocumentStateMachine.GetAvailableTransitions(DocumentStatus.Closed);
-
-        Assert.Single(transitions);
         Assert.Contains(DocumentStatus.Archived, transitions);
     }
 
@@ -201,8 +164,7 @@ public class DocumentStateMachineTests
     public void CanTransition_FromArchivedToAnyState_ReturnsFalse()
     {
         Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Draft));
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Open));
-        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Closed));
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Active));
         Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Cancelled));
     }
 
@@ -218,10 +180,10 @@ public class DocumentStateMachineTests
 
     #endregion
 
-    #region ValidateTransition Tests - To Open
+    #region ValidateTransition Tests - To Active
 
     [Fact]
-    public void ValidateTransition_ToOpen_WithMissingBusinessParty_ReturnsInvalid()
+    public void ValidateTransition_ToActive_WithMissingBusinessParty_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
@@ -232,7 +194,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Open);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Active);
 
         // Assert
         Assert.False(result.IsValid);
@@ -241,7 +203,7 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToOpen_WithMissingDocumentType_ReturnsInvalid()
+    public void ValidateTransition_ToActive_WithMissingDocumentType_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
@@ -252,7 +214,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Open);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Active);
 
         // Assert
         Assert.False(result.IsValid);
@@ -261,7 +223,7 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToOpen_WithValidData_ReturnsValid()
+    public void ValidateTransition_ToActive_WithValidData_ReturnsValid()
     {
         // Arrange
         var document = new DocumentHeaderDto
@@ -272,7 +234,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Open);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Active);
 
         // Assert
         Assert.True(result.IsValid);
@@ -282,15 +244,15 @@ public class DocumentStateMachineTests
 
     #endregion
 
-    #region ValidateTransition Tests - To Closed
+    #region ValidateTransition Tests - To Archived
 
     [Fact]
-    public void ValidateTransition_ToClosed_WithNoRows_ReturnsInvalid()
+    public void ValidateTransition_ToArchived_WithNoRows_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Open,
+            Status = DocumentStatus.Active,
             BusinessPartyId = Guid.NewGuid(),
             DocumentTypeId = Guid.NewGuid(),
             Number = "DOC001",
@@ -299,7 +261,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Closed);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Archived);
 
         // Assert
         Assert.False(result.IsValid);
@@ -308,12 +270,12 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToClosed_WithZeroTotal_ReturnsInvalid()
+    public void ValidateTransition_ToArchived_WithZeroTotal_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Open,
+            Status = DocumentStatus.Active,
             BusinessPartyId = Guid.NewGuid(),
             DocumentTypeId = Guid.NewGuid(),
             Number = "DOC001",
@@ -322,7 +284,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Closed);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Archived);
 
         // Assert
         Assert.False(result.IsValid);
@@ -331,12 +293,12 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToClosed_WithMissingNumber_ReturnsInvalid()
+    public void ValidateTransition_ToArchived_WithMissingNumber_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Open,
+            Status = DocumentStatus.Active,
             BusinessPartyId = Guid.NewGuid(),
             DocumentTypeId = Guid.NewGuid(),
             Number = "",
@@ -345,7 +307,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Closed);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Archived);
 
         // Assert
         Assert.False(result.IsValid);
@@ -354,12 +316,12 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToClosed_WithValidData_ReturnsValid()
+    public void ValidateTransition_ToArchived_WithValidData_ReturnsValid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Open,
+            Status = DocumentStatus.Active,
             BusinessPartyId = Guid.NewGuid(),
             DocumentTypeId = Guid.NewGuid(),
             Number = "DOC001",
@@ -368,7 +330,7 @@ public class DocumentStateMachineTests
         };
 
         // Act
-        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Closed);
+        var result = DocumentStateMachine.ValidateTransition(document, DocumentStatus.Archived);
 
         // Assert
         Assert.True(result.IsValid);
@@ -381,12 +343,12 @@ public class DocumentStateMachineTests
     #region ValidateTransition Tests - To Cancelled
 
     [Fact]
-    public void ValidateTransition_ToCancelled_FromClosed_ReturnsInvalid()
+    public void ValidateTransition_ToCancelled_FromArchived_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Closed,
+            Status = DocumentStatus.Archived,
             BusinessPartyId = Guid.NewGuid()
         };
 
@@ -418,12 +380,12 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToCancelled_FromOpen_ReturnsValid()
+    public void ValidateTransition_ToCancelled_FromActive_ReturnsValid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Open,
+            Status = DocumentStatus.Active,
             BusinessPartyId = Guid.NewGuid()
         };
 
@@ -440,12 +402,12 @@ public class DocumentStateMachineTests
     #region ValidateTransition Tests - To Draft
 
     [Fact]
-    public void ValidateTransition_ToDraft_FromOpen_ReturnsValid()
+    public void ValidateTransition_ToDraft_FromActive_ReturnsValid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Open,
+            Status = DocumentStatus.Active,
             BusinessPartyId = Guid.NewGuid()
         };
 
@@ -458,12 +420,12 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void ValidateTransition_ToDraft_FromClosed_ReturnsInvalid()
+    public void ValidateTransition_ToDraft_FromArchived_ReturnsInvalid()
     {
         // Arrange
         var document = new DocumentHeaderDto
         {
-            Status = DocumentStatus.Closed,
+            Status = DocumentStatus.Archived,
             BusinessPartyId = Guid.NewGuid()
         };
 
@@ -480,21 +442,21 @@ public class DocumentStateMachineTests
     #region GetTransitionConfirmationMessage Tests
 
     [Fact]
-    public void GetTransitionConfirmationMessage_DraftToOpen_ReturnsCorrectMessage()
+    public void GetTransitionConfirmationMessage_DraftToActive_ReturnsCorrectMessage()
     {
         // Act
-        var message = DocumentStateMachine.GetTransitionConfirmationMessage(DocumentStatus.Draft, DocumentStatus.Open);
+        var message = DocumentStateMachine.GetTransitionConfirmationMessage(DocumentStatus.Draft, DocumentStatus.Active);
 
         // Assert
-        Assert.Contains("Aprire il documento", message);
+        Assert.Contains("Attivare il documento", message);
         Assert.Contains("lavorazione", message);
     }
 
     [Fact]
-    public void GetTransitionConfirmationMessage_OpenToClosed_ReturnsWarning()
+    public void GetTransitionConfirmationMessage_ActiveToArchived_ReturnsWarning()
     {
         // Act
-        var message = DocumentStateMachine.GetTransitionConfirmationMessage(DocumentStatus.Open, DocumentStatus.Closed);
+        var message = DocumentStateMachine.GetTransitionConfirmationMessage(DocumentStatus.Active, DocumentStatus.Archived);
 
         // Assert
         Assert.Contains("IRREVERSIBILE", message);
@@ -505,7 +467,7 @@ public class DocumentStateMachineTests
     public void GetTransitionConfirmationMessage_ToCancelled_ReturnsWarning()
     {
         // Act
-        var message = DocumentStateMachine.GetTransitionConfirmationMessage(DocumentStatus.Open, DocumentStatus.Cancelled);
+        var message = DocumentStateMachine.GetTransitionConfirmationMessage(DocumentStatus.Active, DocumentStatus.Cancelled);
 
         // Assert
         Assert.Contains("Annullare", message);

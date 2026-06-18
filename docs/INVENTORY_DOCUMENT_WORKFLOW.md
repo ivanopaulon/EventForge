@@ -132,7 +132,7 @@ Finalizes the inventory document and applies all stock adjustments.
   "inventoryDate": "2025-01-15T10:00:00Z",
   "warehouseId": "3fa85f64-5717-4562-b3fc-2c963f66afa7",
   "warehouseName": "Main Warehouse",
-  "status": "Closed",
+  "status": "Archived",
   "notes": "Q1 2025 Physical Inventory",
   "createdAt": "2025-01-15T10:00:00Z",
   "createdBy": "mario.rossi",
@@ -197,7 +197,7 @@ The inventory document is implemented using the existing `DocumentHeader` and `D
 
 - **DocumentHeader**: Represents the inventory session
   - DocumentType: "INVENTORY" (auto-created)
-  - Status: "Draft" → "Closed"
+  - Status: "Draft" → "Active" → "Archived"
   - BusinessPartyId: System internal party (auto-created)
 
 - **DocumentRow**: Represents each product count

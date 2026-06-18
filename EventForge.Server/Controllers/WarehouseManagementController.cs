@@ -1750,7 +1750,7 @@ public class WarehouseManagementController(
                     CreatedAt = doc.CreatedAt,
                     CreatedBy = doc.CreatedBy,
                     FinalizedAt = doc.ClosedAt,
-                    FinalizedBy = doc.Status.ToString() == "Closed" ? doc.ModifiedBy : null,
+                    FinalizedBy = null,
                     Rows = enrichedRows
                 });
             }
@@ -1816,7 +1816,7 @@ public class WarehouseManagementController(
                 CreatedAt = documentHeader.CreatedAt,
                 CreatedBy = documentHeader.CreatedBy,
                 FinalizedAt = documentHeader.ClosedAt,
-                FinalizedBy = documentHeader.Status.ToString() == "Closed" ? documentHeader.ModifiedBy : null,
+                FinalizedBy = null,
                 Rows = enrichedRows
             };
 
@@ -2136,7 +2136,7 @@ public class WarehouseManagementController(
             }
 
             // Only allow updating Draft documents (status is Open in entity)
-            if (documentHeader.Status != Prym.DTOs.Common.DocumentStatus.Open)
+            if (documentHeader.Status != Prym.DTOs.Common.DocumentStatus.Active)
             {
                 return CreateValidationProblemDetails("Only Draft inventory documents can be updated. This document has already been finalized.");
             }
@@ -2220,7 +2220,7 @@ public class WarehouseManagementController(
             }
 
             // Check if document is still open
-            if ((int)documentHeader.Status != (int)DocumentStatus.Open)
+            if ((int)documentHeader.Status != (int)DocumentStatus.Active)
             {
                 return CreateValidationProblemDetails("Cannot modify rows in a closed or cancelled inventory document.");
             }
@@ -2299,7 +2299,7 @@ public class WarehouseManagementController(
             }
 
             // Check if document is still open
-            if ((int)documentHeader.Status != (int)DocumentStatus.Open)
+            if ((int)documentHeader.Status != (int)DocumentStatus.Active)
             {
                 return CreateValidationProblemDetails("Cannot delete rows from a closed or cancelled inventory document.");
             }
@@ -2370,13 +2370,13 @@ public class WarehouseManagementController(
             }
 
             // Validate document is in Open status
-            if (documentHeader.Status != Prym.DTOs.Common.DocumentStatus.Open)
+            if (documentHeader.Status != Prym.DTOs.Common.DocumentStatus.Active)
             {
                 logger.LogWarning(
-                    "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Open",
+                    "Cannot finalize inventory document {DocumentId}: status is {Status}, expected Active",
                     documentId, documentHeader.Status);
 
-                return CreateValidationProblemDetails($"Cannot finalize document: status is '{documentHeader.Status}'. Only documents in 'Open' status can be finalized.");
+                return CreateValidationProblemDetails($"Cannot finalize document: status is '{documentHeader.Status}'. Only documents in 'Active' status can be finalized.");
             }
 
             // Validate document has rows
@@ -2511,7 +2511,7 @@ public class WarehouseManagementController(
             }
 
             // Now close the document
-            var closedDocument = await warehouseFacade.CloseDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
+            var closedDocument = await warehouseFacade.ArchiveDocumentAsync(documentId, GetCurrentUser(), cancellationToken);
 
             // Enrich rows with product and location data
             var enrichedRows = closedDocument!.Rows is not null && closedDocument.Rows.Any()
@@ -2773,7 +2773,7 @@ public class WarehouseManagementController(
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
+                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Active,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = true
@@ -2805,7 +2805,7 @@ public class WarehouseManagementController(
                         CreatedAt = doc.CreatedAt,
                         CreatedBy = doc.CreatedBy,
                         FinalizedAt = doc.ClosedAt,
-                        FinalizedBy = doc.Status.ToString() == "Closed" ? doc.ModifiedBy : null,
+                        FinalizedBy = null,
                         Rows = enrichedRows
                     });
                 }
@@ -2913,7 +2913,7 @@ public class WarehouseManagementController(
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
+                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Active,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false
@@ -3002,7 +3002,7 @@ public class WarehouseManagementController(
                         }
 
                         // Close the document
-                        var closedDocument = await warehouseFacade.CloseDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
+                        var closedDocument = await warehouseFacade.ArchiveDocumentAsync(doc.Id, GetCurrentUser(), cancellationToken);
 
                         // Enrich rows with product and location data
                         var enrichedRows = closedDocument!.Rows is not null && closedDocument.Rows.Any()
@@ -3129,7 +3129,7 @@ public class WarehouseManagementController(
             var queryParams = new DocumentHeaderQueryParameters
             {
                 DocumentTypeId = inventoryDocType.Id,
-                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Open,
+                Status = (Prym.DTOs.Common.DocumentStatus)(int)DocumentStatus.Active,
                 Page = 1,
                 PageSize = MaxBulkOperationPageSize,
                 IncludeRows = false

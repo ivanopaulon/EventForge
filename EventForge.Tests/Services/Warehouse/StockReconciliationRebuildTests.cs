@@ -149,7 +149,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = documentTypeId,
             Number = number,
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Closed,
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,
             ApprovalStatus = ApprovalStatus.Approved,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -185,7 +185,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = _documentTypeInId,
             Number = "DOC-OPEN",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,        // Open
+            Status = Prym.DTOs.Common.DocumentStatus.Active,        // Open
             ApprovalStatus = ApprovalStatus.Approved,             // Approved
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -217,7 +217,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = _documentTypeInId,
             Number = "DOC-NOTAPPROVED",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Closed,     // Closed
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,     // Closed
             ApprovalStatus = ApprovalStatus.None,                 // NOT approved
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -484,7 +484,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = _documentTypeInvId,
             Number = "INV-NOLOC",
             Date = DateTime.UtcNow.AddDays(-30),
-            Status = Prym.DTOs.Common.DocumentStatus.Closed,
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,
             ApprovalStatus = ApprovalStatus.Approved,
             SourceWarehouseId = _warehouseId,   // warehouse set on header, not on row
             CreatedAt = DateTime.UtcNow,
@@ -541,7 +541,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = _documentTypeInvId,
             Number = "INV-NOTAPPROVED",
             Date = DateTime.UtcNow.AddDays(-10),
-            Status = Prym.DTOs.Common.DocumentStatus.Closed,
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,
             ApprovalStatus = ApprovalStatus.None,   // NOT approved
             SourceWarehouseId = _warehouseId,
             CreatedAt = DateTime.UtcNow,
