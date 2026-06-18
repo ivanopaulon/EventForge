@@ -10,7 +10,7 @@
   - `Guid StoreUserId`, nav `StoreUser StoreUser`
   - `Guid? PosId`, nav `StorePos? Pos`
   - `DateTime ShiftStart`, `DateTime ShiftEnd`
-  - `ShiftStatus Status` (default Scheduled)
+  - `ShiftStatus Status` (default Active)
   - `string? Notes` (MaxLength 500)
 - `Migrations/20260416_AddCashierShifts.sql`
   - Creates `CashierShifts` table with all `AuditableEntity` columns
@@ -36,23 +36,27 @@
 
 ### Files to CREATE:
 - `Prym.DTOs/Store/CashierShiftDto.cs`
-  - `ShiftStatus` enum: `Scheduled, InProgress, Completed, Cancelled`
+  - `ShiftStatus` enum: `Active, Archived` *(solo questi due stati — nessun Scheduled/Completed/Cancelled)*
   - `CashierShiftDto` class: `Guid Id`, `Guid StoreUserId`, `string StoreUserName`, `Guid? PosId`, `string? PosName`, `DateTime ShiftStart`, `DateTime ShiftEnd`, `ShiftStatus Status`, `string? Notes`, `DateTime CreatedAt`
-  - `CreateCashierShiftDto`: `Guid StoreUserId`, `Guid? PosId`, `DateTime ShiftStart`, `DateTime ShiftEnd`, `string? Notes`
-  - `UpdateCashierShiftDto`: `Guid? PosId`, `DateTime ShiftStart`, `DateTime ShiftEnd`, `ShiftStatus Status`, `string? Notes`
+  - `CreateCashierShiftDto`: `Guid StoreUserId`, `Guid? PosId`, `DateTime ShiftStart`, `DateTime ShiftEnd`, `string? Notes` *(Status non incluso: il turno nasce sempre `Active`)*
+  - `UpdateCashierShiftDto`: `Guid? PosId`, `DateTime ShiftStart`, `DateTime ShiftEnd`, `string? Notes` *(Status non incluso: la transizione avviene tramite endpoint dedicato)*
 - `EventForge.Server/Services/Store/IShiftService.cs`
-  - `GetShiftsAsync(DateOnly from, DateOnly to, CancellationToken ct)`
+  - `GetShiftsAsync(DateOnly from, DateOnly to, bool includeArchived, CancellationToken ct)` *(default: `includeArchived = false`)*
   - `GetShiftByIdAsync(Guid id, CancellationToken ct)`
   - `CreateShiftAsync(CreateCashierShiftDto dto, string currentUser, CancellationToken ct)`
-  - `UpdateShiftAsync(Guid id, UpdateCashierShiftDto dto, string currentUser, CancellationToken ct)`
-  - `DeleteShiftAsync(Guid id, string currentUser, CancellationToken ct)`
-  - `GetShiftsByOperatorAsync(Guid storeUserId, DateOnly from, DateOnly to, CancellationToken ct)`
+  - `UpdateShiftAsync(Guid id, UpdateCashierShiftDto dto, string currentUser, CancellationToken ct)` *(solo per turni `Active`)*
+  - `DeleteShiftAsync(Guid id, string currentUser, CancellationToken ct)` *(solo per turni `Active`)*
+  - `ArchiveShiftAsync(Guid id, string currentUser, CancellationToken ct)` *(transizione `Active → Archived`; `Archived` è immutabile)*
+  - `GetShiftsByOperatorAsync(Guid storeUserId, DateOnly from, DateOnly to, bool includeArchived, CancellationToken ct)`
 - `EventForge.Server/Services/Store/ShiftService.cs`
   - Primary constructor: `EventForgeDbContext context, IAuditLogService auditLogService, ITenantContext tenantContext, ILogger<ShiftService> logger`
   - Implement all interface methods following `FiscalDrawerService` patterns
   - Use `WhereActiveTenant()`, `RequireTenantId()` helpers
   - Manual mapping (`MapToDto` private static method)
-  - Validate shift overlap on create/update
+  - Validate shift overlap on create/update (solo tra turni `Active`)
+  - `CreateShiftAsync` imposta sempre `Status = ShiftStatus.Active`
+  - `ArchiveShiftAsync` verifica che il turno sia `Active`, poi lo imposta ad `Archived`; lancia eccezione se già archiviato
+  - `UpdateShiftAsync` e `DeleteShiftAsync` lanciano eccezione se il turno è `Archived` (immutabile)
 
 ### Files to MODIFY:
 - `EventForge.Server/Extensions/ServiceCollectionExtensions.cs`
@@ -69,13 +73,14 @@
   - `[Route("api/v1/shifts")]`
   - `[Authorize]` on class
   - Constructor: `IShiftService shiftService, ITenantContext tenantContext`
-  - `GET /api/v1/shifts?from=&to=` → `GetShiftsAsync` (`[Authorize]`)
+  - `GET /api/v1/shifts?from=&to=&includeArchived=false` → `GetShiftsAsync` (`[Authorize]`) *(turni archiviati esclusi di default)*
   - `GET /api/v1/shifts/{id:guid}` → `GetShiftByIdAsync` (`[Authorize]`)
-  - `POST /api/v1/shifts` → `CreateShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`)
-  - `PUT /api/v1/shifts/{id:guid}` → `UpdateShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`)
-  - `DELETE /api/v1/shifts/{id:guid}` → `DeleteShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`)
-  - `GET /api/v1/shifts/operator/{storeUserId:guid}?from=&to=` → `GetShiftsByOperatorAsync` (`[Authorize]`)
-  - Returns `ProblemDetails` on error, uses `CreateNotFoundProblem`, `CreateInternalServerErrorProblem`
+  - `POST /api/v1/shifts` → `CreateShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`) *(crea sempre `Active`)*
+  - `PUT /api/v1/shifts/{id:guid}` → `UpdateShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`) *(fallisce con 409 se `Archived`)*
+  - `DELETE /api/v1/shifts/{id:guid}` → `DeleteShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`) *(fallisce con 409 se `Archived`)*
+  - `POST /api/v1/shifts/{id:guid}/archive` → `ArchiveShiftAsync` (`[Authorize(Policy="RequireStoreConfig")]`) *(transizione `Active → Archived`)*
+  - `GET /api/v1/shifts/operator/{storeUserId:guid}?from=&to=&includeArchived=false` → `GetShiftsByOperatorAsync` (`[Authorize]`)
+  - Returns `ProblemDetails` on error, uses `CreateNotFoundProblem`, `CreateConflictProblem`, `CreateInternalServerErrorProblem`
 
 ---
 
@@ -85,12 +90,13 @@
 
 ### Files to CREATE:
 - `Prym.Web/Services/Store/IShiftService.cs` *(client)*
-  - `GetShiftsAsync(DateOnly from, DateOnly to, CancellationToken ct)`
-  - `GetShiftsByOperatorAsync(Guid storeUserId, DateOnly from, DateOnly to, CancellationToken ct)`
+  - `GetShiftsAsync(DateOnly from, DateOnly to, bool includeArchived, CancellationToken ct)`
+  - `GetShiftsByOperatorAsync(Guid storeUserId, DateOnly from, DateOnly to, bool includeArchived, CancellationToken ct)`
   - `GetByIdAsync(Guid id, CancellationToken ct)`
   - `CreateAsync(CreateCashierShiftDto dto, CancellationToken ct)`
   - `UpdateAsync(Guid id, UpdateCashierShiftDto dto, CancellationToken ct)`
   - `DeleteAsync(Guid id, CancellationToken ct)`
+  - `ArchiveAsync(Guid id, CancellationToken ct)` *(chiama `POST /{id}/archive`)*
 - `Prym.Web/Services/Store/ShiftService.cs` *(client)*
   - `const string ApiBase = "api/v1/shifts"`
   - Constructor: `HttpClient httpClient, ILogger<ShiftService> logger`
@@ -112,18 +118,25 @@
   - Route: `@page "/store/shifts"`
   - `@attribute [Authorize]`
   - Uses `MudTable` with `ServerData` or client-side list
+  - **Toggle "Mostra archiviati"** (`MudSwitch` o `MudCheckBox`) per caricare i turni archiviati; di default solo turni `Active`
   - Filter panel: `MudDatePicker` for from/to range, `MudSelect` for operator filter
   - Columns: Operator Name, POS, Shift Start, Shift End, Status (MudChip with color), Notes
-  - Actions: Edit button → `ShiftDetailDialog`, Delete button with confirmation
+  - Actions:
+    - **Edit** button (solo per turni `Active`) → `ShiftDetailDialog`
+    - **Archive** button (`Icons.Material.Outlined.Archive`, `Color.Warning`) con dialog di conferma (solo per turni `Active`)
+    - **Delete** button con conferma (solo per turni `Active`)
   - Toolbar: "New Shift" button → `ShiftDetailDialog`
-  - Status chip colors: Scheduled=Info, InProgress=Warning, Completed=Success, Cancelled=Error
+  - Status chip colors: **Active=Success, Archived=Default**
+  - Turni `Archived` mostrano Edit/Delete/Archive disabilitati o nascosti
   - Follows `FiscalDrawerManagement.razor` structural pattern
 - `Prym.Web/Shared/Components/Dialogs/Store/ShiftDetailDialog.razor`
   - `[CascadingParameter] IMudDialogInstance MudDialog { get; set; }`
   - `[Parameter] public Guid? ShiftId { get; set; }` (null = create)
   - Inject `IShiftService`, `IStoreUserService` (operator selector), `IStorePosService` (POS selector)
-  - `MudForm` with fields: MudSelect for operator, MudSelect for POS, MudDateTimePicker for start/end, MudSelect for Status (edit mode only), MudTextField for Notes
+  - `MudForm` with fields: MudSelect for operator, MudSelect for POS, MudDateTimePicker for start/end, MudTextField for Notes
+  - **Nessun campo Status nel form**: lo stato è gestito esclusivamente tramite il bottone Archive nella tabella
   - Buttons: Cancel (`Variant.Text`) and Save (`Variant.Filled, Color.Primary`)
+  - In modalità edit su turno `Archived`: tutti i campi `ReadOnly=true`, solo il bottone Close
   - Uses `EFDialog` wrapper component
 
 ### Files to MODIFY:
@@ -144,7 +157,8 @@
   - `SfSchedule<SchedulerShiftItem>` with Day/Week/Month views
   - `ScheduleEventSettings` with `IdField`, `SubjectField`, `StartTimeField`, `EndTimeField`
   - `ScheduleEvents` with `OnPopupOpen` to intercept and open MudBlazor dialog
-  - `OnEventRendered` to color events by ShiftStatus
+  - `OnEventRendered` to color events by ShiftStatus: **Active = colore primario, Archived = grigio/opaco**
+  - **Toggle "Mostra archiviati"** per includere/escludere turni archiviati nel calendario
   - Toolbar: date range filter and operator selector for loading data
   - Reactively refreshes after dialog close
 
@@ -168,7 +182,12 @@
 5. Verify SQL migration file is syntactically valid T-SQL
 6. Verify no existing routes are modified (only `/api/v1/shifts*` added)
 7. Verify nav links are gated behind `_isStoreManager || _isAdmin || _isManager || _isSuperAdmin`
-8. Run `parallel_validation` for code review and CodeQL scan
+8. Verify `ShiftStatus` enum ha **solo** `Active` e `Archived` — nessun riferimento a Scheduled/InProgress/Completed/Cancelled
+9. Verify che `POST /api/v1/shifts` imposti sempre `Status = Active`
+10. Verify che `POST /api/v1/shifts/{id}/archive` transizioni `Active → Archived` e restituisca 409 se già archiviato
+11. Verify che `PUT` e `DELETE` su un turno `Archived` restituiscano 409
+12. Verify che `GET /api/v1/shifts` escluda di default i turni `Archived` (`includeArchived` default `false`)
+13. Run `parallel_validation` for code review and CodeQL scan
 
 ### Files Summary (all new unless noted):
 
