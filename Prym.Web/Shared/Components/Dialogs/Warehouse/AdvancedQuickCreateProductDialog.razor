@@ -606,14 +606,26 @@
                 
                 if (!hasCodeReference)
                 {
+                    // BUG-2 fix: cap total length to ProductCodeWithUnitDto.Code MaxLength (100).
+                    // Suffix is "-{UnitType}" (1 + UnitType.Length chars); trim the base code if needed.
+                    // _model.Code is validated as Required before reaching here, and unit.UnitType
+                    // is always non-empty (selected from a fixed dropdown), so both are safe to use.
+                    const int MaxCodeLength = 100;
+                    var productCode = _model.Code ?? string.Empty;
+                    var unitType = string.IsNullOrEmpty(unit.UnitType) ? "Unit" : unit.UnitType;
+                    var suffix = $"-{unitType}";
+                    var baseCode = productCode.Length + suffix.Length > MaxCodeLength
+                        ? productCode[..(MaxCodeLength - suffix.Length)]
+                        : productCode;
+
                     codesWithUnits.Add(new ProductCodeWithUnitDto
                     {
                         CodeType = "Internal",
-                        Code = $"{_model.Code}-{unit.UnitType}",
+                        Code = $"{baseCode}{suffix}",
                         UnitType = unit.UnitType,
                         UnitOfMeasureId = unit.UnitOfMeasureId,
                         ConversionFactor = unit.ConversionFactor,
-                        AlternativeDescription = unit.Description
+                        UnitDescription = unit.Description  // BUG-1 fix: was AlternativeDescription — unit description must go to UnitDescription
                     });
                 }
             }
