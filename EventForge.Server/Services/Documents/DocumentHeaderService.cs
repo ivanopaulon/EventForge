@@ -512,16 +512,6 @@ public class DocumentHeaderService(
     {
         try
         {
-            var originalHeader = await context.DocumentHeaders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (originalHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for rejection.", id);
-                return null;
-            }
-
             var documentHeader = await context.DocumentHeaders
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
@@ -538,6 +528,13 @@ public class DocumentHeaderService(
                 throw new InvalidOperationException(
                     $"Impossibile rifiutare un documento in stato '{documentHeader.Status}'.");
             }
+
+            // Capture pre-change snapshot for audit log before mutating the entity.
+            // We store a separate AsNoTracking read so TrackEntityChangesAsync receives the
+            // correct entity type (DocumentHeader) for both old and new state.
+            var originalHeader = await context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected;
             documentHeader.ModifiedBy = currentUser;
