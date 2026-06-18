@@ -37,7 +37,8 @@
                                    RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
                                    MaxLength="100"
                                    Counter="100"
-                                   ReadOnly="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
+                                   ReadOnly="@(!string.IsNullOrWhiteSpace(PrefilledCode))"
+                                   HelperText="@(!string.IsNullOrWhiteSpace(PrefilledCode) ? TranslationService.GetTranslation("products.codeFromScanner", "Codice letto da scanner — non modificabile") : null)" />
 
                     <!-- Nome -->
                     <PrymTextField @bind-Value="_model.Name"

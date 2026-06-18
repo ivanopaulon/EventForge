@@ -40,7 +40,7 @@
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Archived">@TranslationService.GetTranslation("status.archived", "Archiviato")</MudSelectItem>
         </PrymSelect>
         @{
-            var activeSelected = _managementPage?.SelectedItems.Where(d => d.Status == DocumentStatus.Active).ToList() ?? new();
+            var activeSelected = ActiveSelectedDocuments;
         }
         @if (activeSelected.Count > 0)
         {
@@ -357,14 +357,17 @@
         _ => $"Confermare la transizione di stato?"
     };
 
+    private List<DocumentHeaderDto> ActiveSelectedDocuments =>
+        _managementPage?.SelectedItems.Where(d => d.Status == DocumentStatus.Active).ToList() ?? new();
+
     private async Task BulkArchiveSelectedAsync()
     {
-        var activeSelected = _managementPage.SelectedItems.Where(d => d.Status == DocumentStatus.Active).ToList();
+        var activeSelected = ActiveSelectedDocuments;
         if (activeSelected.Count == 0) return;
 
         var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("documents.bulkArchive", "Archiviazione massiva"),
-            $"Archiviare {activeSelected.Count} documento/i selezionato/i? Questa azione è IRREVERSIBILE.",
+            $"Archiviare {activeSelected.Count} documento/i selezionato/i?",
             yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
             cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
 
@@ -383,11 +386,14 @@
             {
                 if (result.FailedCount == 0)
                 {
-                    AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.bulkArchiveSuccess",
-                        $"Archiviazione completata: {result.SuccessCount} documento/i archiviato/i"));
+                    AppNotification.ShowSuccess(
+                        $"{TranslationService.GetTranslation("documents.bulkArchiveSuccess", "Archiviazione completata")}: {result.SuccessCount} documento/i archiviato/i");
                 }
                 else
                 {
+                    var failedIds = string.Join(", ", result.Errors.Select(e => e.ItemId.ToString()[..8]));
+                    Logger.LogWarning("Bulk archive partial failure: {SuccessCount} succeeded, {FailedCount} failed. IDs: {FailedIds}",
+                        result.SuccessCount, result.FailedCount, failedIds);
                     AppNotification.ShowWarning(
                         $"Archiviazione parziale: {result.SuccessCount} riusciti, {result.FailedCount} falliti.");
                 }
