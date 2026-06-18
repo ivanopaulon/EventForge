@@ -52,7 +52,8 @@ public class ProductService(
                 query = query.Where(p =>
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
-                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
+                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)) ||
+                    p.Codes.Any(c => c.Code.ToLower().Contains(lowerSearchTerm)));
             }
 
             // Apply classification node filter (including descendants)
@@ -148,7 +149,8 @@ public class ProductService(
                 query = query.Where(p =>
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
-                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)));
+                    (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)) ||
+                    p.Codes.Any(c => c.Code.ToLower().Contains(lowerSearchTerm)));
             }
 
             // Only include navigations needed by the POS grid — skip Codes, Units, BundleItems.

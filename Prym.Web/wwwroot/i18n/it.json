@@ -1509,7 +1509,6 @@
   "status": {
     "active": "Attivo",
     "inactive": "Inattivo",
-    "draft": "Bozza",
     "open": "Aperto",
     "closed": "Chiuso",
     "cancelled": "Annullato"
@@ -2589,7 +2588,6 @@
     "cannotEditClosed": "Impossibile modificare un documento chiuso o annullato",
     "cannotModifyRows": "Impossibile modificare righe di un documento chiuso",
     "documentStatus": {
-      "draft": "Bozza",
       "open": "Aperto",
       "closed": "Chiuso",
       "cancelled": "Annullato"

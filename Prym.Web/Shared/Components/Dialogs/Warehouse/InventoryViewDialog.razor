@@ -45,9 +45,9 @@
                     </MudItem>
                     <MudItem xs="12" md="6">
                         <MudText Typo="Typo.body2" Color="Color.Secondary">@TranslationService.GetTranslation("document.status", "Stato"):</MudText>
-                        @if (_document.Status == "Draft" || _document.Status == "Open")
+                        @if (_document.Status == "Open")
                         {
-                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">@TranslationService.GetTranslation("document.status.draft", "Bozza")</MudChip>
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">@TranslationService.GetTranslation("document.status.open", "Aperto")</MudChip>
                         }
                         else if (_document.Status == "Closed" || _document.Status == "Finalized")
                         {

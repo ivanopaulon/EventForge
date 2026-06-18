@@ -37,13 +37,19 @@
                                    RequiredError="@TranslationService.GetTranslation("validation.codeRequired", "Il codice è obbligatorio")"
                                    MaxLength="100"
                                    Counter="100"
-                                   Disabled="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
+                                   ReadOnly="@(!string.IsNullOrWhiteSpace(PrefilledCode))" />
 
-                    <!-- Descrizione -->
-                    <PrymTextField @bind-Value="_model.Description"
-                                   Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                    <!-- Nome -->
+                    <PrymTextField @bind-Value="_model.Name"
+                                   Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                    Required="true"
-                                   RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
+                                   RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                   MaxLength="100"
+                                   Counter="100" />
+
+                    <!-- Descrizione estesa -->
+                    <PrymTextField @bind-Value="_model.Description"
+                                   Label="@TranslationService.GetTranslation("field.extendedDescription", "Descrizione estesa")"
                                    Lines="3"
                                    MaxLength="500"
                                    Counter="500" />
@@ -192,7 +198,6 @@
             // Set defaults
             _model.Status = ProductStatus.Active;
             _model.IsVatIncluded = true; // Always VAT included as per requirements
-            _model.Name = string.Empty; // Will use Description as Name initially
         }
     }
 
@@ -260,8 +265,6 @@
             }
 
             Logger.LogInformation("Starting product update for ProductId {ProductId}", ProductId);
-
-            // OPTIMIZATION: Use cached product data if available, otherwise load from server
             ProductDto? existingProduct = _cachedExistingProduct;
             if (existingProduct == null)
             {
@@ -280,14 +283,6 @@
             }
 
             Logger.LogInformation("Loaded existing product {ProductCode} - {ProductName}", existingProduct.Code, existingProduct.Name);
-
-            // Use Description as Name if Name is empty (simplified creation)
-            if (string.IsNullOrWhiteSpace(_model.Name))
-            {
-                _model.Name = _model.Description?.Length > 100 
-                    ? _model.Description.Substring(0, 100) 
-                    : _model.Description ?? "Prodotto";
-            }
 
             // CRITICAL FIX: Create UpdateProductDto with ALL fields from existing product
             // This preserves all values that are not modified in this quick edit dialog
@@ -366,14 +361,6 @@
                     AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
                     return;
                 }
-            }
-
-            // Use Description as Name if Name is empty (simplified creation)
-            if (string.IsNullOrWhiteSpace(_model.Name))
-            {
-                _model.Name = _model.Description?.Length > 100 
-                    ? _model.Description.Substring(0, 100) 
-                    : _model.Description ?? "Prodotto";
             }
 
             // Create the product via API

@@ -10,7 +10,6 @@
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
 @implements IAsyncDisposable
 @inject IDocumentHeaderService DocumentHeaderService
-@inject IDocumentStatusService DocumentStatusService
 @inject IDocumentTypeService DocumentTypeService
 @inject IPriceListService PriceListService
 @inject IAppNotificationService AppNotification
@@ -186,36 +185,6 @@
                             </MudStack>
                         }
                     </MudPaper>
-
-                    <!-- Stato Documento -->
-                    @if (_isEditMode && _currentDocument != null)
-                    {
-                        <MudPaper Elevation="2" Class="gdp-panel pa-3">
-                            <MudText Typo="Typo.subtitle1" Class="mb-2 fw-medium">
-                                @TranslationService.GetTranslation("documents.status", "Stato")
-                            </MudText>
-                            <MudSelect T="DocumentStatus"
-                                       Value="_documentStatus"
-                                       ValueChanged="@OnStatusChanged"
-                                       Label="@TranslationService.GetTranslation("documents.status", "Stato")"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense"
-                                       Disabled="@(!IsDocumentEditable() || _isReadOnly)">
-                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Active))
-                                {
-                                    <MudSelectItem Value="@DocumentStatus.Active">
-                                        @TranslationService.GetTranslation("status.active", "Attivo")
-                                    </MudSelectItem>
-                                }
-                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Archived))
-                                {
-                                    <MudSelectItem Value="@DocumentStatus.Archived">
-                                        @TranslationService.GetTranslation("status.archived", "Archiviato")
-                                    </MudSelectItem>
-                                }
-                            </MudSelect>
-                        </MudPaper>
-                    }
 
                     <!-- Riepilogo e Totali (fills remaining left-column space) -->
                     <MudPaper Elevation="2" Class="gdp-panel-fill pa-3">
@@ -532,9 +501,6 @@
 
     // Document status binding
     private DocumentStatus _documentStatus = DocumentStatus.Active;
-    // Available state-machine transitions for the current document (populated from the server).
-    // Empty list = no document loaded yet → show all options (safe default for new documents).
-    private List<DocumentStatus> _availableTransitions = new();
 
     // Lock management state
     private bool _hasEditLock = false;
@@ -809,7 +775,6 @@
                 _model.PriceListId = _currentDocument.PriceListId;
                 _documentDate = _currentDocument.Date.ToLocalTime();
                 _documentStatus = _currentDocument.Status;
-                _availableTransitions = await DocumentStatusService.GetAvailableTransitionsAsync(documentId) ?? new List<DocumentStatus>();
                 _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
                     "Documento {0}", _currentDocument.Number ?? _currentDocument.Id.ToString()[..8]);
 
@@ -960,60 +925,6 @@
         _headerPriceListName = _model.PriceListId.HasValue && _priceListNames.TryGetValue(_model.PriceListId.Value, out var plName)
             ? plName
             : null;
-    }
-
-    /// <summary>
-    /// Called when the user changes the document status from the selector
-    /// </summary>
-    private async Task OnStatusChanged(DocumentStatus newStatus)
-    {
-        if (_currentDocument == null) return;
-
-        try
-        {
-            _loadingMessage = TranslationService.GetTranslation("documents.changingStatus", "Cambio stato documento...");
-            _isLoading = true;
-            var previousStatus = _currentDocument.Status;
-
-            var result = await DocumentStatusService.ChangeStatusAsync(
-                _currentDocument.Id,
-                newStatus,
-                reason: null);
-
-            if (result != null)
-            {
-                _currentDocument = result;
-                _documentStatus = result.Status;
-
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.statusUpdatedSuccess",
-                        "Stato aggiornato con successo"));
-
-                Logger.LogInformation("Document {DocumentId} status changed from {OldStatus} to {NewStatus}",
-                    _currentDocument.Id, previousStatus, newStatus);
-            }
-            else
-            {
-                _documentStatus = previousStatus;
-                AppNotification.ShowError(TranslationService.GetTranslation("documents.statusUpdateError",
-                        "Errore nell'aggiornamento dello stato"));
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error updating document status for document {DocumentId}", _currentDocument?.Id);
-
-            if (_currentDocument != null)
-            {
-                _documentStatus = _currentDocument.Status;
-            }
-
-            AppNotification.ShowError(ex.Message);
-        }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged();
-        }
     }
 
     private async Task AddRowAsync()

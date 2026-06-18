@@ -18,15 +18,6 @@
             @TranslationService.GetTranslation("warehouse.searchOrCreatePrompt", "Cerca un prodotto esistente per assegnare questo codice, oppure crea un nuovo prodotto.")
         </MudText>
 
-        <!-- Keyboard Shortcuts Helper -->
-        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">
-            <MudText Typo="Typo.caption">
-                <MudIcon Icon="@Icons.Material.Outlined.Keyboard" Size="Size.Small" Class="mr-1" />
-                <strong>@TranslationService.GetTranslation("common.shortcuts", "Scorciatoie"):</strong> 
-                Tab/Invio = campo successivo | Invio = Assegna | Esc = Annulla
-            </MudText>
-        </MudAlert>
-
         <!-- Product Search -->
         <UnifiedProductSelector 
             SelectedProduct="@_selectedProduct"
