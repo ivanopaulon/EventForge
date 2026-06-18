@@ -173,6 +173,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-001",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -263,6 +264,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "SO-001",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -352,6 +354,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = businessPartyCustomer.Id,
             Number = "SI-001",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -415,6 +418,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-002",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -490,6 +494,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-003",
             Date = documentDate,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -558,6 +563,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-004",
             Date = originalDate,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1307,6 +1313,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "INV-001",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -1460,6 +1467,7 @@ public class DocumentHeaderStockMovementTests : IDisposable
             BusinessPartyId = _businessPartyId,
             Number = "PO-REG-001",
             Date = DateTime.UtcNow,
+            Status = Prym.DTOs.Common.DocumentStatus.Open,
             ApprovalStatus = EntityApprovalStatus.None,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"

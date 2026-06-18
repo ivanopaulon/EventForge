@@ -16,6 +16,7 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("BasicReporting")]
 public class DocumentHeadersController(
     IDocumentHeaderService documentHeaderService,
+    IDocumentFacade documentFacade,
     ITenantContext tenantContext,
     IExportService exportService,
     ILogger<DocumentHeadersController> logger) : BaseApiController
@@ -280,10 +281,12 @@ public class DocumentHeadersController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Approved document header</returns>
     /// <response code="200">Returns the approved document header</response>
+    /// <response code="400">If the document status does not allow approval</response>
     /// <response code="404">If the document header is not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("{id:guid}/approve")]
     [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<DocumentHeaderDto>> ApproveDocument(
@@ -295,12 +298,17 @@ public class DocumentHeadersController(
         try
         {
             var currentUser = GetCurrentUser();
-            var documentHeader = await documentHeaderService.ApproveDocumentAsync(id, currentUser, cancellationToken);
+            // Route through the facade to ensure consistent behaviour (guards, audit, stock movements)
+            var documentHeader = await documentFacade.ApproveDocumentAsync(id, currentUser, cancellationToken);
 
             if (documentHeader is null)
                 return CreateNotFoundProblem($"Document header with ID {id} not found.");
 
             return Ok(documentHeader);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
         }
         catch (Exception ex)
         {

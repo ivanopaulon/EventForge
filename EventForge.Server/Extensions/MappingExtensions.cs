@@ -226,18 +226,18 @@ public static class MappingExtensions
     /// <summary>
     /// Maps entity ApprovalStatus to DTO ApprovalStatus.
     /// Entity has: None(0), Pending(1), Approved(2), Rejected(3)
-    /// DTO has: Pending(0), Approved(1), Rejected(2)
+    /// DTO now has: None(0), Pending(1), Approved(2), Rejected(3) — values are aligned.
     /// </summary>
     private static Prym.DTOs.Common.ApprovalStatus MapApprovalStatus(
         EventForge.Server.Data.Entities.Documents.ApprovalStatus entityStatus)
     {
         return entityStatus switch
         {
-            EventForge.Server.Data.Entities.Documents.ApprovalStatus.None => Prym.DTOs.Common.ApprovalStatus.Pending,
+            EventForge.Server.Data.Entities.Documents.ApprovalStatus.None => Prym.DTOs.Common.ApprovalStatus.None,
             EventForge.Server.Data.Entities.Documents.ApprovalStatus.Pending => Prym.DTOs.Common.ApprovalStatus.Pending,
             EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved => Prym.DTOs.Common.ApprovalStatus.Approved,
             EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected => Prym.DTOs.Common.ApprovalStatus.Rejected,
-            _ => Prym.DTOs.Common.ApprovalStatus.Pending
+            _ => Prym.DTOs.Common.ApprovalStatus.None
         };
     }
 }

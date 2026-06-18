@@ -170,6 +170,7 @@ public class StockReconciliationService(
                             dr.DocumentHeader.DocumentType != null &&
                             dr.DocumentHeader.DocumentType.IsInventoryDocument &&
                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed &&
+                            dr.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                             // Primary match: exact storage location.
                             // Fallback match: when LocationId is null on the row (legacy inventory data),
                             // match using the warehouse from the row or document header.

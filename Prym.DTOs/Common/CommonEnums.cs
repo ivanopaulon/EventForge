@@ -205,12 +205,14 @@ namespace Prym.DTOs.Common
 
     /// <summary>
     /// Approval status enumeration.
+    /// Values are aligned with the server entity ApprovalStatus enum for correct integer casting in filters.
     /// </summary>
     public enum ApprovalStatus
     {
-        Pending,    // Approval is pending
-        Approved,   // Approved
-        Rejected    // Rejected
+        None = 0,      // No approval required / not yet submitted for approval
+        Pending = 1,   // Approval is pending
+        Approved = 2,  // Approved
+        Rejected = 3   // Rejected
     }
 
     /// <summary>

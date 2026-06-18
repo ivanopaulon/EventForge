@@ -288,10 +288,12 @@ public class DocumentsController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Approved document header</returns>
     /// <response code="200">Returns the approved document header</response>
+    /// <response code="400">If the document status does not allow approval</response>
     /// <response code="404">If the document header is not found</response>
     /// <response code="403">If the user doesn't have access to the current tenant</response>
     [HttpPost("{id:guid}/approve")]
     [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<DocumentHeaderDto>> ApproveDocument(
@@ -311,9 +313,57 @@ public class DocumentsController(
 
             return Ok(documentHeader);
         }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while approving the document.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Rejects a document header approval.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="reason">Optional reason for rejection (query string)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Rejected document header</returns>
+    /// <response code="200">Returns the updated document header</response>
+    /// <response code="400">If the document status does not allow rejection</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("{id:guid}/reject")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> RejectDocument(
+        Guid id,
+        [FromQuery] string? reason = null,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentHeader = await documentFacade.RejectDocumentAsync(id, reason, currentUser, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while rejecting the document.", ex);
         }
     }
 

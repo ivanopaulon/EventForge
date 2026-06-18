@@ -201,18 +201,30 @@
                                        Variant="Variant.Outlined"
                                        Margin="Margin.Dense"
                                        Disabled="@(!IsDocumentEditable() || _isReadOnly)">
-                                <MudSelectItem Value="@DocumentStatus.Draft">
-                                    @TranslationService.GetTranslation("status.draft", "Bozza")
-                                </MudSelectItem>
-                                <MudSelectItem Value="@DocumentStatus.Open">
-                                    @TranslationService.GetTranslation("status.open", "Aperto")
-                                </MudSelectItem>
-                                <MudSelectItem Value="@DocumentStatus.Closed">
-                                    @TranslationService.GetTranslation("status.closed", "Chiuso")
-                                </MudSelectItem>
-                                <MudSelectItem Value="@DocumentStatus.Cancelled">
-                                    @TranslationService.GetTranslation("status.cancelled", "Annullato")
-                                </MudSelectItem>
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Draft))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Draft">
+                                        @TranslationService.GetTranslation("status.draft", "Bozza")
+                                    </MudSelectItem>
+                                }
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Open))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Open">
+                                        @TranslationService.GetTranslation("status.open", "Aperto")
+                                    </MudSelectItem>
+                                }
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Closed))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Closed">
+                                        @TranslationService.GetTranslation("status.closed", "Chiuso")
+                                    </MudSelectItem>
+                                }
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Cancelled))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Cancelled">
+                                        @TranslationService.GetTranslation("status.cancelled", "Annullato")
+                                    </MudSelectItem>
+                                }
                             </MudSelect>
                         </MudPaper>
                     }
@@ -532,6 +544,9 @@
 
     // Document status binding
     private DocumentStatus _documentStatus = DocumentStatus.Draft;
+    // Available state-machine transitions for the current document (populated from the server).
+    // Empty list = no document loaded yet → show all options (safe default for new documents).
+    private List<DocumentStatus> _availableTransitions = new();
 
     // Lock management state
     private bool _hasEditLock = false;
@@ -806,6 +821,7 @@
                 _model.PriceListId = _currentDocument.PriceListId;
                 _documentDate = _currentDocument.Date.ToLocalTime();
                 _documentStatus = _currentDocument.Status;
+                _availableTransitions = await DocumentStatusService.GetAvailableTransitionsAsync(documentId) ?? new List<DocumentStatus>();
                 _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
                     "Documento {0}", _currentDocument.Number ?? _currentDocument.Id.ToString()[..8]);
 

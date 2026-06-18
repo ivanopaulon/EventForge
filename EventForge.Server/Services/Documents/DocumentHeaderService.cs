@@ -451,6 +451,14 @@ public class DocumentHeaderService(
                 return null;
             }
 
+            // Guard: approval requires the document to be in a workable state (not Draft or Cancelled).
+            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Draft ||
+                documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    $"Impossibile approvare un documento in stato '{documentHeader.Status}'. Il documento deve essere almeno aperto.");
+            }
+
             documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved;
             documentHeader.ApprovedBy = currentUser;
             documentHeader.ApprovedAt = DateTime.UtcNow;
@@ -493,6 +501,92 @@ public class DocumentHeaderService(
         catch
         {
             throw;
+        }
+    }
+
+    public async Task<DocumentHeaderDto?> RejectDocumentAsync(
+        Guid id,
+        string? reason,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var originalHeader = await context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (originalHeader is null)
+            {
+                logger.LogWarning("Document header with ID {Id} not found for rejection.", id);
+                return null;
+            }
+
+            var documentHeader = await context.DocumentHeaders
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentHeader is null)
+            {
+                logger.LogWarning("Document header with ID {Id} not found for rejection.", id);
+                return null;
+            }
+
+            // Guard: cannot reject a Draft or Cancelled document.
+            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Draft ||
+                documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    $"Impossibile rifiutare un documento in stato '{documentHeader.Status}'.");
+            }
+
+            documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected;
+            documentHeader.ModifiedBy = currentUser;
+            documentHeader.ModifiedAt = DateTime.UtcNow;
+
+            try
+            {
+                _ = await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                logger.LogWarning(ex, "Concurrency conflict rejecting document {DocumentHeaderId}.", id);
+                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
+
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Reject", currentUser, originalHeader, cancellationToken);
+
+            logger.LogInformation("Document header {DocumentHeaderId} rejected by {User}. Reason: {Reason}", id, currentUser, reason ?? "(none)");
+
+            return documentHeader.ToDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task TriggerStockMovementsForDocumentAsync(
+        Guid documentId,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var documentForStockMovement = await context.DocumentHeaders
+            .AsNoTracking()
+            .Include(dh => dh.DocumentType)
+            .Include(dh => dh.Rows)
+            .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
+
+        if (documentForStockMovement is not null)
+        {
+            await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+        }
+        else
+        {
+            logger.LogWarning("TriggerStockMovementsForDocumentAsync: document {DocumentId} not found.", documentId);
         }
     }
 

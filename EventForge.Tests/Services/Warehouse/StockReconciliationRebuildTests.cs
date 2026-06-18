@@ -525,6 +525,63 @@ public class StockReconciliationRebuildTests : IDisposable
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Test: Fix C — closed inventory document with ApprovalStatus=None is excluded
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CalculateReconciliation_ClosedInventoryWithApprovalStatusNone_IsExcluded()
+    {
+        // Arrange: an inventory document that is Closed but NOT approved (ApprovalStatus=None).
+        // The reconciliation query requires both Status==Closed AND ApprovalStatus==Approved,
+        // so this document should contribute 0 to CalculatedQuantity.
+        var invHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = _documentTypeInvId,
+            Number = "INV-NOTAPPROVED",
+            Date = DateTime.UtcNow.AddDays(-10),
+            Status = Prym.DTOs.Common.DocumentStatus.Closed,
+            ApprovalStatus = ApprovalStatus.None,   // NOT approved
+            SourceWarehouseId = _warehouseId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(invHeader);
+
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = invHeader.Id,
+            ProductId = _productId,
+            Description = "Inventario non approvato",
+            Quantity = 999m,    // should never be counted
+            UnitPrice = 0m,
+            LocationId = _locationAId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _reconciliationService.CalculateReconciledStockAsync(new StockReconciliationRequestDto
+        {
+            ProductId = _productId,
+            LocationId = _locationAId,
+            IncludeInventories = true,
+            IncludeDocuments = false,
+            IncludeStockMovements = false
+        });
+
+        // Assert: the unapproved inventory snapshot should be ignored.
+        var item = Assert.Single(result.Items);
+        Assert.Equal(0m, item.CalculatedQuantity);
+        Assert.Equal(0, item.TotalInventories);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Test: Fix B — legacy reconciliation movement excluded by Reference fallback
     // ─────────────────────────────────────────────────────────────────────────
 
