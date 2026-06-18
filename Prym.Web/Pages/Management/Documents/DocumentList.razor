@@ -39,6 +39,17 @@
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Active">@TranslationService.GetTranslation("status.active", "Attivo")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Archived">@TranslationService.GetTranslation("status.archived", "Archiviato")</MudSelectItem>
         </PrymSelect>
+        @{
+            var activeSelected = ActiveSelectedDocuments;
+        }
+        @if (activeSelected.Count > 0)
+        {
+            <MudTooltip Text="@TranslationService.GetTranslation("documents.archiveSelected", "Archivia selezionati")">
+                <MudIconButton Icon="@Icons.Material.Outlined.Archive"
+                               Color="Color.Warning"
+                               OnClick="@BulkArchiveSelectedAsync" />
+            </MudTooltip>
+        }
     </AdditionalToolbarContent>
 
     <HeaderContent Context="columnConfigurations">
@@ -345,4 +356,61 @@
         (DocumentStatus.Archived, DocumentStatus.Active) => "Riattivare il documento archiviato?",
         _ => $"Confermare la transizione di stato?"
     };
+
+    private List<DocumentHeaderDto> ActiveSelectedDocuments =>
+        _managementPage?.SelectedItems.Where(d => d.Status == DocumentStatus.Active).ToList() ?? new();
+
+    private async Task BulkArchiveSelectedAsync()
+    {
+        var activeSelected = ActiveSelectedDocuments;
+        if (activeSelected.Count == 0) return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("documents.bulkArchive", "Archiviazione massiva"),
+            $"Archiviare {activeSelected.Count} documento/i selezionato/i?",
+            yesText: TranslationService.GetTranslation("common.confirm", "Conferma"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirmed != true) return;
+
+        try
+        {
+            var bulkDto = new Prym.DTOs.Bulk.BulkStatusChangeDto
+            {
+                DocumentIds = activeSelected.Select(d => d.Id).ToList(),
+                NewStatus = DocumentStatus.Archived.ToString()
+            };
+
+            var result = await DocumentHeaderService.BulkStatusChangeAsync(bulkDto);
+            if (result != null)
+            {
+                if (result.FailedCount == 0)
+                {
+                    AppNotification.ShowSuccess(
+                        $"{TranslationService.GetTranslation("documents.bulkArchiveSuccess", "Archiviazione completata")}: {result.SuccessCount} documento/i archiviato/i");
+                }
+                else
+                {
+                    var failedIds = string.Join(", ", result.Errors.Select(e => e.ItemId.ToString()[..8]));
+                    Logger.LogWarning("Bulk archive partial failure: {SuccessCount} succeeded, {FailedCount} failed. IDs: {FailedIds}",
+                        result.SuccessCount, result.FailedCount, failedIds);
+                    AppNotification.ShowWarning(
+                        $"Archiviazione parziale: {result.SuccessCount} riusciti, {result.FailedCount} falliti.");
+                }
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.statusChangeError", "Errore durante l'archiviazione massiva"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk archiving documents");
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.statusChangeError", "Errore durante l'archiviazione massiva"));
+        }
+        finally
+        {
+            await _managementPage.RefreshAsync();
+        }
+    }
 }

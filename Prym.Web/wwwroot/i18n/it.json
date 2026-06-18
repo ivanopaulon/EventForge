@@ -1400,7 +1400,15 @@
     "list": "Lista Prodotti",
     "createNew": "Crea nuovo prodotto",
     "noProductSelected": "Nessun prodotto selezionato",
-    "updatedSuccess": "Prodotto aggiornato con successo"
+    "updatedSuccess": "Prodotto aggiornato con successo",
+    "updateSuccess": "Prodotto aggiornato con successo",
+    "updateError": "Errore nell'aggiornamento del prodotto",
+    "notFound": "Prodotto non trovato",
+    "vatRatesLoadError": "Errore nel caricamento delle aliquote IVA",
+    "unitsLoadError": "Errore nel caricamento delle unità di misura",
+    "codeAssignmentWarning": "Prodotto creato ma codice non assegnato automaticamente",
+    "codeFromScanner": "Codice letto da scanner — non modificabile",
+    "commercialData": "Dati Commerciali"
   },
   "profile": {
     "accountStatus": "Stato Account",
@@ -1509,7 +1517,6 @@
   "status": {
     "active": "Attivo",
     "inactive": "Inattivo",
-    "draft": "Bozza",
     "open": "Aperto",
     "closed": "Chiuso",
     "cancelled": "Annullato"
@@ -2589,7 +2596,6 @@
     "cannotEditClosed": "Impossibile modificare un documento chiuso o annullato",
     "cannotModifyRows": "Impossibile modificare righe di un documento chiuso",
     "documentStatus": {
-      "draft": "Bozza",
       "open": "Aperto",
       "closed": "Chiuso",
       "cancelled": "Annullato"

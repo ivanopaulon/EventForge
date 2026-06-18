@@ -462,11 +462,11 @@
     [Parameter] public bool Virtualize { get; set; } = true;
 
     // Pager parameters
-    [Parameter] public bool ShowInternalPager { get; set; } = false;
+    [Parameter] public bool ShowInternalPager { get; set; } = true;
     [Parameter] public RenderFragment? PagerContent { get; set; }
 
     // Pagination control parameters
-    [Parameter] public int RowsPerPage { get; set; } = int.MaxValue;
+    [Parameter] public int RowsPerPage { get; set; } = 20;
     [Parameter] public int[] PageSizeOptions { get; set; } = new[] { 10, 25, 50, 100 };
     [Parameter] public int TotalItems { get; set; } = 0;
     
