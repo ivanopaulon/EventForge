@@ -332,11 +332,9 @@ public class StockReconciliationService(
         //    generated from a document row to avoid double-counting the same quantity.
         var manualMovements = allManualMovements
             .Where(sm => sm.ProductId == stock.ProductId &&
+                         // Exclude technical adjustments created by reconciliation runs.
+                         // IsReconciliationAdjustment is the canonical flag (set since the flag was introduced).
                          !sm.IsReconciliationAdjustment &&
-                         !(sm.MovementType == StockMovementType.Adjustment &&
-                           sm.Reason == StockMovementReason.Adjustment &&
-                           sm.Notes != null &&
-                           sm.Notes.StartsWith("Stock Reconciliation -")) &&
                          (!request.IncludeDocuments || !sm.DocumentRowId.HasValue) &&
                          (sm.FromLocationId == stock.StorageLocationId || sm.ToLocationId == stock.StorageLocationId) &&
                          (effectiveFromDate == null || sm.MovementDate >= effectiveFromDate.Value))

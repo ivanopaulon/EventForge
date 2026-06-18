@@ -216,7 +216,21 @@
     {
         if (_retryCts != null) return;
         _retryCts = new CancellationTokenSource();
-        _ = RetryLoadTenantsLoopAsync(_retryCts.Token);
+        var token = _retryCts.Token;
+        // [ADR] Fire-and-forget: async body must have its own catch(Exception) so that
+        // any unobserved exception is logged rather than crashing the finalizer thread.
+        // See ClientLogService.OnFlushTimer for the full architectural decision rationale.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await RetryLoadTenantsLoopAsync(token);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Unhandled exception in tenant retry task.");
+            }
+        });
     }
 
     private void CancelRetry()

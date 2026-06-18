@@ -490,7 +490,27 @@ namespace Prym.Web.Services
 
         private void OnFlushTimer(object? state)
         {
-            _ = Task.Run(() => FlushAsync());
+            // Fire-and-forget design decision (applies to all _ = Task.Run(...) calls in Prym.Web/Services):
+            // Background operations (log flush, theme sync, font sync, token refresh) are non-critical
+            // path actions that must not block or crash the UI thread.  The established pattern across
+            // this codebase is to use _ = Task.Run(async () => { ... catch (Exception) { log } }) rather
+            // than a centralised IBackgroundTaskQueue, because:
+            //   • Blazor WASM is effectively single-threaded — Task.Run still runs on the JS thread pool,
+            //     so a queue adds complexity without a threading benefit.
+            //   • Each call site already has its own retry / offline-mode logic.
+            //   • A catch (Exception) wrapper is MANDATORY on every fire-and-forget to prevent unobserved
+            //     task exceptions from silently terminating background work.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await FlushAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Background log flush failed");
+                }
+            });
         }
 
         #endregion
