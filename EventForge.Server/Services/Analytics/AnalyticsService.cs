@@ -274,12 +274,11 @@ public class AnalyticsService(
             var dateFrom = (filter.DateFrom ?? now.AddMonths(-12)).Date;
             var dateTo = (filter.DateTo ?? now).Date.AddDays(1).AddTicks(-1);
 
-            // Sales trend from DocumentHeaders (exclude cancelled)
+            // Sales trend from DocumentHeaders
             var headersRaw = await context.DocumentHeaders
                 .AsNoTracking()
                 .Where(h => !h.IsDeleted
                     && h.TenantId == tenantId.Value
-                    && h.Status != DocumentStatus.Cancelled
                     && h.Date >= dateFrom
                     && h.Date <= dateTo)
                 .Select(h => new
@@ -295,7 +294,7 @@ public class AnalyticsService(
                 var totalDocsInRange = await context.DocumentHeaders
                     .AsNoTracking()
                     .CountAsync(h => !h.IsDeleted && h.TenantId == tenantId.Value && h.Date >= dateFrom && h.Date <= dateTo, ct);
-                logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} non-cancelled; TotalNetAmount={TotalAmount}",
+                logger.LogDebug("Sales analytics: {TotalDocsInRange} documents in range [{DateFrom}, {DateTo}] (pre-filter); {HeadersCount} headers; TotalNetAmount={TotalAmount}",
                     totalDocsInRange, dateFrom, dateTo, headersRaw.Count, headersRaw.Sum(h => h.Amount));
             }
 
@@ -328,7 +327,6 @@ public class AnalyticsService(
                     .Where(r => !r.IsDeleted
                         && r.TenantId == tenantId.Value
                         && r.DocumentHeader != null
-                        && r.DocumentHeader.Status != DocumentStatus.Cancelled
                         && r.DocumentHeader.Date >= dateFrom
                         && r.DocumentHeader.Date <= dateTo)
                     .SumAsync(r => r.UnitPrice * r.Quantity, ct);
@@ -352,7 +350,6 @@ public class AnalyticsService(
                     && r.TenantId == tenantId.Value
                     && r.ProductId.HasValue
                     && r.DocumentHeader != null
-                    && r.DocumentHeader.Status != DocumentStatus.Cancelled
                     && r.DocumentHeader.Date >= dateFrom
                     && r.DocumentHeader.Date <= dateTo)
                 .Select(r => new

@@ -1493,7 +1493,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     }
                 }
 
-                // Mark document as cancelled
+                // Mark document as archived
                 try
                 {
                     var document = await context.DocumentHeaders
@@ -1510,16 +1510,16 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                         {
                             context.Attach(document);
                         }
-                        document.Status = Prym.DTOs.Common.DocumentStatus.Cancelled;
+                        document.Status = Prym.DTOs.Common.DocumentStatus.Archived;
                         document.ModifiedBy = currentUser;
                         document.ModifiedAt = DateTime.UtcNow;
                         await context.SaveChangesAsync(cancellationToken);
-                        logger.LogInformation("Marked document {DocumentId} as cancelled", session.DocumentId.Value);
+                        logger.LogInformation("Marked document {DocumentId} as archived", session.DocumentId.Value);
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error marking document {DocumentId} as cancelled", session.DocumentId.Value);
+                    logger.LogError(ex, "Error marking document {DocumentId} as archived", session.DocumentId.Value);
                 }
             }
 

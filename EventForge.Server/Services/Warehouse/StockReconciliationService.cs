@@ -170,7 +170,6 @@ public class StockReconciliationService(
                             dr.DocumentHeader.DocumentType != null &&
                             dr.DocumentHeader.DocumentType.IsInventoryDocument &&
                             (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived) &&
-                            dr.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
                             // Primary match: exact storage location.
                             // Fallback match: when LocationId is null on the row (legacy inventory data),
                             // match using the warehouse from the row or document header.
@@ -819,20 +818,14 @@ public class StockReconciliationService(
 
         var result = new RebuildMovementsResultDto { IsDryRun = request.DryRun };
 
-        // Resolve effective status filters (defaults: Approved, Closed)
-        var approvalStatusFilter = (request.ApprovalStatuses is not null && request.ApprovalStatuses.Count > 0)
-            ? request.ApprovalStatuses.Select(v => (Data.Entities.Documents.ApprovalStatus)v).ToList()
-            : new List<Data.Entities.Documents.ApprovalStatus> { Data.Entities.Documents.ApprovalStatus.Approved };
-
+        // Resolve effective status filters (default: Archived)
         var documentStatusFilter = (request.DocumentStatuses is not null && request.DocumentStatuses.Count > 0)
             ? request.DocumentStatuses.Select(v => (Prym.DTOs.Common.DocumentStatus)v).ToList()
             : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Archived };
 
         // Build query on DocumentHeaders.
-        // Both filters are required (AND): a document must satisfy the approval-status
-        // condition AND the document-status condition before its rows are eligible for
-        // movement rebuild.  Using OR would include documents that are Approved-but-Open
-        // (movements would be premature) or Closed-but-not-Approved (data anomaly).
+        // A document must satisfy the selected document status filter before its rows
+        // are eligible for movement rebuild.
         var headersQuery = context.DocumentHeaders
             .AsNoTracking()
             .Include(dh => dh.DocumentType)
@@ -840,7 +833,6 @@ public class StockReconciliationService(
                 .ThenInclude(r => r.Product)
             .Where(dh => dh.TenantId == currentTenantId.Value
                       && !dh.IsDeleted
-                      && approvalStatusFilter.Contains(dh.ApprovalStatus)
                       && documentStatusFilter.Contains(dh.Status)
                       // Inventory documents are quantity anchors, not incremental movements.
                       // Including them would create erroneous Inbound/Outbound movements.

@@ -31,14 +31,8 @@ public class RebuildMovementsRequestDto
     public bool DryRun { get; set; } = false;
 
     /// <summary>
-    /// Document approval statuses to include. If null or empty, defaults to Approved only.
-    /// Values map to Data.Entities.Documents.ApprovalStatus: None=0, Pending=1, Approved=2, Rejected=3.
-    /// </summary>
-    public List<int>? ApprovalStatuses { get; set; }
-
-    /// <summary>
-    /// Document statuses to include. If null or empty, defaults to Closed only.
-    /// Values map to Prym.DTOs.Common.DocumentStatus: Draft=0, Open=1, Closed=2, Cancelled=3.
+    /// Document statuses to include. If null or empty, defaults to Archived.
+    /// Values map to Prym.DTOs.Common.DocumentStatus: Active=1, Archived=4.
     /// </summary>
     public List<int>? DocumentStatuses { get; set; }
 

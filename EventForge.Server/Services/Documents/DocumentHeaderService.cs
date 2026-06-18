@@ -302,8 +302,8 @@ public class DocumentHeaderService(
                 return false;
             }
 
-            // If the document is approved and DocumentType is available, generate compensating movements BEFORE delete
-            if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved
+            // If the document is archived and DocumentType is available, generate compensating movements BEFORE delete
+            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived
                 && documentHeader.DocumentType is not null)
             {
                 var compensatingCount = 0;
@@ -428,149 +428,6 @@ public class DocumentHeaderService(
 
 
             return documentHeader.ToDto();
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
-    public async Task<DocumentHeaderDto?> ApproveDocumentAsync(
-        Guid id,
-        string currentUser,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var originalHeader = await context.DocumentHeaders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (originalHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for approval.", id);
-                return null;
-            }
-
-            var documentHeader = await context.DocumentHeaders
-                .Include(dh => dh.DocumentType)
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for approval.", id);
-                return null;
-            }
-
-            // Guard: approval requires the document to be in a workable state (not Draft or Cancelled).
-            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Draft ||
-                documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Cancelled)
-            {
-                throw new InvalidOperationException(
-                    $"Impossibile approvare un documento in stato '{documentHeader.Status}'. Il documento deve essere almeno aperto.");
-            }
-
-            documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved;
-            documentHeader.ApprovedBy = currentUser;
-            documentHeader.ApprovedAt = DateTime.UtcNow;
-            documentHeader.ModifiedBy = currentUser;
-            documentHeader.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict approving document {DocumentHeaderId}.", id);
-                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Approve", currentUser, originalHeader, cancellationToken);
-
-            // Reload document with dependencies for stock movement processing
-            var documentForStockMovement = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(dh => dh.DocumentType)
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentForStockMovement is not null)
-            {
-                // Process stock movements after approval
-                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
-            }
-
-            logger.LogInformation("Document header {DocumentHeaderId} approved by {User}.", id, currentUser);
-
-            return documentHeader.ToDto();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
-    public async Task<DocumentHeaderDto?> RejectDocumentAsync(
-        Guid id,
-        string? reason,
-        string currentUser,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var documentHeader = await context.DocumentHeaders
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for rejection.", id);
-                return null;
-            }
-
-            // Guard: cannot reject a Draft or Cancelled document.
-            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Draft ||
-                documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Cancelled)
-            {
-                throw new InvalidOperationException(
-                    $"Impossibile rifiutare un documento in stato '{documentHeader.Status}'.");
-            }
-
-            // Capture pre-change snapshot for audit log before mutating the entity.
-            // We store a separate AsNoTracking read so TrackEntityChangesAsync receives the
-            // correct entity type (DocumentHeader) for both old and new state.
-            var originalHeader = await context.DocumentHeaders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected;
-            documentHeader.ModifiedBy = currentUser;
-            documentHeader.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict rejecting document {DocumentHeaderId}.", id);
-                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Reject", currentUser, originalHeader, cancellationToken);
-
-            logger.LogInformation("Document header {DocumentHeaderId} rejected by {User}. Reason: {Reason}", id, currentUser, reason ?? "(none)");
-
-            return documentHeader.ToDto();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw;
         }
         catch
         {
@@ -724,9 +581,6 @@ public class DocumentHeaderService(
 
         if (parameters.PaymentStatus.HasValue)
             query = query.Where(dh => dh.PaymentStatus == (EventForge.Server.Data.Entities.Documents.PaymentStatus)parameters.PaymentStatus.Value);
-
-        if (parameters.ApprovalStatus.HasValue)
-            query = query.Where(dh => dh.ApprovalStatus == (EventForge.Server.Data.Entities.Documents.ApprovalStatus)parameters.ApprovalStatus.Value);
 
         if (parameters.TeamId.HasValue)
             query = query.Where(dh => dh.TeamId == parameters.TeamId.Value);
@@ -1066,8 +920,8 @@ public class DocumentHeaderService(
                 }
             }
 
-            // If document is already approved, create stock movement immediately
-            if (documentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved && row.ProductId.HasValue)
+            // If document is already archived, create stock movement immediately
+            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived && row.ProductId.HasValue)
             {
                 // Load document type to determine stock increase/decrease
                 if (documentHeader.DocumentType is null)
@@ -1119,7 +973,7 @@ public class DocumentHeaderService(
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
 
-                                logger.LogInformation("Created immediate inbound stock movement for approved document row {RowId}.", row.Id);
+                                logger.LogInformation("Created immediate inbound stock movement for archived document row {RowId}.", row.Id);
                             }
                             else
                             {
@@ -1222,9 +1076,9 @@ public class DocumentHeaderService(
 
             logger.LogInformation("Document row {RowId} updated by {User}.", rowId, currentUser);
 
-            // If document is approved and quantity changed, create compensating movement
+            // If document is archived and quantity changed, create compensating movement
             if (row.DocumentHeader is not null &&
-                row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
+                row.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived &&
                 row.ProductId.HasValue &&
                 row.ProductId == oldProductId)
             {
@@ -1324,7 +1178,7 @@ public class DocumentHeaderService(
                                     }
                                 }
 
-                                logger.LogInformation("Created compensating stock movement for updated row {RowId} in approved document. Delta: {Delta}",
+                                logger.LogInformation("Created compensating stock movement for updated row {RowId} in archived document. Delta: {Delta}",
                                     rowId, delta);
                             }
                         }
@@ -1361,9 +1215,9 @@ public class DocumentHeaderService(
                 return false;
             }
 
-            // If document is approved, create compensating movement before deleting row
+            // If document is archived, create compensating movement before deleting row
             if (row.DocumentHeader is not null &&
-                row.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
+                row.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived &&
                 row.ProductId.HasValue)
             {
                 // Find existing movement for this row

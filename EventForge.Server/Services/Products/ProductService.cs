@@ -2352,7 +2352,7 @@ public class ProductService(
             // Get product IDs to fetch latest purchase data
             var productIds = productSuppliers.Select(ps => ps.ProductId).ToList();
 
-            // Get latest purchase prices from approved document rows
+            // Get latest purchase prices from archived document rows
             var latestPurchases = await context.DocumentRows
                 .AsNoTracking()
                 .Where(dr => dr.ProductId.HasValue &&
@@ -2364,7 +2364,7 @@ public class ProductService(
                 .Where(dr => dr.DocumentHeader != null &&
                             !dr.DocumentHeader.IsDeleted &&
                             dr.DocumentHeader.BusinessPartyId == supplierId &&
-                            dr.DocumentHeader.ApprovalStatus == EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved &&
+                            dr.DocumentHeader.Status == DocumentStatus.Archived &&
                             dr.DocumentHeader.DocumentType != null &&
                             dr.DocumentHeader.DocumentType.IsStockIncrease == true &&
                             dr.DocumentHeader.TenantId == currentTenantId.Value)
@@ -2460,7 +2460,7 @@ public class ProductService(
                     .ThenInclude(h => h!.BusinessParty)
                 .Where(r => r.DocumentHeader != null &&
                             !r.DocumentHeader.IsDeleted &&
-                            r.DocumentHeader.ApprovalStatus == EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved &&
+                            r.DocumentHeader.Status == DocumentStatus.Archived &&
                             r.DocumentHeader.DocumentType != null &&
                             r.DocumentHeader.DocumentType.IsStockIncrease == isStockIncrease &&
                             r.DocumentHeader.TenantId == currentTenantId.Value);

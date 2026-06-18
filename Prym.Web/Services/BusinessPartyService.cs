@@ -36,7 +36,6 @@ namespace Prym.Web.Services
             DateTime? toDate = null,
             Guid? documentTypeId = null,
             string? searchNumber = null,
-            Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
             int page = 1,
             int pageSize = 20,
             CancellationToken ct = default);
@@ -228,7 +227,6 @@ namespace Prym.Web.Services
             DateTime? toDate = null,
             Guid? documentTypeId = null,
             string? searchNumber = null,
-            Prym.DTOs.Common.ApprovalStatus? approvalStatus = null,
             int page = 1,
             int pageSize = 20,
             CancellationToken ct = default)
@@ -255,11 +253,6 @@ namespace Prym.Web.Services
                 if (!string.IsNullOrWhiteSpace(searchNumber))
                 {
                     query += $"&searchNumber={Uri.EscapeDataString(searchNumber)}";
-                }
-
-                if (approvalStatus.HasValue)
-                {
-                    query += $"&approvalStatus={approvalStatus.Value}";
                 }
 
                 return await httpClientService.GetAsync<PagedResult<Prym.DTOs.Documents.DocumentHeaderDto>>(query, ct);

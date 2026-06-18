@@ -24,7 +24,8 @@ public class DocumentStatusService(
 
             return await httpClientService.PutAsync<ChangeDocumentStatusDto, DocumentHeaderDto>(
                 $"{BaseUrl}/{documentId}/status",
-                dto);
+                dto,
+                ct);
         }
         catch (Exception ex)
         {
@@ -38,7 +39,8 @@ public class DocumentStatusService(
         try
         {
             return await httpClientService.GetAsync<List<DocumentStatusHistoryDto>>(
-                $"{BaseUrl}/{documentId}/status/history");
+                $"{BaseUrl}/{documentId}/status/history",
+                ct);
         }
         catch (Exception ex)
         {
@@ -52,7 +54,8 @@ public class DocumentStatusService(
         try
         {
             return await httpClientService.GetAsync<List<DocumentStatus>>(
-                $"{BaseUrl}/{documentId}/status/available-transitions");
+                $"{BaseUrl}/{documentId}/status/available-transitions",
+                ct);
         }
         catch (Exception ex)
         {

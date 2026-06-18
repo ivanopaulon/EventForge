@@ -652,35 +652,6 @@ public interface IDocumentFacade
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Approves a document header.
-    /// </summary>
-    /// <param name="id">Document header unique identifier</param>
-    /// <param name="currentUser">Current user identifier for audit logging</param>
-    /// <param name="cancellationToken">Cancellation token for async operation</param>
-    /// <returns>Updated document header DTO or null if not found</returns>
-    /// <exception cref="ArgumentNullException">Thrown when currentUser is null</exception>
-    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<DocumentHeaderDto?> ApproveDocumentAsync(
-        Guid id,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Rejects a document header approval.
-    /// </summary>
-    /// <param name="id">Document header unique identifier</param>
-    /// <param name="reason">Optional reason for rejection</param>
-    /// <param name="currentUser">Current user identifier for audit logging</param>
-    /// <param name="cancellationToken">Cancellation token for async operation</param>
-    /// <returns>Updated document header DTO or null if not found</returns>
-    /// <exception cref="InvalidOperationException">Thrown when the document status does not allow rejection</exception>
-    Task<DocumentHeaderDto?> RejectDocumentAsync(
-        Guid id,
-        string? reason,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Archives a document header (Active → Archived). Archived documents are excluded from
     /// default list views but their stock movements remain unchanged.
     /// </summary>
@@ -839,20 +810,6 @@ public interface IDocumentFacade
         CancellationToken cancellationToken = default);
 
     #region Bulk Operations
-
-    /// <summary>
-    /// Performs a bulk approval operation on multiple documents in a single transaction.
-    /// </summary>
-    /// <param name="bulkApprovalDto">Bulk approval request data</param>
-    /// <param name="currentUser">Current user identifier for audit logging</param>
-    /// <param name="cancellationToken">Cancellation token for async operation</param>
-    /// <returns>Result of the bulk approval operation</returns>
-    /// <exception cref="ArgumentNullException">Thrown when bulkApprovalDto or currentUser is null</exception>
-    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<Prym.DTOs.Bulk.BulkApprovalResultDto> BulkApproveAsync(
-        Prym.DTOs.Bulk.BulkApprovalDto bulkApprovalDto,
-        string currentUser,
-        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Performs a bulk status change operation on multiple documents in a single transaction.

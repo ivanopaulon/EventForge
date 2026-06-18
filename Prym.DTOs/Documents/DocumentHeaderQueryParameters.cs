@@ -66,11 +66,6 @@ namespace Prym.DTOs.Documents
         public PaymentStatus? PaymentStatus { get; set; }
 
         /// <summary>
-        /// Filter by approval status.
-        /// </summary>
-        public ApprovalStatus? ApprovalStatus { get; set; }
-
-        /// <summary>
         /// Filter by team ID.
         /// </summary>
         public Guid? TeamId { get; set; }

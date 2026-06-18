@@ -10,10 +10,12 @@ namespace EventForge.Server.Controllers;
 /// <summary>
 /// REST API controller for document header management with multi-tenant support.
 /// Provides comprehensive CRUD operations for document headers within the authenticated user's tenant context.
+/// Deprecated: prefer <c>/api/v1/documents</c> for the canonical unified document contract.
 /// </summary>
 [Route("api/v1/[controller]")]
 [Authorize]
 [RequireLicenseFeature("BasicReporting")]
+[Obsolete("Use /api/v1/documents endpoints. Deprecated since v2026.06 and scheduled for removal in v2026.12.")]
 public class DocumentHeadersController(
     IDocumentHeaderService documentHeaderService,
     IDocumentFacade documentFacade,
@@ -271,48 +273,6 @@ public class DocumentHeadersController(
         catch (Exception ex)
         {
             return CreateInternalServerErrorProblem("An error occurred while calculating document totals.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Approves a document header.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Approved document header</returns>
-    /// <response code="200">Returns the approved document header</response>
-    /// <response code="400">If the document status does not allow approval</response>
-    /// <response code="404">If the document header is not found</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpPost("{id:guid}/approve")]
-    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<DocumentHeaderDto>> ApproveDocument(
-        Guid id,
-        CancellationToken cancellationToken = default)
-    {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
-
-        try
-        {
-            var currentUser = GetCurrentUser();
-            // Route through the facade to ensure consistent behaviour (guards, audit, stock movements)
-            var documentHeader = await documentFacade.ApproveDocumentAsync(id, currentUser, cancellationToken);
-
-            if (documentHeader is null)
-                return CreateNotFoundProblem($"Document header with ID {id} not found.");
-
-            return Ok(documentHeader);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return CreateValidationProblemDetails(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return CreateInternalServerErrorProblem("An error occurred while approving the document.", ex);
         }
     }
 

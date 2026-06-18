@@ -88,34 +88,7 @@ public interface IDocumentHeaderService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Approves a document header.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <param name="currentUser">Current user for auditing</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Updated document header DTO or null if not found</returns>
-    Task<DocumentHeaderDto?> ApproveDocumentAsync(
-        Guid id,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Rejects a document header approval.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <param name="reason">Reason for rejection</param>
-    /// <param name="currentUser">Current user for auditing</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Updated document header DTO or null if not found</returns>
-    Task<DocumentHeaderDto?> RejectDocumentAsync(
-        Guid id,
-        string? reason,
-        string currentUser,
-        CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Triggers stock movement processing for a document that has already been closed or approved.
-    /// Used to ensure stock movements are generated regardless of the code path used to close the document.
+    /// Triggers stock movement processing for a document.
     /// </summary>
     /// <param name="documentId">Document header ID</param>
     /// <param name="currentUser">Current user for auditing</param>
