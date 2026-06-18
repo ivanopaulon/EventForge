@@ -210,7 +210,6 @@ public class DocumentHeaderService(
             }
 
             var documentHeader = await context.DocumentHeaders
-                .Include(dh => dh.Rows.Where(r => !r.IsDeleted))
                 .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader is null)

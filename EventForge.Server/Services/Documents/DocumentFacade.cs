@@ -997,9 +997,7 @@ public class DocumentFacade(
     {
         try
         {
-            var result = await documentStatusService.ChangeStatusAsync(documentId, newStatus, reason, cancellationToken);
-
-            return result;
+            return await documentStatusService.ChangeStatusAsync(documentId, newStatus, reason, cancellationToken);
         }
         catch
         {
