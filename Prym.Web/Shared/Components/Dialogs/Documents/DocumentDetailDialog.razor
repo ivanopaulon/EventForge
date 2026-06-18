@@ -907,15 +907,17 @@
     /// </summary>
     private void ApplyHeaderDto(DocumentHeaderDto doc)
     {
-        // When the header-save endpoint returns a DTO without rows (e.g. because
-        // UpdateDocumentHeaderAsync didn't include rows in its query), preserve the
-        // rows already loaded in the current document so the VAT summary and totals
-        // card don't go blank.  This is a defensive fallback; the server-side fix
-        // (Include rows in UpdateDocumentHeaderAsync) is the primary solution.
-        if ((doc.Rows == null || doc.Rows.Count == 0) && _currentDocument?.Rows?.Count > 0)
-            doc.Rows = _currentDocument.Rows;
+        // Capture the existing rows before replacing _currentDocument.
+        // UpdateDocumentHeaderAsync does not include rows in its query, so the returned
+        // DTO has an empty Rows list. We restore the previously loaded rows afterwards
+        // so DocumentVatSummary never goes blank after a header edit.
+        var existingRows = _currentDocument?.Rows;
 
         _currentDocument = doc;
+
+        if ((_currentDocument.Rows == null || _currentDocument.Rows.Count == 0) && existingRows?.Count > 0)
+            _currentDocument.Rows = existingRows;
+
         _model.DocumentTypeId = doc.DocumentTypeId;
         _model.Series = doc.Series;
         _model.Number = doc.Number;
