@@ -39,6 +39,7 @@
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Open">@TranslationService.GetTranslation("status.open", "Aperto")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Closed">@TranslationService.GetTranslation("status.closed", "Chiuso")</MudSelectItem>
             <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Cancelled">@TranslationService.GetTranslation("status.cancelled", "Annullato")</MudSelectItem>
+            <MudSelectItem T="DocumentStatus?" Value="@DocumentStatus.Archived">@TranslationService.GetTranslation("status.archived", "Archiviato")</MudSelectItem>
         </PrymSelect>
     </AdditionalToolbarContent>
 
@@ -240,6 +241,7 @@
                 new() { Id = "open", Label = "Aperti", Predicate = d => d.Status == DocumentStatus.Open, Color = Color.Info, Icon = Icons.Material.Outlined.Description, Description = "Documenti aperti" },
                 new() { Id = "closed", Label = "Chiusi", Predicate = d => d.Status == DocumentStatus.Closed, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Documenti chiusi" },
                 new() { Id = "cancelled", Label = "Annullati", Predicate = d => d.Status == DocumentStatus.Cancelled, Color = Color.Error, Icon = Icons.Material.Outlined.Cancel, Description = "Documenti annullati" },
+                new() { Id = "archived", Label = "Archiviati", Predicate = d => d.Status == DocumentStatus.Archived, Color = Color.Secondary, Icon = Icons.Material.Outlined.Archive, Description = "Documenti archiviati" },
                 new() { Id = "recent", Label = "Recenti", Predicate = d => d.Date >= DateTime.UtcNow.AddDays(-30), Color = Color.Primary, Icon = Icons.Material.Outlined.NewReleases, Description = "Documenti degli ultimi 30 giorni" }
             }
         };
@@ -297,6 +299,7 @@
         DocumentStatus.Open => Color.Success,
         DocumentStatus.Closed => Color.Warning,
         DocumentStatus.Cancelled => Color.Error,
+        DocumentStatus.Archived => Color.Secondary,
         _ => Color.Default
     };
 
@@ -335,6 +338,7 @@
     {
         DocumentStatus.Draft => new() { DocumentStatus.Open, DocumentStatus.Cancelled },
         DocumentStatus.Open => new() { DocumentStatus.Closed, DocumentStatus.Draft, DocumentStatus.Cancelled },
+        DocumentStatus.Closed => new() { DocumentStatus.Archived },
         _ => new()
     };
 
@@ -344,6 +348,7 @@
         DocumentStatus.Closed => "Chiudi",
         DocumentStatus.Draft => "Riporta in bozza",
         DocumentStatus.Cancelled => "Annulla",
+        DocumentStatus.Archived => "Archivia",
         _ => status.ToString()
     };
 
@@ -353,6 +358,7 @@
         DocumentStatus.Closed => Icons.Material.Outlined.Lock,
         DocumentStatus.Draft => Icons.Material.Outlined.Edit,
         DocumentStatus.Cancelled => Icons.Material.Outlined.Cancel,
+        DocumentStatus.Archived => Icons.Material.Outlined.Archive,
         _ => Icons.Material.Outlined.SwapHoriz
     };
 
@@ -361,6 +367,7 @@
         (DocumentStatus.Draft, DocumentStatus.Open) => "Aprire il documento? Sarà pronto per la lavorazione.",
         (DocumentStatus.Open, DocumentStatus.Closed) => "Chiudere il documento? Questa azione è IRREVERSIBILE e il documento diventerà immutabile.",
         (DocumentStatus.Open, DocumentStatus.Draft) => "Riportare il documento in bozza? Potrai continuare a modificarlo.",
+        (DocumentStatus.Closed, DocumentStatus.Archived) => "Archiviare il documento? Sarà nascosto dalle visualizzazioni predefinite.",
         (_, DocumentStatus.Cancelled) => "Annullare il documento? Questa azione è IRREVERSIBILE.",
         _ => $"Confermare la transizione di stato?"
     };

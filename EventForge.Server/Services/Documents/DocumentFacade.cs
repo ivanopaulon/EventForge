@@ -842,6 +842,22 @@ public class DocumentFacade(
     }
 
     /// <inheritdoc />
+    public async Task<DocumentHeaderDto?> ArchiveDocumentAsync(
+        Guid id,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await documentHeaderService.ArchiveDocumentAsync(id, currentUser, cancellationToken);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
     public async Task<bool> DocumentHeaderExistsAsync(
         Guid id,
         CancellationToken cancellationToken = default)
@@ -982,15 +998,6 @@ public class DocumentFacade(
         try
         {
             var result = await documentStatusService.ChangeStatusAsync(documentId, newStatus, reason, cancellationToken);
-
-            // When the document is closed via the generic status-change path, ensure stock movements
-            // are generated — the same as when CloseDocumentAsync is called directly.
-            // Use result.ModifiedBy as the audit user (set by DocumentStatusService from the HTTP context).
-            if (result is not null && newStatus == DocumentStatus.Closed)
-            {
-                await documentHeaderService.TriggerStockMovementsForDocumentAsync(
-                    documentId, result.ModifiedBy ?? "System", cancellationToken);
-            }
 
             return result;
         }

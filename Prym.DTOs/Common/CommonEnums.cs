@@ -163,7 +163,8 @@ namespace Prym.DTOs.Common
         Draft,      // Document is in draft state
         Open,       // Document is open and being worked on
         Closed,     // Document is closed (finalized)
-        Cancelled   // Document is cancelled
+        Cancelled,  // Document is cancelled
+        Archived    // Document is archived (read-only, hidden from default views)
     }
 
     /// <summary>

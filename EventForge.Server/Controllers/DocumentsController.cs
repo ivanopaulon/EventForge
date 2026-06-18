@@ -404,6 +404,49 @@ public class DocumentsController(
     }
 
     /// <summary>
+    /// Archives a document header (Closed → Archived).
+    /// Archived documents are excluded from default list views but their stock movements remain unchanged.
+    /// </summary>
+    /// <param name="id">Document header ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated document header DTO</returns>
+    /// <response code="200">Returns the archived document header</response>
+    /// <response code="400">If the document is not in Closed status</response>
+    /// <response code="404">If the document header is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("{id:guid}/archive")]
+    [ProducesResponseType(typeof(DocumentHeaderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<DocumentHeaderDto>> ArchiveDocument(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantError = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantError != null) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var documentHeader = await documentFacade.ArchiveDocumentAsync(id, currentUser, cancellationToken);
+
+            if (documentHeader == null)
+                return CreateNotFoundProblem($"Document header with ID {id} not found.");
+
+            return Ok(documentHeader);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateValidationProblemDetails(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while archiving the document.", ex);
+        }
+    }
+
+    /// <summary>
     /// Checks if a document header exists.
     /// </summary>
     /// <param name="id">Document header ID</param>

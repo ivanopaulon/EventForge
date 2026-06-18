@@ -75,10 +75,17 @@ public class DocumentStateMachineTests
     [Fact]
     public void CanTransition_FromClosedToAnyState_ReturnsFalse()
     {
-        // Act & Assert
+        // Closed can only go to Archived; transitions to other states are not allowed
         Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Draft));
         Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Open));
         Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Cancelled));
+    }
+
+    [Fact]
+    public void CanTransition_FromClosedToArchived_ReturnsTrue()
+    {
+        // Act & Assert
+        Assert.True(DocumentStateMachine.CanTransition(DocumentStatus.Closed, DocumentStatus.Archived));
     }
 
     [Fact]
@@ -95,13 +102,12 @@ public class DocumentStateMachineTests
     #region IsImmutable Tests
 
     [Fact]
-    public void IsImmutable_ClosedStatus_ReturnsTrue()
+    public void IsImmutable_ClosedStatus_ReturnsFalse()
     {
-        // Act
+        // Closed is no longer immutable — it can transition to Archived
         var result = DocumentStateMachine.IsImmutable(DocumentStatus.Closed);
 
-        // Assert
-        Assert.True(result);
+        Assert.False(result);
     }
 
     [Fact]
@@ -111,6 +117,15 @@ public class DocumentStateMachineTests
         var result = DocumentStateMachine.IsImmutable(DocumentStatus.Cancelled);
 
         // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsImmutable_ArchivedStatus_ReturnsTrue()
+    {
+        // Archived is a terminal state — no further transitions allowed
+        var result = DocumentStateMachine.IsImmutable(DocumentStatus.Archived);
+
         Assert.True(result);
     }
 
@@ -164,13 +179,31 @@ public class DocumentStateMachineTests
     }
 
     [Fact]
-    public void GetAvailableTransitions_FromClosed_ReturnsEmpty()
+    public void GetAvailableTransitions_FromClosed_ReturnsArchived()
     {
-        // Act
+        // Closed documents can only be archived
         var transitions = DocumentStateMachine.GetAvailableTransitions(DocumentStatus.Closed);
 
-        // Assert
+        Assert.Single(transitions);
+        Assert.Contains(DocumentStatus.Archived, transitions);
+    }
+
+    [Fact]
+    public void GetAvailableTransitions_FromArchived_ReturnsEmpty()
+    {
+        // Archived is a terminal state
+        var transitions = DocumentStateMachine.GetAvailableTransitions(DocumentStatus.Archived);
+
         Assert.Empty(transitions);
+    }
+
+    [Fact]
+    public void CanTransition_FromArchivedToAnyState_ReturnsFalse()
+    {
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Draft));
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Open));
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Closed));
+        Assert.False(DocumentStateMachine.CanTransition(DocumentStatus.Archived, DocumentStatus.Cancelled));
     }
 
     [Fact]

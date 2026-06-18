@@ -1121,7 +1121,8 @@ public class StockService(
                          && dr.DocumentHeader != null
                          && dr.DocumentHeader.DocumentType != null
                          && dr.DocumentHeader.DocumentType.IsInventoryDocument
-                         && dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed
+                         && (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed ||
+                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived)
                          && dr.DocumentHeader.Date < cutoff)
             .Select(dr => new
             {
@@ -1297,7 +1298,7 @@ public class StockService(
                              && !dh.IsDeleted
                              && dh.DocumentType != null
                              && dh.DocumentType.IsInventoryDocument
-                             && dh.Status == DocumentStatus.Closed)
+                             && (dh.Status == DocumentStatus.Closed || dh.Status == DocumentStatus.Archived))
                 .OrderByDescending(dh => dh.Date)
                 .Take(count)
                 .Select(dh => new { dh.Id, dh.Date, dh.Number })
@@ -1344,7 +1345,7 @@ public class StockService(
                          && !dh.IsDeleted
                          && dh.DocumentType != null
                          && dh.DocumentType.IsInventoryDocument
-                         && dh.Status == DocumentStatus.Closed)
+                         && (dh.Status == DocumentStatus.Closed || dh.Status == DocumentStatus.Archived))
             .Select(dh => new { dh.Id, dh.Date })
             .FirstOrDefaultAsync(cancellationToken);
 

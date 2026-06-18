@@ -247,6 +247,19 @@ public class DocumentHeaderService(
                 await SyncStockMovementDatesForDocumentAsync(id, newDateUtc, currentUser, cancellationToken);
             }
 
+            // Process stock movements on every content save so that movements are always
+            // up-to-date with the current rows, regardless of the document status.
+            var documentForStockMovement = await context.DocumentHeaders
+                .AsNoTracking()
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentForStockMovement is not null)
+            {
+                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+            }
+
             logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
@@ -630,19 +643,6 @@ public class DocumentHeaderService(
 
             _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
 
-            // Reload document with dependencies for stock movement processing
-            var documentForStockMovement = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(dh => dh.DocumentType)
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentForStockMovement is not null)
-            {
-                // Process stock movements after closing
-                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
-            }
-
             logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
@@ -673,6 +673,71 @@ public class DocumentHeaderService(
         }
     }
 
+    public async Task<DocumentHeaderDto?> ArchiveDocumentAsync(
+        Guid id,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var originalHeader = await context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (originalHeader is null)
+            {
+                logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
+                return null;
+            }
+
+            if (originalHeader.Status != Prym.DTOs.Common.DocumentStatus.Closed)
+            {
+                throw new InvalidOperationException("Solo i documenti nello stato Chiuso possono essere archiviati.");
+            }
+
+            var documentHeader = await context.DocumentHeaders
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentHeader is null)
+            {
+                logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
+                return null;
+            }
+
+            documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Archived;
+            documentHeader.ModifiedBy = currentUser;
+            documentHeader.ModifiedAt = DateTime.UtcNow;
+
+            try
+            {
+                _ = await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                logger.LogWarning(ex, "Concurrency conflict archiving document {DocumentHeaderId}.", id);
+                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
+
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Archive", currentUser, originalHeader, cancellationToken);
+
+            logger.LogInformation("Document header {DocumentHeaderId} archived by {User}.", id, currentUser);
+
+            return documentHeader.ToDto();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
     /// <summary>
     /// Returns <paramref name="date"/> with <see cref="DateTimeKind.Utc"/> ensured.
     /// SQL Server stores datetime values as UTC but EF Core reads them back with
@@ -686,6 +751,10 @@ public class DocumentHeaderService(
     private IQueryable<DocumentHeader> BuildDocumentHeaderQuery(DocumentHeaderQueryParameters parameters)
     {
         var query = context.DocumentHeaders.AsNoTracking().Where(dh => !dh.IsDeleted);
+
+        // Exclude archived documents by default unless explicitly requested or a specific status is filtered
+        if (!parameters.Status.HasValue && !parameters.IncludeArchived)
+            query = query.Where(dh => dh.Status != Prym.DTOs.Common.DocumentStatus.Archived);
 
         if (parameters.DocumentTypeId.HasValue)
             query = query.Where(dh => dh.DocumentTypeId == parameters.DocumentTypeId.Value);

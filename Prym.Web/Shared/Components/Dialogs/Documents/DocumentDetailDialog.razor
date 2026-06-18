@@ -225,6 +225,12 @@
                                         @TranslationService.GetTranslation("status.cancelled", "Annullato")
                                     </MudSelectItem>
                                 }
+                                @if (_availableTransitions.Contains(DocumentStatus.Archived))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Archived">
+                                        @TranslationService.GetTranslation("status.archived", "Archiviato")
+                                    </MudSelectItem>
+                                }
                             </MudSelect>
                         </MudPaper>
                     }
@@ -597,12 +603,13 @@
     private List<EFTableColumnConfiguration> _documentRowColumns = new();
 
     /// <summary>
-    /// Checks if the document can be modified (not closed or cancelled)
+    /// Checks if the document can be modified (not closed, cancelled or archived)
     /// </summary>
     private bool IsDocumentEditable()
     {
         return _currentDocument?.Status != DocumentStatus.Closed &&
-               _currentDocument?.Status != DocumentStatus.Cancelled;
+               _currentDocument?.Status != DocumentStatus.Cancelled &&
+               _currentDocument?.Status != DocumentStatus.Archived;
     }
 
     protected override async Task OnInitializedAsync()
@@ -725,9 +732,9 @@
 
     private async Task SetupCollaborationAsync(Guid documentId)
     {
-        // Documents with immutable status (Closed/Cancelled) are opened in read-only mode
+        // Documents with immutable status (Closed/Cancelled/Archived) are opened in read-only mode
         // without attempting to acquire an edit lock.
-        if (_documentStatus == DocumentStatus.Closed || _documentStatus == DocumentStatus.Cancelled)
+        if (_documentStatus == DocumentStatus.Closed || _documentStatus == DocumentStatus.Cancelled || _documentStatus == DocumentStatus.Archived)
         {
             _isReadOnly = true;
             _isReadOnlyDueToStatus = true;

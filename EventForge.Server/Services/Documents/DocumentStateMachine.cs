@@ -37,15 +37,24 @@ public static class DocumentStateMachine
             }
         },
         
-        // CLOSED → IMMUTABILE (nessuna transizione)
+        // CLOSED → può diventare ARCHIVED
         {
             DocumentStatus.Closed,
-            new List<DocumentStatus>()
+            new List<DocumentStatus>
+            {
+                DocumentStatus.Archived
+            }
         },
         
         // CANCELLED → IMMUTABILE (nessuna transizione)
         {
             DocumentStatus.Cancelled,
+            new List<DocumentStatus>()
+        },
+
+        // ARCHIVED → IMMUTABILE (nessuna transizione)
+        {
+            DocumentStatus.Archived,
             new List<DocumentStatus>()
         }
     };
@@ -66,7 +75,7 @@ public static class DocumentStateMachine
 
     public static bool IsImmutable(DocumentStatus status)
     {
-        return status == DocumentStatus.Closed || status == DocumentStatus.Cancelled;
+        return status == DocumentStatus.Cancelled || status == DocumentStatus.Archived;
     }
 
     public static List<DocumentStatus> GetAvailableTransitions(DocumentStatus currentStatus)
@@ -93,6 +102,7 @@ public static class DocumentStateMachine
             DocumentStatus.Closed => ValidateTransitionToClosed(document),
             DocumentStatus.Cancelled => ValidateTransitionToCancelled(document),
             DocumentStatus.Draft => ValidateTransitionToDraft(document),
+            DocumentStatus.Archived => ValidateTransitionToArchived(document),
             _ => StateTransitionValidationResult.Success()
         };
     }
@@ -177,6 +187,13 @@ public static class DocumentStateMachine
         return StateTransitionValidationResult.Success();
     }
 
+    private static StateTransitionValidationResult ValidateTransitionToArchived(DocumentHeaderDto document)
+    {
+        // Archiving is only allowed from Closed; the state machine transition matrix already
+        // enforces this, so no additional business rule checks are needed here.
+        return StateTransitionValidationResult.Success();
+    }
+
     #endregion
 
     #region Helper Methods
@@ -193,6 +210,9 @@ public static class DocumentStateMachine
 
             (DocumentStatus.Open, DocumentStatus.Draft) =>
                 "Riportare il documento in bozza? Potrai continuare a modificarlo.",
+
+            (DocumentStatus.Closed, DocumentStatus.Archived) =>
+                "Archiviare il documento? Sarà nascosto dalle viste predefinite ma i movimenti di magazzino restano invariati.",
 
             (_, DocumentStatus.Cancelled) =>
                 "Annullare il documento? Questa azione è IRREVERSIBILE.",
