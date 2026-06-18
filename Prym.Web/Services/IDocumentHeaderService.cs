@@ -53,13 +53,6 @@ public interface IDocumentHeaderService
     Task<DocumentHeaderDto?> ApproveDocumentAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
-    /// Closes a document header.
-    /// </summary>
-    /// <param name="id">Document header ID</param>
-    /// <returns>Closed document header or null if not found</returns>
-    Task<DocumentHeaderDto?> CloseDocumentAsync(Guid id, CancellationToken ct = default);
-
-    /// <summary>
     /// Adds a row to a document.
     /// </summary>
     /// <param name="createRowDto">Document row creation data</param>

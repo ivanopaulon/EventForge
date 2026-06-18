@@ -246,6 +246,19 @@ public class DocumentHeaderService(
                 await SyncStockMovementDatesForDocumentAsync(id, newDateUtc, currentUser, cancellationToken);
             }
 
+            // Process stock movements on every content save so that movements are always
+            // up-to-date with the current rows, regardless of the document status.
+            var documentForStockMovement = await context.DocumentHeaders
+                .AsNoTracking()
+                .Include(dh => dh.DocumentType)
+                .Include(dh => dh.Rows)
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentForStockMovement is not null)
+            {
+                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+            }
+
             logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
@@ -450,6 +463,14 @@ public class DocumentHeaderService(
                 return null;
             }
 
+            // Guard: approval requires the document to be in a workable state (not Draft or Cancelled).
+            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Draft ||
+                documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    $"Impossibile approvare un documento in stato '{documentHeader.Status}'. Il documento deve essere almeno aperto.");
+            }
+
             documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Approved;
             documentHeader.ApprovedBy = currentUser;
             documentHeader.ApprovedAt = DateTime.UtcNow;
@@ -495,7 +516,90 @@ public class DocumentHeaderService(
         }
     }
 
-    public async Task<DocumentHeaderDto?> CloseDocumentAsync(
+    public async Task<DocumentHeaderDto?> RejectDocumentAsync(
+        Guid id,
+        string? reason,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var documentHeader = await context.DocumentHeaders
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            if (documentHeader is null)
+            {
+                logger.LogWarning("Document header with ID {Id} not found for rejection.", id);
+                return null;
+            }
+
+            // Guard: cannot reject a Draft or Cancelled document.
+            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Draft ||
+                documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    $"Impossibile rifiutare un documento in stato '{documentHeader.Status}'.");
+            }
+
+            // Capture pre-change snapshot for audit log before mutating the entity.
+            // We store a separate AsNoTracking read so TrackEntityChangesAsync receives the
+            // correct entity type (DocumentHeader) for both old and new state.
+            var originalHeader = await context.DocumentHeaders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+            documentHeader.ApprovalStatus = EventForge.Server.Data.Entities.Documents.ApprovalStatus.Rejected;
+            documentHeader.ModifiedBy = currentUser;
+            documentHeader.ModifiedAt = DateTime.UtcNow;
+
+            try
+            {
+                _ = await context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                logger.LogWarning(ex, "Concurrency conflict rejecting document {DocumentHeaderId}.", id);
+                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+            }
+
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Reject", currentUser, originalHeader, cancellationToken);
+
+            logger.LogInformation("Document header {DocumentHeaderId} rejected by {User}. Reason: {Reason}", id, currentUser, reason ?? "(none)");
+
+            return documentHeader.ToDto();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task TriggerStockMovementsForDocumentAsync(
+        Guid documentId,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var documentForStockMovement = await context.DocumentHeaders
+            .AsNoTracking()
+            .Include(dh => dh.DocumentType)
+            .Include(dh => dh.Rows)
+            .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
+
+        if (documentForStockMovement is not null)
+        {
+            await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+        }
+        else
+        {
+            logger.LogWarning("TriggerStockMovementsForDocumentAsync: document {DocumentId} not found.", documentId);
+        }
+    }
+
+    public async Task<DocumentHeaderDto?> ArchiveDocumentAsync(
         Guid id,
         string currentUser,
         CancellationToken cancellationToken = default)
@@ -508,8 +612,13 @@ public class DocumentHeaderService(
 
             if (originalHeader is null)
             {
-                logger.LogWarning("Document header with ID {Id} not found for closing.", id);
+                logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
                 return null;
+            }
+
+            if (originalHeader.Status != Prym.DTOs.Common.DocumentStatus.Active)
+            {
+                throw new InvalidOperationException("Solo i documenti nello stato Attivo possono essere archiviati.");
             }
 
             var documentHeader = await context.DocumentHeaders
@@ -517,12 +626,11 @@ public class DocumentHeaderService(
 
             if (documentHeader is null)
             {
-                logger.LogWarning("Document header with ID {Id} not found for closing.", id);
+                logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
                 return null;
             }
 
-            documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Closed;
-            documentHeader.ClosedAt = DateTime.UtcNow;
+            documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Archived;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
@@ -532,28 +640,19 @@ public class DocumentHeaderService(
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                logger.LogWarning(ex, "Concurrency conflict closing document {DocumentHeaderId}.", id);
+                logger.LogWarning(ex, "Concurrency conflict archiving document {DocumentHeaderId}.", id);
                 throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
             }
 
-            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Close", currentUser, originalHeader, cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Archive", currentUser, originalHeader, cancellationToken);
 
-            // Reload document with dependencies for stock movement processing
-            var documentForStockMovement = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(dh => dh.DocumentType)
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentForStockMovement is not null)
-            {
-                // Process stock movements after closing
-                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
-            }
-
-            logger.LogInformation("Document header {DocumentHeaderId} closed by {User}.", id, currentUser);
+            logger.LogInformation("Document header {DocumentHeaderId} archived by {User}.", id, currentUser);
 
             return documentHeader.ToDto();
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -594,6 +693,10 @@ public class DocumentHeaderService(
     private IQueryable<DocumentHeader> BuildDocumentHeaderQuery(DocumentHeaderQueryParameters parameters)
     {
         var query = context.DocumentHeaders.AsNoTracking().Where(dh => !dh.IsDeleted);
+
+        // Exclude archived documents by default unless explicitly requested or a specific status is filtered
+        if (!parameters.Status.HasValue && !parameters.IncludeArchived)
+            query = query.Where(dh => dh.Status != Prym.DTOs.Common.DocumentStatus.Archived);
 
         if (parameters.DocumentTypeId.HasValue)
             query = query.Where(dh => dh.DocumentTypeId == parameters.DocumentTypeId.Value);

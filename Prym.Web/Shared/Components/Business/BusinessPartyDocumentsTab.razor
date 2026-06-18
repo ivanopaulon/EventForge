@@ -41,6 +41,7 @@
                           Clearable="true"
                           Density="Density.Compact">
                     <MudSelectItem T="ApprovalStatus?" Value="@((ApprovalStatus?)null)">@TranslationService.GetTranslation("common.all", "Tutti")</MudSelectItem>
+                    <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.None">@TranslationService.GetTranslation("approval.none", "Non Richiesta")</MudSelectItem>
                     <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Pending">@TranslationService.GetTranslation("approval.pending", "In Attesa")</MudSelectItem>
                     <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Approved">@TranslationService.GetTranslation("approval.approved", "Approvato")</MudSelectItem>
                     <MudSelectItem T="ApprovalStatus?" Value="@ApprovalStatus.Rejected">@TranslationService.GetTranslation("approval.rejected", "Rifiutato")</MudSelectItem>
@@ -259,6 +260,7 @@
             ApprovalStatus.Approved => Color.Success,
             ApprovalStatus.Rejected => Color.Error,
             ApprovalStatus.Pending => Color.Warning,
+            ApprovalStatus.None => Color.Default,
             _ => Color.Default
         };
     }
@@ -270,6 +272,7 @@
             ApprovalStatus.Approved => TranslationService.GetTranslation("approval.approved", "Approvato"),
             ApprovalStatus.Rejected => TranslationService.GetTranslation("approval.rejected", "Rifiutato"),
             ApprovalStatus.Pending => TranslationService.GetTranslation("approval.pending", "In Attesa"),
+            ApprovalStatus.None => TranslationService.GetTranslation("approval.none", "Non Richiesta"),
             _ => status.ToString()
         };
     }

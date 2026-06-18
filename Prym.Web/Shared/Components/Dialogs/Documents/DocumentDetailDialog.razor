@@ -201,18 +201,30 @@
                                        Variant="Variant.Outlined"
                                        Margin="Margin.Dense"
                                        Disabled="@(!IsDocumentEditable() || _isReadOnly)">
-                                <MudSelectItem Value="@DocumentStatus.Draft">
-                                    @TranslationService.GetTranslation("status.draft", "Bozza")
-                                </MudSelectItem>
-                                <MudSelectItem Value="@DocumentStatus.Open">
-                                    @TranslationService.GetTranslation("status.open", "Aperto")
-                                </MudSelectItem>
-                                <MudSelectItem Value="@DocumentStatus.Closed">
-                                    @TranslationService.GetTranslation("status.closed", "Chiuso")
-                                </MudSelectItem>
-                                <MudSelectItem Value="@DocumentStatus.Cancelled">
-                                    @TranslationService.GetTranslation("status.cancelled", "Annullato")
-                                </MudSelectItem>
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Draft))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Draft">
+                                        @TranslationService.GetTranslation("status.draft", "Bozza")
+                                    </MudSelectItem>
+                                }
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Active))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Active">
+                                        @TranslationService.GetTranslation("status.active", "Attivo")
+                                    </MudSelectItem>
+                                }
+                                @if (_availableTransitions.Count == 0 || _availableTransitions.Contains(DocumentStatus.Cancelled))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Cancelled">
+                                        @TranslationService.GetTranslation("status.cancelled", "Annullato")
+                                    </MudSelectItem>
+                                }
+                                @if (_availableTransitions.Contains(DocumentStatus.Archived))
+                                {
+                                    <MudSelectItem Value="@DocumentStatus.Archived">
+                                        @TranslationService.GetTranslation("status.archived", "Archiviato")
+                                    </MudSelectItem>
+                                }
                             </MudSelect>
                         </MudPaper>
                     }
@@ -532,6 +544,9 @@
 
     // Document status binding
     private DocumentStatus _documentStatus = DocumentStatus.Draft;
+    // Available state-machine transitions for the current document (populated from the server).
+    // Empty list = no document loaded yet → show all options (safe default for new documents).
+    private List<DocumentStatus> _availableTransitions = new();
 
     // Lock management state
     private bool _hasEditLock = false;
@@ -582,12 +597,12 @@
     private List<EFTableColumnConfiguration> _documentRowColumns = new();
 
     /// <summary>
-    /// Checks if the document can be modified (not closed or cancelled)
+    /// Checks if the document can be modified (not closed, cancelled or archived)
     /// </summary>
     private bool IsDocumentEditable()
     {
-        return _currentDocument?.Status != DocumentStatus.Closed &&
-               _currentDocument?.Status != DocumentStatus.Cancelled;
+        return _currentDocument?.Status != DocumentStatus.Cancelled &&
+               _currentDocument?.Status != DocumentStatus.Archived;
     }
 
     protected override async Task OnInitializedAsync()
@@ -710,9 +725,9 @@
 
     private async Task SetupCollaborationAsync(Guid documentId)
     {
-        // Documents with immutable status (Closed/Cancelled) are opened in read-only mode
+        // Documents with immutable status (Closed/Cancelled/Archived) are opened in read-only mode
         // without attempting to acquire an edit lock.
-        if (_documentStatus == DocumentStatus.Closed || _documentStatus == DocumentStatus.Cancelled)
+        if (_documentStatus == DocumentStatus.Cancelled || _documentStatus == DocumentStatus.Archived)
         {
             _isReadOnly = true;
             _isReadOnlyDueToStatus = true;
@@ -806,6 +821,7 @@
                 _model.PriceListId = _currentDocument.PriceListId;
                 _documentDate = _currentDocument.Date.ToLocalTime();
                 _documentStatus = _currentDocument.Status;
+                _availableTransitions = await DocumentStatusService.GetAvailableTransitionsAsync(documentId) ?? new List<DocumentStatus>();
                 _pageTitle = TranslationService.GetTranslationFormatted("documents.editDocumentTitle",
                     "Documento {0}", _currentDocument.Number ?? _currentDocument.Id.ToString()[..8]);
 
@@ -863,7 +879,7 @@
     {
         if (_isEditMode && !IsDocumentEditable())
         {
-            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento chiuso o annullato"));
+            AppNotification.ShowWarning(TranslationService.GetTranslation("documents.cannotEditClosed", "Impossibile modificare un documento archiviato o annullato"));
             return;
         }
 
@@ -907,7 +923,17 @@
     /// </summary>
     private void ApplyHeaderDto(DocumentHeaderDto doc)
     {
+        // Capture the existing rows before replacing _currentDocument.
+        // UpdateDocumentHeaderAsync does not include rows in its query, so the returned
+        // DTO has an empty Rows list. We restore the previously loaded rows afterwards
+        // so DocumentVatSummary never goes blank after a header edit.
+        var existingRows = _currentDocument?.Rows;
+
         _currentDocument = doc;
+
+        if ((_currentDocument.Rows == null || _currentDocument.Rows.Count == 0) && existingRows?.Count > 0)
+            _currentDocument.Rows = existingRows;
+
         _model.DocumentTypeId = doc.DocumentTypeId;
         _model.Series = doc.Series;
         _model.Number = doc.Number;
@@ -1389,6 +1415,12 @@
                 _currentDocument.TotalNetAmount = updated.TotalNetAmount;
                 _currentDocument.VatAmount = updated.VatAmount;
                 _currentDocument.TotalGrossAmount = updated.TotalGrossAmount;
+
+                // CalculateDocumentTotalsAsync returns the full document with rows.
+                // Sync them so DocumentVatSummary always reflects fresh per-row
+                // LineTotal / VatTotal values after any row modification.
+                if (updated.Rows?.Count > 0)
+                    _currentDocument.Rows = updated.Rows;
 
                 Logger.LogInformation("Recalculated document totals: Net={Net}, VAT={VAT}, Gross={Gross}",
                     updated.TotalNetAmount, updated.VatAmount, updated.TotalGrossAmount);

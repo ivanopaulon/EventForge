@@ -666,15 +666,30 @@ public interface IDocumentFacade
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Closes a document header.
+    /// Rejects a document header approval.
+    /// </summary>
+    /// <param name="id">Document header unique identifier</param>
+    /// <param name="reason">Optional reason for rejection</param>
+    /// <param name="currentUser">Current user identifier for audit logging</param>
+    /// <param name="cancellationToken">Cancellation token for async operation</param>
+    /// <returns>Updated document header DTO or null if not found</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the document status does not allow rejection</exception>
+    Task<DocumentHeaderDto?> RejectDocumentAsync(
+        Guid id,
+        string? reason,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Archives a document header (Active → Archived). Archived documents are excluded from
+    /// default list views but their stock movements remain unchanged.
     /// </summary>
     /// <param name="id">Document header unique identifier</param>
     /// <param name="currentUser">Current user identifier for audit logging</param>
     /// <param name="cancellationToken">Cancellation token for async operation</param>
     /// <returns>Updated document header DTO or null if not found</returns>
-    /// <exception cref="ArgumentNullException">Thrown when currentUser is null</exception>
-    /// <exception cref="InvalidOperationException">Thrown when tenant context is invalid</exception>
-    Task<DocumentHeaderDto?> CloseDocumentAsync(
+    /// <exception cref="InvalidOperationException">Thrown when the document is not in Active status</exception>
+    Task<DocumentHeaderDto?> ArchiveDocumentAsync(
         Guid id,
         string currentUser,
         CancellationToken cancellationToken = default);

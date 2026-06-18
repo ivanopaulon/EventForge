@@ -149,6 +149,12 @@ public class StockReconciliationService(
 
         var productIds = stocks.Select(s => s.ProductId).Distinct().ToList();
         var locationIds = stocks.Select(s => s.StorageLocationId).Distinct().ToList();
+        // Warehouse IDs needed for the fallback inventory matching when LocationId is null on document rows.
+        var warehouseIds = stocks
+            .Where(s => s.StorageLocation != null)
+            .Select(s => s.StorageLocation!.WarehouseId)
+            .Distinct()
+            .ToList();
 
         var allInventoryRows = new List<Data.Entities.Documents.DocumentRow>();
         if (request.IncludeInventories)
@@ -160,11 +166,21 @@ public class StockReconciliationService(
                 .Where(dr => dr.TenantId == tenantId &&
                             !dr.IsDeleted &&
                             dr.ProductId.HasValue && productIds.Contains(dr.ProductId.Value) &&
-                            dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) &&
                             dr.DocumentHeader != null &&
                             dr.DocumentHeader.DocumentType != null &&
                             dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                            dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed);
+                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived) &&
+                            dr.DocumentHeader.ApprovalStatus == Data.Entities.Documents.ApprovalStatus.Approved &&
+                            // Primary match: exact storage location.
+                            // Fallback match: when LocationId is null on the row (legacy inventory data),
+                            // match using the warehouse from the row or document header.
+                            (dr.LocationId.HasValue && locationIds.Contains(dr.LocationId.Value) ||
+                             !dr.LocationId.HasValue && (
+                                 (dr.SourceWarehouseId.HasValue && warehouseIds.Contains(dr.SourceWarehouseId.Value)) ||
+                                 (dr.DestinationWarehouseId.HasValue && warehouseIds.Contains(dr.DestinationWarehouseId.Value)) ||
+                                 (dr.DocumentHeader.SourceWarehouseId.HasValue && warehouseIds.Contains(dr.DocumentHeader.SourceWarehouseId.Value)) ||
+                                 (dr.DocumentHeader.DestinationWarehouseId.HasValue && warehouseIds.Contains(dr.DocumentHeader.DestinationWarehouseId.Value)) ||
+                                 (dr.DocumentHeader.DocumentType.DefaultWarehouseId.HasValue && warehouseIds.Contains(dr.DocumentHeader.DocumentType.DefaultWarehouseId.Value)))));
 
             if (request.FromDate.HasValue)
                 invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
@@ -172,6 +188,17 @@ public class StockReconciliationService(
                 invQuery = invQuery.Where(dr => dr.DocumentHeader!.Date <= request.ToDate.Value);
 
             allInventoryRows = await invQuery.ToListAsync(cancellationToken);
+
+            // Diagnostic: warn about null-LocationId rows so operators can identify data quality issues.
+            var nullLocationCount = allInventoryRows.Count(dr => !dr.LocationId.HasValue);
+            if (nullLocationCount > 0)
+            {
+                logger.LogWarning(
+                    "Found {NullLocationCount} inventory document row(s) with null LocationId; " +
+                    "warehouse-level matching will be used as fallback. " +
+                    "Consider back-filling LocationId in inventory documents to improve accuracy.",
+                    nullLocationCount);
+            }
         }
 
         var allDocumentRows = new List<Data.Entities.Documents.DocumentRow>();
@@ -188,8 +215,8 @@ public class StockReconciliationService(
                             dr.DocumentHeader != null &&
                             dr.DocumentHeader.DocumentType != null &&
                             !dr.DocumentHeader.DocumentType.IsInventoryDocument &&
-                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Open ||
-                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed));
+                            (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Active ||
+                             dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived));
 
             if (request.FromDate.HasValue)
                 docQuery = docQuery.Where(dr => dr.DocumentHeader!.Date >= request.FromDate.Value);
@@ -218,15 +245,40 @@ public class StockReconciliationService(
             allManualMovements = await manualMovQuery.ToListAsync(cancellationToken);
         }
 
-        var latestInventoryByKey = allInventoryRows
+        // Primary lookup: exact (ProductId, LocationId) key for rows that have a location.
+        var latestInventoryByLocationKey = allInventoryRows
+            .Where(dr => dr.LocationId.HasValue)
             .GroupBy(dr => (dr.ProductId!.Value, dr.LocationId!.Value))
             .ToDictionary(
                 g => g.Key,
                 g => g.OrderByDescending(dr => dr.DocumentHeader!.Date).First());
 
+        // Fallback lookup: (ProductId, WarehouseId) for legacy rows that have no LocationId.
+        // The warehouse is resolved from the most specific source available on the row or its header.
+        var latestInventoryByWarehouseKey = allInventoryRows
+            .Where(dr => !dr.LocationId.HasValue)
+            .Select(dr => new
+            {
+                Row = dr,
+                WarehouseId = dr.SourceWarehouseId
+                    ?? dr.DestinationWarehouseId
+                    ?? dr.DocumentHeader!.SourceWarehouseId
+                    ?? dr.DocumentHeader!.DestinationWarehouseId
+                    ?? dr.DocumentHeader!.DocumentType!.DefaultWarehouseId
+            })
+            .Where(x => x.WarehouseId.HasValue)
+            .GroupBy(x => (ProductId: x.Row.ProductId!.Value, WarehouseId: x.WarehouseId!.Value))
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(x => x.Row.DocumentHeader!.Date).Select(x => x.Row).First());
+
+        logger.LogInformation(
+            "Inventory lookup built: {LocationKeys} location-level entries, {WarehouseKeys} warehouse-level fallback entries.",
+            latestInventoryByLocationKey.Count, latestInventoryByWarehouseKey.Count);
+
         foreach (var stock in stocks)
         {
-            var item = CalculateStockItem(stock, request, latestInventoryByKey, allDocumentRows, allManualMovements);
+            var item = CalculateStockItem(stock, request, latestInventoryByLocationKey, latestInventoryByWarehouseKey, allDocumentRows, allManualMovements);
 
             if (!request.OnlyWithDiscrepancies || item.Severity != ReconciliationSeverity.Correct)
             {
@@ -248,7 +300,8 @@ public class StockReconciliationService(
     private StockReconciliationItemDto CalculateStockItem(
         Data.Entities.Warehouse.Stock stock,
         StockReconciliationRequestDto request,
-        Dictionary<(Guid ProductId, Guid LocationId), Data.Entities.Documents.DocumentRow> latestInventoryByKey,
+        Dictionary<(Guid ProductId, Guid LocationId), Data.Entities.Documents.DocumentRow> latestInventoryByLocationKey,
+        Dictionary<(Guid ProductId, Guid WarehouseId), Data.Entities.Documents.DocumentRow> latestInventoryByWarehouseKey,
         List<Data.Entities.Documents.DocumentRow> allDocumentRows,
         List<Data.Entities.Warehouse.StockMovement> allManualMovements)
     {
@@ -270,7 +323,19 @@ public class StockReconciliationService(
         // 1. Find the most recent closed inventory document for this stock (replaces starting quantity)
         if (request.IncludeInventories)
         {
-            latestInventoryByKey.TryGetValue((stock.ProductId, stock.StorageLocationId), out var lastInventoryRow);
+            // Try exact location match first; fall back to warehouse-level match for legacy rows without LocationId.
+            if (!latestInventoryByLocationKey.TryGetValue((stock.ProductId, stock.StorageLocationId), out var lastInventoryRow))
+            {
+                var warehouseId = stock.StorageLocation?.WarehouseId;
+                if (warehouseId.HasValue &&
+                    latestInventoryByWarehouseKey.TryGetValue((stock.ProductId, warehouseId.Value), out lastInventoryRow))
+                {
+                    logger.LogWarning(
+                        "Inventory matched at warehouse level (null LocationId) for product {ProductId} in warehouse {WarehouseId}. " +
+                        "Consider back-filling LocationId on inventory document rows for more precise matching.",
+                        stock.ProductId, warehouseId.Value);
+                }
+            }
 
             if (lastInventoryRow is not null)
             {
@@ -293,6 +358,13 @@ public class StockReconciliationService(
                         "StartingQuantity {Qty} overridden by inventory document for product {ProductId} at location {LocationId}",
                         request.StartingQuantity.Value, stock.ProductId, stock.StorageLocationId);
                 }
+            }
+            else
+            {
+                logger.LogDebug(
+                    "No inventory document found for product {ProductId} at location {LocationId} (warehouse {WarehouseId}). " +
+                    "Quantity will be calculated from movements only.",
+                    stock.ProductId, stock.StorageLocationId, stock.StorageLocation?.WarehouseId);
             }
         }
 
@@ -335,6 +407,9 @@ public class StockReconciliationService(
                          // Exclude technical adjustments created by reconciliation runs.
                          // IsReconciliationAdjustment is the canonical flag (set since the flag was introduced).
                          !sm.IsReconciliationAdjustment &&
+                         // Fallback for legacy movements created before the flag was introduced:
+                         // movements with Reference containing "Stock Reconciliation" are also excluded.
+                         !(sm.Reference != null && sm.Reference.Contains("Stock Reconciliation", StringComparison.OrdinalIgnoreCase)) &&
                          (!request.IncludeDocuments || !sm.DocumentRowId.HasValue) &&
                          (sm.FromLocationId == stock.StorageLocationId || sm.ToLocationId == stock.StorageLocationId) &&
                          (effectiveFromDate == null || sm.MovementDate >= effectiveFromDate.Value))
@@ -751,7 +826,7 @@ public class StockReconciliationService(
 
         var documentStatusFilter = (request.DocumentStatuses is not null && request.DocumentStatuses.Count > 0)
             ? request.DocumentStatuses.Select(v => (Prym.DTOs.Common.DocumentStatus)v).ToList()
-            : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Closed };
+            : new List<Prym.DTOs.Common.DocumentStatus> { Prym.DTOs.Common.DocumentStatus.Archived };
 
         // Build query on DocumentHeaders.
         // Both filters are required (AND): a document must satisfy the approval-status

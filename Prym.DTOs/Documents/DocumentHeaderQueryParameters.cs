@@ -121,6 +121,12 @@ namespace Prym.DTOs.Documents
         public bool IncludeRows { get; set; } = false;
 
         /// <summary>
+        /// Include archived documents in results (default: false).
+        /// When false, documents with Status = Archived are excluded unless Status filter is explicitly set.
+        /// </summary>
+        public bool IncludeArchived { get; set; } = false;
+
+        /// <summary>
         /// Number of items to skip for pagination.
         /// </summary>
         public int Skip => (Page - 1) * PageSize;

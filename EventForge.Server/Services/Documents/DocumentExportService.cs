@@ -549,10 +549,10 @@ public class DocumentExportService(
         // Map entity DocumentStatus to DTO DocumentStatus
         var dtoStatus = doc.Status switch
         {
-            DocumentStatus.Open => DocumentStatus.Open,
-            DocumentStatus.Closed => DocumentStatus.Closed,
+            DocumentStatus.Active => DocumentStatus.Active,
             DocumentStatus.Cancelled => DocumentStatus.Cancelled,
             DocumentStatus.Draft => DocumentStatus.Draft,
+            DocumentStatus.Archived => DocumentStatus.Archived,
             _ => DocumentStatus.Draft
         };
 

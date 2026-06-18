@@ -11,14 +11,14 @@ When `DocumentHeaderService.ApproveDocumentAsync()` is called:
 - ✅ Only if movements don't already exist (idempotent)
 - ✅ Uses document date for movement timestamp
 
-### 2. Document Close
-When `DocumentHeaderService.CloseDocumentAsync()` is called:
+### 2. Document Archive
+When `DocumentHeaderService.ArchiveDocumentAsync()` is called:
 - ✅ Creates stock movements for all document rows with products
 - ✅ Only if movements don't already exist (idempotent)
 - ✅ Uses document date for movement timestamp
 
-### 3. Row Operations on Approved/Closed Documents
-When rows are added/modified/deleted on already approved or closed documents:
+### 3. Row Operations on Approved/Active Documents
+When rows are added/modified/deleted on already approved or active documents:
 - ✅ **Add row**: Creates immediate stock movement
 - ✅ **Update row quantity**: Creates compensating movement for the difference
 - ✅ **Delete row**: Creates reverse compensating movement
@@ -34,7 +34,7 @@ Approve Document → ✅ Stock movements created
     ↓
 OR
     ↓
-Close Document → ✅ Stock movements created
+Archive Document → ✅ Stock movements created
     ↓
 Stock quantities updated automatically
 ```
@@ -165,8 +165,8 @@ The system provides comprehensive logging for troubleshooting:
 2. Add 5 product rows
    → Status: Draft, Stock: No change
 
-3. Close document
-   → Status: Closed
+3. Archive document
+   → Status: Archived
    → ✅ 5 Inbound movements created
    → ✅ Stock increased by quantities
 
@@ -182,12 +182,12 @@ The system provides comprehensive logging for troubleshooting:
    → Status: Draft, Stock: No change
 
 3. Approve document
-   → Status: Open, ApprovalStatus: Approved
+   → Status: Active, ApprovalStatus: Approved
    → ✅ 3 Outbound movements created
    → ✅ Stock decreased by quantities
 
-4. Close document
-   → Status: Closed
+4. Archive document
+   → Status: Archived
    → ℹ️ Movements already exist, skipped
 
 5. Stock quantities now correct!
@@ -320,14 +320,14 @@ Potential improvements:
 
 ## FAQ
 
-**Q: Do I need to approve AND close documents?**  
+**Q: Do I need to approve AND archive documents?**  
 A: No. Stock movements are created on either action. Once created, subsequent actions skip creation.
 
 **Q: What happens if I modify a row after approval?**  
 A: A compensating movement is created for the difference.
 
-**Q: Can I undo a document after closing?**  
-A: No. Closed documents are immutable. Create a credit note/return document instead.
+**Q: Can I undo a document after archiving?**  
+A: No. Archived documents are immutable. Create a credit note/return document instead.
 
 **Q: How do I fix old documents without movements?**  
 A: Use the Stock Reconciliation feature to identify and fix discrepancies.

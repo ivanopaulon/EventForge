@@ -160,10 +160,11 @@ namespace Prym.DTOs.Common
     /// </summary>
     public enum DocumentStatus
     {
-        Draft,      // Document is in draft state
-        Open,       // Document is open and being worked on
-        Closed,     // Document is closed (finalized)
-        Cancelled   // Document is cancelled
+        Draft = 0,      // Document is in draft state
+        Active = 1,     // Document is active and being worked on (formerly Open)
+        // Value 2 (Closed) was removed. Do not reuse this value to avoid breaking existing data.
+        Cancelled = 3,  // Document is cancelled
+        Archived = 4    // Document is archived (read-only, hidden from default views)
     }
 
     /// <summary>
@@ -205,12 +206,14 @@ namespace Prym.DTOs.Common
 
     /// <summary>
     /// Approval status enumeration.
+    /// Values are aligned with the server entity ApprovalStatus enum for correct integer casting in filters.
     /// </summary>
     public enum ApprovalStatus
     {
-        Pending,    // Approval is pending
-        Approved,   // Approved
-        Rejected    // Rejected
+        None = 0,      // No approval required / not yet submitted for approval
+        Pending = 1,   // Approval is pending
+        Approved = 2,  // Approved
+        Rejected = 3   // Rejected
     }
 
     /// <summary>

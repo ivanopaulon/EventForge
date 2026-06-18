@@ -809,14 +809,31 @@ public class DocumentFacade(
     }
 
     /// <inheritdoc />
-    public async Task<DocumentHeaderDto?> CloseDocumentAsync(
+    public async Task<DocumentHeaderDto?> RejectDocumentAsync(
+        Guid id,
+        string? reason,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await documentHeaderService.RejectDocumentAsync(id, reason, currentUser, cancellationToken);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<DocumentHeaderDto?> ArchiveDocumentAsync(
         Guid id,
         string currentUser,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            return await documentHeaderService.CloseDocumentAsync(id, currentUser, cancellationToken);
+            return await documentHeaderService.ArchiveDocumentAsync(id, currentUser, cancellationToken);
         }
         catch
         {
@@ -1053,9 +1070,9 @@ public class DocumentFacade(
             {
                 try
                 {
-                    // Update document status to Closed (finalized/approved)
+                    // Update document status to Active (approved)
                     var oldStatus = document.Status;
-                    document.Status = DocumentStatus.Closed;
+                    document.Status = DocumentStatus.Active;
                     document.ApprovedAt = approvalDate;
                     document.ApprovedBy = currentUser;
                     document.ModifiedAt = DateTime.UtcNow;
@@ -1068,7 +1085,7 @@ public class DocumentFacade(
                         TenantId = currentTenantId.Value,
                         DocumentHeaderId = document.Id,
                         FromStatus = oldStatus,
-                        ToStatus = DocumentStatus.Closed,
+                        ToStatus = DocumentStatus.Active,
                         Reason = bulkApprovalDto.ApprovalNotes,
                         ChangedBy = currentUser,
                         ChangedAt = approvalDate,

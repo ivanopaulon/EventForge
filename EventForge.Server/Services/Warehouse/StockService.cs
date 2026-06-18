@@ -1121,7 +1121,7 @@ public class StockService(
                          && dr.DocumentHeader != null
                          && dr.DocumentHeader.DocumentType != null
                          && dr.DocumentHeader.DocumentType.IsInventoryDocument
-                         && dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Closed
+                         && (dr.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived)
                          && dr.DocumentHeader.Date < cutoff)
             .Select(dr => new
             {
@@ -1297,7 +1297,7 @@ public class StockService(
                              && !dh.IsDeleted
                              && dh.DocumentType != null
                              && dh.DocumentType.IsInventoryDocument
-                             && dh.Status == DocumentStatus.Closed)
+                             && (dh.Status == DocumentStatus.Archived))
                 .OrderByDescending(dh => dh.Date)
                 .Take(count)
                 .Select(dh => new { dh.Id, dh.Date, dh.Number })
@@ -1335,7 +1335,7 @@ public class StockService(
             throw new InvalidOperationException("Current tenant ID is not available.");
 
         // ── Step 1: Validate and load the inventory document header (scalar projection) ──────
-        // Only closed inventory documents are authoritative. An open/draft document
+        // Only archived inventory documents are authoritative. An active/draft document
         // represents an in-progress count and must not be used for stock valuation.
         var header = await context.DocumentHeaders
             .AsNoTracking()
@@ -1344,7 +1344,7 @@ public class StockService(
                          && !dh.IsDeleted
                          && dh.DocumentType != null
                          && dh.DocumentType.IsInventoryDocument
-                         && dh.Status == DocumentStatus.Closed)
+                         && (dh.Status == DocumentStatus.Archived))
             .Select(dh => new { dh.Id, dh.Date })
             .FirstOrDefaultAsync(cancellationToken);
 

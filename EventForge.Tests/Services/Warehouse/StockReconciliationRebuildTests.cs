@@ -29,6 +29,7 @@ public class StockReconciliationRebuildTests : IDisposable
     private readonly Guid _productId = Guid.NewGuid();
     private readonly Guid _documentTypeInId = Guid.NewGuid(); // IsStockIncrease = true
     private readonly Guid _documentTypeOutId = Guid.NewGuid(); // IsStockIncrease = false
+    private readonly Guid _documentTypeInvId = Guid.NewGuid(); // IsInventoryDocument = true
 
     public StockReconciliationRebuildTests()
     {
@@ -110,6 +111,18 @@ public class StockReconciliationRebuildTests : IDisposable
                 DefaultWarehouseId = _warehouseId,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = "test"
+            },
+            new DocumentType
+            {
+                Id = _documentTypeInvId,
+                TenantId = _tenantId,
+                Name = "Inventario",
+                Code = "INV",
+                IsStockIncrease = true,
+                IsInventoryDocument = true,
+                DefaultWarehouseId = _warehouseId,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "test"
             });
 
         // Initial stock at location A
@@ -136,7 +149,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = documentTypeId,
             Number = number,
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Closed,
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,
             ApprovalStatus = ApprovalStatus.Approved,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -172,7 +185,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = _documentTypeInId,
             Number = "DOC-OPEN",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Open,        // Open
+            Status = Prym.DTOs.Common.DocumentStatus.Active,        // Open
             ApprovalStatus = ApprovalStatus.Approved,             // Approved
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -204,7 +217,7 @@ public class StockReconciliationRebuildTests : IDisposable
             DocumentTypeId = _documentTypeInId,
             Number = "DOC-NOTAPPROVED",
             Date = DateTime.UtcNow,
-            Status = Prym.DTOs.Common.DocumentStatus.Closed,     // Closed
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,     // Closed
             ApprovalStatus = ApprovalStatus.None,                 // NOT approved
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test"
@@ -454,6 +467,162 @@ public class StockReconciliationRebuildTests : IDisposable
         Assert.Equal(80m, item.CalculatedQuantity);
         Assert.Equal(-20m, item.Difference);
         Assert.Equal(1, item.TotalManualMovements);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Test: Fix A — inventory row with null LocationId matched via warehouse fallback
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CalculateReconciliation_InventoryWithNullLocationId_MatchedViaWarehouseFallback()
+    {
+        // Arrange: inventory document header references the warehouse; row has no LocationId (legacy data).
+        var invHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = _documentTypeInvId,
+            Number = "INV-NOLOC",
+            Date = DateTime.UtcNow.AddDays(-30),
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,
+            ApprovalStatus = ApprovalStatus.Approved,
+            SourceWarehouseId = _warehouseId,   // warehouse set on header, not on row
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(invHeader);
+
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = invHeader.Id,
+            ProductId = _productId,
+            Description = "Inventario legacy",
+            Quantity = 50m,     // inventory snapshot: 50 units
+            UnitPrice = 0m,
+            LocationId = null,  // null — the legacy scenario we're fixing
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _reconciliationService.CalculateReconciledStockAsync(new StockReconciliationRequestDto
+        {
+            ProductId = _productId,
+            LocationId = _locationAId,
+            IncludeInventories = true,
+            IncludeDocuments = false,
+            IncludeStockMovements = false
+        });
+
+        // Assert: the inventory snapshot (50) should have been picked up via the warehouse fallback
+        var item = Assert.Single(result.Items);
+        Assert.Equal(50m, item.CalculatedQuantity);
+        Assert.Equal(1, item.TotalInventories);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Test: Fix C — closed inventory document with ApprovalStatus=None is excluded
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CalculateReconciliation_ClosedInventoryWithApprovalStatusNone_IsExcluded()
+    {
+        // Arrange: an inventory document that is Closed but NOT approved (ApprovalStatus=None).
+        // The reconciliation query requires both Status==Closed AND ApprovalStatus==Approved,
+        // so this document should contribute 0 to CalculatedQuantity.
+        var invHeader = new DocumentHeader
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentTypeId = _documentTypeInvId,
+            Number = "INV-NOTAPPROVED",
+            Date = DateTime.UtcNow.AddDays(-10),
+            Status = Prym.DTOs.Common.DocumentStatus.Archived,
+            ApprovalStatus = ApprovalStatus.None,   // NOT approved
+            SourceWarehouseId = _warehouseId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.DocumentHeaders.Add(invHeader);
+
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = invHeader.Id,
+            ProductId = _productId,
+            Description = "Inventario non approvato",
+            Quantity = 999m,    // should never be counted
+            UnitPrice = 0m,
+            LocationId = _locationAId,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _reconciliationService.CalculateReconciledStockAsync(new StockReconciliationRequestDto
+        {
+            ProductId = _productId,
+            LocationId = _locationAId,
+            IncludeInventories = true,
+            IncludeDocuments = false,
+            IncludeStockMovements = false
+        });
+
+        // Assert: the unapproved inventory snapshot should be ignored.
+        var item = Assert.Single(result.Items);
+        Assert.Equal(0m, item.CalculatedQuantity);
+        Assert.Equal(0, item.TotalInventories);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Test: Fix B — legacy reconciliation movement excluded by Reference fallback
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CalculateReconciliation_LegacyReconciliationMovementWithReferenceText_IsExcluded()
+    {
+        // Arrange: a movement with IsReconciliationAdjustment=false (legacy, pre-flag) but
+        // whose Reference contains "Stock Reconciliation" — should be excluded.
+        _context.StockMovements.Add(new StockMovement
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            MovementType = StockMovementType.Adjustment,
+            ProductId = _productId,
+            FromLocationId = _locationAId,
+            Quantity = 30m,
+            Reference = "Stock Reconciliation 2023-01",   // legacy reference text
+            Reason = StockMovementReason.Adjustment,
+            IsReconciliationAdjustment = false,           // flag not set (pre-flag era)
+            Status = MovementStatus.Completed,
+            MovementDate = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        });
+
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _reconciliationService.CalculateReconciledStockAsync(new StockReconciliationRequestDto
+        {
+            ProductId = _productId,
+            LocationId = _locationAId,
+            IncludeInventories = false,
+            IncludeDocuments = false,
+            IncludeStockMovements = true
+        });
+
+        // Assert: the legacy reconciliation movement should be excluded; no manual movements counted
+        var item = Assert.Single(result.Items);
+        Assert.Equal(0m, item.CalculatedQuantity);
+        Assert.Equal(0, item.TotalManualMovements);
     }
 
     public void Dispose() => _context?.Dispose();
