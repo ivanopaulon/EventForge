@@ -308,6 +308,45 @@
     font-size: 13px;
 }
 
+/* ===== Skeleton cards — dimensioni identiche alle card reali per evitare layout shift ===== */
+::deep .pos26-product-card--skeleton {
+    pointer-events: none;
+    cursor: default;
+    overflow: hidden;
+}
+
+::deep .pos26-skeleton-img {
+    width: 48px;
+    height: 40px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--mud-palette-lines-default) 25%, var(--mud-palette-background-grey) 50%, var(--mud-palette-lines-default) 75%);
+    background-size: 200% 100%;
+    animation: pos26-shimmer 1.4s infinite;
+}
+
+::deep .pos26-skeleton-line {
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--mud-palette-lines-default) 25%, var(--mud-palette-background-grey) 50%, var(--mud-palette-lines-default) 75%);
+    background-size: 200% 100%;
+    animation: pos26-shimmer 1.4s infinite;
+}
+
+::deep .pos26-skeleton-line--name {
+    width: 70%;
+    height: 10px;
+}
+
+::deep .pos26-skeleton-line--price {
+    width: 45%;
+    height: 10px;
+    animation-delay: 0.1s;
+}
+
+@keyframes pos26-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
 /* ===== Pos26ProductCard ===== */
 ::deep .pos26-product-card {
     position: relative;
@@ -945,3 +984,184 @@
     text-align: center;
     padding: 6px 0;
 }
+
+/* ==========================================================================
+   STEP PAGES — Selezione operatore (step 0) e cassa (step 1)
+   ========================================================================== */
+
+.pos2026-step-wrap {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Reutilizza i card style di POSTouch */
+::deep .pos-touch-pos-card {
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border 150ms, transform 80ms;
+}
+
+::deep .pos-touch-pos-card:hover {
+    border-color: var(--mud-palette-primary);
+}
+
+::deep .pos-touch-pos-card:active {
+    transform: scale(0.96);
+}
+
+/* ==========================================================================
+   Pos26FilterBar — pannello filtri collassabile (Azione 2)
+   ========================================================================== */
+
+::deep .pos26-filterbar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+::deep .pos26-filterbar-summary {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+::deep .pos26-filterbar-active-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 20px;
+    padding: 3px 10px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--mud-palette-text-secondary);
+    transition: background 150ms, border 150ms;
+    min-height: 28px;
+}
+
+::deep .pos26-filterbar-active-pill:hover {
+    background: var(--pos-accent-light);
+    border-color: var(--pos-accent);
+}
+
+::deep .pos26-filterbar-category-tag {
+    color: var(--pos-accent);
+    font-weight: 600;
+}
+
+::deep .pos26-filterbar-chevron {
+    opacity: 0.5;
+}
+
+::deep .pos26-filterbar-panel {
+    margin-top: 6px;
+    padding: 10px;
+    background: var(--mud-palette-background-grey, #f5f5f5);
+    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+::deep .pos26-filterbar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--mud-palette-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+::deep .pos26-filterbar-sort-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ==========================================================================
+   Best Sellers rapidi — riga orizzontale scrollabile (Azione 6)
+   ========================================================================== */
+
+.pos26-bestseller-row-wrap {
+    margin-bottom: 8px;
+}
+
+.pos26-bestseller-row-label {
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--pos-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+
+.pos26-bestseller-row {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+}
+
+.pos26-bestseller-row::-webkit-scrollbar {
+    display: none;
+}
+
+.pos26-bestseller-row ::deep .pos26-product-card {
+    flex: 0 0 90px;   /* larghezza fissa per la riga orizzontale */
+    min-width: 90px;
+}
+
+/* ==========================================================================
+   Menu azioni secondarie (Azione 2) — wrapper relativo per posizionamento panel
+   ========================================================================== */
+
+.pos26-fn-more-wrap {
+    position: relative;
+}
+
+.pos26-fn-more-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    z-index: 100;
+    background: var(--mud-palette-surface);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+}
+
+.pos26-fn-more-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--mud-palette-text-primary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 100ms;
+    gap: 4px;
+}
+
+.pos26-fn-more-item:hover {
+    background: var(--mud-palette-background-grey);
+}
+
+.pos26-fn-more-item--active {
+    color: var(--pos-accent);
+    font-weight: 600;
+}
+

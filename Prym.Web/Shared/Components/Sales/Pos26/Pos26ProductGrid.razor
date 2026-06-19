@@ -4,9 +4,16 @@
 
 @if (IsLoading)
 {
-    <div class="pos26-grid-loading">
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-        <span>Caricamento articoli…</span>
+    @* Skeleton cards — occupano esattamente lo stesso spazio delle card reali per evitare layout shift *@
+    <div class="pos26-product-grid">
+        @for (var i = 0; i < SkeletonCount; i++)
+        {
+            <div class="pos26-product-card pos26-product-card--skeleton">
+                <div class="pos26-skeleton-img"></div>
+                <div class="pos26-skeleton-line pos26-skeleton-line--name"></div>
+                <div class="pos26-skeleton-line pos26-skeleton-line--price"></div>
+            </div>
+        }
     </div>
 }
 else if (Products.Count == 0)
@@ -39,6 +46,8 @@ else
     [Parameter] public EventCallback<ProductDto> OnAddToCart { get; set; }
     [Parameter] public EventCallback<ProductDto> OnLongPress { get; set; }
     [Parameter] public bool IsLoading { get; set; }
+    /// <summary>Numero di card scheletro da mostrare durante il caricamento. Default: 16.</summary>
+    [Parameter] public int SkeletonCount { get; set; } = 16;
 
     private int GetCartQty(Guid id) => CartQuantities.TryGetValue(id, out var q) ? q : 0;
     private bool IsLastPurchaseProduct(Guid id) => LastPurchaseIds.Contains(id);

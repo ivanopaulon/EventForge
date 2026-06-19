@@ -84,6 +84,85 @@
         </MudAlert>
     }
 
+    @* ===========================================================================================
+       STEP 0 — Nessun operatore selezionato: griglia operatori a schermo intero
+       =========================================================================================== *@
+    @if (!ViewModel.SelectedOperatorId.HasValue)
+    {
+        <div class="pos2026-step-wrap">
+            <POSTouchOperatorGrid Operators="@ViewModel.AvailableOperators"
+                                  SelectedOperatorId="@ViewModel.SelectedOperatorId"
+                                  OnOperatorSelected="@OnOperatorCardSelectedAsync" />
+        </div>
+    }
+
+    @* ===========================================================================================
+       STEP 1 — Operatore selezionato, cassa non selezionata: griglia casse a schermo intero
+       =========================================================================================== *@
+    else if (!ViewModel.SelectedPosId.HasValue)
+    {
+        <div class="pos2026-step-wrap">
+            <div class="d-flex flex-column align-center mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
+                         Style="font-size: 3rem; opacity: 0.25; margin-bottom: 8px;" />
+                <MudText Typo="Typo.h5" Class="mb-1">Seleziona Cassa</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Scegli il terminale da utilizzare
+                </MudText>
+            </div>
+
+            <div class="d-flex justify-center mb-3">
+                <MudChip T="string"
+                         Icon="@Icons.Material.Filled.Person"
+                         Color="Color.Primary"
+                         Size="Size.Small"
+                         Variant="Variant.Outlined">
+                    @(ViewModel.AvailableOperators.FirstOrDefault(o => o.Id == ViewModel.SelectedOperatorId)?.Name ?? "—")
+                </MudChip>
+            </div>
+
+            <MudGrid Spacing="3" Justify="Justify.Center">
+                @foreach (var pos in ViewModel.AvailablePos)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudPaper Elevation="3"
+                                  Class="pos-touch-pos-card ef-touch-card"
+                                  @onclick="@(() => OnPosCardSelectedAsync(pos))">
+                            <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-5">
+                                <MudIcon Icon="@Icons.Material.Filled.PointOfSale"
+                                         Color="Color.Primary"
+                                         Style="font-size: 2.5rem;" />
+                                <MudText Typo="Typo.h6" Class="fw-semibold" Align="Align.Center">
+                                    @pos.Name
+                                </MudText>
+                                @if (!string.IsNullOrEmpty(pos.Location))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @pos.Location
+                                    </MudText>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            <div class="d-flex justify-center mt-4">
+                <MudButton Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Outlined.ArrowBack"
+                           OnClick="@DeselectOperator">
+                    Indietro
+                </MudButton>
+            </div>
+        </div>
+    }
+
+    @* ===========================================================================================
+       STEP 2 — Operatore e cassa selezionati: interfaccia vendita completa a due colonne
+       =========================================================================================== *@
+    else
+    {
+
     @* ===== CONTENUTO PRINCIPALE (due colonne) ===== *@
     <div class="pos2026-content">
 
@@ -115,7 +194,7 @@
                    OnParkClick="@ParkSessionAsync"
                    OnCancelClick="@CancelSessionAsync" />
 
-        @* Barra ricerca + chip cliente *@
+        @* Riga ricerca + FilterBar collassabile *@
         <Pos26SearchBar @ref="_searchBar"
                         SearchTerm="@_searchTerm"
                         SearchTermChanged="@OnSearchTermChanged"
@@ -123,22 +202,26 @@
                         CustomerChanged="@OnSelectedCustomerChangedAsync"
                         OnBarcodeDetected="@HandleBarcodeAsync" />
 
-        @* Barra ordinamenti *@
-        <Pos26SortBar SortMode="@_sortMode"
-                      OnSortChanged="@OnSortModeChangedAsync"
-                      HasCustomer="@(ViewModel.SelectedCustomer != null)" />
+        @* FilterBar: ordina/categoria/contesto in pannello on-demand *@
+        <Pos26FilterBar SortMode="@_sortMode"
+                        OnSortChanged="@OnSortModeChangedAsync"
+                        HasCustomer="@(ViewModel.SelectedCustomer != null)"
+                        Customer="@ViewModel.SelectedCustomer"
+                        Categories="@_categories"
+                        SelectedCategory="@_selectedCategory"
+                        OnCategorySelected="@OnCategorySelectedAsync" />
 
-        @* Filtro categorie *@
-        <Pos26CategoryBar Categories="@_categories"
-                          SelectedCategory="@_selectedCategory"
-                          OnCategorySelected="@OnCategorySelectedAsync" />
-
-        @* Banner contestuale *@
-        <Pos26ContextBanner SortMode="@_sortMode"
-                            Customer="@ViewModel.SelectedCustomer" />
-
-        @* ===== TOOLBAR FUNZIONI: Note, Coupon, Tavolo, Sessioni parcheggiate, Rimuovi Ultimo, Dividi, Unisci ===== *@
+        @* ===== TOOLBAR AZIONI PRIMARIE E MENU AZIONI SECONDARIE ===== *@
         <div class="pos26-fn-toolbar">
+            @* Rimuovi ultimo articolo (azione primaria di emergenza) *@
+            <button class="pos26-fn-btn pos26-fn-btn--danger"
+                    @onclick="RemoveLastItemAsync"
+                    disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
+                    title="Rimuovi ultimo articolo (F4)">
+                <MudIcon Icon="@Icons.Material.Outlined.RemoveCircle" Size="Size.Small" />
+                <span>Rimuovi</span>
+            </button>
+
             @* Pulsante Note ordine *@
             <button class="pos26-fn-btn @(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? "pos26-fn-btn--active" : "")"
                     @onclick="ToggleNoteInput"
@@ -165,61 +248,59 @@
                 }
             </button>
 
-            @* Pulsante Tavolo / Asporto *@
-            <button class="pos26-fn-btn @(_showTablePicker ? "pos26-fn-btn--active" : "")"
-                    @onclick="ToggleTablePickerAsync"
-                    aria-pressed="@(_showTablePicker.ToString().ToLowerInvariant())"
-                    title="Tavolo / Asporto">
-                <MudIcon Icon="@Icons.Material.Outlined.TableBar" Size="Size.Small" />
-                <span>
-                    @if (!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber))
-                    { @($"T.{ViewModel.CurrentSession.TableNumber}") }
-                    else if (ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway)
-                    { @("Asporto") }
-                    else
-                    { @("Tavolo") }
-                </span>
-            </button>
-
-            @* Sessioni parcheggiate *@
-            <button class="pos26-fn-btn @(_showParkedSessions ? "pos26-fn-btn--active" : "")"
-                    @onclick="ToggleParkedSessionsAsync"
-                    aria-pressed="@(_showParkedSessions.ToString().ToLowerInvariant())"
-                    title="Sessioni parcheggiate">
-                <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" />
-                <span>Sospese</span>
-            </button>
-
-            @* Pulsante Rimuovi Ultimo articolo *@
-            <button class="pos26-fn-btn pos26-fn-btn--danger"
-                    @onclick="RemoveLastItemAsync"
-                    disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
-                    title="Rimuovi ultimo articolo (F4)">
-                <MudIcon Icon="@Icons.Material.Outlined.RemoveCircle" Size="Size.Small" />
-                <span>Rimuovi</span>
-            </button>
-
-            @* Pulsante Dividi conto *@
-            @if (_canSplit)
-            {
-                <button class="pos26-fn-btn"
-                        @onclick="OpenSplitDialogAsync"
-                        title="Dividi conto">
-                    <MudIcon Icon="@Icons.Material.Outlined.CallSplit" Size="Size.Small" />
-                    <span>Dividi</span>
+            @* Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) *@
+            <div class="pos26-fn-more-wrap">
+                <button class="pos26-fn-btn @(_showMoreMenu ? "pos26-fn-btn--active" : "")"
+                        @onclick="ToggleMoreMenu"
+                        title="Altre azioni">
+                    <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
+                    <span>Altro</span>
                 </button>
-            }
 
-            @* Pulsante Unisci sessioni *@
-            @if (_openSessions.Count >= 2)
-            {
-                <button class="pos26-fn-btn"
-                        @onclick="OpenMergeDialogAsync"
-                        title="Unisci sessioni">
-                    <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" />
-                    <span>Unisci</span>
-                </button>
-            }
+                @if (_showMoreMenu)
+                {
+                    <div class="pos26-fn-more-panel" @onclick:stopPropagation="true">
+                        @* Tavolo / Asporto *@
+                        <button class="pos26-fn-more-item @(_showTablePicker ? "pos26-fn-more-item--active" : "")"
+                                @onclick="ToggleTablePickerFromMenu">
+                            <MudIcon Icon="@Icons.Material.Outlined.TableBar" Size="Size.Small" Class="mr-1" />
+                            @if (!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber))
+                            { @($"Tavolo {ViewModel.CurrentSession.TableNumber}") }
+                            else if (ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway)
+                            { @("Asporto") }
+                            else
+                            { @("Tavolo / Asporto") }
+                        </button>
+
+                        @* Sessioni parcheggiate *@
+                        <button class="pos26-fn-more-item"
+                                @onclick="ToggleParkedFromMenu">
+                            <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" Class="mr-1" />
+                            Sospese
+                        </button>
+
+                        @* Dividi conto *@
+                        @if (_canSplit)
+                        {
+                            <button class="pos26-fn-more-item"
+                                    @onclick="OpenSplitFromMenu">
+                                <MudIcon Icon="@Icons.Material.Outlined.CallSplit" Size="Size.Small" Class="mr-1" />
+                                Dividi conto
+                            </button>
+                        }
+
+                        @* Unisci sessioni *@
+                        @if (_openSessions.Count >= 2)
+                        {
+                            <button class="pos26-fn-more-item"
+                                    @onclick="OpenMergeFromMenu">
+                                <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" Class="mr-1" />
+                                Unisci sessioni
+                            </button>
+                        }
+                    </div>
+                }
+            </div>
         </div>
 
         @* Input nota ordine *@
@@ -301,7 +382,7 @@
             </div>
         }
 
-        @* Selettore tavolo / tipo vendita *@
+        @* Selettore tavolo / tipo vendita (aperto dal menu "Altro") *@
         @if (_showTablePicker)
         {
             <div class="pos26-fn-panel pos26-fn-panel--table">
@@ -338,7 +419,7 @@
             </div>
         }
 
-        @* Pannello sessioni parcheggiate *@
+        @* Pannello sessioni parcheggiate (aperto dal menu "Altro") *@
         @if (_showParkedSessions)
         {
             <div class="pos26-fn-panel">
@@ -371,8 +452,33 @@
             </div>
         }
 
-        @* Griglia articoli *@
+        @* ===== AREA PRODOTTI ===== *@
         <div class="pos2026-product-area">
+
+            @* ===== AZIONE 6: Riga best sellers rapida (orizzontale, scrollabile) ===== *@
+            @if (_topBestSellers.Count > 0 && string.IsNullOrWhiteSpace(_searchTerm))
+            {
+                <div class="pos26-bestseller-row-wrap">
+                    <div class="pos26-bestseller-row-label">
+                        <MudIcon Icon="@Icons.Material.Outlined.TrendingUp" Size="Size.Small" Class="mr-1" />
+                        Top venduti
+                    </div>
+                    <div class="pos26-bestseller-row">
+                        @foreach (var product in _topBestSellers)
+                        {
+                            <Pos26ProductCard @key="@($"bs-{product.Id}")"
+                                              Product="@product"
+                                              CartQuantity="@(_cartQuantities.TryGetValue(product.Id, out var q) ? q : 0)"
+                                              IsLastPurchase="@_lastPurchaseIds.Contains(product.Id)"
+                                              IsBestSeller="true"
+                                              OnAddToCart="@OnAddProductToCartAsync"
+                                              OnLongPress="@OpenProductDetailAsync" />
+                        }
+                    </div>
+                </div>
+            }
+
+            @* Griglia articoli *@
             <Pos26ProductGrid Products="@_filteredProducts"
                               CartQuantities="@_cartQuantities"
                               LastPurchaseIds="@_lastPurchaseIds"
@@ -408,6 +514,8 @@
     </div>
 
     </div>@* fine pos2026-content *@
+
+    }@* fine else (Step 2) *@
 
 </div>
 

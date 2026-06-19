@@ -58,7 +58,17 @@
     private NumpadMode _lastBuiltMode;
     private bool _lastCanPay;
 
-    protected override void OnInitialized() => _keys = BuildKeys();
+    // ShouldRender guard state — tracks last rendered values to skip unnecessary renders
+    // triggered by parent re-renders when nothing relevant to the numpad has changed.
+    private bool _prevShouldCanPay;
+    private NumpadMode _prevShouldMode;
+    private string _prevShouldInput = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _keys = BuildKeys();
+        _prevShouldCanPay = CanPay;
+    }
 
     protected override void OnParametersSet()
     {
@@ -69,6 +79,30 @@
             _lastCanPay = CanPay;
             _keys = BuildKeys();
         }
+    }
+
+    /// <summary>
+    /// Skips re-renders caused by parent StateHasChanged calls when no numpad-relevant
+    /// state has actually changed. Internal state changes (_mode, _input) always render;
+    /// external parameter changes only render when <see cref="CanPay"/> changes.
+    /// </summary>
+    protected override bool ShouldRender()
+    {
+        // Internal state change (key pressed) — always render
+        if (_prevShouldMode != _mode || _prevShouldInput != _input)
+        {
+            _prevShouldMode = _mode;
+            _prevShouldInput = _input;
+            _prevShouldCanPay = CanPay;
+            return true;
+        }
+        // External parameter change — only render when CanPay changed
+        if (_prevShouldCanPay != CanPay)
+        {
+            _prevShouldCanPay = CanPay;
+            return true;
+        }
+        return false;
     }
 
     private List<KeyDef> BuildKeys()

@@ -8,8 +8,8 @@ export function setupPOSKeyboardShortcuts(dotNetRef) {
     
     // Define handler function so we can remove it later
     keydownHandler = async function(e) {
-        // Only work on POS page - prevent global shortcuts leak
-        if (!window.location.pathname.includes('/sales/pos')) {
+        // Only work on POS 2026 page — exact match prevents interference with /sales/pos and /sales/postouch
+        if (window.location.pathname !== '/sales/pos2026') {
             return;
         }
         
