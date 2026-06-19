@@ -994,7 +994,7 @@ public class DocumentHeaderService(
                         {
                             // The row has already been saved; log the stock movement failure but do not
                             // re-throw so the caller receives the saved row DTO and the dialog closes.
-                            logger.LogError(ex, "Failed to create stock movement for document row {RowId}. Row was saved successfully.", row.Id);
+                            logger.LogError(ex, "Failed to create stock movement for document row {RowId}; the row was already persisted and the response will succeed.", row.Id);
                         }
                     }
                     else
@@ -1191,7 +1191,7 @@ public class DocumentHeaderService(
                                 catch (Exception ex)
                                 {
                                     // Row is already saved; log the movement failure without re-throwing.
-                                    logger.LogError(ex, "Failed to create compensating stock movement for row {RowId}. Row was saved successfully.", rowId);
+                                    logger.LogError(ex, "Failed to create compensating stock movement for row {RowId}; the row was already persisted and the response will succeed.", rowId);
                                 }
                             }
                         }
@@ -1281,7 +1281,7 @@ public class DocumentHeaderService(
                 catch (Exception ex)
                 {
                     // Row is already saved; log the movement failure without re-throwing.
-                    logger.LogError(ex, "Failed to replace stock movement for live-mode row {RowId}. Row was saved successfully.", rowId);
+                    logger.LogError(ex, "Failed to replace stock movement for live-mode row {RowId}; the row was already persisted and the response will succeed.", rowId);
                 }
             }
 

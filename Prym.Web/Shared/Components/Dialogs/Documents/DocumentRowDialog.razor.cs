@@ -370,12 +370,18 @@ public partial class DocumentRowDialog : IAsyncDisposable
     /// <param name="operationName">Name of the operation for logging</param>
     /// <param name="successMessageKey">Translation key for success message (optional)</param>
     /// <param name="showErrorToUser">Whether to show error to user via Snackbar</param>
+    /// <param name="treatNullAsError">
+    ///   When true a null result from the operation is treated as a failure (shows error notification,
+    ///   suppresses the success notification). Use this for write operations where a non-null DTO is
+    ///   always expected on success. Default is false (null is silently returned to the caller).
+    /// </param>
     /// <returns>Result of the operation or default(T) on error</returns>
     private async Task<T?> ExecuteWithErrorHandlingAsync<T>(
         Func<Task<T>> operation,
         string operationName,
         string? successMessageKey = null,
-        bool showErrorToUser = true)
+        bool showErrorToUser = true,
+        bool treatNullAsError = false)
     {
         try
         {
@@ -385,7 +391,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation(successMessageKey, "Operazione completata"));
             }
-            else if (result is null && successMessageKey != null)
+            else if (result is null && treatNullAsError)
             {
                 // The server returned a null result (e.g. 404 Not Found) without throwing.
                 // Treat this as a failure so the caller can handle it correctly.
@@ -1469,7 +1475,8 @@ public partial class DocumentRowDialog : IAsyncDisposable
         var result = await ExecuteWithErrorHandlingAsync(
             () => DocumentHeaderService.UpdateDocumentRowAsync(RowId!.Value, updateDto),
             operationName: "updateDocumentRow",
-            successMessageKey: "documents.rowUpdatedSuccess");
+            successMessageKey: "documents.rowUpdatedSuccess",
+            treatNullAsError: true);
 
         if (result != null)
         {
@@ -1509,7 +1516,8 @@ public partial class DocumentRowDialog : IAsyncDisposable
         var result = await ExecuteWithErrorHandlingAsync(
             () => DocumentHeaderService.AddDocumentRowAsync(_state.Model),
             operationName: "createDocumentRow",
-            successMessageKey: "documents.rowAddedSuccess");
+            successMessageKey: "documents.rowAddedSuccess",
+            treatNullAsError: true);
 
         if (result != null)
         {
