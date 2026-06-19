@@ -1,0 +1,127 @@
+@* Pos26FilterBar — combina SortBar, CategoryBar e ContextBanner in un pannello collassabile.
+   Sostituisce tre componenti separati con un'unica riga compatta. Il pannello espanso
+   mostra tutte le opzioni di ordinamento e filtro categoria; chiuso mostra solo il riassunto
+   del filtro attivo. *@
+@using Prym.Web.Models.Sales
+@using Prym.DTOs.Business
+
+<div class="pos26-filterbar-wrap">
+    @* Riga riassunto (sempre visibile) *@
+    <div class="pos26-filterbar-summary">
+        @* Pillola filtro attivo *@
+        <button class="pos26-filterbar-active-pill"
+                @onclick="TogglePanel"
+                title="@(_panelOpen ? "Chiudi filtri" : "Apri filtri")">
+            <MudIcon Icon="@_activeIcon" Size="Size.Small" Class="mr-1" />
+            <span>@_activeLabel</span>
+            @if (!string.IsNullOrEmpty(SelectedCategory))
+            {
+                <span class="pos26-filterbar-category-tag">· @SelectedCategory</span>
+            }
+            <MudIcon Icon="@(_panelOpen ? Icons.Material.Outlined.ExpandLess : Icons.Material.Outlined.ExpandMore)"
+                     Size="Size.Small" Class="ml-1 pos26-filterbar-chevron" />
+        </button>
+    </div>
+
+    @* Pannello espanso (on-demand) *@
+    @if (_panelOpen)
+    {
+        <div class="pos26-filterbar-panel">
+            @* Sort pills *@
+            <div class="pos26-filterbar-section-label">Ordina per</div>
+            <div class="pos26-filterbar-sort-row">
+                @foreach (var mode in _sortModes)
+                {
+                    var isActive = SortMode == mode.Mode;
+                    var label = mode.Mode == Pos26SortMode.UltimiAcquisti && !HasCustomer
+                        ? "Best seller"
+                        : mode.Label;
+                    <button class="pos26-sort-pill @(isActive ? "pos26-sort-pill--active" : "")"
+                            @onclick="() => OnSortPillClick(mode.Mode)"
+                            title="@label">
+                        <MudIcon Icon="@mode.Icon" Size="Size.Small" Class="mr-1" />
+                        @label
+                    </button>
+                }
+            </div>
+
+            @* Category pills (hidden when searching) *@
+            @if (Categories?.Any() == true)
+            {
+                <div class="pos26-filterbar-section-label">Categoria</div>
+                <div class="pos26-categorybar">
+                    <button class="pos26-category-pill @(SelectedCategory == null ? "pos26-category-pill--active" : "")"
+                            @onclick="() => OnCategoryPillClick(null)">
+                        Tutti
+                    </button>
+                    @foreach (var cat in Categories)
+                    {
+                        var isActive = SelectedCategory == cat;
+                        <button class="pos26-category-pill @(isActive ? "pos26-category-pill--active" : "")"
+                                @onclick="() => OnCategoryPillClick(cat)">
+                            @cat
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Pos26SortMode SortMode { get; set; } = Pos26SortMode.BestSeller;
+    [Parameter] public EventCallback<Pos26SortMode> OnSortChanged { get; set; }
+    [Parameter] public bool HasCustomer { get; set; }
+    [Parameter] public List<string>? Categories { get; set; }
+    [Parameter] public string? SelectedCategory { get; set; }
+    [Parameter] public EventCallback<string?> OnCategorySelected { get; set; }
+    [Parameter] public BusinessPartyDto? Customer { get; set; }
+
+    private bool _panelOpen = false;
+
+    private record SortEntry(Pos26SortMode Mode, string Label, string Icon);
+
+    private readonly List<SortEntry> _sortModes =
+    [
+        new(Pos26SortMode.UltimiAcquisti, "Ultimi acquisti", Icons.Material.Outlined.StarOutline),
+        new(Pos26SortMode.BestSeller,     "Best seller",     Icons.Material.Outlined.TrendingUp),
+        new(Pos26SortMode.Alfabetico,     "A→Z",             Icons.Material.Outlined.SortByAlpha),
+        new(Pos26SortMode.Prezzo,         "Prezzo",          Icons.Material.Outlined.EuroSymbol),
+        new(Pos26SortMode.Categoria,      "Categoria",       Icons.Material.Outlined.GridView)
+    ];
+
+    private string _activeLabel => SortMode switch
+    {
+        Pos26SortMode.UltimiAcquisti when HasCustomer => $"Acquisti di {Customer?.Name?.Split(' ')[0] ?? "cliente"}",
+        Pos26SortMode.UltimiAcquisti => "Best seller",
+        Pos26SortMode.BestSeller     => "Best seller",
+        Pos26SortMode.Alfabetico     => "A→Z",
+        Pos26SortMode.Prezzo         => "Prezzo",
+        Pos26SortMode.Categoria      => "Categoria",
+        _                            => "Filtri"
+    };
+
+    private string _activeIcon => SortMode switch
+    {
+        Pos26SortMode.UltimiAcquisti when HasCustomer => Icons.Material.Outlined.History,
+        Pos26SortMode.BestSeller or Pos26SortMode.UltimiAcquisti => Icons.Material.Outlined.TrendingUp,
+        Pos26SortMode.Alfabetico => Icons.Material.Outlined.SortByAlpha,
+        Pos26SortMode.Prezzo     => Icons.Material.Outlined.EuroSymbol,
+        Pos26SortMode.Categoria  => Icons.Material.Outlined.GridView,
+        _                        => Icons.Material.Outlined.FilterList
+    };
+
+    private void TogglePanel() => _panelOpen = !_panelOpen;
+
+    private async Task OnSortPillClick(Pos26SortMode mode)
+    {
+        await OnSortChanged.InvokeAsync(mode);
+        _panelOpen = false; // chiude il pannello dopo la selezione
+    }
+
+    private async Task OnCategoryPillClick(string? cat)
+    {
+        await OnCategorySelected.InvokeAsync(cat);
+        _panelOpen = false; // chiude il pannello dopo la selezione
+    }
+}

@@ -42,7 +42,11 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Best seller / ultimi acquisti ---
     private HashSet<Guid> _bestSellerIds = new();
+    private List<Guid> _bestSellerRankedIds = new(); // ordine conservato dall'API (rank crescente)
     private HashSet<Guid> _lastPurchaseIds = new();
+
+    // --- Top best sellers per la riga rapida sopra la griglia (max 10 articoli) ---
+    private List<ProductDto> _topBestSellers = new();
 
     // --- Carrello (derivato dalla sessione) ---
     private Dictionary<Guid, int> _cartQuantities = new();
@@ -71,6 +75,9 @@ public partial class POS2026 : IAsyncDisposable
     // --- Tavolo / selezione tipo vendita ---
     private List<TableSessionDto> _availableTables = new();
     private bool _showTablePicker = false;
+
+    // --- Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) ---
+    private bool _showMoreMenu = false;
 
     // --- Note flags (richiesti da AddSessionNoteDto.NoteFlagId) ---
     private List<NoteFlagDto> _noteFlags = new();
@@ -174,18 +181,24 @@ public partial class POS2026 : IAsyncDisposable
 
     /// <summary>
     /// Carica i prodotti dal servizio e, in parallelo, ottiene i best seller dagli analytics.
+    /// Entrambi vengono attesi prima del primo render per evitare layout shift (flickering della griglia).
     /// </summary>
     private async Task LoadProductsAndBestSellersAsync()
     {
         _isLoadingProducts = true;
-        StateHasChanged();
+        // Non chiamare StateHasChanged() qui: durante OnInitializedAsync, il PageLoadingOverlay
+        // è già visibile tramite ViewModel.IsLoading. Il render finale avverrà al termine di OnInitializedAsync,
+        // dopo che sia i prodotti sia i best sellers sono stati caricati in parallelo.
         try
         {
-            // Use the slim POS-catalog endpoint (no Codes/Units/BundleItems eager loading)
-            var result = await ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
+            // Carica prodotti e best sellers in parallelo — unico render al completamento di entrambi.
+            var productsTask = ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
+            var bestSellersTask = LoadBestSellerIdsAsync();
+            await Task.WhenAll(productsTask, bestSellersTask);
+
+            var result = productsTask.Result;
             _allProducts = result?.Items?.ToList() ?? new();
             _fullCatalogProducts = new List<ProductDto>(_allProducts); // cache per ripristino dopo ricerca
-            RebuildFilteredProducts();
         }
         catch (Exception ex)
         {
@@ -194,22 +207,10 @@ public partial class POS2026 : IAsyncDisposable
         finally
         {
             _isLoadingProducts = false;
-            StateHasChanged();
+            // StateHasChanged() non è necessario qui: OnInitializedAsync chiama RebuildFilteredProducts
+            // e poi Blazor effettua il render al termine di OnInitializedAsync. Se chiamato
+            // come standalone (es. dopo una ricerca), il chiamante è responsabile del render.
         }
-
-        // Best-sellers fire-and-forget — non blocca la visualizzazione della griglia.
-        // RebuildFilteredProducts viene eseguita nel contesto UI solo se il task è completato con successo.
-        _ = LoadBestSellerIdsAsync().ContinueWith(task =>
-        {
-            if (task.IsCompletedSuccessfully)
-                _ = InvokeAsync(() =>
-                {
-                    RebuildFilteredProducts();
-                    StateHasChanged();
-                });
-            else if (task.IsFaulted)
-                Logger.LogWarning(task.Exception, "POS2026: eccezione non gestita in LoadBestSellerIdsAsync.");
-        }, TaskScheduler.Default);
     }
 
     /// <summary>
@@ -229,11 +230,13 @@ public partial class POS2026 : IAsyncDisposable
             var analytics = await AnalyticsService.GetSalesAnalyticsAsync(filter);
             if (analytics?.TopProducts is { Count: > 0 } topProducts)
             {
-                _bestSellerIds = topProducts
+                var ranked = topProducts
                     .Where(p => p.ProductId.HasValue)
                     .Select(p => p.ProductId!.Value)
-                    .ToHashSet();
-                // RebuildFilteredProducts viene chiamata dalla continuation nel contesto UI (vedere LoadProductsAndBestSellersAsync)
+                    .ToList();
+                _bestSellerRankedIds = ranked;
+                _bestSellerIds = ranked.ToHashSet();
+                // RebuildFilteredProducts viene invocata al ritorno in LoadProductsAndBestSellersAsync, dopo Task.WhenAll.
             }
         }
         catch (Exception ex)
@@ -431,6 +434,26 @@ public partial class POS2026 : IAsyncDisposable
         };
 
         _filteredProducts = source.ToList();
+
+        // Aggiorna la riga rapida dei best sellers (max 10 articoli del catalogo completo ordinati per rank).
+        // La riga è visibile solo quando non c'è ricerca attiva e ci sono best sellers disponibili.
+        if (_bestSellerRankedIds.Count > 0 && string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            // Crea un dizionario rank → posizione per ordinare i prodotti nell'ordine del rank analytics
+            var rankMap = new Dictionary<Guid, int>(_bestSellerRankedIds.Count);
+            for (int i = 0; i < _bestSellerRankedIds.Count; i++)
+                rankMap[_bestSellerRankedIds[i]] = i;
+
+            _topBestSellers = _fullCatalogProducts
+                .Where(p => _bestSellerIds.Contains(p.Id))
+                .OrderBy(p => rankMap.GetValueOrDefault(p.Id, int.MaxValue))
+                .Take(10)
+                .ToList();
+        }
+        else
+        {
+            _topBestSellers = new List<ProductDto>();
+        }
     }
 
     // =========================================================================
@@ -1018,6 +1041,40 @@ public partial class POS2026 : IAsyncDisposable
             await LoadParkedSessionsAsync();
     }
 
+    // =========================================================================
+    //  Menu azioni secondarie ("Altro") — Azione 2
+    // =========================================================================
+
+    private void ToggleMoreMenu() => _showMoreMenu = !_showMoreMenu;
+
+    private async Task ToggleTablePickerFromMenu()
+    {
+        _showMoreMenu = false;
+        _showTablePicker = !_showTablePicker;
+        if (_showTablePicker)
+            await LoadAvailableTablesAsync();
+    }
+
+    private async Task ToggleParkedFromMenu()
+    {
+        _showMoreMenu = false;
+        _showParkedSessions = !_showParkedSessions;
+        if (_showParkedSessions)
+            await LoadParkedSessionsAsync();
+    }
+
+    private async Task OpenSplitFromMenu()
+    {
+        _showMoreMenu = false;
+        await OpenSplitDialogAsync();
+    }
+
+    private async Task OpenMergeFromMenu()
+    {
+        _showMoreMenu = false;
+        await OpenMergeDialogAsync();
+    }
+
     private async Task ResumeParkedSessionAsync(SaleSessionDto session)
     {
         try
@@ -1162,6 +1219,61 @@ public partial class POS2026 : IAsyncDisposable
     {
         RebuildCartQuantities();
         InvokeAsync(StateHasChanged);
+    }
+
+    // =========================================================================
+    //  Step-guided flow (Azione 1) — selezione operatore e cassa a schermo intero
+    // =========================================================================
+
+    /// <summary>
+    /// Seleziona l'operatore dal pannello step 0.
+    /// Se c'è una sola cassa disponibile, la seleziona automaticamente e avanza allo step 2.
+    /// </summary>
+    private async Task OnOperatorCardSelectedAsync(StoreUserDto op)
+    {
+        try
+        {
+            ViewModel.SelectedOperatorId = op.Id;
+            // Auto-select cassa se unica disponibile (stesso comportamento di POSTouch)
+            if (ViewModel.AvailablePos.Count == 1)
+            {
+                ViewModel.SelectedPosId = ViewModel.AvailablePos[0].Id;
+                LoadFiscalPrinterIdFromPos(ViewModel.SelectedPosId);
+                await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
+            }
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS2026: errore selezione operatore nel flusso guidato.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    /// <summary>
+    /// Seleziona la cassa dal pannello step 1 e avanza allo step 2 (interfaccia vendita).
+    /// </summary>
+    private async Task OnPosCardSelectedAsync(StorePosDto pos)
+    {
+        try
+        {
+            ViewModel.SelectedPosId = pos.Id;
+            LoadFiscalPrinterIdFromPos(pos.Id);
+            await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS2026: errore selezione cassa nel flusso guidato.");
+            AppNotification.ShowWarning("Si è verificato un errore imprevisto.");
+        }
+    }
+
+    /// <summary>Torna al passo 0 (selezione operatore) dal passo 1 (selezione cassa).</summary>
+    private void DeselectOperator()
+    {
+        ViewModel.SelectedOperatorId = null;
+        ViewModel.SelectedPosId = null;
     }
 
     private async Task OnOperatorIdChangedAsync(Guid? value)
