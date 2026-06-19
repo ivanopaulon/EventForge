@@ -132,7 +132,7 @@
                     <MudItem xs="12" md="4">
                         <MudSwitch @bind-Value="DocumentTypeCreatesStockMovements"
                                    @bind-Value:after="@(() => MarkChanged())"
-                                   Disabled="@DocumentTypeIsInventoryDocument"
+                                   Disabled="@(DocumentTypeIsInventoryDocument || DocumentTypeMovesStockOnRowChange)"
                                    Label="@TranslationService.GetTranslation("field.createsStockMovements", "Crea Movimenti di Magazzino")"
                                    Color="Color.Primary"
                                    ThumbIcon="@(DocumentTypeCreatesStockMovements ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" />
@@ -141,9 +141,32 @@
                             {
                                 @TranslationService.GetTranslation("documentType.helperText.createsStockMovementsDisabled", "Disabilitato per i documenti di inventario")
                             }
+                            else if (DocumentTypeMovesStockOnRowChange)
+                            {
+                                @TranslationService.GetTranslation("documentType.helperText.createsStockMovementsDisabledLive", "Disabilitato: i movimenti vengono gestiti riga per riga")
+                            }
                             else
                             {
                                 @TranslationService.GetTranslation("documentType.helperText.createsStockMovements", "Indica se la chiusura del documento genera movimenti di magazzino")
+                            }
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="DocumentTypeMovesStockOnRowChange"
+                                   @bind-Value:after="@(() => MarkChanged())"
+                                   Disabled="@DocumentTypeIsInventoryDocument"
+                                   Label="@TranslationService.GetTranslation("field.movesStockOnRowChange", "Muovi Magazzino su Modifica Riga")"
+                                   Color="Color.Secondary"
+                                   ThumbIcon="@(DocumentTypeMovesStockOnRowChange ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @if (DocumentTypeIsInventoryDocument)
+                            {
+                                @TranslationService.GetTranslation("documentType.helperText.movesStockOnRowChangeDisabled", "Disabilitato per i documenti di inventario")
+                            }
+                            else
+                            {
+                                @TranslationService.GetTranslation("documentType.helperText.movesStockOnRowChange", "Se attivo, il movimento di magazzino viene creato/aggiornato/eliminato ad ogni modifica della riga (modalità live, es. C3). Disabilita automaticamente 'Crea Movimenti di Magazzino'.")
                             }
                         </MudText>
                     </MudItem>
@@ -239,9 +262,12 @@
             if (_documentType != null)
             {
                 _documentType.IsInventoryDocument = value;
-                // Inventory documents must never create stock movements.
+                // Inventory documents must never create stock movements or use live mode.
                 if (value)
+                {
                     _documentType.CreatesStockMovements = false;
+                    _documentType.MovesStockOnRowChange = false;
+                }
             }
         }
     }
@@ -250,6 +276,21 @@
     {
         get => _documentType?.CreatesStockMovements ?? true;
         set { if (_documentType != null) _documentType.CreatesStockMovements = value; }
+    }
+
+    private bool DocumentTypeMovesStockOnRowChange
+    {
+        get => _documentType?.MovesStockOnRowChange ?? false;
+        set
+        {
+            if (_documentType != null)
+            {
+                _documentType.MovesStockOnRowChange = value;
+                // Live per-row mode is incompatible with bulk-on-archive generation.
+                if (value)
+                    _documentType.CreatesStockMovements = false;
+            }
+        }
     }
 
     private BusinessPartyType DocumentTypeRequiredPartyType
@@ -359,6 +400,7 @@
                     IsStockIncrease = _documentType.IsStockIncrease,
                     IsInventoryDocument = _documentType.IsInventoryDocument,
                     CreatesStockMovements = _documentType.CreatesStockMovements,
+                    MovesStockOnRowChange = _documentType.MovesStockOnRowChange,
                     RequiredPartyType = _documentType.RequiredPartyType,
                     DefaultWarehouseId = _documentType.DefaultWarehouseId
                 };
@@ -377,6 +419,7 @@
                     IsStockIncrease = _documentType.IsStockIncrease,
                     IsInventoryDocument = _documentType.IsInventoryDocument,
                     CreatesStockMovements = _documentType.CreatesStockMovements,
+                    MovesStockOnRowChange = _documentType.MovesStockOnRowChange,
                     RequiredPartyType = _documentType.RequiredPartyType,
                     DefaultWarehouseId = _documentType.DefaultWarehouseId
                 };

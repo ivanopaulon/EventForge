@@ -41,6 +41,13 @@ namespace Prym.DTOs.Documents
         public bool CreatesStockMovements { get; set; } = true;
 
         /// <summary>
+        /// Indicates if a stock movement is created/updated/deleted immediately on every document row change,
+        /// regardless of document status. When true, CreatesStockMovements is forced to false.
+        /// Incompatible with IsInventoryDocument = true.
+        /// </summary>
+        public bool MovesStockOnRowChange { get; set; } = false;
+
+        /// <summary>
         /// Default warehouse for this document type
         /// </summary>
         public Guid? DefaultWarehouseId { get; set; }

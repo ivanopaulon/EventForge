@@ -161,4 +161,11 @@ public interface IStockMovementService
     Task<IEnumerable<Prym.DTOs.Export.InventoryExportDto>> GetInventoryForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Soft-deletes all stock movements linked to the specified document row.
+    /// Used when a document row is deleted or replaced in "live" movement mode
+    /// (<see cref="Prym.DTOs.Documents.DocumentTypeDto.MovesStockOnRowChange"/> = true).
+    /// </summary>
+    Task DeleteMovementsForRowAsync(Guid rowId, string currentUser, CancellationToken cancellationToken = default);
 }

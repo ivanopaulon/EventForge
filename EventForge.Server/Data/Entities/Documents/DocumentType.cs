@@ -75,4 +75,15 @@ public class DocumentType : AuditableEntity
     /// </summary>
     [Display(Name = "Creates Stock Movements", Description = "Whether approving or closing this document type auto-generates stock movements.")]
     public bool CreatesStockMovements { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, a stock movement is created, updated, or deleted immediately whenever
+    /// a document row is added, modified, or removed — regardless of the document status.
+    /// This is the "live" warehouse movement mode used, for example, by C3 documents.
+    /// When enabled, <see cref="CreatesStockMovements"/> is forced to <c>false</c> because
+    /// the bulk-on-archive generation would duplicate movements already created per-row.
+    /// Incompatible with <see cref="IsInventoryDocument"/>.
+    /// </summary>
+    [Display(Name = "Moves Stock On Row Change", Description = "Whether a stock movement is generated immediately on every add/update/delete of a document row.")]
+    public bool MovesStockOnRowChange { get; set; } = false;
 }

@@ -920,8 +920,9 @@ public class DocumentHeaderService(
                 }
             }
 
-            // If document is already archived, create stock movement immediately
-            if (documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived && row.ProductId.HasValue)
+            // If document is already archived OR the document type uses live "MovesStockOnRowChange" mode, create stock movement immediately
+            if ((documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived || (documentHeader.DocumentType?.MovesStockOnRowChange ?? false))
+                && row.ProductId.HasValue)
             {
                 // Load document type to determine stock increase/decrease
                 if (documentHeader.DocumentType is null)
@@ -933,6 +934,7 @@ public class DocumentHeaderService(
 
                 if (documentHeader.DocumentType is not null)
                 {
+                    var isLiveMode = documentHeader.DocumentType.MovesStockOnRowChange;
                     var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
 
                     // Determine the warehouse location to use (same logic as ProcessStockMovementsForDocumentAsync)
@@ -959,6 +961,10 @@ public class DocumentHeaderService(
 
                         if (storageLocation is not null)
                         {
+                            var notes = isLiveMode
+                                ? $"Auto-generated live from document {documentHeader.Number}"
+                                : $"Auto-generated from document {documentHeader.Number}";
+
                             if (documentHeader.DocumentType.IsStockIncrease)
                             {
                                 await stockMovementService.ProcessInboundMovementAsync(
@@ -968,12 +974,12 @@ public class DocumentHeaderService(
                                     unitCost: row.UnitPrice,
                                     documentHeaderId: documentHeader.Id,
                                     documentRowId: row.Id,
-                                    notes: $"Auto-generated from document {documentHeader.Number}",
+                                    notes: notes,
                                     currentUser: currentUser,
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
 
-                                logger.LogInformation("Created immediate inbound stock movement for archived document row {RowId}.", row.Id);
+                                logger.LogInformation("Created immediate inbound stock movement for document row {RowId} (liveMode={LiveMode}).", row.Id, isLiveMode);
                             }
                             else
                             {
@@ -983,23 +989,23 @@ public class DocumentHeaderService(
                                     quantity: row.Quantity,
                                     documentHeaderId: documentHeader.Id,
                                     documentRowId: row.Id,
-                                    notes: $"Auto-generated from document {documentHeader.Number}",
+                                    notes: notes,
                                     currentUser: currentUser,
                                     movementDate: documentDateUtc,
                                     cancellationToken: cancellationToken);
 
-                                logger.LogInformation("Created immediate outbound stock movement for approved document row {RowId}.", row.Id);
+                                logger.LogInformation("Created immediate outbound stock movement for document row {RowId} (liveMode={LiveMode}).", row.Id, isLiveMode);
                             }
                         }
                         else
                         {
-                            logger.LogWarning("No storage location found in warehouse {WarehouseId} for approved document row {RowId}. Stock movement not created.",
+                            logger.LogWarning("No storage location found in warehouse {WarehouseId} for document row {RowId}. Stock movement not created.",
                                 warehouseLocationId, row.Id);
                         }
                     }
                     else
                     {
-                        logger.LogWarning("No warehouse found for approved document row {RowId}. Stock movement not created.", row.Id);
+                        logger.LogWarning("No warehouse found for document row {RowId}. Stock movement not created.", row.Id);
                     }
                 }
             }
@@ -1185,6 +1191,84 @@ public class DocumentHeaderService(
                     }
                 }
             }
+            // If document type uses live "MovesStockOnRowChange" mode, replace movement for this row
+            else if (row.DocumentHeader is not null &&
+                     (row.DocumentHeader.DocumentType?.MovesStockOnRowChange ?? false) &&
+                     row.ProductId.HasValue)
+            {
+                // Delete all existing movements for this row, then create a fresh one
+                await stockMovementService.DeleteMovementsForRowAsync(rowId, currentUser, cancellationToken);
+
+                if (row.DocumentHeader.DocumentType is not null)
+                {
+                    var documentDateUtc = NormalizeDateToUtc(row.DocumentHeader.Date);
+
+                    Guid? warehouseLocationId = null;
+                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                    {
+                        warehouseLocationId = row.DestinationWarehouseId
+                                           ?? row.DocumentHeader.DestinationWarehouseId
+                                           ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                    }
+                    else
+                    {
+                        warehouseLocationId = row.SourceWarehouseId
+                                           ?? row.DocumentHeader.SourceWarehouseId
+                                           ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                    }
+
+                    if (warehouseLocationId.HasValue)
+                    {
+                        var storageLocation = await context.StorageLocations
+                            .AsNoTracking()
+                            .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (storageLocation is not null)
+                        {
+                            var currentQuantity = row.BaseQuantity ?? row.Quantity;
+                            if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                            {
+                                await stockMovementService.ProcessInboundMovementAsync(
+                                    productId: row.ProductId!.Value,
+                                    toLocationId: storageLocation.Id,
+                                    quantity: currentQuantity,
+                                    unitCost: row.UnitPrice,
+                                    documentHeaderId: row.DocumentHeader.Id,
+                                    documentRowId: row.Id,
+                                    notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
+                                    currentUser: currentUser,
+                                    movementDate: documentDateUtc,
+                                    cancellationToken: cancellationToken);
+                            }
+                            else
+                            {
+                                await stockMovementService.ProcessOutboundMovementAsync(
+                                    productId: row.ProductId!.Value,
+                                    fromLocationId: storageLocation.Id,
+                                    quantity: currentQuantity,
+                                    documentHeaderId: row.DocumentHeader.Id,
+                                    documentRowId: row.Id,
+                                    notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
+                                    currentUser: currentUser,
+                                    movementDate: documentDateUtc,
+                                    cancellationToken: cancellationToken);
+                            }
+
+                            logger.LogInformation("Replaced stock movement for live-mode row {RowId} with new quantity {Quantity}.", rowId, currentQuantity);
+                        }
+                        else
+                        {
+                            logger.LogWarning("No storage location found in warehouse {WarehouseId} for live-mode row {RowId}. Stock movement not replaced.",
+                                warehouseLocationId, rowId);
+                        }
+                    }
+                    else
+                    {
+                        logger.LogWarning("No warehouse found for live-mode row {RowId}. Stock movement not replaced.", rowId);
+                    }
+                }
+            }
 
             return row.ToDto();
         }
@@ -1218,7 +1302,8 @@ public class DocumentHeaderService(
             // If document is archived, create compensating movement before deleting row
             if (row.DocumentHeader is not null &&
                 row.DocumentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived &&
-                row.ProductId.HasValue)
+                row.ProductId.HasValue &&
+                !(row.DocumentHeader.DocumentType?.MovesStockOnRowChange ?? false))
             {
                 // Find existing movement for this row
                 var existingMovement = await context.StockMovements
@@ -1285,6 +1370,14 @@ public class DocumentHeaderService(
                     }
                 }
             }
+            // If document type uses live "MovesStockOnRowChange" mode, soft-delete the movement directly
+            else if (row.DocumentHeader is not null &&
+                     (row.DocumentHeader.DocumentType?.MovesStockOnRowChange ?? false) &&
+                     row.ProductId.HasValue)
+            {
+                await stockMovementService.DeleteMovementsForRowAsync(rowId, currentUser, cancellationToken);
+                logger.LogInformation("Soft-deleted stock movements for live-mode row {RowId} being deleted.", rowId);
+            }
 
             // Soft delete
             row.IsDeleted = true;
@@ -1327,6 +1420,15 @@ public class DocumentHeaderService(
             {
                 logger.LogInformation(
                     "Document {DocumentHeaderId} (type '{Code}') is flagged as inventory or non-movement — stock movements are not generated automatically.",
+                    documentHeader.Id, documentHeader.DocumentType.Code);
+                return;
+            }
+
+            // Documents with MovesStockOnRowChange already created movements per-row — skip bulk generation.
+            if (documentHeader.DocumentType.MovesStockOnRowChange)
+            {
+                logger.LogInformation(
+                    "Document {DocumentHeaderId} (type '{Code}') uses live per-row stock movements — bulk generation skipped.",
                     documentHeader.Id, documentHeader.DocumentType.Code);
                 return;
             }
