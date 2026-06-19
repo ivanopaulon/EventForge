@@ -42,6 +42,7 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Best seller / ultimi acquisti ---
     private HashSet<Guid> _bestSellerIds = new();
+    private List<Guid> _bestSellerRankedIds = new(); // ordine conservato dall'API (rank crescente)
     private HashSet<Guid> _lastPurchaseIds = new();
 
     // --- Top best sellers per la riga rapida sopra la griglia (max 10 articoli) ---
@@ -228,10 +229,12 @@ public partial class POS2026 : IAsyncDisposable
             var analytics = await AnalyticsService.GetSalesAnalyticsAsync(filter);
             if (analytics?.TopProducts is { Count: > 0 } topProducts)
             {
-                _bestSellerIds = topProducts
+                var ranked = topProducts
                     .Where(p => p.ProductId.HasValue)
                     .Select(p => p.ProductId!.Value)
-                    .ToHashSet();
+                    .ToList();
+                _bestSellerRankedIds = ranked;
+                _bestSellerIds = ranked.ToHashSet();
                 // RebuildFilteredProducts viene chiamata dalla continuation nel contesto UI (vedere LoadProductsAndBestSellersAsync)
             }
         }
@@ -433,12 +436,23 @@ public partial class POS2026 : IAsyncDisposable
 
         // Aggiorna la riga rapida dei best sellers (max 10 articoli del catalogo completo ordinati per rank).
         // La riga è visibile solo quando non c'è ricerca attiva e ci sono best sellers disponibili.
-        _topBestSellers = _bestSellerIds.Count > 0 && string.IsNullOrWhiteSpace(_searchTerm)
-            ? _fullCatalogProducts
+        if (_bestSellerRankedIds.Count > 0 && string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            // Crea un dizionario rank → posizione per ordinare i prodotti nell'ordine del rank analytics
+            var rankMap = new Dictionary<Guid, int>(_bestSellerRankedIds.Count);
+            for (int i = 0; i < _bestSellerRankedIds.Count; i++)
+                rankMap[_bestSellerRankedIds[i]] = i;
+
+            _topBestSellers = _fullCatalogProducts
                 .Where(p => _bestSellerIds.Contains(p.Id))
+                .OrderBy(p => rankMap.GetValueOrDefault(p.Id, int.MaxValue))
                 .Take(10)
-                .ToList()
-            : new List<ProductDto>();
+                .ToList();
+        }
+        else
+        {
+            _topBestSellers = new List<ProductDto>();
+        }
     }
 
     // =========================================================================
@@ -1226,6 +1240,7 @@ public partial class POS2026 : IAsyncDisposable
                 LoadFiscalPrinterIdFromPos(ViewModel.SelectedPosId);
                 await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
             }
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -1244,6 +1259,7 @@ public partial class POS2026 : IAsyncDisposable
             ViewModel.SelectedPosId = pos.Id;
             LoadFiscalPrinterIdFromPos(pos.Id);
             await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
+            StateHasChanged();
         }
         catch (Exception ex)
         {

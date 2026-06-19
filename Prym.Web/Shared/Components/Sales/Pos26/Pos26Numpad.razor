@@ -67,7 +67,10 @@
     protected override void OnInitialized()
     {
         _keys = BuildKeys();
+        // Initialize ShouldRender guard to current values to prevent a false-changed detection on first render.
         _prevShouldCanPay = CanPay;
+        _prevShouldMode = _mode;
+        _prevShouldInput = _input;
     }
 
     protected override void OnParametersSet()
