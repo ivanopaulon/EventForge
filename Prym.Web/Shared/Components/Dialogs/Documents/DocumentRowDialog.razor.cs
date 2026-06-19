@@ -110,11 +110,24 @@ public partial class DocumentRowDialog : IAsyncDisposable
         {
             if (_availableUnits.Count > 0)
             {
+                var coveredIds = new HashSet<Guid>();
                 foreach (var unit in _availableUnits)
                 {
                     var uom = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == unit.UnitOfMeasureId);
                     if (uom != null)
+                    {
+                        coveredIds.Add(uom.Id);
                         yield return (uom.Id, $"{uom.Symbol} - {uom.Name}");
+                    }
+                }
+
+                // If the currently selected UoM is not in the product-specific list, add it as a
+                // fallback so MudSelect can render its description instead of the raw GUID.
+                if (_selectedUnitOfMeasureId.HasValue && !coveredIds.Contains(_selectedUnitOfMeasureId.Value))
+                {
+                    var fallback = _allUnitsOfMeasure.FirstOrDefault(u => u.Id == _selectedUnitOfMeasureId.Value);
+                    if (fallback != null)
+                        yield return (fallback.Id, $"{fallback.Symbol} - {fallback.Name}");
                 }
             }
             else
@@ -368,9 +381,21 @@ public partial class DocumentRowDialog : IAsyncDisposable
         {
             var result = await operation();
 
-            if (successMessageKey != null)
+            if (result is not null && successMessageKey != null)
             {
                 AppNotification.ShowSuccess(TranslationService.GetTranslation(successMessageKey, "Operazione completata"));
+            }
+            else if (result is null && successMessageKey != null)
+            {
+                // The server returned a null result (e.g. 404 Not Found) without throwing.
+                // Treat this as a failure so the caller can handle it correctly.
+                Logger.LogWarning("Operation {Operation} returned null result.", operationName);
+                if (showErrorToUser)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation(
+                        $"error.{operationName}",
+                        "Errore durante il salvataggio. Riprovare."));
+                }
             }
 
             return result;
