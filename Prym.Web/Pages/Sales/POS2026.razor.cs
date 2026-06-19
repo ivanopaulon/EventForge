@@ -187,7 +187,8 @@ public partial class POS2026 : IAsyncDisposable
     {
         _isLoadingProducts = true;
         // Non chiamare StateHasChanged() qui: durante OnInitializedAsync, il PageLoadingOverlay
-        // è già visibile tramite ViewModel.IsLoading. Il render finale avverrà a fine OnInitializedAsync.
+        // è già visibile tramite ViewModel.IsLoading. Il render finale avverrà al termine di OnInitializedAsync,
+        // dopo che sia i prodotti sia i best sellers sono stati caricati in parallelo.
         try
         {
             // Carica prodotti e best sellers in parallelo — unico render al completamento di entrambi.
@@ -235,7 +236,7 @@ public partial class POS2026 : IAsyncDisposable
                     .ToList();
                 _bestSellerRankedIds = ranked;
                 _bestSellerIds = ranked.ToHashSet();
-                // RebuildFilteredProducts viene chiamata dalla continuation nel contesto UI (vedere LoadProductsAndBestSellersAsync)
+                // RebuildFilteredProducts viene invocata al ritorno in LoadProductsAndBestSellersAsync, dopo Task.WhenAll.
             }
         }
         catch (Exception ex)
