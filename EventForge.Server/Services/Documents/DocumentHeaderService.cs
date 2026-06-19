@@ -754,6 +754,7 @@ public class DocumentHeaderService(
         {
             // Verify document header exists
             var documentHeader = await context.DocumentHeaders
+                .Include(dh => dh.DocumentType)
                 .FirstOrDefaultAsync(dh => dh.Id == createDto.DocumentHeaderId && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader is null)
@@ -879,10 +880,128 @@ public class DocumentHeaderService(
                         existingRow.Quantity,
                         existingRow.BaseQuantity);
 
+                    // Create or update a stock movement for the merged quantity delta when the
+                    // document type requires it (same conditions as for a newly added row).
+                    if (documentHeader.DocumentType is not null &&
+                        existingRow.ProductId.HasValue &&
+                        (documentHeader.DocumentType.MovesStockOnRowChange || documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived))
+                    {
+                        var deltaQuantity = baseQuantity ?? createDto.Quantity;
+                        var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
+
+                        Guid? warehouseLocationId;
+                        if (documentHeader.DocumentType.IsStockIncrease)
+                        {
+                            warehouseLocationId = existingRow.DestinationWarehouseId
+                                               ?? documentHeader.DestinationWarehouseId
+                                               ?? documentHeader.DocumentType.DefaultWarehouseId;
+                        }
+                        else
+                        {
+                            warehouseLocationId = existingRow.SourceWarehouseId
+                                               ?? documentHeader.SourceWarehouseId
+                                               ?? documentHeader.DocumentType.DefaultWarehouseId;
+                        }
+
+                        if (warehouseLocationId.HasValue)
+                        {
+                            var storageLocation = await context.StorageLocations
+                                .AsNoTracking()
+                                .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                                .FirstOrDefaultAsync(cancellationToken);
+
+                            if (storageLocation is not null)
+                            {
+                                try
+                                {
+                                    if (documentHeader.DocumentType.MovesStockOnRowChange)
+                                    {
+                                        // Live mode: replace the existing movement with a new one for the merged total.
+                                        await stockMovementService.DeleteMovementsForRowAsync(existingRow.Id, currentUser, cancellationToken);
+                                        var mergedQuantity = existingRow.BaseQuantity ?? existingRow.Quantity;
+                                        var notes = $"Live replacement movement after merge on document {documentHeader.Number}";
+                                        if (documentHeader.DocumentType.IsStockIncrease)
+                                        {
+                                            await stockMovementService.ProcessInboundMovementAsync(
+                                                productId: existingRow.ProductId!.Value,
+                                                toLocationId: storageLocation.Id,
+                                                quantity: mergedQuantity,
+                                                unitCost: existingRow.UnitPrice,
+                                                documentHeaderId: documentHeader.Id,
+                                                documentRowId: existingRow.Id,
+                                                notes: notes,
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
+                                        else
+                                        {
+                                            await stockMovementService.ProcessOutboundMovementAsync(
+                                                productId: existingRow.ProductId!.Value,
+                                                fromLocationId: storageLocation.Id,
+                                                quantity: mergedQuantity,
+                                                documentHeaderId: documentHeader.Id,
+                                                documentRowId: existingRow.Id,
+                                                notes: notes,
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
+                                        logger.LogInformation("Replaced stock movement after merge for live-mode row {RowId}. New total: {Total}", existingRow.Id, mergedQuantity);
+                                    }
+                                    else
+                                    {
+                                        // Archived doc: create a compensating movement for the added delta only.
+                                        var notes = $"Auto-generated from document {documentHeader.Number}";
+                                        if (documentHeader.DocumentType.IsStockIncrease)
+                                        {
+                                            await stockMovementService.ProcessInboundMovementAsync(
+                                                productId: existingRow.ProductId!.Value,
+                                                toLocationId: storageLocation.Id,
+                                                quantity: deltaQuantity,
+                                                unitCost: existingRow.UnitPrice,
+                                                documentHeaderId: documentHeader.Id,
+                                                documentRowId: existingRow.Id,
+                                                notes: notes,
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
+                                        else
+                                        {
+                                            await stockMovementService.ProcessOutboundMovementAsync(
+                                                productId: existingRow.ProductId!.Value,
+                                                fromLocationId: storageLocation.Id,
+                                                quantity: deltaQuantity,
+                                                documentHeaderId: documentHeader.Id,
+                                                documentRowId: existingRow.Id,
+                                                notes: notes,
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
+                                        logger.LogInformation("Created compensating stock movement for merged row {RowId} (archived). Delta: {Delta}", existingRow.Id, deltaQuantity);
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    // The row has already been saved; log the movement failure but do not
+                                    // re-throw so the caller receives the saved row DTO and the dialog closes.
+                                    logger.LogError(ex, "Failed to update stock movement for merged row {RowId}; the row was already persisted and the response will succeed.", existingRow.Id);
+                                }
+                            }
+                            else
+                            {
+                                logger.LogWarning("No storage location found in warehouse {WarehouseId} for merged row {RowId}. Stock movement not updated.", warehouseLocationId, existingRow.Id);
+                            }
+                        }
+                        else
+                        {
+                            logger.LogWarning("No warehouse found for merged row {RowId}. Stock movement not updated.", existingRow.Id);
+                        }
+                    }
+
                     return existingRow.ToDto();
-                }
-                else
-                {
                 }
             }
 
@@ -906,10 +1025,7 @@ public class DocumentHeaderService(
             // Auto-create or update ProductSupplier for purchase documents
             if (row.ProductId.HasValue && documentHeader.BusinessPartyId != Guid.Empty)
             {
-                var docType = await context.DocumentTypes
-                    .FirstOrDefaultAsync(dt => dt.Id == documentHeader.DocumentTypeId && !dt.IsDeleted, cancellationToken);
-
-                if (docType?.IsStockIncrease == true)
+                if (documentHeader.DocumentType?.IsStockIncrease == true)
                 {
                     await EnsureProductSupplierAsync(
                         row.ProductId!.Value,
@@ -920,51 +1036,46 @@ public class DocumentHeaderService(
                 }
             }
 
-            // If document is already archived OR the document type uses live "MovesStockOnRowChange" mode, create stock movement immediately
-            if ((documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived || (documentHeader.DocumentType?.MovesStockOnRowChange ?? false))
-                && row.ProductId.HasValue)
+            // Create a stock movement immediately when:
+            // - the document is Active and the document type uses live "MovesStockOnRowChange" mode, OR
+            // - the document is already Archived (compensate on add for already-posted documents)
+            if (documentHeader.DocumentType is not null &&
+                row.ProductId.HasValue &&
+                (documentHeader.DocumentType.MovesStockOnRowChange || documentHeader.Status == Prym.DTOs.Common.DocumentStatus.Archived))
             {
-                // Load document type to determine stock increase/decrease
-                if (documentHeader.DocumentType is null)
+                var isLiveMode = documentHeader.DocumentType.MovesStockOnRowChange;
+                var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
+
+                // Determine the warehouse location to use (same logic as ProcessStockMovementsForDocumentAsync)
+                Guid? warehouseLocationId = null;
+                if (documentHeader.DocumentType.IsStockIncrease)
                 {
-                    documentHeader = await context.DocumentHeaders
-                        .Include(dh => dh.DocumentType)
-                        .FirstOrDefaultAsync(dh => dh.Id == documentHeader.Id && !dh.IsDeleted, cancellationToken) ?? documentHeader;
+                    warehouseLocationId = row.DestinationWarehouseId
+                                       ?? documentHeader.DestinationWarehouseId
+                                       ?? documentHeader.DocumentType.DefaultWarehouseId;
+                }
+                else
+                {
+                    warehouseLocationId = row.SourceWarehouseId
+                                       ?? documentHeader.SourceWarehouseId
+                                       ?? documentHeader.DocumentType.DefaultWarehouseId;
                 }
 
-                if (documentHeader.DocumentType is not null)
+                if (warehouseLocationId.HasValue)
                 {
-                    var isLiveMode = documentHeader.DocumentType.MovesStockOnRowChange;
-                    var documentDateUtc = NormalizeDateToUtc(documentHeader.Date);
+                    var storageLocation = await context.StorageLocations
+                        .AsNoTracking()
+                        .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                        .FirstOrDefaultAsync(cancellationToken);
 
-                    // Determine the warehouse location to use (same logic as ProcessStockMovementsForDocumentAsync)
-                    Guid? warehouseLocationId = null;
-                    if (documentHeader.DocumentType.IsStockIncrease)
+                    if (storageLocation is not null)
                     {
-                        warehouseLocationId = row.DestinationWarehouseId
-                                           ?? documentHeader.DestinationWarehouseId
-                                           ?? documentHeader.DocumentType.DefaultWarehouseId;
-                    }
-                    else
-                    {
-                        warehouseLocationId = row.SourceWarehouseId
-                                           ?? documentHeader.SourceWarehouseId
-                                           ?? documentHeader.DocumentType.DefaultWarehouseId;
-                    }
+                        var notes = isLiveMode
+                            ? $"Auto-generated live from document {documentHeader.Number}"
+                            : $"Auto-generated from document {documentHeader.Number}";
 
-                    if (warehouseLocationId.HasValue)
-                    {
-                        var storageLocation = await context.StorageLocations
-                            .AsNoTracking()
-                            .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
-                            .FirstOrDefaultAsync(cancellationToken);
-
-                        if (storageLocation is not null)
+                        try
                         {
-                            var notes = isLiveMode
-                                ? $"Auto-generated live from document {documentHeader.Number}"
-                                : $"Auto-generated from document {documentHeader.Number}";
-
                             if (documentHeader.DocumentType.IsStockIncrease)
                             {
                                 await stockMovementService.ProcessInboundMovementAsync(
@@ -997,16 +1108,22 @@ public class DocumentHeaderService(
                                 logger.LogInformation("Created immediate outbound stock movement for document row {RowId} (liveMode={LiveMode}).", row.Id, isLiveMode);
                             }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            logger.LogWarning("No storage location found in warehouse {WarehouseId} for document row {RowId}. Stock movement not created.",
-                                warehouseLocationId, row.Id);
+                            // The row has already been saved; log the stock movement failure but do not
+                            // re-throw so the caller receives the saved row DTO and the dialog closes.
+                            logger.LogError(ex, "Failed to create stock movement for document row {RowId}; the row was already persisted and the response will succeed.", row.Id);
                         }
                     }
                     else
                     {
-                        logger.LogWarning("No warehouse found for document row {RowId}. Stock movement not created.", row.Id);
+                        logger.LogWarning("No storage location found in warehouse {WarehouseId} for document row {RowId}. Stock movement not created.",
+                            warehouseLocationId, row.Id);
                     }
+                }
+                else
+                {
+                    logger.LogWarning("No warehouse found for document row {RowId}. Stock movement not created.", row.Id);
                 }
             }
 
@@ -1120,72 +1237,80 @@ public class DocumentHeaderService(
 
                             if (storageLocation is not null)
                             {
-                                if (delta > 0)
+                                try
                                 {
-                                    // Positive delta: add more stock
-                                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                                    if (delta > 0)
                                     {
-                                        await stockMovementService.ProcessInboundMovementAsync(
-                                            productId: row.ProductId!.Value,
-                                            toLocationId: storageLocation.Id,
-                                            quantity: delta,
-                                            unitCost: row.UnitPrice,
-                                            documentHeaderId: row.DocumentHeader.Id,
-                                            documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
-                                            currentUser: currentUser,
-                                            movementDate: documentDateUtc,
-                                            cancellationToken: cancellationToken);
+                                        // Positive delta: add more stock
+                                        if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                                        {
+                                            await stockMovementService.ProcessInboundMovementAsync(
+                                                productId: row.ProductId!.Value,
+                                                toLocationId: storageLocation.Id,
+                                                quantity: delta,
+                                                unitCost: row.UnitPrice,
+                                                documentHeaderId: row.DocumentHeader.Id,
+                                                documentRowId: row.Id,
+                                                notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
+                                        else
+                                        {
+                                            await stockMovementService.ProcessOutboundMovementAsync(
+                                                productId: row.ProductId!.Value,
+                                                fromLocationId: storageLocation.Id,
+                                                quantity: delta,
+                                                documentHeaderId: row.DocumentHeader.Id,
+                                                documentRowId: row.Id,
+                                                notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
                                     }
                                     else
                                     {
-                                        await stockMovementService.ProcessOutboundMovementAsync(
-                                            productId: row.ProductId!.Value,
-                                            fromLocationId: storageLocation.Id,
-                                            quantity: delta,
-                                            documentHeaderId: row.DocumentHeader.Id,
-                                            documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
-                                            currentUser: currentUser,
-                                            movementDate: documentDateUtc,
-                                            cancellationToken: cancellationToken);
+                                        // Negative delta: remove stock
+                                        var absDelta = Math.Abs(delta);
+                                        if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                                        {
+                                            await stockMovementService.ProcessOutboundMovementAsync(
+                                                productId: row.ProductId!.Value,
+                                                fromLocationId: storageLocation.Id,
+                                                quantity: absDelta,
+                                                documentHeaderId: row.DocumentHeader.Id,
+                                                documentRowId: row.Id,
+                                                notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
+                                        else
+                                        {
+                                            await stockMovementService.ProcessInboundMovementAsync(
+                                                productId: row.ProductId!.Value,
+                                                toLocationId: storageLocation.Id,
+                                                quantity: absDelta,
+                                                unitCost: row.UnitPrice,
+                                                documentHeaderId: row.DocumentHeader.Id,
+                                                documentRowId: row.Id,
+                                                notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
+                                                currentUser: currentUser,
+                                                movementDate: documentDateUtc,
+                                                cancellationToken: cancellationToken);
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    // Negative delta: remove stock
-                                    var absDelta = Math.Abs(delta);
-                                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
-                                    {
-                                        await stockMovementService.ProcessOutboundMovementAsync(
-                                            productId: row.ProductId!.Value,
-                                            fromLocationId: storageLocation.Id,
-                                            quantity: absDelta,
-                                            documentHeaderId: row.DocumentHeader.Id,
-                                            documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
-                                            currentUser: currentUser,
-                                            movementDate: documentDateUtc,
-                                            cancellationToken: cancellationToken);
-                                    }
-                                    else
-                                    {
-                                        await stockMovementService.ProcessInboundMovementAsync(
-                                            productId: row.ProductId!.Value,
-                                            toLocationId: storageLocation.Id,
-                                            quantity: absDelta,
-                                            unitCost: row.UnitPrice,
-                                            documentHeaderId: row.DocumentHeader.Id,
-                                            documentRowId: row.Id,
-                                            notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
-                                            currentUser: currentUser,
-                                            movementDate: documentDateUtc,
-                                            cancellationToken: cancellationToken);
-                                    }
-                                }
 
-                                logger.LogInformation("Created compensating stock movement for updated row {RowId} in archived document. Delta: {Delta}",
-                                    rowId, delta);
+                                    logger.LogInformation("Created compensating stock movement for updated row {RowId} in archived document. Delta: {Delta}",
+                                        rowId, delta);
+                                }
+                                catch (Exception ex)
+                                {
+                                    // Row is already saved; log the movement failure without re-throwing.
+                                    logger.LogError(ex, "Failed to create compensating stock movement for row {RowId}; the row was already persisted and the response will succeed.", rowId);
+                                }
                             }
                         }
                     }
@@ -1196,77 +1321,85 @@ public class DocumentHeaderService(
                      (row.DocumentHeader.DocumentType?.MovesStockOnRowChange ?? false) &&
                      row.ProductId.HasValue)
             {
-                // Delete all existing movements for this row, then create a fresh one
-                await stockMovementService.DeleteMovementsForRowAsync(rowId, currentUser, cancellationToken);
-
-                if (row.DocumentHeader.DocumentType is not null)
+                try
                 {
-                    var documentDateUtc = NormalizeDateToUtc(row.DocumentHeader.Date);
+                    // Delete all existing movements for this row, then create a fresh one
+                    await stockMovementService.DeleteMovementsForRowAsync(rowId, currentUser, cancellationToken);
 
-                    Guid? warehouseLocationId = null;
-                    if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                    if (row.DocumentHeader.DocumentType is not null)
                     {
-                        warehouseLocationId = row.DestinationWarehouseId
-                                           ?? row.DocumentHeader.DestinationWarehouseId
-                                           ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
-                    }
-                    else
-                    {
-                        warehouseLocationId = row.SourceWarehouseId
-                                           ?? row.DocumentHeader.SourceWarehouseId
-                                           ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
-                    }
+                        var documentDateUtc = NormalizeDateToUtc(row.DocumentHeader.Date);
 
-                    if (warehouseLocationId.HasValue)
-                    {
-                        var storageLocation = await context.StorageLocations
-                            .AsNoTracking()
-                            .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
-                            .FirstOrDefaultAsync(cancellationToken);
-
-                        if (storageLocation is not null)
+                        Guid? warehouseLocationId = null;
+                        if (row.DocumentHeader.DocumentType.IsStockIncrease)
                         {
-                            var currentQuantity = row.BaseQuantity ?? row.Quantity;
-                            if (row.DocumentHeader.DocumentType.IsStockIncrease)
-                            {
-                                await stockMovementService.ProcessInboundMovementAsync(
-                                    productId: row.ProductId!.Value,
-                                    toLocationId: storageLocation.Id,
-                                    quantity: currentQuantity,
-                                    unitCost: row.UnitPrice,
-                                    documentHeaderId: row.DocumentHeader.Id,
-                                    documentRowId: row.Id,
-                                    notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
-                                    currentUser: currentUser,
-                                    movementDate: documentDateUtc,
-                                    cancellationToken: cancellationToken);
-                            }
-                            else
-                            {
-                                await stockMovementService.ProcessOutboundMovementAsync(
-                                    productId: row.ProductId!.Value,
-                                    fromLocationId: storageLocation.Id,
-                                    quantity: currentQuantity,
-                                    documentHeaderId: row.DocumentHeader.Id,
-                                    documentRowId: row.Id,
-                                    notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
-                                    currentUser: currentUser,
-                                    movementDate: documentDateUtc,
-                                    cancellationToken: cancellationToken);
-                            }
-
-                            logger.LogInformation("Replaced stock movement for live-mode row {RowId} with new quantity {Quantity}.", rowId, currentQuantity);
+                            warehouseLocationId = row.DestinationWarehouseId
+                                               ?? row.DocumentHeader.DestinationWarehouseId
+                                               ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
                         }
                         else
                         {
-                            logger.LogWarning("No storage location found in warehouse {WarehouseId} for live-mode row {RowId}. Stock movement not replaced.",
-                                warehouseLocationId, rowId);
+                            warehouseLocationId = row.SourceWarehouseId
+                                               ?? row.DocumentHeader.SourceWarehouseId
+                                               ?? row.DocumentHeader.DocumentType.DefaultWarehouseId;
+                        }
+
+                        if (warehouseLocationId.HasValue)
+                        {
+                            var storageLocation = await context.StorageLocations
+                                .AsNoTracking()
+                                .Where(sl => sl.WarehouseId == warehouseLocationId.Value && !sl.IsDeleted)
+                                .FirstOrDefaultAsync(cancellationToken);
+
+                            if (storageLocation is not null)
+                            {
+                                var currentQuantity = row.BaseQuantity ?? row.Quantity;
+                                if (row.DocumentHeader.DocumentType.IsStockIncrease)
+                                {
+                                    await stockMovementService.ProcessInboundMovementAsync(
+                                        productId: row.ProductId!.Value,
+                                        toLocationId: storageLocation.Id,
+                                        quantity: currentQuantity,
+                                        unitCost: row.UnitPrice,
+                                        documentHeaderId: row.DocumentHeader.Id,
+                                        documentRowId: row.Id,
+                                        notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
+                                        currentUser: currentUser,
+                                        movementDate: documentDateUtc,
+                                        cancellationToken: cancellationToken);
+                                }
+                                else
+                                {
+                                    await stockMovementService.ProcessOutboundMovementAsync(
+                                        productId: row.ProductId!.Value,
+                                        fromLocationId: storageLocation.Id,
+                                        quantity: currentQuantity,
+                                        documentHeaderId: row.DocumentHeader.Id,
+                                        documentRowId: row.Id,
+                                        notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
+                                        currentUser: currentUser,
+                                        movementDate: documentDateUtc,
+                                        cancellationToken: cancellationToken);
+                                }
+
+                                logger.LogInformation("Replaced stock movement for live-mode row {RowId} with new quantity {Quantity}.", rowId, currentQuantity);
+                            }
+                            else
+                            {
+                                logger.LogWarning("No storage location found in warehouse {WarehouseId} for live-mode row {RowId}. Stock movement not replaced.",
+                                    warehouseLocationId, rowId);
+                            }
+                        }
+                        else
+                        {
+                            logger.LogWarning("No warehouse found for live-mode row {RowId}. Stock movement not replaced.", rowId);
                         }
                     }
-                    else
-                    {
-                        logger.LogWarning("No warehouse found for live-mode row {RowId}. Stock movement not replaced.", rowId);
-                    }
+                }
+                catch (Exception ex)
+                {
+                    // Row is already saved; log the movement failure without re-throwing.
+                    logger.LogError(ex, "Failed to replace stock movement for live-mode row {RowId}; the row was already persisted and the response will succeed.", rowId);
                 }
             }
 
@@ -1337,35 +1470,43 @@ public class DocumentHeaderService(
 
                         if (storageLocation is not null)
                         {
-                            // Create reverse movement to compensate for the deletion
-                            if (existingMovement.MovementType == StockMovementType.Inbound)
+                            try
                             {
-                                await stockMovementService.ProcessOutboundMovementAsync(
-                                    productId: existingMovement.ProductId,
-                                    fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
-                                    quantity: existingMovement.Quantity,
-                                    documentHeaderId: row.DocumentHeader.Id,
-                                    documentRowId: rowId,
-                                    notes: $"Compensating movement: document row deleted",
-                                    currentUser: currentUser,
-                                    movementDate: documentDateUtc,
-                                    cancellationToken: cancellationToken);
-                            }
-                            else
-                            {
-                                await stockMovementService.ProcessInboundMovementAsync(
-                                    productId: existingMovement.ProductId,
-                                    toLocationId: existingMovement.FromLocationId ?? storageLocation.Id,
-                                    quantity: existingMovement.Quantity,
-                                    documentHeaderId: row.DocumentHeader.Id,
-                                    documentRowId: rowId,
-                                    notes: $"Compensating movement: document row deleted",
-                                    currentUser: currentUser,
-                                    movementDate: documentDateUtc,
-                                    cancellationToken: cancellationToken);
-                            }
+                                // Create reverse movement to compensate for the deletion
+                                if (existingMovement.MovementType == StockMovementType.Inbound)
+                                {
+                                    await stockMovementService.ProcessOutboundMovementAsync(
+                                        productId: existingMovement.ProductId,
+                                        fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
+                                        quantity: existingMovement.Quantity,
+                                        documentHeaderId: row.DocumentHeader.Id,
+                                        documentRowId: rowId,
+                                        notes: $"Compensating movement: document row deleted",
+                                        currentUser: currentUser,
+                                        movementDate: documentDateUtc,
+                                        cancellationToken: cancellationToken);
+                                }
+                                else
+                                {
+                                    await stockMovementService.ProcessInboundMovementAsync(
+                                        productId: existingMovement.ProductId,
+                                        toLocationId: existingMovement.FromLocationId ?? storageLocation.Id,
+                                        quantity: existingMovement.Quantity,
+                                        documentHeaderId: row.DocumentHeader.Id,
+                                        documentRowId: rowId,
+                                        notes: $"Compensating movement: document row deleted",
+                                        currentUser: currentUser,
+                                        movementDate: documentDateUtc,
+                                        cancellationToken: cancellationToken);
+                                }
 
-                            logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
+                                logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Log the movement failure but do not re-throw; the row deletion will still proceed.
+                                logger.LogError(ex, "Failed to create compensating stock movement for deleted row {RowId}; deletion will still proceed.", rowId);
+                            }
                         }
                     }
                 }
@@ -1375,8 +1516,16 @@ public class DocumentHeaderService(
                      (row.DocumentHeader.DocumentType?.MovesStockOnRowChange ?? false) &&
                      row.ProductId.HasValue)
             {
-                await stockMovementService.DeleteMovementsForRowAsync(rowId, currentUser, cancellationToken);
-                logger.LogInformation("Soft-deleted stock movements for live-mode row {RowId} being deleted.", rowId);
+                try
+                {
+                    await stockMovementService.DeleteMovementsForRowAsync(rowId, currentUser, cancellationToken);
+                    logger.LogInformation("Soft-deleted stock movements for live-mode row {RowId} being deleted.", rowId);
+                }
+                catch (Exception ex)
+                {
+                    // Log the movement failure but do not re-throw; the row deletion will still proceed.
+                    logger.LogError(ex, "Failed to soft-delete stock movements for live-mode row {RowId}; deletion will still proceed.", rowId);
+                }
             }
 
             // Soft delete
