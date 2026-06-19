@@ -68,7 +68,7 @@ namespace Prym.DTOs.Documents
         /// Indicates if a stock movement is created/updated/deleted immediately on every document row change,
         /// regardless of document status. When true, CreatesStockMovements is forced to false.
         /// </summary>
-        public bool MovesStockOnRowChange { get; set; } = false;
+        public bool MovesStockOnRowChange { get; set; } = true;
 
         /// <summary>
         /// Date and time when the document type was created (UTC).

@@ -280,7 +280,7 @@
 
     private bool DocumentTypeMovesStockOnRowChange
     {
-        get => _documentType?.MovesStockOnRowChange ?? false;
+        get => _documentType?.MovesStockOnRowChange ?? true;
         set
         {
             if (_documentType != null)
@@ -334,7 +334,9 @@
                 {
                     Name = string.Empty,
                     Code = string.Empty,
-                    RequiredPartyType = BusinessPartyType.Both
+                    RequiredPartyType = BusinessPartyType.Both,
+                    MovesStockOnRowChange = true,
+                    CreatesStockMovements = false
                 };
                 _originalDocumentTypeSnapshot = SerializeDocumentType(_documentType);
             }

@@ -85,5 +85,5 @@ public class DocumentType : AuditableEntity
     /// Incompatible with <see cref="IsInventoryDocument"/>.
     /// </summary>
     [Display(Name = "Moves Stock On Row Change", Description = "Whether a stock movement is generated immediately on every add/update/delete of a document row.")]
-    public bool MovesStockOnRowChange { get; set; } = false;
+    public bool MovesStockOnRowChange { get; set; } = true;
 }

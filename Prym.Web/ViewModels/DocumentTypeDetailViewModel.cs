@@ -39,6 +39,8 @@ public class DocumentTypeDetailViewModel : BaseEntityDetailViewModel<DocumentTyp
             DefaultWarehouseId = null,
             DefaultWarehouseName = null,
             Notes = null,
+            MovesStockOnRowChange = true,
+            CreatesStockMovements = false,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = null,
             ModifiedAt = null,

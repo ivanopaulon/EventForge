@@ -45,7 +45,7 @@ namespace Prym.DTOs.Documents
         /// regardless of document status. When true, CreatesStockMovements is forced to false.
         /// Incompatible with IsInventoryDocument = true.
         /// </summary>
-        public bool MovesStockOnRowChange { get; set; } = false;
+        public bool MovesStockOnRowChange { get; set; } = true;
 
         /// <summary>
         /// Default warehouse for this document type
