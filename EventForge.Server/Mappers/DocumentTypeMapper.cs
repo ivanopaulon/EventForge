@@ -25,6 +25,7 @@ public static class DocumentTypeMapper
             Notes = documentType.Notes,
             IsInventoryDocument = documentType.IsInventoryDocument,
             CreatesStockMovements = documentType.CreatesStockMovements,
+            MovesStockOnRowChange = documentType.MovesStockOnRowChange,
             CreatedAt = documentType.CreatedAt,
             CreatedBy = documentType.CreatedBy,
             ModifiedAt = documentType.ModifiedAt,
@@ -55,7 +56,8 @@ public static class DocumentTypeMapper
             RequiredPartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)dto.RequiredPartyType,
             Notes = dto.Notes,
             IsInventoryDocument = dto.IsInventoryDocument,
-            CreatesStockMovements = dto.IsInventoryDocument ? false : dto.CreatesStockMovements
+            CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements,
+            MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange
         };
     }
 
@@ -72,6 +74,7 @@ public static class DocumentTypeMapper
         entity.RequiredPartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)dto.RequiredPartyType;
         entity.Notes = dto.Notes;
         entity.IsInventoryDocument = dto.IsInventoryDocument;
-        entity.CreatesStockMovements = dto.IsInventoryDocument ? false : dto.CreatesStockMovements;
+        entity.CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements;
+        entity.MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange;
     }
 }
