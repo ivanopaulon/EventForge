@@ -979,41 +979,34 @@ public class StockMovementService(
     /// <inheritdoc/>
     public async Task DeleteMovementsForRowAsync(Guid rowId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+        var movements = await context.StockMovements
+            .Where(sm => sm.DocumentRowId == rowId && !sm.IsDeleted && sm.TenantId == currentTenantId)
+            .ToListAsync(cancellationToken);
+
+        if (movements.Count == 0)
+            return;
+
+        foreach (var movement in movements)
         {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-
-            var movements = await context.StockMovements
-                .Where(sm => sm.DocumentRowId == rowId && !sm.IsDeleted && sm.TenantId == currentTenantId)
-                .ToListAsync(cancellationToken);
-
-            if (movements.Count == 0)
-                return;
-
-            foreach (var movement in movements)
-            {
-                movement.IsDeleted = true;
-                movement.ModifiedAt = DateTime.UtcNow;
-                movement.ModifiedBy = currentUser;
-            }
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                "StockMovement",
-                rowId,
-                "BulkDeleted",
-                "Delete",
-                null,
-                $"Soft-deleted {movements.Count} stock movement(s) for document row {rowId} (live row change)",
-                currentUser);
-
-            logger.LogInformation("Soft-deleted {Count} stock movement(s) for document row {RowId} (live row change).", movements.Count, rowId);
+            movement.IsDeleted = true;
+            movement.ModifiedAt = DateTime.UtcNow;
+            movement.ModifiedBy = currentUser;
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync(
+            "StockMovement",
+            rowId,
+            "BulkDeleted",
+            "Delete",
+            null,
+            $"Soft-deleted {movements.Count} stock movement(s) for document row {rowId} (live row change)",
+            currentUser);
+
+        logger.LogInformation("Soft-deleted {Count} stock movement(s) for document row {RowId} (live row change).", movements.Count, rowId);
     }
 
     #endregion
