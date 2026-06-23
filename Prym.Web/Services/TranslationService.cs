@@ -232,27 +232,27 @@ public class TranslationService(
 
             // Try to get translation from current language
             var translation = GetNestedValue(_translations, key);
-            if (translation is not null)
+            if (translation is string translationString && !string.IsNullOrWhiteSpace(translationString))
             {
-                var translationString = translation.ToString();
-                if (!string.IsNullOrWhiteSpace(translationString))
-                {
-                    return translationString;
-                }
+                return translationString;
+            }
+            if (translation is not null and not string)
+            {
+                logger.LogWarning("Translation key '{Key}' resolves to a non-string object ({Type}). Expected a leaf string value.", key, translation.GetType().Name);
             }
 
             // Try fallback to default language if current is not default
             if (CurrentLanguage != DEFAULT_LANGUAGE)
             {
                 var defaultTranslation = GetNestedValue(_defaultLanguageTranslations, key);
-                if (defaultTranslation is not null)
+                if (defaultTranslation is string defaultTranslationString && !string.IsNullOrWhiteSpace(defaultTranslationString))
                 {
-                    var defaultTranslationString = defaultTranslation.ToString();
-                    if (!string.IsNullOrWhiteSpace(defaultTranslationString))
-                    {
-                        LogMissingTranslation(key, CurrentLanguage, "found_in_default");
-                        return defaultTranslationString;
-                    }
+                    LogMissingTranslation(key, CurrentLanguage, "found_in_default");
+                    return defaultTranslationString;
+                }
+                if (defaultTranslation is not null and not string)
+                {
+                    logger.LogWarning("Default translation key '{Key}' resolves to a non-string object ({Type}). Expected a leaf string value.", key, defaultTranslation.GetType().Name);
                 }
             }
 

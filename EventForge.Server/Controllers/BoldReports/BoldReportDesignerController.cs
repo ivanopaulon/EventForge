@@ -110,7 +110,7 @@ public class BoldReportDesignerController(
         {
             try
             {
-                var report = Task.Run(() => reportService.GetReportAsync(reportId)).GetAwaiter().GetResult();
+            var report = reportService.GetReportAsync(reportId).GetAwaiter().GetResult();
                 if (report?.ReportContent is { Length: > 0 })
                 {
                     return new ResourceInfo
@@ -147,7 +147,7 @@ public class BoldReportDesignerController(
         try
         {
             var rdlcContent = System.Text.Encoding.UTF8.GetString(itemContent.Data);
-            var saved = Task.Run(() => reportService.SaveReportContentAsync(reportId, rdlcContent))
+            var saved = reportService.SaveReportContentAsync(reportId, rdlcContent)
                             .GetAwaiter().GetResult();
 
             if (!saved)
