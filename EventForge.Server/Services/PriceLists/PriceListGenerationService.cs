@@ -1101,16 +1101,11 @@ public class PriceListGenerationService(
             }
 
             // Count source entries BEFORE adding the new price list
-            var sourceEntriesCount = sourcePriceList.ProductPrices?.Count(pp => !pp.IsDeleted) ?? 0;
-
-            // If the navigation property is empty, do a direct query (can happen with in-memory DB in tests)
-            if (sourceEntriesCount == 0)
-            {
-                sourceEntriesCount = await context.PriceListEntries
-                    .AsNoTracking()
-                    .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
-                    .CountAsync(cancellationToken);
-            }
+            var sourceEntriesCount = await context.PriceListEntries
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
+                .CountAsync(cancellationToken);
 
             // 2. Genera codice se non fornito
             var newCode = dto.Code ?? await GenerateUniquePriceListCodeAsync(

@@ -113,6 +113,8 @@ public class PriceListBusinessPartyService(
 
             // Soft delete
             assignment.IsDeleted = true;
+            assignment.DeletedAt = DateTime.UtcNow;
+            assignment.DeletedBy = currentUser;
             assignment.ModifiedAt = DateTime.UtcNow;
             assignment.ModifiedBy = currentUser;
             assignment.Status = PriceListBusinessPartyStatus.Deleted;

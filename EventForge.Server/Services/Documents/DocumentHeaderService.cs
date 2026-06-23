@@ -817,7 +817,13 @@ public class DocumentHeaderService(
                     .FirstOrDefaultAsync(r =>
                         r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
-                        !r.IsDeleted,
+                        !r.IsDeleted &&
+                        (r.UnitOfMeasureId != createDto.UnitOfMeasureId || (
+                            r.UnitPrice == createDto.UnitPrice &&
+                            r.VatRate == createDto.VatRate &&
+                            r.LineDiscount == createDto.LineDiscount &&
+                            r.DiscountType == createDto.DiscountType
+                        )),
                         cancellationToken);
 
                 if (existingRow is not null)
