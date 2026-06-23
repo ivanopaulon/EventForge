@@ -818,6 +818,12 @@ public class DocumentHeaderService(
                     .FirstOrDefaultAsync(r =>
                         r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
+                        (baseUnitPrice.HasValue
+                            ? r.BaseUnitPrice == baseUnitPrice
+                            : r.UnitPrice == createDto.UnitPrice) &&
+                        r.VatRate == createDto.VatRate &&
+                        r.LineDiscount == createDto.LineDiscount &&
+                        r.DiscountType == createDto.DiscountType &&
                         !r.IsDeleted,
                         cancellationToken);
 
@@ -1500,7 +1506,7 @@ public class DocumentHeaderService(
                                         cancellationToken: cancellationToken);
                                 }
 
-                                logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
+                                logger.LogInformation("Created compensating stock movement for deleted row {RowId} in archived document.", rowId);
                             }
                             catch (Exception ex)
                             {

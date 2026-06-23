@@ -1517,8 +1517,7 @@
   "status": {
     "active": "Attivo",
     "inactive": "Inattivo",
-    "open": "Aperto",
-    "closed": "Chiuso",
+    "archived": "Archiviato",
     "cancelled": "Annullato"
   },
   "success": {
@@ -2566,18 +2565,13 @@
     "total": "Totale",
     "totalAmount": "Totale Documento",
     "product": "Prodotto",
-    "approve": "Approva",
     "errorLoadingTypes": "Errore durante il caricamento dei tipi di documento",
     "errorLoading": "Errore durante il caricamento dei documenti",
     "createSuccess": "Documento creato con successo",
     "updateSuccess": "Documento aggiornato con successo",
     "deleteSuccess": "Documento eliminato con successo",
-    "approveSuccess": "Documento approvato con successo",
-    "closeSuccess": "Documento chiuso con successo",
     "saveError": "Errore durante il salvataggio del documento",
     "deleteError": "Errore durante l'eliminazione del documento",
-    "approveError": "Errore durante l'approvazione del documento",
-    "closeError": "Errore durante la chiusura del documento",
     "confirmDelete": "Conferma Eliminazione",
     "confirmDeleteMessage": "Sei sicuro di voler eliminare questo documento?",
     "confirmDeleteRow": "Conferma Eliminazione",
@@ -2589,17 +2583,24 @@
     "rowAddedError": "Errore durante l'aggiunta della riga",
     "fromDate": "Da Data",
     "toDate": "A Data",
-    "status": "Stato Documento",
+    "status": {
+      "active": "Attivo",
+      "archived": "Archiviato"
+    },
+    "changeStatus": "Cambia stato",
+    "statusTransition": {
+      "active": "Riattiva",
+      "archived": "Archivia"
+    },
+    "statusChangeSuccess": "Stato documento aggiornato con successo",
+    "statusChangeError": "Errore durante il cambio di stato",
+    "bulkArchiveSuccess": "Archiviazione massiva completata",
+    "archiveSelected": "Archivia selezionati",
+    "readOnlyDueToStatus": "Documento in sola lettura — stato:",
     "statusUpdated": "Stato documento aggiornato",
     "statusUpdateError": "Errore nell'aggiornamento dello stato",
-    "statusClosedSuccess": "Documento chiuso con successo",
-    "cannotEditClosed": "Impossibile modificare un documento chiuso o annullato",
+    "cannotEditClosed": "Impossibile modificare un documento archiviato",
     "cannotModifyRows": "Impossibile modificare righe di un documento chiuso",
-    "documentStatus": {
-      "open": "Aperto",
-      "closed": "Chiuso",
-      "cancelled": "Annullato"
-    },
     "mergeDuplicates": "Somma quantità se articolo già presente",
     "mergeDuplicatesHelp": "Quando attivo, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di creare una nuova riga",
     "mergeDuplicatesDisabledHelp": "Seleziona un prodotto dall'autocomplete per abilitare la fusione",
