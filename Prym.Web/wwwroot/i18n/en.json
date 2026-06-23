@@ -2520,7 +2520,7 @@
     "statusUpdated": "Document status updated",
     "statusUpdateError": "Error updating document status",
     "cannotEditClosed": "Cannot edit an archived document",
-    "cannotModifyRows": "Cannot modify rows of a closed document",
+    "cannotModifyRows": "Cannot modify rows of an archived document",
     "mergeDuplicates": "Sum quantity if item already present",
     "mergeDuplicatesHelp": "When enabled, if you add the same product multiple times, the quantity will be summed to the existing row instead of creating a new one",
     "mergeDuplicatesDisabledHelp": "Select a product from autocomplete to enable merging",

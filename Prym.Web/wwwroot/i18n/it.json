@@ -2600,7 +2600,7 @@
     "statusUpdated": "Stato documento aggiornato",
     "statusUpdateError": "Errore nell'aggiornamento dello stato",
     "cannotEditClosed": "Impossibile modificare un documento archiviato",
-    "cannotModifyRows": "Impossibile modificare righe di un documento chiuso",
+    "cannotModifyRows": "Impossibile modificare righe di un documento archiviato",
     "mergeDuplicates": "Somma quantità se articolo già presente",
     "mergeDuplicatesHelp": "Quando attivo, se aggiungi lo stesso prodotto più volte, la quantità verrà sommata alla riga esistente invece di creare una nuova riga",
     "mergeDuplicatesDisabledHelp": "Seleziona un prodotto dall'autocomplete per abilitare la fusione",
