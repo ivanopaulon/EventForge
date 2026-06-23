@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Store;
 
@@ -88,6 +89,20 @@ public class StoreUser : AuditableEntity
     /// Photo document navigation property.
     /// </summary>
     public DocumentReference? PhotoDocument { get; set; }
+
+    [NotMapped]
+    public Guid? ImageDocumentId
+    {
+        get => PhotoDocumentId;
+        set => PhotoDocumentId = value;
+    }
+
+    [NotMapped]
+    public DocumentReference? ImageDocument
+    {
+        get => PhotoDocument;
+        set => PhotoDocument = value;
+    }
 
     /// <summary>
     /// Indicates if the operator has given consent for photo storage (GDPR compliance).

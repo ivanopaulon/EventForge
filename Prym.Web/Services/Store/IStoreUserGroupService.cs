@@ -1,5 +1,7 @@
 using Prym.DTOs.Common;
 using Prym.DTOs.Store;
+using Prym.DTOs.Teams;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace Prym.Web.Services.Store;
 
@@ -37,4 +39,8 @@ public interface IStoreUserGroupService
     /// Gets store user groups with pagination.
     /// </summary>
     Task<PagedResult<StoreUserGroupDto>> GetPagedAsync(int page = 1, int pageSize = 20, CancellationToken ct = default);
+
+    Task<StoreUserGroupDto?> UploadImageAsync(Guid id, IBrowserFile file, CancellationToken ct = default);
+    Task<DocumentReferenceDto?> GetImageAsync(Guid id, CancellationToken ct = default);
+    Task<bool> DeleteImageAsync(Guid id, CancellationToken ct = default);
 }

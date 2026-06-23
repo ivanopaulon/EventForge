@@ -56,6 +56,17 @@ public class NotificationServiceTests : IDisposable
         _testTenantId = Guid.NewGuid();
         _testUserId = Guid.NewGuid();
 
+        // Seed test tenant
+        _context.Tenants.Add(new Tenant
+        {
+            Id = _testTenantId,
+            Name = "Test Tenant",
+            Code = "TEST",
+            DisplayName = "Test Tenant",
+            ContactEmail = "tenant@example.com",
+            CreatedAt = DateTime.UtcNow
+        });
+
         // Seed test user
         _context.Users.Add(new User
         {

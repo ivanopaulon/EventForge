@@ -56,6 +56,17 @@ public class StoreUserPrivilege : AuditableEntity
     [Display(Name = "Groups", Description = "Groups that have this privilege.")]
     public ICollection<StoreUserGroup> Groups { get; set; } = new List<StoreUserGroup>();
 
+    /// <summary>
+    /// Icon/image document identifier (references DocumentReference).
+    /// </summary>
+    [Display(Name = "Image Document", Description = "Privilege icon document identifier.")]
+    public Guid? ImageDocumentId { get; set; }
+
+    /// <summary>
+    /// Icon/image document navigation property.
+    /// </summary>
+    public DocumentReference? ImageDocument { get; set; }
+
     // --- Issue #315: Permission System Fields ---
 
     /// <summary>

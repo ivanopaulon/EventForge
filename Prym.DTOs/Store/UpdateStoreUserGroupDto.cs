@@ -47,5 +47,9 @@ namespace Prym.DTOs.Store
         [RegularExpression(@"^#([A-Fa-f0-9]{6})$", ErrorMessage = "Invalid color format. Use #RRGGBB format.")]
         [Display(Name = "Color Hex", Description = "Brand color in hexadecimal format (e.g., #FF5733).")]
         public string? ColorHex { get; set; }
+
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
     }
 }

@@ -47,6 +47,10 @@ namespace Prym.DTOs.Store
         /// </summary>
         public int GroupCount { get; set; }
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
         // --- Issue #315: Permission System Fields ---
 
         /// <summary>

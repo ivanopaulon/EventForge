@@ -1,6 +1,8 @@
 using Prym.DTOs.Common;
 using Prym.DTOs.Store;
+using Prym.DTOs.Teams;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace Prym.Web.Services.Store;
 
@@ -151,6 +153,72 @@ public class StoreUserGroupService(
         {
             logger.LogError(ex, "Error deleting store user group {Id}", id);
             throw new InvalidOperationException("Errore nell'eliminazione del gruppo.", ex);
+        }
+    }
+
+    public async Task<StoreUserGroupDto?> UploadImageAsync(Guid id, IBrowserFile file, CancellationToken ct = default)
+    {
+        try
+        {
+            const long maxFileSize = 5 * 1024 * 1024;
+            using var content = new MultipartFormDataContent();
+            using var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+
+            var response = await httpClient.PostAsync($"{ApiBase}/{id}/logo", content, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "immagine gruppo", logger);
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return await response.Content.ReadFromJsonAsync<StoreUserGroupDto>(cancellationToken: ct);
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error uploading image for store user group {Id}", id);
+            throw new InvalidOperationException("Errore nel caricamento dell'immagine gruppo.", ex);
+        }
+    }
+
+    public async Task<DocumentReferenceDto?> GetImageAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClient.GetFromJsonAsync<DocumentReferenceDto>($"{ApiBase}/{id}/logo", ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task<bool> DeleteImageAsync(Guid id, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.DeleteAsync($"{ApiBase}/{id}/logo", ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "immagine gruppo", logger);
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting image for store user group {Id}", id);
+            throw new InvalidOperationException("Errore nella rimozione dell'immagine gruppo.", ex);
         }
     }
 }

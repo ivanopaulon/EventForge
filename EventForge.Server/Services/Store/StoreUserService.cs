@@ -185,6 +185,7 @@ public class StoreUserService(
                 Status = (EventForge.Server.Data.Entities.Store.CashierStatus)createStoreUserDto.Status,
                 Notes = createStoreUserDto.Notes,
                 CashierGroupId = createStoreUserDto.CashierGroupId,
+                PhotoDocumentId = createStoreUserDto.ImageDocumentId,
                 // Issue #315: Extended Fields
                 PhotoConsent = createStoreUserDto.PhotoConsent,
                 PhoneNumber = createStoreUserDto.PhoneNumber,
@@ -248,6 +249,7 @@ public class StoreUserService(
             storeUser.Status = (EventForge.Server.Data.Entities.Store.CashierStatus)updateStoreUserDto.Status;
             storeUser.Notes = updateStoreUserDto.Notes;
             storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
+            storeUser.PhotoDocumentId = updateStoreUserDto.ImageDocumentId;
             // Issue #315: Extended Fields
             storeUser.PhoneNumber = updateStoreUserDto.PhoneNumber;
             storeUser.DateOfBirth = updateStoreUserDto.DateOfBirth;
@@ -451,6 +453,7 @@ public class StoreUserService(
                 Name = createStoreUserGroupDto.Name,
                 Description = createStoreUserGroupDto.Description,
                 Status = (EventForge.Server.Data.Entities.Store.CashierGroupStatus)createStoreUserGroupDto.Status,
+                LogoDocumentId = createStoreUserGroupDto.ImageDocumentId,
                 // Issue #315: Branding Fields
                 ColorHex = createStoreUserGroupDto.ColorHex,
                 IsSystemGroup = createStoreUserGroupDto.IsSystemGroup,
@@ -511,6 +514,7 @@ public class StoreUserService(
             storeUserGroup.Name = updateStoreUserGroupDto.Name;
             storeUserGroup.Description = updateStoreUserGroupDto.Description;
             storeUserGroup.Status = (EventForge.Server.Data.Entities.Store.CashierGroupStatus)updateStoreUserGroupDto.Status;
+            storeUserGroup.LogoDocumentId = updateStoreUserGroupDto.ImageDocumentId;
             // Issue #315: Branding Fields
             storeUserGroup.ColorHex = updateStoreUserGroupDto.ColorHex;
             storeUserGroup.ModifiedAt = DateTime.UtcNow;
@@ -629,6 +633,7 @@ public class StoreUserService(
 
             var query = context.StoreUserPrivileges
                 .AsNoTracking()
+                .Include(sup => sup.ImageDocument)
                 .Where(sup => !sup.IsDeleted && sup.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
@@ -675,6 +680,7 @@ public class StoreUserService(
 
             var storeUserPrivilege = await context.StoreUserPrivileges
                 .AsNoTracking()
+                .Include(sup => sup.ImageDocument)
                 .Where(sup => sup.Id == id && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -708,6 +714,7 @@ public class StoreUserService(
 
             var storeUserPrivileges = await context.StoreUserPrivileges
                 .AsNoTracking()
+                .Include(sup => sup.ImageDocument)
                 .Where(sup => sup.Groups.Any(g => g.Id == groupId) && !sup.IsDeleted && sup.TenantId == currentTenantId.Value)
                 .OrderBy(sup => sup.SortOrder)
                 .ThenBy(sup => sup.Name)
@@ -756,6 +763,7 @@ public class StoreUserService(
                 Resource = createStoreUserPrivilegeDto.Resource,
                 Action = createStoreUserPrivilegeDto.Action,
                 PermissionKey = createStoreUserPrivilegeDto.PermissionKey,
+                ImageDocumentId = createStoreUserPrivilegeDto.ImageDocumentId,
                 CreatedBy = currentUser,
                 ModifiedBy = currentUser
             };
@@ -818,6 +826,7 @@ public class StoreUserService(
             storeUserPrivilege.Resource = updateStoreUserPrivilegeDto.Resource;
             storeUserPrivilege.Action = updateStoreUserPrivilegeDto.Action;
             storeUserPrivilege.PermissionKey = updateStoreUserPrivilegeDto.PermissionKey;
+            storeUserPrivilege.ImageDocumentId = updateStoreUserPrivilegeDto.ImageDocumentId;
             storeUserPrivilege.ModifiedAt = DateTime.UtcNow;
             storeUserPrivilege.ModifiedBy = currentUser;
 
@@ -974,6 +983,9 @@ public class StoreUserService(
             PhotoDocumentId = storeUser.PhotoDocumentId,
             PhotoUrl = storeUser.PhotoDocument?.StorageKey,
             PhotoThumbnailUrl = storeUser.PhotoDocument?.ThumbnailStorageKey,
+            ImageDocumentId = storeUser.PhotoDocumentId,
+            ImageUrl = storeUser.PhotoDocument?.Url ?? storeUser.PhotoDocument?.StorageKey,
+            ImageThumbnailUrl = storeUser.PhotoDocument?.ThumbnailStorageKey,
             PhotoConsent = storeUser.PhotoConsent,
             DateOfBirth = storeUser.DateOfBirth,
             PhotoConsentAt = storeUser.PhotoConsentAt,
@@ -1005,6 +1017,9 @@ public class StoreUserService(
             LogoDocumentId = storeUserGroup.LogoDocumentId,
             LogoUrl = storeUserGroup.LogoDocument?.StorageKey,
             LogoThumbnailUrl = storeUserGroup.LogoDocument?.ThumbnailStorageKey,
+            ImageDocumentId = storeUserGroup.LogoDocumentId,
+            ImageUrl = storeUserGroup.LogoDocument?.Url ?? storeUserGroup.LogoDocument?.StorageKey,
+            ImageThumbnailUrl = storeUserGroup.LogoDocument?.ThumbnailStorageKey,
             ColorHex = storeUserGroup.ColorHex,
             IsSystemGroup = storeUserGroup.IsSystemGroup,
             IsDefault = storeUserGroup.IsDefault,
@@ -1027,6 +1042,8 @@ public class StoreUserService(
             Status = (Prym.DTOs.Common.CashierPrivilegeStatus)storeUserPrivilege.Status,
             SortOrder = storeUserPrivilege.SortOrder,
             GroupCount = groupCount,
+            ImageDocumentId = storeUserPrivilege.ImageDocumentId,
+            ImageUrl = storeUserPrivilege.ImageDocument?.Url ?? storeUserPrivilege.ImageDocument?.StorageKey,
             // Issue #315: Permission System Fields
             IsSystemPrivilege = storeUserPrivilege.IsSystemPrivilege,
             DefaultAssigned = storeUserPrivilege.DefaultAssigned,
@@ -1137,6 +1154,7 @@ public class StoreUserService(
                 LocationLongitude = createStorePosDto.LocationLongitude,
                 CurrencyCode = createStorePosDto.CurrencyCode,
                 TimeZone = createStorePosDto.TimeZone,
+                ImageDocumentId = createStorePosDto.ImageDocumentId,
                 DefaultFiscalPrinterId = createStorePosDto.DefaultFiscalPrinterId,
                 CashierGroupId = createStorePosDto.CashierGroupId,
                 DefaultPaymentTerminalId = createStorePosDto.DefaultPaymentTerminalId,
@@ -1185,6 +1203,7 @@ public class StoreUserService(
             storePos.TerminalIdentifier = updateStorePosDto.TerminalIdentifier;
             storePos.IPAddress = updateStorePosDto.IPAddress;
             storePos.IsOnline = updateStorePosDto.IsOnline;
+            storePos.ImageDocumentId = updateStorePosDto.ImageDocumentId;
             storePos.DefaultFiscalPrinterId = updateStorePosDto.DefaultFiscalPrinterId;
             storePos.CashierGroupId = updateStorePosDto.CashierGroupId;
             storePos.DefaultPaymentTerminalId = updateStorePosDto.DefaultPaymentTerminalId;
@@ -1252,7 +1271,6 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
-                .AsNoTracking()
                 .Include(su => su.PhotoDocument)
                 .Include(su => su.CashierGroup)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
@@ -1356,7 +1374,6 @@ public class StoreUserService(
             }
 
             var storeUser = await context.StoreUsers
-                .AsNoTracking()
                 .Include(su => su.PhotoDocument)
                 .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1432,7 +1449,6 @@ public class StoreUserService(
             }
 
             var group = await context.StoreUserGroups
-                .AsNoTracking()
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1536,7 +1552,6 @@ public class StoreUserService(
             }
 
             var group = await context.StoreUserGroups
-                .AsNoTracking()
                 .Include(g => g.LogoDocument)
                 .FirstOrDefaultAsync(g => g.Id == groupId && !g.IsDeleted && g.TenantId == currentTenantId.Value, cancellationToken);
 
@@ -1612,8 +1627,10 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
-                .AsNoTracking()
                 .Include(sp => sp.ImageDocument)
+                .Include(sp => sp.CashierGroup)
+                .Include(sp => sp.DefaultFiscalPrinter)
+                .Include(sp => sp.DefaultPaymentTerminal)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
             if (storePos is null)
@@ -1709,7 +1726,6 @@ public class StoreUserService(
             }
 
             var storePos = await context.StorePoses
-                .AsNoTracking()
                 .Include(sp => sp.ImageDocument)
                 .FirstOrDefaultAsync(sp => sp.Id == storePosId && !sp.IsDeleted && sp.TenantId == currentTenantId.Value, cancellationToken);
 
