@@ -1,0 +1,47 @@
+@using Prym.DTOs.Common
+
+<MudDialog>
+    <DialogContent>
+        @if (AvailableNodes.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text">
+                @TranslationService.GetTranslation("businessParty.noAvailableCategories", "Non ci sono categorie disponibili da assegnare.")
+            </MudAlert>
+        }
+        else
+        {
+            <MudList T="ClassificationNodeDto" @bind-SelectedValue="_selected" Dense="true" Clickable="true">
+                @foreach (var node in AvailableNodes)
+                {
+                    <MudListItem T="ClassificationNodeDto" Value="@node">
+                        <MudText>@(node.Code != null ? $"{node.Code} – {node.Name}" : node.Name)</MudText>
+                        @if (node.Description != null)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@node.Description</MudText>
+                        }
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("action.cancel", "Annulla")</MudButton>
+        <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                    OnClick="Confirm"
+                    Disabled="@(_selected == null)">
+            @TranslationService.GetTranslation("action.assign", "Assegna")
+        </PrymButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<ClassificationNodeDto> AvailableNodes { get; set; } = new();
+    [Inject] private ITranslationService TranslationService { get; set; } = null!;
+
+    private ClassificationNodeDto? _selected;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_selected));
+}

@@ -67,6 +67,9 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<PaymentTerm> PaymentTerms { get; set; }
     public DbSet<BusinessPartyGroup> BusinessPartyGroups { get; set; }
     public DbSet<BusinessPartyGroupMember> BusinessPartyGroupMembers { get; set; }
+    public DbSet<FidelityCard> FidelityCards { get; set; }
+    public DbSet<FidelityPointsTransaction> FidelityPointsTransactions { get; set; }
+    public DbSet<BusinessPartyClassification> BusinessPartyClassifications { get; set; }
 
     // Document Entities
     public DbSet<DocumentType> DocumentTypes { get; set; }
@@ -228,6 +231,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureGlobalQueryFilters(modelBuilder);
         ConfigureDocumentRelationships(modelBuilder);
         ConfigureProductAndPriceListRelationships(modelBuilder);
+        ConfigureBusinessRelationships(modelBuilder);
         ConfigureAlertRelationships(modelBuilder);
         ConfigureStoreAndTeamRelationships(modelBuilder);
         ConfigureWarehouseAndSalesRelationships(modelBuilder);

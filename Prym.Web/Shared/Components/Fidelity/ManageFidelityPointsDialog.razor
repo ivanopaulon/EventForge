@@ -1,4 +1,4 @@
-@using Prym.Web.Models.Fidelity
+@using Prym.DTOs.Business.Fidelity
 @inject ILogger<ManageFidelityPointsDialog> Logger
 @inject IAppNotificationService AppNotification
 
@@ -7,16 +7,6 @@
           IsProcessing="@_isProcessing"
           OnClose="Cancel">
     <ChildContent>
-        
-        <!-- Alert Modalità Demo -->
-        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                <MudIcon Icon="@Icons.Material.Outlined.Info" />
-                <MudText Typo="Typo.body2" Class="fw-semibold">
-                    MODALITÀ DEMO - I dati verranno persi al refresh della pagina
-                </MudText>
-            </MudStack>
-        </MudAlert>
         
         <!-- Informazioni Card -->
         <MudPaper Outlined="true" Class="pa-3 mb-4">
@@ -106,7 +96,7 @@
     private IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter, EditorRequired]
-    public FidelityCardViewModel Card { get; set; } = null!;
+    public FidelityCardDto Card { get; set; } = null!;
     
     private MudForm _form = null!;
     private bool _isValid;

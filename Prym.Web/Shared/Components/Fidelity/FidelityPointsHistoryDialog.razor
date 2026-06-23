@@ -1,20 +1,10 @@
-@using Prym.Web.Models.Fidelity
+@using Prym.DTOs.Business.Fidelity
 
 <EFDialog Icon="@Icons.Material.Outlined.History"
           Title="@($"Storico Punti - Card {Card.Type}")"
           IsProcessing="false"
           OnClose="Close">
     <ChildContent>
-        
-        <!-- Alert Modalità Demo -->
-        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                <MudIcon Icon="@Icons.Material.Outlined.Info" />
-                <MudText Typo="Typo.body2" Class="fw-semibold">
-                    MODALITÀ DEMO - I dati verranno persi al refresh della pagina
-                </MudText>
-            </MudStack>
-        </MudAlert>
         
         <!-- Informazioni Card -->
         <MudPaper Outlined="true" Class="pa-3 mb-4">
@@ -30,8 +20,8 @@
         
         @if (Transactions != null && Transactions.Any())
         {
-            <EFTable TItem="FidelityPointsTransactionViewModel"
-                     Items="@Transactions"
+            <EFTable TItem="FidelityPointsTransactionDto"
+                     Items="@_orderedTransactions"
                      Dense="true"
                      Hover="true"
                      Striped="true"
@@ -56,20 +46,20 @@
                     <MudTd DataLabel="Tipo">
                         <MudChip T="string"
                                  Size="Size.Small"
-                                 Color="@GetTransactionTypeColor(t.Type)"
-                                 Icon="@GetTransactionTypeIcon(t.Type)">
-                            @GetTransactionTypeText(t.Type)
+                                 Color="@GetTransactionTypeColor(t.TransactionType)"
+                                 Icon="@GetTransactionTypeIcon(t.TransactionType)">
+                            @GetTransactionTypeText(t.TransactionType)
                         </MudChip>
                     </MudTd>
                     <MudTd DataLabel="Punti" >
                         <MudText Typo="Typo.body2"
-                                 Color="@(t.Points > 0 ? Color.Success : Color.Warning)"
+                                 Color="@(GetSignedPoints(t) > 0 ? Color.Success : Color.Warning)"
                                   Class="fw-semibold">
-                            @(t.Points > 0 ? "+" : "")@t.Points
+                            @(GetSignedPoints(t) > 0 ? "+" : "")@GetSignedPoints(t)
                         </MudText>
                     </MudTd>
                     <MudTd DataLabel="Saldo Dopo" >
-                        <MudText Typo="Typo.body2" Class="fw-medium">@t.BalanceAfter</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-medium">@GetBalanceAfter(t)</MudText>
                     </MudTd>
                     <MudTd DataLabel="Descrizione">
                         <MudText Typo="Typo.body2">@t.Description</MudText>
@@ -97,55 +87,81 @@
     private IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter, EditorRequired]
-    public FidelityCardViewModel Card { get; set; } = null!;
+    public FidelityCardDto Card { get; set; } = null!;
     
     [Parameter]
-    public IEnumerable<FidelityPointsTransactionViewModel>? Transactions { get; set; }
+    public IEnumerable<FidelityPointsTransactionDto>? Transactions { get; set; }
 
     private readonly List<EFTableColumnConfiguration> _transactionColumns = new()
     {
         new() { PropertyName = "TransactionDate", DisplayName = "Data",        Order = 0 },
-        new() { PropertyName = "Type",            DisplayName = "Tipo",        Order = 1 },
+        new() { PropertyName = "TransactionType", DisplayName = "Tipo",        Order = 1 },
         new() { PropertyName = "Points",          DisplayName = "Punti",       Order = 2 },
-        new() { PropertyName = "BalanceAfter",    DisplayName = "Saldo Dopo",  Order = 3 },
         new() { PropertyName = "Description",     DisplayName = "Descrizione", Order = 4 },
     };
+
+    private List<FidelityPointsTransactionDto> _orderedTransactions = [];
+    private readonly Dictionary<Guid, int> _balanceAfter = [];
     
-    private Color GetTransactionTypeColor(TransactionType type)
+    protected override void OnParametersSet()
+    {
+        _orderedTransactions = (Transactions ?? [])
+            .OrderByDescending(t => t.TransactionDate)
+            .ThenByDescending(t => t.CreatedAt)
+            .ToList();
+
+        _balanceAfter.Clear();
+        var runningBalance = Card.CurrentPoints;
+
+        foreach (var transaction in _orderedTransactions)
+        {
+            _balanceAfter[transaction.Id] = runningBalance;
+            runningBalance -= GetSignedPoints(transaction);
+        }
+    }
+
+    private Color GetTransactionTypeColor(FidelityTransactionType type)
     {
         return type switch
         {
-            TransactionType.Earned => Color.Success,
-            TransactionType.Redeemed => Color.Warning,
-            TransactionType.Adjusted => Color.Info,
-            TransactionType.Expired => Color.Error,
+            FidelityTransactionType.Earned => Color.Success,
+            FidelityTransactionType.Redeemed => Color.Warning,
+            FidelityTransactionType.Adjustment => Color.Info,
             _ => Color.Default
         };
     }
     
-    private string GetTransactionTypeIcon(TransactionType type)
+    private string GetTransactionTypeIcon(FidelityTransactionType type)
     {
         return type switch
         {
-            TransactionType.Earned => Icons.Material.Outlined.Add,
-            TransactionType.Redeemed => Icons.Material.Outlined.Remove,
-            TransactionType.Adjusted => Icons.Material.Outlined.Edit,
-            TransactionType.Expired => Icons.Material.Outlined.Warning,
+            FidelityTransactionType.Earned => Icons.Material.Outlined.Add,
+            FidelityTransactionType.Redeemed => Icons.Material.Outlined.Remove,
+            FidelityTransactionType.Adjustment => Icons.Material.Outlined.Edit,
             _ => Icons.Material.Outlined.Circle
         };
     }
     
-    private string GetTransactionTypeText(TransactionType type)
+    private string GetTransactionTypeText(FidelityTransactionType type)
     {
         return type switch
         {
-            TransactionType.Earned => "Guadagnati",
-            TransactionType.Redeemed => "Riscattati",
-            TransactionType.Adjusted => "Aggiustati",
-            TransactionType.Expired => "Scaduti",
+            FidelityTransactionType.Earned => "Guadagnati",
+            FidelityTransactionType.Redeemed => "Riscattati",
+            FidelityTransactionType.Adjustment => "Aggiustati",
             _ => "Sconosciuto"
         };
     }
+
+    private int GetSignedPoints(FidelityPointsTransactionDto transaction) =>
+        transaction.TransactionType switch
+        {
+            FidelityTransactionType.Redeemed => -transaction.Points,
+            _ => transaction.Points
+        };
+
+    private int GetBalanceAfter(FidelityPointsTransactionDto transaction) =>
+        _balanceAfter.TryGetValue(transaction.Id, out var balance) ? balance : 0;
     
     private void Close() => MudDialog.Close();
 }

@@ -236,6 +236,7 @@ builder.Services.AddScoped<ILogManagementService, LogManagementService>();
 builder.Services.AddScoped<IEntityManagementService, EntityManagementService>();
 builder.Services.AddScoped<IFinancialService, FinancialService>();
 builder.Services.AddScoped<IBusinessPartyService, BusinessPartyService>();
+builder.Services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
 builder.Services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
 builder.Services.AddScoped<ILicenseService, LicenseService>();
 
@@ -252,8 +253,7 @@ builder.Services.AddScoped<Prym.Web.Services.Sales.ITableManagementService, Prym
 // Fiscal printing services
 builder.Services.AddScoped<IFiscalPrintingService, FiscalPrintingService>();
 
-// Add Mock services (client-side only, no backend)
-builder.Services.AddSingleton<Prym.Web.Services.Mock.IMockFidelityService, Prym.Web.Services.Mock.MockFidelityService>();
+builder.Services.AddScoped<IFidelityService, FidelityService>();
 
 // Register authenticated HTTP client handler for Store services
 builder.Services.AddTransient<Prym.Web.Services.Store.AuthenticatedHttpClientHandler>();

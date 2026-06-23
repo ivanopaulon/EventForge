@@ -1,4 +1,4 @@
-@using Prym.Web.Models.Fidelity
+@using Prym.DTOs.Business.Fidelity
 @inject ILogger<EditFidelityCardDialog> Logger
 @inject IAppNotificationService AppNotification
 
@@ -7,16 +7,6 @@
           IsProcessing="@_isProcessing"
           OnClose="Cancel">
     <ChildContent>
-        
-        <!-- Alert Modalità Demo -->
-        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                <MudIcon Icon="@Icons.Material.Outlined.Info" />
-                <MudText Typo="Typo.body2" Class="fw-semibold">
-                    MODALITÀ DEMO - I dati verranno persi al refresh della pagina
-                </MudText>
-            </MudStack>
-        </MudAlert>
         
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
@@ -129,7 +119,7 @@
     private IMudDialogInstance MudDialog { get; set; } = null!;
     
     [Parameter, EditorRequired]
-    public FidelityCardViewModel Card { get; set; } = null!;
+    public FidelityCardDto Card { get; set; } = null!;
     
     private MudForm _form = null!;
     private bool _isValid;
@@ -164,16 +154,18 @@
         {
             _isProcessing = true;
             
-            // Update card properties
-            Card.Type = _type;
-            Card.ValidFrom = _validFrom ?? Card.ValidFrom;
-            Card.ValidTo = _validTo ?? Card.ValidTo;
-            Card.DiscountPercentage = _discountPercentage;
-            Card.HasPriorityAccess = _hasPriorityAccess;
-            Card.HasBirthdayBonus = _hasBirthdayBonus;
-            Card.Notes = _notes;
-            
-            MudDialog.Close(DialogResult.Ok(Card));
+            var updateCard = new UpdateFidelityCardDto
+            {
+                Type = _type,
+                ValidFrom = _validFrom ?? Card.ValidFrom,
+                ValidTo = _validTo ?? Card.ValidTo,
+                DiscountPercentage = _discountPercentage,
+                HasPriorityAccess = _hasPriorityAccess,
+                HasBirthdayBonus = _hasBirthdayBonus,
+                Notes = _notes
+            };
+
+            MudDialog.Close(DialogResult.Ok(updateCard));
         }
         catch (Exception ex)
         {

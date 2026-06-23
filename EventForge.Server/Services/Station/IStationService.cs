@@ -116,4 +116,12 @@ public interface IStationService
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> StationExistsAsync(Guid stationId, CancellationToken cancellationToken = default);
+
+    // Order Queue Operations
+
+    Task<IEnumerable<StationOrderQueueItemDto>> GetQueueItemsByStationAsync(Guid stationId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<StationOrderQueueItemDto>> GetActiveQueueItemsAsync(Guid stationId, CancellationToken cancellationToken = default);
+    Task<StationOrderQueueItemDto> CreateQueueItemAsync(CreateStationOrderQueueItemDto dto, string currentUser, CancellationToken cancellationToken = default);
+    Task<StationOrderQueueItemDto?> UpdateQueueItemStatusAsync(Guid id, StationOrderQueueStatus status, string currentUser, CancellationToken cancellationToken = default);
+    Task<bool> DeleteQueueItemAsync(Guid id, string currentUser, CancellationToken cancellationToken = default);
 }

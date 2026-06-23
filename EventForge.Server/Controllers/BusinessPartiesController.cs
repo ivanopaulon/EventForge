@@ -950,4 +950,98 @@ public class BusinessPartiesController(
     }
 
     #endregion
+
+    #region Classification Endpoints
+
+    /// <summary>Gets all classification nodes assigned to a business party.</summary>
+    [HttpGet("{id:guid}/classifications")]
+    [ProducesResponseType(typeof(IEnumerable<ClassificationNodeDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<ClassificationNodeDto>>> GetBusinessPartyClassifications(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await businessPartyService.GetBusinessPartyClassificationsAsync(id, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("Error retrieving business party classifications.", ex);
+        }
+    }
+
+    /// <summary>Assigns a classification node to a business party.</summary>
+    [HttpPost("{id:guid}/classifications/{nodeId:guid}")]
+    [ProducesResponseType(typeof(ClassificationNodeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ClassificationNodeDto>> AssignClassification(
+        Guid id,
+        Guid nodeId,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await businessPartyService.AssignClassificationAsync(id, nodeId, currentUser, cancellationToken);
+            if (result is null)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Classification node not found.",
+                    Detail = $"Node {nodeId} does not exist."
+                });
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("Error assigning classification.", ex);
+        }
+    }
+
+    /// <summary>Removes a classification node from a business party.</summary>
+    [HttpDelete("{id:guid}/classifications/{nodeId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> RemoveClassification(
+        Guid id,
+        Guid nodeId,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var deleted = await businessPartyService.RemoveClassificationAsync(id, nodeId, currentUser, cancellationToken);
+            if (!deleted)
+            {
+                return NotFound(new ProblemDetails
+                {
+                    Title = "Classification not found.",
+                    Detail = $"No active classification with node {nodeId} found for business party {id}."
+                });
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("Error removing classification.", ex);
+        }
+    }
+
+    #endregion
 }

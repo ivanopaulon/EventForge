@@ -125,6 +125,11 @@ public class BusinessParty : AuditableEntity
     /// </summary>
     [Display(Name = "Group Memberships", Description = "Gruppi di appartenenza")]
     public ICollection<BusinessPartyGroupMember> GroupMemberships { get; set; } = new List<BusinessPartyGroupMember>();
+
+    /// <summary>
+    /// Classification nodes assigned to this business party.
+    /// </summary>
+    public ICollection<BusinessPartyClassification> Classifications { get; set; } = new List<BusinessPartyClassification>();
 }
 
 /// <summary>

@@ -1,10 +1,15 @@
 @using Prym.DTOs.Business
+@using Prym.DTOs.Common
 @using Prym.DTOs.External
+@using Prym.Web.Shared.Components.Dialogs.Business
 @using Prym.Web.Services.External
 @using Prym.Web.Shared.Components.Common
+@inject IDialogService DialogService
 @inject ITranslationService TranslationService
 @inject IVatLookupService VatLookupService
 @inject IEntityManagementService EntityManagementService
+@inject IBusinessPartyService BusinessPartyService
+@inject IClassificationNodeService ClassificationNodeService
 @inject IAppNotificationService AppNotification
 @inject ILogger<GeneralInfoTab> Logger
 
@@ -207,7 +212,7 @@
         </MudPaper>
     </MudItem>
     
-    <!-- ========== SEZIONE 3: CATEGORIE/TAG (PLACEHOLDER) ========== -->
+    <!-- ========== SEZIONE 3: CATEGORIE/TAG ========== -->
     <MudItem xs="12">
         <MudPaper Elevation="1" Class="pa-4">
             <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
@@ -215,26 +220,53 @@
                     <MudIcon Icon="@Icons.Material.Outlined.Category" Class="mr-2" />
                     @TranslationService.GetTranslation("businessParty.categories", "Categorie e Tag")
                 </MudText>
-                <MudTooltip Text="@TranslationService.GetTranslation("info.featureInDevelopment", "Funzionalità in sviluppo")">
-                    <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Outlined.Edit"
-                               Disabled="true">
-                        @TranslationService.GetTranslation("action.manageCategories", "Gestisci Categorie")
-                    </PrymButton>
-                </MudTooltip>
+                <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
+                            Size="Size.Small"
+                            StartIcon="@Icons.Material.Outlined.Add"
+                            OnClick="@OpenAssignClassificationDialogAsync"
+                            Disabled="@(!IsEditMode || IsNewParty || Party.Id == Guid.Empty)">
+                    @TranslationService.GetTranslation("action.assignCategory", "Assegna Categoria")
+                </PrymButton>
             </MudStack>
-            
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense>
-                <MudStack Spacing="1">
-                    <MudText Typo="Typo.body2" Class="fw-semibold">
-                        🚧 @TranslationService.GetTranslation("info.featureInDesign", "Funzionalità in Fase di Progettazione")
-                    </MudText>
+
+            @if (_isLoadingClassifications)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_classifications.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Dense Variant="Variant.Text">
                     <MudText Typo="Typo.body2">
-                        @TranslationService.GetTranslation("businessParty.categoriesPlaceholder", "La classificazione dei business party tramite categorie gerarchiche sarà disponibile prossimamente. Permetterà di organizzare clienti e fornitori in tassonomie personalizzate.")
+                        @TranslationService.GetTranslation("businessParty.noCategories", "Nessuna categoria assegnata.")
                     </MudText>
+                </MudAlert>
+            }
+            else
+            {
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                    @foreach (var node in _classifications)
+                    {
+                        @if (IsEditMode)
+                        {
+                            <MudChip T="string"
+                                     Text="@(node.Code != null ? $"{node.Code} – {node.Name}" : node.Name)"
+                                     Icon="@Icons.Material.Outlined.Label"
+                                     Color="Color.Primary"
+                                     Size="Size.Small"
+                                     OnClose="@(() => RemoveClassificationAsync(node.Id))"
+                                     CloseIcon="@Icons.Material.Outlined.Close" />
+                        }
+                        else
+                        {
+                            <MudChip T="string"
+                                     Text="@(node.Code != null ? $"{node.Code} – {node.Name}" : node.Name)"
+                                     Icon="@Icons.Material.Outlined.Label"
+                                     Color="Color.Primary"
+                                     Size="Size.Small" />
+                        }
+                    }
                 </MudStack>
-            </MudAlert>
+            }
         </MudPaper>
     </MudItem>
 
@@ -266,10 +298,119 @@
     // VAT lookup fields
     private bool _isLookingUp = false;
     private VatLookupResultDto? _lookupResult;
+    private List<ClassificationNodeDto> _classifications = new();
+    private bool _isLoadingClassifications = false;
+    private Guid? _loadedClassificationsForPartyId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        if (Party.Id == Guid.Empty)
+        {
+            _loadedClassificationsForPartyId = null;
+            _classifications.Clear();
+            _isLoadingClassifications = false;
+            return;
+        }
+
+        if (_loadedClassificationsForPartyId != Party.Id)
+        {
+            _loadedClassificationsForPartyId = Party.Id;
+            await LoadClassificationsAsync();
+        }
+    }
 
     private async Task NotifyUpdated()
     {
         await OnPartyUpdated.InvokeAsync();
+    }
+
+    private async Task LoadClassificationsAsync()
+    {
+        if (Party.Id == Guid.Empty)
+        {
+            _classifications.Clear();
+            return;
+        }
+
+        _isLoadingClassifications = true;
+        try
+        {
+            var result = await BusinessPartyService.GetBusinessPartyClassificationsAsync(Party.Id);
+            _classifications = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading classifications for business party {Id}", Party.Id);
+        }
+        finally
+        {
+            _isLoadingClassifications = false;
+        }
+    }
+
+    private async Task OpenAssignClassificationDialogAsync()
+    {
+        if (Party.Id == Guid.Empty)
+        {
+            return;
+        }
+
+        var availableNodes = (await ClassificationNodeService.GetAllAsync(ClassificationApplicableTo.BusinessParties))
+            .Concat(await ClassificationNodeService.GetAllAsync(ClassificationApplicableTo.Both))
+            .Concat(await ClassificationNodeService.GetAllAsync(ClassificationApplicableTo.All))
+            .GroupBy(n => n.Id)
+            .Select(g => g.First())
+            .Where(n => !_classifications.Any(c => c.Id == n.Id))
+            .OrderBy(n => n.Name)
+            .ToList();
+
+        if (availableNodes.Count == 0)
+        {
+            AppNotification.ShowInfo(TranslationService.GetTranslation("businessParty.noAvailableCategories", "Non ci sono categorie disponibili da assegnare."));
+            return;
+        }
+
+        var parameters = new DialogParameters<AssignClassificationDialog>
+        {
+            { x => x.AvailableNodes, availableNodes }
+        };
+
+        var dialog = await DialogService.ShowAsync<AssignClassificationDialog>(
+            TranslationService.GetTranslation("action.assignCategory", "Assegna Categoria"),
+            parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is ClassificationNodeDto selected)
+        {
+            try
+            {
+                await BusinessPartyService.AssignClassificationAsync(Party.Id, selected.Id);
+                await LoadClassificationsAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("businessParty.categoryAssigned", "Categoria assegnata con successo."));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error assigning classification");
+                AppNotification.ShowError(TranslationService.GetTranslation("error.generic", "Errore durante l'operazione."));
+            }
+        }
+    }
+
+    private async Task RemoveClassificationAsync(Guid nodeId)
+    {
+        try
+        {
+            await BusinessPartyService.RemoveClassificationAsync(Party.Id, nodeId);
+            await LoadClassificationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing classification {NodeId}", nodeId);
+            AppNotification.ShowError(TranslationService.GetTranslation("error.generic", "Errore durante l'operazione."));
+        }
     }
 
     private async Task LookupVatAsync()

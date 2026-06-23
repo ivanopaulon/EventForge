@@ -1,4 +1,5 @@
 using Prym.DTOs.Business;
+using Prym.DTOs.Common;
 
 namespace EventForge.Server.Services.Business;
 
@@ -202,4 +203,15 @@ public interface IBusinessPartyService
     Task<IEnumerable<Prym.DTOs.Export.BusinessPartyExportDto>> GetBusinessPartiesForExportAsync(
         PaginationParameters pagination,
         CancellationToken ct = default);
+
+    // Classification operations
+
+    /// <summary>Gets all classifications assigned to a business party.</summary>
+    Task<IEnumerable<ClassificationNodeDto>> GetBusinessPartyClassificationsAsync(Guid businessPartyId, CancellationToken cancellationToken = default);
+
+    /// <summary>Assigns a classification node to a business party.</summary>
+    Task<ClassificationNodeDto?> AssignClassificationAsync(Guid businessPartyId, Guid classificationNodeId, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>Removes a classification node from a business party.</summary>
+    Task<bool> RemoveClassificationAsync(Guid businessPartyId, Guid classificationNodeId, string currentUser, CancellationToken cancellationToken = default);
 }
