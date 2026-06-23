@@ -1,6 +1,7 @@
 @using Prym.DTOs.Store
 @using Prym.DTOs.Station
 @using Prym.DTOs.PaymentTerminal
+@using Microsoft.AspNetCore.Components.Forms
 @using Prym.Web.ViewModels
 @using Prym.Web.Services.Station
 @using Prym.Web.Services.Store
@@ -10,6 +11,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<PosDetailDialog> Logger
 @inject IStationService StationService
+@inject IStorePosService PosService
 @inject IStoreUserGroupService UserGroupService
 @inject IAppNotificationService AppNotification
 @inject IPaymentTerminalService PaymentTerminalService
@@ -59,6 +61,60 @@
                             </MudChip>
                         </div>
                         <MudDivider Class="mb-3" />
+
+                        <MudPaper Elevation="0" Class="pa-4 mb-4">
+                            <MudText Typo="Typo.subtitle1" Class="mb-3">
+                                <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
+                                @TranslationService.GetTranslation("store.posImage", "Immagine")
+                            </MudText>
+
+                            @if (!string.IsNullOrWhiteSpace(ViewModel.Entity.ImageThumbnailUrl ?? ViewModel.Entity.ImageUrl))
+                            {
+                                <MudImage Src="@(ViewModel.Entity.ImageThumbnailUrl ?? ViewModel.Entity.ImageUrl)"
+                                          Alt="@ViewModel.Entity.Name"
+                                          Class="mb-3"
+                                          Style="height:160px; width:160px; object-fit:cover; border-radius:8px;" />
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                                    @TranslationService.GetTranslation("store.noPosImage", "Nessuna immagine caricata")
+                                </MudAlert>
+                            }
+
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+                                <MudFileUpload T="IBrowserFile" Accept="image/*" @bind-Files="_selectedImage" MaximumFileCount="1">
+                                    <CustomContent Context="fileUpload">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.CloudUpload"
+                                                   Disabled="_isUploadingImage"
+                                                   OnClick="@fileUpload.OpenFilePickerAsync">
+                                            @TranslationService.GetTranslation("common.select", "Seleziona")
+                                        </MudButton>
+                                    </CustomContent>
+                                </MudFileUpload>
+
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Success"
+                                           StartIcon="@Icons.Material.Filled.Upload"
+                                           Disabled="_isUploadingImage || _selectedImage == null"
+                                           OnClick="UploadImageAsync">
+                                    @TranslationService.GetTranslation("common.upload", "Carica")
+                                </MudButton>
+
+                                @if (ViewModel.Entity.ImageDocumentId.HasValue)
+                                {
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Error"
+                                               StartIcon="@Icons.Material.Filled.Delete"
+                                               Disabled="_isUploadingImage"
+                                               OnClick="RemoveImageAsync">
+                                        @TranslationService.GetTranslation("common.remove", "Rimuovi")
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        </MudPaper>
                     }
 
                     <MudForm @ref="_form" Model="@ViewModel.Entity">
@@ -618,6 +674,8 @@
     private string _newGroupCode = string.Empty;
     private string _newGroupName = string.Empty;
     private string _newGroupDescription = string.Empty;
+    private IBrowserFile? _selectedImage;
+    private bool _isUploadingImage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -698,6 +756,62 @@
         ViewModel.Entity.CashierGroupId = group.Id;
         ViewModel.Entity.CashierGroupName = group.Name;
         HandleEntityChanged();
+    }
+
+    private async Task UploadImageAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.Entity.Id == Guid.Empty || _selectedImage == null)
+        {
+            return;
+        }
+
+        _isUploadingImage = true;
+        try
+        {
+            var updated = await PosService.UploadImageAsync(ViewModel.Entity.Id, _selectedImage);
+            if (updated != null)
+            {
+                await ViewModel.ReloadEntityAsync();
+                _selectedImage = null;
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("store.posImageUploaded", "Immagine caricata con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading POS image");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isUploadingImage = false;
+        }
+    }
+
+    private async Task RemoveImageAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.Entity.Id == Guid.Empty)
+        {
+            return;
+        }
+
+        _isUploadingImage = true;
+        try
+        {
+            if (await PosService.DeleteImageAsync(ViewModel.Entity.Id))
+            {
+                await ViewModel.ReloadEntityAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("store.posImageRemoved", "Immagine rimossa con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing POS image");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isUploadingImage = false;
+        }
     }
 
     private async Task SaveNewPrinterAsync()

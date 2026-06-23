@@ -85,5 +85,9 @@ namespace Prym.DTOs.Store
         [MaxLength(200, ErrorMessage = "The permission key cannot exceed 200 characters.")]
         [Display(Name = "Permission Key", Description = "Unique permission key (e.g., store.users.manage).")]
         public string? PermissionKey { get; set; }
+
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
     }
 }

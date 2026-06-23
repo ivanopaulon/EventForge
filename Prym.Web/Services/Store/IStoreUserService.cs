@@ -1,5 +1,7 @@
 using Prym.DTOs.Common;
 using Prym.DTOs.Store;
+using Prym.DTOs.Teams;
+using Microsoft.AspNetCore.Components.Forms;
 
 namespace Prym.Web.Services.Store;
 
@@ -47,4 +49,8 @@ public interface IStoreUserService
     /// Gets all store operators that have a date of birth set. Used for birthday tracking.
     /// </summary>
     Task<IEnumerable<StoreUserDto>> GetWithBirthdayAsync(CancellationToken ct = default);
+
+    Task<StoreUserDto?> UploadImageAsync(Guid id, IBrowserFile file, CancellationToken ct = default);
+    Task<DocumentReferenceDto?> GetImageAsync(Guid id, CancellationToken ct = default);
+    Task<bool> DeleteImageAsync(Guid id, CancellationToken ct = default);
 }

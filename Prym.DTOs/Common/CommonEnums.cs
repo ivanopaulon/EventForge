@@ -140,9 +140,12 @@ namespace Prym.DTOs.Common
     /// </summary>
     public enum PriceListStatus
     {
-        Active,     // Price list is active and usable
-        Suspended,  // Temporarily suspended
-        Deleted     // Price list is deleted/disabled
+        Draft = 0,      // Draft, not yet applied
+        Active = 1,     // Price list is active and usable
+        Suspended = 2,  // Temporarily suspended
+        Expired = 3,    // Expired (ValidTo passed)
+        Archived = 4,   // Archived
+        Deleted = 5     // Price list is deleted/disabled
     }
 
     /// <summary>

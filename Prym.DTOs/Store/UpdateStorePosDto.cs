@@ -67,6 +67,10 @@ namespace Prym.DTOs.Store
         [Display(Name = "Is Online", Description = "POS is currently online.")]
         public bool IsOnline { get; set; } = false;
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
         /// <summary>
         /// Default fiscal printer assigned to this POS.
         /// </summary>

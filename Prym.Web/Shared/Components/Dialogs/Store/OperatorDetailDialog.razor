@@ -1,8 +1,11 @@
 @using Prym.DTOs.Store
+@using Microsoft.AspNetCore.Components.Forms
+@using Prym.Web.Services.Store
 @using Prym.Web.ViewModels
 @attribute [Authorize]
 @inject OperatorDetailViewModel ViewModel
 @inject IDialogService DialogService
+@inject IStoreUserService StoreUserService
 @inject ITranslationService TranslationService
 @inject ILogger<OperatorDetailDialog> Logger
 @inject IAppNotificationService AppNotification
@@ -56,6 +59,63 @@
                             }
                         </div>
                         <MudDivider Class="mb-3" />
+                    }
+
+                    @if (!ViewModel.IsNewEntity)
+                    {
+                       <MudPaper Elevation="0" Class="pa-4 mb-4">
+                           <MudText Typo="Typo.subtitle1" Class="mb-3">
+                               <MudIcon Icon="@Icons.Material.Outlined.Image" Class="mr-2" />
+                               @TranslationService.GetTranslation("store.operatorImage", "Immagine")
+                           </MudText>
+
+                           @if (!string.IsNullOrWhiteSpace(ViewModel.Entity.ImageThumbnailUrl ?? ViewModel.Entity.ImageUrl ?? ViewModel.Entity.PhotoUrl))
+                           {
+                               <MudImage Src="@(ViewModel.Entity.ImageThumbnailUrl ?? ViewModel.Entity.ImageUrl ?? ViewModel.Entity.PhotoUrl)"
+                                         Alt="@ViewModel.Entity.Name"
+                                         Class="mb-3"
+                                         Style="height:160px; width:160px; object-fit:cover; border-radius:8px;" />
+                           }
+                           else
+                           {
+                               <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                                   @TranslationService.GetTranslation("store.noOperatorImage", "Nessuna immagine caricata")
+                               </MudAlert>
+                           }
+
+                           <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
+                               <MudFileUpload T="IBrowserFile" Accept="image/*" @bind-Files="_selectedImage" MaximumFileCount="1">
+                                   <CustomContent Context="fileUpload">
+                                       <MudButton Variant="Variant.Filled"
+                                                  Color="Color.Primary"
+                                                  StartIcon="@Icons.Material.Filled.CloudUpload"
+                                                  Disabled="_isUploadingImage"
+                                                  OnClick="@fileUpload.OpenFilePickerAsync">
+                                           @TranslationService.GetTranslation("common.select", "Seleziona")
+                                       </MudButton>
+                                   </CustomContent>
+                               </MudFileUpload>
+
+                               <MudButton Variant="Variant.Filled"
+                                          Color="Color.Success"
+                                          StartIcon="@Icons.Material.Filled.Upload"
+                                          Disabled="_isUploadingImage || _selectedImage == null"
+                                          OnClick="UploadImageAsync">
+                                   @TranslationService.GetTranslation("common.upload", "Carica")
+                               </MudButton>
+
+                               @if (ViewModel.Entity.ImageDocumentId.HasValue || ViewModel.Entity.PhotoDocumentId.HasValue)
+                               {
+                                   <MudButton Variant="Variant.Filled"
+                                              Color="Color.Error"
+                                              StartIcon="@Icons.Material.Filled.Delete"
+                                              Disabled="_isUploadingImage"
+                                              OnClick="RemoveImageAsync">
+                                       @TranslationService.GetTranslation("common.remove", "Rimuovi")
+                                   </MudButton>
+                               }
+                           </MudStack>
+                       </MudPaper>
                     }
 
                     <MudForm @ref="_form" Model="@ViewModel.Entity">
@@ -185,6 +245,8 @@
     [Parameter] public Guid? EntityId { get; set; }
 
     private MudForm? _form;
+    private IBrowserFile? _selectedImage;
+    private bool _isUploadingImage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -202,6 +264,68 @@
     private void HandleEntityChanged()
     {
         ViewModel.NotifyEntityChanged();
+    }
+
+    private async Task UploadImageAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.Entity.Id == Guid.Empty || _selectedImage == null)
+        {
+            return;
+        }
+
+        if (!ViewModel.Entity.PhotoConsent)
+        {
+            AppNotification.ShowWarning(TranslationService.GetTranslation("store.photoConsentRequired", "Serve il consenso foto per caricare un'immagine."));
+            return;
+        }
+
+        _isUploadingImage = true;
+        try
+        {
+            var updated = await StoreUserService.UploadImageAsync(ViewModel.Entity.Id, _selectedImage);
+            if (updated != null)
+            {
+                await ViewModel.ReloadEntityAsync();
+                _selectedImage = null;
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("store.operatorImageUploaded", "Immagine caricata con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading operator image.");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isUploadingImage = false;
+        }
+    }
+
+    private async Task RemoveImageAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.Entity.Id == Guid.Empty)
+        {
+            return;
+        }
+
+        _isUploadingImage = true;
+        try
+        {
+            if (await StoreUserService.DeleteImageAsync(ViewModel.Entity.Id))
+            {
+                await ViewModel.ReloadEntityAsync();
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("store.operatorImageRemoved", "Immagine rimossa con successo"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing operator image.");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isUploadingImage = false;
+        }
     }
 
     private async Task SaveAsync()

@@ -1187,13 +1187,17 @@ public class BusinessPartyService(
                 .AsNoTracking()
                 .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && a.TenantId == currentTenantId.Value);
 
-            var allContacts = await (includeInactive
-                ? contactsQuery.ToListAsync(cancellationToken)
-                : contactsQuery.Where(c => !c.IsDeleted).ToListAsync(cancellationToken));
+            var allContacts = includeInactive
+                ? await context.Contacts.AsNoTracking().IgnoreQueryFilters()
+                    .Where(c => c.OwnerType == "BusinessParty" && c.OwnerId == id && c.TenantId == currentTenantId.Value)
+                    .ToListAsync(cancellationToken)
+                : await contactsQuery.Where(c => !c.IsDeleted).ToListAsync(cancellationToken);
 
-            var allAddresses = await (includeInactive
-                ? addressesQuery.ToListAsync(cancellationToken)
-                : addressesQuery.Where(a => !a.IsDeleted).ToListAsync(cancellationToken));
+            var allAddresses = includeInactive
+                ? await context.Addresses.AsNoTracking().IgnoreQueryFilters()
+                    .Where(a => a.OwnerType == "BusinessParty" && a.OwnerId == id && a.TenantId == currentTenantId.Value)
+                    .ToListAsync(cancellationToken)
+                : await addressesQuery.Where(a => !a.IsDeleted).ToListAsync(cancellationToken);
 
             // Filter contacts and addresses based on includeInactive parameter
             var filteredContacts = allContacts;

@@ -815,17 +815,20 @@ public class DocumentHeaderService(
             // Check if we should merge with an existing IDENTICAL row
             if (createDto.MergeDuplicateProducts && createDto.ProductId.HasValue)
             {
+                // Merge rules:
+                // - Different UOM rows always merge (unit conversion case; quantities are summed in base units).
+                // - Same UOM rows merge only when UnitPrice, VatRate, LineDiscount, and DiscountType all match.
                 var existingRow = await context.DocumentRows
                     .FirstOrDefaultAsync(r =>
                         r.DocumentHeaderId == createDto.DocumentHeaderId &&
                         r.ProductId == createDto.ProductId &&
-                        (baseUnitPrice.HasValue
-                            ? r.BaseUnitPrice == baseUnitPrice
-                            : r.UnitPrice == createDto.UnitPrice) &&
-                        r.VatRate == createDto.VatRate &&
-                        r.LineDiscount == createDto.LineDiscount &&
-                        r.DiscountType == createDto.DiscountType &&
-                        !r.IsDeleted,
+                        !r.IsDeleted &&
+                        (r.UnitOfMeasureId != createDto.UnitOfMeasureId || (
+                            r.UnitPrice == createDto.UnitPrice &&
+                            r.VatRate == createDto.VatRate &&
+                            r.LineDiscount == createDto.LineDiscount &&
+                            r.DiscountType == createDto.DiscountType
+                        )),
                         cancellationToken);
 
                 if (existingRow is not null)

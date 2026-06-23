@@ -89,6 +89,10 @@ namespace Prym.DTOs.Store
         [Display(Name = "Time Zone", Description = "IANA time zone (e.g., Europe/Rome).")]
         public string? TimeZone { get; set; }
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
         /// <summary>
         /// Default fiscal printer assigned to this POS.
         /// </summary>

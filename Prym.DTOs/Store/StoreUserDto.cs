@@ -74,6 +74,12 @@ namespace Prym.DTOs.Store
         /// </summary>
         public string? PhotoThumbnailUrl { get; set; }
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
+        public string? ImageThumbnailUrl { get; set; }
+
         /// <summary>
         /// Indicates if the operator has given consent for photo storage (GDPR compliance).
         /// </summary>
