@@ -48,6 +48,10 @@ namespace Prym.DTOs.Store
         [Display(Name = "Color Hex", Description = "Brand color in hexadecimal format (e.g., #FF5733).")]
         public string? ColorHex { get; set; }
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
         /// <summary>
         /// Indicates if this is a system-defined group (cannot be deleted).
         /// </summary>

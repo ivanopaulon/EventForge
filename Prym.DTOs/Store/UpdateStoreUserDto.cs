@@ -67,6 +67,10 @@ namespace Prym.DTOs.Store
         [Display(Name = "Date of Birth", Description = "Date of birth of the store operator.")]
         public DateTime? DateOfBirth { get; set; }
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
         // Note: Removed fields that should not be updatable:
         // - Username: Should be immutable after creation for security/audit reasons
         // - PasswordHash: Should be handled through dedicated password change endpoints

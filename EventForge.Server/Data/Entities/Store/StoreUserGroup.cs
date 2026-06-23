@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EventForge.Server.Data.Entities.Store;
 
@@ -61,6 +62,20 @@ public class StoreUserGroup : AuditableEntity
     /// Logo document navigation property.
     /// </summary>
     public DocumentReference? LogoDocument { get; set; }
+
+    [NotMapped]
+    public Guid? ImageDocumentId
+    {
+        get => LogoDocumentId;
+        set => LogoDocumentId = value;
+    }
+
+    [NotMapped]
+    public DocumentReference? ImageDocument
+    {
+        get => LogoDocument;
+        set => LogoDocument = value;
+    }
 
     /// <summary>
     /// Brand color in hexadecimal format (e.g., #FF5733).

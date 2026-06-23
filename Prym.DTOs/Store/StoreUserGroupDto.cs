@@ -59,6 +59,12 @@ namespace Prym.DTOs.Store
         /// </summary>
         public string? LogoThumbnailUrl { get; set; }
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
+        public string? ImageThumbnailUrl { get; set; }
+
         /// <summary>
         /// Brand color in hexadecimal format (e.g., #FF5733).
         /// </summary>

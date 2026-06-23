@@ -19,7 +19,7 @@ public partial class EventForgeDbContext
             .HasOne(u => u.PhotoDocument)
             .WithMany()
             .HasForeignKey(u => u.PhotoDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
         _ = modelBuilder.Entity<StoreUser>().HasIndex(u => u.PhotoDocumentId).HasDatabaseName("IX_StoreUser_PhotoDocumentId");
 
@@ -27,7 +27,7 @@ public partial class EventForgeDbContext
             .HasOne(g => g.LogoDocument)
             .WithMany()
             .HasForeignKey(g => g.LogoDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
         _ = modelBuilder.Entity<StoreUserGroup>().HasIndex(g => g.LogoDocumentId).HasDatabaseName("IX_StoreUserGroup_LogoDocumentId");
 
@@ -35,9 +35,17 @@ public partial class EventForgeDbContext
             .HasOne(p => p.ImageDocument)
             .WithMany()
             .HasForeignKey(p => p.ImageDocumentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.SetNull);
 
         _ = modelBuilder.Entity<StorePos>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_StorePos_ImageDocumentId");
+
+        _ = modelBuilder.Entity<StoreUserPrivilege>()
+            .HasOne(p => p.ImageDocument)
+            .WithMany()
+            .HasForeignKey(p => p.ImageDocumentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        _ = modelBuilder.Entity<StoreUserPrivilege>().HasIndex(p => p.ImageDocumentId).HasDatabaseName("IX_StoreUserPrivilege_ImageDocumentId");
 
         _ = modelBuilder.Entity<StorePos>()
             .HasOne(p => p.DefaultFiscalPrinter)

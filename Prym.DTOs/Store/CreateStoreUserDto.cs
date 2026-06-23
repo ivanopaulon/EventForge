@@ -75,6 +75,10 @@ namespace Prym.DTOs.Store
         [Display(Name = "Photo Consent", Description = "Photo storage consent (GDPR).")]
         public bool PhotoConsent { get; set; } = false;
 
+        public Guid? ImageDocumentId { get; set; }
+
+        public string? ImageUrl { get; set; }
+
         /// <summary>
         /// Phone number of the operator.
         /// </summary>
