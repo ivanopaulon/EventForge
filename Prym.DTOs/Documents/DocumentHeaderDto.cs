@@ -249,9 +249,9 @@ namespace Prym.DTOs.Documents
         public decimal TotalDiscountAmount { get; set; }
 
         /// <summary>
-        /// Date and time when the document was closed.
+        /// Date and time when the document was archived.
         /// </summary>
-        public DateTime? ClosedAt { get; set; }
+        public DateTime? ArchivedAt { get; set; }
 
         /// <summary>
         /// Document status.

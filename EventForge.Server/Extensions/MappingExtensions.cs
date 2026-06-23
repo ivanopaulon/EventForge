@@ -73,7 +73,7 @@ public static class MappingExtensions
             DestinationWarehouseName = entity.DestinationWarehouse?.Name,
             IsFiscal = entity.IsFiscal,
             IsProforma = entity.IsProforma,
-            ClosedAt = entity.ClosedAt,
+            ArchivedAt = entity.ArchivedAt,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
             ModifiedAt = entity.ModifiedAt,

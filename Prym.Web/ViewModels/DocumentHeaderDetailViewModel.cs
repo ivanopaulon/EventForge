@@ -81,7 +81,7 @@ public class DocumentHeaderDetailViewModel : BaseEntityDetailViewModel<DocumentH
             PaymentReference = null,
             TotalDiscount = 0m,
             TotalDiscountAmount = 0m,
-            ClosedAt = null,
+            ArchivedAt = null,
             Status = DocumentStatus.Active,
             ReferenceDocumentId = null,
             Notes = null,
