@@ -488,6 +488,7 @@ public class DocumentHeaderService(
             }
 
             documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Archived;
+            documentHeader.ArchivedAt = DateTime.UtcNow;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 

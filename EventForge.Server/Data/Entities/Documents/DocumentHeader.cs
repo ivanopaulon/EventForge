@@ -195,9 +195,9 @@ public class DocumentHeader : AuditableEntity
     [Display(Name = "Total Discount Amount", Description = "Overall discount amount on the document (absolute value).")]
     public decimal TotalDiscountAmount { get; set; } = 0m;
 
-    // --- Status and closure ---
-    [Display(Name = "Closed At", Description = "Date and time when the document was closed.")]
-    public DateTime? ClosedAt { get; set; }
+    // --- Status and archiving ---
+    [Display(Name = "Archived At", Description = "Date and time when the document was archived.")]
+    public DateTime? ArchivedAt { get; set; }
 
     [Display(Name = "Status", Description = "Document status.")]
     public DocumentStatus Status { get; set; } = DocumentStatus.Active;
