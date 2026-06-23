@@ -18,7 +18,7 @@ BEGIN
         [ValidTo]            datetime2(7)     NOT NULL,
         [CurrentPoints]      int              NOT NULL DEFAULT 0,
         [TotalPointsEarned]  int              NOT NULL DEFAULT 0,
-        [TotalPointsRedeemed]int              NOT NULL DEFAULT 0,
+        [TotalPointsRedeemed] int             NOT NULL DEFAULT 0,
         [DiscountPercentage] decimal(5,2)     NOT NULL DEFAULT 0,
         [HasPriorityAccess]  bit              NOT NULL DEFAULT 0,
         [HasBirthdayBonus]   bit              NOT NULL DEFAULT 0,
