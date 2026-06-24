@@ -35,6 +35,13 @@ public static class DocumentRowDialogConstants
         /// Maximum number of recent scans to keep in continuous scan mode
         /// </summary>
         public const int MaxRecentScans = 20;
+
+        /// <summary>
+        /// Page size used when paginating warehouses and storage locations
+        /// in the logistics selectors. A dedicated constant ensures all
+        /// load methods stay in sync if the value needs to be tuned.
+        /// </summary>
+        public const int LogisticsPickerPageSize = 100;
     }
 
     /// <summary>

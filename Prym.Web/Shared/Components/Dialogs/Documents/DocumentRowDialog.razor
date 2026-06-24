@@ -300,6 +300,18 @@
                                 </MudTooltip>
                             }
 
+                            <!-- PriceNotes: visible when price is manually overridden -->
+                            @if (_model.IsPriceManual)
+                            {
+                                <PrymTextField @bind-Value="_model.PriceNotes"
+                                               Label="@TranslationService.GetTranslation("documents.priceNotes", "Motivazione prezzo manuale")"
+                                               MaxLength="500"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.StickyNote2"
+                                               AdornmentColor="Color.Warning"
+                                               HelperText="@TranslationService.GetTranslation("documents.priceNotesHelper", "Annotare il motivo della modifica manuale del prezzo (facoltativo)")" />
+                            }
+
                             <!-- Discounts -->
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
@@ -391,6 +403,71 @@
                                     <MudIcon Icon="@Icons.Material.Outlined.CardGiftcard" Size="Size.Small" Color="Color.Secondary" Class="ml-1" />
                                 </MudTooltip>
                             </MudStack>
+
+                            <!-- Magazzino & Logistica -->
+                            <MudGrid Spacing="2">
+                                <MudItem xs="12" sm="6">
+                                    <PrymSelect T="Guid?" @bind-Value="_model.SourceWarehouseId"
+                                               Label="@TranslationService.GetTranslation("documents.sourceWarehouse", "Magazzino origine")"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                                               AdornmentColor="Color.Secondary"
+                                               Clearable="true"
+                                               HelperText="@(_state.DocumentHeader?.SourceWarehouseName != null ? TranslationService.GetTranslation("documents.headerDefault", "Default da documento: ") + _state.DocumentHeader.SourceWarehouseName : "")">
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.none", "— nessuno —")</MudSelectItem>
+                                        @foreach (var wh in _allWarehouses)
+                                        {
+                                            <MudSelectItem T="Guid?" Value="@wh.Id">@wh.Name (@wh.Code)</MudSelectItem>
+                                        }
+                                    </PrymSelect>
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <PrymSelect T="Guid?" @bind-Value="_model.DestinationWarehouseId"
+                                               Label="@TranslationService.GetTranslation("documents.destinationWarehouse", "Magazzino destinazione")"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.Warehouse"
+                                               AdornmentColor="Color.Secondary"
+                                               Clearable="true"
+                                               HelperText="@(_state.DocumentHeader?.DestinationWarehouseName != null ? TranslationService.GetTranslation("documents.headerDefault", "Default da documento: ") + _state.DocumentHeader.DestinationWarehouseName : "")">
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.none", "— nessuno —")</MudSelectItem>
+                                        @foreach (var wh in _allWarehouses)
+                                        {
+                                            <MudSelectItem T="Guid?" Value="@wh.Id">@wh.Name (@wh.Code)</MudSelectItem>
+                                        }
+                                    </PrymSelect>
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <PrymSelect T="Guid?" @bind-Value="_model.LocationId"
+                                               Label="@TranslationService.GetTranslation("documents.location", "Ubicazione magazzino")"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.LocationOn"
+                                               AdornmentColor="Color.Secondary"
+                                               Clearable="true">
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.none", "— nessuna —")</MudSelectItem>
+                                        @foreach (var loc in _allLocations)
+                                        {
+                                            <MudSelectItem T="Guid?" Value="@loc.Id">@loc.Code@(loc.Description != null ? " - " + loc.Description : "")</MudSelectItem>
+                                        }
+                                    </PrymSelect>
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <PrymSelect T="Guid?" @bind-Value="_model.StationId"
+                                               Label="@TranslationService.GetTranslation("documents.station", "Stazione")"
+                                               Adornment="Adornment.Start"
+                                               AdornmentIcon="@Icons.Material.Outlined.PointOfSale"
+                                               AdornmentColor="Color.Secondary"
+                                               Clearable="true">
+                                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">@TranslationService.GetTranslation("common.none", "— nessuna —")</MudSelectItem>
+                                        @foreach (var st in _allStations)
+                                        {
+                                            <MudSelectItem T="Guid?" Value="@st.Id">@st.Name</MudSelectItem>
+                                        }
+                                    </PrymSelect>
+                                </MudItem>
+                            </MudGrid>
 
                             <!-- Notes -->
                             <DocumentRowNotesPanel Notes="@_model.Notes"

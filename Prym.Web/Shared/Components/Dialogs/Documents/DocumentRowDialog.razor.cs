@@ -5,11 +5,14 @@ using MudBlazor;
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
 using Prym.DTOs.Products;
+using Prym.DTOs.Station;
 using Prym.DTOs.UnitOfMeasures;
 using Prym.DTOs.VatRates;
+using Prym.DTOs.Warehouse;
 using Prym.Web.Models.Documents;
 using Prym.Web.Services;
 using Prym.Web.Services.Documents;
+using Prym.Web.Services.Station;
 using static Prym.Web.Shared.Components.Dialogs.Documents.DocumentRowDialogConstants;
 
 namespace Prym.Web.Shared.Components.Dialogs.Documents;
@@ -34,6 +37,9 @@ public partial class DocumentRowDialog : IAsyncDisposable
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private IDocumentRowValidator Validator { get; set; } = null!;
     [Inject] private IPromotionClientService PromotionClientService { get; set; } = null!;
+    [Inject] private IWarehouseService WarehouseService { get; set; } = null!;
+    [Inject] private IStorageLocationService StorageLocationService { get; set; } = null!;
+    [Inject] private IStationService StationService { get; set; } = null!;
 
     #endregion
 
@@ -90,6 +96,9 @@ public partial class DocumentRowDialog : IAsyncDisposable
     private List<UMDto> _allUnitsOfMeasure => _state.Cache.AllUnitsOfMeasure;
     private List<RecentProductTransactionDto> _recentTransactions => _state.Cache.RecentTransactions;
     private bool _loadingTransactions => _state.Processing.IsLoadingTransactions;
+    private List<StorageFacilityDto> _allWarehouses => _state.Cache.AllWarehouses;
+    private List<StorageLocationDto> _allLocations => _state.Cache.AllLocations;
+    private List<StationDto> _allStations => _state.Cache.AllStations;
 
     /// <summary>
     /// The raw discount text entered by the operator in the % field (e.g. "10+5", "15").
@@ -242,7 +251,10 @@ public partial class DocumentRowDialog : IAsyncDisposable
             await Task.WhenAll(
                 LoadDocumentHeaderAsync(),
                 LoadUnitsOfMeasureAsync(),
-                LoadVatRatesAsync()
+                LoadVatRatesAsync(),
+                LoadWarehousesAsync(),
+                LoadLocationsAsync(),
+                LoadStationsAsync()
             );
             await PreloadPriceListsCacheAsync();
 
@@ -504,6 +516,76 @@ public partial class DocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
+    /// Loads all active storage facilities (warehouses) for the logistics selectors.
+    /// Fetches all pages to ensure no warehouses are missed.
+    /// </summary>
+    private async Task LoadWarehousesAsync()
+    {
+        try
+        {
+            var all = new List<StorageFacilityDto>();
+            int page = 1;
+            Prym.DTOs.Common.PagedResult<StorageFacilityDto>? result;
+            do
+            {
+                result = await WarehouseService.GetStorageFacilitiesAsync(page: page, pageSize: Limits.LogisticsPickerPageSize);
+                if (result?.Items != null)
+                    all.AddRange(result.Items.Where(w => w.IsActive));
+                page++;
+            } while (result?.HasNextPage == true);
+            _state.Cache.AllWarehouses = all;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load warehouses (non-blocking)");
+        }
+    }
+
+    /// <summary>
+    /// Loads all active storage locations for the logistics selector.
+    /// Fetches all pages to ensure no locations are missed.
+    /// </summary>
+    private async Task LoadLocationsAsync()
+    {
+        try
+        {
+            var all = new List<StorageLocationDto>();
+            int page = 1;
+            Prym.DTOs.Common.PagedResult<StorageLocationDto>? result;
+            do
+            {
+                result = await StorageLocationService.GetStorageLocationsAsync(page: page, pageSize: Limits.LogisticsPickerPageSize);
+                if (result?.Items != null)
+                    all.AddRange(result.Items.Where(l => l.IsActive));
+                page++;
+            } while (result?.HasNextPage == true);
+            _state.Cache.AllLocations = all;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load storage locations (non-blocking)");
+        }
+    }
+
+    /// <summary>
+    /// Loads all stations for the logistics selector.
+    /// <see cref="IStationService.GetAllAsync"/> is a dedicated "fetch-all" endpoint
+    /// that returns the complete station list in a single call, so no pagination loop
+    /// is needed here (equivalent to what the paged methods do for warehouses/locations).
+    /// </summary>
+    private async Task LoadStationsAsync()
+    {
+        try
+        {
+            _state.Cache.AllStations = await StationService.GetAllAsync() ?? new List<StationDto>();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to load stations (non-blocking)");
+        }
+    }
+
+    /// <summary>
     /// Precarica i listini nel cache in background per performance.
     /// Carica solo i listini rilevanti per il tipo di documento (vendita o acquisto).
     /// </summary>
@@ -687,6 +769,14 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.Model.IsGift = row.IsGift;
         _state.Model.IsManual = row.IsManual;
         _state.Model.SortOrder = row.SortOrder;
+        _state.Model.LocationId = row.LocationId;
+        _state.Model.SourceWarehouseId = row.SourceWarehouseId;
+        _state.Model.DestinationWarehouseId = row.DestinationWarehouseId;
+        _state.Model.StationId = row.StationId;
+        _state.Model.IsPriceManual = row.IsPriceManual;
+        _state.Model.PriceNotes = row.PriceNotes;
+        _state.Model.AppliedPriceListId = row.AppliedPriceListId;
+        _state.Model.OriginalPriceFromPriceList = row.OriginalPriceFromPriceList;
 
         // Populate the text field with the original chained string when available, or the plain number
         _discountText = !string.IsNullOrWhiteSpace(row.LineDiscountString)
@@ -1601,12 +1691,17 @@ public partial class DocumentRowDialog : IAsyncDisposable
             VatDescription = _state.Model.VatDescription,
             IsGift = _state.Model.IsGift,
             IsManual = _state.Model.IsManual,
+            LocationId = _state.Model.LocationId,
             SourceWarehouseId = _state.Model.SourceWarehouseId,
             DestinationWarehouseId = _state.Model.DestinationWarehouseId,
             SortOrder = _state.Model.SortOrder,
             StationId = _state.Model.StationId,
             ParentRowId = _state.Model.ParentRowId,
-            SupplierGrossPrice = _state.Model.SupplierGrossPrice
+            SupplierGrossPrice = _state.Model.SupplierGrossPrice,
+            PriceNotes = _state.Model.PriceNotes,
+            IsPriceManual = _state.Model.IsPriceManual,
+            AppliedPriceListId = _state.Model.AppliedPriceListId,
+            OriginalPriceFromPriceList = _state.Model.OriginalPriceFromPriceList
         };
 
         // Validate before submitting
