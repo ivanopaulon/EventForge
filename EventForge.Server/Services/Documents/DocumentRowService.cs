@@ -248,6 +248,7 @@ public class DocumentRowService(
             PriceNotes = dto.PriceNotes,
             AppliedPromotionsJSON = dto.AppliedPromotionsJSON,
             SupplierGrossPrice = dto.SupplierGrossPrice,
+            CreatedAt = DateTime.UtcNow,
             CreatedBy = currentUser,
             TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
         }).ToList();
@@ -346,6 +347,7 @@ public class DocumentRowService(
             PriceNotes = row.PriceNotes,
             AppliedPromotionsJSON = row.AppliedPromotionsJSON,
             SupplierGrossPrice = row.SupplierGrossPrice,
+            LineTotal = row.LineTotal,
             VatTotal = row.VatTotal,
             DiscountTotal = row.DiscountTotal,
             CreatedAt = row.CreatedAt,
