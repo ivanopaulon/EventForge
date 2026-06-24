@@ -517,13 +517,24 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Loads all active storage facilities (warehouses) for the logistics selectors.
+    /// Fetches all pages to ensure no warehouses are missed.
     /// </summary>
     private async Task LoadWarehousesAsync()
     {
         try
         {
-            var result = await WarehouseService.GetStorageFacilitiesAsync(page: 1, pageSize: 200);
-            _state.Cache.AllWarehouses = result?.Items?.Where(w => w.IsActive).ToList() ?? new List<StorageFacilityDto>();
+            var all = new List<StorageFacilityDto>();
+            int page = 1;
+            const int pageSize = 100;
+            Prym.DTOs.Common.PagedResult<StorageFacilityDto>? result;
+            do
+            {
+                result = await WarehouseService.GetStorageFacilitiesAsync(page: page, pageSize: pageSize);
+                if (result?.Items != null)
+                    all.AddRange(result.Items.Where(w => w.IsActive));
+                page++;
+            } while (result?.HasNextPage == true);
+            _state.Cache.AllWarehouses = all;
         }
         catch (Exception ex)
         {
@@ -533,13 +544,24 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Loads all active storage locations for the logistics selector.
+    /// Fetches all pages to ensure no locations are missed.
     /// </summary>
     private async Task LoadLocationsAsync()
     {
         try
         {
-            var result = await StorageLocationService.GetStorageLocationsAsync(page: 1, pageSize: 500);
-            _state.Cache.AllLocations = result?.Items?.Where(l => l.IsActive).ToList() ?? new List<StorageLocationDto>();
+            var all = new List<StorageLocationDto>();
+            int page = 1;
+            const int pageSize = 100;
+            Prym.DTOs.Common.PagedResult<StorageLocationDto>? result;
+            do
+            {
+                result = await StorageLocationService.GetStorageLocationsAsync(page: page, pageSize: pageSize);
+                if (result?.Items != null)
+                    all.AddRange(result.Items.Where(l => l.IsActive));
+                page++;
+            } while (result?.HasNextPage == true);
+            _state.Cache.AllLocations = all;
         }
         catch (Exception ex)
         {
