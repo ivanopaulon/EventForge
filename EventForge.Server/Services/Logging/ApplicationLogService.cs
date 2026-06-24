@@ -47,8 +47,9 @@ public class ApplicationLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error retrieving application logs for page {Page}.", pagination.Page);
             throw;
         }
     }
@@ -92,8 +93,9 @@ public class ApplicationLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error retrieving application logs for level '{Level}', page {Page}.", level, pagination.Page);
             throw;
         }
     }
@@ -140,8 +142,9 @@ public class ApplicationLogService(
                 PageSize = pagination.PageSize
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error retrieving application logs from {StartDate} to {EndDate}.", startDate, endDate);
             throw;
         }
     }

@@ -48,8 +48,9 @@ public class EventBarcodeExtensions(
 
             return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error generating QR code for event {EventId}.", eventDto.Id);
             throw;
         }
     }
@@ -80,8 +81,9 @@ public class EventBarcodeExtensions(
 
             return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error generating ticket barcode for event {EventId}, ticket {TicketId}.", eventId, ticketId);
             throw;
         }
     }
@@ -110,8 +112,9 @@ public class EventBarcodeExtensions(
 
             return await barcodeService.GenerateBarcodeAsync(request, ct);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error generating tracking barcode for event {EventId}.", eventId);
             throw;
         }
     }

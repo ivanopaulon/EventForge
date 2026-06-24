@@ -2795,7 +2795,6 @@ public class ChatService(
     }
 
     /// <summary>
-    /// <summary>
     /// Toggle message reaction (add or remove) — persisted in MetadataJson["Reactions"]
     /// and broadcast to all chat participants via SignalR.
     /// </summary>

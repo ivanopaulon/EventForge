@@ -896,6 +896,7 @@ public class ChatController(
     }
 
 
+    /// <summary>
     /// Provides time-limited URLs, access logging, and download tracking.
     /// </summary>
     /// <param name="attachmentId">File attachment identifier</param>

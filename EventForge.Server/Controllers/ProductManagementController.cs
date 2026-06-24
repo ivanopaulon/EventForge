@@ -53,6 +53,7 @@ public class ProductManagementController(
     /// </summary>
     /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
+    /// <param name="classificationNodeId">Optional classification node ID to filter products by category</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
     /// <response code="200">Returns the paginated list of products</response>
@@ -117,6 +118,7 @@ public class ProductManagementController(
     }
 
 
+    /// <param name="id">Product unique identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Product information</returns>
     /// <response code="200">Returns the product</response>

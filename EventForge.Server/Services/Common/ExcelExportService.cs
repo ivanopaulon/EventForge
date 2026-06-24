@@ -96,8 +96,9 @@ public class ExcelExportService(ILogger<ExcelExportService> logger) : IExcelExpo
                 return stream.ToArray();
             }, cancellationToken);
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error exporting data to Excel for sheet '{SheetName}'.", options.SheetName);
             throw;
         }
     }

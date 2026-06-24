@@ -37,7 +37,7 @@
     <PackageVersion Include="FreeSpire.Barcode" Version="6.6.0" />
     <PackageVersion Include="SkiaSharp" Version="3.119.2" />
     <PackageVersion Include="System.IO.Ports" Version="10.0.1" />
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.5" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.9" />
     <PackageVersion Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
     <!-- Health Checks and Resiliency packages -->
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.5" />
@@ -97,5 +97,8 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
     <!-- HTML sanitization for user-generated rich content -->
     <PackageVersion Include="HtmlSanitizer" Version="9.0.892" />
+    <!-- Security: pin transitive packages to patched versions (NU1903) -->
+    <!-- CVE-2026-26171 / CVE-2026-33116: DoS in System.Security.Cryptography.Xml <= 10.0.5; fixed in 10.0.6 -->
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9" />
   </ItemGroup>
 </Project>

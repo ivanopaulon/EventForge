@@ -19,7 +19,6 @@ namespace EventForge.Server.Controllers;
 public class WhatsAppAiTestController(
     IWhatsAppConversazioneService whatsAppConversazioneService,
     IAIOrderService aiOrderService,
-    IOrderAIContextBuilder aiContextBuilder,
     IWhatsAppOrderService whatsAppOrderService,
     IConfiguration configuration,
     IWebHostEnvironment env,

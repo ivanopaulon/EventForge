@@ -54,8 +54,9 @@ public class UserService(
                 PageSize = pagination.PageSize
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error retrieving users for page {Page}.", pagination.Page);
             throw;
         }
     }
@@ -106,8 +107,9 @@ public class UserService(
                 PageSize = pagination.PageSize
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error retrieving users by role '{Role}', page {Page}.", role, pagination.Page);
             throw;
         }
     }
@@ -157,8 +159,9 @@ public class UserService(
                 PageSize = pagination.PageSize
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error retrieving active users for page {Page}.", pagination.Page);
             throw;
         }
     }

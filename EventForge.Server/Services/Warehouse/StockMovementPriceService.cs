@@ -24,6 +24,7 @@ public class StockMovementPriceService(
         CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
+        logger.LogDebug("Retrieving price history for supplier {SupplierId}, product {ProductId}.", supplierId, productId);
 
         var query = BuildBaseQuery(tenantId)
             .Where(m => m.BusinessPartyId == supplierId && m.ProductId == productId);
@@ -50,6 +51,7 @@ public class StockMovementPriceService(
         CancellationToken cancellationToken = default)
     {
         var tenantId = GetTenantId();
+        logger.LogDebug("Retrieving price history for supplier {SupplierId}.", supplierId);
 
         var query = BuildBaseQuery(tenantId)
             .Where(m => m.BusinessPartyId == supplierId);
