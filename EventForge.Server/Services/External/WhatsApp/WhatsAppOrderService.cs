@@ -89,11 +89,14 @@ public class WhatsAppOrderService(
         if (documentType == null)
             throw new InvalidOperationException("No DocumentType configured for tenant. Please create at least one document type.");
 
+        if (session.BusinessPartyId == null)
+            throw new InvalidOperationException("Cannot create a document from a session with no associated BusinessParty.");
+
         var header = new DocumentHeader
         {
             TenantId = tenantId,
             DocumentTypeId = documentType.Id,
-            BusinessPartyId = session.BusinessPartyId ?? Guid.Empty,
+            BusinessPartyId = session.BusinessPartyId.Value,
             Date = DateTime.UtcNow,
             Number = $"WA-{DateTime.UtcNow:yyyyMMdd-HHmmss}",
             DocumentReason = "Ordine ricevuto via WhatsApp (AI)",

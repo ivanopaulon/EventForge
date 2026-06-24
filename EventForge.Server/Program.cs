@@ -203,7 +203,8 @@ builder.Services.AddHttpClient("OpenAI", client =>
     client.BaseAddress = new Uri("https://api.openai.com/");
     var apiKey = builder.Configuration["OpenAI:ApiKey"] ?? string.Empty;
     if (!string.IsNullOrEmpty(apiKey))
-        client.DefaultRequestHeaders.Add("Authorization", $"******");
+        client.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 });
 builder.Services.AddScoped<EventForge.Server.Services.External.AI.IAIOrderService, EventForge.Server.Services.External.AI.OpenAIOrderService>();
 builder.Services.AddScoped<EventForge.Server.Services.External.AI.IOrderAIContextBuilder, EventForge.Server.Services.External.AI.OrderAIContextBuilder>();

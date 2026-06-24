@@ -89,9 +89,9 @@ public partial class WhatsAppAiTest : ComponentBase
     {
         try
         {
-            await JS.InvokeVoidAsync("eval", $"document.getElementById('chat-container')?.scrollTo({{top: 9999, behavior: 'smooth'}})");
+            await JS.InvokeVoidAsync("scrollElementToBottom", _chatContainer);
         }
-        catch { /* non-critical */ }
+        catch { /* non-critical — element may not be rendered yet */ }
     }
 
     // ─── Colour helpers ───────────────────────────────────────────────────────

@@ -530,7 +530,7 @@ public partial class EventForgeDbContext : DbContext
     {
         modelBuilder.Entity<Data.Entities.Chat.OrderConversationSession>(entity =>
         {
-            entity.HasIndex(e => e.ChatThreadId);
+            // Composite index covers single-column ChatThreadId lookups — no separate single-column index needed
             entity.HasIndex(e => e.TenantId);
             entity.HasIndex(e => new { e.ChatThreadId, e.TenantId });
 
@@ -542,7 +542,10 @@ public partial class EventForgeDbContext : DbContext
 
         modelBuilder.Entity<Data.Entities.Configuration.AIOrderSettings>(entity =>
         {
-            entity.HasIndex(e => e.TenantId).IsUnique();
+            // Only one active (non-deleted) AIOrderSettings record per tenant
+            entity.HasIndex(e => e.TenantId)
+                  .IsUnique()
+                  .HasFilter("[IsDeleted] = 0");
         });
 
         modelBuilder.Entity<Data.Entities.Audit.AIUsageLog>(entity =>

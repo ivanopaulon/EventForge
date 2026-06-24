@@ -98,7 +98,7 @@ public class WhatsAppAiTestController(
             {
                 ChatThreadId = thread.Id,
                 DetectedIntent = intent,
-                SessionState = (OrderConversationState)(int)session.State,
+                SessionState = session.State,
                 CurrentDraft = draftItems,
                 DocumentCreated = session.CreatedDocumentHeaderId.HasValue,
                 DocumentHeaderId = session.CreatedDocumentHeaderId

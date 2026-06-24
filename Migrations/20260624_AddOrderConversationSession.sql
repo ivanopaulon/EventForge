@@ -30,8 +30,7 @@ BEGIN
 
     CREATE INDEX [IX_OrderConversationSessions_TenantId]
         ON [dbo].[OrderConversationSessions] ([TenantId]);
-    CREATE INDEX [IX_OrderConversationSessions_ChatThreadId]
-        ON [dbo].[OrderConversationSessions] ([ChatThreadId]);
+    -- Composite index covers single-column ChatThreadId lookups (no separate single-column index needed)
     CREATE INDEX [IX_OrderConversationSessions_ChatThreadId_TenantId]
         ON [dbo].[OrderConversationSessions] ([ChatThreadId], [TenantId]);
 

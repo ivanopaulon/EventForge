@@ -502,7 +502,7 @@ public class WhatsAppConversazioneService(
                 if (!string.IsNullOrWhiteSpace(session.DraftJson))
                 {
                     try { existingItems = JsonSerializer.Deserialize<List<OrderDraftItem>>(session.DraftJson, _jsonOpts) ?? []; }
-                    catch { /* ignore */ }
+                    catch (Exception ex) { logger.LogWarning(ex, "Could not deserialise existing draft JSON for thread {ThreadId} — starting fresh", thread.Id); }
                 }
 
                 foreach (var item in extractedItems)
