@@ -204,7 +204,7 @@
 
     protected override void OnInitialized()
     {
-        _service = new DocumentListManagementService(DocumentHeaderService, DocumentStatusService);
+        _service = new DocumentListManagementService(DocumentHeaderService);
         _config = new EntityManagementConfig<DocumentHeaderDto>
         {
             ComponentKey = "DocumentManagement",
