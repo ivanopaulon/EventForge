@@ -86,6 +86,11 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.businessPartyGroupManagement", "Gruppi Business Party")
                 </MudNavLink>
+                <MudNavLink Href="/business/fidelity-cards"
+                            Icon="@Icons.Material.Outlined.CardMembership"
+                            Match="NavLinkMatch.All">
+                    Carte Fedeltà
+                </MudNavLink>
             </MudNavGroup>
 
             <!-- Documenti -->
@@ -172,26 +177,16 @@
                          Icon="@Icons.Material.Outlined.PointOfSale"
                          Expanded="@(_openGroup == "pos")"
                          ExpandedChanged="@(v => OnGroupExpanded("pos", v))">
-                <MudNavLink Href="/sales/pos"
+                <!-- POS 2026 is the current next-gen architecture (POSViewModel) -->
+                <MudNavLink Href="/sales/pos2026"
                             Icon="@Icons.Material.Outlined.PointOfSale"
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.posRegister", "Cassa (POS)")
-                </MudNavLink>
-                <MudNavLink Href="/sales/postouch"
-                            Icon="@Icons.Material.Outlined.TouchApp"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.posTouch", "Cassa Touch")
                 </MudNavLink>
                 <MudNavLink Href="/sales/dashboard"
                             Icon="@Icons.Material.Outlined.BarChart"
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.salesDashboard", "Dashboard Vendite")
-                </MudNavLink>
-                <!-- POS 2026 (nuova versione) -->
-                <MudNavLink Href="/sales/pos2026"
-                            Icon="@Icons.Material.Outlined.Bolt"
-                            Match="NavLinkMatch.All">
-                    POS 2026
                 </MudNavLink>
             </MudNavGroup>
 

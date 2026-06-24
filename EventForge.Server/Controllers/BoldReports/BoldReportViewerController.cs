@@ -88,7 +88,10 @@ public class BoldReportViewerController(
 
         try
         {
-            var report = reportService.GetReportAsync(reportId).GetAwaiter().GetResult();
+            // Use Task.Run to offload to thread-pool, avoiding sync-over-async deadlock
+            // on the ASP.NET Core synchronization context. Required by the synchronous
+            // IReportController.OnInitReportOptions interface contract.
+            var report = Task.Run(() => reportService.GetReportAsync(reportId)).GetAwaiter().GetResult();
             if (report?.ReportContent is { Length: > 0 })
             {
                 var rdlcBytes = System.Text.Encoding.UTF8.GetBytes(report.ReportContent);
