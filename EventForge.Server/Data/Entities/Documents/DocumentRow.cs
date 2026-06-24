@@ -121,11 +121,20 @@ public class DocumentRow : AuditableEntity
     public decimal Quantity { get; set; } = 1m;
 
     /// <summary>
-    /// Line discount in percentage.
+    /// Line discount in percentage (computed equivalent when LineDiscountString is set).
     /// </summary>
     [Range(0, 100, ErrorMessage = "Line discount must be between 0 and 100.")]
     [Display(Name = "Line Discount (%)", Description = "Discount applied to the row in percentage.")]
     public decimal LineDiscount { get; set; } = 0m;
+
+    /// <summary>
+    /// Original chained discount string entered by the user (e.g. "10+5", "10+5+2").
+    /// Null when a plain single-value percentage or a value discount is used.
+    /// LineDiscount holds the computed equivalent percentage for fiscal calculations.
+    /// </summary>
+    [StringLength(50, ErrorMessage = "Line discount string cannot exceed 50 characters.")]
+    [Display(Name = "Line Discount String", Description = "Original chained discount notation (e.g. '10+5').")]
+    public string? LineDiscountString { get; set; }
 
     /// <summary>
     /// Line discount value (absolute amount).

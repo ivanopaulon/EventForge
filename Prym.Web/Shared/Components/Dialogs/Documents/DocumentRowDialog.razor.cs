@@ -91,6 +91,18 @@ public partial class DocumentRowDialog : IAsyncDisposable
     private List<RecentProductTransactionDto> _recentTransactions => _state.Cache.RecentTransactions;
     private bool _loadingTransactions => _state.Processing.IsLoadingTransactions;
 
+    /// <summary>
+    /// The raw discount text entered by the operator in the % field (e.g. "10+5", "15").
+    /// This is the UI-only binding variable; the parsed decimal equivalent is stored in _model.LineDiscount.
+    /// </summary>
+    private string _discountText = string.Empty;
+
+    /// <summary>
+    /// Cached result of the last successful parse of <see cref="_discountText"/>.
+    /// Avoids re-parsing the same string in <see cref="GetDiscountHelperText"/>.
+    /// </summary>
+    private Prym.DTOs.Documents.DiscountParseResult? _lastDiscountParseResult;
+
     // Cached calculation result to avoid redundant calculations
     private Prym.Web.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
     private string _cachedCalculationKey = string.Empty;
@@ -663,7 +675,21 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.Model.Notes = row.Notes;
         _state.Model.VatRate = row.VatRate;
         _state.Model.VatDescription = row.VatDescription;
+        _state.Model.LineDiscount = row.LineDiscount;
+        _state.Model.LineDiscountValue = row.LineDiscountValue;
+        _state.Model.LineDiscountString = row.LineDiscountString;
+        _state.Model.DiscountType = row.DiscountType;
         _state.SelectedUnitOfMeasureId = row.UnitOfMeasureId;
+
+        // Populate the text field with the original chained string when available, or the plain number
+        _discountText = !string.IsNullOrWhiteSpace(row.LineDiscountString)
+            ? row.LineDiscountString
+            : (row.LineDiscount > 0 ? row.LineDiscount.ToString("G29") : string.Empty);
+
+        // Seed the cache so GetDiscountHelperText shows the hint immediately in edit mode
+        _lastDiscountParseResult = !string.IsNullOrWhiteSpace(_discountText)
+            ? Prym.DTOs.Documents.DiscountStringParser.Parse(_discountText)
+            : null;
 
         if (_state.Model.VatRate > 0 || !string.IsNullOrEmpty(_state.Model.VatDescription))
         {
@@ -1286,14 +1312,45 @@ public partial class DocumentRowDialog : IAsyncDisposable
     #region Discount Mutual Exclusion Logic
 
     /// <summary>
-    /// Gestisce il cambio del valore dello sconto percentuale.
-    /// Azzera lo sconto in importo quando viene valorizzato lo sconto percentuale.
+    /// Gestisce il cambio del testo nel campo sconto percentuale.
+    /// Supporta sia valori semplici ("15") sia sconti concatenati ("10+5", "10+5+2").
+    /// La stringa originale viene conservata in LineDiscountString; il decimale equivalente
+    /// calcolato viene memorizzato in LineDiscount per i calcoli fiscali.
     /// </summary>
-    private void OnDiscountPercentChanged(decimal value)
+    private void OnDiscountTextChanged(string value)
     {
-        _model.LineDiscount = value;
+        _discountText = value;
 
-        if (value > 0)
+        // Clear any previous discount field error
+        _state.Validation.FieldErrors.Remove("discount");
+
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            _model.LineDiscount = 0m;
+            _model.LineDiscountString = null;
+            _model.DiscountType = DiscountType.Percentage;
+            _lastDiscountParseResult = null;
+            StateHasChanged();
+            return;
+        }
+
+        var parseResult = Prym.DTOs.Documents.DiscountStringParser.Parse(value);
+        _lastDiscountParseResult = parseResult;
+
+        if (!parseResult.IsValid)
+        {
+            _state.Validation.FieldErrors["discount"] = parseResult.ErrorMessage
+                ?? TranslationService.GetTranslation("documents.discountFormatInvalid", "Formato sconto non valido. Es: 10, 10+5");
+            StateHasChanged();
+            return;
+        }
+
+        _model.LineDiscount = parseResult.EquivalentPercentage;
+
+        // Store the original string only when it's a true chained discount (has '+')
+        _model.LineDiscountString = parseResult.IsChained ? value.Trim() : null;
+
+        if (parseResult.EquivalentPercentage > 0)
         {
             _model.LineDiscountValue = 0m;
             _model.DiscountType = DiscountType.Percentage;
@@ -1304,6 +1361,26 @@ public partial class DocumentRowDialog : IAsyncDisposable
         }
 
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Returns the helper text shown below the % discount field.
+    /// When the euro discount is active, shows a "disabled" note.
+    /// When the input is a valid chained discount, shows the equivalent percentage.
+    /// </summary>
+    private string GetDiscountHelperText()
+    {
+        if (_model.LineDiscountValue > 0)
+            return TranslationService.GetTranslation("documents.discountPercentDisabled", "Disabilitato: sconto euro attivo");
+
+        if (_lastDiscountParseResult is { IsValid: true, IsChained: true })
+        {
+            return string.Format(
+                TranslationService.GetTranslation("documents.discountEquivalent", "Equivale al {0:N2}% di sconto totale"),
+                _lastDiscountParseResult.EquivalentPercentage);
+        }
+
+        return string.Empty;
     }
 
     /// <summary>
@@ -1449,6 +1526,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
             RowType = _state.Model.RowType,
             LineDiscount = _state.Model.LineDiscount,
             LineDiscountValue = _state.Model.LineDiscountValue,
+            LineDiscountString = _state.Model.LineDiscountString,
             DiscountType = _state.Model.DiscountType,
             VatRate = _state.Model.VatRate,
             VatDescription = _state.Model.VatDescription,
@@ -1555,6 +1633,10 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.SelectedVatRateId = null;
         _state.Cache.AvailableUnits.Clear();
         _state.Cache.RecentTransactions.Clear();
+
+        // Reset the discount text field
+        _discountText = string.Empty;
+        _lastDiscountParseResult = null;
 
         // Reset the local binding variable so UnifiedProductSelector detects the change
         // in OnParametersSet (sees _previousSelectedProduct != null && SelectedProduct == null)

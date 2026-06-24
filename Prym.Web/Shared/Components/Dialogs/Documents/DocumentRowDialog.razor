@@ -277,20 +277,17 @@
                             <!-- Discounts -->
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
-                                    <PrymNumericField T="decimal" Value="_model.LineDiscount"
-                                                     ValueChanged="@((decimal val) => OnDiscountPercentChanged(val))"
-                                                     Label="@TranslationService.GetTranslation("documents.discountPercent", "Sconto %")"
-                                                     Min="0"
-                                                     Max="100"
-                                                     Step="0.1m"
-                                                     Format="F2"
-                                                     Adornment="Adornment.Start"
-                                                     AdornmentIcon="@Icons.Material.Outlined.Percent"
-                                                     AdornmentColor="Color.Warning"
-                                                     Disabled="@(_model.LineDiscountValue > 0)"
-                                                     HelperText="@(_model.LineDiscountValue > 0 ? TranslationService.GetTranslation("documents.discountPercentDisabled", "Disabilitato: sconto euro attivo") : "")"
-                                                     Error="@HasFieldError("discount")"
-                                                     ErrorText="@GetFieldError("discount")" />
+                                    <PrymTextField Value="@_discountText"
+                                                   ValueChanged="@((string val) => OnDiscountTextChanged(val))"
+                                                   Label="@TranslationService.GetTranslation("documents.discountPercent", "Sconto %")"
+                                                   Placeholder="@TranslationService.GetTranslation("documents.discountPercentPlaceholder", "Es: 10+5")"
+                                                   Adornment="Adornment.Start"
+                                                   AdornmentIcon="@Icons.Material.Outlined.Percent"
+                                                   AdornmentColor="Color.Warning"
+                                                   Disabled="@(_model.LineDiscountValue > 0)"
+                                                   HelperText="@GetDiscountHelperText()"
+                                                   Error="@HasFieldError("discount")"
+                                                   ErrorText="@GetFieldError("discount")" />
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
@@ -331,7 +328,8 @@
                             <DocumentRowSummary NetSubtotal="@GetSubtotal()"
                                                 VatAmount="@GetVatAmount()"
                                                 TotalDiscount="@GetTotalDiscount()"
-                                                LineTotal="@GetLineTotal()" />
+                                                LineTotal="@GetLineTotal()"
+                                                DiscountString="@_model.LineDiscountString" />
                         </MudPaper>
                     </MudItem>
                 </MudGrid>

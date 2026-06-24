@@ -32,6 +32,12 @@
                 <MudText Typo="Typo.body1" Class="fw-semibold" Color="Color.Success">
                     -@TotalDiscount.ToString("C2")
                 </MudText>
+                @if (!string.IsNullOrWhiteSpace(DiscountString) && DiscountString.Contains('+'))
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                        (@DiscountString)
+                    </MudText>
+                }
             </MudStack>
         }
         <MudDivider />
@@ -51,4 +57,10 @@
     [Parameter] public decimal VatAmount { get; set; } = 0m;
     [Parameter] public decimal TotalDiscount { get; set; } = 0m;
     [Parameter] public decimal LineTotal { get; set; } = 0m;
+
+    /// <summary>
+    /// Original chained discount string (e.g. "10+5"). When set and contains '+',
+    /// it is shown next to the discount amount to preserve the commercial notation.
+    /// </summary>
+    [Parameter] public string? DiscountString { get; set; }
 }
