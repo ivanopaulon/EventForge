@@ -997,7 +997,7 @@ public class StockReconciliationService(
                     FromLocationId = isInbound ? null : storageLocationId,
                     ToLocationId = isInbound ? storageLocationId : null,
                     Quantity = quantity,
-                    UnitCost = row.UnitPrice > 0 ? row.UnitPrice : null,
+                    UnitCost = row.UnitPrice > 0 ? ComputeNetUnitPrice(row) : null,
                     DocumentHeaderId = documentHeader.Id,
                     DocumentRowId = row.Id,
                     Notes = alreadyExists
@@ -1583,6 +1583,26 @@ public class StockReconciliationService(
 
         await context.SaveChangesAsync(cancellationToken);
         return overwrittenCount;
+    }
+
+    /// <summary>
+    /// Computes the effective net unit price from a document row, applying the line
+    /// discount (if any) to the base unit price.
+    /// <para>
+    /// In purchase documents the operator enters a net supplier price and optional
+    /// chained trade discounts (e.g. "10+5"). <see cref="DocumentRow.LineDiscount"/>
+    /// already holds the cascaded equivalent percentage, so the true cost per unit is
+    /// <c>UnitPrice × (1 − LineDiscount / 100)</c>. This is the value that must be
+    /// recorded as <see cref="StockMovement.UnitCost"/> to keep price history accurate.
+    /// </para>
+    /// </summary>
+    private static decimal ComputeNetUnitPrice(DocumentRow row)
+    {
+        if (row.LineDiscount <= 0m)
+            return row.UnitPrice;
+
+        var netPrice = row.UnitPrice * (1m - row.LineDiscount / 100m);
+        return Math.Round(netPrice, 6, MidpointRounding.AwayFromZero);
     }
 
 }

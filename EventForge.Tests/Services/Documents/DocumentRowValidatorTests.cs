@@ -462,4 +462,95 @@ public class DocumentRowValidatorTests
         // Assert
         Assert.True(result.IsValid);
     }
+
+    // ── SupplierGrossPrice validation ─────────────────────────────────────────
+
+    [Fact]
+    public void Validate_WithNullSupplierGrossPrice_ReturnsSuccess()
+    {
+        // Null is valid: field is optional
+        var dto = new CreateDocumentRowDto
+        {
+            Description = "Test",
+            Quantity = 1,
+            UnitPrice = 100,
+            UnitOfMeasureId = Guid.NewGuid(),
+            SupplierGrossPrice = null
+        };
+
+        var result = _validator.Validate(dto);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Validate_WithPositiveSupplierGrossPrice_ReturnsSuccess()
+    {
+        var dto = new CreateDocumentRowDto
+        {
+            Description = "Test",
+            Quantity = 1,
+            UnitPrice = 85m,
+            UnitOfMeasureId = Guid.NewGuid(),
+            SupplierGrossPrice = 100m
+        };
+
+        var result = _validator.Validate(dto);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Validate_WithZeroSupplierGrossPrice_ReturnsSuccess()
+    {
+        // Zero is technically valid (edge case: free product)
+        var dto = new CreateDocumentRowDto
+        {
+            Description = "Test",
+            Quantity = 1,
+            UnitPrice = 0m,
+            UnitOfMeasureId = Guid.NewGuid(),
+            SupplierGrossPrice = 0m
+        };
+
+        var result = _validator.Validate(dto);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void Validate_WithNegativeSupplierGrossPrice_ReturnsError()
+    {
+        var dto = new CreateDocumentRowDto
+        {
+            Description = "Test",
+            Quantity = 1,
+            UnitPrice = 100,
+            UnitOfMeasureId = Guid.NewGuid(),
+            SupplierGrossPrice = -10m
+        };
+
+        var result = _validator.Validate(dto);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("validation.supplierGrossPriceCannotBeNegative", result.ErrorKeys);
+    }
+
+    [Fact]
+    public void Validate_UpdateDto_WithNegativeSupplierGrossPrice_ReturnsError()
+    {
+        var updateDto = new UpdateDocumentRowDto
+        {
+            Description = "Test",
+            Quantity = 1,
+            UnitPrice = 100,
+            UnitOfMeasureId = Guid.NewGuid(),
+            SupplierGrossPrice = -5m
+        };
+
+        var result = _validator.Validate(updateDto);
+
+        Assert.False(result.IsValid);
+        Assert.Contains("validation.supplierGrossPriceCannotBeNegative", result.ErrorKeys);
+    }
 }

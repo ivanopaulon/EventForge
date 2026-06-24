@@ -235,6 +235,15 @@ public class DocumentRow : AuditableEntity
     public string? PriceNotes { get; set; }
 
     /// <summary>
+    /// Prezzo di listino lordo del fornitore (prima degli sconti commerciali concatenati).
+    /// Utilizzato nei documenti di acquisto per tracciare il prezzo catalogo del fornitore.
+    /// Null nei documenti di vendita o quando non valorizzato dall'operatore.
+    /// </summary>
+    [Range(0, double.MaxValue, ErrorMessage = "Supplier gross price must be non-negative.")]
+    [Display(Name = "Supplier Gross Price", Description = "Supplier catalogue price before chained trade discounts (purchase documents only).")]
+    public decimal? SupplierGrossPrice { get; set; }
+
+    /// <summary>
     /// JSON serializzato delle promozioni applicate a questa riga.
     /// Contiene una lista di AppliedPromotionSummary con ID, nome, tipo e sconto applicato.
     /// Null se nessuna promozione è stata applicata.

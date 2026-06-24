@@ -76,6 +76,12 @@ public class DocumentRowValidator : IDocumentRowValidator
             errors.Add("validation.unitOfMeasureRequired");
         }
 
+        // Supplier gross price validation (purchase documents only; no context available here, so validate the value itself)
+        if (model.SupplierGrossPrice.HasValue && model.SupplierGrossPrice.Value < 0)
+        {
+            errors.Add("validation.supplierGrossPriceCannotBeNegative");
+        }
+
         return new ValidationResult
         {
             IsValid = !errors.Any(),
@@ -102,7 +108,8 @@ public class DocumentRowValidator : IDocumentRowValidator
             DiscountType = model.DiscountType,
             VatRate = model.VatRate,
             UnitOfMeasure = model.UnitOfMeasure,
-            UnitOfMeasureId = model.UnitOfMeasureId
+            UnitOfMeasureId = model.UnitOfMeasureId,
+            SupplierGrossPrice = model.SupplierGrossPrice
         };
 
         return Validate(createDto);
@@ -148,6 +155,7 @@ public class ValidationResult
             "validation.discountValueExceedsTotal" => "Il valore dello sconto supera il totale della riga",
             "validation.vatRateInvalid" => "L'aliquota IVA deve essere tra 0 e 100",
             "validation.unitOfMeasureRequired" => "L'unità di misura è obbligatoria",
+            "validation.supplierGrossPriceCannotBeNegative" => "Il prezzo lordo fornitore non può essere negativo",
             _ => "Errore di validazione"
         };
     }

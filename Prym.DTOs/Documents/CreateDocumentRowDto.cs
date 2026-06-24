@@ -190,5 +190,12 @@ namespace Prym.DTOs.Documents
         /// </summary>
         [StringLength(4000, ErrorMessage = "Applied promotions JSON cannot exceed 4000 characters.")]
         public string? AppliedPromotionsJSON { get; set; }
+
+        /// <summary>
+        /// Supplier catalogue price before chained trade discounts (purchase documents only).
+        /// Null for sales documents or when not set by the operator.
+        /// </summary>
+        [Range(0, double.MaxValue, ErrorMessage = "Supplier gross price must be non-negative.")]
+        public decimal? SupplierGrossPrice { get; set; }
     }
 }

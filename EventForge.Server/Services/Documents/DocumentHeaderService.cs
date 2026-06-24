@@ -342,7 +342,7 @@ public class DocumentHeaderService(
                             productId: row.ProductId!.Value,
                             fromLocationId: storageLocation.Id,
                             quantity: quantity,
-                            unitCost: row.UnitPrice,
+                            unitCost: ComputeNetUnitPrice(row),
                             documentHeaderId: documentHeader.Id,
                             documentRowId: row.Id,
                             notes: notes,
@@ -357,7 +357,7 @@ public class DocumentHeaderService(
                             productId: row.ProductId!.Value,
                             toLocationId: storageLocation.Id,
                             quantity: quantity,
-                            unitCost: row.UnitPrice,
+                            unitCost: ComputeNetUnitPrice(row),
                             documentHeaderId: documentHeader.Id,
                             documentRowId: row.Id,
                             notes: notes,
@@ -937,7 +937,7 @@ public class DocumentHeaderService(
                                                 productId: existingRow.ProductId!.Value,
                                                 toLocationId: storageLocation.Id,
                                                 quantity: mergedQuantity,
-                                                unitCost: existingRow.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(existingRow),
                                                 documentHeaderId: documentHeader.Id,
                                                 documentRowId: existingRow.Id,
                                                 notes: notes,
@@ -951,7 +951,7 @@ public class DocumentHeaderService(
                                                 productId: existingRow.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: mergedQuantity,
-                                                unitCost: existingRow.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(existingRow),
                                                 documentHeaderId: documentHeader.Id,
                                                 documentRowId: existingRow.Id,
                                                 notes: notes,
@@ -971,7 +971,7 @@ public class DocumentHeaderService(
                                                 productId: existingRow.ProductId!.Value,
                                                 toLocationId: storageLocation.Id,
                                                 quantity: deltaQuantity,
-                                                unitCost: existingRow.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(existingRow),
                                                 documentHeaderId: documentHeader.Id,
                                                 documentRowId: existingRow.Id,
                                                 notes: notes,
@@ -985,7 +985,7 @@ public class DocumentHeaderService(
                                                 productId: existingRow.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: deltaQuantity,
-                                                unitCost: existingRow.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(existingRow),
                                                 documentHeaderId: documentHeader.Id,
                                                 documentRowId: existingRow.Id,
                                                 notes: notes,
@@ -1095,7 +1095,7 @@ public class DocumentHeaderService(
                                     productId: row.ProductId!.Value,
                                     toLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
-                                    unitCost: row.UnitPrice,
+                                    unitCost: ComputeNetUnitPrice(row),
                                     documentHeaderId: documentHeader.Id,
                                     documentRowId: row.Id,
                                     notes: notes,
@@ -1111,7 +1111,7 @@ public class DocumentHeaderService(
                                     productId: row.ProductId!.Value,
                                     fromLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
-                                    unitCost: row.UnitPrice,
+                                    unitCost: ComputeNetUnitPrice(row),
                                     documentHeaderId: documentHeader.Id,
                                     documentRowId: row.Id,
                                     notes: notes,
@@ -1262,7 +1262,7 @@ public class DocumentHeaderService(
                                                 productId: row.ProductId!.Value,
                                                 toLocationId: storageLocation.Id,
                                                 quantity: delta,
-                                                unitCost: row.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(row),
                                                 documentHeaderId: row.DocumentHeader.Id,
                                                 documentRowId: row.Id,
                                                 notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
@@ -1276,7 +1276,7 @@ public class DocumentHeaderService(
                                                 productId: row.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: delta,
-                                                unitCost: row.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(row),
                                                 documentHeaderId: row.DocumentHeader.Id,
                                                 documentRowId: row.Id,
                                                 notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
@@ -1295,7 +1295,7 @@ public class DocumentHeaderService(
                                                 productId: row.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: absDelta,
-                                                unitCost: row.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(row),
                                                 documentHeaderId: row.DocumentHeader.Id,
                                                 documentRowId: row.Id,
                                                 notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
@@ -1309,7 +1309,7 @@ public class DocumentHeaderService(
                                                 productId: row.ProductId!.Value,
                                                 toLocationId: storageLocation.Id,
                                                 quantity: absDelta,
-                                                unitCost: row.UnitPrice,
+                                                unitCost: ComputeNetUnitPrice(row),
                                                 documentHeaderId: row.DocumentHeader.Id,
                                                 documentRowId: row.Id,
                                                 notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
@@ -1376,7 +1376,7 @@ public class DocumentHeaderService(
                                         productId: row.ProductId!.Value,
                                         toLocationId: storageLocation.Id,
                                         quantity: currentQuantity,
-                                        unitCost: row.UnitPrice,
+                                        unitCost: ComputeNetUnitPrice(row),
                                         documentHeaderId: row.DocumentHeader.Id,
                                         documentRowId: row.Id,
                                         notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
@@ -1390,7 +1390,7 @@ public class DocumentHeaderService(
                                         productId: row.ProductId!.Value,
                                         fromLocationId: storageLocation.Id,
                                         quantity: currentQuantity,
-                                        unitCost: row.UnitPrice,
+                                        unitCost: ComputeNetUnitPrice(row),
                                         documentHeaderId: row.DocumentHeader.Id,
                                         documentRowId: row.Id,
                                         notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
@@ -1499,7 +1499,7 @@ public class DocumentHeaderService(
                                             productId: existingMovement.ProductId,
                                             fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
                                             quantity: existingMovement.Quantity,
-                                            unitCost: row.UnitPrice,
+                                            unitCost: ComputeNetUnitPrice(row),
                                             documentHeaderId: row.DocumentHeader.Id,
                                             documentRowId: rowId,
                                             notes: $"Compensating movement: document row deleted",
@@ -1660,7 +1660,7 @@ public class DocumentHeaderService(
                         productId: row.ProductId!.Value,
                         toLocationId: storageLocation.Id,
                         quantity: row.Quantity,
-                        unitCost: row.UnitPrice,
+                        unitCost: ComputeNetUnitPrice(row),
                         lotId: null,
                         serialId: null,
                         documentHeaderId: documentHeader.Id,
@@ -1718,7 +1718,7 @@ public class DocumentHeaderService(
                         productId: row.ProductId!.Value,
                         fromLocationId: storageLocation.Id,
                         quantity: row.Quantity,
-                        unitCost: row.UnitPrice,
+                        unitCost: ComputeNetUnitPrice(row),
                         lotId: null,
                         serialId: null,
                         documentHeaderId: documentHeader.Id,
@@ -2259,5 +2259,25 @@ public class DocumentHeaderService(
     }
 
     #endregion
+
+    /// <summary>
+    /// Computes the effective net unit price for a document row, applying any line
+    /// discount (percentage) to the base unit price.
+    /// <para>
+    /// In purchase documents the operator enters a supplier list price and optional
+    /// chained trade discounts (e.g. "10+5"). <see cref="DocumentRow.LineDiscount"/>
+    /// already holds the cascaded equivalent percentage, so the true cost per unit is
+    /// <c>UnitPrice × (1 − LineDiscount / 100)</c>. This value must be recorded as
+    /// <see cref="StockMovement.UnitCost"/> to keep price history accurate.
+    /// </para>
+    /// </summary>
+    private static decimal ComputeNetUnitPrice(DocumentRow row)
+    {
+        if (row.LineDiscount <= 0m)
+            return row.UnitPrice;
+
+        var netPrice = row.UnitPrice * (1m - row.LineDiscount / 100m);
+        return Math.Round(netPrice, 6, MidpointRounding.AwayFromZero);
+    }
 
 }
