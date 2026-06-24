@@ -485,14 +485,13 @@
                                        aria-label="@TranslationService.GetTranslation("health.autoRefresh", "Auto-refresh")" />
                             @if (_autoRefreshEnabled)
                             {
-                                <MudNumericField @bind-Value="_refreshIntervalSeconds"
+                                <AppNumericField T="int"
+                                                 @bind-Value="_refreshIntervalSeconds"
                                                  Label="@TranslationService.GetTranslation("health.intervalSeconds", "Interval (s)")"
                                                  Min="5"
                                                  Max="300"
                                                  Step="5"
-                                                 Class="ef-input-120"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense" />
+                                                 Class="ef-input-120" />
                             }
                         </MudStack>
                     </MudPaper>
@@ -505,41 +504,30 @@
                                            @bind-IsExpanded="_filtersExpanded">
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" md="3">
-                                    <MudSelect T="string" @bind-Value="_selectedLogLevel" @bind-Value:after="OnFilterChanged"
+                                    <AppSelect T="string" @bind-Value="_selectedLogLevel" @bind-Value:after="OnFilterChanged"
                                                Label="@TranslationService.GetTranslation("health.logLevel", "Level")"
-                                               Variant="Variant.Outlined"
-                                               Clearable="true"
-                                               Dense="true">
+                                               Clearable="true">
                                         <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "All")</MudSelectItem>
                                         <MudSelectItem Value="@("Debug")">Debug</MudSelectItem>
                                         <MudSelectItem Value="@("Information")">Information</MudSelectItem>
                                         <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
                                         <MudSelectItem Value="@("Error")">Error</MudSelectItem>
                                         <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
-                                    </MudSelect>
+                                    </AppSelect>
                                 </MudItem>
                                 <MudItem xs="12" md="3">
-                                    <MudDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
-                                                   Label="@TranslationService.GetTranslation("health.startDate", "From Date")"
-                                                   Variant="Variant.Outlined"
-                                                   Dense="true"
-                    Margin="Margin.Dense"/>
+                                    <AppDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
+                                                   Label="@TranslationService.GetTranslation("health.startDate", "From Date")" />
                                 </MudItem>
                                 <MudItem xs="12" md="3">
-                                    <MudDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
-                                                   Label="@TranslationService.GetTranslation("health.endDate", "To Date")"
-                                                   Variant="Variant.Outlined"
-                                                   Dense="true"
-                    Margin="Margin.Dense"/>
+                                    <AppDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
+                                                   Label="@TranslationService.GetTranslation("health.endDate", "To Date")" />
                                 </MudItem>
                                 <MudItem xs="12" md="3">
-                                    <MudTextField @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
+                                    <AppTextField T="string" @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
                                                   Label="@TranslationService.GetTranslation("health.searchMessage", "Search message")"
                                                   Placeholder="@TranslationService.GetTranslation("health.searchPlaceholder", "Search...")"
-                                                  Variant="Variant.Outlined"
-                                                  Clearable="true"
-                                                  Dense="true"
-                    Margin="Margin.Dense"/>
+                                                  Immediate="true" />
                                 </MudItem>
                             </MudGrid>
                             <div class="d-flex justify-end mt-3">
