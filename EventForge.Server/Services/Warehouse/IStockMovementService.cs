@@ -86,6 +86,7 @@ public interface IStockMovementService
         Guid productId,
         Guid fromLocationId,
         decimal quantity,
+        decimal? unitCost = null,
         Guid? lotId = null,
         Guid? serialId = null,
         Guid? documentHeaderId = null,
