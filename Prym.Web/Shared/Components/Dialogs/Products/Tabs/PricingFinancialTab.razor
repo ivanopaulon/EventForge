@@ -98,11 +98,15 @@
     private bool _isLoadingPriceTrend = false;
     private bool _priceTrendLoaded = false;
 
-    private int _selectedYear = DateTime.Now.Year;
-    private List<int> _availableYears = Enumerable.Range(DateTime.Now.Year - 4, 5).Reverse().ToList();
+    private int _selectedYear;
+    private List<int> _availableYears = new();
 
     protected override async Task OnInitializedAsync()
     {
+        var currentYear = DateTime.Now.Year;
+        _selectedYear = currentYear;
+        _availableYears = Enumerable.Range(currentYear - 4, 5).Reverse().ToList();
+
         try
         {
             var vatRates = await LookupCacheService.GetVatRatesRawAsync();
