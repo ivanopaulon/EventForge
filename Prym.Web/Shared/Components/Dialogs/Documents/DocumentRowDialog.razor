@@ -156,6 +156,18 @@
                     <MudItem xs="12" md="8">
                         <MudStack Spacing="2">
 
+                            <!-- Row Type -->
+                            <PrymSelect T="DocumentRowType" @bind-Value="_model.RowType"
+                                       Label="@TranslationService.GetTranslation("documents.rowType", "Tipo riga")"
+                                       Adornment="Adornment.Start"
+                                       AdornmentIcon="@Icons.Material.Outlined.Category"
+                                       AdornmentColor="Color.Secondary">
+                                @foreach (DocumentRowType rt in Enum.GetValues(typeof(DocumentRowType)))
+                                {
+                                    <MudSelectItem T="DocumentRowType" Value="@rt">@GetRowTypeLabel(rt)</MudSelectItem>
+                                }
+                            </PrymSelect>
+
                             <!-- Product Search -->
                             <UnifiedProductSelector @ref="_productScannerRef"
                                                    SelectedProduct="@_selectedProduct"
@@ -177,6 +189,20 @@
                                                    OnProductWithCodeFound="@HandleProductWithCodeFound"
                                                    OnProductNotFound="@ShowProductNotFoundDialog"
                                                    OnProductUpdated="@HandleProductUpdated" />
+
+                            <!-- Description (auto-filled from product, always editable) -->
+                            <PrymTextField Value="@_model.Description"
+                                          ValueChanged="@((string val) => OnDescriptionChanged(val))"
+                                          Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
+                                          Required="true"
+                                          MaxLength="200"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Outlined.Description"
+                                          AdornmentColor="Color.Primary"
+                                          Immediate="true"
+                                          Error="@HasFieldError("description")"
+                                          ErrorText="@GetFieldError("description")"
+                                          HelperText="@TranslationService.GetTranslation("documents.descriptionHelper", "Modifica la descrizione riga se necessario")" />
 
                             <!-- Recent Transactions -->
                             @if (_state.SelectedProduct != null)
@@ -354,6 +380,22 @@
                                     </MudTooltip>
                                 </MudStack>
                             }
+
+                            <!-- IsGift (Omaggio) -->
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                <PrymCheckBox T="bool"
+                                              Value="@_model.IsGift"
+                                              ValueChanged="@((bool val) => OnIsGiftChanged(val))"
+                                              Label="@TranslationService.GetTranslation("documents.isGift", "Omaggio")" />
+                                <MudTooltip Text="@TranslationService.GetTranslation("documents.isGiftHelp", "Segna la riga come omaggio (merce ceduta a titolo gratuito)")">
+                                    <MudIcon Icon="@Icons.Material.Outlined.CardGiftcard" Size="Size.Small" Color="Color.Secondary" Class="ml-1" />
+                                </MudTooltip>
+                            </MudStack>
+
+                            <!-- Notes -->
+                            <DocumentRowNotesPanel Notes="@_model.Notes"
+                                                   NotesChanged="@((string? val) => OnNotesChanged(val))"
+                                                   MaxLength="200" />
 
                         </MudStack>
                     </MudItem>
