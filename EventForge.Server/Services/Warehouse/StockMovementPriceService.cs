@@ -210,7 +210,8 @@ public class StockMovementPriceService(
             {
                 var m = ordered[i];
                 var newPrice = m.UnitCost ?? 0;
-                var oldPrice = i > 0 ? ordered[i - 1].UnitCost ?? newPrice : newPrice;
+                // First movement in the group has no prior price — OldPrice = 0 signals "initial entry".
+                var oldPrice = i > 0 ? ordered[i - 1].UnitCost ?? 0m : 0m;
                 var priceChange = newPrice - oldPrice;
                 var priceChangePercentage = oldPrice != 0
                     ? (priceChange / oldPrice) * 100m

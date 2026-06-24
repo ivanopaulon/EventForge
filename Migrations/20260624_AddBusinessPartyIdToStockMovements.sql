@@ -29,6 +29,10 @@ CREATE INDEX [IX_StockMovements_ProductId_BusinessPartyId_MovementDate]
 
 -- 4. Backfill BusinessPartyId from the linked DocumentHeader
 --    (only for Inbound/Purchase movements that have a document reference)
+--    NOTE: movements created manually (without a DocumentHeaderId) will retain
+--    NULL BusinessPartyId and will therefore not appear in price-history queries.
+--    This is intentional — price history is only meaningful when the counterpart
+--    (supplier/customer) is known from the originating document.
 UPDATE sm
 SET sm.[BusinessPartyId] = dh.[BusinessPartyId]
 FROM [StockMovements] sm
