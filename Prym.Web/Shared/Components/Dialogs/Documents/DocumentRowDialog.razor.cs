@@ -190,6 +190,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
                 "validation.discountPercentageInvalid" => "discount",
                 "validation.discountValueCannotBeNegative" => "discount",
                 "validation.discountValueExceedsTotal" => "discount",
+                "validation.supplierGrossPriceCannotBeNegative" => "supplierGrossPrice",
                 _ => (string?)null
             };
             if (field is not null && !_state.Validation.FieldErrors.ContainsKey(field))
@@ -212,6 +213,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
         "validation.discountPercentageInvalid" => "Deve essere tra 0 e 100",
         "validation.discountValueCannotBeNegative" => "Non può essere negativo",
         "validation.discountValueExceedsTotal" => "Supera il totale riga",
+        "validation.supplierGrossPriceCannotBeNegative" => "Non può essere negativo",
         _ => "Valore non valido"
     };
 
@@ -680,6 +682,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.Model.LineDiscountString = row.LineDiscountString;
         _state.Model.DiscountType = row.DiscountType;
         _state.SelectedUnitOfMeasureId = row.UnitOfMeasureId;
+        _state.Model.SupplierGrossPrice = row.SupplierGrossPrice;
 
         // Populate the text field with the original chained string when available, or the plain number
         _discountText = !string.IsNullOrWhiteSpace(row.LineDiscountString)
@@ -1340,11 +1343,29 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Label for the price field: indicates whether the value is VAT-inclusive or net.
+    /// In purchase context the label is more descriptive to clarify it is the supplier net price.
     /// </summary>
     private string PriceFieldLabel =>
         ShowGrossPrice
             ? TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo (IVA incl.)")
-            : TranslationService.GetTranslation("documents.price", "Prezzo");
+            : IsSalesContext
+                ? TranslationService.GetTranslation("documents.price", "Prezzo")
+                : TranslationService.GetTranslation("documents.supplierNetPrice", "Prezzo netto fornitore");
+
+    /// <summary>
+    /// True when the purchase context is active and there is an active line discount,
+    /// so the operator should see the effective cost per unit that will be recorded
+    /// in the warehouse movement.
+    /// </summary>
+    private bool ShowEffectivePurchaseCost =>
+        !IsSalesContext && _state.Model.LineDiscount > 0;
+
+    /// <summary>
+    /// The effective unit cost that will be recorded as UnitCost in the stock movement:
+    /// UnitPrice × (1 − LineDiscount / 100).
+    /// </summary>
+    private decimal EffectivePurchaseUnitCost =>
+        _state.Model.UnitPrice * (1m - _state.Model.LineDiscount / 100m);
 
     private decimal GetSubtotal() => GetCalculationResult().NetAmount;
     private decimal GetVatAmount() => GetCalculationResult().VatAmount;
@@ -1580,7 +1601,8 @@ public partial class DocumentRowDialog : IAsyncDisposable
             DestinationWarehouseId = _state.Model.DestinationWarehouseId,
             SortOrder = _state.Model.SortOrder,
             StationId = _state.Model.StationId,
-            ParentRowId = _state.Model.ParentRowId
+            ParentRowId = _state.Model.ParentRowId,
+            SupplierGrossPrice = _state.Model.SupplierGrossPrice
         };
 
         // Validate before submitting

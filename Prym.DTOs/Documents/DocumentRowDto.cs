@@ -224,5 +224,11 @@ namespace Prym.DTOs.Documents
         /// Null if no promotions were applied.
         /// </summary>
         public string? AppliedPromotionsJSON { get; set; }
+
+        /// <summary>
+        /// Supplier catalogue price before chained trade discounts (purchase documents only).
+        /// Null for sales documents or when not set by the operator.
+        /// </summary>
+        public decimal? SupplierGrossPrice { get; set; }
     }
 }

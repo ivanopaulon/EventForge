@@ -306,6 +306,42 @@
                                 </MudItem>
                             </MudGrid>
 
+                            @* Purchase-only fields: supplier gross price + effective cost display *@
+                            @if (!IsSalesContext)
+                            {
+                                <MudGrid Spacing="2">
+                                    <MudItem xs="12" sm="6">
+                                        <PrymNullableNumericField T="decimal" @bind-Value="_model.SupplierGrossPrice"
+                                                         Label="@TranslationService.GetTranslation("documents.supplierGrossPrice", "Prezzo lordo fornitore")"
+                                                         Min="0"
+                                                         Format="F4"
+                                                         Adornment="Adornment.Start"
+                                                         AdornmentIcon="@Icons.Material.Outlined.Euro"
+                                                         AdornmentColor="Color.Secondary"
+                                                         HelperText="@TranslationService.GetTranslation("documents.supplierGrossPriceHelp", "Prezzo catalogo fornitore prima degli sconti commerciali (facoltativo)")" />
+                                    </MudItem>
+
+                                    @if (ShowEffectivePurchaseCost)
+                                    {
+                                        <MudItem xs="12" sm="6">
+                                            <MudTooltip Text="@TranslationService.GetTranslation("documents.effectiveCostTooltip", "Valore registrato come costo unitario nel movimento di magazzino: Prezzo netto × (1 − Sconto%/100)")">
+                                                <MudPaper Elevation="0" Class="pa-3" Style="background-color: var(--mud-palette-info-lighten); border-radius: 8px; border: 1px solid var(--mud-palette-info);">
+                                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                        <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Color="Color.Info" Size="Size.Small" />
+                                                        <MudText Typo="Typo.caption" Color="Color.Info">
+                                                            @TranslationService.GetTranslation("documents.effectiveCostPerUnit", "Costo effettivo/unità:")
+                                                        </MudText>
+                                                        <MudText Typo="Typo.subtitle2" Color="Color.Info">
+                                                            <strong>€@EffectivePurchaseUnitCost.ToString("F4")</strong>
+                                                        </MudText>
+                                                    </MudStack>
+                                                </MudPaper>
+                                            </MudTooltip>
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            }
+
                             <!-- Merge duplicates checkbox - always active in add mode -->
                             @if (!_isEditMode)
                             {
