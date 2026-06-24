@@ -1,4 +1,5 @@
 using EventForge.Server.Data.Entities.Sales;
+using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;
@@ -69,6 +70,21 @@ public partial class EventForgeDbContext
                 .Property(s => s.MergeReason)
                 .HasMaxLength(500)
                 .IsRequired(false);
+
+            // StockMovement → BusinessParty (nullable: supplier for inbound, customer for outbound)
+            _ = modelBuilder.Entity<StockMovement>()
+                .HasOne(m => m.BusinessParty)
+                .WithMany()
+                .HasForeignKey(m => m.BusinessPartyId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            _ = modelBuilder.Entity<StockMovement>()
+                .HasIndex(m => m.BusinessPartyId)
+                .HasDatabaseName("IX_StockMovements_BusinessPartyId");
+
+            _ = modelBuilder.Entity<StockMovement>()
+                .HasIndex(m => new { m.ProductId, m.BusinessPartyId, m.MovementDate })
+                .HasDatabaseName("IX_StockMovements_ProductId_BusinessPartyId_MovementDate");
         }
 
     }

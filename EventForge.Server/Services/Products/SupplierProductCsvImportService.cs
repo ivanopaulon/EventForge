@@ -1,7 +1,5 @@
 using CsvHelper.Configuration;
-using EventForge.Server.Services.PriceHistory;
 using Microsoft.EntityFrameworkCore;
-using Prym.DTOs.PriceHistory;
 using Prym.DTOs.Products;
 using System.Diagnostics;
 using System.Globalization;
@@ -15,7 +13,6 @@ namespace EventForge.Server.Services.Products;
 /// </summary>
 public class SupplierProductCsvImportService(
     EventForgeDbContext context,
-    ISupplierProductPriceHistoryService priceHistoryService,
     ILogger<SupplierProductCsvImportService> logger,
     IConfiguration configuration) : ISupplierProductCsvImportService
 {
@@ -246,7 +243,6 @@ public class SupplierProductCsvImportService(
 
             var batchSize = configuration.GetValue<int>("CsvImport:BatchSize", 100);
             var rowNumber = 1;
-            var priceChanges = new List<PriceChangeLogRequest>();
             decimal totalValue = 0;
             var priceChangesList = new List<decimal>();
 
@@ -392,26 +388,11 @@ public class SupplierProductCsvImportService(
                             result.UpdatedCount++;
                             totalValue += unitCost;
 
-                            // Track price change
+                            // Track price change percentage for statistics
                             if (oldPrice != unitCost && oldPrice > 0)
                             {
                                 var priceChange = ((unitCost - oldPrice) / oldPrice) * 100;
                                 priceChangesList.Add(priceChange);
-
-                                priceChanges.Add(new PriceChangeLogRequest
-                                {
-                                    ProductSupplierId = productSupplier.Id,
-                                    SupplierId = supplierId,
-                                    ProductId = product.Id,
-                                    OldPrice = oldPrice,
-                                    NewPrice = unitCost,
-                                    Currency = currency,
-                                    OldLeadTimeDays = oldLeadTime,
-                                    NewLeadTimeDays = leadTimeDays,
-                                    ChangeSource = "CSVImport",
-                                    ChangeReason = $"Imported from file: {file.FileName}",
-                                    UserId = userId
-                                });
                             }
                         }
                         else if (options.SkipDuplicates)
@@ -476,19 +457,6 @@ public class SupplierProductCsvImportService(
 
             // Final save
             await context.SaveChangesAsync(cancellationToken);
-
-            // Log price changes
-            if (priceChanges.Any())
-            {
-                try
-                {
-                    await priceHistoryService.LogBulkPriceChangesAsync(priceChanges, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error logging price changes");
-                }
-            }
 
             // Calculate statistics
             stopwatch.Stop();

@@ -2,7 +2,7 @@ using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.CodeGeneration;
-using EventForge.Server.Services.PriceHistory;
+
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -45,8 +45,7 @@ public class ProductBundleItemTests : IDisposable
             new Mock<IAuditLogService>().Object,
             mockTenantContext.Object,
             new Mock<ILogger<ProductService>>().Object,
-            new Mock<IDailyCodeGenerator>().Object,
-            new Mock<ISupplierProductPriceHistoryService>().Object);
+            new Mock<IDailyCodeGenerator>().Object);
 
         _bundleId = Guid.NewGuid();
         _comp1Id = Guid.NewGuid();

@@ -1,3 +1,4 @@
+using EventForge.Server.Data.Entities.Business;
 using System.ComponentModel.DataAnnotations;
 
 namespace EventForge.Server.Data.Entities.Warehouse;
@@ -129,6 +130,19 @@ public class StockMovement : AuditableEntity
     /// </summary>
     [Display(Name = "Reason", Description = "Reason for the movement.")]
     public StockMovementReason Reason { get; set; } = StockMovementReason.Sale;
+
+    /// <summary>
+    /// Business party associated with this movement.
+    /// For Inbound/Purchase movements this is the supplier; for Outbound/Sale it is the customer.
+    /// Null for internal transfers and adjustments.
+    /// </summary>
+    [Display(Name = "Business Party", Description = "Supplier or customer associated with this movement.")]
+    public Guid? BusinessPartyId { get; set; }
+
+    /// <summary>
+    /// Navigation property for the business party.
+    /// </summary>
+    public BusinessParty? BusinessParty { get; set; }
 
     /// <summary>
     /// Notes about this movement.

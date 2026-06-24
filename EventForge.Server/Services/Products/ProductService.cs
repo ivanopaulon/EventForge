@@ -1,8 +1,6 @@
 using EventForge.Server.Services.CodeGeneration;
-using EventForge.Server.Services.PriceHistory;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Prym.DTOs.PriceHistory;
 using Prym.DTOs.Products;
 using EntityProductCodeStatus = EventForge.Server.Data.Entities.Products.ProductCodeStatus;
 using EntityProductStatus = EventForge.Server.Data.Entities.Products.ProductStatus;
@@ -18,8 +16,7 @@ public class ProductService(
     IAuditLogService auditLogService,
     ITenantContext tenantContext,
     ILogger<ProductService> logger,
-    IDailyCodeGenerator codeGenerator,
-    ISupplierProductPriceHistoryService priceHistoryService) : IProductService
+    IDailyCodeGenerator codeGenerator) : IProductService
 {
 
     // Default currency for product transactions
@@ -2087,32 +2084,6 @@ public class ProductService(
             productSupplier.ModifiedAt = DateTime.UtcNow;
 
             _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log price change if price has changed
-            if (oldUnitCost != newUnitCost && tenantContext.CurrentUserId.HasValue)
-            {
-                try
-                {
-                    await priceHistoryService.LogPriceChangeAsync(new PriceChangeLogRequest
-                    {
-                        ProductSupplierId = productSupplier.Id,
-                        SupplierId = productSupplier.SupplierId,
-                        ProductId = productSupplier.ProductId,
-                        OldPrice = oldUnitCost,
-                        NewPrice = newUnitCost,
-                        Currency = newCurrency,
-                        OldLeadTimeDays = oldLeadTimeDays,
-                        NewLeadTimeDays = newLeadTimeDays,
-                        ChangeSource = "Manual",
-                        UserId = tenantContext.CurrentUserId.Value
-                    }, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    // Log but don't fail the update if price history logging fails
-                    logger.LogWarning(ex, "Failed to log price history for ProductSupplier {Id}", id);
-                }
-            }
 
             _ = await auditLogService.LogEntityChangeAsync(
                 "ProductSupplier",

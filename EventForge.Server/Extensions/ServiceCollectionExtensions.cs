@@ -19,7 +19,6 @@ using EventForge.Server.Services.Logging;
 using EventForge.Server.Services.Logs;
 using EventForge.Server.Services.Notifications;
 using EventForge.Server.Services.PaymentTerminal;
-using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.PriceLists;
 using EventForge.Server.Services.PriceLists.Strategies;
 using EventForge.Server.Services.Products;
@@ -401,7 +400,6 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IBrandService, BrandService>();
         _ = services.AddScoped<IModelService, ModelService>();
 
-        _ = services.AddScoped<ISupplierProductPriceHistoryService, SupplierProductPriceHistoryService>();
         _ = services.AddScoped<ISupplierProductBulkService, SupplierProductBulkService>();
 
         _ = services.AddScoped<ISupplierSuggestionService, SupplierSuggestionService>();
@@ -467,6 +465,7 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IStockService, StockService>();
         _ = services.AddScoped<ISerialService, SerialService>();
         _ = services.AddScoped<IStockMovementService, StockMovementService>();
+        _ = services.AddScoped<IStockMovementPriceService, StockMovementPriceService>();
         _ = services.AddScoped<IStockAlertService, StockAlertService>();
         _ = services.AddScoped<ITransferOrderService, TransferOrderService>();
         _ = services.AddScoped<IInventoryBulkSeedService, InventoryBulkSeedService>();

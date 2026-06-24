@@ -214,15 +214,12 @@ public class SupplierProductAssociationTests
         // Setup tenant context to return the shared tenant ID
         tenantContextMock.Setup(x => x.CurrentTenantId).Returns((Guid?)_tenantId);
 
-        var priceHistoryServiceMock = new Mock<EventForge.Server.Services.PriceHistory.ISupplierProductPriceHistoryService>();
-
         return new ProductService(
             context,
             auditLogServiceMock.Object,
             tenantContextMock.Object,
             loggerMock.Object,
-            codeGeneratorMock.Object,
-            priceHistoryServiceMock.Object
+            codeGeneratorMock.Object
         );
     }
 }

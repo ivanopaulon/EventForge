@@ -12,6 +12,10 @@ public interface ISupplierPriceHistoryService
     Task<List<PriceTrendDataPoint>> GetTrendDataAsync(Guid supplierId, Guid productId, DateTime fromDate, DateTime toDate, CancellationToken ct = default);
 }
 
+/// <summary>
+/// Client service that retrieves supplier price history derived from stock movements
+/// via the api/v1/price-history endpoints.
+/// </summary>
 public class SupplierPriceHistoryService(
     IHttpClientService httpClientService,
     ILogger<SupplierPriceHistoryService> logger) : ISupplierPriceHistoryService
@@ -85,9 +89,7 @@ public class SupplierPriceHistoryService(
         {
             var url = $"{BaseUrl}/suppliers/{supplierId}/statistics";
             if (productId.HasValue)
-            {
                 url += $"?productId={productId.Value}";
-            }
 
             return await httpClientService.GetAsync<PriceHistoryStatistics>(url, ct);
         }
@@ -132,9 +134,6 @@ public class SupplierPriceHistoryService(
 
         if (request.ToDate.HasValue)
             queryParams.Add($"toDate={Uri.EscapeDataString(request.ToDate.Value.ToString("O"))}");
-
-        if (!string.IsNullOrWhiteSpace(request.ChangeSource))
-            queryParams.Add($"changeSource={Uri.EscapeDataString(request.ChangeSource)}");
 
         if (request.MinChangePercentage.HasValue)
             queryParams.Add($"minChangePercentage={request.MinChangePercentage.Value}");
