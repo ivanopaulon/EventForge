@@ -55,12 +55,14 @@
                     <ScheduleView Option="View.Week" />
                     <ScheduleView Option="View.Month" />
                 </ScheduleViews>
-                <ScheduleEventSettings DataSource="@_schedulerItems"
-                                       IdField="@nameof(SchedulerShiftItem.Id)"
-                                       SubjectField="@nameof(SchedulerShiftItem.Subject)"
-                                       StartTimeField="@nameof(SchedulerShiftItem.StartTime)"
-                                       EndTimeField="@nameof(SchedulerShiftItem.EndTime)"
-                                       DescriptionField="@nameof(SchedulerShiftItem.Description)" />
+                <ScheduleEventSettings DataSource="@_schedulerItems">
+                    <ScheduleField Id="@nameof(SchedulerShiftItem.Id)">
+                        <FieldSubject Name="@nameof(SchedulerShiftItem.Subject)" />
+                        <FieldStartTime Name="@nameof(SchedulerShiftItem.StartTime)" />
+                        <FieldEndTime Name="@nameof(SchedulerShiftItem.EndTime)" />
+                        <FieldDescription Name="@nameof(SchedulerShiftItem.Description)" />
+                    </ScheduleField>
+                </ScheduleEventSettings>
                 <ScheduleEvents TValue="SchedulerShiftItem"
                                 OnPopupOpen="OnSchedulerPopupOpen"
                                 EventRendered="OnEventRendered" />
