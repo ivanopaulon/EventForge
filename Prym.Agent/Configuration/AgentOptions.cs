@@ -113,6 +113,16 @@ public class AgentOptions
 
     /// <summary>Local web UI (Razor Pages served on localhost).</summary>
     public UiOptions UI { get; set; } = new();
+
+    /// <summary>
+    /// Shared secret sent by EventForge.Server in the <c>X-Agent-Internal-Token</c> header
+    /// when calling the internal queue management endpoints
+    /// (<c>/api/agent/pending-installs</c>, <c>/api/agent/install-now</c>,
+    /// <c>/api/agent/unblock-queue</c>).
+    /// When left empty the legacy unauthenticated localhost-trust model applies (backward compatible).
+    /// Set to the same value as <c>Agent:InternalApiToken</c> in EventForge.Server's appsettings.
+    /// </summary>
+    public string InternalApiToken { get; set; } = string.Empty;
 }
 
 // ── Components ────────────────────────────────────────────────────────────

@@ -226,25 +226,14 @@ public class AgentWorker(
         {
             // agent-identity.json lives in AppContext.BaseDirectory (build output), never in the
             // project source tree — so VS build never overwrites it on rebuild.
-            JsonNode root;
-            if (File.Exists(IdentityFilePath))
-            {
-                var existing = await File.ReadAllTextAsync(IdentityFilePath);
-                root = JsonNode.Parse(existing) ?? new JsonObject();
-            }
-            else
-            {
-                root = new JsonObject();
-            }
-
-            var section = root[AgentOptions.SectionName] as JsonObject ?? new JsonObject();
-            section["ApiKey"] = apiKey;
-            section["InstallationId"] = installationId.ToString();
-            root[AgentOptions.SectionName] = section;
-
-            var tmpPath = IdentityFilePath + ".tmp";
-            await File.WriteAllTextAsync(tmpPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
-            File.Move(tmpPath, IdentityFilePath, overwrite: true);
+            await JsonFileUpdater.UpdateAsync(
+                IdentityFilePath,
+                AgentOptions.SectionName,
+                new Dictionary<string, JsonNode?>
+                {
+                    ["ApiKey"] = apiKey,
+                    ["InstallationId"] = installationId.ToString()
+                });
             logger.LogInformation("Enrollment credentials persisted to agent-identity.json.");
         }
         catch (Exception ex)
