@@ -6,7 +6,7 @@
         @TranslationService.GetTranslation("documents.notes", "Note")
     </MudText>
     
-    <AppTextField T="string" Value="@Notes"
+    <PrymTextField T="string" Value="@Notes"
                   ValueChanged="@OnNotesChanged"
                   Label="@TranslationService.GetTranslation("documents.notesPlaceholder", "Note aggiuntive (opzionali)")"
                   Lines="3"

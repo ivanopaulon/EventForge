@@ -68,21 +68,21 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="6" md="3">
-                    <AppSelect T="string" @bind-Value="_selectedStatus" Label="Stato">
+                    <PrymSelect T="string" @bind-Value="_selectedStatus" Label="Stato">
                         <MudSelectItem T="string" Value="@string.Empty">Tutti</MudSelectItem>
                         <MudSelectItem T="string" Value="@("New")">Nuovi</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Acknowledged")">Presi in carico</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Resolved")">Risolti</MudSelectItem>
-                    </AppSelect>
+                    </PrymSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <AppSelect T="string" @bind-Value="_selectedSeverity" Label="Severità">
+                    <PrymSelect T="string" @bind-Value="_selectedSeverity" Label="Severità">
                         <MudSelectItem T="string" Value="@string.Empty">Tutte</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Critical")">Critical</MudSelectItem>
                         <MudSelectItem T="string" Value="@("High")">High</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Warning")">Warning</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Info")">Info</MudSelectItem>
-                    </AppSelect>
+                    </PrymSelect>
                 </MudItem>
                 <MudItem xs="12" md="4">
                     <MudDateRangePicker @bind-DateRange="_dateRange"

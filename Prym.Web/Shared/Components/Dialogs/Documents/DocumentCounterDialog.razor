@@ -12,7 +12,7 @@
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12">
-                    <AppSelect T="Guid" Class="ef-select"
+                    <PrymSelect T="Guid" Class="ef-select"
                                               @bind-Value="_model.DocumentTypeId"
                                Label="@($"{TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")} *")"
                                Required="true"
@@ -24,11 +24,11 @@
                                 <MudSelectItem T="Guid" Value="@type.Id">@type.Name</MudSelectItem>
                             }
                         }
-                    </AppSelect>
+                    </PrymSelect>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <AppTextField T="string" Class="ef-input"
+                    <PrymTextField T="string" Class="ef-input"
                                   @bind-Value="_model.Series"
                                   Label="@($"{TranslationService.GetTranslation("documentCounter.series", "Serie")} *")"
                                   Required="true"
@@ -38,7 +38,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <AppNullableNumericField T="int" Class="ef-input"
+                    <PrymNullableNumericField T="int" Class="ef-input"
                                      @bind-Value="_model.Year"
                                      Label="@TranslationService.GetTranslation("documentCounter.year", "Anno")"
                                      Min="2000"
@@ -48,7 +48,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <AppTextField T="string" Class="ef-input"
+                    <PrymTextField T="string" Class="ef-input"
                                   @bind-Value="_model.Prefix"
                                   Label="@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")"
                                   MaxLength="10"
@@ -56,7 +56,7 @@
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <AppNumericField T="int" Class="ef-input"
+                    <PrymNumericField T="int" Class="ef-input"
                                      @bind-Value="_model.PaddingLength"
                                      Label="@($"{TranslationService.GetTranslation("documentCounter.paddingLength", "Lunghezza Padding")} *")"
                                      Min="1"
@@ -68,7 +68,7 @@
                 @if (_isEditMode)
                 {
                     <MudItem xs="12" md="6">
-                        <AppNumericField T="int" Class="ef-input"
+                        <PrymNumericField T="int" Class="ef-input"
                                          @bind-Value="_updateModel.CurrentValue"
                                          Label="@($"{TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")} *")"
                                          Min="0"
@@ -78,7 +78,7 @@
                 }
 
                 <MudItem xs="12">
-                    <AppTextField T="string" Class="ef-input"
+                    <PrymTextField T="string" Class="ef-input"
                                   @bind-Value="_model.FormatPattern"
                                   Label="@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern Formato")"
                                   MaxLength="50"
@@ -94,7 +94,7 @@
                 </MudItem>
 
                 <MudItem xs="12">
-                    <AppTextField T="string" Class="ef-input"
+                    <PrymTextField T="string" Class="ef-input"
                                   @bind-Value="_model.Notes"
                                   Label="@TranslationService.GetTranslation("common.notes", "Note")"
                                   Lines="3"

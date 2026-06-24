@@ -5,7 +5,7 @@
 <MudPaper Elevation="2" Class="pa-3">
     <MudStack Spacing="3">
         <!-- Descrizione -->
-        <AppTextField T="string" Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
+        <PrymTextField T="string" Label="@TranslationService.GetTranslation("documents.description", "Descrizione *")"
                      Value="@Description"
                      ValueChanged="@DescriptionChanged"
                      Lines="2"
@@ -17,7 +17,7 @@
         <!-- Quantità e Prezzo in Grid compatto -->
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
-                <AppNumericField T="decimal" Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
+                <PrymNumericField T="decimal" Label="@TranslationService.GetTranslation("documents.quantity", "Quantità *")"
                                 Value="@Quantity"
                                 ValueChanged="@QuantityChanged"
                                 @ref="_quantityField"
@@ -26,7 +26,7 @@
                                 Adornment="Adornment.Start"
                                 AdornmentIcon="@Icons.Material.Outlined.Numbers"/>
                 
-                <AppSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
+                <PrymSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.unitOfMeasure", "Unità di Misura")"
                           Value="@SelectedUnitOfMeasureId"
                           ValueChanged="@OnUnitOfMeasureChanged"
                           Dense="true"
@@ -40,11 +40,11 @@
                             <MudSelectItem T="Guid?" Value="@uom.Id">@uom.Name (@uom.Symbol)</MudSelectItem>
                         }
                     }
-                </AppSelect>
+                </PrymSelect>
             </MudItem>
             
             <MudItem xs="12" sm="6">
-                <AppNumericField T="decimal" Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
+                <PrymNumericField T="decimal" Label="@TranslationService.GetTranslation("documents.unitPrice", "Prezzo Unitario Netto")"
                                 Value="@UnitPrice"
                                 ValueChanged="@UnitPriceChanged"
                                 Min="0"
@@ -73,7 +73,7 @@
     [Parameter] public List<ProductUnitDto> AvailableUnits { get; set; } = new();
     [Parameter] public List<UMDto> AllUnitsOfMeasure { get; set; } = new();
 
-    private AppNumericField<decimal>? _quantityField;
+    private PrymNumericField<decimal>? _quantityField;
     private Dictionary<Guid, UMDto> _unitsLookup = new();
 
     protected override void OnParametersSet()

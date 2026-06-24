@@ -21,7 +21,7 @@
             <MudStack Spacing="3">
 
                 <!-- Tipo Documento -->
-                <AppSelect T="Guid" @bind-Value="_model.DocumentTypeId"
+                <PrymSelect T="Guid" @bind-Value="_model.DocumentTypeId"
                            Label="@($"{TranslationService.GetTranslation("documents.documentType", "Tipo Documento")} *")"
                            Required="true"
                            Disabled="@(DocumentId.HasValue)">
@@ -29,17 +29,17 @@
                     {
                         <MudSelectItem Value="@type.Id">@type.Name</MudSelectItem>
                     }
-                </AppSelect>
+                </PrymSelect>
 
                 <!-- Serie / Data -->
                 <MudGrid Spacing="2">
                     <MudItem xs="5">
-                        <AppTextField T="string" @bind-Value="_model.Series"
+                        <PrymTextField T="string" @bind-Value="_model.Series"
                                       Label="@TranslationService.GetTranslation("documents.series", "Serie")"
                                       MaxLength="10" />
                     </MudItem>
                     <MudItem xs="7">
-                        <AppDatePicker @bind-Date="_documentDate"
+                        <PrymDatePicker @bind-Date="_documentDate"
                                        Label="@($"{TranslationService.GetTranslation("documents.date", "Data Documento")} *")" />
                     </MudItem>
                 </MudGrid>
@@ -66,17 +66,17 @@
                     Dense="true" />
 
                 <!-- Listino Prezzi -->
-                <AppSelect T="Guid?" @bind-Value="_model.PriceListId"
+                <PrymSelect T="Guid?" @bind-Value="_model.PriceListId"
                            Label="@TranslationService.GetTranslation("documents.priceList", "Listino Prezzi")"
                            Clearable="true">
                     @foreach (var pl in _effectivePriceLists)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)pl.Id)">@pl.Name</MudSelectItem>
                     }
-                </AppSelect>
+                </PrymSelect>
 
                 <!-- Note -->
-                <AppTextField T="string" @bind-Value="_model.Notes"
+                <PrymTextField T="string" @bind-Value="_model.Notes"
                               Label="@TranslationService.GetTranslation("documents.notes", "Note")"
                               Lines="2"
                               MaxLength="500"

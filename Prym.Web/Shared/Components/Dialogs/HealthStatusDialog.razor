@@ -485,7 +485,7 @@
                                        aria-label="@TranslationService.GetTranslation("health.autoRefresh", "Auto-refresh")" />
                             @if (_autoRefreshEnabled)
                             {
-                                <AppNumericField T="int"
+                                <PrymNumericField T="int"
                                                  @bind-Value="_refreshIntervalSeconds"
                                                  Label="@TranslationService.GetTranslation("health.intervalSeconds", "Interval (s)")"
                                                  Min="5"
@@ -504,7 +504,7 @@
                                            @bind-IsExpanded="_filtersExpanded">
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" md="3">
-                                    <AppSelect T="string" @bind-Value="_selectedLogLevel" @bind-Value:after="OnFilterChanged"
+                                    <PrymSelect T="string" @bind-Value="_selectedLogLevel" @bind-Value:after="OnFilterChanged"
                                                Label="@TranslationService.GetTranslation("health.logLevel", "Level")"
                                                Clearable="true">
                                         <MudSelectItem Value="@("")">@TranslationService.GetTranslation("common.all", "All")</MudSelectItem>
@@ -513,18 +513,18 @@
                                         <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
                                         <MudSelectItem Value="@("Error")">Error</MudSelectItem>
                                         <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
-                                    </AppSelect>
+                                    </PrymSelect>
                                 </MudItem>
                                 <MudItem xs="12" md="3">
-                                    <AppDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
+                                    <PrymDatePicker @bind-Date="_startDate" @bind-Date:after="OnFilterChanged"
                                                    Label="@TranslationService.GetTranslation("health.startDate", "From Date")" />
                                 </MudItem>
                                 <MudItem xs="12" md="3">
-                                    <AppDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
+                                    <PrymDatePicker @bind-Date="_endDate" @bind-Date:after="OnFilterChanged"
                                                    Label="@TranslationService.GetTranslation("health.endDate", "To Date")" />
                                 </MudItem>
                                 <MudItem xs="12" md="3">
-                                    <AppTextField T="string" @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
+                                    <PrymTextField T="string" @bind-Value="_searchText" @bind-Value:after="OnFilterChanged"
                                                   Label="@TranslationService.GetTranslation("health.searchMessage", "Search message")"
                                                   Placeholder="@TranslationService.GetTranslation("health.searchPlaceholder", "Search...")"
                                                   Immediate="true" />

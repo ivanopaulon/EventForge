@@ -37,7 +37,7 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid>
                 <MudItem xs="12" sm="4">
-                    <AppTextField @bind-Value="_filterSearch" Label="Cerca (numero carta)"
+                    <PrymTextField @bind-Value="_filterSearch" Label="Cerca (numero carta)"
                                   Adornment="Adornment.End"
                                   AdornmentIcon="@Icons.Material.Outlined.Search"
                                   Clearable="true"
@@ -45,24 +45,24 @@
                                   OnKeyUp="@HandleSearchKeyUp" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <AppSelect @bind-Value="_filterStatus" Label="Stato"
+                    <PrymSelect @bind-Value="_filterStatus" Label="Stato"
                                Clearable="true">
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)null)">Tutti</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Active)">Attiva</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Suspended)">Sospesa</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Expired)">Scaduta</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Revoked)">Revocata</MudSelectItem>
-                    </AppSelect>
+                    </PrymSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <AppSelect @bind-Value="_filterType" Label="Tipo Carta"
+                    <PrymSelect @bind-Value="_filterType" Label="Tipo Carta"
                                Clearable="true">
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)null)">Tutti</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Bronze)">Bronze</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Silver)">Silver</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Gold)">Gold</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Platinum)">Platinum</MudSelectItem>
-                    </AppSelect>
+                    </PrymSelect>
                 </MudItem>
             </MudGrid>
             <MudStack Row Justify="Justify.FlexEnd" Class="mt-2">

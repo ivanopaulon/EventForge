@@ -52,23 +52,23 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid>
                 <MudItem xs="12" sm="6" md="3">
-                    <AppTextField @bind-Value="_supplierNameFilter" Label="Fornitore"
+                    <PrymTextField @bind-Value="_supplierNameFilter" Label="Fornitore"
                                   Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <AppTextField @bind-Value="_productNameFilter" Label="Prodotto"
+                    <PrymTextField @bind-Value="_productNameFilter" Label="Prodotto"
                                   Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <AppDatePicker @bind-Date="_fromDate" Label="Da"
+                    <PrymDatePicker @bind-Date="_fromDate" Label="Da"
                                    Class="ef-datepicker" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <AppDatePicker @bind-Date="_toDate" Label="A"
+                    <PrymDatePicker @bind-Date="_toDate" Label="A"
                                    Class="ef-datepicker" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <AppNullableNumericField T="decimal" @bind-Value="_minChangePercentage"
+                    <PrymNullableNumericField T="decimal" @bind-Value="_minChangePercentage"
                                      Label="Min. variazione %"
                                      Min="0"
                                      Clearable="true" />

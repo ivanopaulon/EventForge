@@ -191,7 +191,7 @@
                             <!-- Single row: Qty | UdM | Prezzo | IVA -->
                             <MudGrid Spacing="2">
                                 <MudItem xs="6" sm="3">
-                                    <AppNumericField T="decimal" @bind-Value="_model.Quantity"
+                                    <PrymNumericField T="decimal" @bind-Value="_model.Quantity"
                                                      Label="@TranslationService.GetTranslation("documents.quantity", "Quantità")"
                                                      Required="true"
                                                      Min="0.01m"
@@ -204,7 +204,7 @@
                                 </MudItem>
 
                                 <MudItem xs="6" sm="3">
-                                    <AppSelect T="Guid?" Value="_selectedUnitOfMeasureId"
+                                    <PrymSelect T="Guid?" Value="_selectedUnitOfMeasureId"
                                                ValueChanged="@OnUnitOfMeasureChanged"
                                                Label="@TranslationService.GetTranslation("products.unitOfMeasure", "U.M.")"
                                                Adornment="Adornment.Start"
@@ -217,11 +217,11 @@
                                         {
                                             <MudSelectItem T="Guid?" Value="@option.Id">@option.Label</MudSelectItem>
                                         }
-                                    </AppSelect>
+                                    </PrymSelect>
                                 </MudItem>
 
                                 <MudItem xs="6" sm="3">
-                                    <AppNumericField T="decimal" Value="_model.UnitPrice"
+                                    <PrymNumericField T="decimal" Value="_model.UnitPrice"
                                                      ValueChanged="@((decimal val) => OnPriceManuallyChanged(val))"
                                                      Label="@TranslationService.GetTranslation("documents.price", "Prezzo")"
                                                      Required="true"
@@ -236,7 +236,7 @@
                                 </MudItem>
 
                                 <MudItem xs="6" sm="3">
-                                    <AppSelect T="Guid?" Value="_selectedVatRateId"
+                                    <PrymSelect T="Guid?" Value="_selectedVatRateId"
                                                ValueChanged="@OnVatRateChanged"
                                                Label="@TranslationService.GetTranslation("documents.vatRate", "IVA")"
                                                Adornment="Adornment.Start"
@@ -248,7 +248,7 @@
                                         {
                                             <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
                                         }
-                                    </AppSelect>
+                                    </PrymSelect>
                                 </MudItem>
                             </MudGrid>
 
@@ -277,7 +277,7 @@
                             <!-- Discounts -->
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
-                                    <AppNumericField T="decimal" Value="_model.LineDiscount"
+                                    <PrymNumericField T="decimal" Value="_model.LineDiscount"
                                                      ValueChanged="@((decimal val) => OnDiscountPercentChanged(val))"
                                                      Label="@TranslationService.GetTranslation("documents.discountPercent", "Sconto %")"
                                                      Min="0"
@@ -294,7 +294,7 @@
                                 </MudItem>
 
                                 <MudItem xs="12" sm="6">
-                                    <AppNumericField T="decimal" Value="_model.LineDiscountValue"
+                                    <PrymNumericField T="decimal" Value="_model.LineDiscountValue"
                                                      ValueChanged="@((decimal val) => OnDiscountAmountChanged(val))"
                                                      Label="@TranslationService.GetTranslation("documents.discountAmount", "Sconto €")"
                                                      Min="0"
