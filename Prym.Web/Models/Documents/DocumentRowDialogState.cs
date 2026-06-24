@@ -1,7 +1,9 @@
 using Prym.DTOs.Documents;
 using Prym.DTOs.Products;
+using Prym.DTOs.Station;
 using Prym.DTOs.UnitOfMeasures;
 using Prym.DTOs.VatRates;
+using Prym.DTOs.Warehouse;
 
 namespace Prym.Web.Models.Documents;
 
@@ -112,6 +114,9 @@ public class CacheState
     public List<UMDto> AllUnitsOfMeasure { get; set; } = new();
     public List<VatRateDto> AllVatRates { get; set; } = new();
     public List<RecentProductTransactionDto> RecentTransactions { get; set; } = new();
+    public List<StorageFacilityDto> AllWarehouses { get; set; } = new();
+    public List<StorageLocationDto> AllLocations { get; set; } = new();
+    public List<StationDto> AllStations { get; set; } = new();
 }
 
 /// <summary>

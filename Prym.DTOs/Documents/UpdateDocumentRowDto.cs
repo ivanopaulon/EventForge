@@ -102,6 +102,11 @@ namespace Prym.DTOs.Documents
         public bool IsManual { get; set; }
 
         /// <summary>
+        /// Storage location identifier (for inventory operations).
+        /// </summary>
+        public Guid? LocationId { get; set; }
+
+        /// <summary>
         /// Source warehouse for this row.
         /// </summary>
         public Guid? SourceWarehouseId { get; set; }
