@@ -269,6 +269,24 @@ public class StockService(
         }
     }
 
+    public async Task<PagedResult<StockMovementDto>?> GetMovementsByProductAsync(
+        Guid productId,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var query = $"productId={productId}&page={page}&pageSize={pageSize}";
+            return await httpClientService.GetAsync<PagedResult<StockMovementDto>>($"api/v1/warehouse/movements?{query}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving recent movements for product {ProductId}", productId);
+            return null;
+        }
+    }
+
     public async Task<StockMovementDto?> QuickStockTransferAsync(QuickStockTransferDto request, CancellationToken ct = default)
     {
         try

@@ -130,6 +130,20 @@ public class WarehouseFacade(
         };
     }
 
+    public async Task<PagedResult<StockMovementDto>> GetPagedMovementsAsync(
+        Guid productId, int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var paged = await stockMovementService.GetMovementsAsync(
+            page: page, pageSize: pageSize, productId: productId, cancellationToken: cancellationToken);
+        return new PagedResult<StockMovementDto>
+        {
+            Items = paged.Items.OrderByDescending(m => m.MovementDate).ToList(),
+            TotalCount = paged.TotalCount,
+            Page = paged.Page,
+            PageSize = paged.PageSize
+        };
+    }
+
     public Task<StockMovementDto> QuickStockTransferAsync(
         QuickStockTransferDto request, string currentUser, CancellationToken cancellationToken = default)
         => stockMovementService.ProcessTransferMovementAsync(

@@ -1103,6 +1103,37 @@ public class WarehouseManagementController(
     }
 
     /// <summary>
+    /// Gets paged stock movements for a product across all locations, ordered by date descending.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="page">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10, max: 100)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("movements")]
+    [ProducesResponseType(typeof(PagedResult<StockMovementDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMovementsByProduct(
+        [FromQuery] Guid productId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        try
+        {
+            var result = await warehouseFacade.GetPagedMovementsAsync(productId, page, pageSize, cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving movements.", ex);
+        }
+    }
+
+    /// <summary>
     /// Creates a quick stock transfer from one location to another.
     /// </summary>
     [HttpPost("stock/transfer")]

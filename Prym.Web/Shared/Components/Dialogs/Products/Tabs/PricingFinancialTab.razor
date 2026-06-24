@@ -58,6 +58,27 @@
     <!-- Price Trend Chart -->
     @if (Product.Id != Guid.Empty)
     {
+        <!-- Year selector toolbar -->
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="px-1">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                @TranslationService.GetTranslation("price.trendYear", "Anno")
+            </MudText>
+            <PrymSelect T="int"
+                        Value="@_selectedYear"
+                        ValueChanged="@OnYearChanged"
+                        Style="min-width:110px">
+                @foreach (var y in _availableYears)
+                {
+                    <MudSelectItem T="int" Value="@y">@y</MudSelectItem>
+                }
+            </PrymSelect>
+            <PrymIconButton Icon="@Icons.Material.Outlined.Refresh"
+                            Title="@TranslationService.GetTranslation("action.reload", "Ricarica")"
+                            OnClick="@ReloadPriceTrendAsync"
+                            Color="Color.Default"
+                            Disabled="@_isLoadingPriceTrend" />
+        </MudStack>
+
         <PriceTrendChart PriceTrend="@_priceTrend" IsLoading="@_isLoadingPriceTrend" ProductId="@Product.Id" />
     }
 </MudStack>
@@ -76,6 +97,9 @@
     private PriceTrendDto? _priceTrend;
     private bool _isLoadingPriceTrend = false;
     private bool _priceTrendLoaded = false;
+
+    private int _selectedYear = DateTime.Now.Year;
+    private List<int> _availableYears = Enumerable.Range(DateTime.Now.Year - 4, 5).Reverse().ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,12 +162,25 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async Task OnYearChanged(int year)
+    {
+        _selectedYear = year;
+        _priceTrendLoaded = false;
+        await LoadPriceTrendAsync();
+    }
+
+    private async Task ReloadPriceTrendAsync()
+    {
+        _priceTrendLoaded = false;
+        await LoadPriceTrendAsync();
+    }
+
     private async Task LoadPriceTrendAsync()
     {
         _isLoadingPriceTrend = true;
         try
         {
-            _priceTrend = await ProductService.GetProductPriceTrendAsync(Product.Id);
+            _priceTrend = await ProductService.GetProductPriceTrendAsync(Product.Id, _selectedYear);
             _priceTrendLoaded = true;
         }
         catch (Exception ex)
