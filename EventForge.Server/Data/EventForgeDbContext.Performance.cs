@@ -100,5 +100,32 @@ public partial class EventForgeDbContext
         _ = modelBuilder.Entity<SalePayment>()
             .HasIndex(sp => sp.SaleSessionId)
             .HasDatabaseName("IX_SalePayments_SaleSessionId");
+
+        // ── Printers ──────────────────────────────────────────────────────────
+        // Covers fiscal-printer polling queries from hosted services (IsFiscalPrinter=1, IsDeleted=0).
+        // Without this index the query was performing a full-table scan (~5500 ms observed).
+        _ = modelBuilder.Entity<Printer>()
+            .HasIndex(p => new { p.IsDeleted, p.IsFiscalPrinter })
+            .HasDatabaseName("IX_Printers_IsDeleted_IsFiscalPrinter");
+
+        // ── BusinessParties ───────────────────────────────────────────────────
+        // Accelerates the paginated list and text-search queries that always filter on
+        // TenantId + IsDeleted before ordering/paging by Name.
+        _ = modelBuilder.Entity<BusinessParty>()
+            .HasIndex(bp => new { bp.TenantId, bp.IsDeleted, bp.Name })
+            .HasDatabaseName("IX_BusinessParties_TenantId_IsDeleted_Name");
+
+        // ── SystemOperationLogs ───────────────────────────────────────────────
+        // Supports the monitoring-dashboard query: WHERE Severity IN (...) ORDER BY ExecutedAt DESC.
+        _ = modelBuilder.Entity<SystemOperationLog>()
+            .HasIndex(l => new { l.Severity, l.ExecutedAt })
+            .HasDatabaseName("IX_SystemOperationLogs_Severity_ExecutedAt");
+
+        // ── UserRoles (composite with ExpiresAt) ──────────────────────────────
+        // Speeds up the filtered-include in RefreshTokenAsync:
+        //   .Include(u => u.UserRoles.Where(ur => ur.ExpiresAt == null || ur.ExpiresAt > now))
+        _ = modelBuilder.Entity<UserRole>()
+            .HasIndex(ur => new { ur.UserId, ur.ExpiresAt })
+            .HasDatabaseName("IX_UserRoles_UserId_ExpiresAt");
     }
 }

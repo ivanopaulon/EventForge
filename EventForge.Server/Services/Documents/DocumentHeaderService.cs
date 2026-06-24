@@ -2074,9 +2074,18 @@ public class DocumentHeaderService(
                 return true;
             }
 
-            logger.LogWarning(
-                "User {UserName} attempted to release lock on document {DocumentId} but doesn't hold it (locked by: {LockedBy})",
-                userName, documentId, document.LockedBy);
+            if (document.LockedBy is null)
+            {
+                logger.LogWarning(
+                    "User {UserName} attempted to release lock on document {DocumentId} but the document is not locked.",
+                    userName, documentId);
+            }
+            else
+            {
+                logger.LogWarning(
+                    "User {UserName} attempted to release lock on document {DocumentId} but doesn't hold it (locked by: {LockedBy})",
+                    userName, documentId, document.LockedBy);
+            }
 
             return false;
         }
