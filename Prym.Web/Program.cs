@@ -329,6 +329,9 @@ using (var scope = app.Services.CreateScope())
 
     var tenantContextService = scope.ServiceProvider.GetRequiredService<ITenantContextService>();
     await tenantContextService.InitializeAsync();
+
+    var chatService = scope.ServiceProvider.GetRequiredService<IChatService>();
+    await chatService.InitializeAsync();
 }
 
 await app.RunAsync();

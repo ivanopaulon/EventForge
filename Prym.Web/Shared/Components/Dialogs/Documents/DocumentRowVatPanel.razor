@@ -6,8 +6,7 @@
                    ExpandedChanged="@OnExpandedChanged"
                    id="vat-prices-panel">
     <MudStack Spacing="2">
-        <AppSelect T="Guid?"
-                  Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
+        <AppSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
                   Value="@SelectedVatRateId"
                   ValueChanged="@OnVatRateChanged"
                   Dense="true"
@@ -19,8 +18,7 @@
             }
         </AppSelect>
         
-        <AppTextField T="string"
-                     Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
+        <AppTextField T="string" Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
                      Value="@VatAmount.ToString("C2")"
                      ReadOnly="true"
                      Variant="Variant.Filled"
@@ -28,8 +26,7 @@
                      Adornment="Adornment.Start"
                      AdornmentIcon="@Icons.Material.Outlined.Calculate"/>
         
-        <AppTextField T="string"
-                     Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
+        <AppTextField T="string" Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
                      Value="@UnitPriceGross.ToString("C2")"
                      ReadOnly="true"
                      Variant="Variant.Filled"

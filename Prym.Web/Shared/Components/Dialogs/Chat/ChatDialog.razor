@@ -543,6 +543,8 @@
                 return;
             }
 
+            await ChatService.InitializeAsync();
+
             if (!RealtimeService.IsChatConnected)
                 await RealtimeService.StartChatConnectionAsync();
 

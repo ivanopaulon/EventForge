@@ -5,8 +5,7 @@
                    ExpandedChanged="@OnExpandedChanged"
                    id="discounts-panel">
     <MudStack Spacing="2">
-        <AppNumericField T="decimal"
-                        Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
+        <AppNumericField T="decimal" Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
                         Value="@LineDiscount"
                         ValueChanged="@LineDiscountChanged"
                         Min="0"
@@ -16,8 +15,7 @@
                         Adornment="Adornment.End"
                         AdornmentIcon="@Icons.Material.Outlined.Percent"/>
         
-        <AppNumericField T="decimal"
-                        Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
+        <AppNumericField T="decimal" Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
                         Value="@LineDiscountValue"
                         ValueChanged="@LineDiscountValueChanged"
                         Min="0"

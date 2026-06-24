@@ -52,28 +52,23 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid>
                 <MudItem xs="12" sm="6" md="3">
-                    <AppTextField @bind-Value="_supplierNameFilter"
-                                  Label="Fornitore"
+                    <AppTextField @bind-Value="_supplierNameFilter" Label="Fornitore"
                                   Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <AppTextField @bind-Value="_productNameFilter"
-                                  Label="Prodotto"
+                    <AppTextField @bind-Value="_productNameFilter" Label="Prodotto"
                                   Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <AppDatePicker @bind-Date="_fromDate"
-                                   Label="Da"
+                    <AppDatePicker @bind-Date="_fromDate" Label="Da"
                                    Class="ef-datepicker" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <AppDatePicker @bind-Date="_toDate"
-                                   Label="A"
+                    <AppDatePicker @bind-Date="_toDate" Label="A"
                                    Class="ef-datepicker" />
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <AppNullableNumericField T="decimal"
-                                     @bind-Value="_minChangePercentage"
+                    <AppNullableNumericField T="decimal" @bind-Value="_minChangePercentage"
                                      Label="Min. variazione %"
                                      Min="0"
                                      Clearable="true" />
@@ -88,6 +83,7 @@
                             Cerca
                         </MudButton>
                         <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
+                                   Variant="Variant.Outlined"
                                    Color="Color.Secondary"
                                    OnClick="ResetFiltersAsync"
                                    Disabled="_isLoading">

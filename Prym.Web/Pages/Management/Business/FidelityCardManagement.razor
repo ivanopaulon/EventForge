@@ -28,6 +28,7 @@
                 <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
                                Title="Aggiorna"
                                Color="Color.Primary"
+                               Variant="Variant.Outlined"
                                OnClick="@LoadCardsAsync" />
             </MudStack>
         </MudPaper>
@@ -36,8 +37,7 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid>
                 <MudItem xs="12" sm="4">
-                    <AppTextField @bind-Value="_filterSearch"
-                                  Label="Cerca (numero carta)"
+                    <AppTextField @bind-Value="_filterSearch" Label="Cerca (numero carta)"
                                   Adornment="Adornment.End"
                                   AdornmentIcon="@Icons.Material.Outlined.Search"
                                   Clearable="true"
@@ -45,8 +45,7 @@
                                   OnKeyUp="@HandleSearchKeyUp" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <AppSelect @bind-Value="_filterStatus"
-                               Label="Stato"
+                    <AppSelect @bind-Value="_filterStatus" Label="Stato"
                                Clearable="true">
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)null)">Tutti</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Active)">Attiva</MudSelectItem>
@@ -56,8 +55,7 @@
                     </AppSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <AppSelect @bind-Value="_filterType"
-                               Label="Tipo Carta"
+                    <AppSelect @bind-Value="_filterType" Label="Tipo Carta"
                                Clearable="true">
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)null)">Tutti</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Bronze)">Bronze</MudSelectItem>
@@ -68,7 +66,7 @@
                 </MudItem>
             </MudGrid>
             <MudStack Row Justify="Justify.FlexEnd" Class="mt-2">
-                <MudButton Color="Color.Default" OnClick="@ResetFilters">
+                <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@ResetFilters">
                     Azzera filtri
                 </MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ApplyFilter">

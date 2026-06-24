@@ -11,7 +11,8 @@ namespace Prym.Agent.Middleware;
 /// Returns 503 if both username and password are empty (UI intentionally disabled).
 /// Returns 401 + WWW-Authenticate if the request is missing or has wrong credentials.
 /// <para>
-/// Internal queue-management endpoints (<c>/api/agent/pending-installs</c>,
+/// Internal update/queue-management endpoints (<c>/api/agent/updates/check</c>,
+/// <c>/api/agent/updates/download</c>, <c>/api/agent/pending-installs</c>,
 /// <c>/api/agent/install-now</c>, <c>/api/agent/unblock-queue</c>) require a matching
 /// <c>X-Agent-Internal-Token</c> header when <see cref="AgentOptions.InternalApiToken"/>
 /// is configured. When the token is left empty, the legacy localhost-only trust model applies.
@@ -28,6 +29,8 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
     // Paths that are internal-only — validated via InternalApiToken, not Basic Auth.
     private static readonly string[] _internalPaths =
     [
+        "/api/agent/updates/check",
+        "/api/agent/updates/download",
         "/api/agent/pending-installs",
         "/api/agent/install-now",
         "/api/agent/unblock-queue"
@@ -53,7 +56,7 @@ public class BasicAuthMiddleware(RequestDelegate next, AgentOptions options)
             return;
         }
 
-        // Internal queue-management endpoints called by EventForge.Server.
+        // Internal update/queue-management endpoints called by EventForge.Server.
         // When InternalApiToken is configured: require a matching X-Agent-Internal-Token header.
         // When InternalApiToken is empty: fall back to legacy unauthenticated localhost trust.
         if (_internalPaths.Any(p => path.Equals(p, StringComparison.OrdinalIgnoreCase)))
