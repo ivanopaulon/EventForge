@@ -319,18 +319,24 @@ builder.Services.AddAuthorizationCore();
 var app = builder.Build();
 
 // Initialize Translation Service and Tenant Context Service at startup
-using (var scope = app.Services.CreateScope())
+// CreateAsyncScope() returns an AsyncServiceScope (IAsyncDisposable) so that
+// await using properly calls DisposeAsync() on all scoped services (including
+// IAsyncDisposable ones like OptimizedSignalRService).  Using the synchronous
+// "using" here would force a blocking .GetAwaiter().GetResult() in the
+// single-threaded Blazor WASM environment, causing a deadlock and the
+// "AggregateException AsyncDisposableServiceDispose" crash at startup.
+await using var startupScope = app.Services.CreateAsyncScope();
 {
-    var translationService = scope.ServiceProvider.GetRequiredService<ITranslationService>();
+    var translationService = startupScope.ServiceProvider.GetRequiredService<ITranslationService>();
     if (translationService is TranslationService concreteService)
     {
         await concreteService.InitializeAsync();
     }
 
-    var tenantContextService = scope.ServiceProvider.GetRequiredService<ITenantContextService>();
+    var tenantContextService = startupScope.ServiceProvider.GetRequiredService<ITenantContextService>();
     await tenantContextService.InitializeAsync();
 
-    var chatService = scope.ServiceProvider.GetRequiredService<IChatService>();
+    var chatService = startupScope.ServiceProvider.GetRequiredService<IChatService>();
     await chatService.InitializeAsync();
 }
 

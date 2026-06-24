@@ -142,6 +142,9 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
     public event Action<object>? ImpersonationEnded;
     #endregion
 
+    // Disposal guard
+    private bool _disposed;
+
     // Reference counting for fiscal printer group subscriptions (printerId → subscriber count)
     private readonly ConcurrentDictionary<Guid, int> _printerSubscriptions = new();
 
@@ -1697,18 +1700,32 @@ public class OptimizedSignalRService : IRealtimeService, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (_disposed) return;
+        _disposed = true;
+
         _connectionHealthTimer?.Dispose();
         _eventBatchTimer?.Dispose();
 
-        var disposeTasks = _connections.Values.Select(connection => connection.DisposeAsync().AsTask());
-        await Task.WhenAll(disposeTasks);
+        try
+        {
+            // Materialize before awaiting to avoid lazy-enumeration exceptions
+            // propagating outside Task.WhenAll.
+            var disposeTasks = _connections.Values
+                .Select(c => c.DisposeAsync().AsTask())
+                .ToList();
+            await Task.WhenAll(disposeTasks);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Error while disposing SignalR hub connections");
+        }
 
         foreach (var semaphore in _connectionLocks.Values)
         {
-            semaphore.Dispose();
+            try { semaphore.Dispose(); } catch { /* ignore */ }
         }
 
-        _logger.LogInformation("Optimized SignalR service disposed");
+        _logger?.LogInformation("Optimized SignalR service disposed");
     }
 }
 
