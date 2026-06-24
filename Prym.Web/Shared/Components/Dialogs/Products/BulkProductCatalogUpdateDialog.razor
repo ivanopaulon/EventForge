@@ -304,36 +304,32 @@
                         </MudItem>
 
                         <MudItem xs="12" md="3">
-                            <MudNumericField T="decimal?" @bind-Value="_dto.ReorderPoint"
+                            <PrymNullableNumericField T="decimal" @bind-Value="_dto.ReorderPoint"
                                              Label="@TranslationService.GetTranslation("field.reorderPoint", "Punto di Riordino")"
-                                             Clearable="true"
                                              Format="N2"
                                              Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
                         <MudItem xs="12" md="3">
-                            <MudNumericField T="decimal?" @bind-Value="_dto.SafetyStock"
+                            <PrymNullableNumericField T="decimal" @bind-Value="_dto.SafetyStock"
                                              Label="@TranslationService.GetTranslation("field.safetyStock", "Scorta di Sicurezza")"
-                                             Clearable="true"
                                              Format="N2"
                                              Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
                         <MudItem xs="12" md="3">
-                            <MudNumericField T="decimal?" @bind-Value="_dto.TargetStockLevel"
+                            <PrymNullableNumericField T="decimal" @bind-Value="_dto.TargetStockLevel"
                                              Label="@TranslationService.GetTranslation("field.targetStock", "Scorta Obiettivo")"
-                                             Clearable="true"
                                              Format="N2"
                                              Disabled="@_isSaving"
                                              Min="0" />
                         </MudItem>
 
                         <MudItem xs="12" md="3">
-                            <MudNumericField T="decimal?" @bind-Value="_dto.AverageDailyDemand"
+                            <PrymNullableNumericField T="decimal" @bind-Value="_dto.AverageDailyDemand"
                                              Label="@TranslationService.GetTranslation("field.avgDailyDemand", "Domanda Media Giornaliera")"
-                                             Clearable="true"
                                              Format="N2"
                                              Disabled="@_isSaving"
                                              Min="0" />
