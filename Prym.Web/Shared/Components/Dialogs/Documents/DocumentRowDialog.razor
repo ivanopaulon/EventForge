@@ -221,9 +221,9 @@
                                 </MudItem>
 
                                 <MudItem xs="6" sm="3">
-                                    <PrymNumericField T="decimal" Value="_model.UnitPrice"
+                                    <PrymNumericField T="decimal" Value="DisplayedUnitPrice"
                                                      ValueChanged="@((decimal val) => OnPriceManuallyChanged(val))"
-                                                     Label="@TranslationService.GetTranslation("documents.price", "Prezzo")"
+                                                     Label="@PriceFieldLabel"
                                                      Required="true"
                                                      Min="0"
                                                      Format="F2"
@@ -312,14 +312,14 @@
                             <!-- Merge duplicates checkbox - always active in add mode -->
                             @if (!_isEditMode)
                             {
-                                <MudCheckBox T="bool"
-                                             @bind-Value="_model.MergeDuplicateProducts"
-                                             Color="Color.Primary">
-                                    @TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                                    <PrymCheckBox T="bool"
+                                                  @bind-Value="_model.MergeDuplicateProducts"
+                                                  Label="@TranslationService.GetTranslation("documents.mergeDuplicates", "Somma quantità se l'articolo è già presente")" />
                                     <MudTooltip Text="@TranslationService.GetTranslation("documents.mergeDuplicatesHelp", "When enabled, if you add the same product with the same price, VAT and discounts, the quantity will be summed to the existing row instead of creating a new one")">
                                         <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Color="Color.Info" Class="ml-1" />
                                     </MudTooltip>
-                                </MudCheckBox>
+                                </MudStack>
                             }
 
                         </MudStack>
@@ -342,17 +342,16 @@
     <DialogActions>
         <MudStack Row="true" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Class="w-full">
             <MudStack Row="true" Spacing="2">
-                <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="@_isProcessing">
+                <PrymButton Intent="PrymButton.ButtonIntent.Secondary" OnClick="Cancel" Disabled="@_isProcessing">
                     @TranslationService.GetTranslation("common.close", "Chiudi")
-                </MudButton>
+                </PrymButton>
 
                 @if (_dialogMode != DialogMode.ContinuousScan)
                 {
-                    <MudButton Color="Color.Primary"
-                               OnClick="SaveAndContinue"
-                               Disabled="@(!IsValid() || _isProcessing)"
-                               Class="@(_isProcessing ? "button-loading" : "")"
-                               Variant="Variant.Filled">
+                    <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                                OnClick="SaveAndContinue"
+                                Disabled="@(!IsValid() || _isProcessing)"
+                                Class="@(_isProcessing ? "button-loading" : "")">
                         @if (_isProcessing)
                         {
                             <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
@@ -362,7 +361,7 @@
                             <MudIcon Icon="@(_isEditMode ? Icons.Material.Outlined.Save : Icons.Material.Outlined.Add)" Class="mr-1" />
                         }
                         @TranslationService.GetTranslation(_isEditMode ? "common.save" : "documents.addAndContinue", _isEditMode ? "Salva" : "Aggiungi e Continua")
-                    </MudButton>
+                    </PrymButton>
                 }
             </MudStack>
         </MudStack>
