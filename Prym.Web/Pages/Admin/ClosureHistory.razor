@@ -1,6 +1,8 @@
 @namespace Prym.Web.Pages.FiscalAdmin
 @page "/admin/fiscal-printers/{PrinterId:guid}/closures"
 @using Prym.DTOs.FiscalPrinting
+@using Prym.Web.Shared.Management
+@using Prym.Web.Shared.Management.Adapters
 @using Microsoft.AspNetCore.SignalR.Client
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
 @inject IFiscalPrintingService FiscalPrintingService
@@ -14,26 +16,8 @@
 
 <PageTitle>Storico Chiusure Fiscali</PageTitle>
 
-<PageLoadingOverlay Visible="@_isLoading" Message="Caricamento storico chiusure…" />
-
-@if (!_isLoading)
-{
-<div class="ef-flex-col-fill">
-    <ManagementPageHeader Title="@($"Storico Chiusure{(!string.IsNullOrEmpty(_printerName) ? $" – {_printerName}" : "")}")"
-                          Icon="@Icons.Material.Outlined.EventNote"
-                          BreadcrumbItems="_breadcrumbs">
-        <ExtraActions>
-            <MudButton Variant="Variant.Filled" Color="Color.Warning"
-                       StartIcon="@Icons.Material.Filled.EventNote"
-                       Size="Size.Small"
-                       OnClick="OpenDailyClosureDialogAsync">
-                Nuova Chiusura
-            </MudButton>
-        </ExtraActions>
-    </ManagementPageHeader>
-
-@* ──────────────────── FILTRI ──────────────────── *@
-<MudPaper Class="pa-4 mb-4" Elevation="1">
+@* ──────────────────── FILTER PANEL ──────────────────── *@
+<MudPaper Class="pa-4 mb-0" Elevation="1">
     <MudGrid Spacing="2">
         <MudItem xs="12" md="4">
             <MudDatePicker @bind-Date="_filterFromDate"
@@ -41,7 +25,7 @@
                            Variant="Variant.Outlined"
                            Clearable="true"
                            DateFormat="dd/MM/yyyy"
-                    Margin="Margin.Dense"/>
+                           Margin="Margin.Dense" />
         </MudItem>
         <MudItem xs="12" md="4">
             <MudDatePicker @bind-Date="_filterToDate"
@@ -49,7 +33,7 @@
                            Variant="Variant.Outlined"
                            Clearable="true"
                            DateFormat="dd/MM/yyyy"
-                    Margin="Margin.Dense"/>
+                           Margin="Margin.Dense" />
         </MudItem>
         <MudItem xs="12" md="4">
             <MudTextField @bind-Value="_filterZReport"
@@ -58,149 +42,214 @@
                           Clearable="true"
                           Adornment="Adornment.Start"
                           AdornmentIcon="@Icons.Material.Filled.Search"
-                    Margin="Margin.Dense"/>
+                          Margin="Margin.Dense" />
         </MudItem>
         <MudItem xs="12">
             <MudStack Row="true" Spacing="2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Search"
-                           OnClick="ApplyFilters">
+                           OnClick="ApplyFiltersAsync">
                     Cerca
                 </MudButton>
                 <MudButton Variant="Variant.Outlined"
                            StartIcon="@Icons.Material.Filled.Clear"
-                           OnClick="ClearFilters">
+                           OnClick="ClearFiltersAsync">
                     Pulisci
                 </MudButton>
-                <MudSpacer />
-                <MudTooltip Text="Esporta CSV">
-                    <MudIconButton Icon="@Icons.Material.Filled.Download"
-                                   OnClick="ExportCsvAsync"
-                                   Disabled="@(_closures.Count == 0)" />
-                </MudTooltip>
             </MudStack>
         </MudItem>
     </MudGrid>
 </MudPaper>
 
-@* ──────────────────── TABELLA ──────────────────── *@
-<MudPaper Elevation="1">
-    <MudTable T="DailyClosureHistoryDto"
-              Items="@_closuresFiltered"
-              Dense="true"
-              Hover="true"
-              Striped="true"
-              Loading="@_isLoading"
-              LoadingProgressColor="Color.Primary">
-        <ToolBarContent>
-            <MudText Typo="Typo.subtitle1">
-                Chiusure (@_closuresFiltered.Count di @_closures.Count totali)
-            </MudText>
-        </ToolBarContent>
-        <HeaderContent>
-            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ClosedAt" InitialDirection="SortDirection.Descending">Data/Ora</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ZReportNumber">N° Z-Report</MudTableSortLabel></MudTh>
-            <MudTh>Tipo</MudTh>
-            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.ReceiptCount">Scontrini</MudTableSortLabel></MudTh>
-            <MudTh ><MudTableSortLabel T="DailyClosureHistoryDto" SortBy="c => c.TotalAmount">Totale</MudTableSortLabel></MudTh>
-            <MudTh>Operatore</MudTh>
-            <MudTh>Azioni</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Data/Ora">@context.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="N° Z-Report">
-                @if (context.ZReportNumber > 0)
-                {
-                    <b>#@context.ZReportNumber</b>
-                }
-                else
-                {
-                    <span>—</span>
-                }
-                @if (context.FiscalClosurePending)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Icon="@Icons.Material.Filled.Warning"
-                             Variant="Variant.Filled" Class="ml-1" Style="height:20px">Pendente</MudChip>
-                }
-            </MudTd>
-            <MudTd DataLabel="Tipo">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                         Color="@ClosureTypeColor(context.ClosureType)"
-                         Icon="@ClosureTypeIcon(context.ClosureType)">
-                    @ClosureTypeLabel(context.ClosureType)
-                </MudChip>
-            </MudTd>
-            <MudTd DataLabel="Scontrini" >@context.ReceiptCount</MudTd>
-            <MudTd DataLabel="Totale" >@context.TotalAmount.ToString("C2")</MudTd>
-            <MudTd DataLabel="Operatore">@(context.Operator ?? "—")</MudTd>
-            <MudTd>
-                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
-                    <MudMenuItem Icon="@Icons.Material.Filled.PictureAsPdf"
-                                 Disabled="@(!context.HasPdf)"
-                                 OnClick="@(() => DownloadPdfAsync(context.Id))">
-                        Scarica PDF
-                    </MudMenuItem>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Print"
-                                 OnClick="@(() => ReprintAsync(context.Id, context.ZReportNumber))">
-                        Ristampa Z-Report
-                    </MudMenuItem>
-                    @if (context.FiscalClosurePending)
+<EntityManagementPage TEntity="DailyClosureHistoryDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      ExternalFilters="_externalFilters">
+    <PageHeader>
+        <ManagementPageHeader Title="@(_printerName is not null ? $"Storico Chiusure – {_printerName}" : "Storico Chiusure")"
+                              Icon="@Icons.Material.Outlined.EventNote"
+                              BreadcrumbItems="_breadcrumbs">
+            <ExtraActions>
+                <MudButton Variant="Variant.Filled" Color="Color.Warning"
+                           StartIcon="@Icons.Material.Filled.EventNote"
+                           Size="Size.Small"
+                           OnClick="OpenDailyClosureDialogAsync">
+                    Nuova Chiusura
+                </MudButton>
+            </ExtraActions>
+        </ManagementPageHeader>
+    </PageHeader>
+
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "ClosedAt")
+            {
+                <EFTableColumnHeader TItem="DailyClosureHistoryDto" PropertyName="ClosedAt">
+                    <MudTableSortLabel SortBy="@(new Func<DailyClosureHistoryDto, object>(x => x.ClosedAt))">Data/Ora</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ZReportNumber")
+            {
+                <EFTableColumnHeader TItem="DailyClosureHistoryDto" PropertyName="ZReportNumber">
+                    <MudTableSortLabel SortBy="@(new Func<DailyClosureHistoryDto, object>(x => x.ZReportNumber))">N° Z-Report</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ClosureType")
+            {
+                <EFTableColumnHeader TItem="DailyClosureHistoryDto" PropertyName="ClosureType">Tipo</EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ReceiptCount")
+            {
+                <EFTableColumnHeader TItem="DailyClosureHistoryDto" PropertyName="ReceiptCount">
+                    <MudTableSortLabel SortBy="@(new Func<DailyClosureHistoryDto, object>(x => x.ReceiptCount))">Scontrini</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "TotalAmount")
+            {
+                <EFTableColumnHeader TItem="DailyClosureHistoryDto" PropertyName="TotalAmount">
+                    <MudTableSortLabel SortBy="@(new Func<DailyClosureHistoryDto, object>(x => x.TotalAmount))">Totale</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Operator")
+            {
+                <EFTableColumnHeader TItem="DailyClosureHistoryDto" PropertyName="Operator">
+                    <MudTableSortLabel SortBy="@(new Func<DailyClosureHistoryDto, object>(x => x.Operator ?? string.Empty))">Operatore</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">Azioni</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "ClosedAt")
+            {
+                <MudTd DataLabel="Data/Ora">@ctx.Item.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+            }
+            else if (column.PropertyName == "ZReportNumber")
+            {
+                <MudTd DataLabel="N° Z-Report">
+                    @if (ctx.Item.ZReportNumber > 0)
                     {
-                        <MudDivider />
-                        <MudMenuItem Icon="@Icons.Material.Filled.Refresh"
-                                     OnClick="@(() => RetryFiscalClosureAsync(context.Id, context.ZReportNumber))">
-                            Riprova Chiusura Fiscale
-                        </MudMenuItem>
+                        <b>#@ctx.Item.ZReportNumber</b>
                     }
-                </MudMenu>
-            </MudTd>
-        </RowTemplate>
-        <PagerContent>
-            <MudTablePager PageSizeOptions="new[] { 10, 20, 50 }" />
-        </PagerContent>
-        <NoRecordsContent>
-            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
-                <MudIcon Icon="@Icons.Material.Outlined.EventNote" Size="Size.Large" Color="Color.Default" />
-                <MudText Typo="Typo.body1">Nessuna chiusura trovata</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Modifica i filtri o esegui la prima chiusura giornaliera</MudText>
-            </MudStack>
-        </NoRecordsContent>
-    </MudTable>
-</MudPaper>
-</div>
-}
+                    else
+                    {
+                        <span>—</span>
+                    }
+                    @if (ctx.Item.FiscalClosurePending)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                 Icon="@Icons.Material.Filled.Warning"
+                                 Variant="Variant.Filled" Class="ml-1" Style="height:20px">Pendente</MudChip>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "ClosureType")
+            {
+                <MudTd DataLabel="Tipo">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@ClosureTypeColor(ctx.Item.ClosureType)"
+                             Icon="@ClosureTypeIcon(ctx.Item.ClosureType)">
+                        @ClosureTypeLabel(ctx.Item.ClosureType)
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ReceiptCount")
+            {
+                <MudTd DataLabel="Scontrini">@ctx.Item.ReceiptCount</MudTd>
+            }
+            else if (column.PropertyName == "TotalAmount")
+            {
+                <MudTd DataLabel="Totale">@ctx.Item.TotalAmount.ToString("C2")</MudTd>
+            }
+            else if (column.PropertyName == "Operator")
+            {
+                <MudTd DataLabel="Operatore">@(ctx.Item.Operator ?? "—")</MudTd>
+            }
+        }
+        <MudTd Class="text-center">
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true">
+                <MudMenuItem Icon="@Icons.Material.Filled.PictureAsPdf"
+                             Disabled="@(!ctx.Item.HasPdf)"
+                             OnClick="@(() => DownloadPdfAsync(ctx.Item.Id))">
+                    Scarica PDF
+                </MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Print"
+                             OnClick="@(() => ReprintAsync(ctx.Item.Id, ctx.Item.ZReportNumber))">
+                    Ristampa Z-Report
+                </MudMenuItem>
+                @if (ctx.Item.FiscalClosurePending)
+                {
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Refresh"
+                                 OnClick="@(() => RetryFiscalClosureAsync(ctx.Item.Id, ctx.Item.ZReportNumber))">
+                        Riprova Chiusura Fiscale
+                    </MudMenuItem>
+                }
+            </MudMenu>
+        </MudTd>
+    </RowTemplate>
+</EntityManagementPage>
 
 @code {
-    // ─────────────────────────────────────────────────────────
-    //  Route parameter
-    // ─────────────────────────────────────────────────────────
-
     [Parameter] public Guid PrinterId { get; set; }
 
-    // ─────────────────────────────────────────────────────────
-    //  State
-    // ─────────────────────────────────────────────────────────
+    private EntityManagementPage<DailyClosureHistoryDto>? _entityPage;
+    private IEntityManagementService<DailyClosureHistoryDto> _service = null!;
 
-    private bool _isLoading = true;
     private string? _printerName;
-    private List<DailyClosureHistoryDto> _closures = new();
-    private List<DailyClosureHistoryDto> _closuresFiltered = new();
     private HubConnection? _hubConnection;
 
-    // Filters
     private DateTime? _filterFromDate;
     private DateTime? _filterToDate;
     private string _filterZReport = string.Empty;
 
+    private Dictionary<string, object?> _externalFilters = new();
     private List<BreadcrumbItem> _breadcrumbs = [];
 
-    // ─────────────────────────────────────────────────────────
-    //  Lifecycle
-    // ─────────────────────────────────────────────────────────
+    private readonly EntityManagementConfig<DailyClosureHistoryDto> _config = new()
+    {
+        ComponentKey     = "ClosureHistory",
+        PageTitleKey     = "closures.printerHistory.title",
+        PageTitleDefault = "Storico Chiusure",
+        EntityIcon       = Icons.Material.Outlined.EventNote,
+        PageRootCssClass = "management-page-root ef-flex-col-fill",
+        BaseRoute        = "/admin/fiscal-closures",
+        EntityTypeName   = "Chiusura",
+        GetId            = c => c.Id,
+        GetDisplayName   = c => $"Z-Report #{c.ZReportNumber} — {c.ClosedAt.ToLocalTime():dd/MM/yyyy}",
+        ShowCreate       = false,
+        ShowEdit         = false,
+        ShowDelete       = false,
+        ShowAuditLog     = false,
+        ShowExport       = true,
+        ExcelFileName    = "StoricoChiusureStampante",
+        Columns =
+        [
+            new EFTableColumnConfiguration { PropertyName = "ClosedAt",      DisplayName = "Data/Ora",    IsVisible = true, Order = 0 },
+            new EFTableColumnConfiguration { PropertyName = "ZReportNumber", DisplayName = "N° Z-Report", IsVisible = true, Order = 1 },
+            new EFTableColumnConfiguration { PropertyName = "ClosureType",   DisplayName = "Tipo",        IsVisible = true, Order = 2 },
+            new EFTableColumnConfiguration { PropertyName = "ReceiptCount",  DisplayName = "Scontrini",   IsVisible = true, Order = 3 },
+            new EFTableColumnConfiguration { PropertyName = "TotalAmount",   DisplayName = "Totale",      IsVisible = true, Order = 4 },
+            new EFTableColumnConfiguration { PropertyName = "Operator",      DisplayName = "Operatore",   IsVisible = true, Order = 5 },
+        ],
+        QuickFilters =
+        [
+            new QuickFilter<DailyClosureHistoryDto> { Id = "all",     Label = "Tutte",    Predicate = _ => true },
+            new QuickFilter<DailyClosureHistoryDto> { Id = "pending", Label = "Pendenti", Predicate = c => c.FiscalClosurePending },
+            new QuickFilter<DailyClosureHistoryDto> { Id = "fiscal",  Label = "Fiscali",  Predicate = c => c.ClosureType == ClosureType.Fiscale },
+        ]
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        // Load printer name for breadcrumb/header
+        _service = new ClosureHistoryManagementService(FiscalPrintingService);
+
+        // Load printer name for header/breadcrumbs
         try
         {
             var printer = await HttpClientService.GetAsync<Prym.DTOs.Station.PrinterDto>(
@@ -217,13 +266,37 @@
             new BreadcrumbItem("Storico Chiusure", href: null, disabled: true)
         ];
 
-        await LoadHistoryAsync();
+        _externalFilters = new Dictionary<string, object?> { ["PrinterId"] = PrinterId };
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender || _hubConnection is not null) return;
         await ConnectToHubAsync();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    //  Filters
+    // ─────────────────────────────────────────────────────────
+
+    private async Task ApplyFiltersAsync()
+    {
+        _externalFilters = new Dictionary<string, object?> { ["PrinterId"] = PrinterId };
+        if (_filterFromDate.HasValue) _externalFilters["From"] = _filterFromDate.Value;
+        if (_filterToDate.HasValue)   _externalFilters["To"]   = _filterToDate.Value;
+        if (!string.IsNullOrWhiteSpace(_filterZReport) && int.TryParse(_filterZReport, out var z))
+            _externalFilters["ZReport"] = z;
+
+        if (_entityPage is not null) await _entityPage.RefreshAsync();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _filterFromDate  = null;
+        _filterToDate    = null;
+        _filterZReport   = string.Empty;
+        _externalFilters = new Dictionary<string, object?> { ["PrinterId"] = PrinterId };
+        if (_entityPage is not null) await _entityPage.RefreshAsync();
     }
 
     // ─────────────────────────────────────────────────────────
@@ -244,7 +317,7 @@
                 if (printerId != PrinterId) return;
                 await InvokeAsync(async () =>
                 {
-                    await LoadHistoryAsync();
+                    if (_entityPage is not null) await _entityPage.RefreshAsync();
                     StateHasChanged();
                 });
             });
@@ -257,7 +330,6 @@
 
             await _hubConnection.StartAsync();
             await _hubConnection.SendAsync("SubscribeToPrinter", PrinterId);
-
             Logger.LogDebug("ClosureHistory: subscribed to printer {PrinterId}", PrinterId);
         }
         catch (Exception ex)
@@ -265,10 +337,6 @@
             Logger.LogWarning(ex, "ClosureHistory: could not connect to SignalR hub for printer {PrinterId}", PrinterId);
         }
     }
-
-    // ─────────────────────────────────────────────────────────
-    //  IAsyncDisposable
-    // ─────────────────────────────────────────────────────────
 
     public async ValueTask DisposeAsync()
     {
@@ -285,65 +353,7 @@
     }
 
     // ─────────────────────────────────────────────────────────
-    //  Data loading
-    // ─────────────────────────────────────────────────────────
-
-    private async Task LoadHistoryAsync()
-    {
-        _isLoading = true;
-        try
-        {
-            _closures = await FiscalPrintingService.GetClosureHistoryAsync(
-                PrinterId, page: 1, pageSize: 200) ?? new();
-            ApplyLocalFilters();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "LoadHistoryAsync failed for printer {PrinterId}", PrinterId);
-            AppNotification.ShowError("Errore nel caricamento dello storico.");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    //  Filters
-    // ─────────────────────────────────────────────────────────
-
-    private void ApplyLocalFilters()
-    {
-        IEnumerable<DailyClosureHistoryDto> query = _closures;
-
-        if (_filterFromDate.HasValue)
-            query = query.Where(c => c.ClosedAt >= _filterFromDate.Value);
-
-        if (_filterToDate.HasValue)
-            query = query.Where(c => c.ClosedAt <= _filterToDate.Value.AddDays(1));
-
-        if (!string.IsNullOrWhiteSpace(_filterZReport)
-            && int.TryParse(_filterZReport, out var zNum))
-            query = query.Where(c => c.ZReportNumber == zNum);
-
-        _closuresFiltered = query.ToList();
-    }
-
-    private void ApplyFilters()
-    {
-        ApplyLocalFilters();
-    }
-
-    private void ClearFilters()
-    {
-        _filterFromDate = null;
-        _filterToDate = null;
-        _filterZReport = string.Empty;
-        ApplyLocalFilters();
-    }
-
-    // ─────────────────────────────────────────────────────────
-    //  Actions
+    //  Row actions
     // ─────────────────────────────────────────────────────────
 
     private async Task OpenDailyClosureDialogAsync()
@@ -352,7 +362,7 @@
         {
             var parameters = new DialogParameters
             {
-                [nameof(DailyClosureDialog.PrinterId)] = PrinterId,
+                [nameof(DailyClosureDialog.PrinterId)]   = PrinterId,
                 [nameof(DailyClosureDialog.PrinterName)] = _printerName
             };
 
@@ -360,11 +370,8 @@
                 string.Empty, parameters, EFDialogDefaults.Options);
 
             var result = await dialog.Result;
-            if (result?.Canceled == false)
-            {
-                // Refresh history after successful closure
-                await LoadHistoryAsync();
-            }
+            if (result?.Canceled == false && _entityPage is not null)
+                await _entityPage.RefreshAsync();
         }
         catch (Exception ex)
         {
@@ -407,7 +414,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Errore durante la ristampa del Z-Report #{ZNumber} per la chiusura {ClosureId}.", zNumber, closureId);
+            Logger.LogError(ex, "Errore ristampa Z-Report #{ZNumber} per chiusura {ClosureId}.", zNumber, closureId);
             AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }
@@ -421,7 +428,7 @@
             if (result?.Success == true)
             {
                 AppNotification.ShowSuccess("Chiusura fiscale hardware completata.");
-                await LoadHistoryAsync();
+                if (_entityPage is not null) await _entityPage.RefreshAsync();
             }
             else
             {
@@ -430,38 +437,8 @@
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Errore durante il retry della chiusura fiscale {ClosureId}.", closureId);
+            Logger.LogError(ex, "Errore retry chiusura fiscale {ClosureId}.", closureId);
             AppNotification.ShowWarning("Si è verificato un errore.");
-        }
-    }
-
-    private async Task ExportCsvAsync()
-    {
-        try
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.AppendLine("Data/Ora,N° Z-Report,Tipo,Scontrini,Totale,Contanti,Carte,Operatore");
-            foreach (var c in _closuresFiltered)
-            {
-                sb.AppendLine(string.Join(",",
-                    c.ClosedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"),
-                    c.ZReportNumber,
-                    c.ClosureType,
-                    c.ReceiptCount,
-                    c.TotalAmount.ToString("F2"),
-                    c.CashAmount.ToString("F2"),
-                    c.CardAmount.ToString("F2"),
-                    $"\"{c.Operator ?? ""}\""));
-            }
-
-            var csvBytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-            var fileName = $"Chiusure_{PrinterId}_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            await JS.InvokeVoidAsync("downloadFileFromBytes", fileName, csvBytes, "text/csv;charset=utf-8");
-            AppNotification.ShowSuccess($"CSV esportato: {fileName}");
-        }
-        catch (Exception ex)
-        {
-            AppNotification.ShowError($"Errore export CSV: {ex.Message}");
         }
     }
 
