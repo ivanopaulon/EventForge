@@ -1,0 +1,417 @@
+@page "/monitor/station"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@using Prym.DTOs.Station
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,Operator")]
+@implements IAsyncDisposable
+@inject Prym.Web.Services.Station.IStationService StationService
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ILogger<StationMonitor> Logger
+@inject IAppNotificationService AppNotification
+
+<PageTitle>Monitor Stazione</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+    <MudStack Spacing="3">
+        <MudPaper Class="pa-4">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@Icons.Material.Outlined.Dvr" Size="Size.Large" Color="Color.Primary" />
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.h5">Monitor Stazione</MudText>
+                    <MudText Typo="Typo.body2">Coda FIFO in tempo reale per la postazione selezionata.</MudText>
+                </div>
+                <MudChip T="string" Color="@(IsHubConnected ? Color.Success : Color.Warning)" Variant="Variant.Filled" Size="Size.Medium">
+                    @(IsHubConnected ? "Realtime attivo" : "Realtime non connesso")
+                </MudChip>
+            </MudStack>
+
+            <MudSelect T="Guid?"
+                       Label="Seleziona stazione"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Class="mt-4"
+                       AnchorOrigin="Origin.BottomCenter"
+                       Value="_selectedStationId"
+                       ValueChanged="OnStationChangedAsync">
+                @foreach (var station in _stations.OrderBy(s => s.SortOrder).ThenBy(s => s.Name))
+                {
+                    <MudSelectItem T="Guid?" Value="@((Guid?)station.Id)">@station.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudPaper>
+
+        @if (_isLoading)
+        {
+            <MudPaper Class="pa-6">
+                <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    <MudText Typo="Typo.body1">Caricamento coda in corso...</MudText>
+                </MudStack>
+            </MudPaper>
+        }
+        else if (!_stations.Any())
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                Nessuna stazione disponibile.
+            </MudAlert>
+        }
+        else if (!_selectedStationId.HasValue)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled">
+                Seleziona una stazione per visualizzare la coda.
+            </MudAlert>
+        }
+        else if (!_queueItems.Any())
+        {
+            <MudPaper Class="pa-6">
+                <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Large" Color="Color.Success" />
+                    <MudText Typo="Typo.h6">Nessun ordine attivo</MudText>
+                    <MudText Typo="Typo.body2">La stazione selezionata non ha elementi in lavorazione.</MudText>
+                </MudStack>
+            </MudPaper>
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                @foreach (var item in OrderedQueueItems)
+                {
+                    <MudItem xs="12" sm="6" lg="4">
+                        <MudCard Class="pa-2">
+                            <MudCardContent>
+                                <MudStack Spacing="2">
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.h6">@item.ProductName</MudText>
+                                        <MudChip T="string" Color="@GetStatusColor(item.Status)" Variant="Variant.Filled" Size="Size.Medium">
+                                            @GetStatusText(item.Status)
+                                        </MudChip>
+                                    </MudStack>
+
+                                    <MudText Typo="Typo.body1"><strong>Quantità:</strong> @item.Quantity</MudText>
+                                    <MudText Typo="Typo.body2"><strong>Documento:</strong> @(item.DocumentNumber ?? "—")</MudText>
+
+                                    @if (!string.IsNullOrWhiteSpace(item.TeamMemberName))
+                                    {
+                                        <MudText Typo="Typo.body2"><strong>Destinatario:</strong> @item.TeamMemberName</MudText>
+                                    }
+
+                                    @if (!string.IsNullOrWhiteSpace(item.Notes))
+                                    {
+                                        <MudPaper Class="pa-3" Outlined="true">
+                                            <MudText Typo="Typo.body2">@item.Notes</MudText>
+                                        </MudPaper>
+                                    }
+
+                                    <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="mt-2">
+                                        @if (item.Status == StationOrderQueueStatus.Waiting)
+                                        {
+                                            <MudButton Variant="Variant.Filled"
+                                                       Color="Color.Info"
+                                                       Size="Size.Large"
+                                                       Disabled="@(_busyItemId == item.Id)"
+                                                       OnClick="@(() => UpdateStatusAsync(item, StationOrderQueueStatus.InProgress))">
+                                                Inizia
+                                            </MudButton>
+                                        }
+                                        else if (item.Status == StationOrderQueueStatus.InProgress)
+                                        {
+                                            <MudButton Variant="Variant.Filled"
+                                                       Color="Color.Success"
+                                                       Size="Size.Large"
+                                                       Disabled="@(_busyItemId == item.Id)"
+                                                       OnClick="@(() => UpdateStatusAsync(item, StationOrderQueueStatus.Completed))">
+                                                Completa
+                                            </MudButton>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudStack>
+</MudContainer>
+
+@code {
+    private readonly List<StationDto> _stations = [];
+    private List<StationOrderQueueItemDto> _queueItems = [];
+    private HubConnection? _hubConnection;
+    private Guid? _selectedStationId;
+    private Guid? _joinedStationId;
+    private Guid? _busyItemId;
+    private bool _isLoading;
+
+    private bool IsHubConnected => _hubConnection?.State == HubConnectionState.Connected;
+
+    private IEnumerable<StationOrderQueueItemDto> OrderedQueueItems =>
+        _queueItems
+            .OrderBy(q => GetStatusOrder(q.Status))
+            .ThenBy(q => q.SortOrder)
+            .ThenBy(q => q.CreatedAt);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await EnsureHubConnectionAsync();
+        await LoadStationsAsync();
+
+        if (_stations.Count > 0)
+        {
+            await OnStationChangedAsync(_stations
+                .OrderBy(s => s.SortOrder)
+                .ThenBy(s => s.Name)
+                .Select(s => (Guid?)s.Id)
+                .FirstOrDefault());
+        }
+    }
+
+    private async Task LoadStationsAsync()
+    {
+        try
+        {
+            _stations.Clear();
+            _stations.AddRange(await StationService.GetAllAsync());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to load stations for station monitor.");
+            AppNotification.ShowError("Impossibile caricare l'elenco delle stazioni.");
+        }
+    }
+
+    private async Task OnStationChangedAsync(Guid? stationId)
+    {
+        if (_selectedStationId == stationId && _joinedStationId == stationId)
+        {
+            return;
+        }
+
+        _selectedStationId = stationId;
+        _queueItems = [];
+
+        if (_hubConnection is not null && _joinedStationId.HasValue && _hubConnection.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                await _hubConnection.SendAsync("LeaveStation", _joinedStationId.Value.ToString());
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Unable to leave station group {StationId}.", _joinedStationId);
+            }
+        }
+
+        _joinedStationId = null;
+
+        if (!stationId.HasValue)
+        {
+            return;
+        }
+
+        await EnsureHubConnectionAsync();
+
+        if (_hubConnection is not null && _hubConnection.State == HubConnectionState.Connected)
+        {
+            await _hubConnection.SendAsync("JoinStation", stationId.Value.ToString());
+            _joinedStationId = stationId;
+        }
+
+        await LoadQueueItemsAsync(stationId.Value);
+    }
+
+    private async Task LoadQueueItemsAsync(Guid stationId)
+    {
+        _isLoading = true;
+
+        try
+        {
+            _queueItems = (await StationService.GetActiveQueueItemsAsync(stationId)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to load queue items for station {StationId}.", stationId);
+            AppNotification.ShowError("Impossibile caricare la coda della stazione.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task EnsureHubConnectionAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            if (_hubConnection.State == HubConnectionState.Disconnected)
+            {
+                try
+                {
+                    await _hubConnection.StartAsync();
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWarning(ex, "Unable to reconnect to station monitor hub.");
+                }
+            }
+
+            return;
+        }
+
+        try
+        {
+            _hubConnection = new HubConnectionBuilder()
+                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/station-monitor"), options =>
+                {
+                    options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
+                })
+                .WithAutomaticReconnect()
+                .Build();
+
+            _hubConnection.On<StationOrderQueueItemDto>("QueueItemAdded", item =>
+            {
+                _ = InvokeAsync(() =>
+                {
+                    if (_selectedStationId == item.StationId)
+                    {
+                        UpsertQueueItem(item);
+                        StateHasChanged();
+                    }
+                });
+            });
+
+            _hubConnection.On<StationOrderQueueItemDto>("QueueItemStatusChanged", item =>
+            {
+                _ = InvokeAsync(() =>
+                {
+                    if (_selectedStationId == item.StationId)
+                    {
+                        UpsertQueueItem(item);
+                        StateHasChanged();
+                    }
+                });
+            });
+
+            _hubConnection.On<Guid>("QueueItemRemoved", itemId =>
+            {
+                _ = InvokeAsync(() =>
+                {
+                    _queueItems.RemoveAll(q => q.Id == itemId);
+                    StateHasChanged();
+                });
+            });
+
+            _hubConnection.Reconnected += async _ =>
+            {
+                if (_selectedStationId.HasValue)
+                {
+                    await _hubConnection.SendAsync("JoinStation", _selectedStationId.Value.ToString());
+                    _joinedStationId = _selectedStationId;
+                    await LoadQueueItemsAsync(_selectedStationId.Value);
+                }
+            };
+
+            await _hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Unable to connect to station monitor hub.");
+            AppNotification.ShowWarning("Connessione realtime non disponibile.");
+        }
+    }
+
+    private async Task UpdateStatusAsync(StationOrderQueueItemDto item, StationOrderQueueStatus status)
+    {
+        if (!_selectedStationId.HasValue)
+        {
+            return;
+        }
+
+        try
+        {
+            _busyItemId = item.Id;
+            var updatedItem = await StationService.UpdateQueueItemStatusAsync(
+                _selectedStationId.Value,
+                item.Id,
+                new UpdateStationOrderQueueItemStatusDto { Status = status });
+
+            if (updatedItem is not null)
+            {
+                UpsertQueueItem(updatedItem);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unable to update queue item {QueueItemId} to {Status}.", item.Id, status);
+            AppNotification.ShowError("Impossibile aggiornare lo stato dell'ordine.");
+        }
+        finally
+        {
+            _busyItemId = null;
+        }
+    }
+
+    private void UpsertQueueItem(StationOrderQueueItemDto item)
+    {
+        var index = _queueItems.FindIndex(q => q.Id == item.Id);
+        if (index >= 0)
+        {
+            _queueItems[index] = item;
+        }
+        else
+        {
+            _queueItems.Add(item);
+        }
+    }
+
+    private static int GetStatusOrder(StationOrderQueueStatus status) =>
+        status switch
+        {
+            StationOrderQueueStatus.Waiting => 0,
+            StationOrderQueueStatus.InProgress => 1,
+            StationOrderQueueStatus.Completed => 2,
+            StationOrderQueueStatus.Cancelled => 3,
+            _ => 99
+        };
+
+    private static Color GetStatusColor(StationOrderQueueStatus status) =>
+        status switch
+        {
+            StationOrderQueueStatus.Waiting => Color.Warning,
+            StationOrderQueueStatus.InProgress => Color.Info,
+            StationOrderQueueStatus.Completed => Color.Success,
+            StationOrderQueueStatus.Cancelled => Color.Error,
+            _ => Color.Default
+        };
+
+    private static string GetStatusText(StationOrderQueueStatus status) =>
+        status switch
+        {
+            StationOrderQueueStatus.Waiting => "In attesa",
+            StationOrderQueueStatus.InProgress => "In lavorazione",
+            StationOrderQueueStatus.Completed => "Completato",
+            StationOrderQueueStatus.Cancelled => "Annullato",
+            _ => status.ToString()
+        };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection is not null)
+        {
+            try
+            {
+                if (_joinedStationId.HasValue && _hubConnection.State == HubConnectionState.Connected)
+                {
+                    await _hubConnection.SendAsync("LeaveStation", _joinedStationId.Value.ToString());
+                }
+
+                await _hubConnection.DisposeAsync();
+            }
+            catch
+            {
+                // ignored during disposal
+            }
+        }
+    }
+}

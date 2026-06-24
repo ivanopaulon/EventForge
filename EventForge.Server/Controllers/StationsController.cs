@@ -219,6 +219,148 @@ public class StationsController(IStationService stationService, ITenantContext t
 
     #endregion
 
+    #region Order Queue Endpoints
+
+    [HttpGet("{stationId:guid}/queue")]
+    [ProducesResponseType(typeof(IEnumerable<StationOrderQueueItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<StationOrderQueueItemDto>>> GetQueueItems(Guid stationId, CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
+            return tenantValidation;
+
+        try
+        {
+            var items = await stationService.GetQueueItemsByStationAsync(stationId, cancellationToken);
+            return Ok(items);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving station queue items.", ex);
+        }
+    }
+
+    [HttpGet("{stationId:guid}/queue/active")]
+    [ProducesResponseType(typeof(IEnumerable<StationOrderQueueItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<StationOrderQueueItemDto>>> GetActiveQueueItems(Guid stationId, CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
+            return tenantValidation;
+
+        try
+        {
+            var items = await stationService.GetActiveQueueItemsAsync(stationId, cancellationToken);
+            return Ok(items);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving active station queue items.", ex);
+        }
+    }
+
+    [HttpPost("{stationId:guid}/queue")]
+    [ProducesResponseType(typeof(StationOrderQueueItemDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<StationOrderQueueItemDto>> CreateQueueItem(Guid stationId, CreateStationOrderQueueItemDto createQueueItemDto, CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
+            return tenantValidation;
+
+        try
+        {
+            createQueueItemDto.StationId = stationId;
+            var currentUser = GetCurrentUser();
+            var item = await stationService.CreateQueueItemAsync(createQueueItemDto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetQueueItems), new { stationId }, item);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the station queue item.", ex);
+        }
+    }
+
+    [HttpPatch("{stationId:guid}/queue/{itemId:guid}/status")]
+    [ProducesResponseType(typeof(StationOrderQueueItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StationOrderQueueItemDto>> UpdateQueueItemStatus(
+        Guid stationId,
+        Guid itemId,
+        UpdateStationOrderQueueItemStatusDto updateQueueItemStatusDto,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
+            return tenantValidation;
+
+        try
+        {
+            var stationQueueItems = await stationService.GetQueueItemsByStationAsync(stationId, cancellationToken);
+            if (!stationQueueItems.Any(q => q.Id == itemId))
+            {
+                return CreateNotFoundProblem($"Queue item with ID {itemId} not found for station {stationId}.");
+            }
+
+            var currentUser = GetCurrentUser();
+            var item = await stationService.UpdateQueueItemStatusAsync(itemId, updateQueueItemStatusDto.Status, currentUser, cancellationToken);
+            if (item is null)
+            {
+                return CreateNotFoundProblem($"Queue item with ID {itemId} not found.");
+            }
+
+            return Ok(item);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the station queue item status.", ex);
+        }
+    }
+
+    [HttpDelete("{stationId:guid}/queue/{itemId:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteQueueItem(Guid stationId, Guid itemId, CancellationToken cancellationToken = default)
+    {
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
+            return tenantValidation;
+
+        try
+        {
+            var stationQueueItems = await stationService.GetQueueItemsByStationAsync(stationId, cancellationToken);
+            if (!stationQueueItems.Any(q => q.Id == itemId))
+            {
+                return CreateNotFoundProblem($"Queue item with ID {itemId} not found for station {stationId}.");
+            }
+
+            var currentUser = GetCurrentUser();
+            var deleted = await stationService.DeleteQueueItemAsync(itemId, currentUser, cancellationToken);
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Queue item with ID {itemId} not found.");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the station queue item.", ex);
+        }
+    }
+
+    #endregion
+
     #region Printer Endpoints
 
     /// <summary>

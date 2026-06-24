@@ -45,4 +45,11 @@ public interface IStationService
 
     /// <summary>Deletes a printer.</summary>
     Task<bool> DeletePrinterAsync(Guid id, CancellationToken ct = default);
+
+    // Order Queue
+    Task<IEnumerable<StationOrderQueueItemDto>> GetQueueItemsAsync(Guid stationId, CancellationToken ct = default);
+    Task<IEnumerable<StationOrderQueueItemDto>> GetActiveQueueItemsAsync(Guid stationId, CancellationToken ct = default);
+    Task<StationOrderQueueItemDto?> CreateQueueItemAsync(Guid stationId, CreateStationOrderQueueItemDto dto, CancellationToken ct = default);
+    Task<StationOrderQueueItemDto?> UpdateQueueItemStatusAsync(Guid stationId, Guid itemId, UpdateStationOrderQueueItemStatusDto dto, CancellationToken ct = default);
+    Task DeleteQueueItemAsync(Guid stationId, Guid itemId, CancellationToken ct = default);
 }

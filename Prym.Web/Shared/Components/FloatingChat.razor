@@ -517,6 +517,7 @@
             {
                 _currentUserId = user.Id;
                 _currentTenantId = user.TenantId;
+                await ChatService.InitializeAsync();
             }
 
             if (!RealtimeService.IsChatConnected)

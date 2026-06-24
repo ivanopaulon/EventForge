@@ -1,0 +1,456 @@
+@page "/management/supplier-alerts"
+@using Prym.DTOs.Alerts
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject ISupplierPriceAlertService AlertService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<SupplierPriceAlertManagement> Logger
+
+<PageTitle>Alert Prezzi Fornitori</PageTitle>
+
+<div class="management-page-root ef-flex-col-fill">
+    <div class="ef-flex-col-fill gap-3">
+
+        <MudPaper Elevation="1" Class="pa-3">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@Icons.Material.Outlined.NotificationsActive" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5">Alert Prezzi Fornitori</MudText>
+                <MudSpacer />
+                <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
+                           Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           OnClick="RefreshAsync"
+                           Disabled="_isRefreshing">
+                    Aggiorna
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Totale alert</MudText>
+                        <MudText Typo="Typo.h4">@_statistics.TotalAlerts</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nuovi</MudText>
+                        <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Medium">
+                            @_statistics.NewAlerts
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Critici</MudText>
+                        <MudChip T="string" Color="Color.Error" Variant="Variant.Filled" Size="Size.Medium">
+                            @_statistics.CriticalAlerts
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Class="pa-1">
+                    <MudCardContent>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Risparmio potenziale</MudText>
+                        <MudText Typo="Typo.h6">@FormatCurrency(_statistics.TotalPotentialSavings, _statistics.Currency)</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Elevation="1" Class="pa-3">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6" md="3">
+                    <PrymSelect T="string" @bind-Value="_selectedStatus" Label="Stato">
+                        <MudSelectItem T="string" Value="@string.Empty">Tutti</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("New")">Nuovi</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Acknowledged")">Presi in carico</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Resolved")">Risolti</MudSelectItem>
+                    </PrymSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <PrymSelect T="string" @bind-Value="_selectedSeverity" Label="Severità">
+                        <MudSelectItem T="string" Value="@string.Empty">Tutte</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Critical")">Critical</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("High")">High</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Warning")">Warning</MudSelectItem>
+                        <MudSelectItem T="string" Value="@("Info")">Info</MudSelectItem>
+                    </PrymSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudDateRangePicker @bind-DateRange="_dateRange"
+                                       Label="Intervallo date"
+                                       Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" md="2" Class="d-flex align-center">
+                    <MudStack Row Spacing="1">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="ApplyFiltersAsync">
+                            Filtra
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                                   Variant="Variant.Text"
+                                   Color="Color.Default"
+                                   OnClick="ResetFiltersAsync">
+                            Reset
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudPaper Elevation="2" Class="flex-grow-1">
+            <MudTable @ref="_alertsTable"
+                      T="SupplierPriceAlertDto"
+                      ServerData="LoadServerData"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      Loading="_isTableLoading"
+                      Class="ef-table-sticky-header">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Alert</MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.body2">Totale filtrato: @_filteredCount</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="ProductName">Prodotto</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="SupplierName">Fornitore</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="AlertType">Tipo alert</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="Severity">Severità</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="PriceChangePercentage">Var. prezzo</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="Status">Stato</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="SupplierPriceAlertDto" SortLabel="CreatedAt">Data</MudTableSortLabel></MudTh>
+                    <MudTh Class="text-center ef-min-120">Azioni</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Prodotto">
+                        <MudText Typo="Typo.body2">@(!string.IsNullOrWhiteSpace(context.ProductName) ? context.ProductName : "—")</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @(!string.IsNullOrWhiteSpace(context.ProductCode) ? context.ProductCode : context.AlertTitle)
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Fornitore">
+                        <MudText Typo="Typo.body2">@(!string.IsNullOrWhiteSpace(context.SupplierName) ? context.SupplierName : "—")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Tipo alert">
+                        <MudChip T="string" Size="Size.Small">
+                            @context.AlertType
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Severità">
+                        <MudChip T="string" Size="Size.Small" Color="@GetSeverityColor(context.Severity)">
+                            @context.Severity
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Var. prezzo">
+                        <MudText Typo="Typo.body2" Color="@GetPriceChangeColor(context.PriceChangePercentage)">
+                            @FormatPercentage(context.PriceChangePercentage)
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Stato">
+                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
+                            @context.Status
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Data">
+                        <MudText Typo="Typo.body2">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                    </MudTd>
+                    <MudTd Class="text-center">
+                        <MudStack Row Spacing="0" Justify="Justify.Center">
+                            <MudTooltip Text="Prendi in carico">
+                                <span>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.MarkEmailRead"
+                                                   Size="Size.Small"
+                                                   Color="Color.Warning"
+                                                   Class="ef-row-actionbutton"
+                                                   Disabled="@(!CanAcknowledge(context.Status) || _isExecutingAction)"
+                                                   OnClick="@(() => AcknowledgeAsync(context))" />
+                                </span>
+                            </MudTooltip>
+                            <MudTooltip Text="Risolvi">
+                                <span>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.TaskAlt"
+                                                   Size="Size.Small"
+                                                   Color="Color.Success"
+                                                   Class="ef-row-actionbutton"
+                                                   Disabled="@(!CanResolve(context.Status) || _isExecutingAction)"
+                                                   OnClick="@(() => ResolveAsync(context))" />
+                                </span>
+                            </MudTooltip>
+                            <MudTooltip Text="Scarta">
+                                <span>
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Cancel"
+                                                   Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   Class="ef-row-actionbutton"
+                                                   Disabled="@(!CanDismiss(context.Status) || _isExecutingAction)"
+                                                   OnClick="@(() => DismissAsync(context))" />
+                                </span>
+                            </MudTooltip>
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">Nessun alert trovato con i filtri selezionati.</MudText>
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="@(new[] { 10, 20, 50, 100 })" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    </div>
+</div>
+
+@code {
+    private MudTable<SupplierPriceAlertDto>? _alertsTable;
+    private AlertStatistics _statistics = new();
+    private bool _isTableLoading;
+    private bool _isRefreshing;
+    private bool _isExecutingAction;
+    private int _filteredCount;
+
+    private string _selectedStatus = string.Empty;
+    private string _selectedSeverity = string.Empty;
+    private DateRange? _dateRange;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStatisticsAsync();
+    }
+
+    private async Task<TableData<SupplierPriceAlertDto>> LoadServerData(TableState state, CancellationToken cancellationToken)
+    {
+        _isTableLoading = true;
+
+        try
+        {
+            var filter = new AlertFilterRequest
+            {
+                Status = string.IsNullOrWhiteSpace(_selectedStatus) ? null : _selectedStatus,
+                Severity = string.IsNullOrWhiteSpace(_selectedSeverity) ? null : _selectedSeverity,
+                FromDate = _dateRange?.Start,
+                ToDate = _dateRange?.End,
+                Page = state.Page + 1,
+                PageSize = state.PageSize,
+                SortBy = state.SortLabel ?? "CreatedAt",
+                SortOrder = state.SortDirection == SortDirection.Ascending ? "asc" : "desc"
+            };
+
+            var result = await AlertService.GetAlertsAsync(filter, cancellationToken);
+            _filteredCount = result?.TotalCount ?? 0;
+
+            return new TableData<SupplierPriceAlertDto>
+            {
+                Items = result?.Items ?? [],
+                TotalItems = result?.TotalCount ?? 0
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading supplier price alerts");
+            AppNotification.ShowError("Errore durante il caricamento degli alert prezzi.");
+
+            return new TableData<SupplierPriceAlertDto>
+            {
+                Items = [],
+                TotalItems = 0
+            };
+        }
+        finally
+        {
+            _isTableLoading = false;
+        }
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        if (_alertsTable is not null)
+            await _alertsTable.ReloadServerData();
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _selectedStatus = string.Empty;
+        _selectedSeverity = string.Empty;
+        _dateRange = null;
+
+        if (_alertsTable is not null)
+            await _alertsTable.ReloadServerData();
+    }
+
+    private async Task RefreshAsync()
+    {
+        _isRefreshing = true;
+
+        try
+        {
+            await LoadStatisticsAsync();
+
+            if (_alertsTable is not null)
+                await _alertsTable.ReloadServerData();
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
+    }
+
+    private async Task LoadStatisticsAsync()
+    {
+        try
+        {
+            _statistics = await AlertService.GetStatisticsAsync() ?? new AlertStatistics();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading supplier alert statistics");
+            AppNotification.ShowError("Errore durante il caricamento delle statistiche.");
+            _statistics = new AlertStatistics();
+        }
+    }
+
+    private async Task AcknowledgeAsync(SupplierPriceAlertDto alert)
+    {
+        await ExecuteActionAsync(async () =>
+        {
+            var success = await AlertService.AcknowledgeAlertAsync(alert.Id);
+            if (!success)
+            {
+                AppNotification.ShowWarning("Alert non trovato.");
+                return;
+            }
+
+            AppNotification.ShowSuccess("Alert preso in carico.");
+            await RefreshAsync();
+        });
+    }
+
+    private async Task ResolveAsync(SupplierPriceAlertDto alert)
+    {
+        var parameters = new DialogParameters<SupplierPriceAlertResolveDialog>
+        {
+            { x => x.AlertTitle, alert.AlertTitle }
+        };
+
+        var dialog = await DialogService.ShowAsync<SupplierPriceAlertResolveDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+
+        if (result.Canceled)
+            return;
+
+        var notes = result.Data as string;
+
+        await ExecuteActionAsync(async () =>
+        {
+            var success = await AlertService.ResolveAlertAsync(alert.Id, notes);
+            if (!success)
+            {
+                AppNotification.ShowWarning("Alert non trovato.");
+                return;
+            }
+
+            AppNotification.ShowSuccess("Alert risolto.");
+            await RefreshAsync();
+        });
+    }
+
+    private async Task DismissAsync(SupplierPriceAlertDto alert)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Conferma scarto",
+            $"Scartare l'alert \"{alert.AlertTitle}\"?",
+            yesText: "Scarta",
+            cancelText: "Annulla");
+
+        if (confirm != true)
+            return;
+
+        await ExecuteActionAsync(async () =>
+        {
+            var success = await AlertService.DismissAlertAsync(alert.Id);
+            if (!success)
+            {
+                AppNotification.ShowWarning("Alert non trovato.");
+                return;
+            }
+
+            AppNotification.ShowSuccess("Alert scartato.");
+            await RefreshAsync();
+        });
+    }
+
+    private async Task ExecuteActionAsync(Func<Task> action)
+    {
+        if (_isExecutingAction)
+            return;
+
+        _isExecutingAction = true;
+
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error executing supplier price alert action");
+            AppNotification.ShowError("Operazione non completata.");
+        }
+        finally
+        {
+            _isExecutingAction = false;
+        }
+    }
+
+    private static string FormatPercentage(decimal? value)
+        => value.HasValue ? $"{value.Value:N2}%" : "—";
+
+    private static string FormatCurrency(decimal value, string? currency)
+        => string.IsNullOrWhiteSpace(currency) ? value.ToString("N2") : $"{value:N2} {currency}";
+
+    private static Color GetPriceChangeColor(decimal? value) => value switch
+    {
+        > 0 => Color.Error,
+        < 0 => Color.Success,
+        _ => Color.Default
+    };
+
+    private static bool CanAcknowledge(string status)
+        => !string.Equals(status, "Acknowledged", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(status, "Resolved", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(status, "Dismissed", StringComparison.OrdinalIgnoreCase);
+
+    private static bool CanResolve(string status)
+        => !string.Equals(status, "Resolved", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(status, "Dismissed", StringComparison.OrdinalIgnoreCase);
+
+    private static bool CanDismiss(string status)
+        => !string.Equals(status, "Resolved", StringComparison.OrdinalIgnoreCase)
+           && !string.Equals(status, "Dismissed", StringComparison.OrdinalIgnoreCase);
+
+    private Color GetSeverityColor(string severity) => severity switch
+    {
+        "Critical" => Color.Error,
+        "High" => Color.Warning,
+        "Warning" => Color.Info,
+        _ => Color.Default
+    };
+
+    private Color GetStatusColor(string status) => status switch
+    {
+        "New" => Color.Error,
+        "Acknowledged" => Color.Warning,
+        "Resolved" => Color.Success,
+        "Dismissed" => Color.Default,
+        _ => Color.Default
+    };
+}

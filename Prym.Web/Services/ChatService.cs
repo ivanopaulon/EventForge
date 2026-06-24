@@ -12,6 +12,7 @@ namespace Prym.Web.Services;
 /// </summary>
 public interface IChatService : IDisposable
 {
+    Task InitializeAsync(CancellationToken cancellationToken = default);
     Task<List<ChatResponseDto>> GetChatsAsync(int page = 1, int pageSize = 50, string? filter = null, CancellationToken cancellationToken = default);
     Task<ChatResponseDto?> GetChatByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<List<ChatMemberDto>> GetChatMembersAsync(Guid chatId, CancellationToken cancellationToken = default);
@@ -70,6 +71,8 @@ public class ChatService : IChatService
     private readonly IRealtimeService _realtimeService;
     private readonly IPerformanceOptimizationService _performanceService;
     private readonly ILogger<ChatService> _logger;
+    private readonly SemaphoreSlim _initializeLock = new(1, 1);
+    private List<ChatResponseDto>? _preloadedChats;
     private bool _disposed;
 
     public ChatService(
@@ -106,6 +109,7 @@ public class ChatService : IChatService
     {
         if (_disposed) return;
         _disposed = true;
+        _initializeLock.Dispose();
 
         _realtimeService.ChatCreated -= OnChatCreated;
         _realtimeService.MessageReceived -= OnMessageReceived;
@@ -137,9 +141,40 @@ public class ChatService : IChatService
 
     #region API Operations
 
+    public async Task InitializeAsync(CancellationToken cancellationToken = default)
+    {
+        if (_preloadedChats is not null)
+            return;
+
+        await _initializeLock.WaitAsync(cancellationToken);
+        try
+        {
+            if (_preloadedChats is not null || !await _authService.IsAuthenticatedAsync())
+                return;
+
+            _preloadedChats = await LoadAllChatsAsync(cancellationToken);
+            var defaultPage = _preloadedChats.Take(50).ToList();
+            _performanceService.PreloadData(
+                BuildChatCacheKey(1, 50, null),
+                () => Task.FromResult(defaultPage),
+                ChatListCacheTtl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error preloading chat threads during initialization");
+        }
+        finally
+        {
+            _initializeLock.Release();
+        }
+    }
+
     public async Task<List<ChatResponseDto>> GetChatsAsync(int page = 1, int pageSize = 50, string? filter = null, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
+        var cacheKey = BuildChatCacheKey(page, pageSize, filter);
+
+        if (_preloadedChats is not null)
+            return SliceChats(_preloadedChats, page, pageSize, filter);
 
         // Fast path: if the cache is already populated serve it immediately without a factory call.
         // The cache is invalidated on ChatCreated / AddedToChat / RemovedFromChat events,
@@ -150,35 +185,7 @@ public class ChatService : IChatService
 
         try
         {
-            var queryParams = new List<string>
-            {
-                $"pageNumber={page}",
-                $"pageSize={pageSize}"
-            };
-
-            // Map UI filter names to ChatType enum values expected by the server
-            if (!string.IsNullOrEmpty(filter))
-            {
-                var chatTypeValue = filter.ToLowerInvariant() switch
-                {
-                    "direct" => "DirectMessage",
-                    "group" => "Group",
-                    "channel" => "Channel",
-                    _ => null
-                };
-                if (chatTypeValue != null)
-                    queryParams.Add($"types={chatTypeValue}");
-            }
-
-            var query = string.Join("&", queryParams);
-            var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
-            var items = pagedResult?.Items?.ToList() ?? [];
-
-            // Cache only non-empty results: an empty response may be the result of a pre-auth
-            // request. Caching it would hide the user's chats for the full TTL.
-            if (items.Count > 0)
-                _performanceService.PreloadData(cacheKey, () => Task.FromResult(items), ChatListCacheTtl);
-
+            var (_, items) = await LoadChatPageAsync(page, pageSize, filter, cancellationToken);
             return items;
         }
         catch (Exception ex)
@@ -186,6 +193,89 @@ public class ChatService : IChatService
             _logger.LogError(ex, "Error getting chats");
             return [];
         }
+    }
+
+    private async Task<List<ChatResponseDto>> LoadAllChatsAsync(CancellationToken cancellationToken)
+    {
+        const int pageSize = 100;
+        var page = 1;
+        var allChats = new List<ChatResponseDto>();
+
+        while (true)
+        {
+            var (pagedResult, items) = await LoadChatPageAsync(page, pageSize, null, cancellationToken, cacheResult: false);
+            if (items.Count == 0)
+                break;
+
+            allChats.AddRange(items);
+
+            var totalCount = pagedResult?.TotalCount ?? allChats.Count;
+            if (allChats.Count >= totalCount)
+                break;
+
+            page++;
+        }
+
+        return allChats;
+    }
+
+    private async Task<(PagedResult<ChatResponseDto>? PagedResult, List<ChatResponseDto> Items)> LoadChatPageAsync(
+        int page,
+        int pageSize,
+        string? filter,
+        CancellationToken cancellationToken,
+        bool cacheResult = true)
+    {
+        var queryParams = new List<string>
+        {
+            $"pageNumber={page}",
+            $"pageSize={pageSize}"
+        };
+
+        var chatTypeValue = MapFilterToChatType(filter);
+        if (!string.IsNullOrEmpty(chatTypeValue))
+            queryParams.Add($"types={chatTypeValue}");
+
+        var query = string.Join("&", queryParams);
+        var pagedResult = await _httpClientService.GetAsync<PagedResult<ChatResponseDto>>($"api/v1/chat?{query}", cancellationToken);
+        var items = pagedResult?.Items?.ToList() ?? [];
+
+        if (cacheResult && (items.Count > 0 || await _authService.IsAuthenticatedAsync()))
+        {
+            _performanceService.PreloadData(
+                BuildChatCacheKey(page, pageSize, filter),
+                () => Task.FromResult(items),
+                ChatListCacheTtl);
+        }
+
+        return (pagedResult, items);
+    }
+
+    private static string BuildChatCacheKey(int page, int pageSize, string? filter)
+        => $"{CacheKeys.CHAT_LIST}_{page}_{pageSize}_{filter}";
+
+    private static string? MapFilterToChatType(string? filter) => filter?.ToLowerInvariant() switch
+    {
+        "direct" => "DirectMessage",
+        "group" => "Group",
+        "channel" => "Channel",
+        _ => null
+    };
+
+    private static List<ChatResponseDto> SliceChats(IEnumerable<ChatResponseDto> chats, int page, int pageSize, string? filter)
+    {
+        var filtered = MapFilterToChatType(filter) switch
+        {
+            "DirectMessage" => chats.Where(chat => chat.Type == ChatType.DirectMessage),
+            "Group" => chats.Where(chat => chat.Type == ChatType.Group),
+            "Channel" => chats.Where(chat => chat.Type == ChatType.Channel),
+            _ => chats
+        };
+
+        return filtered
+            .Skip(Math.Max(page - 1, 0) * pageSize)
+            .Take(pageSize)
+            .ToList();
     }
 
     public async Task<ChatResponseDto?> GetChatByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -402,6 +492,7 @@ public class ChatService : IChatService
 
     private void OnChatCreated(ChatResponseDto chat)
     {
+        _preloadedChats = null;
         // Invalidate the chat list cache so the next GetChatsAsync call returns fresh data
         _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
         ChatCreated?.Invoke(chat);
@@ -494,6 +585,7 @@ public class ChatService : IChatService
 
     private void OnAddedToChat(object addedToChatData)
     {
+        _preloadedChats = null;
         // Invalidate chat list so the next GetChatsAsync call picks up the new chat.
         _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
 
@@ -517,6 +609,7 @@ public class ChatService : IChatService
 
     private void OnRemovedFromChat(object removedFromChatData)
     {
+        _preloadedChats = null;
         // Invalidate chat list so the removed chat disappears on next load.
         _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
 
@@ -534,6 +627,7 @@ public class ChatService : IChatService
 
     private void OnChatDeleted(object chatDeletedData)
     {
+        _preloadedChats = null;
         // SignalR serializes with camelCase by default; try both casings for robustness.
         if (chatDeletedData is System.Text.Json.JsonElement element
             && (element.TryGetProperty("chatId", out var el) || element.TryGetProperty("ChatId", out el))
@@ -550,6 +644,7 @@ public class ChatService : IChatService
 
     private void InvalidateChatCaches(Guid chatId)
     {
+        _preloadedChats = null;
         _performanceService.InvalidateCachePattern(CacheKeys.CHAT_LIST);
         _performanceService.InvalidateCachePattern(CacheKeys.ChatMessages(chatId));
     }

@@ -179,4 +179,69 @@ public class StationService(
             return false;
         }
     }
+
+    public async Task<IEnumerable<StationOrderQueueItemDto>> GetQueueItemsAsync(Guid stationId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<IEnumerable<StationOrderQueueItemDto>>($"{ApiBase}/{stationId}/queue", ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving queue items for station {StationId}", stationId);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<StationOrderQueueItemDto>> GetActiveQueueItemsAsync(Guid stationId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<IEnumerable<StationOrderQueueItemDto>>($"{ApiBase}/{stationId}/queue/active", ct) ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving active queue items for station {StationId}", stationId);
+            throw;
+        }
+    }
+
+    public async Task<StationOrderQueueItemDto?> CreateQueueItemAsync(Guid stationId, CreateStationOrderQueueItemDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<CreateStationOrderQueueItemDto, StationOrderQueueItemDto>($"{ApiBase}/{stationId}/queue", dto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error creating queue item for station {StationId}", stationId);
+            throw;
+        }
+    }
+
+    public async Task<StationOrderQueueItemDto?> UpdateQueueItemStatusAsync(Guid stationId, Guid itemId, UpdateStationOrderQueueItemStatusDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PatchAsync<UpdateStationOrderQueueItemStatusDto, StationOrderQueueItemDto>($"{ApiBase}/{stationId}/queue/{itemId}/status", dto, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error updating queue item {ItemId} for station {StationId}", itemId, stationId);
+            throw;
+        }
+    }
+
+    public async Task DeleteQueueItemAsync(Guid stationId, Guid itemId, CancellationToken ct = default)
+    {
+        try
+        {
+            await httpClientService.DeleteAsync($"{ApiBase}/{stationId}/queue/{itemId}", ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error deleting queue item {ItemId} for station {StationId}", itemId, stationId);
+            throw;
+        }
+    }
 }

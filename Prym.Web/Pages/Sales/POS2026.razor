@@ -11,6 +11,7 @@
 @using Prym.DTOs.Products
 @using Prym.DTOs.Store
 @using Prym.DTOs.Business
+@using Prym.DTOs.Business.Fidelity
 @using Prym.DTOs.FiscalPrinting
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
@@ -495,6 +496,7 @@
 
         <Pos26Receipt Session="@ViewModel.CurrentSession"
                       Customer="@ViewModel.SelectedCustomer"
+                      FidelityCard="@_fidelityCard"
                       Items="@ViewModel.CurrentSession?.Items"
                       Subtotal="@(ViewModel.CurrentSession?.OriginalTotal ?? 0m)"
                       TotalDiscount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)"

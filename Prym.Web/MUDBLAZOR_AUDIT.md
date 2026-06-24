@@ -11,10 +11,10 @@
 
 | Cat | Category | Count | Severity | Status |
 |-----|----------|-------|----------|--------|
-| A | MudTextField/Select/NumericField without Variant | 1166 → ~0 | High | ✅ Fixed (Task 6) |
+| A | MudTextField/Select/NumericField without Variant | 1166 → ~0 | High | ✅ Fixed (Task 6) + 🔄 App* wrapper migration ongoing (priority dialogs migrated) |
 | B | MudButton without Variant | 244 → **18** | Medium | ✅ Substantially fixed — 18 remaining are intentional (e.g. icon-only buttons) |
 | C | `Style="font-weight:N"` on MudText (single-value) | 137 → 0 | Medium | ✅ Fixed (Task 5) |
-| D | `Style="text-align:..."` on MudText (multi-value, skipped) | 6 | Low | 📋 Documented |
+| D | `Style="text-align:..."` on MudText (multi-value, skipped) | 6 → **3** | Low | 📋 Documented — 3 removed with deleted POS/POSTouch pages |
 | E | `Style="font-weight:N"` multi-value (skipped) | ~50 | Low | 📋 Documented |
 | F | CSS `!important` overrides | 167 → **150** | High | ⚠️ Phase 5: 17 palette-var `!important` removed from mud-components.css; sizing rules kept |
 | G | `.mud-*` class overrides | 122 → **122** | Medium | ⚠️ Unchanged — structural overrides that require CSS-level targeting |
@@ -46,7 +46,7 @@
 
 ## §1.1 Project Structure
 
-### Pages (53 total)
+### Pages (50 total)
 | Path | Page |
 |------|------|
 | Pages/Admin.razor | Admin |
@@ -66,7 +66,6 @@
 | Pages/Management/Documents/DocumentCounterManagement.razor | Document Counters |
 | Pages/Management/Documents/DocumentList.razor | Document List |
 | Pages/Management/Documents/DocumentTypeManagement.razor | Document Types |
-| Pages/Management/Documents/GenericDocumentProcedure.razor | Generic Document |
 | Pages/Management/Financial/VatNatureManagement.razor | VAT Natures |
 | Pages/Management/Financial/VatRateManagement.razor | VAT Rates |
 | Pages/Management/Monitoring/MonitoringDashboard.razor | Monitoring |
@@ -97,9 +96,7 @@
 | Pages/Notifications/NotificationCenter.razor | Notification Center |
 | Pages/Notifications/NotificationPreferences.razor | Notification Preferences |
 | Pages/Profile.razor | Profile |
-| Pages/Sales/POS.razor | POS |
 | Pages/Sales/POS2026.razor | POS 2026 |
-| Pages/Sales/POSTouch.razor | POS Touch |
 | Pages/Sales/SalesDashboard.razor | Sales Dashboard |
 | Pages/Store/PaymentMethodManagement.razor | Payment Methods |
 
@@ -357,7 +354,6 @@ These need manual review to determine intent (primary/secondary/destructive/text
 | File | Count |
 |------|-------|
 | Pages/Notifications/NotificationCenter.razor | 12 no-variant |
-| Pages/Management/Documents/GenericDocumentProcedure.razor | 8 |
 | Shared/Components/Dialogs/* | various |
 
 ### Category C — `Style="font-weight:N"` on MudText (FIXED ✅)
@@ -375,16 +371,15 @@ These need manual review to determine intent (primary/secondary/destructive/text
 
 ### Category D — `Style="text-align:..."` on MudText (multi-value, SKIPPED)
 
-6 MudText components have `text-align` alongside other CSS properties. These must be manually fixed:
+3 MudText components have `text-align` alongside other CSS properties in non-deleted pages. These must be manually fixed:
 
 | File | Line | Style value |
 |------|------|-------------|
-| Pages/Sales/POSTouch.razor | 109 | `font-weight: 600; text-align: center;` |
 | Shared/Components/CameraBarcodeScannerDialog.razor | 70 | `color: rgba(255,255,255,0.8); margin-top: 12px; text-align: center;` |
-| Shared/Components/Sales/POSTouchNumericKeypad.razor | 17 | `font-weight: 700; min-width: 80px; text-align: right; font-family: monospace;` |
-| Pages/Sales/POSTouch.razor | 226 | multi-value with text-align |
 | Shared/Components/Sales/POSTouchOperatorGrid.razor | 37 | multi-value with text-align |
 | Shared/Components/Sales/POSTouchCartList.razor | 58 | multi-value with text-align |
+
+> Note: `Pages/Sales/POS.razor`, `Pages/Sales/POSTouch.razor`, and related POSTouch components have been **deleted**. Previous entries for those files are no longer relevant.
 
 **Manual fix guidance:** Extract font-weight to a CSS class, then use `Align=` parameter.
 

@@ -1,11 +1,10 @@
 @using Prym.DTOs.PriceLists
-@using Prym.Web.Services.Mock
+@using Prym.DTOs.Business.Fidelity
 @using Prym.Web.Shared.Components.Business
 @using Prym.Web.Shared.Components.Fidelity
-@using Prym.Web.Models.Fidelity
+@using Prym.Web.Services
 @inject IPriceListService PriceListService
-@* TODO: collegare a /api/v1/membership-cards quando implementato lato server *@
-@inject IMockFidelityService FidelityService
+@inject IFidelityService FidelityService
 @inject IDialogService DialogService
 @inject IAppNotificationService AppNotification
 @inject IJSRuntime JSRuntime
@@ -105,16 +104,6 @@
                 </MudButton>
             </MudStack>
             
-            <!-- Alert Modalità Demo -->
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                    <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" />
-                    <MudText Typo="Typo.body2" Class="fw-semibold">
-                        MODALITÀ DEMO - Sistema mock client-side - I dati verranno persi al refresh della pagina
-                    </MudText>
-                </MudStack>
-            </MudAlert>
-            
             @if (_isLoadingFidelityCards)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -152,7 +141,7 @@
     
     // Fidelity cards state
     private bool _isLoadingFidelityCards = true;
-    private List<FidelityCardViewModel> _fidelityCards = new();
+    private List<FidelityCardDto> _fidelityCards = new();
     
     protected override async Task OnInitializedAsync()
     {
@@ -195,13 +184,13 @@
         
         try
         {
-            var cards = await FidelityService.GetAllCardsAsync();
+            var cards = await FidelityService.GetCardsByBusinessPartyAsync(BusinessPartyId);
             _fidelityCards = cards.ToList();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading fidelity cards");
-            _fidelityCards = new List<FidelityCardViewModel>();
+            _fidelityCards = [];
         }
         finally
         {
@@ -262,11 +251,12 @@
         
         var result = await dialog.Result;
         
-        if (result is { Canceled: false } && result.Data is FidelityCardViewModel newCard)
+        if (result is { Canceled: false } && result.Data is CreateFidelityCardDto newCard)
         {
             try
             {
-                var createdCard = await FidelityService.CreateCardAsync(newCard);
+                newCard.BusinessPartyId = BusinessPartyId;
+                await FidelityService.CreateCardAsync(newCard);
                 await LoadFidelityCardsAsync();
                 AppNotification.ShowSuccess("Card fedeltà creata con successo");
             }
@@ -278,7 +268,7 @@
         }
     }
     
-    private async Task EditCard(FidelityCardViewModel card)
+    private async Task EditCard(FidelityCardDto card)
     {
         var parameters = new DialogParameters
         {
@@ -299,11 +289,11 @@
         
         var result = await dialog.Result;
         
-        if (result is { Canceled: false } && result.Data is FidelityCardViewModel updatedCard)
+        if (result is { Canceled: false } && result.Data is UpdateFidelityCardDto updatedCard)
         {
             try
             {
-                await FidelityService.UpdateCardAsync(updatedCard);
+                await FidelityService.UpdateCardAsync(card.Id, updatedCard);
                 await LoadFidelityCardsAsync();
                 AppNotification.ShowSuccess("Card fedeltà aggiornata con successo");
             }
@@ -315,7 +305,7 @@
         }
     }
     
-    private async Task ViewHistory(FidelityCardViewModel card)
+    private async Task ViewHistory(FidelityCardDto card)
     {
         try
         {
@@ -346,7 +336,7 @@
         }
     }
     
-    private async Task ManagePoints(FidelityCardViewModel card)
+    private async Task ManagePoints(FidelityCardDto card)
     {
         var parameters = new DialogParameters
         {
@@ -373,12 +363,20 @@
             {
                 if (operation.OperationType == ManageFidelityPointsDialog.PointsOperationType.Add)
                 {
-                    await FidelityService.AddPointsAsync(card.Id, operation.Points, operation.Description);
+                    await FidelityService.AddPointsAsync(card.Id, new ModifyFidelityPointsDto
+                    {
+                        Points = operation.Points,
+                        Description = operation.Description
+                    });
                     AppNotification.ShowSuccess($"Aggiunti {operation.Points} punti");
                 }
                 else
                 {
-                    await FidelityService.RedeemPointsAsync(card.Id, operation.Points, operation.Description);
+                    await FidelityService.RedeemPointsAsync(card.Id, new ModifyFidelityPointsDto
+                    {
+                        Points = operation.Points,
+                        Description = operation.Description
+                    });
                     AppNotification.ShowSuccess($"Riscattati {operation.Points} punti");
                 }
                 
@@ -392,7 +390,7 @@
         }
     }
     
-    private async Task SuspendCard(FidelityCardViewModel card)
+    private async Task SuspendCard(FidelityCardDto card)
     {
         try
         {
@@ -407,7 +405,7 @@
         }
     }
     
-    private async Task ActivateCard(FidelityCardViewModel card)
+    private async Task ActivateCard(FidelityCardDto card)
     {
         try
         {
@@ -422,7 +420,7 @@
         }
     }
     
-    private async Task RevokeCard(FidelityCardViewModel card)
+    private async Task RevokeCard(FidelityCardDto card)
     {
         try
         {

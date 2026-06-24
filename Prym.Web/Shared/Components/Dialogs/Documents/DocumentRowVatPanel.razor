@@ -6,11 +6,9 @@
                    ExpandedChanged="@OnExpandedChanged"
                    id="vat-prices-panel">
     <MudStack Spacing="2">
-        <MudSelect T="Guid?"
-                  Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
+        <PrymSelect T="Guid?" Label="@TranslationService.GetTranslation("documents.vatRate", "Aliquota IVA %")"
                   Value="@SelectedVatRateId"
                   ValueChanged="@OnVatRateChanged"
-                  Variant="Variant.Outlined"
                   Dense="true"
                   Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Outlined.Percent">
@@ -18,28 +16,24 @@
             {
                 <MudSelectItem T="Guid?" Value="@vatRate.Id">@vatRate.Name (@vatRate.Percentage%)</MudSelectItem>
             }
-        </MudSelect>
+        </PrymSelect>
         
-        <MudTextField T="string"
-                     Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
+        <PrymTextField T="string" Label="@TranslationService.GetTranslation("documents.vatAmount", "Importo IVA")"
                      Value="@VatAmount.ToString("C2")"
                      ReadOnly="true"
                      Variant="Variant.Filled"
                      Dense="true"
                      Adornment="Adornment.Start"
-                     AdornmentIcon="@Icons.Material.Outlined.Calculate"
-                    Margin="Margin.Dense"/>
+                     AdornmentIcon="@Icons.Material.Outlined.Calculate"/>
         
-        <MudTextField T="string"
-                     Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
+        <PrymTextField T="string" Label="@TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo Unit. Lordo")"
                      Value="@UnitPriceGross.ToString("C2")"
                      ReadOnly="true"
                      Variant="Variant.Filled"
                      Dense="true"
                      Adornment="Adornment.Start"
                      AdornmentIcon="@Icons.Material.Outlined.Calculate"
-                     HelperText="@TranslationService.GetTranslation("documents.autoCalculated", "Calcolato automaticamente")"
-                    Margin="Margin.Dense"/>
+                     HelperText="@TranslationService.GetTranslation("documents.autoCalculated", "Calcolato automaticamente")"/>
     </MudStack>
 </MudExpansionPanel>
 

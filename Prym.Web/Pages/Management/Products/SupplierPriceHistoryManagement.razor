@@ -1,0 +1,407 @@
+@page "/management/price-history"
+@using Prym.DTOs.Business
+@using Prym.DTOs.PriceHistory
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+@inject ISupplierPriceHistoryService PriceHistoryService
+@inject IBusinessPartyService BusinessPartyService
+@inject IProductService ProductService
+@inject IAppNotificationService AppNotification
+@inject ILogger<SupplierPriceHistoryManagement> Logger
+
+<PageTitle>Storico Prezzi Fornitori</PageTitle>
+
+<div class="management-page-root ef-flex-col-fill">
+    <div class="ef-flex-col-fill gap-3">
+
+        <MudPaper Elevation="1" Class="pa-3">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@Icons.Material.Outlined.TrendingUp" Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.h5">Storico Prezzi Fornitori</MudText>
+            </MudStack>
+        </MudPaper>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="1" Class="pa-3">
+                    <MudText Typo="Typo.caption">Variazione media %</MudText>
+                    <MudText Typo="Typo.h5" Color="@GetChangeColor(_statistics.AveragePriceChange)">
+                        @($"{GetChangeSign(_statistics.AveragePriceChange)}{_statistics.AveragePriceChange:N2}%")
+                    </MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="1" Class="pa-3">
+                    <MudText Typo="Typo.caption">Totale variazioni</MudText>
+                    <MudText Typo="Typo.h5">@_statistics.TotalChanges</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="1" Class="pa-3">
+                    <MudText Typo="Typo.caption">Aumenti</MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Error">@_statistics.TotalIncreases</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="1" Class="pa-3">
+                    <MudText Typo="Typo.caption">Riduzioni</MudText>
+                    <MudText Typo="Typo.h5" Color="Color.Success">@_statistics.TotalDecreases</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Elevation="1" Class="pa-3">
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <PrymTextField @bind-Value="_supplierNameFilter" Label="Fornitore"
+                                  Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <PrymTextField @bind-Value="_productNameFilter" Label="Prodotto"
+                                  Clearable="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="2">
+                    <PrymDatePicker @bind-Date="_fromDate" Label="Da"
+                                   Class="ef-datepicker" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="2">
+                    <PrymDatePicker @bind-Date="_toDate" Label="A"
+                                   Class="ef-datepicker" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="2">
+                    <PrymNullableNumericField T="decimal" @bind-Value="_minChangePercentage"
+                                     Label="Min. variazione %"
+                                     Min="0"
+                                     Clearable="true" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudStack Row Spacing="2" Wrap="Wrap.Wrap">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="LoadDataAsync"
+                                   Disabled="_isLoading">
+                            Cerca
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   OnClick="ResetFiltersAsync"
+                                   Disabled="_isLoading">
+                            Reset
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudPaper Elevation="2" Class="flex-grow-1">
+            @if (_isLoading)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+
+            <MudTable Items="_filteredItems"
+                      Dense="true"
+                      Hover="true"
+                      Striped="true"
+                      Loading="_isLoading"
+                      RowsPerPage="20"
+                      Class="ef-table-sticky-header"
+                      T="PriceHistoryItem">
+                <ToolBarContent>
+                    <MudText Typo="Typo.h6">Storico variazioni</MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.body2">Totale: @_filteredItems.Count</MudText>
+                </ToolBarContent>
+                <HeaderContent>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.ProductName))">Prodotto</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.SupplierName))">Fornitore</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.OldPrice))">Prezzo Prec.</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.NewPrice))">Nuovo Prezzo</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.PriceChangePercentage))">Var. %</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.ChangeSource))">Fonte</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.ChangedByUserName))">Modificato da</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.ChangedAt))">Data</MudTableSortLabel></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Prodotto">
+                        <MudText Typo="Typo.body2">@context.ProductName</MudText>
+                        @if (!string.IsNullOrWhiteSpace(context.ProductCode))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ProductCode</MudText>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Fornitore">@context.SupplierName</MudTd>
+                    <MudTd DataLabel="Prezzo Prec.">@FormatPrice(context.OldPrice, context.Currency)</MudTd>
+                    <MudTd DataLabel="Nuovo Prezzo">@FormatPrice(context.NewPrice, context.Currency)</MudTd>
+                    <MudTd DataLabel="Var. %">
+                        <MudChip T="string" Size="Size.Small" Color="@GetChangeColor(context.PriceChangePercentage)">
+                            @($"{GetChangeSign(context.PriceChangePercentage)}{context.PriceChangePercentage:N2}%")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Fonte">@context.ChangeSource</MudTd>
+                    <MudTd DataLabel="Modificato da">@(string.IsNullOrWhiteSpace(context.ChangedByUserName) ? "—" : context.ChangedByUserName)</MudTd>
+                    <MudTd DataLabel="Data">@context.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="@(new[] { 10, 20, 50, 100 })" />
+                </PagerContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">Nessuna variazione prezzo trovata.</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudPaper>
+    </div>
+</div>
+
+@code {
+    private List<PriceHistoryItem> _filteredItems = [];
+    private bool _isLoading;
+    private string? _supplierNameFilter;
+    private string? _productNameFilter;
+    private DateTime? _fromDate = DateTime.Today.AddMonths(-1);
+    private DateTime? _toDate = DateTime.Today;
+    private decimal? _minChangePercentage;
+    private PriceHistoryStatistics _statistics = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+
+        try
+        {
+            var items = await LoadHistoryItemsAsync();
+            _filteredItems = ApplyClientFilters(items)
+                .OrderByDescending(x => x.ChangedAt)
+                .ToList();
+            _statistics = BuildStatistics(_filteredItems);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading supplier price history");
+            _filteredItems = [];
+            _statistics = new PriceHistoryStatistics();
+            AppNotification.ShowError("Errore durante il caricamento dello storico prezzi.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ResetFiltersAsync()
+    {
+        _supplierNameFilter = null;
+        _productNameFilter = null;
+        _fromDate = DateTime.Today.AddMonths(-1);
+        _toDate = DateTime.Today;
+        _minChangePercentage = null;
+        await LoadDataAsync();
+    }
+
+    private async Task<List<PriceHistoryItem>> LoadHistoryItemsAsync()
+    {
+        var request = CreateRequest();
+
+        if (!string.IsNullOrWhiteSpace(_supplierNameFilter))
+        {
+            var suppliers = (await BusinessPartyService.SearchBusinessPartiesAsync(_supplierNameFilter, BusinessPartyType.Supplier, 100))
+                .Select(x => x.Id)
+                .Distinct()
+                .ToList();
+
+            return await LoadSupplierHistoryPagesAsync(suppliers, request);
+        }
+
+        if (!string.IsNullOrWhiteSpace(_productNameFilter))
+        {
+            var products = await LoadMatchingProductIdsAsync(_productNameFilter);
+            return await LoadProductHistoryPagesAsync(products, request);
+        }
+
+        var allSuppliers = (await BusinessPartyService.GetBusinessPartiesByTypeAsync(BusinessPartyType.Supplier))
+            .Select(x => x.Id)
+            .Distinct()
+            .ToList();
+
+        return await LoadSupplierHistoryPagesAsync(allSuppliers, request);
+    }
+
+    private async Task<List<Guid>> LoadMatchingProductIdsAsync(string searchTerm)
+    {
+        const int pageSize = 100;
+        var page = 1;
+        var productIds = new List<Guid>();
+
+        while (true)
+        {
+            var result = await ProductService.GetProductsAsync(page, pageSize, searchTerm);
+            var resultItems = result?.Items?.ToList();
+            if (resultItems is null || resultItems.Count == 0)
+            {
+                break;
+            }
+
+            productIds.AddRange(resultItems.Select(x => x.Id));
+            var totalCount = result?.TotalCount ?? 0;
+
+            if (resultItems.Count < pageSize || (page * pageSize) >= totalCount)
+            {
+                break;
+            }
+
+            page++;
+        }
+
+        return productIds.Distinct().ToList();
+    }
+
+    private async Task<List<PriceHistoryItem>> LoadSupplierHistoryPagesAsync(IEnumerable<Guid> supplierIds, PriceHistoryRequest request)
+    {
+        var items = new List<PriceHistoryItem>();
+
+        foreach (var supplierId in supplierIds)
+        {
+            var page = 1;
+
+            while (true)
+            {
+                request.Page = page;
+                var response = await PriceHistoryService.GetSupplierPriceHistoryAsync(supplierId, request);
+                if (response?.Items is null || response.Items.Count == 0)
+                {
+                    break;
+                }
+
+                items.AddRange(response.Items);
+
+                if (page >= response.TotalPages)
+                {
+                    break;
+                }
+
+                page++;
+            }
+        }
+
+        return items
+            .GroupBy(x => x.Id)
+            .Select(x => x.First())
+            .ToList();
+    }
+
+    private async Task<List<PriceHistoryItem>> LoadProductHistoryPagesAsync(IEnumerable<Guid> productIds, PriceHistoryRequest request)
+    {
+        var items = new List<PriceHistoryItem>();
+
+        foreach (var productId in productIds)
+        {
+            var page = 1;
+
+            while (true)
+            {
+                request.Page = page;
+                var response = await PriceHistoryService.GetProductAllSuppliersPriceHistoryAsync(productId, request);
+                if (response?.Items is null || response.Items.Count == 0)
+                {
+                    break;
+                }
+
+                items.AddRange(response.Items);
+
+                if (page >= response.TotalPages)
+                {
+                    break;
+                }
+
+                page++;
+            }
+        }
+
+        return items
+            .GroupBy(x => x.Id)
+            .Select(x => x.First())
+            .ToList();
+    }
+
+    private IEnumerable<PriceHistoryItem> ApplyClientFilters(IEnumerable<PriceHistoryItem> items)
+    {
+        var query = items.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(_supplierNameFilter))
+        {
+            query = query.Where(x => x.SupplierName.Contains(_supplierNameFilter, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(_productNameFilter))
+        {
+            query = query.Where(x =>
+                x.ProductName.Contains(_productNameFilter, StringComparison.OrdinalIgnoreCase) ||
+                (x.ProductCode?.Contains(_productNameFilter, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+
+        if (_fromDate.HasValue)
+        {
+            var from = _fromDate.Value.Date;
+            query = query.Where(x => x.ChangedAt.ToLocalTime().Date >= from);
+        }
+
+        if (_toDate.HasValue)
+        {
+            var to = _toDate.Value.Date;
+            query = query.Where(x => x.ChangedAt.ToLocalTime().Date <= to);
+        }
+
+        if (_minChangePercentage.HasValue)
+        {
+            query = query.Where(x => Math.Abs(x.PriceChangePercentage) >= _minChangePercentage.Value);
+        }
+
+        return query;
+    }
+
+    private PriceHistoryRequest CreateRequest() => new()
+    {
+        FromDate = _fromDate?.Date,
+        ToDate = _toDate?.Date.AddDays(1).AddTicks(-1),
+        MinChangePercentage = _minChangePercentage,
+        Page = 1,
+        PageSize = 100,
+        SortBy = "ChangedAt",
+        SortDirection = "Desc"
+    };
+
+    private static PriceHistoryStatistics BuildStatistics(IReadOnlyCollection<PriceHistoryItem> items)
+    {
+        if (items.Count == 0)
+        {
+            return new PriceHistoryStatistics();
+        }
+
+        var increases = items.Where(x => x.PriceChangePercentage > 0).ToList();
+        var decreases = items.Where(x => x.PriceChangePercentage < 0).ToList();
+
+        return new PriceHistoryStatistics
+        {
+            AveragePriceChange = items.Average(x => x.PriceChangePercentage),
+            AverageAbsolutePriceChange = items.Average(x => Math.Abs(x.PriceChange)),
+            MaxPriceIncrease = increases.Count > 0 ? increases.Max(x => x.PriceChangePercentage) : 0,
+            MaxPriceDecrease = decreases.Count > 0 ? decreases.Min(x => x.PriceChangePercentage) : 0,
+            TotalChanges = items.Count,
+            LastChangeDate = items.Max(x => x.ChangedAt),
+            TotalIncreases = increases.Count,
+            TotalDecreases = decreases.Count
+        };
+    }
+
+    private static string FormatPrice(decimal value, string currency) => $"{value:N2} {currency}";
+
+    private Color GetChangeColor(decimal pct) => pct > 0 ? Color.Error : pct < 0 ? Color.Success : Color.Default;
+
+    private string GetChangeSign(decimal pct) => pct > 0 ? "+" : "";
+}

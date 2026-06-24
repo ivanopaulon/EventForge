@@ -30,10 +30,10 @@ public class DocumentRowUnitConversionTests : IDisposable
     private readonly DocumentHeaderService _documentHeaderService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _documentHeaderId = Guid.NewGuid();
+    private readonly Guid _documentTypeId = Guid.NewGuid();
     private readonly Guid _productId = Guid.NewGuid();
     private readonly Guid _baseUnitId = Guid.NewGuid();
     private readonly Guid _packUnitId = Guid.NewGuid();
-    private readonly Guid _documentTypeId = Guid.NewGuid();
 
     public DocumentRowUnitConversionTests()
     {

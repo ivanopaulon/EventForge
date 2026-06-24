@@ -1,4 +1,4 @@
-@using Prym.Web.Models.Fidelity
+@using Prym.DTOs.Business.Fidelity
 
 <MudPaper Elevation="2" Class="pa-4" Style="@GetCardStyle()">
     <MudStack Spacing="3">
@@ -143,25 +143,25 @@
 
 @code {
     [Parameter, EditorRequired]
-    public FidelityCardViewModel Card { get; set; } = null!;
+    public FidelityCardDto Card { get; set; } = null!;
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnViewHistory { get; set; }
+    public EventCallback<FidelityCardDto> OnViewHistory { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnManagePoints { get; set; }
+    public EventCallback<FidelityCardDto> OnManagePoints { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnEdit { get; set; }
+    public EventCallback<FidelityCardDto> OnEdit { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnSuspend { get; set; }
+    public EventCallback<FidelityCardDto> OnSuspend { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnActivate { get; set; }
+    public EventCallback<FidelityCardDto> OnActivate { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnRevoke { get; set; }
+    public EventCallback<FidelityCardDto> OnRevoke { get; set; }
     
     private string GetCardStyle()
     {

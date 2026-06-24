@@ -21,34 +21,26 @@
             <MudStack Spacing="3">
 
                 <!-- Tipo Documento -->
-                <MudSelect @bind-Value="_model.DocumentTypeId"
+                <PrymSelect T="Guid" @bind-Value="_model.DocumentTypeId"
                            Label="@($"{TranslationService.GetTranslation("documents.documentType", "Tipo Documento")} *")"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
                            Required="true"
                            Disabled="@(DocumentId.HasValue)">
                     @foreach (var type in DocumentTypes)
                     {
                         <MudSelectItem Value="@type.Id">@type.Name</MudSelectItem>
                     }
-                </MudSelect>
+                </PrymSelect>
 
                 <!-- Serie / Data -->
                 <MudGrid Spacing="2">
                     <MudItem xs="5">
-                        <MudTextField @bind-Value="_model.Series"
+                        <PrymTextField T="string" @bind-Value="_model.Series"
                                       Label="@TranslationService.GetTranslation("documents.series", "Serie")"
-                                      Variant="Variant.Outlined"
-                                      Margin="Margin.Dense"
                                       MaxLength="10" />
                     </MudItem>
                     <MudItem xs="7">
-                        <MudDatePicker @bind-Date="_documentDate"
-                                       Label="@($"{TranslationService.GetTranslation("documents.date", "Data Documento")} *")"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense"
-                                       DateFormat="dd/MM/yyyy"
-                                       Editable="true" />
+                        <PrymDatePicker @bind-Date="_documentDate"
+                                       Label="@($"{TranslationService.GetTranslation("documents.date", "Data Documento")} *")" />
                     </MudItem>
                 </MudGrid>
 
@@ -74,23 +66,18 @@
                     Dense="true" />
 
                 <!-- Listino Prezzi -->
-                <MudSelect @bind-Value="_model.PriceListId"
-                           T="Guid?"
+                <PrymSelect T="Guid?" @bind-Value="_model.PriceListId"
                            Label="@TranslationService.GetTranslation("documents.priceList", "Listino Prezzi")"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
                            Clearable="true">
                     @foreach (var pl in _effectivePriceLists)
                     {
                         <MudSelectItem T="Guid?" Value="@((Guid?)pl.Id)">@pl.Name</MudSelectItem>
                     }
-                </MudSelect>
+                </PrymSelect>
 
                 <!-- Note -->
-                <MudTextField @bind-Value="_model.Notes"
+                <PrymTextField T="string" @bind-Value="_model.Notes"
                               Label="@TranslationService.GetTranslation("documents.notes", "Note")"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
                               Lines="2"
                               MaxLength="500"
                               Placeholder="@TranslationService.GetTranslation("documents.notesPlaceholder", "Note opzionali per il documento...")" />

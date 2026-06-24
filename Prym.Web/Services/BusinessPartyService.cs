@@ -53,6 +53,11 @@ namespace Prym.Web.Services
             bool sortDescending = true,
             CancellationToken ct = default);
 
+        // Classification Management
+        Task<IEnumerable<ClassificationNodeDto>> GetBusinessPartyClassificationsAsync(Guid businessPartyId, CancellationToken ct = default);
+        Task<ClassificationNodeDto?> AssignClassificationAsync(Guid businessPartyId, Guid classificationNodeId, CancellationToken ct = default);
+        Task RemoveClassificationAsync(Guid businessPartyId, Guid classificationNodeId, CancellationToken ct = default);
+
         // Supplier Product Bulk Operations
         Task<List<SupplierProductPreview>?> PreviewBulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default);
         Task<BulkUpdateResult?> BulkUpdateSupplierProductsAsync(Guid supplierId, BulkUpdateSupplierProductsRequest request, CancellationToken ct = default);
@@ -314,6 +319,52 @@ namespace Prym.Web.Services
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error retrieving product analysis for business party {BusinessPartyId}", businessPartyId);
+                throw;
+            }
+        }
+
+        #endregion
+
+        #region Classification Management
+
+        public async Task<IEnumerable<ClassificationNodeDto>> GetBusinessPartyClassificationsAsync(Guid businessPartyId, CancellationToken ct = default)
+        {
+            try
+            {
+                return await httpClientService.GetAsync<IEnumerable<ClassificationNodeDto>>($"{BaseUrl}/{businessPartyId}/classifications", ct) ?? [];
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving classifications for business party {Id}", businessPartyId);
+                throw;
+            }
+        }
+
+        public async Task<ClassificationNodeDto?> AssignClassificationAsync(Guid businessPartyId, Guid classificationNodeId, CancellationToken ct = default)
+        {
+            try
+            {
+                return await httpClientService.PostAsync<object, ClassificationNodeDto>(
+                    $"{BaseUrl}/{businessPartyId}/classifications/{classificationNodeId}",
+                    new { },
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error assigning classification {NodeId} to business party {Id}", classificationNodeId, businessPartyId);
+                throw;
+            }
+        }
+
+        public async Task RemoveClassificationAsync(Guid businessPartyId, Guid classificationNodeId, CancellationToken ct = default)
+        {
+            try
+            {
+                await httpClientService.DeleteAsync($"{BaseUrl}/{businessPartyId}/classifications/{classificationNodeId}", ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error removing classification {NodeId} from business party {Id}", classificationNodeId, businessPartyId);
                 throw;
             }
         }

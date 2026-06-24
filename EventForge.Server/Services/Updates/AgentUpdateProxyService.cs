@@ -8,18 +8,20 @@ namespace EventForge.Server.Services.Updates;
 /// Throws <see cref="AgentNotConfiguredException"/> when LocalUrl is empty.
 ///
 /// <para>
-/// Authentication: the Agent's <c>BasicAuthMiddleware</c> explicitly excludes the
-/// <c>/api/agent/pending-installs</c>, <c>/api/agent/install-now</c>, and
-/// <c>/api/agent/unblock-queue</c> endpoints from authentication because the Agent
-/// binds to localhost only and these endpoints are consumed exclusively by the
-/// co-located EventForge.Server. No credentials are therefore sent by this proxy.
+/// Authentication: when <c>Agent:InternalApiToken</c> is configured the service adds an
+/// <c>X-Agent-Internal-Token</c> header to every request so the Agent's
+/// <c>BasicAuthMiddleware</c> can validate internal calls. When the token is absent the
+/// legacy unauthenticated localhost-trust model applies (Agent must bind to localhost).
 /// </para>
 /// </summary>
 public sealed class AgentUpdateProxyService : IAgentUpdateProxyService
 {
+    private const string InternalTokenHeader = "X-Agent-Internal-Token";
+
     private readonly HttpClient _http;
     private readonly ILogger<AgentUpdateProxyService> _logger;
     private readonly bool _configured;
+    private readonly string _internalApiToken;
 
     public AgentUpdateProxyService(
         IConfiguration configuration,
@@ -27,6 +29,7 @@ public sealed class AgentUpdateProxyService : IAgentUpdateProxyService
         ILogger<AgentUpdateProxyService> logger)
     {
         _logger = logger;
+        _internalApiToken = configuration["Agent:InternalApiToken"] ?? string.Empty;
 
         var agentUrl = (configuration["Agent:LocalUrl"] ?? string.Empty).TrimEnd('/');
         _configured = !string.IsNullOrWhiteSpace(agentUrl);
@@ -36,6 +39,9 @@ public sealed class AgentUpdateProxyService : IAgentUpdateProxyService
         {
             _http.BaseAddress = new Uri(agentUrl + "/");
             _http.Timeout = TimeSpan.FromSeconds(15);
+            // Add the token as a default header so every request includes it automatically.
+            if (!string.IsNullOrWhiteSpace(_internalApiToken))
+                _http.DefaultRequestHeaders.Add(InternalTokenHeader, _internalApiToken);
         }
     }
 

@@ -1,5 +1,4 @@
 ﻿using System.Security.Cryptography;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Prym.Agent.Services;
@@ -22,9 +21,6 @@ public class InstallationCodeGenerator(
 {
     private static readonly string IdentityFilePath =
         Path.Combine(AppContext.BaseDirectory, "agent-identity.json");
-
-    private static readonly JsonSerializerOptions _writeIndentOpts =
-        new() { WriteIndented = true };
 
     /// <summary>
     /// Ensures that <see cref="AgentOptions.InstallationCode"/> is populated.
@@ -67,25 +63,10 @@ public class InstallationCodeGenerator(
     {
         try
         {
-            JsonNode root;
-            if (File.Exists(IdentityFilePath))
-            {
-                var text = File.ReadAllText(IdentityFilePath);
-                root = JsonNode.Parse(text) ?? new JsonObject();
-            }
-            else
-            {
-                root = new JsonObject();
-            }
-
-            var section = root[AgentOptions.SectionName] as JsonObject ?? new JsonObject();
-            section["InstallationCode"] = code;
-            root[AgentOptions.SectionName] = section;
-
-            // Write atomically: .tmp first, then rename, to avoid corruption on crash.
-            var tmpPath = IdentityFilePath + ".tmp";
-            File.WriteAllText(tmpPath, root.ToJsonString(_writeIndentOpts));
-            File.Move(tmpPath, IdentityFilePath, overwrite: true);
+            JsonFileUpdater.Update(
+                IdentityFilePath,
+                AgentOptions.SectionName,
+                new Dictionary<string, JsonNode?> { ["InstallationCode"] = code });
         }
         catch (Exception ex)
         {

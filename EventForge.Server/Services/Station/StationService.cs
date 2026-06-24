@@ -1,5 +1,10 @@
+using EventForge.Server.Data.Entities.StationMonitor;
+using EventForge.Server.Extensions;
+using EventForge.Server.Hubs;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Prym.DTOs.Station;
+using StationQueueEntityStatus = EventForge.Server.Data.Entities.StationMonitor.StationOrderQueueStatus;
 
 namespace EventForge.Server.Services.Station;
 
@@ -10,6 +15,7 @@ public class StationService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
     ITenantContext tenantContext,
+    IHubContext<StationMonitorHub> hubContext,
     ILogger<StationService> logger) : IStationService
 {
 
@@ -576,6 +582,188 @@ public class StationService(
 
     #endregion
 
+    #region Order Queue Operations
+
+    public async Task<IEnumerable<StationOrderQueueItemDto>> GetQueueItemsByStationAsync(Guid stationId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetRequiredTenantId();
+
+        var items = await context.StationOrderQueueItems
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Where(q => q.StationId == stationId)
+            .Include(q => q.Station)
+            .Include(q => q.DocumentHeader)
+            .Include(q => q.TeamMember)
+            .Include(q => q.Product)
+            .OrderBy(q => q.SortOrder)
+            .ThenBy(q => q.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return items.Select(MapToQueueItemDto).ToList();
+    }
+
+    public async Task<IEnumerable<StationOrderQueueItemDto>> GetActiveQueueItemsAsync(Guid stationId, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetRequiredTenantId();
+        var activeStatuses = new[]
+        {
+            StationQueueEntityStatus.Waiting,
+            StationQueueEntityStatus.Accepted,
+            StationQueueEntityStatus.InPreparation
+        };
+
+        var items = await context.StationOrderQueueItems
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Where(q => q.StationId == stationId && activeStatuses.Contains(q.Status))
+            .Include(q => q.Station)
+            .Include(q => q.DocumentHeader)
+            .Include(q => q.TeamMember)
+            .Include(q => q.Product)
+            .OrderBy(q => q.SortOrder)
+            .ThenBy(q => q.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return items.Select(MapToQueueItemDto).ToList();
+    }
+
+    public async Task<StationOrderQueueItemDto> CreateQueueItemAsync(CreateStationOrderQueueItemDto dto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetRequiredTenantId();
+
+        var sortOrder = dto.SortOrder;
+        if (sortOrder <= 0)
+        {
+            sortOrder = (await context.StationOrderQueueItems
+                .AsNoTracking()
+                .WhereActiveTenant(tenantId)
+                .Where(q => q.StationId == dto.StationId)
+                .Select(q => (int?)q.SortOrder)
+                .MaxAsync(cancellationToken) ?? -1) + 1;
+        }
+
+        var queueItem = new StationOrderQueueItem
+        {
+            TenantId = tenantId,
+            StationId = dto.StationId,
+            DocumentHeaderId = dto.DocumentHeaderId,
+            DocumentRowId = dto.DocumentRowId,
+            TeamMemberId = dto.TeamMemberId,
+            ProductId = dto.ProductId,
+            Quantity = dto.Quantity,
+            Status = StationQueueEntityStatus.Waiting,
+            SortOrder = sortOrder,
+            AssignedAt = DateTime.UtcNow,
+            Notes = dto.Notes,
+            CreatedBy = currentUser,
+            ModifiedBy = currentUser
+        };
+
+        _ = context.StationOrderQueueItems.Add(queueItem);
+        _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(queueItem, "Insert", currentUser, null, cancellationToken);
+
+        var createdQueueItem = await GetQueueItemWithRelationsAsync(queueItem.Id, tenantId, cancellationToken)
+            ?? throw new InvalidOperationException("Unable to reload the created station queue item.");
+
+        var itemDto = MapToQueueItemDto(createdQueueItem);
+        await hubContext.Clients.Group(GetStationGroupName(queueItem.StationId))
+            .SendAsync("QueueItemAdded", itemDto, cancellationToken);
+
+        logger.LogInformation("Station queue item {QueueItemId} created for station {StationId} by {User}.",
+            queueItem.Id, queueItem.StationId, currentUser);
+
+        return itemDto;
+    }
+
+    public async Task<StationOrderQueueItemDto?> UpdateQueueItemStatusAsync(Guid id, Prym.DTOs.Station.StationOrderQueueStatus status, string currentUser, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetRequiredTenantId();
+
+        var originalQueueItem = await context.StationOrderQueueItems
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
+
+        if (originalQueueItem is null)
+        {
+            logger.LogWarning("Queue item {QueueItemId} not found for update by {User}.", id, currentUser);
+            return null;
+        }
+
+        var queueItem = await context.StationOrderQueueItems
+            .WhereActiveTenant(tenantId)
+            .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
+
+        if (queueItem is null)
+        {
+            logger.LogWarning("Queue item {QueueItemId} not found for update by {User}.", id, currentUser);
+            return null;
+        }
+
+        ApplyQueueStatus(queueItem, status, currentUser);
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(queueItem, "Update", currentUser, originalQueueItem, cancellationToken);
+
+        var updatedQueueItem = await GetQueueItemWithRelationsAsync(queueItem.Id, tenantId, cancellationToken)
+            ?? throw new InvalidOperationException("Unable to reload the updated station queue item.");
+
+        var itemDto = MapToQueueItemDto(updatedQueueItem);
+        await hubContext.Clients.Group(GetStationGroupName(queueItem.StationId))
+            .SendAsync("QueueItemStatusChanged", itemDto, cancellationToken);
+
+        logger.LogInformation("Station queue item {QueueItemId} status updated to {Status} by {User}.",
+            queueItem.Id, status, currentUser);
+
+        return itemDto;
+    }
+
+    public async Task<bool> DeleteQueueItemAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetRequiredTenantId();
+
+        var originalQueueItem = await context.StationOrderQueueItems
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
+
+        if (originalQueueItem is null)
+        {
+            logger.LogWarning("Queue item {QueueItemId} not found for deletion by {User}.", id, currentUser);
+            return false;
+        }
+
+        var queueItem = await context.StationOrderQueueItems
+            .WhereActiveTenant(tenantId)
+            .FirstOrDefaultAsync(q => q.Id == id, cancellationToken);
+
+        if (queueItem is null)
+        {
+            logger.LogWarning("Queue item {QueueItemId} not found for deletion by {User}.", id, currentUser);
+            return false;
+        }
+
+        queueItem.IsDeleted = true;
+        queueItem.DeletedAt = DateTime.UtcNow;
+        queueItem.DeletedBy = currentUser;
+        queueItem.ModifiedAt = DateTime.UtcNow;
+        queueItem.ModifiedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(queueItem, "Delete", currentUser, originalQueueItem, cancellationToken);
+
+        await hubContext.Clients.Group(GetStationGroupName(queueItem.StationId))
+            .SendAsync("QueueItemRemoved", queueItem.Id, cancellationToken);
+
+        logger.LogInformation("Station queue item {QueueItemId} deleted by {User}.", queueItem.Id, currentUser);
+
+        return true;
+    }
+
+    #endregion
+
     #region Helper Methods
 
     public async Task<bool> StationExistsAsync(Guid stationId, CancellationToken cancellationToken = default)
@@ -597,6 +785,115 @@ public class StationService(
             throw;
         }
     }
+
+    private Guid GetRequiredTenantId()
+    {
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            logger.LogWarning("Cannot execute station queue operation without a tenant context.");
+            throw new InvalidOperationException("Tenant context is required.");
+        }
+
+        return tenantId.Value;
+    }
+
+    private async Task<StationOrderQueueItem?> GetQueueItemWithRelationsAsync(Guid id, Guid tenantId, CancellationToken cancellationToken)
+    {
+        return await context.StationOrderQueueItems
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Where(q => q.Id == id)
+            .Include(q => q.Station)
+            .Include(q => q.DocumentHeader)
+            .Include(q => q.TeamMember)
+            .Include(q => q.Product)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private static void ApplyQueueStatus(StationOrderQueueItem queueItem, Prym.DTOs.Station.StationOrderQueueStatus status, string currentUser)
+    {
+        var now = DateTime.UtcNow;
+        queueItem.Status = MapToEntityStatus(status);
+        queueItem.ModifiedAt = now;
+        queueItem.ModifiedBy = currentUser;
+
+        switch (status)
+        {
+            case Prym.DTOs.Station.StationOrderQueueStatus.Waiting:
+                queueItem.AssignedAt ??= now;
+                queueItem.StartedAt = null;
+                queueItem.CompletedAt = null;
+                break;
+
+            case Prym.DTOs.Station.StationOrderQueueStatus.InProgress:
+                queueItem.AssignedAt ??= now;
+                queueItem.StartedAt ??= now;
+                queueItem.CompletedAt = null;
+                break;
+
+            case Prym.DTOs.Station.StationOrderQueueStatus.Completed:
+                queueItem.AssignedAt ??= now;
+                queueItem.StartedAt ??= now;
+                queueItem.CompletedAt = now;
+                break;
+
+            case Prym.DTOs.Station.StationOrderQueueStatus.Cancelled:
+                queueItem.CompletedAt ??= now;
+                break;
+        }
+    }
+
+    private static StationOrderQueueItemDto MapToQueueItemDto(StationOrderQueueItem queueItem)
+    {
+        return new StationOrderQueueItemDto
+        {
+            Id = queueItem.Id,
+            StationId = queueItem.StationId,
+            StationName = queueItem.Station?.Name ?? string.Empty,
+            DocumentHeaderId = queueItem.DocumentHeaderId,
+            DocumentNumber = queueItem.DocumentHeader?.Number,
+            DocumentRowId = queueItem.DocumentRowId,
+            TeamMemberId = queueItem.TeamMemberId,
+            TeamMemberName = queueItem.TeamMember is null
+                ? null
+                : $"{queueItem.TeamMember.FirstName} {queueItem.TeamMember.LastName}".Trim(),
+            ProductId = queueItem.ProductId,
+            ProductName = queueItem.Product?.Name ?? string.Empty,
+            Quantity = queueItem.Quantity,
+            Status = MapToDtoStatus(queueItem.Status),
+            SortOrder = queueItem.SortOrder,
+            AssignedAt = queueItem.AssignedAt,
+            StartedAt = queueItem.StartedAt,
+            CompletedAt = queueItem.CompletedAt,
+            Notes = queueItem.Notes,
+            CreatedAt = queueItem.CreatedAt
+        };
+    }
+
+    private static StationQueueEntityStatus MapToEntityStatus(Prym.DTOs.Station.StationOrderQueueStatus status) =>
+        status switch
+        {
+            Prym.DTOs.Station.StationOrderQueueStatus.Waiting => StationQueueEntityStatus.Waiting,
+            Prym.DTOs.Station.StationOrderQueueStatus.InProgress => StationQueueEntityStatus.InPreparation,
+            Prym.DTOs.Station.StationOrderQueueStatus.Completed => StationQueueEntityStatus.Ready,
+            Prym.DTOs.Station.StationOrderQueueStatus.Cancelled => StationQueueEntityStatus.Cancelled,
+            _ => StationQueueEntityStatus.Waiting
+        };
+
+    private static Prym.DTOs.Station.StationOrderQueueStatus MapToDtoStatus(StationQueueEntityStatus status) =>
+        status switch
+        {
+            StationQueueEntityStatus.Waiting => Prym.DTOs.Station.StationOrderQueueStatus.Waiting,
+            StationQueueEntityStatus.Accepted => Prym.DTOs.Station.StationOrderQueueStatus.InProgress,
+            StationQueueEntityStatus.InPreparation => Prym.DTOs.Station.StationOrderQueueStatus.InProgress,
+            StationQueueEntityStatus.Ready => Prym.DTOs.Station.StationOrderQueueStatus.Completed,
+            StationQueueEntityStatus.Delivered => Prym.DTOs.Station.StationOrderQueueStatus.Completed,
+            StationQueueEntityStatus.Cancelled => Prym.DTOs.Station.StationOrderQueueStatus.Cancelled,
+            _ => Prym.DTOs.Station.StationOrderQueueStatus.Waiting
+        };
+
+    private static string GetStationGroupName(Guid stationId) => $"station-{stationId}";
 
     private static StationDto MapToStationDto(EventForge.Server.Data.Entities.StationMonitor.Station station, int printerCount)
     {

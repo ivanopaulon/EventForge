@@ -598,6 +598,7 @@ app.MapHub<EventForge.Server.Hubs.AppHub>("/hubs/app");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<DocumentCollaborationHub>("/hubs/document-collaboration");
 app.MapHub<EventForge.Server.Hubs.FiscalPrinterHub>("/hubs/fiscal-printer");
+app.MapHub<EventForge.Server.Hubs.StationMonitorHub>("/hubs/station-monitor");
 
 app.Run();
 

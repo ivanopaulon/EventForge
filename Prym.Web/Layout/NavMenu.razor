@@ -65,6 +65,14 @@
                             Icon="@Icons.Material.Filled.PriceCheck">
                     @TranslationService.GetTranslation("menu.pricelists", "Listini Prezzi")
                 </MudNavLink>
+                <MudNavLink Href="/management/supplier-alerts"
+                            Icon="@Icons.Material.Outlined.NotificationsActive">
+                    Alert Prezzi Fornitori
+                </MudNavLink>
+                <MudNavLink Href="/management/price-history"
+                            Icon="@Icons.Material.Outlined.TrendingUp">
+                    @TranslationService.GetTranslation("menu.supplierPriceHistory", "Storico Prezzi Fornitori")
+                </MudNavLink>
                 <MudNavLink Href="/management/promotions"
                             Icon="@Icons.Material.Outlined.LocalOffer">
                     @TranslationService.GetTranslation("menu.promotions", "Promozioni")
@@ -85,6 +93,11 @@
                             Icon="@Icons.Material.Outlined.Group"
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.businessPartyGroupManagement", "Gruppi Business Party")
+                </MudNavLink>
+                <MudNavLink Href="/business/fidelity-cards"
+                            Icon="@Icons.Material.Outlined.CardMembership"
+                            Match="NavLinkMatch.All">
+                    Carte Fedeltà
                 </MudNavLink>
             </MudNavGroup>
 
@@ -172,26 +185,16 @@
                          Icon="@Icons.Material.Outlined.PointOfSale"
                          Expanded="@(_openGroup == "pos")"
                          ExpandedChanged="@(v => OnGroupExpanded("pos", v))">
-                <MudNavLink Href="/sales/pos"
+                <!-- POS 2026 is the current next-gen architecture (POSViewModel) -->
+                <MudNavLink Href="/sales/pos2026"
                             Icon="@Icons.Material.Outlined.PointOfSale"
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.posRegister", "Cassa (POS)")
-                </MudNavLink>
-                <MudNavLink Href="/sales/postouch"
-                            Icon="@Icons.Material.Outlined.TouchApp"
-                            Match="NavLinkMatch.All">
-                    @TranslationService.GetTranslation("nav.posTouch", "Cassa Touch")
                 </MudNavLink>
                 <MudNavLink Href="/sales/dashboard"
                             Icon="@Icons.Material.Outlined.BarChart"
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.salesDashboard", "Dashboard Vendite")
-                </MudNavLink>
-                <!-- POS 2026 (nuova versione) -->
-                <MudNavLink Href="/sales/pos2026"
-                            Icon="@Icons.Material.Outlined.Bolt"
-                            Match="NavLinkMatch.All">
-                    POS 2026
                 </MudNavLink>
             </MudNavGroup>
 
@@ -242,6 +245,11 @@
                                 Match="NavLinkMatch.All">
                         Calendario Turni
                     </MudNavLink>
+                    <MudNavLink Href="/store/cart-sessions"
+                                Icon="@Icons.Material.Outlined.ShoppingCart"
+                                Match="NavLinkMatch.All">
+                        Sessioni Carrello
+                    </MudNavLink>
                 </MudNavGroup>
             }
 
@@ -271,6 +279,11 @@
                                 Icon="@Icons.Material.Outlined.Kitchen"
                                 Match="NavLinkMatch.All">
                         @TranslationService.GetTranslation("nav.stations", "Stazioni")
+                    </MudNavLink>
+                    <MudNavLink Href="/monitor/station"
+                                Icon="@Icons.Material.Outlined.Dvr"
+                                Match="NavLinkMatch.All">
+                        Monitor Stazione
                     </MudNavLink>
                 </MudNavGroup>
             }

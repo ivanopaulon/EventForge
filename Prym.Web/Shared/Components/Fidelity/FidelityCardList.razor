@@ -1,5 +1,4 @@
-@using Prym.Web.Models.Fidelity
-@using Prym.Web.Services.Mock
+@using Prym.DTOs.Business.Fidelity
 
 <MudStack Spacing="3">
     @if (Cards != null && Cards.Any())
@@ -25,23 +24,23 @@
 
 @code {
     [Parameter]
-    public IEnumerable<FidelityCardViewModel>? Cards { get; set; }
+    public IEnumerable<FidelityCardDto>? Cards { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnViewHistory { get; set; }
+    public EventCallback<FidelityCardDto> OnViewHistory { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnManagePoints { get; set; }
+    public EventCallback<FidelityCardDto> OnManagePoints { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnEdit { get; set; }
+    public EventCallback<FidelityCardDto> OnEdit { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnSuspend { get; set; }
+    public EventCallback<FidelityCardDto> OnSuspend { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnActivate { get; set; }
+    public EventCallback<FidelityCardDto> OnActivate { get; set; }
     
     [Parameter]
-    public EventCallback<FidelityCardViewModel> OnRevoke { get; set; }
+    public EventCallback<FidelityCardDto> OnRevoke { get; set; }
 }

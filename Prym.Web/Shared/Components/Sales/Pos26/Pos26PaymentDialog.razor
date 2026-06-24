@@ -1,6 +1,7 @@
 @* Pos26PaymentDialog — dialog multi-pagamento POS 2026 *@
 @* Aperto tramite IDialogService.ShowAsync come tutti gli altri dialog del progetto *@
 @using Prym.DTOs.Business
+@using Prym.DTOs.Business.Fidelity
 @using Prym.Web.Models.Sales
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
@@ -75,6 +76,37 @@
                                              MethodIcon="@riga.Metodo.Icon"
                                              AllowsChange="@riga.Metodo.AllowsChange"
                                              OnRemove="@RimuoviPagamento" />
+                        }
+                    </div>
+                }
+
+                @if (FidelityCard != null && FidelityCard.Status == FidelityCardStatus.Active)
+                {
+                    <div class="pos26-pay-fidelity d-flex flex-column gap-2 mt-3 pa-2">
+                        <div class="pos26-pay-fidelity-header d-flex align-center gap-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Stars" Size="Size.Small" Class="mr-1" />
+                            <strong>Carta Fedeltà @FidelityCard.CardNumber</strong>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">@FidelityCard.CurrentPoints pt</MudChip>
+                        </div>
+                        <div class="pos26-pay-fidelity-info d-flex align-center gap-2">
+                            <span>Punti guadagnati: <strong>+@PointsEarned</strong></span>
+                        </div>
+                        @if (!_pointsApplied && MaxRedeemablePoints >= 100)
+                        {
+                            <button class="pos26-pay-btn-fidelity d-flex align-center gap-2"
+                                    @onclick="ApplicaPunti"
+                                    title="Usa @MaxRedeemablePoints punti = €@PointsToEuroValue(MaxRedeemablePoints).ToString("F2") sconto">
+                                <MudIcon Icon="@Icons.Material.Outlined.Redeem" Size="Size.Small" Class="mr-1" />
+                                Usa @MaxRedeemablePoints punti (€@PointsToEuroValue(MaxRedeemablePoints).ToString("F2"))
+                            </button>
+                        }
+                        else if (_pointsApplied)
+                        {
+                            <div class="pos26-pay-fidelity-applied d-flex align-center gap-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" />
+                                <span>@_pointsToRedeem punti applicati (−€@PointsToEuroValue(_pointsToRedeem).ToString("F2"))</span>
+                                <button class="pos26-pay-btn-fidelity-undo" @onclick="AnnullaPunti">Annulla</button>
+                            </div>
                         }
                     </div>
                 }
@@ -158,6 +190,7 @@
     [Parameter] public SaleSessionDto? Ordine { get; set; }
     [Parameter] public BusinessPartyDto? Cliente { get; set; }
     [Parameter] public List<PaymentMethodDto>? PaymentMethods { get; set; }
+    [Parameter] public FidelityCardDto? FidelityCard { get; set; }
 
     // Record temporaneo per righe di pagamento nel dialog
     private record PendingRow(Guid TempId, PaymentMethodDto Metodo, decimal Importo);
@@ -167,6 +200,8 @@
     private List<PendingRow> _pagamentiAggiunti = new();
     private string _numpadInput = string.Empty;
     private bool _isProcessing = false;
+    private int _pointsToRedeem = 0;
+    private bool _pointsApplied = false;
 
     private readonly decimal[] _shortcuts = [5, 10, 20, 50];
 
@@ -190,7 +225,17 @@
 
     private decimal _totalePagato => _pagamentiAggiunti.Sum(p => p.Importo);
 
-    private decimal _residuo => Math.Max(0, TotaleOrdine - _totalePagato);
+    private int PointsEarned => (int)Math.Floor(TotaleOrdine);
+
+    private decimal PointsToEuroValue(int points) => Math.Floor(points / 100m) * 1m;
+
+    private int MaxRedeemablePoints => FidelityCard == null
+        ? 0
+        : (int)(Math.Floor(Math.Min((decimal)FidelityCard.CurrentPoints, Math.Max(0, TotaleOrdine - _totalePagato) * 100m) / 100m) * 100);
+
+    private decimal _residuo => _pointsApplied
+        ? Math.Max(0, TotaleOrdine - _totalePagato - PointsToEuroValue(_pointsToRedeem))
+        : Math.Max(0, TotaleOrdine - _totalePagato);
 
     private decimal _resto
     {
@@ -199,7 +244,8 @@
             var cashTotal = _pagamentiAggiunti
                 .Where(p => p.Metodo.AllowsChange)
                 .Sum(p => p.Importo);
-            return cashTotal > TotaleOrdine ? cashTotal - TotaleOrdine : 0;
+            var totaleDaPagare = Math.Max(0, TotaleOrdine - PointsToEuroValue(_pointsToRedeem));
+            return cashTotal > totaleDaPagare ? cashTotal - totaleDaPagare : 0;
         }
     }
 
@@ -227,6 +273,20 @@
     private void SetShortcut(decimal amount)
     {
         _numpadInput = (_importoDigitato + amount).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private void ApplicaPunti()
+    {
+        _pointsToRedeem = MaxRedeemablePoints;
+        _pointsApplied = _pointsToRedeem > 0;
+        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    private void AnnullaPunti()
+    {
+        _pointsToRedeem = 0;
+        _pointsApplied = false;
+        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
     }
 
     private void HandleNumpadKey(string key)
@@ -300,7 +360,10 @@
                 TotaleOrdine,
                 _totalePagato,
                 _resto,
-                righe
+                righe,
+                FidelityCardId: FidelityCard?.Id,
+                PointsEarned: PointsEarned,
+                PointsRedeemed: _pointsToRedeem
             );
 
             MudDialog?.Close(DialogResult.Ok(risultato));

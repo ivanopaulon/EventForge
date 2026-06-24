@@ -110,6 +110,9 @@ public class BoldReportDesignerController(
         {
             try
             {
+                // Use Task.Run to offload to thread-pool, avoiding sync-over-async deadlock
+                // on the ASP.NET Core synchronization context. Required by the synchronous
+                // IReportDesignerController.GetData interface contract.
                 var report = Task.Run(() => reportService.GetReportAsync(reportId)).GetAwaiter().GetResult();
                 if (report?.ReportContent is { Length: > 0 })
                 {
@@ -147,6 +150,8 @@ public class BoldReportDesignerController(
         try
         {
             var rdlcContent = System.Text.Encoding.UTF8.GetString(itemContent.Data);
+            // Use Task.Run to offload to thread-pool, avoiding sync-over-async deadlock.
+            // Required by the synchronous IReportDesignerController.SetData interface contract.
             var saved = Task.Run(() => reportService.SaveReportContentAsync(reportId, rdlcContent))
                             .GetAwaiter().GetResult();
 

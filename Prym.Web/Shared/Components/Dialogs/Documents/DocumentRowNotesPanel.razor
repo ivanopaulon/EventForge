@@ -6,11 +6,9 @@
         @TranslationService.GetTranslation("documents.notes", "Note")
     </MudText>
     
-    <MudTextField T="string"
-                  Value="@Notes"
+    <PrymTextField T="string" Value="@Notes"
                   ValueChanged="@OnNotesChanged"
                   Label="@TranslationService.GetTranslation("documents.notesPlaceholder", "Note aggiuntive (opzionali)")"
-                  Variant="Variant.Outlined"
                   Lines="3"
                   MaxLength="@MaxLength"
                   Counter="@MaxLength"
@@ -18,8 +16,7 @@
                   Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Outlined.Comment"
                   HelperText="@GetHelperText()"
-                  Disabled="@Disabled"
-                    Margin="Margin.Dense"/>
+                  Disabled="@Disabled"/>
 </MudStack>
 
 @code {

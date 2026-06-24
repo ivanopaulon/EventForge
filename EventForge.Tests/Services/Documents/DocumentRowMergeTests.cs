@@ -29,8 +29,8 @@ public class DocumentRowMergeTests : IDisposable
     private readonly DocumentHeaderService _documentHeaderService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _documentHeaderId = Guid.NewGuid();
-    private readonly Guid _productId = Guid.NewGuid();
     private readonly Guid _documentTypeId = Guid.NewGuid();
+    private readonly Guid _productId = Guid.NewGuid();
 
     public DocumentRowMergeTests()
     {
