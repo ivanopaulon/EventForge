@@ -29,6 +29,7 @@ public class DocumentRowMergeTests : IDisposable
     private readonly DocumentHeaderService _documentHeaderService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _documentHeaderId = Guid.NewGuid();
+    private readonly Guid _documentTypeId = Guid.NewGuid();
     private readonly Guid _productId = Guid.NewGuid();
 
     public DocumentRowMergeTests()
@@ -66,16 +67,28 @@ public class DocumentRowMergeTests : IDisposable
 
     private void SeedTestData()
     {
+        var documentType = new DocumentType
+        {
+            Id = _documentTypeId,
+            TenantId = _tenantId,
+            Name = "Test Type",
+            Code = "TST",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test-user"
+        };
+
         var documentHeader = new DocumentHeader
         {
             Id = _documentHeaderId,
             TenantId = _tenantId,
+            DocumentTypeId = _documentTypeId,
             Number = "DOC-001",
             Date = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test-user"
         };
 
+        _context.DocumentTypes.Add(documentType);
         _context.DocumentHeaders.Add(documentHeader);
         _context.SaveChanges();
     }

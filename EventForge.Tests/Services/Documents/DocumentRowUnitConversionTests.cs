@@ -30,6 +30,7 @@ public class DocumentRowUnitConversionTests : IDisposable
     private readonly DocumentHeaderService _documentHeaderService;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _documentHeaderId = Guid.NewGuid();
+    private readonly Guid _documentTypeId = Guid.NewGuid();
     private readonly Guid _productId = Guid.NewGuid();
     private readonly Guid _baseUnitId = Guid.NewGuid();
     private readonly Guid _packUnitId = Guid.NewGuid();
@@ -71,11 +72,23 @@ public class DocumentRowUnitConversionTests : IDisposable
 
     private void SeedTestData()
     {
+        // Create document type (required by DocumentHeader FK)
+        var documentType = new DocumentType
+        {
+            Id = _documentTypeId,
+            TenantId = _tenantId,
+            Name = "Test Type",
+            Code = "TST",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test-user"
+        };
+
         // Create document header
         var documentHeader = new DocumentHeader
         {
             Id = _documentHeaderId,
             TenantId = _tenantId,
+            DocumentTypeId = _documentTypeId,
             Number = "DOC-001",
             Date = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
@@ -139,6 +152,7 @@ public class DocumentRowUnitConversionTests : IDisposable
             CreatedBy = "test-user"
         };
 
+        _context.DocumentTypes.Add(documentType);
         _context.DocumentHeaders.Add(documentHeader);
         _context.Products.Add(product);
         _context.UMs.Add(baseUnit);
