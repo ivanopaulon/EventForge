@@ -1471,12 +1471,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     {
                         var voidMovementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
                         {
-                            MovementType = "VOID",
+                            MovementType = EventForge.Server.Data.Entities.Warehouse.StockMovementType.Return.ToString(),
                             ProductId = item.ProductId,
-                            Quantity = item.Quantity, // Positive to restore inventory
+                            Quantity = item.Quantity, // Positive quantity: restores inventory
                             MovementDate = DateTime.UtcNow,
                             DocumentHeaderId = session.DocumentId.Value,
-                            Reason = "Annullamento vendita",
+                            Reason = "Return",
                             Notes = $"Storno vendita da sessione {session.Id}",
                             Reference = $"VOID-{session.Id.ToString("N")[..8]}"
                         };
@@ -1660,7 +1660,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     {
                         MovementType = "Outbound",
                         ProductId = item.ProductId,
-                        Quantity = -item.Quantity, // Negative for outbound
+                        Quantity = item.Quantity, // Positive quantity: direction is determined by MovementType
                         MovementDate = DateTime.UtcNow,
                         DocumentHeaderId = documentHeader.Id,
                         Reason = "Sale",

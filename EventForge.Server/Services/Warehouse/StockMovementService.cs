@@ -41,7 +41,7 @@ public class StockMovementService(
                 .Include(sm => sm.Serial)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => sm.TenantId == currentTenantId.Value);
+                .Where(sm => sm.TenantId == currentTenantId.Value && !sm.IsDeleted);
 
             // Apply filters
             if (productId.HasValue)
@@ -120,7 +120,7 @@ public class StockMovementService(
                 .Include(sm => sm.Serial)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .FirstOrDefaultAsync(sm => sm.Id == id && sm.TenantId == currentTenantId.Value, cancellationToken);
+                .FirstOrDefaultAsync(sm => sm.Id == id && sm.TenantId == currentTenantId.Value && !sm.IsDeleted, cancellationToken);
 
             return movement?.ToStockMovementDto();
         }
@@ -142,7 +142,7 @@ public class StockMovementService(
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => sm.ProductId == productId && sm.TenantId == currentTenantId)
+                .Where(sm => sm.ProductId == productId && sm.TenantId == currentTenantId && !sm.IsDeleted)
                 .OrderByDescending(sm => sm.MovementDate)
                 .ToListAsync(cancellationToken);
 
@@ -166,7 +166,7 @@ public class StockMovementService(
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId)
+                .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId && !sm.IsDeleted)
                 .OrderByDescending(sm => sm.MovementDate)
                 .ToListAsync(cancellationToken);
 
@@ -190,7 +190,7 @@ public class StockMovementService(
                 .Include(sm => sm.Serial)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => sm.SerialId == serialId && sm.TenantId == currentTenantId)
+                .Where(sm => sm.SerialId == serialId && sm.TenantId == currentTenantId && !sm.IsDeleted)
                 .OrderByDescending(sm => sm.MovementDate)
                 .ToListAsync(cancellationToken);
 
@@ -214,7 +214,7 @@ public class StockMovementService(
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => (sm.FromLocationId == locationId || sm.ToLocationId == locationId) && sm.TenantId == currentTenantId)
+                .Where(sm => (sm.FromLocationId == locationId || sm.ToLocationId == locationId) && sm.TenantId == currentTenantId && !sm.IsDeleted)
                 .OrderByDescending(sm => sm.MovementDate)
                 .ToListAsync(cancellationToken);
 
@@ -238,7 +238,7 @@ public class StockMovementService(
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => sm.DocumentHeaderId == documentId && sm.TenantId == currentTenantId)
+                .Where(sm => sm.DocumentHeaderId == documentId && sm.TenantId == currentTenantId && !sm.IsDeleted)
                 .OrderByDescending(sm => sm.MovementDate)
                 .ToListAsync(cancellationToken);
 
@@ -464,6 +464,7 @@ public class StockMovementService(
         Guid? serialId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -478,7 +479,8 @@ public class StockMovementService(
                 LotId = lotId,
                 SerialId = serialId,
                 Notes = notes,
-                Reason = "Transfer"
+                Reason = "Transfer",
+                MovementDate = movementDate ?? DateTime.UtcNow
             };
 
             return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
@@ -579,6 +581,7 @@ public class StockMovementService(
             var query = context.StockMovements
                 .AsNoTracking()
                 .Where(sm => sm.TenantId == currentTenantId
+                          && !sm.IsDeleted
                           && sm.MovementDate >= fromDate
                           && sm.MovementDate <= toDate);
 
@@ -692,7 +695,7 @@ public class StockMovementService(
                 .Include(sm => sm.Lot)
                 .Include(sm => sm.FromLocation)
                 .Include(sm => sm.ToLocation)
-                .Where(sm => sm.TenantId == currentTenantId && sm.Status == MovementStatus.Planned)
+                .Where(sm => sm.TenantId == currentTenantId && !sm.IsDeleted && sm.Status == MovementStatus.Planned)
                 .OrderBy(sm => sm.MovementDate)
                 .ToListAsync(cancellationToken);
 
@@ -992,6 +995,10 @@ public class StockMovementService(
 
         foreach (var movement in movements)
         {
+            // Revert the stock impact of this movement before soft-deleting it so that
+            // the Stock table stays in sync with the actual (deleted) set of movements.
+            await ReverseStockLevelsForMovementAsync(movement, cancellationToken);
+
             movement.IsDeleted = true;
             movement.ModifiedAt = DateTime.UtcNow;
             movement.ModifiedBy = currentUser;
@@ -1005,10 +1012,119 @@ public class StockMovementService(
             "BulkDeleted",
             "Delete",
             null,
-            $"Soft-deleted {movements.Count} stock movement(s) for document row {rowId} (live row change)",
+            $"Soft-deleted {movements.Count} stock movement(s) for document row {rowId} (live row change) and reversed their stock impact",
             currentUser);
 
-        logger.LogInformation("Soft-deleted {Count} stock movement(s) for document row {RowId} (live row change).", movements.Count, rowId);
+        logger.LogInformation("Soft-deleted {Count} stock movement(s) for document row {RowId} (live row change) and reversed their stock impact.", movements.Count, rowId);
+    }
+
+    /// <summary>
+    /// Reverses the stock level changes that were applied when the given movement was processed.
+    /// Called before soft-deleting a movement so that the <see cref="Stock"/> table remains
+    /// consistent with the active set of movements.
+    /// </summary>
+    private async Task ReverseStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+        // Inbound/Transfer-to: was +quantity at ToLocation → reverse is -quantity
+        if ((movement.MovementType == StockMovementType.Inbound || movement.MovementType == StockMovementType.Transfer)
+            && movement.ToLocationId.HasValue)
+        {
+            var stock = context.Stocks.Local
+                            .FirstOrDefault(s => !s.IsDeleted
+                                              && s.TenantId == currentTenantId
+                                              && s.ProductId == movement.ProductId
+                                              && s.StorageLocationId == movement.ToLocationId.Value
+                                              && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value))
+                        ?? await context.Stocks
+                            .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
+                                                   && s.ProductId == movement.ProductId
+                                                   && s.StorageLocationId == movement.ToLocationId.Value
+                                                   && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
+                                               cancellationToken);
+
+            if (stock is not null)
+            {
+                stock.Quantity -= movement.Quantity;
+                stock.LastMovementDate = DateTime.UtcNow;
+                stock.ModifiedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                logger.LogWarning(
+                    "ReverseStockLevels: no stock record found for product {ProductId} at to-location {LocationId} while reversing {MovementType} movement {MovementId}. Reversal skipped.",
+                    movement.ProductId, movement.ToLocationId.Value, movement.MovementType, movement.Id);
+            }
+        }
+
+        // Outbound/Transfer-from: was -quantity at FromLocation → reverse is +quantity
+        if ((movement.MovementType == StockMovementType.Outbound || movement.MovementType == StockMovementType.Transfer)
+            && movement.FromLocationId.HasValue)
+        {
+            var stock = context.Stocks.Local
+                            .FirstOrDefault(s => !s.IsDeleted
+                                              && s.TenantId == currentTenantId
+                                              && s.ProductId == movement.ProductId
+                                              && s.StorageLocationId == movement.FromLocationId.Value
+                                              && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value))
+                        ?? await context.Stocks
+                            .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
+                                                   && s.ProductId == movement.ProductId
+                                                   && s.StorageLocationId == movement.FromLocationId.Value
+                                                   && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
+                                               cancellationToken);
+
+            if (stock is not null)
+            {
+                stock.Quantity += movement.Quantity;
+                stock.LastMovementDate = DateTime.UtcNow;
+                stock.ModifiedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                logger.LogWarning(
+                    "ReverseStockLevels: no stock record found for product {ProductId} at from-location {LocationId} while reversing {MovementType} movement {MovementId}. Reversal skipped.",
+                    movement.ProductId, movement.FromLocationId.Value, movement.MovementType, movement.Id);
+            }
+        }
+
+        // Adjustment: was +quantity (ToLocationId set) or -quantity (FromLocationId set) → reverse
+        if (movement.MovementType == StockMovementType.Adjustment)
+        {
+            var locationId = movement.ToLocationId ?? movement.FromLocationId;
+            if (locationId.HasValue)
+            {
+                var stock = context.Stocks.Local
+                                .FirstOrDefault(s => !s.IsDeleted
+                                                  && s.TenantId == currentTenantId
+                                                  && s.ProductId == movement.ProductId
+                                                  && s.StorageLocationId == locationId.Value
+                                                  && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value))
+                            ?? await context.Stocks
+                                .FirstOrDefaultAsync(s => s.TenantId == currentTenantId
+                                                       && s.ProductId == movement.ProductId
+                                                       && s.StorageLocationId == locationId.Value
+                                                       && (!movement.LotId.HasValue || s.LotId == movement.LotId.Value),
+                                                   cancellationToken);
+
+                if (stock is not null)
+                {
+                    // ToLocationId set → was a positive adjustment (added stock) → subtract to reverse
+                    // FromLocationId set → was a negative adjustment (removed stock) → add to reverse
+                    var reversalQuantity = movement.ToLocationId.HasValue ? -movement.Quantity : movement.Quantity;
+                    stock.Quantity += reversalQuantity;
+                    stock.LastMovementDate = DateTime.UtcNow;
+                    stock.ModifiedAt = DateTime.UtcNow;
+                }
+                else
+                {
+                    logger.LogWarning(
+                        "ReverseStockLevels: no stock record found for product {ProductId} at location {LocationId} while reversing Adjustment movement {MovementId}. Reversal skipped.",
+                        movement.ProductId, locationId.Value, movement.Id);
+                }
+            }
+        }
     }
 
     #endregion

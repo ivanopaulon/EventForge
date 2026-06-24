@@ -155,6 +155,7 @@ public class WarehouseFacade(
             serialId: null,
             request.Notes,
             currentUser,
+            movementDate: null,
             cancellationToken);
 
     public Task<PagedResult<StockLocationDetail>> GetStockOverviewAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? warehouseId = null, Guid? locationId = null, Guid? lotId = null, bool? lowStock = null, bool? criticalStock = null, bool? outOfStock = null, bool? inStockOnly = null, bool? showAllProducts = null, bool detailedView = false, CancellationToken cancellationToken = default)
