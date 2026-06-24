@@ -1,5 +1,11 @@
 -- ROLLBACK: 20260624_AddSupplierGrossPriceToDocumentRow
 -- Removes the SupplierGrossPrice column added by 20260624_AddSupplierGrossPriceToDocumentRow.sql.
 
-ALTER TABLE "DocumentRows"
-    DROP COLUMN IF EXISTS "SupplierGrossPrice";
+IF EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[DocumentRows]') AND name = N'SupplierGrossPrice'
+)
+BEGIN
+    ALTER TABLE [DocumentRows]
+        DROP COLUMN [SupplierGrossPrice];
+END

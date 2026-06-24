@@ -683,6 +683,10 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _state.Model.DiscountType = row.DiscountType;
         _state.SelectedUnitOfMeasureId = row.UnitOfMeasureId;
         _state.Model.SupplierGrossPrice = row.SupplierGrossPrice;
+        _state.Model.RowType = row.RowType;
+        _state.Model.IsGift = row.IsGift;
+        _state.Model.IsManual = row.IsManual;
+        _state.Model.SortOrder = row.SortOrder;
 
         // Populate the text field with the original chained string when available, or the plain number
         _discountText = !string.IsNullOrWhiteSpace(row.LineDiscountString)
@@ -2265,6 +2269,55 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
             StateHasChanged();
         }
+    }
+
+    /// <summary>
+    /// Returns the translated display label for a DocumentRowType enum value.
+    /// </summary>
+    private string GetRowTypeLabel(DocumentRowType rowType) => rowType switch
+    {
+        DocumentRowType.Product => TranslationService.GetTranslation("documents.rowType.product", "Prodotto"),
+        DocumentRowType.Service => TranslationService.GetTranslation("documents.rowType.service", "Servizio"),
+        DocumentRowType.Note    => TranslationService.GetTranslation("documents.rowType.note",    "Nota"),
+        _                       => rowType.ToString()
+    };
+
+    /// <summary>
+    /// Handles changes to the description text field made directly by the operator.
+    /// </summary>
+    private void OnDescriptionChanged(string value)
+    {
+        _state.Model.Description = value;
+        _state.Validation.FieldErrors.Remove("description");
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Handles changes to the Notes field.
+    /// </summary>
+    private void OnNotesChanged(string? value)
+    {
+        _state.Model.Notes = value;
+    }
+
+    /// <summary>
+    /// Handles changes to the IsGift checkbox.
+    /// </summary>
+    private void OnIsGiftChanged(bool value)
+    {
+        _state.Model.IsGift = value;
+    }
+
+    /// <summary>
+    /// Handles changes to the RowType selector.
+    /// When switching to a non-product type the description field is cleared
+    /// only if it was auto-populated from the currently selected product,
+    /// allowing the operator to enter a custom description.
+    /// </summary>
+    private void OnRowTypeChanged(DocumentRowType rowType)
+    {
+        _state.Model.RowType = rowType;
+        StateHasChanged();
     }
 
     /// <summary>

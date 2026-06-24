@@ -1185,6 +1185,7 @@ public class DocumentHeaderService(
             row.UnitPrice = updateDto.UnitPrice;
             row.Quantity = updateDto.Quantity;
             row.LineDiscount = updateDto.LineDiscount;
+            row.LineDiscountString = updateDto.LineDiscountString;
             row.LineDiscountValue = updateDto.LineDiscountValue;
             row.DiscountType = (Prym.DTOs.Common.DiscountType)updateDto.DiscountType;
             row.VatRate = updateDto.VatRate;
@@ -1204,6 +1205,7 @@ public class DocumentHeaderService(
             row.OriginalPriceFromPriceList = updateDto.OriginalPriceFromPriceList;
             row.PriceNotes = updateDto.PriceNotes;
             row.AppliedPromotionsJSON = updateDto.AppliedPromotionsJSON;
+            row.SupplierGrossPrice = updateDto.SupplierGrossPrice;
             row.ModifiedBy = currentUser;
             row.ModifiedAt = DateTime.UtcNow;
 
