@@ -102,7 +102,7 @@ public class StationMonitorServiceTests : IDisposable
         Assert.Equal("system", entity.ModifiedBy); // DbContext overrides ModifiedBy to "system" when no HttpContext in tests
         _mockClientProxy.Verify(c => c.SendCoreAsync(
             "QueueItemStatusChanged",
-            It.Is<object?[]>(args => args.Length == 1 && args[0] is StationOrderQueueItemDto dto && dto.Id == queueItem.Id),
+            It.Is<object?[]>(args => args.Length == 1 && args[0] is StationOrderQueueItemDto && ((StationOrderQueueItemDto)args[0]!).Id == queueItem.Id),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -122,7 +122,7 @@ public class StationMonitorServiceTests : IDisposable
         Assert.Equal(StationQueueEntityStatus.Ready, entity.Status);
         _mockClientProxy.Verify(c => c.SendCoreAsync(
             "QueueItemStatusChanged",
-            It.Is<object?[]>(args => args.Length == 1 && args[0] is StationOrderQueueItemDto dto2 && dto2.Id == queueItem.Id),
+            It.Is<object?[]>(args => args.Length == 1 && args[0] is StationOrderQueueItemDto && ((StationOrderQueueItemDto)args[0]!).Id == queueItem.Id),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
