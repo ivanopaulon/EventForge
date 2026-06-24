@@ -138,6 +138,7 @@ builder.Services.AddScoped<IUpdateNotificationService, UpdateNotificationService
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<Prym.Web.Services.WhatsApp.IWhatsAppClientService, Prym.Web.Services.WhatsApp.WhatsAppClientService>();
+builder.Services.AddScoped<Prym.Web.Services.AI.IAIOrderClientService, Prym.Web.Services.AI.AIOrderClientService>();
 builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 builder.Services.AddScoped<IBrandingService, BrandingService>();
 builder.Services.AddScoped<IBackupService, BackupService>();

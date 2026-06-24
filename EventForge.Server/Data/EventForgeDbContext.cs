@@ -194,6 +194,13 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<ChatMessage> ChatMessages { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
     public DbSet<MessageReadReceipt> MessageReadReceipts { get; set; }
+    public DbSet<OrderConversationSession> OrderConversationSessions { get; set; }
+
+    // AI Configuration Entities
+    public DbSet<Entities.Configuration.AIOrderSettings> AIOrderSettings { get; set; }
+
+    // AI Usage Logging
+    public DbSet<Entities.Audit.AIUsageLog> AIUsageLogs { get; set; }
 
     // Sales Entities
     public DbSet<SaleSession> SaleSessions { get; set; }
@@ -247,6 +254,7 @@ public partial class EventForgeDbContext : DbContext
         ConfigureWhatsAppRelationships(modelBuilder);
         ConfigureReportRelationships(modelBuilder);
         ConfigureShiftRelationships(modelBuilder);
+        ConfigureAIOrderRelationships(modelBuilder);
     }
 
     /// <summary>
@@ -513,6 +521,38 @@ public partial class EventForgeDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.PrinterId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+
+    // ── AI order relationships ────────────────────────────────────────────────
+
+    private static void ConfigureAIOrderRelationships(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Data.Entities.Chat.OrderConversationSession>(entity =>
+        {
+            // Composite index covers single-column ChatThreadId lookups — no separate single-column index needed
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => new { e.ChatThreadId, e.TenantId });
+
+            entity.HasOne(e => e.ChatThread)
+                .WithMany()
+                .HasForeignKey(e => e.ChatThreadId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Data.Entities.Configuration.AIOrderSettings>(entity =>
+        {
+            // Only one active (non-deleted) AIOrderSettings record per tenant
+            entity.HasIndex(e => e.TenantId)
+                  .IsUnique()
+                  .HasFilter("[IsDeleted] = 0");
+        });
+
+        modelBuilder.Entity<Data.Entities.Audit.AIUsageLog>(entity =>
+        {
+            entity.HasIndex(e => e.TenantId);
+            entity.HasIndex(e => e.CallAt);
+            entity.HasIndex(e => new { e.TenantId, e.CallAt });
         });
     }
 }

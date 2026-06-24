@@ -71,3 +71,10 @@ window.EventForge.applyPersistedTheme = function () {
         console.warn('[EventForge] applyPersistedTheme error:', e);
     }
 };
+
+// Scroll a Blazor ElementReference to the bottom (used by WhatsApp chat simulator and other chat UIs)
+window.scrollElementToBottom = function (element) {
+    if (element) {
+        element.scrollTop = element.scrollHeight;
+    }
+};
