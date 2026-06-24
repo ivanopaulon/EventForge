@@ -1,4 +1,5 @@
 using EventForge.Server.Data.Entities.Sales;
+using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Store;
@@ -1471,7 +1472,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     {
                         var voidMovementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
                         {
-                            MovementType = EventForge.Server.Data.Entities.Warehouse.StockMovementType.Return.ToString(),
+                            MovementType = StockMovementType.Return.ToString(),
                             ProductId = item.ProductId,
                             Quantity = item.Quantity, // Positive quantity: restores inventory
                             MovementDate = DateTime.UtcNow,
