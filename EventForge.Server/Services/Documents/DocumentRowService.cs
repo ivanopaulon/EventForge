@@ -85,6 +85,7 @@ public class DocumentRowService(
             UnitPrice = createDto.UnitPrice,
             Quantity = createDto.Quantity,
             LineDiscount = createDto.LineDiscount,
+            LineDiscountString = createDto.LineDiscountString,
             LineDiscountValue = createDto.LineDiscountValue,
             DiscountType = createDto.DiscountType,
             VatRate = createDto.VatRate,
@@ -142,6 +143,7 @@ public class DocumentRowService(
         row.UnitPrice = updateDto.UnitPrice;
         row.Quantity = updateDto.Quantity;
         row.LineDiscount = updateDto.LineDiscount;
+        row.LineDiscountString = updateDto.LineDiscountString;
         row.LineDiscountValue = updateDto.LineDiscountValue;
         row.DiscountType = updateDto.DiscountType;
         row.VatRate = updateDto.VatRate;
@@ -223,6 +225,7 @@ public class DocumentRowService(
             UnitPrice = dto.UnitPrice,
             Quantity = dto.Quantity,
             LineDiscount = dto.LineDiscount,
+            LineDiscountString = dto.LineDiscountString,
             LineDiscountValue = dto.LineDiscountValue,
             DiscountType = dto.DiscountType,
             VatRate = dto.VatRate,
@@ -320,6 +323,7 @@ public class DocumentRowService(
             UnitPrice = row.UnitPrice,
             Quantity = row.Quantity,
             LineDiscount = row.LineDiscount,
+            LineDiscountString = row.LineDiscountString,
             LineDiscountValue = row.LineDiscountValue,
             DiscountType = row.DiscountType,
             VatRate = row.VatRate,

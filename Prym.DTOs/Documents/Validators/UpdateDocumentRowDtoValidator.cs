@@ -39,6 +39,16 @@ namespace Prym.DTOs.Documents.Validators
                 .InclusiveBetween(0, 100)
                 .WithMessage("Line discount must be between 0 and 100.");
 
+            RuleFor(x => x.LineDiscountString)
+                .MaximumLength(50)
+                .WithMessage("Line discount string cannot exceed 50 characters.")
+                .Must((dto, s) => ValidateLineDiscountString(s))
+                .When(x => !string.IsNullOrWhiteSpace(x.LineDiscountString))
+                .WithMessage("Formato sconto non valido. Usare numeri tra 0 e 100 separati da '+' (es. '10+5').")
+                .Must((dto, s) => dto.DiscountType == DiscountType.Percentage)
+                .When(x => !string.IsNullOrWhiteSpace(x.LineDiscountString))
+                .WithMessage("Lo sconto concatenato è applicabile solo con tipo sconto Percentuale.");
+
             RuleFor(x => x.LineDiscountValue)
                 .GreaterThanOrEqualTo(0)
                 .WithMessage("Line discount value must be non-negative.");
@@ -54,6 +64,12 @@ namespace Prym.DTOs.Documents.Validators
             RuleFor(x => x.Notes)
                 .MaximumLength(200)
                 .WithMessage("Notes cannot exceed 200 characters.");
+        }
+        private static bool ValidateLineDiscountString(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return true;
+            var result = DiscountStringParser.Parse(value);
+            return result.IsValid;
         }
     }
 }

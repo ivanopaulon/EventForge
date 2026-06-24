@@ -68,9 +68,16 @@ namespace Prym.DTOs.Documents
         public decimal Quantity { get; set; }
 
         /// <summary>
-        /// Line discount in percentage.
+        /// Line discount in percentage (computed equivalent when LineDiscountString is set).
         /// </summary>
         public decimal LineDiscount { get; set; }
+
+        /// <summary>
+        /// Original chained discount string entered by the user (e.g. "10+5", "10+5+2").
+        /// Null when a plain single-value percentage or a value discount is used.
+        /// LineDiscount holds the computed equivalent percentage for fiscal calculations.
+        /// </summary>
+        public string? LineDiscountString { get; set; }
 
         /// <summary>
         /// Line discount value (absolute amount).
