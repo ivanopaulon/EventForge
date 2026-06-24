@@ -97,6 +97,12 @@ public partial class DocumentRowDialog : IAsyncDisposable
     /// </summary>
     private string _discountText = string.Empty;
 
+    /// <summary>
+    /// Cached result of the last successful parse of <see cref="_discountText"/>.
+    /// Avoids re-parsing the same string in <see cref="GetDiscountHelperText"/>.
+    /// </summary>
+    private Prym.DTOs.Documents.DiscountParseResult? _lastDiscountParseResult;
+
     // Cached calculation result to avoid redundant calculations
     private Prym.Web.Models.Documents.DocumentRowCalculationResult? _cachedCalculationResult = null;
     private string _cachedCalculationKey = string.Empty;
@@ -679,6 +685,11 @@ public partial class DocumentRowDialog : IAsyncDisposable
         _discountText = !string.IsNullOrWhiteSpace(row.LineDiscountString)
             ? row.LineDiscountString
             : (row.LineDiscount > 0 ? row.LineDiscount.ToString("G29") : string.Empty);
+
+        // Seed the cache so GetDiscountHelperText shows the hint immediately in edit mode
+        _lastDiscountParseResult = !string.IsNullOrWhiteSpace(_discountText)
+            ? Prym.DTOs.Documents.DiscountStringParser.Parse(_discountText)
+            : null;
 
         if (_state.Model.VatRate > 0 || !string.IsNullOrEmpty(_state.Model.VatDescription))
         {
@@ -1318,11 +1329,13 @@ public partial class DocumentRowDialog : IAsyncDisposable
             _model.LineDiscount = 0m;
             _model.LineDiscountString = null;
             _model.DiscountType = DiscountType.Percentage;
+            _lastDiscountParseResult = null;
             StateHasChanged();
             return;
         }
 
         var parseResult = Prym.DTOs.Documents.DiscountStringParser.Parse(value);
+        _lastDiscountParseResult = parseResult;
 
         if (!parseResult.IsValid)
         {
@@ -1360,15 +1373,11 @@ public partial class DocumentRowDialog : IAsyncDisposable
         if (_model.LineDiscountValue > 0)
             return TranslationService.GetTranslation("documents.discountPercentDisabled", "Disabilitato: sconto euro attivo");
 
-        if (!string.IsNullOrWhiteSpace(_discountText) && _discountText.Contains('+'))
+        if (_lastDiscountParseResult is { IsValid: true, IsChained: true })
         {
-            var parseResult = Prym.DTOs.Documents.DiscountStringParser.Parse(_discountText);
-            if (parseResult.IsValid)
-            {
-                return string.Format(
-                    TranslationService.GetTranslation("documents.discountEquivalent", "Equivale al {0:N2}% di sconto totale"),
-                    parseResult.EquivalentPercentage);
-            }
+            return string.Format(
+                TranslationService.GetTranslation("documents.discountEquivalent", "Equivale al {0:N2}% di sconto totale"),
+                _lastDiscountParseResult.EquivalentPercentage);
         }
 
         return string.Empty;
@@ -1627,6 +1636,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
         // Reset the discount text field
         _discountText = string.Empty;
+        _lastDiscountParseResult = null;
 
         // Reset the local binding variable so UnifiedProductSelector detects the change
         // in OnParametersSet (sees _previousSelectedProduct != null && SelectedProduct == null)

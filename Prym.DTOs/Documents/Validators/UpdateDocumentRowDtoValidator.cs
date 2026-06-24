@@ -44,10 +44,10 @@ namespace Prym.DTOs.Documents.Validators
                 .WithMessage("Line discount string cannot exceed 50 characters.")
                 .Must((dto, s) => ValidateLineDiscountString(s))
                 .When(x => !string.IsNullOrWhiteSpace(x.LineDiscountString))
-                .WithMessage("Formato sconto non valido. Usare numeri tra 0 e 100 separati da '+' (es. '10+5').")
+                .WithMessage("Invalid discount format. Use numbers between 0 and 100 separated by '+' (e.g. '10+5').")
                 .Must((dto, s) => dto.DiscountType == DiscountType.Percentage)
                 .When(x => !string.IsNullOrWhiteSpace(x.LineDiscountString))
-                .WithMessage("Lo sconto concatenato è applicabile solo con tipo sconto Percentuale.");
+                .WithMessage("Chained discount string is only applicable with discount type Percentage.");
 
             RuleFor(x => x.LineDiscountValue)
                 .GreaterThanOrEqualTo(0)
