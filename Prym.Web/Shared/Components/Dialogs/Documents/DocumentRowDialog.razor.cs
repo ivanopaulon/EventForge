@@ -1302,6 +1302,50 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     private bool IsProductVatIncluded => _state.SelectedProduct?.IsVatIncluded ?? false;
 
+    /// <summary>
+    /// True when the current document is a sales/outgoing document (stock decrease).
+    /// Purchase documents are stock-increase; sales documents are stock-decrease.
+    /// </summary>
+    private bool IsSalesContext =>
+        !(_state.DocumentHeader?.IsDocumentTypeStockIncrease ?? true);
+
+    /// <summary>
+    /// True when the price field should display and accept the VAT-inclusive (gross) price.
+    /// This applies only in a sales context when the product is flagged as VAT-included and
+    /// a non-zero VAT rate is active. In all other cases the field shows the net price.
+    /// </summary>
+    private bool ShowGrossPrice =>
+        IsSalesContext && IsProductVatIncluded && _state.Model.VatRate > 0;
+
+    /// <summary>
+    /// Converts a net price to gross (VAT-inclusive) using the current row VAT rate.
+    /// </summary>
+    private decimal ToGrossPrice(decimal netPrice) =>
+        Math.Round(netPrice * (1m + _state.Model.VatRate / 100m), 2);
+
+    /// <summary>
+    /// Converts a gross (VAT-inclusive) price to net using the current row VAT rate.
+    /// </summary>
+    private decimal ToNetPrice(decimal grossPrice) =>
+        _state.Model.VatRate > 0
+            ? grossPrice / (1m + _state.Model.VatRate / 100m)
+            : grossPrice;
+
+    /// <summary>
+    /// Price value bound to the UI field. Gross when <see cref="ShowGrossPrice"/>, net otherwise.
+    /// The model (<see cref="_state.Model.UnitPrice"/>) always stores the net price.
+    /// </summary>
+    private decimal DisplayedUnitPrice =>
+        ShowGrossPrice ? ToGrossPrice(_state.Model.UnitPrice) : _state.Model.UnitPrice;
+
+    /// <summary>
+    /// Label for the price field: indicates whether the value is VAT-inclusive or net.
+    /// </summary>
+    private string PriceFieldLabel =>
+        ShowGrossPrice
+            ? TranslationService.GetTranslation("documents.unitPriceGross", "Prezzo (IVA incl.)")
+            : TranslationService.GetTranslation("documents.price", "Prezzo");
+
     private decimal GetSubtotal() => GetCalculationResult().NetAmount;
     private decimal GetVatAmount() => GetCalculationResult().VatAmount;
     private decimal GetLineTotal() => GetCalculationResult().TotalAmount;
@@ -2168,14 +2212,19 @@ public partial class DocumentRowDialog : IAsyncDisposable
     }
 
     /// <summary>
-    /// Handles manual price changes by the user
+    /// Handles manual price changes by the user.
+    /// When <see cref="ShowGrossPrice"/> is true the UI field displays the VAT-inclusive
+    /// price; in that case the entered value must be converted back to net before storing.
     /// </summary>
     private void OnPriceManuallyChanged(decimal newPrice)
     {
+        // Convert gross → net when the field is showing the VAT-inclusive price
+        decimal netPrice = ShowGrossPrice ? ToNetPrice(newPrice) : newPrice;
+
         // Compare with current price to avoid unnecessary triggers
-        if (_state.Model.UnitPrice != newPrice)
+        if (_state.Model.UnitPrice != netPrice)
         {
-            _state.Model.UnitPrice = newPrice;
+            _state.Model.UnitPrice = netPrice;
             _state.Model.IsPriceManual = true;
 
             AppNotification.ShowWarning(

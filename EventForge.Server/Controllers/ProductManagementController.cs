@@ -3144,8 +3144,7 @@ public class ProductManagementController(
                 foreach (var row in productRows)
                 {
                     // Determine if this is a stock increase based on document type
-                    // This is a simplified logic - you may need to adjust based on your DocumentType configuration
-                    bool isStockIncrease = DetermineStockIncrease(doc.DocumentTypeName);
+                    bool isStockIncrease = doc.IsDocumentTypeStockIncrease;
 
                     movements.Add(new ProductDocumentMovementDto
                     {
@@ -3392,7 +3391,7 @@ public class ProductManagementController(
                     // Skip if effective price is zero or negative
                     if (effectiveUnitPrice <= 0) continue;
 
-                    bool isStockIncrease = DetermineStockIncrease(doc.DocumentTypeName);
+                    bool isStockIncrease = doc.IsDocumentTypeStockIncrease;
 
                     var pricePoint = new PriceTrendDataPoint
                     {

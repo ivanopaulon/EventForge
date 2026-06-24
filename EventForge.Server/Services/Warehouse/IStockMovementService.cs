@@ -86,6 +86,7 @@ public interface IStockMovementService
         Guid productId,
         Guid fromLocationId,
         decimal quantity,
+        decimal? unitCost = null,
         Guid? lotId = null,
         Guid? serialId = null,
         Guid? documentHeaderId = null,
@@ -107,6 +108,7 @@ public interface IStockMovementService
         Guid? serialId = null,
         string? notes = null,
         string? currentUser = null,
+        DateTime? movementDate = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

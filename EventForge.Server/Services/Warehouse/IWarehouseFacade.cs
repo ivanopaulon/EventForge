@@ -276,6 +276,12 @@ public interface IWarehouseFacade
         Guid productId, Guid locationId, int page, int pageSize, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets paged stock movements for a product across all locations, ordered by date descending.
+    /// </summary>
+    Task<PagedResult<StockMovementDto>> GetPagedMovementsAsync(
+        Guid productId, int page, int pageSize, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Creates a quick stock transfer between two locations using <see cref="IStockMovementService.ProcessTransferMovementAsync"/>.
     /// </summary>
     Task<StockMovementDto> QuickStockTransferAsync(

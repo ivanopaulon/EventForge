@@ -2,7 +2,7 @@ using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Auth;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Services.PriceHistory;
+
 using EventForge.Server.Services.Products;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +21,6 @@ public class SupplierProductCsvImportServiceTests : IDisposable
 {
     private readonly EventForgeDbContext _context;
     private readonly SupplierProductCsvImportService _service;
-    private readonly Mock<ISupplierProductPriceHistoryService> _priceHistoryServiceMock;
     private readonly Guid _tenantId = Guid.NewGuid();
     private readonly Guid _supplierId = Guid.NewGuid();
     private readonly Guid _userId = Guid.NewGuid();
@@ -34,7 +33,6 @@ public class SupplierProductCsvImportServiceTests : IDisposable
             .Options;
 
         _context = new EventForgeDbContext(options);
-        _priceHistoryServiceMock = new Mock<ISupplierProductPriceHistoryService>();
         var logger = new Mock<ILogger<SupplierProductCsvImportService>>();
 
         var configuration = new ConfigurationBuilder()
@@ -49,7 +47,6 @@ public class SupplierProductCsvImportServiceTests : IDisposable
 
         _service = new SupplierProductCsvImportService(
             _context,
-            _priceHistoryServiceMock.Object,
             logger.Object,
             configuration);
 

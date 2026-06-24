@@ -1,5 +1,5 @@
 using EventForge.Server.Filters;
-using EventForge.Server.Services.PriceHistory;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Prym.DTOs.PriceHistory;
@@ -7,14 +7,15 @@ using Prym.DTOs.PriceHistory;
 namespace EventForge.Server.Controllers;
 
 /// <summary>
-/// REST API controller for supplier product price history management.
-/// Provides endpoints for querying price change history, statistics, and trend data.
+/// REST API controller for supplier purchase price history.
+/// History is derived from inbound stock movements (StockMovementReason.Purchase),
+/// which are the single source of truth for supplier price data.
 /// </summary>
 [Route("api/v1/price-history")]
 [Authorize]
 [RequireLicenseFeature("ProductManagement")]
 public class SupplierProductPriceHistoryController(
-    ISupplierProductPriceHistoryService priceHistoryService,
+    IStockMovementPriceService priceHistoryService,
     ITenantContext tenantContext,
     ILogger<SupplierProductPriceHistoryController> logger) : BaseApiController
 {

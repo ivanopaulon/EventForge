@@ -2,7 +2,7 @@ using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Audit;
 using EventForge.Server.Services.CodeGeneration;
-using EventForge.Server.Services.PriceHistory;
+
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -45,15 +45,13 @@ public class ProductBulkCatalogUpdateTests : IDisposable
         var mockAuditLog = new Mock<IAuditLogService>();
         _mockLogger = new Mock<ILogger<ProductService>>();
         var mockCodeGenerator = new Mock<IDailyCodeGenerator>();
-        var mockPriceHistory = new Mock<ISupplierProductPriceHistoryService>();
 
         _service = new ProductService(
             _context,
             mockAuditLog.Object,
             mockTenantContext.Object,
             _mockLogger.Object,
-            mockCodeGenerator.Object,
-            mockPriceHistory.Object);
+            mockCodeGenerator.Object);
 
         SeedTestData();
     }
@@ -322,15 +320,13 @@ public class ProductBulkCatalogUpdateTests : IDisposable
         var mockAuditLog = new Mock<IAuditLogService>();
         var mockLogger = new Mock<ILogger<ProductService>>();
         var mockCodeGenerator = new Mock<IDailyCodeGenerator>();
-        var mockPriceHistory = new Mock<ISupplierProductPriceHistoryService>();
 
         var noTenantService = new ProductService(
             _context,
             mockAuditLog.Object,
             mockTenantContext.Object,
             mockLogger.Object,
-            mockCodeGenerator.Object,
-            mockPriceHistory.Object);
+            mockCodeGenerator.Object);
 
         var dto = new BulkUpdateProductsDto
         {

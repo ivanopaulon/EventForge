@@ -109,7 +109,6 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<Brand> Brands { get; set; }
     public DbSet<Model> Models { get; set; }
     public DbSet<ProductSupplier> ProductSuppliers { get; set; }
-    public DbSet<SupplierProductPriceHistory> SupplierProductPriceHistories { get; set; }
 
     // Price List & Promotion Entities
     public DbSet<PriceList> PriceLists { get; set; }

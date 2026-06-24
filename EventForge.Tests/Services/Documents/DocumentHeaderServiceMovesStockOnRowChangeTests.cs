@@ -144,7 +144,7 @@ public class DocumentHeaderServiceMovesStockOnRowChangeTests : IDisposable
         _stockMovementService
             .Setup(x => x.ProcessOutboundMovementAsync(
                 It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(),
-                It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+                It.IsAny<decimal?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
                 It.IsAny<Guid?>(), It.IsAny<Guid?>(),
                 It.IsAny<string?>(), It.IsAny<string?>(),
                 It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
@@ -192,7 +192,7 @@ public class DocumentHeaderServiceMovesStockOnRowChangeTests : IDisposable
         // Assert: outbound movement created for live mode + outbound doc type
         _stockMovementService.Verify(x => x.ProcessOutboundMovementAsync(
             _productId, _storageLocationId, 5m,
-            It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+            It.IsAny<decimal?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             docHeaderId, It.IsAny<Guid?>(),
             It.IsAny<string?>(), "tester",
             It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -254,7 +254,7 @@ public class DocumentHeaderServiceMovesStockOnRowChangeTests : IDisposable
         // Assert: no movement at all (document is Active and type is standard)
         _stockMovementService.Verify(x => x.ProcessOutboundMovementAsync(
             It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(),
-            It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+            It.IsAny<decimal?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             It.IsAny<string?>(), It.IsAny<string?>(),
             It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -294,7 +294,7 @@ public class DocumentHeaderServiceMovesStockOnRowChangeTests : IDisposable
         // Assert: movement is still created even when document is Archived
         _stockMovementService.Verify(x => x.ProcessOutboundMovementAsync(
             _productId, _storageLocationId, 2m,
-            It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+            It.IsAny<decimal?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             docHeaderId, It.IsAny<Guid?>(),
             It.IsAny<string?>(), "tester",
             It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -350,7 +350,7 @@ public class DocumentHeaderServiceMovesStockOnRowChangeTests : IDisposable
         _stockMovementService.Verify(x => x.DeleteMovementsForRowAsync(rowId, "tester", It.IsAny<CancellationToken>()), Times.Once);
         _stockMovementService.Verify(x => x.ProcessOutboundMovementAsync(
             _productId, _storageLocationId, 8m,
-            It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+            It.IsAny<decimal?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             docHeaderId, rowId,
             It.IsAny<string?>(), "tester",
             It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -396,7 +396,7 @@ public class DocumentHeaderServiceMovesStockOnRowChangeTests : IDisposable
         _stockMovementService.Verify(x => x.DeleteMovementsForRowAsync(rowId, "tester", It.IsAny<CancellationToken>()), Times.Once);
         _stockMovementService.Verify(x => x.ProcessOutboundMovementAsync(
             It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<decimal>(),
-            It.IsAny<Guid?>(), It.IsAny<Guid?>(),
+            It.IsAny<decimal?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             It.IsAny<Guid?>(), It.IsAny<Guid?>(),
             It.IsAny<string?>(), It.IsAny<string?>(),
             It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()), Times.Never);

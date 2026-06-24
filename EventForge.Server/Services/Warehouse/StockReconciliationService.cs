@@ -997,6 +997,7 @@ public class StockReconciliationService(
                     FromLocationId = isInbound ? null : storageLocationId,
                     ToLocationId = isInbound ? storageLocationId : null,
                     Quantity = quantity,
+                    UnitCost = row.UnitPrice > 0 ? row.UnitPrice : null,
                     DocumentHeaderId = documentHeader.Id,
                     DocumentRowId = row.Id,
                     Notes = alreadyExists
@@ -1104,6 +1105,7 @@ public class StockReconciliationService(
 
                             existing.MovementDate = dto.MovementDate;
                             existing.Notes = dto.Notes;
+                            existing.UnitCost = dto.UnitCost;
                             existing.ModifiedAt = DateTime.UtcNow;
                             existing.ModifiedBy = currentUser ?? "System";
                             updatedCount++;

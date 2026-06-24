@@ -123,11 +123,11 @@
             }
             else if (column.PropertyName == "ChangeSource")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangeSource">Fonte</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangeSource">Documento</EFTableColumnHeader>
             }
             else if (column.PropertyName == "ChangedByUserName")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangedByUserName">Modificato da</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangedByUserName">Operatore</EFTableColumnHeader>
             }
             else if (column.PropertyName == "ChangedAt")
             {
@@ -229,8 +229,8 @@
             new EFTableColumnConfiguration { PropertyName = "OldPrice",             DisplayName = "Prezzo Prec.",  IsVisible = true, Order = 2 },
             new EFTableColumnConfiguration { PropertyName = "NewPrice",             DisplayName = "Nuovo Prezzo",  IsVisible = true, Order = 3 },
             new EFTableColumnConfiguration { PropertyName = "PriceChangePercentage",DisplayName = "Var. %",        IsVisible = true, Order = 4 },
-            new EFTableColumnConfiguration { PropertyName = "ChangeSource",         DisplayName = "Fonte",         IsVisible = true, Order = 5 },
-            new EFTableColumnConfiguration { PropertyName = "ChangedByUserName",    DisplayName = "Modificato da", IsVisible = true, Order = 6 },
+            new EFTableColumnConfiguration { PropertyName = "ChangeSource",         DisplayName = "Documento",     IsVisible = true, Order = 5 },
+            new EFTableColumnConfiguration { PropertyName = "ChangedByUserName",    DisplayName = "Operatore",     IsVisible = true, Order = 6 },
             new EFTableColumnConfiguration { PropertyName = "ChangedAt",            DisplayName = "Data",          IsVisible = true, Order = 7 },
         ]
     };

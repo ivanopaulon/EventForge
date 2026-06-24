@@ -110,6 +110,15 @@ public interface IStockService
         CancellationToken ct = default);
 
     /// <summary>
+    /// Gets recent paged stock movements for a product across all locations.
+    /// </summary>
+    Task<PagedResult<StockMovementDto>?> GetMovementsByProductAsync(
+        Guid productId,
+        int page = 1,
+        int pageSize = 10,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Creates a quick stock transfer between two locations.
     /// </summary>
     Task<StockMovementDto?> QuickStockTransferAsync(QuickStockTransferDto request, CancellationToken ct = default);

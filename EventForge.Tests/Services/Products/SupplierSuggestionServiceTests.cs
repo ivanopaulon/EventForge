@@ -1,9 +1,9 @@
 using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Products;
-using EventForge.Server.Services.PriceHistory;
 using EventForge.Server.Services.Products;
 using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -19,7 +19,7 @@ public class SupplierSuggestionServiceTests : IDisposable
 {
     private readonly EventForgeDbContext _context;
     private readonly Mock<ITenantContext> _tenantContextMock;
-    private readonly Mock<ISupplierProductPriceHistoryService> _priceHistoryServiceMock;
+    private readonly Mock<IStockMovementPriceService> _priceHistoryServiceMock;
     private readonly IMemoryCache _cache;
     private readonly IConfiguration _configuration;
     private readonly SupplierSuggestionService _service;
@@ -41,7 +41,7 @@ public class SupplierSuggestionServiceTests : IDisposable
         _tenantContextMock = new Mock<ITenantContext>();
         _tenantContextMock.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
-        _priceHistoryServiceMock = new Mock<ISupplierProductPriceHistoryService>();
+        _priceHistoryServiceMock = new Mock<IStockMovementPriceService>();
 
         _cache = new MemoryCache(new MemoryCacheOptions());
 

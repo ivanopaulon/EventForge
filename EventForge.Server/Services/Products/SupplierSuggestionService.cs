@@ -1,5 +1,5 @@
 using EventForge.Server.Services.Alerts;
-using EventForge.Server.Services.PriceHistory;
+using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Prym.DTOs.Products.SupplierSuggestion;
@@ -12,7 +12,7 @@ namespace EventForge.Server.Services.Products;
 public class SupplierSuggestionService(
     EventForgeDbContext context,
     ITenantContext tenantContext,
-    ISupplierProductPriceHistoryService priceHistoryService,
+    IStockMovementPriceService priceHistoryService,
     IMemoryCache cache,
     IConfiguration configuration,
     ILogger<SupplierSuggestionService> logger,
@@ -435,8 +435,10 @@ public class SupplierSuggestionService(
             .Where(ps => ps.SupplierId == supplierId && ps.TenantId == tenantId)
             .CountAsync(cancellationToken);
 
-        var priceHistoryCount = await context.SupplierProductPriceHistories
-            .Where(ph => ph.SupplierId == supplierId && ph.TenantId == tenantId)
+        var priceHistoryCount = await context.StockMovements
+            .Where(m => m.BusinessPartyId == supplierId && m.TenantId == tenantId
+                     && !m.IsDeleted && m.Reason == Data.Entities.Warehouse.StockMovementReason.Purchase
+                     && m.UnitCost.HasValue && m.UnitCost > 0)
             .CountAsync(cancellationToken);
 
         var supplierAge = await context.ProductSuppliers

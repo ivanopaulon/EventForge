@@ -124,6 +124,102 @@
     <!-- Stock Trend Chart -->
     <StockTrendChart StockTrend="@_stockTrend" IsLoading="@_isLoadingTrend" ProductId="@Product.Id" />
 
+    <!-- Recent Movements -->
+    <MudPaper Elevation="1" Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h6">
+                <MudIcon Icon="@Icons.Material.Outlined.History" Class="mr-2" />
+                @TranslationService.GetTranslation("warehouse.recentMovements", "Ultimi Movimenti")
+            </MudText>
+            <PrymIconButton Icon="@Icons.Material.Outlined.Refresh"
+                            Title="@TranslationService.GetTranslation("action.reload", "Ricarica")"
+                            OnClick="@LoadRecentMovementsAsync"
+                            Color="Color.Default"
+                            Disabled="@_isLoadingMovements" />
+        </MudStack>
+
+        @if (_isLoadingMovements)
+        {
+            <div class="d-flex justify-center pa-4">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else if (_recentMovements?.Any() == true)
+        {
+            <MudTable Items="@_recentMovements" Hover="true" Dense="true" Striped="true" Class="mb-0">
+                <HeaderContent>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.date", "Data")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.type", "Tipo")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.quantity", "Quantità")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.unitCost", "Prezzo Unit.")</MudTh>
+                    <MudTh Class="text-right">@TranslationService.GetTranslation("warehouse.totalValue", "Valore Tot.")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.warehouse", "Magazzino")</MudTh>
+                    <MudTh>@TranslationService.GetTranslation("warehouse.document", "Documento")</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    @{
+                        bool isInbound = context.MovementType == "Inbound";
+                        bool isOutbound = context.MovementType == "Outbound";
+                        var costColor = isInbound ? "color:var(--mud-palette-info)" : isOutbound ? "color:var(--mud-palette-success)" : "";
+                        var typeIcon = isInbound ? Icons.Material.Outlined.ArrowDownward
+                                     : isOutbound ? Icons.Material.Outlined.ArrowUpward
+                                     : Icons.Material.Outlined.SwapHoriz;
+                        var typeColor = isInbound ? Color.Info : isOutbound ? Color.Success : Color.Warning;
+                    }
+                    <MudTd>@context.MovementDate.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small" Color="@typeColor" Variant="Variant.Text" Icon="@typeIcon">
+                            @TranslationService.GetTranslation($"warehouse.movementType.{context.MovementType.ToLower()}", context.MovementType)
+                        </MudChip>
+                    </MudTd>
+                    <MudTd Class="text-right">@context.Quantity.ToString("N2")</MudTd>
+                    <MudTd Class="text-right">
+                        @if (context.UnitCost.HasValue && context.UnitCost > 0)
+                        {
+                            <MudText style="@costColor"><strong>€@context.UnitCost.Value.ToString("N4")</strong></MudText>
+                        }
+                        else
+                        {
+                            <MudText Class="mud-text-secondary">-</MudText>
+                        }
+                    </MudTd>
+                    <MudTd Class="text-right">
+                        @if (context.TotalValue.HasValue && context.TotalValue > 0)
+                        {
+                            <span>€@context.TotalValue.Value.ToString("N2")</span>
+                        }
+                        else
+                        {
+                            <MudText Class="mud-text-secondary">-</MudText>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @(context.FromWarehouseName ?? context.ToWarehouseName ?? "-")
+                    </MudTd>
+                    <MudTd>
+                        @if (!string.IsNullOrEmpty(context.DocumentReference))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Outlined.Description">
+                                @context.DocumentReference
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudText Class="mud-text-secondary">-</MudText>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("warehouse.noMovementsFound", "Nessun movimento trovato per questo prodotto")
+            </MudAlert>
+        }
+    </MudPaper>
+
     <!-- Info message about document integration -->
     <MudAlert Severity="Severity.Info" Class="mb-4">
         @TranslationService.GetTranslation("product.documentsMovedToCharts", "La lista dei documenti che hanno movimentato il prodotto è ora disponibile nel pannello 'Andamento Giacenza'.")
@@ -148,6 +244,10 @@
     private IEnumerable<StockDto> _stockLevels = Enumerable.Empty<StockDto>();
     private StockTrendDto? _stockTrend;
 
+    private bool _isLoadingMovements = false;
+    private bool _movementsLoaded = false;
+    private IEnumerable<StockMovementDto> _recentMovements = Enumerable.Empty<StockMovementDto>();
+
     // Group definition for warehouse grouping
     private TableGroupDefinition<StockDto> _groupDefinition = new()
     {
@@ -166,10 +266,15 @@
             LoadStockLevelsAsync()
         };
 
-        // Load stock trend only once on first load
+        // Load stock trend and movements only once on first load
         if (!_stockTrendLoaded)
         {
             tasks.Add(LoadStockTrendAsync());
+        }
+
+        if (!_movementsLoaded)
+        {
+            tasks.Add(LoadRecentMovementsAsync());
         }
 
         await Task.WhenAll(tasks);
@@ -213,6 +318,28 @@
         finally
         {
             _isLoadingTrend = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadRecentMovementsAsync()
+    {
+        _isLoadingMovements = true;
+        StateHasChanged();
+        try
+        {
+            var result = await StockService.GetMovementsByProductAsync(Product.Id, pageSize: 10);
+            _recentMovements = result?.Items ?? Enumerable.Empty<StockMovementDto>();
+            _movementsLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading recent movements for product {ProductId}", Product.Id);
+            _recentMovements = Enumerable.Empty<StockMovementDto>();
+        }
+        finally
+        {
+            _isLoadingMovements = false;
             StateHasChanged();
         }
     }

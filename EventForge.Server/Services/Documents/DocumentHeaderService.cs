@@ -342,6 +342,7 @@ public class DocumentHeaderService(
                             productId: row.ProductId!.Value,
                             fromLocationId: storageLocation.Id,
                             quantity: quantity,
+                            unitCost: row.UnitPrice,
                             documentHeaderId: documentHeader.Id,
                             documentRowId: row.Id,
                             notes: notes,
@@ -950,6 +951,7 @@ public class DocumentHeaderService(
                                                 productId: existingRow.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: mergedQuantity,
+                                                unitCost: existingRow.UnitPrice,
                                                 documentHeaderId: documentHeader.Id,
                                                 documentRowId: existingRow.Id,
                                                 notes: notes,
@@ -983,6 +985,7 @@ public class DocumentHeaderService(
                                                 productId: existingRow.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: deltaQuantity,
+                                                unitCost: existingRow.UnitPrice,
                                                 documentHeaderId: documentHeader.Id,
                                                 documentRowId: existingRow.Id,
                                                 notes: notes,
@@ -1108,6 +1111,7 @@ public class DocumentHeaderService(
                                     productId: row.ProductId!.Value,
                                     fromLocationId: storageLocation.Id,
                                     quantity: row.Quantity,
+                                    unitCost: row.UnitPrice,
                                     documentHeaderId: documentHeader.Id,
                                     documentRowId: row.Id,
                                     notes: notes,
@@ -1272,6 +1276,7 @@ public class DocumentHeaderService(
                                                 productId: row.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: delta,
+                                                unitCost: row.UnitPrice,
                                                 documentHeaderId: row.DocumentHeader.Id,
                                                 documentRowId: row.Id,
                                                 notes: $"Compensating movement: quantity increased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
@@ -1290,6 +1295,7 @@ public class DocumentHeaderService(
                                                 productId: row.ProductId!.Value,
                                                 fromLocationId: storageLocation.Id,
                                                 quantity: absDelta,
+                                                unitCost: row.UnitPrice,
                                                 documentHeaderId: row.DocumentHeader.Id,
                                                 documentRowId: row.Id,
                                                 notes: $"Compensating movement: quantity decreased from {oldBaseQuantity} to {newBaseQuantity} (base units)",
@@ -1384,6 +1390,7 @@ public class DocumentHeaderService(
                                         productId: row.ProductId!.Value,
                                         fromLocationId: storageLocation.Id,
                                         quantity: currentQuantity,
+                                        unitCost: row.UnitPrice,
                                         documentHeaderId: row.DocumentHeader.Id,
                                         documentRowId: row.Id,
                                         notes: $"Live replacement movement from document {row.DocumentHeader.Number}",
@@ -1448,11 +1455,12 @@ public class DocumentHeaderService(
                 row.ProductId.HasValue &&
                 !(row.DocumentHeader.DocumentType?.MovesStockOnRowChange ?? false))
             {
-                // Find existing movement for this row
-                var existingMovement = await context.StockMovements
-                    .FirstOrDefaultAsync(sm => sm.DocumentRowId == rowId && !sm.IsDeleted, cancellationToken);
+                // Find ALL existing movements for this row (there can be more than one after merges)
+                var existingMovements = await context.StockMovements
+                    .Where(sm => sm.DocumentRowId == rowId && !sm.IsDeleted)
+                    .ToListAsync(cancellationToken);
 
-                if (existingMovement is not null && row.DocumentHeader.DocumentType is not null)
+                if (existingMovements.Count > 0 && row.DocumentHeader.DocumentType is not null)
                 {
                     var documentDateUtc = NormalizeDateToUtc(row.DocumentHeader.Date);
 
@@ -1480,42 +1488,46 @@ public class DocumentHeaderService(
 
                         if (storageLocation is not null)
                         {
-                            try
+                            foreach (var existingMovement in existingMovements)
                             {
-                                // Create reverse movement to compensate for the deletion
-                                if (existingMovement.MovementType == StockMovementType.Inbound)
+                                try
                                 {
-                                    await stockMovementService.ProcessOutboundMovementAsync(
-                                        productId: existingMovement.ProductId,
-                                        fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
-                                        quantity: existingMovement.Quantity,
-                                        documentHeaderId: row.DocumentHeader.Id,
-                                        documentRowId: rowId,
-                                        notes: $"Compensating movement: document row deleted",
-                                        currentUser: currentUser,
-                                        movementDate: documentDateUtc,
-                                        cancellationToken: cancellationToken);
-                                }
-                                else
-                                {
-                                    await stockMovementService.ProcessInboundMovementAsync(
-                                        productId: existingMovement.ProductId,
-                                        toLocationId: existingMovement.FromLocationId ?? storageLocation.Id,
-                                        quantity: existingMovement.Quantity,
-                                        documentHeaderId: row.DocumentHeader.Id,
-                                        documentRowId: rowId,
-                                        notes: $"Compensating movement: document row deleted",
-                                        currentUser: currentUser,
-                                        movementDate: documentDateUtc,
-                                        cancellationToken: cancellationToken);
-                                }
+                                    // Create reverse movement to compensate for each existing movement
+                                    if (existingMovement.MovementType == StockMovementType.Inbound)
+                                    {
+                                        await stockMovementService.ProcessOutboundMovementAsync(
+                                            productId: existingMovement.ProductId,
+                                            fromLocationId: existingMovement.ToLocationId ?? storageLocation.Id,
+                                            quantity: existingMovement.Quantity,
+                                            unitCost: row.UnitPrice,
+                                            documentHeaderId: row.DocumentHeader.Id,
+                                            documentRowId: rowId,
+                                            notes: $"Compensating movement: document row deleted",
+                                            currentUser: currentUser,
+                                            movementDate: documentDateUtc,
+                                            cancellationToken: cancellationToken);
+                                    }
+                                    else
+                                    {
+                                        await stockMovementService.ProcessInboundMovementAsync(
+                                            productId: existingMovement.ProductId,
+                                            toLocationId: existingMovement.FromLocationId ?? storageLocation.Id,
+                                            quantity: existingMovement.Quantity,
+                                            documentHeaderId: row.DocumentHeader.Id,
+                                            documentRowId: rowId,
+                                            notes: $"Compensating movement: document row deleted",
+                                            currentUser: currentUser,
+                                            movementDate: documentDateUtc,
+                                            cancellationToken: cancellationToken);
+                                    }
 
-                                logger.LogInformation("Created compensating stock movement for deleted row {RowId} in archived document.", rowId);
-                            }
-                            catch (Exception ex)
-                            {
-                                // Log the movement failure but do not re-throw; the row deletion will still proceed.
-                                logger.LogError(ex, "Failed to create compensating stock movement for deleted row {RowId}; deletion will still proceed.", rowId);
+                                    logger.LogInformation("Created compensating stock movement for deleted row {RowId} in archived document (movement {MovementId}).", rowId, existingMovement.Id);
+                                }
+                                catch (Exception ex)
+                                {
+                                    // Log the movement failure but do not re-throw; the row deletion will still proceed.
+                                    logger.LogError(ex, "Failed to create compensating stock movement for deleted row {RowId} (movement {MovementId}); deletion will still proceed.", rowId, existingMovement.Id);
+                                }
                             }
                         }
                     }
@@ -1706,6 +1718,7 @@ public class DocumentHeaderService(
                         productId: row.ProductId!.Value,
                         fromLocationId: storageLocation.Id,
                         quantity: row.Quantity,
+                        unitCost: row.UnitPrice,
                         lotId: null,
                         serialId: null,
                         documentHeaderId: documentHeader.Id,
