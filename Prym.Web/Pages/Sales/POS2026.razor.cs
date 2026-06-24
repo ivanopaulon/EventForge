@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using MudBlazor;
 using Prym.DTOs.Analytics;
 using Prym.DTOs.Business;
+using Prym.DTOs.Business.Fidelity;
 using Prym.DTOs.Common;
 using Prym.DTOs.Constants;
 using Prym.DTOs.FiscalPrinting;
@@ -11,6 +12,7 @@ using Prym.DTOs.Products;
 using Prym.DTOs.Sales;
 using Prym.DTOs.Store;
 using Prym.Web.Models.Sales;
+using Prym.Web.Services;
 using Prym.Web.Shared.Components.Dialogs;
 using Prym.Web.Shared.Components.Dialogs.Sales;
 using Prym.Web.Shared.Components.Sales.Pos26;
@@ -24,6 +26,8 @@ namespace Prym.Web.Pages.Sales;
 /// </summary>
 public partial class POS2026 : IAsyncDisposable
 {
+    [Inject] IFidelityService FidelityService { get; set; } = default!;
+
     // --- Componente reference per focus ---
     private Pos26SearchBar? _searchBar;
 
@@ -59,6 +63,9 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Dizionario inverso O(1): nome → ID, per filtraggio categoria ---
     private Dictionary<string, Guid> _categoryNameToIdDict = new();
+
+    // --- Fidelity card ---
+    private FidelityCardDto? _fidelityCard;
 
     // --- Sessioni parcheggiate ---
     private List<SaleSessionDto> _parkedSessions = new();
@@ -133,6 +140,11 @@ public partial class POS2026 : IAsyncDisposable
             {
                 _sortMode = Pos26SortMode.UltimiAcquisti;
                 await LoadLastPurchaseIdsAsync(ViewModel.SelectedCustomer.Id);
+                await LoadFidelityCardAsync(ViewModel.SelectedCustomer.Id);
+            }
+            else
+            {
+                _fidelityCard = null;
             }
 
             RebuildCartQuantities();
@@ -329,8 +341,25 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     /// <summary>
-    /// Carica gli ID dei prodotti acquistati dal cliente usando l'endpoint dedicato.
+    /// Carica la carta fedeltà attiva con il saldo punti più alto per il cliente selezionato.
     /// </summary>
+    private async Task LoadFidelityCardAsync(Guid businessPartyId)
+    {
+        try
+        {
+            var cards = await FidelityService.GetCardsByBusinessPartyAsync(businessPartyId);
+            _fidelityCard = cards
+                .Where(c => c.Status == FidelityCardStatus.Active)
+                .OrderByDescending(c => c.CurrentPoints)
+                .FirstOrDefault();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare carta fedeltà per cliente {Id}.", businessPartyId);
+            _fidelityCard = null;
+        }
+    }
+
     private async Task LoadLastPurchaseIdsAsync(Guid customerId)
     {
         _lastPurchaseIds.Clear();
@@ -582,6 +611,11 @@ public partial class POS2026 : IAsyncDisposable
                     _sortMode = Pos26SortMode.BestSeller;
             }
 
+            if (customer != null)
+                await LoadFidelityCardAsync(customer.Id);
+            else
+                _fidelityCard = null;
+
             RebuildFilteredProducts();
             StateHasChanged();
         }
@@ -785,7 +819,8 @@ public partial class POS2026 : IAsyncDisposable
                 [nameof(Pos26PaymentDialog.ScontoApplicato)] = ViewModel.CurrentSession?.DiscountAmount ?? 0m,
                 [nameof(Pos26PaymentDialog.Ordine)] = ViewModel.CurrentSession,
                 [nameof(Pos26PaymentDialog.Cliente)] = ViewModel.SelectedCustomer,
-                [nameof(Pos26PaymentDialog.PaymentMethods)] = paymentMethods
+                [nameof(Pos26PaymentDialog.PaymentMethods)] = paymentMethods,
+                [nameof(Pos26PaymentDialog.FidelityCard)] = (object?)_fidelityCard
             };
 
             var dialog = await DialogService.ShowAsync<Pos26PaymentDialog>(
@@ -818,6 +853,61 @@ public partial class POS2026 : IAsyncDisposable
             }
 
             await ViewModel.ReloadSessionAsync();
+
+            if (risultato.FidelityCardId.HasValue)
+            {
+                var shouldRefreshFidelityCard = false;
+
+                if (risultato.PointsRedeemed > 0)
+                {
+                    try
+                    {
+                        await FidelityService.RedeemPointsAsync(
+                            risultato.FidelityCardId.Value,
+                            new ModifyFidelityPointsDto
+                            {
+                                Points = risultato.PointsRedeemed,
+                                Description = "Riscatto punti POS"
+                            });
+                        shouldRefreshFidelityCard = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "POS2026: errore riscatto punti fedeltà.");
+                    }
+                }
+
+                if (risultato.PointsEarned > 0)
+                {
+                    try
+                    {
+                        await FidelityService.AddPointsAsync(
+                            risultato.FidelityCardId.Value,
+                            new ModifyFidelityPointsDto
+                            {
+                                Points = risultato.PointsEarned,
+                                Description = "Acquisto POS"
+                            });
+                        shouldRefreshFidelityCard = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "POS2026: errore accumulo punti fedeltà.");
+                    }
+                }
+
+                if (shouldRefreshFidelityCard)
+                {
+                    try
+                    {
+                        _fidelityCard = await FidelityService.GetCardByIdAsync(risultato.FidelityCardId.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "POS2026: errore refresh carta fedeltà.");
+                    }
+                }
+            }
 
             // Chiudi la sessione se completamente pagata
             if (ViewModel.CurrentSession?.IsFullyPaid == true)

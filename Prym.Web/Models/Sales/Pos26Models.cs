@@ -67,7 +67,10 @@ public record RisultatoPagamento(
     decimal TotaleOrdine,
     decimal TotalePagato,
     decimal Resto,
-    List<RigaPagamento> Righe
+    List<RigaPagamento> Righe,
+    Guid? FidelityCardId = null,
+    int PointsEarned = 0,
+    int PointsRedeemed = 0
 );
 
 /// <summary>Singola riga pagamento nel dialog POS 2026.</summary>

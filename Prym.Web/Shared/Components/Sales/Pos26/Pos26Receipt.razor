@@ -1,5 +1,6 @@
 @* Pos26Receipt — pannello scontrino scuro (colonna destra POS 2026) *@
 @using Prym.DTOs.Business
+@using Prym.DTOs.Business.Fidelity
 
 <div class="pos26-receipt">
     @* Header *@
@@ -22,6 +23,14 @@
             <div class="pos26-receipt-customer">
                 <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" />
                 @Customer.Name
+            </div>
+        }
+        @if (FidelityCard != null)
+        {
+            <div class="pos26-receipt-fidelity d-flex align-center gap-2 mt-1">
+                <MudIcon Icon="@Icons.Material.Outlined.Stars" Size="Size.Small" />
+                <span>@FidelityCard.CardNumber</span>
+                <span class="pos26-receipt-fidelity-pts">@FidelityCard.CurrentPoints pt</span>
             </div>
         }
         @if (Session?.TableId != null)
@@ -112,6 +121,7 @@
 @code {
     [Parameter] public SaleSessionDto? Session { get; set; }
     [Parameter] public BusinessPartyDto? Customer { get; set; }
+    [Parameter] public FidelityCardDto? FidelityCard { get; set; }
     [Parameter] public List<SaleItemDto>? Items { get; set; }
     [Parameter] public decimal Subtotal { get; set; }
     [Parameter] public decimal TotalDiscount { get; set; }
