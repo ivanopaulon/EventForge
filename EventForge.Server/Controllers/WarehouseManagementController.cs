@@ -1749,7 +1749,7 @@ public class WarehouseManagementController(
                     Notes = doc.Notes,
                     CreatedAt = doc.CreatedAt,
                     CreatedBy = doc.CreatedBy,
-                    FinalizedAt = doc.ClosedAt,
+                    FinalizedAt = doc.ArchivedAt,
                     FinalizedBy = null,
                     Rows = enrichedRows
                 });
@@ -1815,7 +1815,7 @@ public class WarehouseManagementController(
                 Notes = documentHeader.Notes,
                 CreatedAt = documentHeader.CreatedAt,
                 CreatedBy = documentHeader.CreatedBy,
-                FinalizedAt = documentHeader.ClosedAt,
+                FinalizedAt = documentHeader.ArchivedAt,
                 FinalizedBy = null,
                 Rows = enrichedRows
             };
@@ -2530,7 +2530,7 @@ public class WarehouseManagementController(
                 Notes = closedDocument.Notes,
                 CreatedAt = closedDocument.CreatedAt,
                 CreatedBy = closedDocument.CreatedBy,
-                FinalizedAt = closedDocument.ClosedAt,
+                FinalizedAt = closedDocument.ArchivedAt,
                 FinalizedBy = closedDocument.ModifiedBy,
                 Rows = enrichedRows
             };
@@ -2804,7 +2804,7 @@ public class WarehouseManagementController(
                         Notes = doc.Notes,
                         CreatedAt = doc.CreatedAt,
                         CreatedBy = doc.CreatedBy,
-                        FinalizedAt = doc.ClosedAt,
+                        FinalizedAt = doc.ArchivedAt,
                         FinalizedBy = null,
                         Rows = enrichedRows
                     });
@@ -3021,7 +3021,7 @@ public class WarehouseManagementController(
                             Notes = closedDocument.Notes,
                             CreatedAt = closedDocument.CreatedAt,
                             CreatedBy = closedDocument.CreatedBy,
-                            FinalizedAt = closedDocument.ClosedAt,
+                            FinalizedAt = closedDocument.ArchivedAt,
                             FinalizedBy = closedDocument.ModifiedBy,
                             Rows = enrichedRows
                         });

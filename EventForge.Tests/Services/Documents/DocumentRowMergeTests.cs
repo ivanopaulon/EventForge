@@ -73,9 +73,15 @@ public class DocumentRowMergeTests : IDisposable
             TenantId = _tenantId,
             Name = "Test Type",
             Code = "TST",
+            MovesStockOnRowChange = false,
+            CreatesStockMovements = false,
+            IsDeleted = false,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = "test-user"
         };
+
+        _context.DocumentTypes.Add(documentType);
+        _context.SaveChanges();
 
         var documentHeader = new DocumentHeader
         {
@@ -88,7 +94,6 @@ public class DocumentRowMergeTests : IDisposable
             CreatedBy = "test-user"
         };
 
-        _context.DocumentTypes.Add(documentType);
         _context.DocumentHeaders.Add(documentHeader);
         _context.SaveChanges();
     }

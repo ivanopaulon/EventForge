@@ -488,6 +488,7 @@ public class DocumentHeaderService(
             }
 
             documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Archived;
+            documentHeader.ArchivedAt = DateTime.UtcNow;
             documentHeader.ModifiedBy = currentUser;
             documentHeader.ModifiedAt = DateTime.UtcNow;
 
@@ -1509,7 +1510,7 @@ public class DocumentHeaderService(
                                         cancellationToken: cancellationToken);
                                 }
 
-                                logger.LogInformation("Created compensating stock movement for deleted row {RowId} in approved document.", rowId);
+                                logger.LogInformation("Created compensating stock movement for deleted row {RowId} in archived document.", rowId);
                             }
                             catch (Exception ex)
                             {
