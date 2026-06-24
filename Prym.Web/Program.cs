@@ -254,6 +254,9 @@ builder.Services.AddScoped<Prym.Web.Services.Sales.ITableManagementService, Prym
 builder.Services.AddScoped<IFiscalPrintingService, FiscalPrintingService>();
 
 builder.Services.AddScoped<IFidelityService, FidelityService>();
+builder.Services.AddScoped<ISupplierPriceAlertService, SupplierPriceAlertService>();
+builder.Services.AddScoped<ISupplierPriceHistoryService, SupplierPriceHistoryService>();
+builder.Services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();
 
 // Register authenticated HTTP client handler for Store services
 builder.Services.AddTransient<Prym.Web.Services.Store.AuthenticatedHttpClientHandler>();

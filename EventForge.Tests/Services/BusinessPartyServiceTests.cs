@@ -107,10 +107,10 @@ public class BusinessPartyServiceTests
             new BusinessPartyDto { Id = Guid.NewGuid(), Name = "Customer 2", PartyType = partyType }
         };
 
-        _mockHttpClient.Setup(x => x.GetAsync<IEnumerable<BusinessPartyDto>>(
+        _mockHttpClient.Setup(x => x.GetAsync<PagedResult<BusinessPartyDto>>(
             It.IsAny<string>(),
             It.IsAny<CancellationToken>()
-        )).ReturnsAsync(expected);
+        )).ReturnsAsync(new PagedResult<BusinessPartyDto> { Items = expected, TotalCount = expected.Count, Page = 1, PageSize = 20 });
 
         // Act
         var result = await _service.GetBusinessPartiesByTypeAsync(partyType);

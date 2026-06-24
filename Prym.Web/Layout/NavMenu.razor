@@ -65,6 +65,14 @@
                             Icon="@Icons.Material.Filled.PriceCheck">
                     @TranslationService.GetTranslation("menu.pricelists", "Listini Prezzi")
                 </MudNavLink>
+                <MudNavLink Href="/management/supplier-alerts"
+                            Icon="@Icons.Material.Outlined.NotificationsActive">
+                    Alert Prezzi Fornitori
+                </MudNavLink>
+                <MudNavLink Href="/management/price-history"
+                            Icon="@Icons.Material.Outlined.TrendingUp">
+                    @TranslationService.GetTranslation("menu.supplierPriceHistory", "Storico Prezzi Fornitori")
+                </MudNavLink>
                 <MudNavLink Href="/management/promotions"
                             Icon="@Icons.Material.Outlined.LocalOffer">
                     @TranslationService.GetTranslation("menu.promotions", "Promozioni")
@@ -236,6 +244,11 @@
                                 Icon="@Icons.Material.Outlined.CalendarMonth"
                                 Match="NavLinkMatch.All">
                         Calendario Turni
+                    </MudNavLink>
+                    <MudNavLink Href="/store/cart-sessions"
+                                Icon="@Icons.Material.Outlined.ShoppingCart"
+                                Match="NavLinkMatch.All">
+                        Sessioni Carrello
                     </MudNavLink>
                 </MudNavGroup>
             }

@@ -1,0 +1,50 @@
+<EFDialog Icon="@Icons.Material.Outlined.TaskAlt"
+          Title="Risolvi alert"
+          MinWidth="min(680px, 95vw)"
+          MinHeight="180px"
+          OnClose="Cancel">
+    <ChildContent>
+        <MudStack Spacing="2">
+            @if (!string.IsNullOrWhiteSpace(AlertTitle))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @AlertTitle
+                </MudAlert>
+            }
+
+            <MudText Typo="Typo.body2">
+                Aggiungi eventuali note di risoluzione. Il campo è opzionale.
+            </MudText>
+
+            <MudTextField @bind-Value="_notes"
+                          Label="Note"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="4"
+                          AutoGrow="true"
+                          MaxLength="1000"
+                          Counter="1000" />
+        </MudStack>
+    </ChildContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">
+            Annulla
+        </MudButton>
+        <MudButton OnClick="Submit" Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Outlined.TaskAlt">
+            Risolvi
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string AlertTitle { get; set; } = string.Empty;
+
+    private string? _notes;
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(_notes));
+
+    private void Cancel() => MudDialog.Cancel();
+}

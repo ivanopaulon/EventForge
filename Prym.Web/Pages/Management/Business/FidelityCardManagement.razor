@@ -45,7 +45,7 @@
                                   AdornmentIcon="@Icons.Material.Outlined.Search"
                                   Clearable="true"
                                   OnClearButtonClick="@ApplyFilter"
-                                  OnKeyUp="@(e => { if (e.Key == \"Enter\") ApplyFilter(); })" />
+                                  OnKeyUp="@HandleSearchKeyUp" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudSelect @bind-Value="_filterStatus"
@@ -253,7 +253,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading fidelity cards");
-            await AppNotification.ShowErrorAsync("Errore nel caricamento delle carte fedeltà.");
+            AppNotification.ShowError("Errore nel caricamento delle carte fedeltà.");
         }
         finally
         {
@@ -270,6 +270,11 @@
                 (_filterType == null || c.Type == _filterType.Value))
             .ToList();
         StateHasChanged();
+    }
+
+    private void HandleSearchKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") ApplyFilter();
     }
 
     private void ResetFilters()
@@ -322,13 +327,13 @@
         try
         {
             await FidelityService.SuspendCardAsync(card.Id);
-            await AppNotification.ShowSuccessAsync($"Carta {card.CardNumber} sospesa.");
+            AppNotification.ShowSuccess($"Carta {card.CardNumber} sospesa.");
             await LoadCardsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error suspending fidelity card {CardId}", card.Id);
-            await AppNotification.ShowErrorAsync("Errore durante la sospensione della carta.");
+            AppNotification.ShowError("Errore durante la sospensione della carta.");
         }
     }
 
@@ -337,19 +342,19 @@
         try
         {
             await FidelityService.ActivateCardAsync(card.Id);
-            await AppNotification.ShowSuccessAsync($"Carta {card.CardNumber} attivata.");
+            AppNotification.ShowSuccess($"Carta {card.CardNumber} attivata.");
             await LoadCardsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error activating fidelity card {CardId}", card.Id);
-            await AppNotification.ShowErrorAsync("Errore durante l'attivazione della carta.");
+            AppNotification.ShowError("Errore durante l'attivazione della carta.");
         }
     }
 
     private async Task RevokeCardAsync(FidelityCardDto card)
     {
-        var result = await DialogService.ShowMessageBox("Conferma Revoca",
+        var result = await DialogService.ShowMessageBoxAsync("Conferma Revoca",
             $"Revocare definitivamente la carta {card.CardNumber}? L'operazione non è reversibile.",
             yesText: "Revoca", cancelText: "Annulla");
         if (result != true)
@@ -358,13 +363,13 @@
         try
         {
             await FidelityService.RevokeCardAsync(card.Id);
-            await AppNotification.ShowSuccessAsync($"Carta {card.CardNumber} revocata.");
+            AppNotification.ShowSuccess($"Carta {card.CardNumber} revocata.");
             await LoadCardsAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error revoking fidelity card {CardId}", card.Id);
-            await AppNotification.ShowErrorAsync("Errore durante la revoca della carta.");
+            AppNotification.ShowError("Errore durante la revoca della carta.");
         }
     }
 
