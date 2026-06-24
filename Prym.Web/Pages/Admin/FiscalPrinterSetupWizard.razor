@@ -1,6 +1,12 @@
 @namespace Prym.Web.Pages.FiscalAdmin
 @page "/admin/fiscal-printers/setup"
 @page "/admin/fiscal-printers-wizard/{PrinterId:guid}"
+@* Eccezione documentata (Categoria D — WizardPage):
+   questa pagina usa MudTable diretto perché è un wizard multi-step per la
+   configurazione guidata delle stampanti fiscali. Le step tables embedded
+   (articoli IVA, mappature, test) non sono compatibili con EntityManagementPage
+   o EFTable senza duplicazioni strutturali o regressioni UX del wizard.
+   Riesaminare se in futuro si crea un archetipo WizardPage con EFTable embedded. *@
 @using Prym.DTOs.FiscalPrinting
 @using Prym.DTOs.Station
 @using Prym.DTOs.VatRates

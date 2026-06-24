@@ -564,3 +564,103 @@ See `MUDBLAZOR_GUIDELINES.md` for full guidelines.
 | MudCard (list) | `Elevation="1"` | — |
 | MudCard (active) | `Elevation="2"` | — |
 | MudPaper (container) | `Elevation="0"` | — |
+
+---
+
+## §2 Page Architecture Compliance Audit
+
+**Audit date:** 2026-06-24
+**Scope:** `Prym.Web/Pages/**/*.razor`
+**Legend:** ✅ Compliant | ⚠️ Partial | ❌ Non-compliant | 📋 Documented exception | 🔀 Redirect/stub
+
+### §2.1 Compliance table
+
+| File | Category | Main Pattern | Header | Row Actions | Inline Style | Status | Priority |
+|------|----------|--------------|--------|-------------|--------------|--------|----------|
+| Admin/AllClosuresHistory.razor | A | EntityManagementPage | auto | MudMenu | 0 | ✅ Compliant | — |
+| Admin/ClosureHistory.razor | A | EntityManagementPage | auto | MudMenu | 0 | ✅ Compliant | — |
+| Admin/FiscalPrinterSetupWizard.razor | D | MudTable (wizard) | ManagementPageHeader | — | 0 | 📋 Exception documented | — |
+| Admin/FiscalPrintersDashboard.razor | D | MudTable (dashboard) | ManagementPageHeader | — | 0 | 📋 Exception documented | — |
+| Events/EventManagement.razor | B | none | none | none | 1 | ❌ Non-compliant | P2 |
+| Management/Analytics/AnalyticsDashboard.razor | D | none (dashboard) | ManagementPageHeader | — | 0 | 📋 Exception documented | — |
+| Management/Business/BusinessPartyGroupManagement.razor | A | EntityManagementPage | auto | auto | 1 | ⚠️ Inline style | P3 |
+| Management/Business/BusinessPartyManagement.razor | A | EntityManagementPage | auto | auto | 1 | ⚠️ Inline style | P3 |
+| Management/Business/CustomerManagement.razor | — | redirect | — | — | 0 | 🔀 Redirect | — |
+| Management/Business/FidelityCardManagement.razor | A | EntityManagementPage | auto | MudIconButton | 0 | ✅ Compliant | — |
+| Management/Business/SupplierManagement.razor | — | redirect | — | — | 0 | 🔀 Redirect | — |
+| Management/Documents/DocumentCounterManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Documents/DocumentList.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Documents/DocumentTypeManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Financial/VatNatureManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Financial/VatRateManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Monitoring/MonitoringDashboard.razor | D | none (dashboard) | none | — | 0 | 📋 Exception documented | — |
+| Management/PriceLists/PriceListManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Products/BrandManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Products/ClassificationNodeManagement.razor | A | EntityManagementPage | auto | auto | 1 | ⚠️ Inline style | P3 |
+| Management/Products/ProductManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Products/SupplierPriceAlertManagement.razor | C | EFTable | ManagementPageHeader | MudIconButton group | 0 | ✅ Compliant | — |
+| Management/Products/SupplierPriceHistoryManagement.razor | A | EntityManagementPage | auto | — | 0 | ✅ Compliant | — |
+| Management/Products/UnitOfMeasureManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Promotions/PromotionManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Promotions/PromotionNew.razor | D | none (form) | ManagementPageHeader | — | 0 | 📋 Exception documented | — |
+| Management/Reports/ReportDesigner.razor | D | none (BoldReports) | ManagementPageHeader | — | 0 | 📋 Exception documented | — |
+| Management/Reports/ReportViewer.razor | D | none (BoldReports) | none | — | 2 | ⚠️ Exception + inline style | P3 |
+| Management/Reports/ReportsList.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/FiscalDrawerManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/OperatorGroupManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/OperatorManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/PaymentMethodManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/PaymentTerminalManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/PosManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/PrinterManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/RetailCartManagement.razor | A | EntityManagementPage | auto | MudIconButton | 0 | ✅ Compliant | — |
+| Management/Store/ShiftCalendar.razor | D | none (calendar) | none | — | 1 | 📋 Exception documented | — |
+| Management/Store/ShiftManagement.razor | A | EntityManagementPage | auto | MudIconButton | 0 | ✅ Compliant | — |
+| Management/Store/StationManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Store/StationMonitor.razor | D | none (touchscreen) | none | — | 0 | 📋 Exception documented | — |
+| Management/Warehouse/InventoryDiagnostics.razor | C | MudTable | ManagementPageHeader | — | 0 | ❌ Non-compliant | P2 |
+| Management/Warehouse/InventoryMerge.razor | D | MudTable (procedure) | ManagementPageHeader | — | 0 | 📋 Exception documented | — |
+| Management/Warehouse/InventoryProcedure.razor | C | EFTable | none | — | 0 | ⚠️ Missing header | P3 |
+| Management/Warehouse/LotManagement.razor | A | EntityManagementPage | auto | auto | 1 | ⚠️ Inline style | P3 |
+| Management/Warehouse/SerialManagement.razor | A | EntityManagementPage | auto | auto | 1 | ⚠️ Inline style | P3 |
+| Management/Warehouse/StockManagement.razor | — | StockOverview embed | — | — | 0 | 🔀 Embedded | — |
+| Management/Warehouse/StockOverview.razor | C | EFTable | none | ActionButtonGroup | 1 | 📋 Exception documented (embedded-only) | — |
+| Management/Warehouse/StockReconciliation.razor | C | MudTable | ManagementPageHeader | — | 1 | ❌ Non-compliant | P2 |
+| Management/Warehouse/TransferOrderManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Management/Warehouse/WarehouseManagement.razor | A | EntityManagementPage | auto | auto | 0 | ✅ Compliant | — |
+| Notifications/ActivityFeed.razor | — | none (feed) | — | — | 0 | 📋 Exception documented | — |
+| Notifications/NotificationCenter.razor | — | none (feed) | — | — | 0 | 📋 Exception documented | — |
+| Notifications/NotificationPreferences.razor | — | none (form) | — | — | 0 | 📋 Exception documented | — |
+| Profile.razor | — | EFTable (partial) | — | — | 0 | 📋 Exception documented | — |
+| Sales/POS2026.razor | D | none (POS workspace) | none | — | 5 | 📋 Exception documented + inline style | P3 |
+| Sales/SalesDashboard.razor | D | none (dashboard) | none | — | 0 | 📋 Exception documented | — |
+
+### §2.2 Summary
+
+| Category | Count | Status |
+|----------|-------|--------|
+| A — Compliant (EntityManagementPage) | 32 | ✅ |
+| B — To migrate to EntityManagementPage | 0 | ✅ Wave 1+2 complete |
+| C — To migrate to EFTable (header/style) | 3 | ❌ P3 |
+| D — Documented exceptions | 15 | 📋 |
+| Redirects/stubs | 3 | 🔀 |
+
+### §2.3 Wave 1 migration targets (P1) — ✅ COMPLETE
+
+| Page | Target | Adapter | Status |
+|------|--------|---------|--------|
+| FidelityCardManagement | EntityManagementPage | FidelityCardManagementService | ✅ Done |
+| ShiftManagement | EntityManagementPage | ShiftManagementService | ✅ Done |
+| RetailCartManagement | EntityManagementPage | RetailCartManagementService | ✅ Done |
+| SupplierPriceHistoryManagement | EntityManagementPage | SupplierPriceHistoryManagementService | ✅ Done |
+| AllClosuresHistory | EntityManagementPage | AllClosuresManagementService | ✅ Done |
+| ClosureHistory | EntityManagementPage | ClosureHistoryManagementService | ✅ Done |
+
+### §2.4 Wave 2 migration targets (P2) — ✅ COMPLETE
+
+| Page | Target | Status | Notes |
+|------|--------|--------|-------|
+| SupplierPriceAlertManagement | Add ManagementPageHeader | ✅ Done | EFTable preserved, header added |
+| InventoryDiagnostics | EFTable | ❌ P3 | Deferred |
+| StockOverview | N/A (embedded-only) | 📋 Exception | Component only renders inside StockManagement; ManagementPageHeader not applicable |
+| StockReconciliation | EFTable | ❌ P3 | Deferred |

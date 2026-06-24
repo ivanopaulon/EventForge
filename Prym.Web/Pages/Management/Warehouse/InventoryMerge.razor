@@ -1,4 +1,11 @@
 @page "/warehouse/inventory-merge"
+@* Eccezione documentata (Categoria D — WorkspacePage):
+   questa pagina è una procedura specializzata di merge inventariale.
+   Usa MudTable embedded in un wizard a step con due tabelle contestuali
+   (inventari source e destinazione). Non è una lista CRUD.
+   EntityManagementPage non è adatto per questo layout procedurale.
+   TODO: valutare EFTable per le due tabelle embedded se il wizard
+   viene rifattorizzato con un archetipo WizardPage. *@
 @using Prym.DTOs.Warehouse
 @inject IInventoryService InventoryService
 @inject IAppNotificationService AppNotification

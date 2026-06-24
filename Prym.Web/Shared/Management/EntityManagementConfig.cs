@@ -48,6 +48,7 @@ public class EntityManagementConfig<TEntity> where TEntity : class
     public bool ShowLoadingElapsedTime { get; set; } = false;
 
     public List<QuickFilter<TEntity>> QuickFilters { get; set; } = new();
+    public bool ShowCreate { get; set; } = true;
     public bool ShowEdit { get; set; } = true;
     public bool ShowDelete { get; set; } = true;
     public bool ShowAuditLog { get; set; } = true;

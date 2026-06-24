@@ -1,4 +1,9 @@
 @page "/store/shifts/calendar"
+@* Eccezione documentata (Categoria D — WorkspacePage):
+   questa pagina è un calendario Syncfusion Scheduler, non una tabella.
+   Non ha struttura tabellare principale, è un workspace visuale per la pianificazione
+   turni. EntityManagementPage e EFTable non sono adatti per un componente calendario.
+   La visualizzazione lista dei turni è in ShiftManagement.razor (EntityManagementPage). *@
 @using Prym.DTOs.Store
 @using Prym.Web.Services.Store
 @using Prym.Web.Shared.Components.Dialogs.Store

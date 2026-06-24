@@ -1,4 +1,10 @@
 @page "/warehouse/inventory-procedure"
+@* Eccezione documentata (Categoria C — SpecializedListPage parzialmente conforme):
+   questa pagina è una procedura guidata di inventario multi-step, non una lista CRUD.
+   Usa già EFTable per la tabella principale dei prodotti da inventariare.
+   EntityManagementPage non è adatto perché la pagina ha un flusso procedurale
+   (selezione magazzino → lista articoli → conferma) incompatibile con il pattern
+   management puro. TODO: valutare ManagementPageHeader per uniformare l'header. *@
 @using Prym.DTOs.Warehouse
 @using Prym.DTOs.Products
 @using Prym.Web.Shared.Components.Dialogs.UnifiedInventoryDialog

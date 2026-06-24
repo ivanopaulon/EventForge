@@ -1,0 +1,116 @@
+@using Prym.DTOs.RetailCart
+
+<EFDialog Icon="@Icons.Material.Outlined.ShoppingCart"
+          Title="Dettaglio Sessione Carrello"
+          OnClose="Close"
+          MinWidth="700px">
+    <ChildContent>
+        @if (Session is null)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Nessun dato disponibile.</MudText>
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">ID Sessione</MudText>
+                    <MudText Typo="Typo.body2">@Session.Id</MudText>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Canale vendita</MudText>
+                    <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(Session.SalesChannel) ? "N/D" : Session.SalesChannel)</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Totale originale</MudText>
+                    <MudText Typo="Typo.body2">@FormatCurrency(Session.OriginalTotal, Session.Currency)</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Sconto totale</MudText>
+                    <MudText Typo="Typo.body2">@FormatCurrency(Session.TotalDiscountAmount, Session.Currency)</MudText>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Totale finale</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Primary">@FormatCurrency(Session.FinalTotal, Session.Currency)</MudText>
+                </MudItem>
+            </MudGrid>
+
+            @if (Session.CouponCodes.Count > 0)
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Coupon applicati</MudText>
+                <MudStack Row Wrap="Wrap.Wrap" Spacing="1">
+                    @foreach (var coupon in Session.CouponCodes)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined">@coupon</MudChip>
+                    }
+                </MudStack>
+            }
+
+            @if (Session.AppliedPromotions.Count > 0)
+            {
+                <MudDivider Class="my-3" />
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Promozioni applicate</MudText>
+                <MudList T="string" Dense="true" DisablePadding="true">
+                    @foreach (var promo in Session.AppliedPromotions)
+                    {
+                        <MudListItem T="string">
+                            <MudText Typo="Typo.body2">@promo.PromotionName (@FormatCurrency(promo.DiscountAmount, Session.Currency))</MudText>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Articoli (@Session.Items.Count)</MudText>
+            @if (Session.Items.Count > 0)
+            {
+                <MudSimpleTable Dense="true" Hover="true" Class="overflow-x-auto">
+                    <thead>
+                        <tr>
+                            <th>Prodotto</th>
+                            <th class="text-right">Q.tà</th>
+                            <th class="text-right">Prezzo</th>
+                            <th class="text-right">Sconto</th>
+                            <th class="text-right">Totale</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Session.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <MudText Typo="Typo.body2">@item.ProductName</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @(string.IsNullOrWhiteSpace(item.ProductCode) ? item.ProductId.ToString() : item.ProductCode)
+                                    </MudText>
+                                </td>
+                                <td class="text-right">@item.Quantity</td>
+                                <td class="text-right">@FormatCurrency(item.UnitPrice, Session.Currency)</td>
+                                <td class="text-right">@FormatCurrency(item.PromotionDiscount, Session.Currency)</td>
+                                <td class="text-right">@FormatCurrency(item.FinalLineTotal, Session.Currency)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">La sessione non contiene articoli.</MudText>
+            }
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close">Chiudi</MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public CartSessionDto? Session { get; set; }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+
+    private static string FormatCurrency(decimal value, string currency)
+        => $"{value:N2} {currency}";
+}
