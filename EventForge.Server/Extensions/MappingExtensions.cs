@@ -146,6 +146,7 @@ public static class MappingExtensions
             UnitPrice = entity.UnitPrice,
             Quantity = entity.Quantity,
             LineDiscount = entity.LineDiscount,
+            LineDiscountString = entity.LineDiscountString,
             LineDiscountValue = entity.LineDiscountValue,
             DiscountType = (Prym.DTOs.Common.DiscountType)entity.DiscountType,
             VatRate = entity.VatRate,
@@ -174,7 +175,8 @@ public static class MappingExtensions
             AppliedPriceListId = entity.AppliedPriceListId,
             OriginalPriceFromPriceList = entity.OriginalPriceFromPriceList,
             PriceNotes = entity.PriceNotes,
-            AppliedPromotionsJSON = entity.AppliedPromotionsJSON
+            AppliedPromotionsJSON = entity.AppliedPromotionsJSON,
+            SupplierGrossPrice = entity.SupplierGrossPrice
         };
     }
 
@@ -198,6 +200,7 @@ public static class MappingExtensions
             UnitPrice = dto.UnitPrice,
             Quantity = dto.Quantity,
             LineDiscount = dto.LineDiscount,
+            LineDiscountString = dto.LineDiscountString,
             LineDiscountValue = dto.LineDiscountValue,
             DiscountType = (Prym.DTOs.Common.DiscountType)dto.DiscountType,
             VatRate = dto.VatRate,
@@ -216,7 +219,8 @@ public static class MappingExtensions
             OriginalPriceFromPriceList = dto.OriginalPriceFromPriceList,
             IsPriceManual = dto.IsPriceManual,
             PriceNotes = dto.PriceNotes,
-            AppliedPromotionsJSON = dto.AppliedPromotionsJSON
+            AppliedPromotionsJSON = dto.AppliedPromotionsJSON,
+            SupplierGrossPrice = dto.SupplierGrossPrice
         };
     }
 
