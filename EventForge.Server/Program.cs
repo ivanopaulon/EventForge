@@ -195,6 +195,18 @@ builder.Services.AddHttpClient("WhatsApp", client =>
 });
 builder.Services.AddScoped<EventForge.Server.Services.External.WhatsApp.IWhatsAppService, EventForge.Server.Services.External.WhatsApp.WhatsAppService>();
 builder.Services.AddScoped<EventForge.Server.Services.External.WhatsApp.IWhatsAppConversazioneService, EventForge.Server.Services.External.WhatsApp.WhatsAppConversazioneService>();
+builder.Services.AddScoped<EventForge.Server.Services.External.WhatsApp.IWhatsAppOrderService, EventForge.Server.Services.External.WhatsApp.WhatsAppOrderService>();
+
+// OpenAI named HttpClient + AI order services
+builder.Services.AddHttpClient("OpenAI", client =>
+{
+    client.BaseAddress = new Uri("https://api.openai.com/");
+    var apiKey = builder.Configuration["OpenAI:ApiKey"] ?? string.Empty;
+    if (!string.IsNullOrEmpty(apiKey))
+        client.DefaultRequestHeaders.Add("Authorization", $"******");
+});
+builder.Services.AddScoped<EventForge.Server.Services.External.AI.IAIOrderService, EventForge.Server.Services.External.AI.OpenAIOrderService>();
+builder.Services.AddScoped<EventForge.Server.Services.External.AI.IOrderAIContextBuilder, EventForge.Server.Services.External.AI.OrderAIContextBuilder>();
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

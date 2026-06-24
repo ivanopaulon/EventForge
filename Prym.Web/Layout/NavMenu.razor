@@ -325,6 +325,17 @@
                         @TranslationService.GetTranslation("menu.reports", "Report")
                     </MudNavLink>
                 </MudNavGroup>
+
+                <!-- Dev Tools -->
+                <MudNavGroup title="Dev Tools"
+                             Icon="@Icons.Material.Outlined.BugReport"
+                             Expanded="@(_openGroup == "devtools")"
+                             ExpandedChanged="@(v => OnGroupExpanded("devtools", v))">
+                    <MudNavLink Href="/devtools/whatsapp-ai-test"
+                                Icon="@Icons.Material.Outlined.SmartToy">
+                        WhatsApp AI Test
+                    </MudNavLink>
+                </MudNavGroup>
             }
 
         }

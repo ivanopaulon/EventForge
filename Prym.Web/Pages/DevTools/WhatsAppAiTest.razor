@@ -1,0 +1,228 @@
+@page "/devtools/whatsapp-ai-test"
+@using Microsoft.AspNetCore.Authorization
+@using Prym.DTOs.AI
+@using Prym.Web.Services.AI
+@attribute [Authorize(Roles = "Admin,SuperAdmin")]
+
+<PageTitle>WhatsApp AI Test</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
+    <MudStack Spacing="3">
+
+        <!-- Header -->
+        <MudPaper Class="pa-4">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@Icons.Material.Outlined.SmartToy" Size="Size.Large" Color="Color.Primary" />
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.h5">WhatsApp AI Order Test</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Warning">
+                        ⚠️ Strumento di sviluppo — solo Admin/SuperAdmin in ambienti non-production.
+                    </MudText>
+                </div>
+                <MudChip T="string" Color="@(AutoReplyEnabled ? Color.Success : Color.Default)" Variant="Variant.Filled" Size="Size.Small">
+                    @(AutoReplyEnabled ? "AI Auto-reply ON" : "AI Auto-reply OFF")
+                </MudChip>
+            </MudStack>
+        </MudPaper>
+
+        <!-- Config row -->
+        <MudPaper Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <PrymTextField Label="Numero simulato"
+                                   @bind-Value="SimulatedPhone"
+                                   Placeholder="+39 333 1234567"
+                                   Adornment="Adornment.Start"
+                                   AdornmentIcon="@Icons.Material.Outlined.Phone" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <PrymTextField Label="BusinessParty ID (opzionale)"
+                                   @bind-Value="BusinessPartyIdText"
+                                   Placeholder="GUID del cliente di test" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4">
+                        <PrymCheckBox Label="Auto-reply AI"
+                                      @bind-Value="AutoReplyEnabled" />
+                        <PrymButton Variant="Variant.Outlined"
+                                    Color="Color.Warning"
+                                    StartIcon="@Icons.Material.Outlined.RestartAlt"
+                                    OnClick="ResetSessionAsync">
+                            Reset sessione
+                        </PrymButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <!-- Two-column layout -->
+        <MudGrid>
+
+            <!-- LEFT: Chat simulator -->
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Style="height: 600px; display: flex; flex-direction: column;">
+                    <MudText Typo="Typo.h6" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Outlined.Chat" Class="mr-1" />
+                        Simulatore Chat WhatsApp
+                    </MudText>
+
+                    <!-- Messages area -->
+                    <div @ref="_chatContainer"
+                         style="flex: 1; overflow-y: auto; padding: 8px; background: #f5f5f5; border-radius: 4px; margin-bottom: 12px;">
+                        @foreach (var msg in _chatMessages)
+                        {
+                            <div style="display: flex; justify-content: @(msg.IsOutgoing ? "flex-end" : "flex-start"); margin-bottom: 8px;">
+                                <div style="max-width: 80%; padding: 8px 12px; border-radius: @(msg.IsOutgoing ? "12px 12px 2px 12px" : "12px 12px 12px 2px"); background: @(msg.IsOutgoing ? "#dcf8c6" : "white"); box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+                                    <MudText Typo="Typo.body2">@msg.Text</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @msg.Timestamp.ToString("HH:mm")
+                                        @if (msg.IsOutgoing) { <span> ✓ AI</span> }
+                                    </MudText>
+                                </div>
+                            </div>
+                        }
+                        @if (_isSending)
+                        {
+                            <div style="display: flex; justify-content: flex-start; margin-bottom: 8px;">
+                                <div style="padding: 8px 12px; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.12);">
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Input area -->
+                    <MudStack Row="true" Spacing="2">
+                        <MudTextField @bind-Value="_messageInput"
+                                      Placeholder="Scrivi un messaggio..."
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Class="flex-grow-1"
+                                      OnKeyDown="OnMessageKeyDown"
+                                      Disabled="@_isSending" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Send"
+                                       Color="Color.Primary"
+                                       OnClick="SendMessageAsync"
+                                       Disabled="@(_isSending || string.IsNullOrWhiteSpace(_messageInput))" />
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <!-- RIGHT: Debug panel -->
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="3">
+
+                    <!-- Intent & state -->
+                    <MudPaper Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.Psychology" Class="mr-1" />
+                            AI Debug
+                        </MudText>
+                        <MudGrid>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Intent rilevato</MudText>
+                                <MudChip T="string" Color="@GetIntentColor(_lastResult?.DetectedIntent)" Size="Size.Small">
+                                    @(_lastResult?.DetectedIntent.ToString() ?? "—")
+                                </MudChip>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Stato sessione</MudText>
+                                <MudChip T="string" Color="@GetStateColor(_lastResult?.SessionState)" Size="Size.Small">
+                                    @(_lastResult?.SessionState.ToString() ?? "—")
+                                </MudChip>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Thread ID</MudText>
+                                <MudText Typo="Typo.body2" Style="font-family: monospace; font-size: 11px;">
+                                    @(_lastResult?.ChatThreadId.ToString() ?? "—")
+                                </MudText>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Token usati</MudText>
+                                <MudText Typo="Typo.body2">@(_lastResult?.TokensUsed ?? 0)</MudText>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+
+                    <!-- Order in progress -->
+                    <MudPaper Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.ShoppingCart" Class="mr-1" />
+                            Ordine in costruzione
+                            <MudChip T="string" Color="Color.Info" Size="Size.Small" Class="ml-2">
+                                @(_lastResult?.CurrentDraft?.Count ?? 0) righe
+                            </MudChip>
+                        </MudText>
+
+                        @if (_lastResult?.CurrentDraft?.Count > 0)
+                        {
+                            <MudTable Items="_lastResult.CurrentDraft" Dense="true" Hover="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh>Prodotto</MudTh>
+                                    <MudTh>Qtà</MudTh>
+                                    <MudTh>Prezzo</MudTh>
+                                    <MudTh>Stato</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>
+                                        <MudText Typo="Typo.body2">@(context.ProductName ?? context.RawText)</MudText>
+                                        @if (!string.IsNullOrEmpty(context.ProductCode))
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.ProductCode</MudText>
+                                        }
+                                    </MudTd>
+                                    <MudTd>@context.Quantity @context.UnitOfMeasure</MudTd>
+                                    <MudTd>@(context.UnitPrice.HasValue ? $"€{context.UnitPrice:0.00}" : "—")</MudTd>
+                                    <MudTd>
+                                        @if (context.IsAmbiguous)
+                                        {
+                                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Ambiguo</MudChip>
+                                        }
+                                        else if (context.IsNotFound)
+                                        {
+                                            <MudChip T="string" Color="Color.Error" Size="Size.Small">Non trovato</MudChip>
+                                        }
+                                        else
+                                        {
+                                            <MudChip T="string" Color="Color.Success" Size="Size.Small">OK</MudChip>
+                                        }
+                                    </MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="text-center pa-4">
+                                Nessun prodotto nel draft corrente.
+                            </MudText>
+                        }
+
+                        @if (_lastResult?.DocumentCreated == true)
+                        {
+                            <MudAlert Severity="Severity.Success" Class="mt-3">
+                                ✅ Documento creato: @_lastResult.DocumentHeaderId
+                                <MudLink Href="@($"/management/documents/{_lastResult.DocumentHeaderId}")" Target="_blank">
+                                    Apri documento
+                                </MudLink>
+                            </MudAlert>
+                        }
+                    </MudPaper>
+
+                    <!-- Raw AI response -->
+                    @if (!string.IsNullOrWhiteSpace(_lastResult?.AiResponse))
+                    {
+                        <MudPaper Class="pa-4">
+                            <MudText Typo="Typo.h6" Class="mb-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.Forum" Class="mr-1" />
+                                Risposta AI inviata al cliente
+                            </MudText>
+                            <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@_lastResult.AiResponse</MudText>
+                        </MudPaper>
+                    }
+
+                </MudStack>
+            </MudItem>
+
+        </MudGrid>
+    </MudStack>
+</MudContainer>
