@@ -525,11 +525,10 @@ public partial class DocumentRowDialog : IAsyncDisposable
         {
             var all = new List<StorageFacilityDto>();
             int page = 1;
-            const int pageSize = 100;
             Prym.DTOs.Common.PagedResult<StorageFacilityDto>? result;
             do
             {
-                result = await WarehouseService.GetStorageFacilitiesAsync(page: page, pageSize: pageSize);
+                result = await WarehouseService.GetStorageFacilitiesAsync(page: page, pageSize: Limits.LogisticsPickerPageSize);
                 if (result?.Items != null)
                     all.AddRange(result.Items.Where(w => w.IsActive));
                 page++;
@@ -552,11 +551,10 @@ public partial class DocumentRowDialog : IAsyncDisposable
         {
             var all = new List<StorageLocationDto>();
             int page = 1;
-            const int pageSize = 100;
             Prym.DTOs.Common.PagedResult<StorageLocationDto>? result;
             do
             {
-                result = await StorageLocationService.GetStorageLocationsAsync(page: page, pageSize: pageSize);
+                result = await StorageLocationService.GetStorageLocationsAsync(page: page, pageSize: Limits.LogisticsPickerPageSize);
                 if (result?.Items != null)
                     all.AddRange(result.Items.Where(l => l.IsActive));
                 page++;
@@ -571,6 +569,9 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Loads all stations for the logistics selector.
+    /// <see cref="IStationService.GetAllAsync"/> is a dedicated "fetch-all" endpoint
+    /// that returns the complete station list in a single call, so no pagination loop
+    /// is needed here (equivalent to what the paged methods do for warehouses/locations).
     /// </summary>
     private async Task LoadStationsAsync()
     {
