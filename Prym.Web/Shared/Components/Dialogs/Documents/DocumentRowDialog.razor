@@ -190,31 +190,7 @@
                                                    OnProductNotFound="@ShowProductNotFoundDialog"
                                                    OnProductUpdated="@HandleProductUpdated" />
 
-                            <!-- Description (auto-filled from product, always editable) -->
-                            <PrymTextField Value="@_model.Description"
-                                          ValueChanged="@((string val) => OnDescriptionChanged(val))"
-                                          Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
-                                          Required="true"
-                                          MaxLength="200"
-                                          Adornment="Adornment.Start"
-                                          AdornmentIcon="@Icons.Material.Outlined.Description"
-                                          AdornmentColor="Color.Primary"
-                                          Immediate="true"
-                                          Error="@HasFieldError("description")"
-                                          ErrorText="@GetFieldError("description")"
-                                          HelperText="@TranslationService.GetTranslation("documents.descriptionHelper", "Modifica la descrizione riga se necessario")" />
-
-                            <!-- Recent Transactions -->
-                            @if (_state.SelectedProduct != null)
-                            {
-                                <DocumentRowRecentTransactions ProductId="@_state.SelectedProduct.Id"
-                                                               TransactionType="@DetermineTransactionType()"
-                                                               PartyId="@GetBusinessPartyId()"
-                                                               OnPriceApplied="@HandleRecentPriceAppliedWithFeedback"
-                                                               MaxTransactions="3" />
-                            }
-
-                            <!-- Single row: Qty | UdM | Prezzo | IVA -->
+                            <!-- Single row: Qty | UdM | Prezzo | IVA — always visible immediately after product search -->
                             <MudGrid Spacing="2">
                                 <MudItem xs="6" sm="3">
                                     <PrymNumericField T="decimal" @bind-Value="_model.Quantity"
@@ -277,6 +253,30 @@
                                     </PrymSelect>
                                 </MudItem>
                             </MudGrid>
+
+                            <!-- Description (auto-filled from product, always editable) -->
+                            <PrymTextField Value="@_model.Description"
+                                          ValueChanged="@((string val) => OnDescriptionChanged(val))"
+                                          Label="@TranslationService.GetTranslation("documents.description", "Descrizione")"
+                                          Required="true"
+                                          MaxLength="200"
+                                          Adornment="Adornment.Start"
+                                          AdornmentIcon="@Icons.Material.Outlined.Description"
+                                          AdornmentColor="Color.Primary"
+                                          Immediate="true"
+                                          Error="@HasFieldError("description")"
+                                          ErrorText="@GetFieldError("description")"
+                                          HelperText="@TranslationService.GetTranslation("documents.descriptionHelper", "Modifica la descrizione riga se necessario")" />
+
+                            <!-- Recent Transactions -->
+                            @if (_state.SelectedProduct != null)
+                            {
+                                <DocumentRowRecentTransactions ProductId="@_state.SelectedProduct.Id"
+                                                               TransactionType="@DetermineTransactionType()"
+                                                               PartyId="@GetBusinessPartyId()"
+                                                               OnPriceApplied="@HandleRecentPriceAppliedWithFeedback"
+                                                               MaxTransactions="3" />
+                            }
 
                             <!-- Price source indicator -->
                             @if (_selectedProduct != null)
