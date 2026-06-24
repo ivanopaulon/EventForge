@@ -5,30 +5,26 @@
                    ExpandedChanged="@OnExpandedChanged"
                    id="discounts-panel">
     <MudStack Spacing="2">
-        <MudNumericField T="decimal"
+        <AppNumericField T="decimal"
                         Label="@TranslationService.GetTranslation("documents.lineDiscount", "Sconto %")"
                         Value="@LineDiscount"
                         ValueChanged="@LineDiscountChanged"
                         Min="0"
                         Max="100"
                         Format="N2"
-                        Variant="Variant.Outlined"
                         Dense="true"
                         Adornment="Adornment.End"
-                        AdornmentIcon="@Icons.Material.Outlined.Percent"
-                    Margin="Margin.Dense"/>
+                        AdornmentIcon="@Icons.Material.Outlined.Percent"/>
         
-        <MudNumericField T="decimal"
+        <AppNumericField T="decimal"
                         Label="@TranslationService.GetTranslation("documents.lineDiscountValue", "Sconto €")"
                         Value="@LineDiscountValue"
                         ValueChanged="@LineDiscountValueChanged"
                         Min="0"
                         Format="N2"
-                        Variant="Variant.Outlined"
                         Dense="true"
                         Adornment="Adornment.Start"
-                        AdornmentIcon="@Icons.Material.Outlined.Euro"
-                    Margin="Margin.Dense"/>
+                        AdornmentIcon="@Icons.Material.Outlined.Euro"/>
     </MudStack>
 </MudExpansionPanel>
 

@@ -17,7 +17,6 @@
                 <MudText Typo="Typo.h5">Alert Prezzi Fornitori</MudText>
                 <MudSpacer />
                 <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
-                           Variant="Variant.Outlined"
                            Color="Color.Primary"
                            OnClick="RefreshAsync"
                            Disabled="_isRefreshing">
@@ -68,27 +67,25 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid Spacing="2">
                 <MudItem xs="12" sm="6" md="3">
-                    <MudSelect T="string" @bind-Value="_selectedStatus" Label="Stato" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <AppSelect T="string" @bind-Value="_selectedStatus" Label="Stato">
                         <MudSelectItem T="string" Value="@string.Empty">Tutti</MudSelectItem>
                         <MudSelectItem T="string" Value="@("New")">Nuovi</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Acknowledged")">Presi in carico</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Resolved")">Risolti</MudSelectItem>
-                    </MudSelect>
+                    </AppSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="3">
-                    <MudSelect T="string" @bind-Value="_selectedSeverity" Label="Severità" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <AppSelect T="string" @bind-Value="_selectedSeverity" Label="Severità">
                         <MudSelectItem T="string" Value="@string.Empty">Tutte</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Critical")">Critical</MudSelectItem>
                         <MudSelectItem T="string" Value="@("High")">High</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Warning")">Warning</MudSelectItem>
                         <MudSelectItem T="string" Value="@("Info")">Info</MudSelectItem>
-                    </MudSelect>
+                    </AppSelect>
                 </MudItem>
                 <MudItem xs="12" md="4">
                     <MudDateRangePicker @bind-DateRange="_dateRange"
                                        Label="Intervallo date"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense"
                                        Clearable="true" />
                 </MudItem>
                 <MudItem xs="12" md="2" Class="d-flex align-center">
@@ -145,7 +142,7 @@
                         <MudText Typo="Typo.body2">@(!string.IsNullOrWhiteSpace(context.SupplierName) ? context.SupplierName : "—")</MudText>
                     </MudTd>
                     <MudTd DataLabel="Tipo alert">
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                        <MudChip T="string" Size="Size.Small">
                             @context.AlertType
                         </MudChip>
                     </MudTd>

@@ -28,7 +28,6 @@
                 <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
                                Title="Aggiorna"
                                Color="Color.Primary"
-                               Variant="Variant.Outlined"
                                OnClick="@LoadCardsAsync" />
             </MudStack>
         </MudPaper>
@@ -37,10 +36,8 @@
         <MudPaper Elevation="1" Class="pa-3">
             <MudGrid>
                 <MudItem xs="12" sm="4">
-                    <MudTextField @bind-Value="_filterSearch"
+                    <AppTextField @bind-Value="_filterSearch"
                                   Label="Cerca (numero carta)"
-                                  Variant="Variant.Outlined"
-                                  Margin="Margin.Dense"
                                   Adornment="Adornment.End"
                                   AdornmentIcon="@Icons.Material.Outlined.Search"
                                   Clearable="true"
@@ -48,34 +45,30 @@
                                   OnKeyUp="@HandleSearchKeyUp" />
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudSelect @bind-Value="_filterStatus"
+                    <AppSelect @bind-Value="_filterStatus"
                                Label="Stato"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
                                Clearable="true">
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)null)">Tutti</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Active)">Attiva</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Suspended)">Sospesa</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Expired)">Scaduta</MudSelectItem>
                         <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Revoked)">Revocata</MudSelectItem>
-                    </MudSelect>
+                    </AppSelect>
                 </MudItem>
                 <MudItem xs="12" sm="4">
-                    <MudSelect @bind-Value="_filterType"
+                    <AppSelect @bind-Value="_filterType"
                                Label="Tipo Carta"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
                                Clearable="true">
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)null)">Tutti</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Bronze)">Bronze</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Silver)">Silver</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Gold)">Gold</MudSelectItem>
                         <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Platinum)">Platinum</MudSelectItem>
-                    </MudSelect>
+                    </AppSelect>
                 </MudItem>
             </MudGrid>
             <MudStack Row Justify="Justify.FlexEnd" Class="mt-2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@ResetFilters">
+                <MudButton Color="Color.Default" OnClick="@ResetFilters">
                     Azzera filtri
                 </MudButton>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ApplyFilter">
@@ -137,7 +130,7 @@
                         </div>
                     </MudTd>
                     <MudTd DataLabel="Tipo">
-                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)" Variant="Variant.Outlined">
+                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
                             @context.Type
                         </MudChip>
                     </MudTd>
