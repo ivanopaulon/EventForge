@@ -320,17 +320,98 @@ Before committing any UI change, verify:
 
 ---
 
-## §5 PR Review Checklist
+## §5 Dark Mode Checklist (moved — see §4)
 
-When reviewing a PR that includes UI changes, check:
+> Checklist moved to §4 above.
 
-### Styling
+---
+
+## §6 CSS Class Reference
+
+| Class | Purpose |
+|-------|---------|
+| `.ef-input` | Standard text/numeric input styling |
+| `.ef-select` | Standard select styling |
+| `.ef-datepicker` | Standard date picker styling |
+| `.ef-appbar` | AppBar with theme colors |
+| `.ef-dialog` | Dialog with theme colors |
+| `.ef-menu-button` | Menu toggle button in AppBar |
+| `.ef-account-menu` | Account menu button |
+| `.ef-toolbar-button` | 38×38px toolbar icon button |
+| `.ef-row-actionbutton` | 24×24px row action button |
+| `.ef-table-sticky-header` | Table with sticky header support |
+| `.ef-scroll-to-top` | Fixed floating scroll-to-top button |
+| `.fw-medium` | font-weight: 500 |
+| `.fw-semibold` | font-weight: 600 |
+| `.fw-bold` | font-weight: 700 |
+| `.fw-extrabold` | font-weight: 800 |
+
+---
+
+## §7 Page Architecture Rules
+
+### 7.1 Decision table
+
+| Pattern | When to use |
+|---------|-------------|
+| `EntityManagementPage` | The table is the main content; page is a management list with create/edit/delete/view or equivalent row actions; needs search, paging, export, column config, row actions |
+| `EFTable` | Specialized list pages that are NOT CRUD: storici, diagnostiche, riconciliazioni, dashboard con tabella principale; maintain standard search/header/loading/empty-state |
+| `MudTable` direct | **Exception only**, documented in file: wizard embedded tables, nested secondary tables, scheduler/workspace hybrids, specialized viewers, layouts incompatible with shared wrappers |
+
+### 7.2 Page archetypes
+
+1. **ManagementListPage** — base: `EntityManagementPage` — full CRUD list (anagrafiche, configurazioni, documenti…)
+2. **SpecializedListPage** — base: `EFTable` — read-only or semi-read-only list (storici, diagnostica, monitoraggi)
+3. **DashboardListPage** — KPI section + `EFTable` — analisi, riconciliazioni, dashboard con table principale
+4. **WorkspacePage** — standard header + full-height area — POS, calendario, designer, wizard
+5. **WizardPage** — standard header + step content + embedded table rules (use `MudTable` direct with documentation)
+
+### 7.3 Mandatory exception documentation
+
+Every direct `<MudTable` usage inside `Pages/` **must** carry a comment block:
+
+```razor
+@* Eccezione documentata:
+   [MOTIVO TECNICO] questa pagina usa MudTable diretto perché [spiegazione concreta].
+   EntityManagementPage/EFTable non sono adatti perché [ragione].
+   TODO (opzionale): riesaminare se [condizione futura]. *@
+```
+
+### 7.4 Row actions
+
+| Scenario | Pattern |
+|----------|---------|
+| ≤ 3 primary actions | `ActionButtonGroup` |
+| > 3 actions or mixed primary/secondary | `ActionButtonGroup` + `AdditionalRowActions` slot or `MudMenu` |
+| Manual groups of `MudIconButton` in list pages | ❌ Forbidden without exception documentation |
+
+### 7.5 Toolbar rules
+
+- List pages: use the built-in search/filter/export/refresh of `EntityManagementPage` or `EFTable`.
+- Do **not** reinvent toolbar components for pages where the shared wrappers cover the requirement.
+- `ManagementPageHeader` is the standard page header for all management and list pages.
+- Avoid manual duplicated headers (inline `MudPaper` + icon + title) when `ManagementPageHeader` covers the need.
+
+---
+
+## §8 PR Review Checklist — Page Architecture
+
+Add these checks to every PR that introduces or modifies a page in `Pages/`:
+
+### Page structure
+- [ ] Is the page a list/management page? If yes, does it use `EntityManagementPage`?
+- [ ] Is the page a specialized list (non-CRUD)? If yes, does it use at least `EFTable`?
+- [ ] If `MudTable` is used directly in a `Pages/` file, is an exception comment present with a concrete technical justification?
+- [ ] Are row actions using `ActionButtonGroup` or the shared `AdditionalRowActions` slot?
+- [ ] Is the header using `ManagementPageHeader` (not a manual `MudPaper`+icon+title duplicate)?
+
+### Styling (existing checks)
 - [ ] No new `Style="font-weight:N"` on `<MudText` — use `Class="fw-*"` or `Typo=`
 - [ ] No new `Style="text-align:..."` on `<MudText` — use `Align=`
 - [ ] No hardcoded hex colors in CSS — use `var(--mud-palette-*)`
 - [ ] No new `!important` unless specifically overriding MudBlazor
 
-### Components
+### Components (existing checks)
 - [ ] All `<MudTextField`, `<MudSelect`, `<MudNumericField` have `Variant="Variant.Outlined"`
 - [ ] All `<MudTextField`, `<MudNumericField` have `Margin="Margin.Dense"`
 - [ ] All `<MudButton` have explicit `Variant=` and `Color=`
@@ -370,4 +451,4 @@ When reviewing a PR that includes UI changes, check:
 
 ---
 
-*Last updated: Phase 2 — MudBlazor standardization. See `MUDBLAZOR_AUDIT.md` for full audit data.*
+*Last updated: UI standardization plan Phase 0 — see `MUDBLAZOR_AUDIT.md` for full audit data.*

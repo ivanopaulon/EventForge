@@ -2,6 +2,7 @@
 @using Prym.DTOs.Store
 @using Prym.Web.Services.Store
 @using Prym.Web.Shared.Components.Dialogs.Store
+@using Prym.Web.Shared.Management.Adapters
 @attribute [Authorize]
 @inject IShiftService ShiftService
 @inject IStoreUserService StoreUserService
@@ -12,188 +13,249 @@
 
 <PageTitle>Gestione Turni</PageTitle>
 
-<div class="management-page-root ef-flex-col-fill">
-    <div class="ef-flex-col-fill gap-3">
-
-        <!-- Header -->
-        <MudPaper Elevation="1" Class="pa-3">
-            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-                <MudIcon Icon="@Icons.Material.Outlined.Schedule" Color="Color.Primary" Size="Size.Large" />
-                <MudText Typo="Typo.h5">Gestione Turni</MudText>
-                <MudSpacer />
-                <MudButton StartIcon="@Icons.Material.Outlined.Add"
+@* Date/operator filter panel — sits above EntityManagementPage *@
+<MudPaper Elevation="1" Class="pa-3 mb-0">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_filterFrom"
+                           Label="Da"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="ef-datepicker" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker @bind-Date="_filterTo"
+                           Label="A"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="ef-datepicker" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudSelect @bind-Value="_filterOperatorId"
+                       Label="Operatore"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Clearable="true"
+                       Class="ef-select">
+                @foreach (var op in _operators)
+                {
+                    <MudSelectItem Value="@((Guid?)op.Id)">@op.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudStack Row Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
-                           OnClick="@(() => OpenDialogAsync(null))">
-                    Nuovo Turno
+                           OnClick="ApplyFiltersAsync">
+                    Cerca
                 </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                           Variant="Variant.Outlined"
+                           OnClick="ClearFiltersAsync">
+                    Pulisci
+                </MudButton>
+                <MudSpacer />
                 <MudIconButton Icon="@Icons.Material.Outlined.CalendarMonth"
                                Title="Calendario Turni"
                                Href="/store/shifts/calendar"
                                Color="Color.Primary"
                                Variant="Variant.Outlined" />
             </MudStack>
-        </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
-        <!-- Filters -->
-        <MudPaper Elevation="1" Class="pa-3">
-            <MudGrid>
-                <MudItem xs="12" sm="4">
-                    <MudDatePicker @bind-Date="_filterFrom"
-                                   Label="Da"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Class="ef-datepicker" />
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudDatePicker @bind-Date="_filterTo"
-                                   Label="A"
-                                   Variant="Variant.Outlined"
-                                   Margin="Margin.Dense"
-                                   Class="ef-datepicker" />
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <MudSelect @bind-Value="_filterOperatorId"
-                               Label="Operatore"
-                               Variant="Variant.Outlined"
-                               Margin="Margin.Dense"
-                               Clearable="true"
-                               Class="ef-select">
-                        @foreach (var op in _operators)
-                        {
-                            <MudSelectItem Value="@((Guid?)op.Id)">@op.Name</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12">
-                    <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                               Variant="Variant.Outlined"
-                               Color="Color.Primary"
-                               OnClick="LoadDataAsync"
-                               Disabled="_isLoading">
-                        Cerca
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
-        </MudPaper>
-
-        <!-- Table -->
-        <MudPaper Elevation="2" Class="flex-grow-1">
-            @if (_isLoading)
+<EntityManagementPage TEntity="CashierShiftDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      ExternalFilters="_externalFilters"
+                      OnCreateOverride="@(() => OpenDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "StoreUserName")
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="StoreUserName">
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.StoreUserName))">Operatore</MudTableSortLabel>
+                </EFTableColumnHeader>
             }
+            else if (column.PropertyName == "PosName")
+            {
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="PosName">
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.PosName ?? string.Empty))">Cassa</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ShiftStart")
+            {
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftStart">
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftStart))">Inizio</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ShiftEnd")
+            {
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftEnd">
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftEnd))">Fine</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.Status))">Stato</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Notes")
+            {
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Notes">
+                    <MudText Typo="Typo.body2">Note</MudText>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">Azioni</MudTh>
+    </HeaderContent>
 
-            <MudTable Items="_shifts"
-                      Dense="true"
-                      Hover="true"
-                      Striped="true"
-                      Loading="_isLoading"
-                      Class="ef-table-sticky-header"
-                      T="CashierShiftDto">
-                <HeaderContent>
-                    <MudTh><MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.StoreUserName))">Operatore</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.PosName ?? string.Empty))">Cassa</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftStart))">Inizio</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftEnd))">Fine</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.Status))">Stato</MudTableSortLabel></MudTh>
-                    <MudTh>Note</MudTh>
-                    <MudTh Class="text-center ef-min-120">Azioni</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Operatore">
-                        <div class="d-flex align-center gap-2">
-                            <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" Color="Color.Primary" />
-                            <MudText Typo="Typo.body2">@context.StoreUserName</MudText>
-                        </div>
-                    </MudTd>
-                    <MudTd DataLabel="Cassa">
-                        @if (!string.IsNullOrEmpty(context.PosName))
-                        {
-                            <MudText Typo="Typo.body2">@context.PosName</MudText>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2" Class="mud-text-disabled">—</MudText>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Inizio">
-                        <MudText Typo="Typo.body2">@context.ShiftStart.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Fine">
-                        <MudText Typo="Typo.body2">@context.ShiftEnd.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Stato">
-                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">
-                            @GetStatusText(context.Status)
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Note">
-                        <MudText Typo="Typo.body2">@(context.Notes ?? "—")</MudText>
-                    </MudTd>
-                    <MudTd Class="text-center">
-                        <MudStack Row Spacing="0" Justify="Justify.Center">
-                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                           Size="Size.Small"
-                                           Color="Color.Primary"
-                                           Class="ef-row-actionbutton"
-                                           Title="Modifica"
-                                           OnClick="@(() => OpenDialogAsync(context.Id))" />
-                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                           Size="Size.Small"
-                                           Color="Color.Error"
-                                           Class="ef-row-actionbutton"
-                                           Title="Elimina"
-                                           OnClick="@(() => DeleteAsync(context))" />
-                        </MudStack>
-                    </MudTd>
-                </RowTemplate>
-                <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">Nessun turno trovato per il periodo selezionato.</MudText>
-                </NoRecordsContent>
-            </MudTable>
-        </MudPaper>
-
-    </div>
-</div>
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "StoreUserName")
+            {
+                <MudTd DataLabel="Operatore">
+                    <div class="d-flex align-center gap-2">
+                        <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2">@ctx.Item.StoreUserName</MudText>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "PosName")
+            {
+                <MudTd DataLabel="Cassa">
+                    @if (!string.IsNullOrEmpty(ctx.Item.PosName))
+                    {
+                        <MudText Typo="Typo.body2">@ctx.Item.PosName</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "ShiftStart")
+            {
+                <MudTd DataLabel="Inizio">
+                    <MudText Typo="Typo.body2">@ctx.Item.ShiftStart.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "ShiftEnd")
+            {
+                <MudTd DataLabel="Fine">
+                    <MudText Typo="Typo.body2">@ctx.Item.ShiftEnd.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="Stato">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">
+                        @GetStatusText(ctx.Item.Status)
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Notes")
+            {
+                <MudTd DataLabel="Note">
+                    <MudText Typo="Typo.body2">@(ctx.Item.Notes ?? "—")</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
 
 @code {
-    private List<CashierShiftDto> _shifts = [];
-    private List<StoreUserDto> _operators = [];
-    private bool _isLoading;
+    private EntityManagementPage<CashierShiftDto>? _entityPage;
+    private IEntityManagementService<CashierShiftDto> _service = null!;
+    private EntityManagementConfig<CashierShiftDto> _config = null!;
+    private Dictionary<string, object?> _externalFilters = new();
 
+    private List<StoreUserDto> _operators = [];
     private DateTime? _filterFrom = DateTime.Today;
     private DateTime? _filterTo = DateTime.Today.AddDays(30);
     private Guid? _filterOperatorId;
 
     protected override async Task OnInitializedAsync()
     {
+        _service = new ShiftManagementService(ShiftService);
+        _config = new EntityManagementConfig<CashierShiftDto>
+        {
+            ComponentKey = "ShiftManagement",
+            PageTitleKey = "shift.management",
+            PageTitleDefault = "Gestione Turni",
+            EntityIcon = Icons.Material.Outlined.Schedule,
+            PageRootCssClass = "shift-management-page-root",
+            BaseRoute = "/store/shifts",
+            ExcelFileName = "Turni",
+            SearchPlaceholderKey = "shift.search",
+            SearchPlaceholderDefault = "Cerca per operatore, cassa o note…",
+            EntityTypeName = "Turno",
+            ShowDelete = true,
+            ShowEdit = true,
+            ShowAuditLog = false,
+            GetDisplayName = s => $"{s.StoreUserName} {s.ShiftStart.ToLocalTime():dd/MM/yyyy HH:mm}",
+            GetId = s => s.Id,
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Store", null, disabled: true),
+                new BreadcrumbItem("Turni", null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = "StoreUserName", DisplayName = "Operatore", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "PosName", DisplayName = "Cassa", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "ShiftStart", DisplayName = "Inizio", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "ShiftEnd", DisplayName = "Fine", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "Notes", DisplayName = "Note", IsVisible = true, Order = 5, IsSearchable = true }
+            ],
+            QuickFilters =
+            [
+                new() { Id = "all",         Label = "Tutti",       Predicate = _ => true,                                              Description = "Mostra tutti i turni" },
+                new() { Id = "scheduled",   Label = "Pianificati", Predicate = s => s.Status == ShiftStatus.Scheduled,   Color = Color.Info,    Icon = Icons.Material.Outlined.Event,        Description = "Turni pianificati" },
+                new() { Id = "inprogress",  Label = "In corso",    Predicate = s => s.Status == ShiftStatus.InProgress,  Color = Color.Warning, Icon = Icons.Material.Outlined.PlayArrow,    Description = "Turni in corso" },
+                new() { Id = "completed",   Label = "Completati",  Predicate = s => s.Status == ShiftStatus.Completed,   Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle,  Description = "Turni completati" },
+                new() { Id = "cancelled",   Label = "Annullati",   Predicate = s => s.Status == ShiftStatus.Cancelled,   Color = Color.Error,   Icon = Icons.Material.Outlined.Cancel,       Description = "Turni annullati" }
+            ]
+        };
+
         _operators = await StoreUserService.GetAllAsync();
-        await LoadDataAsync();
+        RebuildExternalFilters();
     }
 
-    private async Task LoadDataAsync()
+    private void RebuildExternalFilters()
     {
-        _isLoading = true;
-        try
-        {
-            var from = DateOnly.FromDateTime(_filterFrom ?? DateTime.Today);
-            var to = DateOnly.FromDateTime(_filterTo ?? DateTime.Today.AddDays(30));
+        _externalFilters = new Dictionary<string, object?>();
+        if (_filterFrom.HasValue)
+            _externalFilters["From"] = DateOnly.FromDateTime(_filterFrom.Value);
+        if (_filterTo.HasValue)
+            _externalFilters["To"] = DateOnly.FromDateTime(_filterTo.Value);
+        if (_filterOperatorId.HasValue)
+            _externalFilters["OperatorId"] = _filterOperatorId.Value;
+    }
 
-            if (_filterOperatorId.HasValue)
-                _shifts = await ShiftService.GetShiftsByOperatorAsync(_filterOperatorId.Value, from, to);
-            else
-                _shifts = await ShiftService.GetShiftsAsync(from, to);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading shifts");
-            AppNotification.ShowError("Errore durante il caricamento dei turni.");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+    private async Task ApplyFiltersAsync()
+    {
+        RebuildExternalFilters();
+        await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _filterFrom = DateTime.Today;
+        _filterTo = DateTime.Today.AddDays(30);
+        _filterOperatorId = null;
+        RebuildExternalFilters();
+        await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
     }
 
     private async Task OpenDialogAsync(Guid? shiftId)
@@ -215,37 +277,7 @@
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
-            await LoadDataAsync();
-    }
-
-    private async Task DeleteAsync(CashierShiftDto shift)
-    {
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            "Conferma eliminazione",
-            $"Eliminare il turno di {shift.StoreUserName} del {shift.ShiftStart.ToLocalTime():dd/MM/yyyy HH:mm}?",
-            yesText: "Elimina",
-            cancelText: "Annulla");
-
-        if (confirm != true) return;
-
-        try
-        {
-            var deleted = await ShiftService.DeleteAsync(shift.Id);
-            if (deleted)
-            {
-                AppNotification.ShowSuccess("Turno eliminato.");
-                await LoadDataAsync();
-            }
-            else
-            {
-                AppNotification.ShowError("Turno non trovato.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error deleting shift {Id}", shift.Id);
-            AppNotification.ShowError("Errore durante l'eliminazione del turno.");
-        }
+            await ApplyFiltersAsync();
     }
 
     private static Color GetStatusColor(ShiftStatus status) => status switch

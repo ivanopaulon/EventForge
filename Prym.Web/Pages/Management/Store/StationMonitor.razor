@@ -1,4 +1,9 @@
 @page "/monitor/station"
+@* Eccezione documentata (Categoria D — WorkspacePage):
+   questa pagina è un monitor touchscreen real-time per le stazioni di cassa,
+   con ordini in attesa e notifiche via SignalR. Non ha struttura tabellare principale —
+   è un workspace operativo live. EntityManagementPage e EFTable non sono adatti
+   per questa interfaccia di monitoraggio real-time. *@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.SignalR.Client
 @using Prym.DTOs.Station

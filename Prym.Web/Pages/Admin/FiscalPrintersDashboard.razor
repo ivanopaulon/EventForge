@@ -1,5 +1,12 @@
 @namespace Prym.Web.Pages.FiscalAdmin
 @page "/admin/fiscal-printers"
+@* Eccezione documentata (Categoria D — DashboardListPage):
+   questa pagina è una dashboard di monitoraggio con KPI, stato real-time via SignalR
+   e una tabella di stato stampanti. La struttura ibrida KPI + live-status non è
+   compatibile con EntityManagementPage (nessuna CRUD). Usa MudTable diretto perché
+   la tabella è secondaria rispetto ai widget di stato live.
+   TODO: valutare migrazione della tabella di stato a EFTable quando il componente
+   supporterà aggiornamenti real-time tramite SignalR. *@
 @using Prym.DTOs.FiscalPrinting
 @using Prym.DTOs.Station
 @using Microsoft.AspNetCore.SignalR.Client

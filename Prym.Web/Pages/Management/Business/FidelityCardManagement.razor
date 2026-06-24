@@ -1,6 +1,7 @@
 @page "/business/fidelity-cards"
 @using Prym.DTOs.Business.Fidelity
 @using Prym.Web.Shared.Components.Fidelity
+@using Prym.Web.Shared.Management.Adapters
 @attribute [Authorize]
 @inject IFidelityService FidelityService
 @inject IDialogService DialogService
@@ -10,305 +11,277 @@
 
 <PageTitle>Gestione Carte Fedeltà</PageTitle>
 
-<div class="management-page-root ef-flex-col-fill">
-    <div class="ef-flex-col-fill gap-3">
-
-        <!-- Header -->
-        <MudPaper Elevation="1" Class="pa-3">
-            <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-                <MudIcon Icon="@Icons.Material.Outlined.CardMembership" Color="Color.Primary" Size="Size.Large" />
-                <MudText Typo="Typo.h5">Gestione Carte Fedeltà</MudText>
-                <MudSpacer />
-                <MudButton StartIcon="@Icons.Material.Outlined.Add"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="@OpenCreateDialogAsync">
-                    Nuova Carta
-                </MudButton>
-                <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
-                               Title="Aggiorna"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined"
-                               OnClick="@LoadCardsAsync" />
-            </MudStack>
-        </MudPaper>
-
-        <!-- Filters -->
-        <MudPaper Elevation="1" Class="pa-3">
-            <MudGrid>
-                <MudItem xs="12" sm="4">
-                    <PrymTextField @bind-Value="_filterSearch" Label="Cerca (numero carta)"
-                                  Adornment="Adornment.End"
-                                  AdornmentIcon="@Icons.Material.Outlined.Search"
-                                  Clearable="true"
-                                  OnClearButtonClick="@ApplyFilter"
-                                  OnKeyUp="@HandleSearchKeyUp" />
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <PrymSelect @bind-Value="_filterStatus" Label="Stato"
-                               Clearable="true">
-                        <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)null)">Tutti</MudSelectItem>
-                        <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Active)">Attiva</MudSelectItem>
-                        <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Suspended)">Sospesa</MudSelectItem>
-                        <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Expired)">Scaduta</MudSelectItem>
-                        <MudSelectItem T="FidelityCardStatus?" Value="@((FidelityCardStatus?)FidelityCardStatus.Revoked)">Revocata</MudSelectItem>
-                    </PrymSelect>
-                </MudItem>
-                <MudItem xs="12" sm="4">
-                    <PrymSelect @bind-Value="_filterType" Label="Tipo Carta"
-                               Clearable="true">
-                        <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)null)">Tutti</MudSelectItem>
-                        <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Bronze)">Bronze</MudSelectItem>
-                        <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Silver)">Silver</MudSelectItem>
-                        <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Gold)">Gold</MudSelectItem>
-                        <MudSelectItem T="FidelityCardType?" Value="@((FidelityCardType?)FidelityCardType.Platinum)">Platinum</MudSelectItem>
-                    </PrymSelect>
-                </MudItem>
-            </MudGrid>
-            <MudStack Row Justify="Justify.FlexEnd" Class="mt-2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@ResetFilters">
-                    Azzera filtri
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ApplyFilter">
-                    Applica
-                </MudButton>
-            </MudStack>
-        </MudPaper>
-
-        <!-- Table -->
-        <MudPaper Elevation="1" Class="pa-0">
-            @if (_isLoading)
+<EntityManagementPage TEntity="FidelityCardDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenCreateDialogAsync(null))"
+                      OnEditOverride="@(id => OpenCreateDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "CardNumber")
             {
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CardNumber">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CardNumber))">Numero Carta</MudTableSortLabel>
+                </EFTableColumnHeader>
             }
-            <MudTable Items="@_filteredCards"
-                      Dense="true"
-                      Hover="true"
-                      Striped="true"
-                      Class="pa-0"
-                      Loading="@_isLoading"
-                      LoadingProgressColor="Color.Primary">
-                <HeaderContent>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CardNumber))">Numero Carta</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Type.ToString()))">Tipo</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Status.ToString()))">Stato</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CurrentPoints))">Punti Attuali</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.TotalPointsEarned))">Punti Totali</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.DiscountPercentage))">Sconto %</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh>
-                        <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.ValidTo))">Scadenza</MudTableSortLabel>
-                    </MudTh>
-                    <MudTh Class="text-center ef-min-120">Azioni</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Numero Carta">
-                        <div class="d-flex align-center">
-                            <MudAvatar Color="@GetTypeColor(context.Type)" Size="Size.Small" Class="mr-2">
-                                <MudIcon Icon="@Icons.Material.Outlined.CardMembership" />
-                            </MudAvatar>
-                            <div>
-                                <MudText Typo="Typo.body2" Class="font-weight-medium">@context.CardNumber</MudText>
-                                @if (context.BusinessPartyId.HasValue)
-                                {
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Cliente: @context.BusinessPartyId.Value.ToString()[..8]...</MudText>
-                                }
-                            </div>
-                        </div>
-                    </MudTd>
-                    <MudTd DataLabel="Tipo">
-                        <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(context.Type)">
-                            @context.Type
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Stato">
-                        <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)" Variant="Variant.Filled">
-                            @GetStatusLabel(context.Status)
-                        </MudChip>
-                    </MudTd>
-                    <MudTd DataLabel="Punti Attuali">
-                        <MudText Typo="Typo.body2" Class="font-weight-medium">@context.CurrentPoints</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Punti Totali">
-                        <MudText Typo="Typo.body2">@context.TotalPointsEarned</MudText>
-                    </MudTd>
-                    <MudTd DataLabel="Sconto %">
-                        @if (context.DiscountPercentage > 0)
-                        {
-                            <MudText Typo="Typo.body2">@context.DiscountPercentage.ToString("F1")%</MudText>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
-                        }
-                    </MudTd>
-                    <MudTd DataLabel="Scadenza">
-                        <MudText Typo="Typo.body2" Color="@(context.ValidTo < DateTime.UtcNow ? Color.Error : Color.Default)">
-                            @context.ValidTo.ToString("dd/MM/yyyy")
-                        </MudText>
-                    </MudTd>
-                    <MudTd Class="text-center">
-                        <MudStack Row Spacing="0" Justify="Justify.Center">
-                            <MudTooltip Text="Gestisci Punti">
-                                <MudIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
-                                               Size="Size.Small"
-                                               Color="Color.Primary"
-                                               OnClick="@(() => OpenManagePointsDialogAsync(context))" />
-                            </MudTooltip>
-                            <MudTooltip Text="Storico Transazioni">
-                                <MudIconButton Icon="@Icons.Material.Outlined.History"
-                                               Size="Size.Small"
-                                               Color="Color.Info"
-                                               OnClick="@(() => OpenHistoryDialogAsync(context))" />
-                            </MudTooltip>
-                            <MudTooltip Text="Modifica">
-                                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                               Size="Size.Small"
-                                               Color="Color.Secondary"
-                                               OnClick="@(() => OpenEditDialogAsync(context))" />
-                            </MudTooltip>
-                            @if (context.Status == FidelityCardStatus.Active)
-                            {
-                                <MudTooltip Text="Sospendi">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.PauseCircleOutline"
-                                                   Size="Size.Small"
-                                                   Color="Color.Warning"
-                                                   OnClick="@(() => SuspendCardAsync(context))" />
-                                </MudTooltip>
-                            }
-                            @if (context.Status == FidelityCardStatus.Suspended)
-                            {
-                                <MudTooltip Text="Attiva">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.PlayCircleOutline"
-                                                   Size="Size.Small"
-                                                   Color="Color.Success"
-                                                   OnClick="@(() => ActivateCardAsync(context))" />
-                                </MudTooltip>
-                            }
-                            @if (context.Status != FidelityCardStatus.Revoked)
-                            {
-                                <MudTooltip Text="Revoca">
-                                    <MudIconButton Icon="@Icons.Material.Outlined.Cancel"
-                                                   Size="Size.Small"
-                                                   Color="Color.Error"
-                                                   OnClick="@(() => RevokeCardAsync(context))" />
-                                </MudTooltip>
-                            }
-                        </MudStack>
-                    </MudTd>
-                </RowTemplate>
-                <NoRecordsContent>
-                    <MudText Class="pa-4 mud-text-secondary">Nessuna carta fedeltà trovata.</MudText>
-                </NoRecordsContent>
-            </MudTable>
-        </MudPaper>
+            else if (column.PropertyName == "Type")
+            {
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Type">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Type.ToString()))">Tipo</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Status">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Status.ToString()))">Stato</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "CurrentPoints")
+            {
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CurrentPoints">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CurrentPoints))">Punti</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "DiscountPercentage")
+            {
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="DiscountPercentage">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.DiscountPercentage))">Sconto %</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "ValidTo")
+            {
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="ValidTo">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.ValidTo))">Scadenza</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">Azioni</MudTh>
+    </HeaderContent>
 
-    </div>
-</div>
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "CardNumber")
+            {
+                <MudTd DataLabel="Numero Carta">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="@GetTypeColor(ctx.Item.Type)" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.CardMembership" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.CardNumber</MudText>
+                            @if (ctx.Item.BusinessPartyId.HasValue)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Cliente associato</MudText>
+                            }
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Type")
+            {
+                <MudTd DataLabel="Tipo">
+                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(ctx.Item.Type)">@ctx.Item.Type</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="Stato">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)" Variant="Variant.Filled">
+                        @GetStatusLabel(ctx.Item.Status)
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "CurrentPoints")
+            {
+                <MudTd DataLabel="Punti">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.CurrentPoints</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">/ @ctx.Item.TotalPointsEarned totali</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "DiscountPercentage")
+            {
+                <MudTd DataLabel="Sconto %">
+                    @if (ctx.Item.DiscountPercentage > 0)
+                    {
+                        <MudText Typo="Typo.body2">@ctx.Item.DiscountPercentage.ToString("F1")%</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == "ValidTo")
+            {
+                <MudTd DataLabel="Scadenza">
+                    <MudText Typo="Typo.body2" Color="@(ctx.Item.ValidTo < DateTime.UtcNow ? Color.Error : Color.Default)">
+                        @ctx.Item.ValidTo.ToString("dd/MM/yyyy")
+                    </MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="card">
+        <MudTooltip Text="Gestisci Punti">
+            <MudIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
+                           Size="Size.Small"
+                           Color="Color.Primary"
+                           Class="ef-row-actionbutton"
+                           OnClick="@(() => OpenManagePointsDialogAsync(card))" />
+        </MudTooltip>
+        <MudTooltip Text="Storico Transazioni">
+            <MudIconButton Icon="@Icons.Material.Outlined.History"
+                           Size="Size.Small"
+                           Color="Color.Info"
+                           Class="ef-row-actionbutton"
+                           OnClick="@(() => OpenHistoryDialogAsync(card))" />
+        </MudTooltip>
+        @if (card.Status == FidelityCardStatus.Active)
+        {
+            <MudTooltip Text="Sospendi">
+                <MudIconButton Icon="@Icons.Material.Outlined.PauseCircleOutline"
+                               Size="Size.Small"
+                               Color="Color.Warning"
+                               Class="ef-row-actionbutton"
+                               OnClick="@(() => SuspendCardAsync(card))" />
+            </MudTooltip>
+        }
+        @if (card.Status == FidelityCardStatus.Suspended)
+        {
+            <MudTooltip Text="Attiva">
+                <MudIconButton Icon="@Icons.Material.Outlined.PlayCircleOutline"
+                               Size="Size.Small"
+                               Color="Color.Success"
+                               Class="ef-row-actionbutton"
+                               OnClick="@(() => ActivateCardAsync(card))" />
+            </MudTooltip>
+        }
+        @if (card.Status != FidelityCardStatus.Revoked)
+        {
+            <MudTooltip Text="Revoca">
+                <MudIconButton Icon="@Icons.Material.Outlined.Cancel"
+                               Size="Size.Small"
+                               Color="Color.Error"
+                               Class="ef-row-actionbutton"
+                               OnClick="@(() => RevokeCardAsync(card))" />
+            </MudTooltip>
+        }
+    </AdditionalRowActions>
+</EntityManagementPage>
 
 @code {
-    private bool _isLoading = true;
-    private List<FidelityCardDto> _allCards = new();
-    private List<FidelityCardDto> _filteredCards = new();
+    private EntityManagementPage<FidelityCardDto>? _entityPage;
+    private IEntityManagementService<FidelityCardDto> _service = null!;
+    private EntityManagementConfig<FidelityCardDto> _config = null!;
 
-    // Filters
-    private string? _filterSearch;
-    private FidelityCardStatus? _filterStatus;
-    private FidelityCardType? _filterType;
-
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        await LoadCardsAsync();
+        _service = new FidelityCardManagementService(FidelityService);
+        _config = new EntityManagementConfig<FidelityCardDto>
+        {
+            ComponentKey = "FidelityCardManagement",
+            PageTitleKey = "fidelity.management",
+            PageTitleDefault = "Gestione Carte Fedeltà",
+            EntityIcon = Icons.Material.Outlined.CardMembership,
+            PageRootCssClass = "fidelity-card-page-root",
+            BaseRoute = "/business/fidelity-cards",
+            ExcelFileName = "CarteFedeltà",
+            SearchPlaceholderKey = "fidelity.search",
+            SearchPlaceholderDefault = "Cerca per numero carta…",
+            EntityTypeName = "CartaFedeltà",
+            ShowDelete = true,
+            ShowEdit = true,
+            ShowAuditLog = false,
+            ShowToggleStatus = false,
+            GetDisplayName = c => c.CardNumber,
+            GetId = c => c.Id,
+            CanDelete = c => c.Status == FidelityCardStatus.Revoked || c.Status == FidelityCardStatus.Expired,
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Anagrafiche", null, disabled: true),
+                new BreadcrumbItem("Carte Fedeltà", null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = "CardNumber", DisplayName = "Numero Carta", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 1, IsSearchable = false },
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = "CurrentPoints", DisplayName = "Punti", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "DiscountPercentage", DisplayName = "Sconto %", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = "ValidTo", DisplayName = "Scadenza", IsVisible = true, Order = 5, IsSearchable = false }
+            ],
+            QuickFilters =
+            [
+                new() { Id = "all",       Label = "Tutte",    Predicate = _ => true,                                         Description = "Mostra tutte le carte" },
+                new() { Id = "active",    Label = "Attive",   Predicate = c => c.Status == FidelityCardStatus.Active,   Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle,   Description = "Carte attive" },
+                new() { Id = "suspended", Label = "Sospese",  Predicate = c => c.Status == FidelityCardStatus.Suspended, Color = Color.Warning, Icon = Icons.Material.Outlined.PauseCircle,   Description = "Carte sospese" },
+                new() { Id = "expired",   Label = "Scadute",  Predicate = c => c.Status == FidelityCardStatus.Expired,   Color = Color.Error,   Icon = Icons.Material.Outlined.Schedule,      Description = "Carte scadute" },
+                new() { Id = "revoked",   Label = "Revocate", Predicate = c => c.Status == FidelityCardStatus.Revoked,   Color = Color.Default, Icon = Icons.Material.Outlined.Cancel,        Description = "Carte revocate" }
+            ]
+        };
     }
 
-    private async Task LoadCardsAsync()
+    private async Task OpenCreateDialogAsync(Guid? id)
     {
-        _isLoading = true;
         try
         {
-            var cards = await FidelityService.GetAllCardsAsync();
-            _allCards = cards.ToList();
-            ApplyFilter();
+            DialogOptions options = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+            IDialogReference dialog;
+
+            if (id.HasValue)
+            {
+                var card = await FidelityService.GetCardByIdAsync(id.Value);
+                if (card is null)
+                {
+                    AppNotification.ShowWarning("Carta fedeltà non trovata.");
+                    return;
+                }
+                var parameters = new DialogParameters { [nameof(EditFidelityCardDialog.Card)] = card };
+                dialog = await DialogService.ShowAsync<EditFidelityCardDialog>("Modifica Carta Fedeltà", parameters, options);
+            }
+            else
+            {
+                dialog = await DialogService.ShowAsync<CreateFidelityCardDialog>("Nuova Carta Fedeltà", new DialogParameters(), options);
+            }
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading fidelity cards");
-            AppNotification.ShowError("Errore nel caricamento delle carte fedeltà.");
+            Logger.LogError(ex, "Error opening fidelity card dialog for ID {Id}.", id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    private void ApplyFilter()
-    {
-        _filteredCards = _allCards
-            .Where(c =>
-                (string.IsNullOrWhiteSpace(_filterSearch) || c.CardNumber.Contains(_filterSearch, StringComparison.OrdinalIgnoreCase)) &&
-                (_filterStatus == null || c.Status == _filterStatus.Value) &&
-                (_filterType == null || c.Type == _filterType.Value))
-            .ToList();
-        StateHasChanged();
-    }
-
-    private void HandleSearchKeyUp(Microsoft.AspNetCore.Components.Web.KeyboardEventArgs e)
-    {
-        if (e.Key == "Enter") ApplyFilter();
-    }
-
-    private void ResetFilters()
-    {
-        _filterSearch = null;
-        _filterStatus = null;
-        _filterType = null;
-        ApplyFilter();
-    }
-
-    private async Task OpenCreateDialogAsync()
-    {
-        var parameters = new DialogParameters();
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<CreateFidelityCardDialog>("Nuova Carta Fedeltà", parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await LoadCardsAsync();
-    }
-
-    private async Task OpenEditDialogAsync(FidelityCardDto card)
-    {
-        var parameters = new DialogParameters { ["CardId"] = card.Id };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<EditFidelityCardDialog>("Modifica Carta Fedeltà", parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await LoadCardsAsync();
     }
 
     private async Task OpenManagePointsDialogAsync(FidelityCardDto card)
     {
-        var parameters = new DialogParameters { ["CardId"] = card.Id, ["CardNumber"] = card.CardNumber, ["CurrentPoints"] = card.CurrentPoints };
+        var parameters = new DialogParameters
+        {
+            ["CardId"] = card.Id,
+            ["CardNumber"] = card.CardNumber,
+            ["CurrentPoints"] = card.CurrentPoints
+        };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
         var dialog = await DialogService.ShowAsync<ManageFidelityPointsDialog>("Gestione Punti", parameters, options);
         var result = await dialog.Result;
         if (result is { Canceled: false })
-            await LoadCardsAsync();
+            await _entityPage!.RefreshAsync();
     }
 
     private async Task OpenHistoryDialogAsync(FidelityCardDto card)
     {
-        var parameters = new DialogParameters { ["CardId"] = card.Id, ["CardNumber"] = card.CardNumber };
+        var parameters = new DialogParameters
+        {
+            ["CardId"] = card.Id,
+            ["CardNumber"] = card.CardNumber
+        };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
         await DialogService.ShowAsync<FidelityPointsHistoryDialog>("Storico Punti", parameters, options);
     }
@@ -319,7 +292,7 @@
         {
             await FidelityService.SuspendCardAsync(card.Id);
             AppNotification.ShowSuccess($"Carta {card.CardNumber} sospesa.");
-            await LoadCardsAsync();
+            await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
@@ -334,7 +307,7 @@
         {
             await FidelityService.ActivateCardAsync(card.Id);
             AppNotification.ShowSuccess($"Carta {card.CardNumber} attivata.");
-            await LoadCardsAsync();
+            await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
@@ -348,14 +321,13 @@
         var result = await DialogService.ShowMessageBoxAsync("Conferma Revoca",
             $"Revocare definitivamente la carta {card.CardNumber}? L'operazione non è reversibile.",
             yesText: "Revoca", cancelText: "Annulla");
-        if (result != true)
-            return;
+        if (result != true) return;
 
         try
         {
             await FidelityService.RevokeCardAsync(card.Id);
             AppNotification.ShowSuccess($"Carta {card.CardNumber} revocata.");
-            await LoadCardsAsync();
+            await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
@@ -364,32 +336,30 @@
         }
     }
 
-    // ── Display helpers ────────────────────────────────────────────────────
-
-    private Color GetTypeColor(FidelityCardType type) => type switch
+    private static Color GetTypeColor(FidelityCardType type) => type switch
     {
-        FidelityCardType.Bronze => Color.Warning,
-        FidelityCardType.Silver => Color.Default,
-        FidelityCardType.Gold => Color.Warning,
+        FidelityCardType.Bronze   => Color.Warning,
+        FidelityCardType.Silver   => Color.Default,
+        FidelityCardType.Gold     => Color.Warning,
         FidelityCardType.Platinum => Color.Info,
-        _ => Color.Default
+        _                         => Color.Default
     };
 
-    private Color GetStatusColor(FidelityCardStatus status) => status switch
+    private static Color GetStatusColor(FidelityCardStatus status) => status switch
     {
-        FidelityCardStatus.Active => Color.Success,
+        FidelityCardStatus.Active    => Color.Success,
         FidelityCardStatus.Suspended => Color.Warning,
-        FidelityCardStatus.Expired => Color.Error,
-        FidelityCardStatus.Revoked => Color.Error,
-        _ => Color.Default
+        FidelityCardStatus.Expired   => Color.Error,
+        FidelityCardStatus.Revoked   => Color.Error,
+        _                            => Color.Default
     };
 
-    private string GetStatusLabel(FidelityCardStatus status) => status switch
+    private static string GetStatusLabel(FidelityCardStatus status) => status switch
     {
-        FidelityCardStatus.Active => "Attiva",
+        FidelityCardStatus.Active    => "Attiva",
         FidelityCardStatus.Suspended => "Sospesa",
-        FidelityCardStatus.Expired => "Scaduta",
-        FidelityCardStatus.Revoked => "Revocata",
-        _ => status.ToString()
+        FidelityCardStatus.Expired   => "Scaduta",
+        FidelityCardStatus.Revoked   => "Revocata",
+        _                            => status.ToString()
     };
 }

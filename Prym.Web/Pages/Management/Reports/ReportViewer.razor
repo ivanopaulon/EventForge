@@ -1,4 +1,9 @@
 @page "/management/reports/viewer/{ReportId:guid}"
+@* Eccezione documentata (Categoria D — WorkspacePage):
+   questa pagina ospita il viewer BoldReports (IReportController) che richiede
+   un container dedicato full-height senza toolbar/pager standard.
+   Non ha struttura tabellare — è un viewer di report embedded.
+   EntityManagementPage e EFTable non sono compatibili con questo layout. *@
 @using Prym.DTOs.Reports
 @using Prym.Web.Shared.Components.Reports
 @attribute [Authorize]
