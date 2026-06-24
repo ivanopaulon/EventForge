@@ -368,14 +368,21 @@ Before committing any UI change, verify:
 
 ### 7.3 Mandatory exception documentation
 
-Every direct `<MudTable` usage inside `Pages/` **must** carry a comment block:
+Every direct `<MudTable` usage inside `Pages/` **must** carry a comment block with all placeholders replaced:
 
 ```razor
-@* Eccezione documentata:
-   [MOTIVO TECNICO] questa pagina usa MudTable diretto perché [spiegazione concreta].
-   EntityManagementPage/EFTable non sono adatti perché [ragione].
-   TODO (opzionale): riesaminare se [condizione futura]. *@
+@* Eccezione documentata (Categoria D — WizardPage):
+   questa pagina usa MudTable diretto perché è un wizard multi-step per la
+   configurazione guidata delle stampanti fiscali. Le step tables embedded
+   non sono compatibili con EntityManagementPage/EFTable senza duplicazioni
+   strutturali o regressioni UX del wizard.
+   TODO: riesaminare se EFTable supporterà tabelle embedded in wizard. *@
 ```
+
+The template fields to fill in:
+- **Categoria** — one of `WizardPage`, `WorkspacePage`, `DashboardListPage`, `SpecializedListPage`
+- **motivo** — concrete technical reason why the shared wrapper is not suitable
+- **TODO** — (optional) condition under which the exception could be removed
 
 ### 7.4 Row actions
 

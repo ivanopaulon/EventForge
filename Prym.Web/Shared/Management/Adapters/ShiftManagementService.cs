@@ -7,6 +7,9 @@ namespace Prym.Web.Shared.Management.Adapters;
 public class ShiftManagementService(IShiftService shiftService)
     : IEntityManagementService<CashierShiftDto>
 {
+    private static readonly DateOnly DefaultFrom = DateOnly.FromDateTime(DateTime.Today);
+    private static readonly int DefaultRangeDays = 30;
+
     public async Task<PagedResult<CashierShiftDto>> GetPagedAsync(
         int page,
         int pageSize,
@@ -14,8 +17,8 @@ public class ShiftManagementService(IShiftService shiftService)
         Dictionary<string, object?>? filters = null,
         CancellationToken ct = default)
     {
-        var from = DateOnly.FromDateTime(DateTime.Today);
-        var to = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+        var from = DefaultFrom;
+        var to = DefaultFrom.AddDays(DefaultRangeDays);
         Guid? operatorId = null;
 
         if (filters != null)

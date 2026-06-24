@@ -4,8 +4,8 @@
    questa pagina ospita il designer BoldReports (IReportDesignerController) che richiede
    un canvas full-height dedicato. Non ha struttura tabellare — è uno strumento di
    authoring visuale per report. EntityManagementPage e EFTable non sono compatibili
-   con questo layout. Constraint BoldReports: interfacce synchronous (GetAwaiter().GetResult()
-   è forzato dalla libreria). *@
+   con questo layout. Vincolo BoldReports: le interfacce sono sincrone
+   (GetAwaiter().GetResult() è imposto dalla libreria). *@
 @using Prym.DTOs.Reports
 @using Prym.Web.Shared.Components.Reports
 @attribute [Authorize(Roles = "Admin,SuperAdmin")]
