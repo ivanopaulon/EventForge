@@ -120,6 +120,11 @@ public class ProductManagementController(
 
     /// <param name="id">Product unique identifier</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Product information</returns>
+    /// <response code="200">Returns the product</response>
+    /// <response code="404">If the product is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpGet("products/{id:guid}")]
     [ProducesResponseType(typeof(ProductDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
