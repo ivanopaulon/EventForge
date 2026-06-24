@@ -351,7 +351,7 @@
         var dialog = await DialogService.ShowAsync<SupplierPriceAlertResolveDialog>(string.Empty, parameters, EFDialogDefaults.Options);
         var result = await dialog.Result;
 
-        if (result.Canceled)
+        if (result is null || result.Canceled)
             return;
 
         var notes = result.Data as string;

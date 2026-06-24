@@ -106,8 +106,9 @@ public class MonitoringService(
                 RecentErrors = recentErrors
             };
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "Error building monitoring dashboard for tenant {TenantId}.", tenantId);
             throw;
         }
     }

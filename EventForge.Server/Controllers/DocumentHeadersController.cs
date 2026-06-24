@@ -18,7 +18,6 @@ namespace EventForge.Server.Controllers;
 [Obsolete("Use /api/v1/documents endpoints. Deprecated since v2026.06 and scheduled for removal in v2026.12.")]
 public class DocumentHeadersController(
     IDocumentHeaderService documentHeaderService,
-    IDocumentFacade documentFacade,
     ITenantContext tenantContext,
     IExportService exportService,
     ILogger<DocumentHeadersController> logger) : BaseApiController

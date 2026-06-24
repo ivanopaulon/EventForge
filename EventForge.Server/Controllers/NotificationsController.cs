@@ -473,21 +473,15 @@ public class NotificationsController(
 
             var exportId = Guid.NewGuid();
             byte[] bytes;
-            string contentType;
-            string fileExt;
 
             var format = exportRequest.Format.ToUpperInvariant();
             if (format == "CSV")
             {
                 bytes = BuildCsvExport(notifications);
-                contentType = "text/csv";
-                fileExt = "csv";
             }
             else
             {
                 bytes = BuildJsonExport(exportId, notifications);
-                contentType = "application/json";
-                fileExt = "json";
                 format = "JSON";
             }
 

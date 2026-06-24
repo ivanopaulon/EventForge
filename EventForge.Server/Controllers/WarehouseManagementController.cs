@@ -282,6 +282,8 @@ public class WarehouseManagementController(
     /// <param name="productId">Optional product ID filter</param>
     /// <param name="status">Optional status filter</param>
     /// <param name="expiringSoon">Optional filter for lots expiring soon</param>
+    /// <param name="recent">Optional filter to return only recently created lots</param>
+    /// <param name="searchTerm">Optional search term to filter lots by code or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of lots</returns>
     /// <response code="200">Returns the paginated list of lots</response>

@@ -430,8 +430,8 @@ public sealed class FiscalPrinterServiceRouter(
 
     /// <summary>
     /// Executes a daily closure when no fiscal printer is configured for the POS terminal.
-    /// Aggregates today's session totals from the database and saves a <see cref="DailyClosureRecord"/>
-    /// with <see cref="ClosureType.NonFiscale"/> and <see cref="DailyClosureRecord.FiscalClosurePending"/> = <c>false</c>.
+    /// Aggregates today's session totals from the database and saves a <see cref="EventForge.Server.Data.Entities.FiscalPrinting.DailyClosureRecord"/>
+    /// with <see cref="ClosureType.NonFiscale"/> and <see cref="EventForge.Server.Data.Entities.FiscalPrinting.DailyClosureRecord.FiscalClosurePending"/> = <c>false</c>.
     /// </summary>
     public async Task<DailyClosureResultDto> ExecuteNoPrinterDailyClosureAsync(
         Guid posId,

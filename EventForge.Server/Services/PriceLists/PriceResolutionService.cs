@@ -142,8 +142,9 @@ namespace EventForge.Server.Services.PriceLists
                     Source = "DefaultPrice"
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error resolving price for product {ProductId}.", productId);
                 throw;
             }
         }
@@ -206,8 +207,9 @@ namespace EventForge.Server.Services.PriceLists
 
                 return response;
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "Error resolving batch prices.");
                 throw;
             }
         }

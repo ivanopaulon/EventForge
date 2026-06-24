@@ -14,6 +14,8 @@ public interface ILotService
     /// <param name="productId">Optional product ID to filter lots</param>
     /// <param name="status">Optional status to filter lots</param>
     /// <param name="expiringSoon">Optional flag to filter lots expiring soon</param>
+    /// <param name="recent">Optional flag to filter only recently created lots</param>
+    /// <param name="searchTerm">Optional search term to filter lots by code or description</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of lots</returns>
     Task<PagedResult<LotDto>> GetLotsAsync(

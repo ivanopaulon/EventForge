@@ -14,6 +14,7 @@ public interface IProductService
     /// </summary>
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
+    /// <param name="classificationNodeId">Optional classification node ID to filter products by category</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
     Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken cancellationToken = default);

@@ -50,12 +50,6 @@ public class ChatMessage : AuditableEntity
     public string? EditedByUserId { get; set; }
 
     /// <summary>
-    /// Row version for optimistic concurrency control.
-    /// </summary>
-    [Timestamp]
-    public byte[]? RowVersion { get; set; }
-
-    /// <summary>
     /// Optional message this is replying to.
     /// </summary>
     public Guid? ReplyToMessageId { get; set; }
