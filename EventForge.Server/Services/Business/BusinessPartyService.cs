@@ -433,17 +433,17 @@ public class BusinessPartyService(
                 .Take(pagination.PageSize)
                 .ToListAsync(cancellationToken);
 
-            var businessPartyAccountingDtos = new List<BusinessPartyAccountingDto>();
-            foreach (var bpa in businessPartyAccountings)
-            {
-                var businessPartyName = await context.BusinessParties
-                    .AsNoTracking()
-                    .Where(bp => bp.Id == bpa.BusinessPartyId && !bp.IsDeleted)
-                    .Select(bp => bp.Name)
-                    .FirstOrDefaultAsync(cancellationToken);
+            // Single batch query instead of one query per accounting record (N+1 elimination)
+            var bpaIds = businessPartyAccountings.Select(bpa => bpa.BusinessPartyId).ToList();
+            var nameMap = await context.BusinessParties
+                .AsNoTracking()
+                .Where(bp => bpaIds.Contains(bp.Id) && !bp.IsDeleted)
+                .Select(bp => new { bp.Id, bp.Name })
+                .ToDictionaryAsync(bp => bp.Id, bp => bp.Name, cancellationToken);
 
-                businessPartyAccountingDtos.Add(MapToBusinessPartyAccountingDto(bpa, businessPartyName));
-            }
+            var businessPartyAccountingDtos = businessPartyAccountings
+                .Select(bpa => MapToBusinessPartyAccountingDto(bpa, nameMap.GetValueOrDefault(bpa.BusinessPartyId)))
+                .ToList();
 
             return new PagedResult<BusinessPartyAccountingDto>
             {
