@@ -1083,9 +1083,28 @@ public class StockMovementService(
             }
             else
             {
+                // Stock record is missing (data inconsistency recovery): the original outbound
+                // decremented a stock entry that was subsequently deleted or never existed.
+                // Recreate the record so that the reversal and any immediately-following outbound
+                // movement can complete without further errors.
                 logger.LogWarning(
-                    "ReverseStockLevels: no stock record found for product {ProductId} at from-location {LocationId} while reversing {MovementType} movement {MovementId}. Reversal skipped.",
+                    "ReverseStockLevels: no stock record found for product {ProductId} at from-location {LocationId} while reversing {MovementType} movement {MovementId}. Creating recovery stock entry.",
                     movement.ProductId, movement.FromLocationId.Value, movement.MovementType, movement.Id);
+
+                var recoveryStock = new Stock
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = currentTenantId,
+                    ProductId = movement.ProductId,
+                    StorageLocationId = movement.FromLocationId.Value,
+                    LotId = movement.LotId,
+                    Quantity = movement.Quantity,
+                    ReservedQuantity = 0,
+                    LastMovementDate = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = movement.UserId ?? "System"
+                };
+                _ = context.Stocks.Add(recoveryStock);
             }
         }
 
