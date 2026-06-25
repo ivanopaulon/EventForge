@@ -17,6 +17,9 @@
     <PackageReference Include="Serilog.Settings.Configuration" />
     <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="System.IO.Ports" />
+    <PackageReference Include="Microsoft.Bcl.Cryptography" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Prym.DTOs\Prym.DTOs.csproj" />
