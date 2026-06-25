@@ -159,14 +159,6 @@ public partial class DocumentRowDialog : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// The UoM select is disabled only when the product has exactly one unit configured
-    /// (it is already pre-filled and the operator has no choice to make).
-    /// When there are zero product-specific units we fall back to the global list and keep
-    /// the select interactive so the operator can fix a missing UoM before saving.
-    /// </summary>
-    private bool IsUomSelectDisabled => _availableUnits.Count == 1;
-
     // ── Field-level validation helpers ────────────────────────────────────────
 
     /// <summary>Returns true when the given field has a pending validation error.</summary>
