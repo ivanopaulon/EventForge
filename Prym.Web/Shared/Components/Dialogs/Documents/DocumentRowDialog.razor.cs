@@ -2336,18 +2336,25 @@ public partial class DocumentRowDialog : IAsyncDisposable
     /// Handles manual price changes by the user.
     /// When <see cref="ShowGrossPrice"/> is true the UI field displays the VAT-inclusive
     /// price; in that case the entered value must be converted back to net before storing.
+    /// Uses <c>Immediate="true"</c> on the field, so fires on every keystroke.
+    /// The warning notification is shown only once — when <see cref="IsPriceManual"/> first becomes true.
     /// </summary>
     private void OnPriceManuallyChanged(decimal newPrice)
     {
         // Convert gross → net when the field is showing the VAT-inclusive price
         decimal netPrice = ShowGrossPrice ? ToNetPrice(newPrice) : newPrice;
 
-        // Compare with current price to avoid unnecessary triggers
-        if (_state.Model.UnitPrice != netPrice)
-        {
-            _state.Model.UnitPrice = netPrice;
-            _state.Model.IsPriceManual = true;
+        // Round to 4 decimal places for comparison to avoid false positives from floating-point noise
+        if (Math.Round(_state.Model.UnitPrice, 4) == Math.Round(netPrice, 4))
+            return;
 
+        bool wasManual = _state.Model.IsPriceManual;
+        _state.Model.UnitPrice = netPrice;
+        _state.Model.IsPriceManual = true;
+
+        // Show notification only on the first manual override (not on every keystroke)
+        if (!wasManual)
+        {
             AppNotification.ShowWarning(
                 TranslationService.GetTranslation("documents.priceManuallyModified", "Prezzo modificato manualmente"));
 
@@ -2358,12 +2365,13 @@ public partial class DocumentRowDialog : IAsyncDisposable
                 _state.Model.ProductId
             );
 
-            // Invalidate cache calculations
-            _cachedCalculationResult = null;
-            _cachedCalculationKey = string.Empty;
-
+            // Re-render once to show the IsPriceManual UI (chip + PriceNotes field)
             StateHasChanged();
         }
+
+        // Invalidate cache calculations
+        _cachedCalculationResult = null;
+        _cachedCalculationKey = string.Empty;
     }
 
     /// <summary>
