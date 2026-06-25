@@ -54,4 +54,10 @@ public interface IStockReconciliationService
     /// Pass dryRun=true to preview without persisting.
     /// </summary>
     Task<FixNegativeMovementsResultDto?> FixNegativeMovementsAsync(bool dryRun, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recalculates ALL stock quantities from the full movement history, independently of any
+    /// document rebuild run.  Pass dryRun=true to preview the impact without persisting.
+    /// </summary>
+    Task<RecalculateAllStocksResultDto?> RecalculateAllStocksAsync(bool dryRun, CancellationToken cancellationToken = default);
 }

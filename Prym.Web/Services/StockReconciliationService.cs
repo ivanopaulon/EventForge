@@ -144,6 +144,20 @@ public class StockReconciliationService(
         }
     }
 
+    public async Task<RecalculateAllStocksResultDto?> RecalculateAllStocksAsync(bool dryRun, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await httpClientService.PostLongRunningAsync<object, RecalculateAllStocksResultDto>(
+                $"{BaseUrl}/recalculate-all-stocks?dryRun={dryRun}", new { }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error recalculating all stock quantities");
+            return null;
+        }
+    }
+
     private static string BuildQueryString(StockReconciliationRequestDto request)
     {
         List<KeyValuePair<string, string>> queryParams = [];

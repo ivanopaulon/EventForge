@@ -318,6 +318,9 @@ public class WarehouseFacade(
     public Task<FixNegativeMovementsResultDto> FixNegativeMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default)
         => stockReconciliationService.FixNegativeMovementsAsync(dryRun, currentUser, cancellationToken);
 
+    public Task<RecalculateAllStocksResultDto> RecalculateAllStocksFromMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default)
+        => stockReconciliationService.RecalculateAllStocksFromMovementsAsync(dryRun, currentUser, cancellationToken);
+
     #endregion
 
     #region Export Operations

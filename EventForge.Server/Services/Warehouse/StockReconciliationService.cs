@@ -915,6 +915,9 @@ public class StockReconciliationService(
         // Phase 1 (in-memory): build the lists of movements to create and update
         var movementsToCreate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
         var movementsToUpdate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
+        // Transfer rows that already have movements: soft-delete old + recreate (handles both
+        // the legacy 2-movement pattern and the current single-Transfer pattern safely).
+        var transfersToDeleteAndRecreate = new List<(CreateStockMovementDto Dto, Guid DocHeaderId, string? DocNumber, Guid DocRowId, Guid? ProductId, string? ProductName, decimal Quantity, bool IsInbound)>();
 
         foreach (var documentHeader in documentHeaders)
         {
@@ -1023,9 +1026,13 @@ public class StockReconciliationService(
                         MovementDate = movementDate
                     };
 
-                    if (alreadyExists)
-                        movementsToUpdate.Add((transferDto, documentHeader.Id, documentHeader.Number, row.Id, row.ProductId, row.Product?.Name, quantity, false));
-                    else
+                    if (alreadyExists && request.UpdateExisting)
+                        // Delete all existing movements for this transfer row and recreate a single
+                        // Transfer-type movement.  This correctly handles both the legacy pattern
+                        // (two separate Outbound+Inbound movements with the same DocumentRowId)
+                        // and the current pattern (one Transfer-type movement per row).
+                        transfersToDeleteAndRecreate.Add((transferDto, documentHeader.Id, documentHeader.Number, row.Id, row.ProductId, row.Product?.Name, quantity, false));
+                    else if (!alreadyExists)
                         movementsToCreate.Add((transferDto, documentHeader.Id, documentHeader.Number, row.Id, row.ProductId, row.Product?.Name, quantity, false));
                 }
                 else
@@ -1091,6 +1098,99 @@ public class StockReconciliationService(
         }
 
         // Phase 2: batch DB operations
+
+        // Phase 2a-pre: Transfer delete+recreate
+        // For transfer document rows that already had movements, soft-delete ALL existing movements
+        // (handles legacy dual Outbound+Inbound pattern) and move the DTOs to movementsToCreate
+        // so that Phase 2b creates a single canonical Transfer-type movement.
+        if (transfersToDeleteAndRecreate.Count > 0)
+        {
+            if (!request.DryRun)
+            {
+                var transferRowIdsToDelete = transfersToDeleteAndRecreate.Select(m => m.DocRowId).ToHashSet();
+                var existingTransferMovements = await context.StockMovements
+                    .Where(sm => sm.DocumentRowId.HasValue
+                                 && transferRowIdsToDelete.Contains(sm.DocumentRowId!.Value)
+                                 && !sm.IsDeleted)
+                    .ToListAsync(cancellationToken);
+
+                if (existingTransferMovements.Count > 0)
+                {
+                    // Load stock records so we can reverse the impact of the deleted movements.
+                    var tProductIds = existingTransferMovements.Select(m => m.ProductId).ToHashSet();
+                    var tLocationIds = existingTransferMovements
+                        .SelectMany(m => new[] { m.FromLocationId, m.ToLocationId })
+                        .Where(id => id.HasValue).Select(id => id!.Value).ToHashSet();
+                    var stocksForTransferDelete = await context.Stocks
+                        .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted
+                                    && tProductIds.Contains(s.ProductId)
+                                    && tLocationIds.Contains(s.StorageLocationId))
+                        .ToListAsync(cancellationToken);
+                    var stockForTransferDeleteByKey = stocksForTransferDelete
+                        .GroupBy(s => (s.ProductId, s.StorageLocationId))
+                        .ToDictionary(g => g.Key, g => g.First());
+
+                    foreach (var existing in existingTransferMovements)
+                    {
+                        // Reverse the stock delta that the now-deleted movement had applied.
+                        ApplyMovementStockDelta(
+                            stockForTransferDeleteByKey, existing.ProductId,
+                            existing.MovementType, existing.FromLocationId, existing.ToLocationId,
+                            Math.Abs(existing.Quantity), reverse: true);
+
+                        existing.IsDeleted = true;
+                        existing.DeletedAt = DateTime.UtcNow;
+                        existing.DeletedBy = currentUser ?? "System";
+                    }
+
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+
+                // Queue the transfer DTOs for creation in Phase 2b
+                movementsToCreate.AddRange(transfersToDeleteAndRecreate);
+
+                result.MovementsUpdated += transfersToDeleteAndRecreate.Count;
+                foreach (var t in transfersToDeleteAndRecreate)
+                {
+                    result.Items.Add(new RebuildMovementsRowResultDto
+                    {
+                        DocumentHeaderId = t.DocHeaderId,
+                        DocumentNumber = t.DocNumber,
+                        DocumentRowId = t.DocRowId,
+                        ProductId = t.ProductId,
+                        ProductName = t.ProductName,
+                        Quantity = t.Quantity,
+                        UnitCost = t.Dto.UnitCost,
+                        Status = "Updated",
+                        MovementType = "Transfer"
+                    });
+                }
+
+                logger.LogInformation(
+                    "RebuildMissingMovements Phase 2a-pre: deleted {Deleted} existing transfer movement(s) for {Rows} row(s); new movements queued for Phase 2b.",
+                    existingTransferMovements.Count, transfersToDeleteAndRecreate.Count);
+            }
+            else
+            {
+                // DryRun: report what would be updated (delete+recreate) without any DB writes
+                result.MovementsUpdated += transfersToDeleteAndRecreate.Count;
+                foreach (var t in transfersToDeleteAndRecreate)
+                {
+                    result.Items.Add(new RebuildMovementsRowResultDto
+                    {
+                        DocumentHeaderId = t.DocHeaderId,
+                        DocumentNumber = t.DocNumber,
+                        DocumentRowId = t.DocRowId,
+                        ProductId = t.ProductId,
+                        ProductName = t.ProductName,
+                        Quantity = t.Quantity,
+                        UnitCost = t.Dto.UnitCost,
+                        Status = "Updated",
+                        MovementType = "Transfer"
+                    });
+                }
+            }
+        }
 
         // Phase 2a: Update existing movements (UpdateExisting = true)
         if (movementsToUpdate.Count > 0)
@@ -1400,6 +1500,7 @@ public class StockReconciliationService(
         if (!request.DryRun)
         {
             var affectedPairs = new HashSet<(Guid ProductId, Guid LocationId)>();
+            // movementsToCreate at this point already includes transfer DTOs queued by Phase 2a-pre.
             foreach (var m in movementsToCreate.Concat(movementsToUpdate))
             {
                 if (m.Dto.ToLocationId.HasValue)
@@ -1419,6 +1520,24 @@ public class StockReconciliationService(
                 logger.LogInformation(
                     "RebuildMissingMovements Phase 3: recalculated stock for {Count} product/location pair(s). ForceRecalculate={Force}, StocksOverwritten={Overwritten}",
                     affectedPairs.Count, request.ForceRecalculateFromMovements, result.StocksForceRecalculated);
+            }
+        }
+        else if (request.ForceRecalculateFromMovements)
+        {
+            // DryRun + ForceRecalculate: compute how many stock rows WOULD be overwritten.
+            // Includes transfer pairs from Phase 2a-pre (no DB writes performed above in DryRun).
+            var dryRunPairs = new HashSet<(Guid ProductId, Guid LocationId)>();
+            foreach (var m in movementsToCreate.Concat(movementsToUpdate).Concat(transfersToDeleteAndRecreate))
+            {
+                if (m.Dto.ToLocationId.HasValue)
+                    dryRunPairs.Add((m.Dto.ProductId, m.Dto.ToLocationId.Value));
+                if (m.Dto.FromLocationId.HasValue)
+                    dryRunPairs.Add((m.Dto.ProductId, m.Dto.FromLocationId.Value));
+            }
+            if (dryRunPairs.Count > 0)
+            {
+                result.StocksForceRecalculated = await CountStocksToRecalculateAsync(
+                    dryRunPairs, currentTenantId.Value, request.StartingQuantity, cancellationToken);
             }
         }
 
@@ -1852,6 +1971,253 @@ public class StockReconciliationService(
         logger.LogInformation(
             "FixNegativeMovements: fixed {Fixed}, stocksAdjusted {StocksAdjusted}, errors {Errors}. DryRun={DryRun}",
             result.MovementsFixed, result.StocksAdjusted, result.Errors, dryRun);
+
+        return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Recalculate all stocks
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// DryRun helper: counts how many existing Stock rows in <paramref name="pairs"/> would
+    /// have their quantity overwritten if <c>ForceRecalculateFromMovements</c> were executed.
+    /// No data is modified.
+    /// </summary>
+    private async Task<int> CountStocksToRecalculateAsync(
+        HashSet<(Guid ProductId, Guid LocationId)> pairs,
+        Guid tenantId,
+        decimal startingQuantity,
+        CancellationToken cancellationToken)
+    {
+        var productIds = pairs.Select(p => p.ProductId).ToHashSet();
+        var locationIds = pairs.Select(p => p.LocationId).ToHashSet();
+
+        var existingStocks = await context.Stocks
+            .AsNoTracking()
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted
+                        && productIds.Contains(s.ProductId)
+                        && locationIds.Contains(s.StorageLocationId))
+            .Select(s => new { s.ProductId, s.StorageLocationId, s.Quantity })
+            .ToListAsync(cancellationToken);
+
+        var stocksByKey = existingStocks
+            .GroupBy(s => (s.ProductId, s.StorageLocationId))
+            .ToDictionary(g => g.Key, g => g.First().Quantity);
+
+        var netProductIds = pairs.Select(p => p.ProductId).ToHashSet();
+        var netLocationIds = pairs.Select(p => p.LocationId).ToHashSet();
+
+        var inboundTotals = await context.StockMovements
+            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
+                         && sm.ToLocationId.HasValue
+                         && netProductIds.Contains(sm.ProductId)
+                         && netLocationIds.Contains(sm.ToLocationId.Value))
+            .GroupBy(sm => new { sm.ProductId, LocationId = sm.ToLocationId!.Value })
+            .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => Math.Abs(sm.Quantity)) })
+            .ToListAsync(cancellationToken);
+
+        var outboundTotals = await context.StockMovements
+            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
+                         && sm.FromLocationId.HasValue
+                         && netProductIds.Contains(sm.ProductId)
+                         && netLocationIds.Contains(sm.FromLocationId.Value))
+            .GroupBy(sm => new { sm.ProductId, LocationId = sm.FromLocationId!.Value })
+            .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => Math.Abs(sm.Quantity)) })
+            .ToListAsync(cancellationToken);
+
+        var netByPair = new Dictionary<(Guid, Guid), decimal>();
+        foreach (var item in inboundTotals)
+            netByPair[(item.ProductId, item.LocationId)] = item.Total;
+        foreach (var item in outboundTotals)
+        {
+            var key = (item.ProductId, item.LocationId);
+            netByPair[key] = netByPair.GetValueOrDefault(key, 0m) - item.Total;
+        }
+
+        var wouldChangeCount = 0;
+        foreach (var pair in pairs)
+        {
+            var netQty = netByPair.GetValueOrDefault(pair, 0m) + startingQuantity;
+            if (stocksByKey.TryGetValue(pair, out var existingQty))
+            {
+                if (existingQty != netQty) wouldChangeCount++;
+            }
+            else
+            {
+                // Missing stock row would be created
+                wouldChangeCount++;
+            }
+        }
+        return wouldChangeCount;
+    }
+
+    /// <inheritdoc/>
+    public async Task<RecalculateAllStocksResultDto> RecalculateAllStocksFromMovementsAsync(
+        bool dryRun,
+        string currentUser,
+        CancellationToken cancellationToken = default)
+    {
+        var tenantId = GetCurrentTenantId();
+        var result = new RecalculateAllStocksResultDto { IsDryRun = dryRun };
+
+        // Step 1: find all distinct (ProductId, LocationId) pairs in movement history.
+        var inboundPairs = await context.StockMovements
+            .AsNoTracking()
+            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted && sm.ToLocationId.HasValue)
+            .Select(sm => new { sm.ProductId, LocationId = sm.ToLocationId!.Value })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var outboundPairs = await context.StockMovements
+            .AsNoTracking()
+            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted && sm.FromLocationId.HasValue)
+            .Select(sm => new { sm.ProductId, LocationId = sm.FromLocationId!.Value })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var allPairs = inboundPairs
+            .Concat(outboundPairs)
+            .Select(p => (p.ProductId, p.LocationId))
+            .ToHashSet();
+
+        result.PairsScanned = allPairs.Count;
+        if (allPairs.Count == 0)
+        {
+            logger.LogInformation("RecalculateAllStocksFromMovements: no movement pairs found. DryRun={DryRun}", dryRun);
+            return result;
+        }
+
+        // Step 2: compute net quantity per pair (Σ inbound − Σ outbound).
+        var productIds = allPairs.Select(p => p.ProductId).ToHashSet();
+        var locationIds = allPairs.Select(p => p.LocationId).ToHashSet();
+
+        var inboundTotals = await context.StockMovements
+            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
+                         && sm.ToLocationId.HasValue
+                         && productIds.Contains(sm.ProductId)
+                         && locationIds.Contains(sm.ToLocationId.Value))
+            .GroupBy(sm => new { sm.ProductId, LocationId = sm.ToLocationId!.Value })
+            .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => Math.Abs(sm.Quantity)) })
+            .ToListAsync(cancellationToken);
+
+        var outboundTotals = await context.StockMovements
+            .Where(sm => sm.TenantId == tenantId && !sm.IsDeleted
+                         && sm.FromLocationId.HasValue
+                         && productIds.Contains(sm.ProductId)
+                         && locationIds.Contains(sm.FromLocationId.Value))
+            .GroupBy(sm => new { sm.ProductId, LocationId = sm.FromLocationId!.Value })
+            .Select(g => new { g.Key.ProductId, g.Key.LocationId, Total = g.Sum(sm => Math.Abs(sm.Quantity)) })
+            .ToListAsync(cancellationToken);
+
+        var netByPair = new Dictionary<(Guid, Guid), decimal>();
+        foreach (var item in inboundTotals)
+            netByPair[(item.ProductId, item.LocationId)] = item.Total;
+        foreach (var item in outboundTotals)
+        {
+            var key = (item.ProductId, item.LocationId);
+            netByPair[key] = netByPair.GetValueOrDefault(key, 0m) - item.Total;
+        }
+
+        // Step 3: load existing Stock records for all pairs.
+        var existingStocks = await context.Stocks
+            .Where(s => s.TenantId == tenantId && !s.IsDeleted
+                        && productIds.Contains(s.ProductId)
+                        && locationIds.Contains(s.StorageLocationId))
+            .ToListAsync(cancellationToken);
+
+        var stocksByKey = existingStocks
+            .GroupBy(s => (s.ProductId, s.StorageLocationId))
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Step 4: apply updates/creates.
+        foreach (var pair in allPairs)
+        {
+            try
+            {
+                var netQty = netByPair.GetValueOrDefault(pair, 0m);
+
+                if (stocksByKey.TryGetValue(pair, out var stocks))
+                {
+                    var primary = stocks[0];
+                    var oldQty = primary.Quantity;
+
+                    if (!dryRun)
+                    {
+                        // Soft-delete duplicates
+                        for (var i = 1; i < stocks.Count; i++)
+                        {
+                            stocks[i].IsDeleted = true;
+                            stocks[i].DeletedAt = DateTime.UtcNow;
+                            stocks[i].DeletedBy = currentUser ?? "System";
+                        }
+
+                        primary.LastMovementDate = DateTime.UtcNow;
+                        primary.ModifiedAt = DateTime.UtcNow;
+                        primary.ModifiedBy = currentUser ?? "System";
+
+                        if (oldQty != netQty)
+                        {
+                            primary.Quantity = netQty;
+                            result.StocksUpdated++;
+
+                            _ = auditLogService.LogEntityChangeAsync(
+                                entityName: "Stock",
+                                entityId: primary.Id,
+                                propertyName: "Quantity",
+                                operationType: "RecalculateAllStocks",
+                                oldValue: oldQty.ToString(),
+                                newValue: netQty.ToString(),
+                                changedBy: currentUser ?? "System",
+                                entityDisplayName: $"ProductId={pair.ProductId} LocationId={pair.LocationId}",
+                                cancellationToken: cancellationToken);
+                        }
+                        else
+                        {
+                            result.StocksAlreadyCorrect++;
+                        }
+                    }
+                    else
+                    {
+                        // DryRun: count what would change
+                        if (oldQty != netQty) result.StocksUpdated++;
+                        else result.StocksAlreadyCorrect++;
+                    }
+                }
+                else
+                {
+                    // No existing stock record
+                    if (!dryRun)
+                    {
+                        context.Stocks.Add(new Stock
+                        {
+                            TenantId = tenantId,
+                            ProductId = pair.ProductId,
+                            StorageLocationId = pair.LocationId,
+                            Quantity = netQty,
+                            ReservedQuantity = 0,
+                            LastMovementDate = DateTime.UtcNow,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = currentUser ?? "System"
+                        });
+                    }
+                    result.StocksCreated++;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error processing pair ProductId={ProductId} LocationId={LocationId} in RecalculateAllStocksFromMovements",
+                    pair.ProductId, pair.LocationId);
+                result.Errors++;
+            }
+        }
+
+        if (!dryRun)
+            await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "RecalculateAllStocksFromMovements: pairs={Pairs}, updated={Updated}, created={Created}, alreadyCorrect={Correct}, errors={Errors}. DryRun={DryRun}",
+            result.PairsScanned, result.StocksUpdated, result.StocksCreated, result.StocksAlreadyCorrect, result.Errors, dryRun);
 
         return result;
     }

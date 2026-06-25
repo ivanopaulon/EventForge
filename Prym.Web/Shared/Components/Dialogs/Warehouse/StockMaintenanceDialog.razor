@@ -276,7 +276,7 @@
                                                  Label="@TranslationService.GetTranslation("rebuildMovements.updateExisting", "Aggiorna movimenti esistenti (data, quantità, tipo)")"
                                                  Class="mt-1" />
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">
-                                        @TranslationService.GetTranslation("rebuildMovements.updateExistingHint", "Se attivo, i movimenti già collegati ai documenti vengono riallineati con i dati del documento.")
+                                        @TranslationService.GetTranslation("rebuildMovements.updateExistingHint", "Se attivo, i movimenti già collegati ai documenti vengono riallineati con i dati del documento (data, quantità, tipo e costo unitario). Il costo aggiornato viene registrato nel log di audit.")
                                     </MudText>
                                     <MudDivider Class="my-2" />
                                     <MudCheckBox @bind-Value="_rebuild_forceRecalculate" Dense="true" Color="Color.Error"
@@ -297,7 +297,7 @@
                                                              Step="1"
                                                              HideSpinButtons="false" />
                                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                                @TranslationService.GetTranslation("rebuildMovements.startingQuantityHint", "Quantità iniziale da sommare al netto movimenti per ogni giacenza. Usare 0 se non si conosce la giacenza di apertura.")
+                                               @TranslationService.GetTranslation("rebuildMovements.startingQuantityHint", "Quantità iniziale da sommare al netto movimenti per ogni giacenza. Viene applicata uniformemente a tutte le coppie prodotto/ubicazione del run: usare 0 se non si conosce la giacenza di apertura, oppure usare documenti di inventario per saldi iniziali differenziati per prodotto.")
                                             </MudText>
                                         </div>
                                     }
@@ -318,6 +318,26 @@
                                                 "Attenzione: l'elaborazione riguarderà un grande numero di documenti. Verificare i filtri prima di procedere.")
                                         </MudAlert>
                                     }
+                                    <MudDivider Class="my-2" />
+                                    <MudExpansionPanels Class="mt-1" Elevation="0">
+                                        <MudExpansionPanel Text='@TranslationService.GetTranslation("rebuildMovements.advancedOptions", "Opzioni avanzate")'
+                                                           Dense="true">
+                                            <div class="mt-2" style="max-width:260px">
+                                                <MudNumericField @bind-Value="_rebuild_batchChunkSize"
+                                                                 T="int"
+                                                                 Label="@TranslationService.GetTranslation("rebuildMovements.batchChunkSize", "Dimensione batch")"
+                                                                 Variant="Variant.Outlined"
+                                                                 Margin="Margin.Dense"
+                                                                 Min="10"
+                                                                 Max="500"
+                                                                 Step="10"
+                                                                 HideSpinButtons="false" />
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                    @TranslationService.GetTranslation("rebuildMovements.batchChunkSizeHint", "Numero di movimenti per transazione DB (10–500, default 100). Ridurre in caso di timeout su grandi volumi.")
+                                                </MudText>
+                                            </div>
+                                        </MudExpansionPanel>
+                                    </MudExpansionPanels>
                                 </MudItem>
                             </MudGrid>
                         </MudStep>
@@ -945,6 +965,60 @@
                             @TranslationService.GetTranslation("anomalies.loadPrompt", "Fare clic su 'Carica' per analizzare i movimenti con quantità negativa.")
                         </MudAlert>
                     }
+
+                    <MudDivider Class="my-4" />
+
+                    @* ── Ricalcola tutte le giacenze dai movimenti ─────── *@
+                    <div class="d-flex align-center gap-2 mb-1">
+                        <MudText Typo="Typo.subtitle1">
+                            <MudIcon Icon="@Icons.Material.Outlined.Sync" Class="mr-1" />
+                            @TranslationService.GetTranslation("recalculateAll.title", "Ricalcola tutte le giacenze dai movimenti")
+                        </MudText>
+                    </div>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                        @TranslationService.GetTranslation("recalculateAll.description",
+                            "Ricalcola la quantità di ogni giacenza sommando tutti i movimenti storici (Entrate − Uscite), senza richiedere la ricostruzione dei movimenti. Usa questa opzione quando i movimenti sono già corretti ma le giacenze mostrano saldi errati.")
+                    </MudText>
+
+                    @if (_anom_recalcResult != null)
+                    {
+                        <MudAlert Severity="@(_anom_recalcResult.Errors == 0 ? (_anom_recalcResult.IsDryRun ? Severity.Info : Severity.Success) : Severity.Warning)"
+                                  Class="mb-2">
+                            @if (_anom_recalcResult.IsDryRun)
+                            {
+                                <strong>@TranslationService.GetTranslation("recalculateAll.dryRunResult", "Anteprima:")</strong>
+                                <span>@TranslationService.GetTranslationFormatted("recalculateAll.dryRunDetail",
+                                    " {0} coppie prodotto/ubicazione analizzate. {1} giacenze da aggiornare, {2} da creare, {3} già corrette.",
+                                    _anom_recalcResult.PairsScanned, _anom_recalcResult.StocksUpdated,
+                                    _anom_recalcResult.StocksCreated, _anom_recalcResult.StocksAlreadyCorrect)</span>
+                            }
+                            else
+                            {
+                                <strong>@TranslationService.GetTranslation("recalculateAll.appliedResult", "Completato:")</strong>
+                                <span>@TranslationService.GetTranslationFormatted("recalculateAll.appliedDetail",
+                                    " {0} giacenze aggiornate, {1} create, {2} già corrette, {3} errori.",
+                                    _anom_recalcResult.StocksUpdated, _anom_recalcResult.StocksCreated,
+                                    _anom_recalcResult.StocksAlreadyCorrect, _anom_recalcResult.Errors)</span>
+                            }
+                        </MudAlert>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <MudButton StartIcon="@Icons.Material.Outlined.Preview"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Info"
+                                   Disabled="@_anom_isRecalculating"
+                                   OnClick="@(async () => await RecalculateAllStocksAsync(true))">
+                            @TranslationService.GetTranslation("recalculateAll.dryRun", "Anteprima ricalcolo")
+                        </MudButton>
+                        <MudButton StartIcon="@Icons.Material.Outlined.Calculate"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Error"
+                                   Disabled="@_anom_isRecalculating"
+                                   OnClick="@(async () => await RecalculateAllStocksAsync(false))">
+                            @TranslationService.GetTranslation("recalculateAll.apply", "Ricalcola tutto")
+                        </MudButton>
+                    </div>
                 </div>
             </MudTabPanel>
 
@@ -962,7 +1036,7 @@
     [Parameter] public int InitialTab { get; set; } = 0;
 
     // ── General ──────────────────────────────────────────────
-    private bool _isProcessing => _recon_isLoading || _recon_isBulkApplying || _recon_isExporting || _rebuild_isLoading || _snapshot_isLoading || _anom_isLoading || _anom_isFixing;
+    private bool _isProcessing => _recon_isLoading || _recon_isBulkApplying || _recon_isExporting || _rebuild_isLoading || _snapshot_isLoading || _anom_isLoading || _anom_isFixing || _anom_isRecalculating;
     private int _activeTab = 0;
     private bool _shouldReload = false;
     private bool _tab1Initialized = false;
@@ -1212,6 +1286,7 @@
     private decimal _rebuild_startingQuantity = 0m;
     private bool _rebuild_allDates = false;
     private bool _rebuild_allWarehouses = false;
+    private int _rebuild_batchChunkSize = 100;
 
     // Reference data (document types only — warehouses shared)
     private List<DocumentTypeDto> _documentTypes = new();
@@ -1374,7 +1449,8 @@
             DocumentStatuses = documentStatuses.Count > 0 ? documentStatuses : null,
             UpdateExisting = _rebuild_updateExisting,
             ForceRecalculateFromMovements = _rebuild_forceRecalculate,
-            StartingQuantity = _rebuild_forceRecalculate ? _rebuild_startingQuantity : 0m
+            StartingQuantity = _rebuild_forceRecalculate ? _rebuild_startingQuantity : 0m,
+            BatchChunkSize = _rebuild_batchChunkSize
         };
     }
 
@@ -1593,6 +1669,8 @@
     private bool _anom_isFixing = false;
     private NegativeMovementsReportDto? _anom_report;
     private FixNegativeMovementsResultDto? _anom_fixResult;
+    private bool _anom_isRecalculating = false;
+    private RecalculateAllStocksResultDto? _anom_recalcResult;
 
     private async Task LoadNegativeMovementsAsync()
     {
@@ -1637,6 +1715,29 @@
         finally
         {
             _anom_isFixing = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RecalculateAllStocksAsync(bool dryRun)
+    {
+        _anom_isRecalculating = true;
+        _anom_recalcResult = null;
+        StateHasChanged();
+        try
+        {
+            _anom_recalcResult = await StockReconciliationService.RecalculateAllStocksAsync(dryRun);
+            if (_anom_recalcResult != null && !dryRun && _anom_recalcResult.Errors == 0)
+                _shouldReload = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error recalculating all stocks");
+            AppNotification.ShowError(TranslationService.GetTranslation("recalculateAll.error", "Errore durante il ricalcolo delle giacenze"));
+        }
+        finally
+        {
+            _anom_isRecalculating = false;
             StateHasChanged();
         }
     }

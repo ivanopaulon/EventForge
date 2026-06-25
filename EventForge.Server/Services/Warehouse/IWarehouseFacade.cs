@@ -727,6 +727,12 @@ public interface IWarehouseFacade
     /// <summary>Normalises negative-quantity StockMovements and corrects stock levels accordingly.</summary>
     Task<FixNegativeMovementsResultDto> FixNegativeMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Recalculates all Stock quantities from the full movement history, independently of
+    /// any document rebuild run.  Pass <paramref name="dryRun"/>=<c>true</c> for a preview.
+    /// </summary>
+    Task<RecalculateAllStocksResultDto> RecalculateAllStocksFromMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Export Operations
