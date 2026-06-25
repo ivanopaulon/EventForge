@@ -3709,8 +3709,7 @@ public class WarehouseManagementController(
     {
         try
         {
-            var ct = dryRun ? cancellationToken : CancellationToken.None;
-            var result = await warehouseFacade.FixNegativeMovementsAsync(dryRun, GetCurrentUser(), ct);
+            var result = await warehouseFacade.FixNegativeMovementsAsync(dryRun, GetCurrentUser(), cancellationToken);
             return Ok(result);
         }
         catch (Exception ex)
