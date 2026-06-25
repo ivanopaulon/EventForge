@@ -50,7 +50,7 @@ public class ProductService(
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)) ||
-                    p.Codes.Any(c => c.Code.ToLower().Contains(lowerSearchTerm)));
+                    p.Codes.Any(c => !c.IsDeleted && c.Code.ToLower().Contains(lowerSearchTerm)));
             }
 
             // Apply classification node filter (including descendants)
@@ -147,7 +147,7 @@ public class ProductService(
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)) ||
-                    p.Codes.Any(c => c.Code.ToLower().Contains(lowerSearchTerm)));
+                    p.Codes.Any(c => !c.IsDeleted && c.Code.ToLower().Contains(lowerSearchTerm)));
             }
 
             // Only include navigations needed by the POS grid — skip Codes, Units, BundleItems.
@@ -2572,7 +2572,7 @@ public class ProductService(
                 return result;
             }
 
-            // Step 3: Text search in Name, ShortDescription, Description, Brand.Name (case-insensitive, multi-word AND logic)
+            // Step 3: Text search in Name, ShortDescription, Description, Brand.Name, and alias codes (case-insensitive, multi-word AND logic)
             var searchWords = queryTrimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
             var textQuery = context.Products
@@ -2589,7 +2589,8 @@ public class ProductService(
                     EF.Functions.Like(p.Name, $"%{w}%") ||
                     (p.ShortDescription != null && EF.Functions.Like(p.ShortDescription, $"%{w}%")) ||
                     (p.Description != null && EF.Functions.Like(p.Description, $"%{w}%")) ||
-                    (p.Brand != null && EF.Functions.Like(p.Brand.Name, $"%{w}%")));
+                    (p.Brand != null && EF.Functions.Like(p.Brand.Name, $"%{w}%")) ||
+                    p.Codes.Any(c => !c.IsDeleted && EF.Functions.Like(c.Code, $"%{w}%")));
             }
 
             var searchResults = await textQuery
