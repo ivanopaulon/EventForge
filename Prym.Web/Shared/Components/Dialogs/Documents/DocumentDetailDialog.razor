@@ -1369,7 +1369,7 @@
             }
             catch (Exception ex)
             {
-                Logger.LogDebug(ex, "Product barcode search failed for query '{Query}' in document rows filter.", _searchQuery);
+                Logger.LogWarning(ex, "Product barcode search failed for query '{Query}' in document rows filter; falling back to code/description match only.", _searchQuery);
             }
         }
 
