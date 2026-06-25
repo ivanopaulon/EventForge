@@ -1439,7 +1439,7 @@ public class StockReconciliationService(
                                 Quantity = m.Quantity,
                                 UnitCost = m.Dto.UnitCost,
                                 Status = "Created",
-                                MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                                MovementType = m.Dto.MovementType ?? (m.IsInbound ? "Inbound" : "Outbound")
                             });
                         }
                     }
@@ -1460,7 +1460,7 @@ public class StockReconciliationService(
                                 UnitCost = m.Dto.UnitCost,
                                 Status = "Error",
                                 ErrorMessage = ex.Message,
-                                MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                                MovementType = m.Dto.MovementType ?? (m.IsInbound ? "Inbound" : "Outbound")
                             });
                         }
                     }
@@ -1482,7 +1482,7 @@ public class StockReconciliationService(
                         Quantity = m.Quantity,
                         UnitCost = m.Dto.UnitCost,
                         Status = "Created",
-                        MovementType = m.IsInbound ? "Inbound" : "Outbound"
+                        MovementType = m.Dto.MovementType ?? (m.IsInbound ? "Inbound" : "Outbound")
                     });
                 }
             }
