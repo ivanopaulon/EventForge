@@ -21,6 +21,7 @@
                  Adornment="@Adornment"
                  AdornmentText="@AdornmentText"
                  AdornmentIcon="@AdornmentIcon"
+                 AdornmentColor="@AdornmentColor"
                  @attributes="AllAttrs" />
 
 @code {
@@ -45,6 +46,7 @@
     [Parameter] public Adornment                 Adornment            { get; set; } = Adornment.None;
     [Parameter] public string?                   AdornmentText        { get; set; }
     [Parameter] public string?                   AdornmentIcon        { get; set; }
+    [Parameter] public Color                     AdornmentColor       { get; set; } = Color.Default;
     [Parameter(CaptureUnmatchedValues = true)]
     public IReadOnlyDictionary<string, object>?  AdditionalAttributes { get; set; }
 
