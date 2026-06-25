@@ -71,6 +71,18 @@ namespace Prym.DTOs.Documents
         public bool MovesStockOnRowChange { get; set; } = true;
 
         /// <summary>
+        /// When true, this document type represents a stock transfer between two warehouses.
+        /// The rebuild procedure generates both Outbound (source) and Inbound (destination) movements.
+        /// </summary>
+        public bool IsTransferDocument { get; set; }
+
+        /// <summary>
+        /// Default movement reason used during the rebuild procedure.
+        /// Null = legacy heuristic (Purchase for inbound, Sale for outbound).
+        /// </summary>
+        public string? DefaultMovementReason { get; set; }
+
+        /// <summary>
         /// Date and time when the document type was created (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

@@ -67,4 +67,48 @@ public interface IStockReconciliationService
         RebuildMovementsRequestDto request,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all StockMovement rows with Quantity &lt; 0 for the current tenant.
+    /// These are legacy anomalies that should be normalised via
+    /// <see cref="FixNegativeMovementsAsync"/>.
+    /// </summary>
+    Task<NegativeMovementsReportDto> GetNegativeMovementsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Normalises negative-quantity StockMovement rows by negating their Quantity so it
+    /// becomes positive.  Stock levels are also corrected for every affected
+    /// product/location pair: the legacy negative value was incorrectly subtracting from
+    /// the balance; flipping the sign (twice the absolute value added as correction) restores
+    /// the correct net.
+    /// <para>When <paramref name="dryRun"/> is <c>true</c> no changes are persisted.</para>
+    /// </summary>
+    Task<FixNegativeMovementsResultDto> FixNegativeMovementsAsync(
+        bool dryRun,
+        string currentUser,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recalculates <em>all</em> Stock quantities in the current tenant from the complete
+    /// movement history, independently of any document rebuild run.
+    /// <para>
+    /// For every distinct <c>(ProductId, LocationId)</c> pair found in non-deleted
+    /// <see cref="StockMovement"/> rows the method computes the net quantity
+    /// (Σ inbound − Σ outbound) and overwrites the corresponding <see cref="Stock"/> record.
+    /// Missing Stock records are created.  Duplicate Stock rows (legacy data integrity issue)
+    /// are soft-deleted leaving only the canonical row.
+    /// </para>
+    /// <para>
+    /// Use this operation when stock balances are wrong but no document rebuild is needed,
+    /// e.g. after a manual correction of movement data or after enabling
+    /// <see cref="RebuildMovementsRequestDto.ForceRecalculateFromMovements"/> was not
+    /// sufficient because movements were already correct.
+    /// </para>
+    /// <para>When <paramref name="dryRun"/> is <c>true</c> no changes are persisted.</para>
+    /// </summary>
+    Task<RecalculateAllStocksResultDto> RecalculateAllStocksFromMovementsAsync(
+        bool dryRun,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }

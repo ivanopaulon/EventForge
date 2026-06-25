@@ -50,4 +50,22 @@ public class RebuildMovementsRequestDto
     /// Default: false (safe mode — existing balances are only adjusted by the movement delta).
     /// </summary>
     public bool ForceRecalculateFromMovements { get; set; } = false;
+
+    /// <summary>
+    /// Opening-balance quantity added to the movement-net when
+    /// <see cref="ForceRecalculateFromMovements"/> is <c>true</c>.
+    /// Useful when the movement history does not start from zero (e.g. the system was migrated
+    /// with an initial stock balance that has no corresponding movement).
+    /// Applied uniformly to every affected product/location pair, so use only when all pairs
+    /// share the same starting point (e.g. a single-product corrective run).
+    /// Default: 0.
+    /// </summary>
+    public decimal StartingQuantity { get; set; } = 0m;
+
+    /// <summary>
+    /// Number of movements processed per inner save chunk in Phase 2b.
+    /// Lower values reduce peak memory consumption and DB lock contention at the cost of
+    /// more round-trips. Valid range: 10–500. Default: 100.
+    /// </summary>
+    public int BatchChunkSize { get; set; } = 100;
 }

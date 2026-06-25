@@ -721,6 +721,18 @@ public interface IWarehouseFacade
     /// <returns>Result with counts of created, skipped, and failed movements</returns>
     Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(RebuildMovementsRequestDto request, string currentUser, CancellationToken cancellationToken = default);
 
+    /// <summary>Returns all StockMovements with Quantity &lt; 0 for the current tenant.</summary>
+    Task<NegativeMovementsReportDto> GetNegativeMovementsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Normalises negative-quantity StockMovements and corrects stock levels accordingly.</summary>
+    Task<FixNegativeMovementsResultDto> FixNegativeMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recalculates all Stock quantities from the full movement history, independently of
+    /// any document rebuild run.  Pass <paramref name="dryRun"/>=<c>true</c> for a preview.
+    /// </summary>
+    Task<RecalculateAllStocksResultDto> RecalculateAllStocksFromMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default);
+
     #endregion
 
     #region Export Operations

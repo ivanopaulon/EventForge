@@ -43,4 +43,21 @@ public interface IStockReconciliationService
     /// Creates stock movements for document rows that do not yet have a corresponding movement.
     /// </summary>
     Task<RebuildMovementsResultDto?> RebuildMovementsExecuteAsync(RebuildMovementsRequestDto request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all StockMovements with Quantity &lt; 0 for the current tenant (legacy anomalies).
+    /// </summary>
+    Task<NegativeMovementsReportDto?> GetNegativeMovementsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Normalises negative-quantity StockMovements by flipping their sign.
+    /// Pass dryRun=true to preview without persisting.
+    /// </summary>
+    Task<FixNegativeMovementsResultDto?> FixNegativeMovementsAsync(bool dryRun, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Recalculates ALL stock quantities from the full movement history, independently of any
+    /// document rebuild run.  Pass dryRun=true to preview the impact without persisting.
+    /// </summary>
+    Task<RecalculateAllStocksResultDto?> RecalculateAllStocksAsync(bool dryRun, CancellationToken cancellationToken = default);
 }
