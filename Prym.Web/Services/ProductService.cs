@@ -69,7 +69,7 @@ public class ProductService(
         }
     }
 
-    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, CancellationToken ct = default)
+    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, string? quickFilter = null, CancellationToken ct = default)
     {
         try
         {
@@ -85,6 +85,10 @@ public class ProductService(
             if (includeInactive)
             {
                 url += "&includeInactive=true";
+            }
+            if (!string.IsNullOrWhiteSpace(quickFilter))
+            {
+                url += $"&quickFilter={Uri.EscapeDataString(quickFilter)}";
             }
             return await httpClientService.GetAsync<PagedResult<ProductDto>>(url, ct);
         }

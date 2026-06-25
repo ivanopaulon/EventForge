@@ -82,7 +82,7 @@ public class LotDetailViewModelTests : IDisposable
         Assert.Single(_viewModel.Products);
         Assert.Contains(_viewModel.Products, p => p.Id == productId);
         _mockProductService.Verify(
-            s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -256,7 +256,7 @@ public class LotDetailViewModelTests : IDisposable
         Assert.Single(_viewModel.Products);
         Assert.Contains(_viewModel.Products, p => p.Code == "PROD-A");
         _mockProductService.Verify(
-            s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            s => s.GetProductsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -345,7 +345,7 @@ public class LotDetailViewModelTests : IDisposable
         };
 
         _mockProductService
-            .Setup(s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedProducts);
 
         // Act
@@ -355,7 +355,7 @@ public class LotDetailViewModelTests : IDisposable
         // Assert
         Assert.Equal(2, results.Count);
         _mockProductService.Verify(
-            s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

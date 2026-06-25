@@ -15,7 +15,8 @@
                       Service="_service"
                       ExternalFilters="_externalFilters"
                       OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
-                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      OnQuickFilterChanged="@HandleQuickFilterChangedAsync">
     <AdditionalToolbarContent>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
             @if (_selectedClassificationNode != null)
@@ -150,6 +151,7 @@
     private EntityManagementConfig<ProductDto> _config = null!;
 
     private ClassificationNodeDto? _selectedClassificationNode;
+    private string? _activeQuickFilterId;
     private Dictionary<string, object?> _externalFilters = new();
 
     protected override void OnInitialized()
@@ -167,11 +169,12 @@
             BaseRoute = "/product-management/products",
             ExcelFileName = "Prodotti",
             SearchPlaceholderKey = "product.search",
-            SearchPlaceholderDefault = "Cerca prodotti",
+            SearchPlaceholderDefault = "Cerca prodotti (nome, codice, barcode...)",
             CreateTooltip = "product.createNew",
             EntityTypeName = "Product",
             ShowToggleStatus = false,
             ShowAuditLog = false,
+            UseServerSidePaging = true,
             GetDisplayName = p => p.Name,
             GetId = p => p.Id,
             DeleteConfirmMessageKey = "product.confirmDelete",
@@ -190,17 +193,17 @@
                 new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
                 new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3, IsSearchable = false }
             },
+            // Quick filters are handled server-side (no client-side Predicate needed).
+            // Filter IDs must match the quickFilter values accepted by the server.
             QuickFilters = new()
             {
-                new() { Id = "all", Label = "Tutti", Predicate = _ => true },
-                // Uses IsActive (AuditableEntity flag) — symmetric complement of the "Inattivi" filter.
-                // ProductStatus enum is a separate field; IsActive is the authoritative enabled/disabled flag.
-                new() { Id = "active", Label = "Attivi", Predicate = p => p.IsActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
-                new() { Id = "inactive", Label = "Inattivi", Predicate = p => !p.IsActive, Color = Color.Warning, Icon = Icons.Material.Outlined.PauseCircle },
-                new() { Id = "bundle", Label = "Bundle", Predicate = p => p.IsBundle, Color = Color.Info, Icon = Icons.Material.Outlined.Inventory },
-                new() { Id = "simple", Label = "Semplici", Predicate = p => !p.IsBundle, Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingBag },
-                new() { Id = "with_images", Label = "Con Immagini", Predicate = p => p.ImageDocumentId != null, Color = Color.Secondary, Icon = Icons.Material.Outlined.Image },
-                new() { Id = "recent", Label = "Recenti", Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases }
+                new() { Id = "all", Label = "Tutti" },
+                new() { Id = "active", Label = "Attivi", Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
+                new() { Id = "inactive", Label = "Inattivi", Color = Color.Warning, Icon = Icons.Material.Outlined.PauseCircle },
+                new() { Id = "bundle", Label = "Bundle", Color = Color.Info, Icon = Icons.Material.Outlined.Inventory },
+                new() { Id = "simple", Label = "Semplici", Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingBag },
+                new() { Id = "with_images", Label = "Con Immagini", Color = Color.Secondary, Icon = Icons.Material.Outlined.Image },
+                new() { Id = "recent", Label = "Recenti", Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases }
             }
         };
     }
@@ -212,6 +215,9 @@
         filters["IncludeInactive"] = true;
         if (_selectedClassificationNode != null)
             filters["ClassificationNodeId"] = _selectedClassificationNode.Id;
+        // Pass active quick filter to server (null / "all" means no additional filter).
+        if (!string.IsNullOrEmpty(_activeQuickFilterId) && _activeQuickFilterId != "all")
+            filters["QuickFilter"] = _activeQuickFilterId;
         return filters;
     }
 
@@ -229,6 +235,17 @@
             Logger.LogError(ex, "Error opening bulk catalog update dialog.");
             AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
         }
+    }
+
+    /// <summary>
+    /// Translates the quick filter selection to a server-side ExternalFilter and reloads the list.
+    /// Quick filters use server-side paging, so the Predicate is not used.
+    /// </summary>
+    private async Task HandleQuickFilterChangedAsync(QuickFilter<ProductDto>? filter)
+    {
+        _activeQuickFilterId = filter?.Id;
+        _externalFilters = BuildFilters();
+        await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
     }
 
     private async Task OpenDetailDialogAsync(Guid? id)

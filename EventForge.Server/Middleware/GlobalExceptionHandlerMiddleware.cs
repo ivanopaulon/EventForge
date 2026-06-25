@@ -153,6 +153,14 @@ public class GlobalExceptionHandlerMiddleware
                     userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId, timeoutEx.Message);
                 break;
 
+            case OperationCanceledException:
+                // Client disconnected or navigated away – not an application error.
+                _logger.LogDebug(
+                    "Request cancelled for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}",
+                    method, path, queryString, exceptionType,
+                    userName ?? "Anonymous", userId ?? "N/A", tenantId ?? "N/A", correlationId);
+                break;
+
             default:
                 _logger.LogError(exception,
                     "Unhandled exception for {Method} {Path}{QueryString} [{ExceptionType}] User: {UserName} (Id: {UserId}, Tenant: {TenantId}) CorrelationId: {CorrelationId}. Message: {Message}",
@@ -295,6 +303,14 @@ public class GlobalExceptionHandlerMiddleware
                 problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.5.7";
                 problemDetails.Title = "Request Timeout";
                 problemDetails.Detail = _environment.IsDevelopment() ? timeoutEx.Message : "The request timed out";
+                break;
+
+            case OperationCanceledException:
+                // 499 Client Closed Request (nginx convention) – not an RFC standard code.
+                problemDetails.Status = 499;
+                problemDetails.Type = "https://tools.ietf.org/html/rfc7231#section-6.1";
+                problemDetails.Title = "Request Cancelled";
+                problemDetails.Detail = "The request was cancelled by the client";
                 break;
 
             default:
