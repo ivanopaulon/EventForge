@@ -69,7 +69,7 @@ public class ProductService(
         }
     }
 
-    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken ct = default)
+    public async Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, CancellationToken ct = default)
     {
         try
         {
@@ -81,6 +81,10 @@ public class ProductService(
             if (classificationNodeId.HasValue)
             {
                 url += $"&classificationNodeId={classificationNodeId.Value}";
+            }
+            if (includeInactive)
+            {
+                url += "&includeInactive=true";
             }
             return await httpClientService.GetAsync<PagedResult<ProductDto>>(url, ct);
         }

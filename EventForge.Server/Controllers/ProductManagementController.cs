@@ -67,13 +67,14 @@ public class ProductManagementController(
         [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
         [FromQuery] string? searchTerm = null,
         [FromQuery] Guid? classificationNodeId = null,
+        [FromQuery] bool includeInactive = false,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await productService.GetProductsAsync(pagination, searchTerm, classificationNodeId, cancellationToken);
+            var result = await productService.GetProductsAsync(pagination, searchTerm, classificationNodeId, includeInactive, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 

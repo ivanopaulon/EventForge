@@ -85,11 +85,19 @@
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
                     <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                        <MudAvatar Color="@(ctx.Item.IsActive ? Color.Primary : Color.Default)" Size="Size.Small" Class="mr-2">
                             <MudIcon Icon="@Icons.Material.Outlined.Inventory2" />
                         </MudAvatar>
                         <div>
-                            <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudText Typo="Typo.body2">@ctx.Item.Name</MudText>
+                                @if (!ctx.Item.IsActive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.PauseCircle">
+                                        @TranslationService.GetTranslation("common.inactive", "Inattivo")
+                                    </MudChip>
+                                }
+                            </MudStack>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">ID: @(ctx.Item.Id.ToString()[..Math.Min(8, ctx.Item.Id.ToString().Length)])...</MudText>
                         </div>
                     </div>
@@ -147,6 +155,8 @@
     protected override void OnInitialized()
     {
         _service = new ProductManagementService(ProductService);
+        // Default: includeInactive=true so the management page always shows all products
+        _externalFilters = BuildFilters();
         _config = new EntityManagementConfig<ProductDto>
         {
             ComponentKey = "ProductManagement",
@@ -183,13 +193,24 @@
             QuickFilters = new()
             {
                 new() { Id = "all", Label = "Tutti", Predicate = _ => true },
-                new() { Id = "active", Label = "Attivi", Predicate = p => p.Status == ProductStatus.Active, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
+                new() { Id = "active", Label = "Attivi", Predicate = p => p.IsActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
+                new() { Id = "inactive", Label = "Inattivi", Predicate = p => !p.IsActive, Color = Color.Warning, Icon = Icons.Material.Outlined.PauseCircle },
                 new() { Id = "bundle", Label = "Bundle", Predicate = p => p.IsBundle, Color = Color.Info, Icon = Icons.Material.Outlined.Inventory },
                 new() { Id = "simple", Label = "Semplici", Predicate = p => !p.IsBundle, Color = Color.Primary, Icon = Icons.Material.Outlined.ShoppingBag },
                 new() { Id = "with_images", Label = "Con Immagini", Predicate = p => p.ImageDocumentId != null, Color = Color.Secondary, Icon = Icons.Material.Outlined.Image },
                 new() { Id = "recent", Label = "Recenti", Predicate = p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30), Color = Color.Warning, Icon = Icons.Material.Outlined.NewReleases }
             }
         };
+    }
+
+    private Dictionary<string, object?> BuildFilters()
+    {
+        var filters = new Dictionary<string, object?>();
+        // Management page always includes inactive products so admins can find and reactivate them.
+        filters["IncludeInactive"] = true;
+        if (_selectedClassificationNode != null)
+            filters["ClassificationNodeId"] = _selectedClassificationNode.Id;
+        return filters;
     }
 
     private async Task OpenBulkUpdateDialogAsync()
@@ -244,7 +265,7 @@
             if (result is { Canceled: false } && result.Data is ClassificationNodeDto selected)
             {
                 _selectedClassificationNode = selected;
-                _externalFilters = new Dictionary<string, object?> { ["ClassificationNodeId"] = selected.Id };
+                _externalFilters = BuildFilters();
                 await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
             }
         }
@@ -258,7 +279,7 @@
     private async Task ClearClassificationFilter()
     {
         _selectedClassificationNode = null;
-        _externalFilters = new Dictionary<string, object?>();
+        _externalFilters = BuildFilters();
         await (_entityPage?.RefreshAsync() ?? Task.CompletedTask);
     }
 

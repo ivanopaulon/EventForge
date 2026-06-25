@@ -14,10 +14,16 @@ public class ProductManagementService : IEntityManagementService<ProductDto>
     public async Task<PagedResult<ProductDto>> GetPagedAsync(int page, int pageSize, string? searchTerm = null, Dictionary<string, object?>? filters = null, CancellationToken ct = default)
     {
         Guid? classificationNodeId = null;
-        if (filters != null && filters.TryGetValue("ClassificationNodeId", out var rawId) && rawId is Guid guid)
-            classificationNodeId = guid;
+        bool includeInactive = true; // Management page always shows all products (including inactive)
+        if (filters != null)
+        {
+            if (filters.TryGetValue("ClassificationNodeId", out var rawId) && rawId is Guid guid)
+                classificationNodeId = guid;
+            if (filters.TryGetValue("IncludeInactive", out var rawInactive) && rawInactive is bool inactive)
+                includeInactive = inactive;
+        }
 
-        return await _productService.GetProductsAsync(page, pageSize, searchTerm, classificationNodeId, ct) ?? new PagedResult<ProductDto>();
+        return await _productService.GetProductsAsync(page, pageSize, searchTerm, classificationNodeId, includeInactive, ct) ?? new PagedResult<ProductDto>();
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
