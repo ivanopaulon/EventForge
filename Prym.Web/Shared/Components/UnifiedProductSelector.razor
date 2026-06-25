@@ -12,7 +12,9 @@
                 <MudIcon Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Class="mr-1" />
                 @Title
             </MudText>
-            @if (SelectedProduct != null)
+            @* In Full/None modes show Edit+Clear in the title bar.
+               In Compact/SearchOnly the buttons live inside the compact strip instead. *@
+            @if (SelectedProduct != null && (EffectiveDisplayMode == ProductInfoDisplayMode.Full || EffectiveDisplayMode == ProductInfoDisplayMode.None))
             {
                 <MudStack Row="true" Spacing="1">
                     @if (EditMode != ProductEditMode.None)
@@ -131,9 +133,15 @@
         </MudStack>
     }
 
-    @if (SelectedProduct != null && ShowProductInfo)
+    @if (SelectedProduct != null && EffectiveDisplayMode == ProductInfoDisplayMode.Full)
     {
-        <!-- VIEW MODE: Display product information -->
+        <!-- VIEW MODE Full: Display complete product information grid -->
+        @if (!SelectedProduct.IsActive)
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-1">
+                @TranslationService.GetTranslation("products.inactiveWarning", "Questo prodotto è inattivo. Potrebbe non essere disponibile per nuove operazioni.")
+            </MudAlert>
+        }
         <MudGrid Spacing="2">
             <MudItem xs="12" sm="6">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -204,5 +212,61 @@
                 </MudItem>
             }
         </MudGrid>
+    }
+
+    @if (SelectedProduct != null && (EffectiveDisplayMode == ProductInfoDisplayMode.Compact || EffectiveDisplayMode == ProductInfoDisplayMode.SearchOnly))
+    {
+        <!-- VIEW MODE Compact/SearchOnly: Single-row chip with action buttons -->
+        <MudPaper Elevation="0" Class="pa-2 mt-1 border rounded" Style="border-color: var(--mud-palette-divider);">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Style="min-width:0; overflow:hidden;">
+                    <MudIcon Icon="@Icons.Material.Outlined.Inventory"
+                             Size="Size.Small"
+                             Color="@(SelectedProduct.IsActive ? Color.Primary : Color.Warning)" />
+                    <div style="min-width:0; overflow:hidden;">
+                        <MudText Typo="Typo.body2" Class="fw-semibold text-truncate">@SelectedProduct.Name</MudText>
+                        @if (!string.IsNullOrEmpty(SelectedProduct.Code))
+                        {
+                            <MudText Typo="Typo.caption" Class="text-secondary-color text-truncate">@SelectedProduct.Code</MudText>
+                        }
+                        @if (!SelectedProduct.IsActive)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.PauseCircle" Class="mt-1">
+                                @TranslationService.GetTranslation("common.inactive", "Inattivo")
+                            </MudChip>
+                        }
+                    </div>
+                </MudStack>
+                <MudStack Row="true" Spacing="0" Style="flex-shrink:0;">
+                    @if (EffectiveDisplayMode == ProductInfoDisplayMode.SearchOnly && OnProductDetailRequested.HasDelegate)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("products.viewDetails", "Visualizza dettagli")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Info"
+                                           Size="Size.Small"
+                                           Color="Color.Info"
+                                           OnClick="HandleDetailClick" />
+                        </MudTooltip>
+                    }
+                    @if (EditMode != ProductEditMode.None)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("products.editProduct", "Modifica prodotto")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                           Size="Size.Small"
+                                           Color="Color.Primary"
+                                           OnClick="HandleEditClick" />
+                        </MudTooltip>
+                    }
+                    @if (AllowClear)
+                    {
+                        <MudTooltip Text="@TranslationService.GetTranslation("common.clear", "Pulisci")">
+                            <MudIconButton Icon="@Icons.Material.Outlined.Clear"
+                                           Size="Size.Small"
+                                           Color="Color.Default"
+                                           OnClick="ClearSelection" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudStack>
+        </MudPaper>
     }
 </MudStack>

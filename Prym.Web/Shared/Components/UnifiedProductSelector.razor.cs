@@ -44,6 +44,24 @@ namespace Prym.Web.Shared.Components
     }
 
     /// <summary>
+    /// Controls how the selected product's info is displayed after selection.
+    /// <list type="bullet">
+    /// <item><term>Full</term><description>Full info grid: code, name, description, UM, VAT, price (default).</description></item>
+    /// <item><term>Compact</term><description>Single-row chip with icon + name + code + action buttons. No grid.</description></item>
+    /// <item><term>None</term><description>No product info displayed at all. Edit/Clear buttons still shown in title area.</description></item>
+    /// <item><term>SearchOnly</term><description>Like Compact but also shows a "Dettagli" button that fires <see cref="UnifiedProductSelector.OnProductDetailRequested"/>. Use when the container handles the full detail display.</description></item>
+    /// </list>
+    /// <para>Backward-compat: setting <c>ShowProductInfo="false"</c> is treated as <c>InfoDisplayMode=None</c>.</para>
+    /// </summary>
+    public enum ProductInfoDisplayMode
+    {
+        Full,       // Full info grid (default)
+        Compact,    // Single-row chip: icon + name + code + action buttons
+        None,       // No info displayed
+        SearchOnly  // Like Compact, plus a "Dettagli" button that delegates detail display to the container
+    }
+
+    /// <summary>
     /// Unified component that combines product search (barcode + description) 
     /// with product info display.
     /// Replaces the separate DocumentRowBarcodeScanner, MudAutocomplete, and ProductQuickInfo components.
@@ -76,7 +94,23 @@ namespace Prym.Web.Shared.Components
 
         #region Parameters - Sections
 
+        /// <summary>
+        /// Controls how the selected product's info is displayed.
+        /// Default is <see cref="ProductInfoDisplayMode.Full"/>.
+        /// <para>
+        /// Backward-compat: if <see cref="ShowProductInfo"/> is set to <c>false</c>,
+        /// <see cref="InfoDisplayMode"/> is treated as <see cref="ProductInfoDisplayMode.None"/>.
+        /// </para>
+        /// </summary>
+        [Parameter] public ProductInfoDisplayMode InfoDisplayMode { get; set; } = ProductInfoDisplayMode.Full;
+
+        /// <summary>
+        /// Backward-compatible shorthand. Setting this to <c>false</c> overrides
+        /// <see cref="InfoDisplayMode"/> to <see cref="ProductInfoDisplayMode.None"/>.
+        /// Prefer using <see cref="InfoDisplayMode"/> directly in new code.
+        /// </summary>
         [Parameter] public bool ShowProductInfo { get; set; } = true;
+
         [Parameter] public bool ShowDescription { get; set; } = true;
         [Parameter] public bool ShowCurrentStock { get; set; } = false;
         [Parameter] public decimal? CurrentStockQuantity { get; set; }
@@ -156,6 +190,12 @@ namespace Prym.Web.Shared.Components
         [Parameter] public EventCallback<ProductDto> OnProductUpdated { get; set; }
         [Parameter] public EventCallback<ProductDto> OnProductCreated { get; set; }
 
+        /// <summary>
+        /// Raised when the user clicks the "Dettagli" button in <see cref="ProductInfoDisplayMode.SearchOnly"/> mode.
+        /// The container should use this event to show the full product detail panel or dialog.
+        /// </summary>
+        [Parameter] public EventCallback<ProductDto> OnProductDetailRequested { get; set; }
+
         #endregion
 
         #region Private Fields
@@ -181,6 +221,13 @@ namespace Prym.Web.Shared.Components
         // Reset tracking: detect when parent clears SelectedProduct (e.g. after adding to POS cart)
         private ProductDto? _previousSelectedProduct;
         private bool _shouldFocusAfterProductAdded;
+
+        /// <summary>
+        /// Resolved effective display mode, taking into account the backward-compat
+        /// <see cref="ShowProductInfo"/> parameter.
+        /// </summary>
+        private ProductInfoDisplayMode EffectiveDisplayMode =>
+            !ShowProductInfo ? ProductInfoDisplayMode.None : InfoDisplayMode;
 
         #endregion
 
@@ -532,6 +579,17 @@ namespace Prym.Web.Shared.Components
                 default:
                     break;
             }
+        }
+
+        /// <summary>
+        /// Handles the "Dettagli" button click in <see cref="ProductInfoDisplayMode.SearchOnly"/> mode.
+        /// Delegates detail display to the container via <see cref="OnProductDetailRequested"/>.
+        /// </summary>
+        private async Task HandleDetailClick()
+        {
+            if (SelectedProduct == null) return;
+            if (OnProductDetailRequested.HasDelegate)
+                await OnProductDetailRequested.InvokeAsync(SelectedProduct);
         }
 
         /// <summary>
