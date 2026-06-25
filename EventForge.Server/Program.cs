@@ -258,13 +258,20 @@ builder.Services.AddSwaggerGen(c =>
             return $"{genericName}Of{genericArgs}";
         }
 
-        // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts
-        // PrinterDto exists in both Prym.DTOs.Printing and Prym.DTOs.Station
-        if (type.Name == "PrinterDto")
+        // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts.
+        // - PrinterDto exists in both Prym.DTOs.Printing and Prym.DTOs.Station.
+        // - BulkUpdateResultDto exists in both Prym.DTOs.PriceLists and Prym.DTOs.Bulk.
+        // When the namespace last-segment already appears as a prefix in the class name
+        // (e.g. Bulk.BulkUpdateResultDto) the class name is kept as-is to avoid
+        // redundant names like "BulkBulkUpdateResultDto".
+        if (type.Name is "PrinterDto" or "BulkUpdateResultDto")
         {
             var namespacePrefix = type.Namespace?
                 .Replace("Prym.DTOs.", "")
                 .Replace(".", "") ?? "";
+            if (namespacePrefix.Length > 0 &&
+                type.Name.StartsWith(namespacePrefix, StringComparison.OrdinalIgnoreCase))
+                return type.Name;
             return $"{namespacePrefix}{type.Name}";
         }
 
