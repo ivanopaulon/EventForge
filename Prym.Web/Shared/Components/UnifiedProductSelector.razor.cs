@@ -77,6 +77,7 @@ namespace Prym.Web.Shared.Components
         #region Parameters - Sections
 
         [Parameter] public bool ShowProductInfo { get; set; } = true;
+        [Parameter] public bool ShowDescription { get; set; } = true;
         [Parameter] public bool ShowCurrentStock { get; set; } = false;
         [Parameter] public decimal? CurrentStockQuantity { get; set; }
 

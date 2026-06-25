@@ -2433,7 +2433,8 @@ public class ProductService(
                     .ThenInclude(h => h!.BusinessParty)
                 .Where(r => r.DocumentHeader != null &&
                             !r.DocumentHeader.IsDeleted &&
-                            r.DocumentHeader.Status == DocumentStatus.Archived &&
+                            (r.DocumentHeader.Status == DocumentStatus.Archived ||
+                             r.DocumentHeader.Status == DocumentStatus.Active) &&
                             r.DocumentHeader.DocumentType != null &&
                             r.DocumentHeader.DocumentType.IsStockIncrease == isStockIncrease &&
                             r.DocumentHeader.TenantId == currentTenantId.Value);
