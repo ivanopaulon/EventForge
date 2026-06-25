@@ -53,6 +53,12 @@ namespace Prym.DTOs.Products
         public ProductStatus Status { get; set; }
 
         /// <summary>
+        /// Indicates whether the product entity is active (IsActive flag from AuditableEntity).
+        /// A product can be inactive independently of its <see cref="Status"/> value.
+        /// </summary>
+        public bool IsActive { get; set; } = true;
+
+        /// <summary>
         /// Indicates if the price includes VAT.
         /// </summary>
         public bool IsVatIncluded { get; set; }

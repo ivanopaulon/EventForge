@@ -30,7 +30,7 @@ public class ProductService(
 
     // Product CRUD operations
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -40,7 +40,11 @@ public class ProductService(
                 throw new InvalidOperationException("Tenant context is required for product operations.");
             }
 
-            var query = context.Products.AsNoTracking().WhereActiveTenant(currentTenantId.Value);
+            // When includeInactive is true, show all non-deleted products (including IsActive=false).
+            // Management pages use this to allow admins to see and reactivate inactive products.
+            var query = includeInactive
+                ? context.Products.AsNoTracking().Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
+                : context.Products.AsNoTracking().WhereActiveTenant(currentTenantId.Value);
 
             // Apply search filter if provided (before includes to avoid type conversion issues)
             if (!string.IsNullOrWhiteSpace(searchTerm))
@@ -800,9 +804,15 @@ public class ProductService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for product operations.");
+            }
+
             var productCode = await context.ProductCodes
                 .AsNoTracking()
-                .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
+                .Where(pc => pc.Code == codeValue && !pc.IsDeleted && pc.TenantId == currentTenantId.Value)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.VatRate)       // ✅ Include VatRate for continuous scan
                 .Include(pc => pc.Product)
@@ -1662,6 +1672,7 @@ public class ProductService(
             ImageDocumentId = product.ImageDocumentId,
             ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
             Status = (Prym.DTOs.Common.ProductStatus)product.Status,
+            IsActive = product.IsActive,
             IsVatIncluded = product.IsVatIncluded,
             DefaultPrice = product.DefaultPrice,
             VatRateId = product.VatRateId,
@@ -2431,9 +2442,12 @@ public class ProductService(
                     .ThenInclude(h => h!.DocumentType)
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(h => h!.BusinessParty)
+                // Include both Archived and Active documents: an Active document that has not been
+                // closed yet still represents a real purchase/sale and must appear in price history.
                 .Where(r => r.DocumentHeader != null &&
                             !r.DocumentHeader.IsDeleted &&
-                            r.DocumentHeader.Status == DocumentStatus.Archived &&
+                            (r.DocumentHeader.Status == DocumentStatus.Archived ||
+                             r.DocumentHeader.Status == DocumentStatus.Active) &&
                             r.DocumentHeader.DocumentType != null &&
                             r.DocumentHeader.DocumentType.IsStockIncrease == isStockIncrease &&
                             r.DocumentHeader.TenantId == currentTenantId.Value);
@@ -2528,10 +2542,13 @@ public class ProductService(
 
             var queryTrimmed = query.Trim();
 
-            // Step 1: Try exact match on ProductCodes.Code (case-insensitive)
+            // Step 1: Try exact match on ProductCodes.Code (case-insensitive).
+            // Use only !IsDeleted + TenantId filter (not WhereActiveTenant) so that
+            // ProductCodes with IsActive=false are still reachable via exact scan —
+            // this mirrors the behaviour of GetProductWithCodeByCodeAsync used for barcode ENTER.
             var productCode = await context.ProductCodes
                 .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
+                .Where(pc => !pc.IsDeleted && pc.TenantId == currentTenantId.Value)
                 .Include(pc => pc.Product)
                     .ThenInclude(p => p!.Brand)
                 .Include(pc => pc.Product)
@@ -2540,7 +2557,7 @@ public class ProductService(
                     .ThenInclude(pu => pu!.UnitOfMeasure)
                 .FirstOrDefaultAsync(pc => pc.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
 
-            if (productCode?.Product is not null && productCode.Product.Status == EntityProductStatus.Active)
+            if (productCode?.Product is not null && !productCode.Product.IsDeleted)
             {
                 result.IsExactCodeMatch = true;
                 result.ExactMatch = new ProductWithCodeDto
@@ -2552,15 +2569,17 @@ public class ProductService(
                 return result;
             }
 
-            // Step 2: Try exact match on Product.Code (case-insensitive)
+            // Step 2: Try exact match on Product.Code (case-insensitive).
+            // Also relaxed to include inactive products (IsActive=false / Status != Active)
+            // so the UI can show a warning instead of silently returning no results.
             var productByCode = await context.Products
                 .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
+                .Where(p => !p.IsDeleted && p.TenantId == currentTenantId.Value)
                 .Include(p => p.Brand)
                 .Include(p => p.VatRate)
                 .FirstOrDefaultAsync(p => p.Code != null && p.Code.ToLower() == queryTrimmed.ToLower(), cancellationToken);
 
-            if (productByCode is not null && productByCode.Status == EntityProductStatus.Active)
+            if (productByCode is not null)
             {
                 result.IsExactCodeMatch = true;
                 result.ExactMatch = new ProductWithCodeDto

@@ -17,7 +17,7 @@ public interface IProductService
     /// <param name="classificationNodeId">Optional classification node ID to filter products by category</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
-    Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, CancellationToken cancellationToken = default);
+    Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets a lean product list for POS catalog display.
