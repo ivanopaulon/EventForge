@@ -63,13 +63,9 @@ else if (RecentTransactions != null && RecentTransactions.Any())
 }
 else if (!_isLoading && ProductId.HasValue)
 {
-    <!-- No Transactions Found -->
-    <MudPaper Elevation="1" Class="pa-3 mt-2 bg-grey">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-            <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Info" />
-            <MudText Typo="Typo.body2" Color="Color.Info">
-                @TranslationService.GetTranslation("documents.noRecentTransactions", "Nessuna transazione recente trovata")
-            </MudText>
-        </MudStack>
-    </MudPaper>
+    <!-- No Transactions Found — silent caption only -->
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
+        <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" Class="mr-1" />
+        @TranslationService.GetTranslation("documents.noRecentTransactions", "Nessuno storico prezzi disponibile")
+    </MudText>
 }
