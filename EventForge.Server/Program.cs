@@ -506,6 +506,14 @@ app.UseSession();
 // Enable routing BEFORE static files
 app.UseRouting();
 
+// CORS must run after UseRouting (so the endpoint is known) but before UseAuthentication,
+// UseRateLimiter, and UseAuthorization. This ensures:
+//   1. CORS preflight (OPTIONS) requests are answered with Allow-Origin headers before any
+//      middleware that might short-circuit the pipeline (auth challenge, rate-limit rejection).
+//   2. Cross-origin API calls and SignalR negotiate/WebSocket upgrades receive the correct
+//      Access-Control-Allow-Origin header even when the endpoint requires authorisation.
+app.UseCors();
+
 // Enable Output Cache middleware
 app.UseOutputCache();
 
@@ -552,7 +560,6 @@ app.UseAuthentication();
 // Push per-request context (CorrelationId, UserId, UserName, TenantId, RemoteIpAddress, RequestPath)
 // into Serilog LogContext so dedicated SQL columns are populated on every log entry.
 app.UseRequestContextEnricher();
-app.UseCors();
 #pragma warning disable ASP0001
 app.UseAuthorization();
 #pragma warning restore ASP0001

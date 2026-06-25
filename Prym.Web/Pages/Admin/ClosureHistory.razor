@@ -12,6 +12,8 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject ILogger<ClosureHistory> Logger
+@inject IHttpClientFactory HttpClientFactory
+@inject IAuthService AuthService
 @implements IAsyncDisposable
 
 <PageTitle>Storico Chiusure Fiscali</PageTitle>
@@ -308,7 +310,10 @@
         try
         {
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
+                .WithUrl(new Uri(HttpClientFactory.CreateClient("ApiClient").BaseAddress!, "/hubs/fiscal-printer").ToString(), options =>
+                {
+                    options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
+                })
                 .WithAutomaticReconnect()
                 .Build();
 

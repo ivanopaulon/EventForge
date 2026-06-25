@@ -21,6 +21,7 @@
 @inject IServerConfigOverlayService ServerConfigOverlayService
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IHttpClientService HttpClientService
+@inject IHttpClientFactory HttpClientFactory
 @implements IAsyncDisposable
 
 <MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" IsDarkMode="@ThemeService.IsDarkMode" />
@@ -318,7 +319,10 @@
         try
         {
             _fiscalHubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/fiscal-printer"))
+                .WithUrl(new Uri(HttpClientFactory.CreateClient("ApiClient").BaseAddress!, "/hubs/fiscal-printer").ToString(), options =>
+                {
+                    options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
+                })
                 .WithAutomaticReconnect()
                 .Build();
 

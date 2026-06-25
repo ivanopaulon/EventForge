@@ -5,6 +5,8 @@
 @inject IDialogService DialogService
 @inject ILogger<FiscalPrinterStatusIndicator> Logger
 @inject IAppNotificationService AppNotification
+@inject IHttpClientFactory HttpClientFactory
+@inject IAuthService AuthService
 @implements IAsyncDisposable
 
 @* 
@@ -81,7 +83,10 @@
         try
         {
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
+                .WithUrl(new Uri(HttpClientFactory.CreateClient("ApiClient").BaseAddress!, "/hubs/fiscal-printer").ToString(), options =>
+                {
+                    options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
+                })
                 .WithAutomaticReconnect()
                 .Build();
 

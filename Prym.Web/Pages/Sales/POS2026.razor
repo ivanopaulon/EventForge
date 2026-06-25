@@ -39,6 +39,8 @@
 @inject Prym.Web.Services.Sales.INoteFlagService NoteFlagService
 @inject ILogger<POS2026> Logger
 @inject NavigationManager NavigationManager
+@inject IHttpClientFactory HttpClientFactory
+@inject IAuthService AuthService
 
 <PageTitle>POS 2026</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading || _isLoadingProducts"
