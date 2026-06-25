@@ -270,7 +270,7 @@ builder.Services.AddSwaggerGen(c =>
                 .Replace("Prym.DTOs.", "")
                 .Replace(".", "") ?? "";
             if (namespacePrefix.Length > 0 &&
-                type.Name.StartsWith(namespacePrefix, StringComparison.OrdinalIgnoreCase))
+                type.Name.StartsWith(namespacePrefix, StringComparison.Ordinal))
                 return type.Name;
             return $"{namespacePrefix}{type.Name}";
         }
