@@ -6,6 +6,7 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
 
 namespace EventForge.Tests.Services.Products;
 
@@ -244,6 +245,68 @@ public class ProductServiceBarcodeTests : IDisposable
 
         // Assert
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetProductsAsync_SearchByAliasCode_ReturnsMatchingProduct()
+    {
+        // Arrange - search by a partial alias code
+        var pagination = new PaginationParameters { Page = 1, PageSize = 10 };
+        var searchTerm = "12345"; // partial match of alias code "123456789"
+
+        // Act
+        var result = await _productService.GetProductsAsync(pagination, searchTerm);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Items);
+        Assert.Contains(result.Items, p => p.Id == _productId);
+    }
+
+    [Fact]
+    public async Task GetProductsAsync_SearchByAliasCode_ExcludesDeletedCodes()
+    {
+        // Arrange - add a deleted alias code with a unique search term
+        var deletedCode = new ProductCode
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            ProductId = _productId,
+            Code = "DELETED-ALIAS-XYZ",
+            CodeType = "SKU",
+            Status = Server.Data.Entities.Products.ProductCodeStatus.Active,
+            IsDeleted = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.ProductCodes.Add(deletedCode);
+        await _context.SaveChangesAsync();
+
+        var pagination = new PaginationParameters { Page = 1, PageSize = 10 };
+        var searchTerm = "DELETED-ALIAS-XYZ";
+
+        // Act
+        var result = await _productService.GetProductsAsync(pagination, searchTerm);
+
+        // Assert - deleted alias codes should not surface the product
+        Assert.NotNull(result);
+        Assert.Empty(result.Items);
+    }
+
+    [Fact]
+    public async Task GetProductsForPosCatalogAsync_SearchByAliasCode_ReturnsMatchingProduct()
+    {
+        // Arrange - search by a partial alias code
+        var pagination = new PaginationParameters { Page = 1, PageSize = 10 };
+        var searchTerm = "987654"; // partial match of alias code "987654321"
+
+        // Act
+        var result = await _productService.GetProductsForPosCatalogAsync(pagination, searchTerm);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Items);
+        Assert.Contains(result.Items, p => p.Id == _productId);
     }
 
     public void Dispose()

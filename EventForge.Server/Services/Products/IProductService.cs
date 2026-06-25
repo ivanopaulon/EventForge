@@ -368,7 +368,7 @@ public interface IProductService
     /// <summary>
     /// Performs unified product search with exact code match priority.
     /// First searches for exact match on ProductCodes.Code and Product.Code (case-insensitive).
-    /// If no exact match found, performs text search on Product.Name, ShortDescription, Description, and Brand.Name.
+    /// If no exact match found, performs text search on Product.Name, ShortDescription, Description, Brand.Name, and alias codes (ProductCodes.Code).
     /// </summary>
     /// <param name="query">Search query string</param>
     /// <param name="maxResults">Maximum number of results to return (default: 20)</param>
