@@ -8,62 +8,62 @@
     <PackageVersion Include="Blazored.LocalStorage" Version="4.3.0" />
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <PackageVersion Include="CsvHelper" Version="33.1.0" />
-    <PackageVersion Include="Dapper" Version="2.1.72" />
-    <PackageVersion Include="EPPlus" Version="8.5.1" />
+    <PackageVersion Include="Dapper" Version="2.1.79" />
+    <PackageVersion Include="EPPlus" Version="8.6.1" />
     <PackageVersion Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.9" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.9" />
     <PackageVersion Include="MudBlazor" Version="9.5.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
-    <PackageVersion Include="Serilog.Settings.Configuration" Version="10.0.0" />
-    <PackageVersion Include="Serilog.Sinks.MSSqlServer" Version="9.0.3" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.7" />
-    <PackageVersion Include="Microsoft.OpenApi" Version="2.4.1" />
+    <PackageVersion Include="Serilog.Settings.Configuration" Version="10.0.1" />
+    <PackageVersion Include="Serilog.Sinks.MSSqlServer" Version="10.0.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <PackageVersion Include="Microsoft.OpenApi" Version="3.7.0" />
     <PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
-    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+    <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
     <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.5" />
     <PackageVersion Include="FreeSpire.Barcode" Version="6.6.0" />
-    <PackageVersion Include="SkiaSharp" Version="3.119.2" />
-    <PackageVersion Include="System.IO.Ports" Version="10.0.1" />
+    <PackageVersion Include="SkiaSharp" Version="4.148.0" />
+    <PackageVersion Include="System.IO.Ports" Version="10.0.9" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.9" />
-    <PackageVersion Include="Microsoft.Bcl.Cryptography" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.Bcl.Cryptography" Version="10.0.9" />
     <PackageVersion Include="System.Security.Cryptography.X509Certificates" Version="4.3.2" />
     <!-- Health Checks and Resiliency packages -->
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.9" />
     <PackageVersion Include="AspNetCore.HealthChecks.SqlServer" Version="9.0.0" />
     <!-- Redis packages for distributed caching and sessions -->
-    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.9" />
     <PackageVersion Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />
     <!-- Polly for resiliency and transient fault handling -->
     <PackageVersion Include="Polly" Version="8.7.0" />
     <!-- Document Export packages -->
-    <PackageVersion Include="QuestPDF" Version="2026.2.4" />
+    <PackageVersion Include="QuestPDF" Version="2026.6.1" />
     <PackageVersion Include="ClosedXML" Version="0.105.0" />
     <!-- FluentValidation packages -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
     <!-- Test packages -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.3.0" />
-    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageVersion Include="System.ServiceProcess.ServiceController" Version="10.0.9" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
-    <PackageVersion Include="coverlet.collector" Version="8.0.1" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.5" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.9" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <!-- NUnit and Playwright packages for E2E tests -->
     <PackageVersion Include="NUnit" Version="4.3.0" />
@@ -79,21 +79,21 @@
     <PackageVersion Include="MiniProfiler.EntityFrameworkCore" Version="4.5.4" />
     <!-- Setup Wizard and Background Services -->
     <PackageVersion Include="ncrontab" Version="3.4.0" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.5" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.0.2" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.9" />
     <!-- Automatic git-based versioning -->
-    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50">
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.10.85">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
     <!-- Syncfusion Blazor Scheduler for calendar/event management -->
-    <PackageVersion Include="Syncfusion.Blazor.Schedule" Version="33.2.13" />
-    <PackageVersion Include="Syncfusion.Blazor.Themes" Version="33.2.13" />
+    <PackageVersion Include="Syncfusion.Blazor.Schedule" Version="33.2.15" />
+    <PackageVersion Include="Syncfusion.Blazor.Themes" Version="33.2.15" />
     <!-- Syncfusion Blazor Rich Text Editor and In-Place Editor for chat composition/editing -->
-    <PackageVersion Include="Syncfusion.Blazor.RichTextEditor" Version="33.2.13" />
-    <PackageVersion Include="Syncfusion.Blazor.InPlaceEditor" Version="33.2.13" />
+    <PackageVersion Include="Syncfusion.Blazor.RichTextEditor" Version="33.2.15" />
+    <PackageVersion Include="Syncfusion.Blazor.InPlaceEditor" Version="33.2.15" />
     <!-- Bold Reports - server-side RDLC report processing and export (Community License) -->
-    <PackageVersion Include="BoldReports.Net.Core" Version="13.1.27" />
+    <PackageVersion Include="BoldReports.Net.Core" Version="13.1.38" />
     <!-- Roslyn CodeAnalysis: pin to highest version to resolve conflict between EF Core Design (5.0.0) and BoldReports (4.14.0) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="5.0.0" />
     <!-- HTML sanitization for user-generated rich content -->
