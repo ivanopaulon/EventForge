@@ -17,6 +17,7 @@
 @inject ITranslationService TranslationService
 @inject ILogger<DocumentDetailDialog> Logger
 @inject IRealtimeService RealtimeService
+@inject IProductService ProductService
 
 <MudDialog Class="doc-detail-fs-dialog">
     <DialogContent>
@@ -523,6 +524,8 @@
     // Search functionality
     private string _searchQuery = string.Empty;
     private List<DocumentRowDto>? _filteredRows;
+    // Product IDs matched by barcode/alias-code lookup (populated asynchronously in OnTableSearch)
+    private HashSet<Guid> _barcodeMatchedProductIds = new();
 
     private void UpdateFilteredRows()
     {
@@ -540,7 +543,8 @@
             (!string.IsNullOrEmpty(row.ProductCode) &&
              row.ProductCode.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)) ||
             (!string.IsNullOrEmpty(row.Description) &&
-             row.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase))
+             row.Description.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+            (row.ProductId.HasValue && _barcodeMatchedProductIds.Contains(row.ProductId.Value))
         ).ToList();
     }
 
@@ -1347,9 +1351,28 @@
         return string.Join("_", parts).Replace("/", "-").Replace(" ", "_");
     }
 
-    private void OnTableSearch(string value)
+    private async Task OnTableSearch(string value)
     {
         _searchQuery = value ?? string.Empty;
+        _barcodeMatchedProductIds.Clear();
+
+        if (!string.IsNullOrWhiteSpace(_searchQuery))
+        {
+            try
+            {
+                var searchResult = await ProductService.SearchProductsAsync(_searchQuery);
+                if (searchResult?.ExactMatch?.Product != null)
+                    _barcodeMatchedProductIds.Add(searchResult.ExactMatch.Product.Id);
+                if (searchResult?.SearchResults != null)
+                    foreach (var p in searchResult.SearchResults)
+                        _barcodeMatchedProductIds.Add(p.Id);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogDebug(ex, "Product barcode search failed for query '{Query}' in document rows filter.", _searchQuery);
+            }
+        }
+
         UpdateFilteredRows();
         StateHasChanged();
     }
