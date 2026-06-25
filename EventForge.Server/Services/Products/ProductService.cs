@@ -2442,6 +2442,8 @@ public class ProductService(
                     .ThenInclude(h => h!.DocumentType)
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(h => h!.BusinessParty)
+                // Include both Archived and Active documents: an Active document that has not been
+                // closed yet still represents a real purchase/sale and must appear in price history.
                 .Where(r => r.DocumentHeader != null &&
                             !r.DocumentHeader.IsDeleted &&
                             (r.DocumentHeader.Status == DocumentStatus.Archived ||

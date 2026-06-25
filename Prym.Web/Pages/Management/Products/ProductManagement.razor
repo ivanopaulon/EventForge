@@ -193,6 +193,8 @@
             QuickFilters = new()
             {
                 new() { Id = "all", Label = "Tutti", Predicate = _ => true },
+                // Uses IsActive (AuditableEntity flag) — symmetric complement of the "Inattivi" filter.
+                // ProductStatus enum is a separate field; IsActive is the authoritative enabled/disabled flag.
                 new() { Id = "active", Label = "Attivi", Predicate = p => p.IsActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle },
                 new() { Id = "inactive", Label = "Inattivi", Predicate = p => !p.IsActive, Color = Color.Warning, Icon = Icons.Material.Outlined.PauseCircle },
                 new() { Id = "bundle", Label = "Bundle", Predicate = p => p.IsBundle, Color = Color.Info, Icon = Icons.Material.Outlined.Inventory },

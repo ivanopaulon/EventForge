@@ -111,6 +111,10 @@ namespace Prym.Web.Shared.Components
         /// </summary>
         [Parameter] public bool ShowProductInfo { get; set; } = true;
 
+        /// <summary>
+        /// When <c>true</c> (default), shows the product description in the <see cref="ProductInfoDisplayMode.Full"/>
+        /// info panel. Has no effect in <c>Compact</c>, <c>SearchOnly</c>, or <c>None</c> modes.
+        /// </summary>
         [Parameter] public bool ShowDescription { get; set; } = true;
         [Parameter] public bool ShowCurrentStock { get; set; } = false;
         [Parameter] public decimal? CurrentStockQuantity { get; set; }
