@@ -19,7 +19,7 @@ public interface IProductService
     // NEW: dettagli prodotto (include codes/units/bundle-items)
     Task<ProductDto?> GetProductDetailAsync(Guid id, CancellationToken ct = default);
 
-    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, CancellationToken ct = default);
+    Task<PagedResult<ProductDto>?> GetProductsAsync(int page = 1, int pageSize = 20, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, string? quickFilter = null, CancellationToken ct = default);
 
     /// <summary>
     /// Gets a lean product catalog for POS display (excludes Codes, Units, BundleItems).

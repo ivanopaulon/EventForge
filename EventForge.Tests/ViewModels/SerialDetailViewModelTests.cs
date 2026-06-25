@@ -197,7 +197,7 @@ public class SerialDetailViewModelTests : IDisposable
         };
 
         _mockProductService
-            .Setup(s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedProducts);
 
         await _viewModel.LoadEntityAsync(Guid.Empty);
@@ -208,7 +208,7 @@ public class SerialDetailViewModelTests : IDisposable
         // Assert
         Assert.Single(results);
         _mockProductService.Verify(
-            s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<CancellationToken>()),
+            s => s.GetProductsAsync(1, 50, searchTerm, It.IsAny<Guid?>(), It.IsAny<bool>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

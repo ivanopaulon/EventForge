@@ -15,15 +15,18 @@ public class ProductManagementService : IEntityManagementService<ProductDto>
     {
         Guid? classificationNodeId = null;
         bool includeInactive = true; // Management page always shows all products (including inactive)
+        string? quickFilter = null;
         if (filters != null)
         {
             if (filters.TryGetValue("ClassificationNodeId", out var rawId) && rawId is Guid guid)
                 classificationNodeId = guid;
             if (filters.TryGetValue("IncludeInactive", out var rawInactive) && rawInactive is bool inactive)
                 includeInactive = inactive;
+            if (filters.TryGetValue("QuickFilter", out var rawQf) && rawQf is string qf)
+                quickFilter = qf;
         }
 
-        return await _productService.GetProductsAsync(page, pageSize, searchTerm, classificationNodeId, includeInactive, ct) ?? new PagedResult<ProductDto>();
+        return await _productService.GetProductsAsync(page, pageSize, searchTerm, classificationNodeId, includeInactive, quickFilter, ct) ?? new PagedResult<ProductDto>();
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)

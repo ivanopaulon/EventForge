@@ -30,7 +30,7 @@ public class ProductService(
 
     // Product CRUD operations
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, string? quickFilter = null, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -68,6 +68,21 @@ public class ProductService(
                     (p.CategoryNodeId.HasValue && descendantIds.Contains(p.CategoryNodeId.Value)) ||
                     (p.FamilyNodeId.HasValue && descendantIds.Contains(p.FamilyNodeId.Value)) ||
                     (p.GroupNodeId.HasValue && descendantIds.Contains(p.GroupNodeId.Value)));
+            }
+
+            // Apply quick filter if provided (management page chip filters mapped to server-side predicates).
+            if (!string.IsNullOrWhiteSpace(quickFilter))
+            {
+                query = quickFilter switch
+                {
+                    "active" => query.Where(p => p.IsActive),
+                    "inactive" => query.Where(p => !p.IsActive),
+                    "bundle" => query.Where(p => p.IsBundle),
+                    "simple" => query.Where(p => !p.IsBundle),
+                    "with_images" => query.Where(p => p.ImageDocumentId != null),
+                    "recent" => query.Where(p => p.CreatedAt >= DateTime.UtcNow.AddDays(-30)),
+                    _ => query
+                };
             }
 
             // For the paginated list view, navigation collections (Codes, Units, BundleItems, ImageDocument)

@@ -68,13 +68,14 @@ public class ProductManagementController(
         [FromQuery] string? searchTerm = null,
         [FromQuery] Guid? classificationNodeId = null,
         [FromQuery] bool includeInactive = false,
+        [FromQuery] string? quickFilter = null,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var result = await productService.GetProductsAsync(pagination, searchTerm, classificationNodeId, includeInactive, cancellationToken);
+            var result = await productService.GetProductsAsync(pagination, searchTerm, classificationNodeId, includeInactive, quickFilter, cancellationToken);
 
             SetPaginationHeaders(result, pagination);
 
