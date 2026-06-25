@@ -1462,7 +1462,10 @@ public partial class POS2026 : IAsyncDisposable
             }
 
             _fiscalHubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/fiscal-printer"))
+                .WithUrl(new Uri(HttpClientFactory.CreateClient("ApiClient").BaseAddress!, "/hubs/fiscal-printer").ToString(), options =>
+                {
+                    options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
+                })
                 .WithAutomaticReconnect()
                 .Build();
 

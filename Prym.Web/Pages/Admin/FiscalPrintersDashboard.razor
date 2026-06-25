@@ -17,6 +17,8 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavigationManager
 @inject ILogger<FiscalPrintersDashboard> Logger
+@inject IHttpClientFactory HttpClientFactory
+@inject IAuthService AuthService
 @implements IAsyncDisposable
 
 <PageTitle>Stampanti Fiscali – Dashboard</PageTitle>
@@ -334,7 +336,10 @@
         try
         {
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl("/hubs/fiscal-printer")
+                .WithUrl(new Uri(HttpClientFactory.CreateClient("ApiClient").BaseAddress!, "/hubs/fiscal-printer").ToString(), options =>
+                {
+                    options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
+                })
                 .WithAutomaticReconnect()
                 .Build();
 

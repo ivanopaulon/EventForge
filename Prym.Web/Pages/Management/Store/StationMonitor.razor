@@ -14,6 +14,7 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<StationMonitor> Logger
 @inject IAppNotificationService AppNotification
+@inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Monitor Stazione</PageTitle>
 
@@ -267,7 +268,7 @@
         try
         {
             _hubConnection = new HubConnectionBuilder()
-                .WithUrl(NavigationManager.ToAbsoluteUri("/hubs/station-monitor"), options =>
+                .WithUrl(new Uri(HttpClientFactory.CreateClient("ApiClient").BaseAddress!, "/hubs/station-monitor").ToString(), options =>
                 {
                     options.AccessTokenProvider = () => AuthService.GetAccessTokenAsync();
                 })
