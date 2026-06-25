@@ -312,6 +312,12 @@ public class WarehouseFacade(
     public Task<RebuildMovementsResultDto> RebuildMissingMovementsFromDocumentsAsync(RebuildMovementsRequestDto request, string currentUser, CancellationToken cancellationToken = default)
         => stockReconciliationService.RebuildMissingMovementsFromDocumentsAsync(request, currentUser, cancellationToken);
 
+    public Task<NegativeMovementsReportDto> GetNegativeMovementsAsync(CancellationToken cancellationToken = default)
+        => stockReconciliationService.GetNegativeMovementsAsync(cancellationToken);
+
+    public Task<FixNegativeMovementsResultDto> FixNegativeMovementsAsync(bool dryRun, string currentUser, CancellationToken cancellationToken = default)
+        => stockReconciliationService.FixNegativeMovementsAsync(dryRun, currentUser, cancellationToken);
+
     #endregion
 
     #region Export Operations

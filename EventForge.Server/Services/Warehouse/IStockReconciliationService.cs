@@ -67,4 +67,25 @@ public interface IStockReconciliationService
         RebuildMovementsRequestDto request,
         string currentUser,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns all StockMovement rows with Quantity &lt; 0 for the current tenant.
+    /// These are legacy anomalies that should be normalised via
+    /// <see cref="FixNegativeMovementsAsync"/>.
+    /// </summary>
+    Task<NegativeMovementsReportDto> GetNegativeMovementsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Normalises negative-quantity StockMovement rows by negating their Quantity so it
+    /// becomes positive.  Stock levels are also corrected for every affected
+    /// product/location pair: the legacy negative value was incorrectly subtracting from
+    /// the balance; flipping the sign (twice the absolute value added as correction) restores
+    /// the correct net.
+    /// <para>When <paramref name="dryRun"/> is <c>true</c> no changes are persisted.</para>
+    /// </summary>
+    Task<FixNegativeMovementsResultDto> FixNegativeMovementsAsync(
+        bool dryRun,
+        string currentUser,
+        CancellationToken cancellationToken = default);
 }

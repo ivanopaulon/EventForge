@@ -203,9 +203,72 @@ public class StockReconciliationTests : IDisposable
 
     #endregion
 
-    #region IsReconciliationAdjustment filter
+    #region Transfer document support
 
     [Fact]
+    public async Task RebuildMissingMovements_TransferDocument_DryRun_ReturnsTransferMovementType()
+    {
+        // Arrange: seed a document type marked as transfer document
+        var docTypeId = Guid.NewGuid();
+        _context.DocumentTypes.Add(new DocumentType
+        {
+            Id = docTypeId,
+            TenantId = _tenantId,
+            Name = "Transfer Type",
+            Code = "TRF",
+            CreatesStockMovements = true,
+            MovesStockOnRowChange = false,
+            IsInventoryDocument = false,
+            IsTransferDocument = true,
+            IsStockIncrease = false,
+            IsDeleted = false,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "seed"
+        });
+
+        var docId = Guid.NewGuid();
+        _context.DocumentHeaders.Add(new DocumentHeader
+        {
+            Id = docId,
+            TenantId = _tenantId,
+            DocumentTypeId = docTypeId,
+            Number = "TRF-001",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = Guid.NewGuid(),
+            Status = EntityDocumentStatus.Archived,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "seed"
+        });
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            DocumentHeaderId = docId,
+            ProductId = Guid.NewGuid(),
+            Quantity = 3m,
+            UnitPrice = 5m,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "seed"
+        });
+        await _context.SaveChangesAsync();
+
+        var request = new RebuildMovementsRequestDto { DryRun = true, UpdateExisting = false };
+
+        // Act
+        var result = await _service.RebuildMissingMovementsFromDocumentsAsync(request, "test-user");
+
+        // Assert: the document was scanned and the resulting item has MovementType = "Transfer"
+        Assert.NotNull(result);
+        Assert.True(result.IsDryRun);
+        Assert.Equal(1, result.DocumentsScanned);
+        var item = result.Items.FirstOrDefault(i => i.DocumentNumber == "TRF-001");
+        Assert.NotNull(item);
+        Assert.Equal("Transfer", item.MovementType);
+    }
+
+    #endregion
+
+    #region IsReconciliationAdjustment filter    [Fact]
     public async Task GetStockIdsForReconciliation_StockWithReconciliationMovementOnly_DoesNotExcludeStock()
     {
         // GetStockIdsForReconciliation queries Stock entities, not movements — just verifies non-empty return

@@ -285,6 +285,39 @@
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary ml-8">
                                         @TranslationService.GetTranslation("rebuildMovements.forceRecalculateHint", "Se attivo, sovrascrive la quantità di ogni giacenza con il netto calcolato dai movimenti storici (Entrate − Uscite). Usa questa opzione per correggere saldi negativi dovuti a movimenti mancanti o errati.")
                                     </MudText>
+                                    @if (_rebuild_forceRecalculate)
+                                    {
+                                        <div class="mt-2 ml-8">
+                                            <MudNumericField @bind-Value="_rebuild_startingQuantity"
+                                                             T="decimal"
+                                                             Label="@TranslationService.GetTranslation("rebuildMovements.startingQuantity", "Quantità di partenza (Opening Balance)")"
+                                                             Variant="Variant.Outlined"
+                                                             Margin="Margin.Dense"
+                                                             Min="0"
+                                                             Step="1"
+                                                             HideSpinButtons="false" />
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                @TranslationService.GetTranslation("rebuildMovements.startingQuantityHint", "Quantità iniziale da sommare al netto movimenti per ogni giacenza. Usare 0 se non si conosce la giacenza di apertura.")
+                                            </MudText>
+                                        </div>
+                                    }
+                                    <MudDivider Class="my-2" />
+                                    <MudText Typo="Typo.subtitle2" Class="mt-1 mb-1">
+                                        @TranslationService.GetTranslation("rebuildMovements.scopeTitle", "Ambito elaborazione")
+                                    </MudText>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <MudCheckBox @bind-Value="_rebuild_allDates" Dense="true" Color="Color.Warning"
+                                                     Label="@TranslationService.GetTranslation("rebuildMovements.allDates", "Tutte le date (ignora filtro periodo)")" />
+                                        <MudCheckBox @bind-Value="_rebuild_allWarehouses" Dense="true" Color="Color.Warning"
+                                                     Label="@TranslationService.GetTranslation("rebuildMovements.allWarehouses", "Tutti i magazzini (ignora filtro magazzino)")" />
+                                    </div>
+                                    @if (_rebuild_allDates || _rebuild_allWarehouses)
+                                    {
+                                        <MudAlert Severity="Severity.Warning" Class="mt-2" Dense="true">
+                                            @TranslationService.GetTranslation("rebuildMovements.broadScopeWarning",
+                                                "Attenzione: l'elaborazione riguarderà un grande numero di documenti. Verificare i filtri prima di procedere.")
+                                        </MudAlert>
+                                    }
                                 </MudItem>
                             </MudGrid>
                         </MudStep>
@@ -374,6 +407,7 @@
                                                 <MudTh>@TranslationService.GetTranslation("field.productName", "Prodotto")</MudTh>
                                                 <MudTh>@TranslationService.GetTranslation("field.type", "Tipo")</MudTh>
                                                 <MudTh>@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
+                                               <MudTh>@TranslationService.GetTranslation("field.unitCost", "Costo Unit.")</MudTh>
                                             </HeaderContent>
                                             <RowTemplate>
                                                 <MudTd>
@@ -384,15 +418,20 @@
                                                 </MudTd>
                                                 <MudTd>
                                                     <MudChip T="string" Size="Size.Small"
-                                                             Color="@(context.MovementType == "Inbound" ? Color.Success : Color.Warning)"
+                                                             Color="@(context.MovementType == "Inbound" ? Color.Success : context.MovementType == "Transfer" ? Color.Info : Color.Warning)"
                                                              Variant="Variant.Outlined">
                                                         @(context.MovementType == "Inbound"
                                                             ? TranslationService.GetTranslation("rebuildMovements.inbound", "↑ Entrata")
-                                                            : TranslationService.GetTranslation("rebuildMovements.outbound", "↓ Uscita"))
+                                                            : context.MovementType == "Transfer"
+                                                                ? TranslationService.GetTranslation("rebuildMovements.transfer", "⇄ Trasferimento")
+                                                                : TranslationService.GetTranslation("rebuildMovements.outbound", "↓ Uscita"))
                                                     </MudChip>
                                                 </MudTd>
                                                 <MudTd>
                                                     <MudText Typo="Typo.body2" Class="fw-semibold">@context.Quantity.ToString("N2")</MudText>
+                                                </MudTd>
+                                                <MudTd>
+                                                    <MudText Typo="Typo.body2">@(context.UnitCost.HasValue ? context.UnitCost.Value.ToString("N2") : "-")</MudText>
                                                 </MudTd>
                                             </RowTemplate>
                                         </MudTable>
@@ -786,6 +825,129 @@
                 }
             </MudTabPanel>
 
+            @* ══════════════════════════════════════════════════════
+               Tab 3 – Anomalie movimenti
+               ══════════════════════════════════════════════════════ *@
+            <MudTabPanel Icon="@Icons.Material.Outlined.ErrorOutline"
+                         Text='@TranslationService.GetTranslation("stock.maintenance.tab.anomalies", "Anomalie")'>
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex align-center gap-2">
+                        <MudText Typo="Typo.subtitle1">
+                            <MudIcon Icon="@Icons.Material.Outlined.ErrorOutline" Class="mr-1" />
+                            @TranslationService.GetTranslation("anomalies.negativeMovements.title", "Movimenti con Quantità Negativa")
+                        </MudText>
+                        <MudSpacer />
+                        <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
+                                   Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   Disabled="@_anom_isLoading"
+                                   OnClick="@LoadNegativeMovementsAsync">
+                            @TranslationService.GetTranslation("common.load", "Carica")
+                        </MudButton>
+                    </div>
+
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @TranslationService.GetTranslation("anomalies.negativeMovements.description",
+                            "Individua i movimenti di magazzino con quantità negativa (anomalie legacy). La bonifica inverte il segno e corregge le giacenze associate.")
+                    </MudText>
+
+                    @if (_anom_isLoading)
+                    {
+                        <div class="d-flex justify-center pa-6">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else if (_anom_report != null)
+                    {
+                        <div class="d-flex flex-wrap gap-3 mb-2">
+                            <MudPaper Class="pa-3 d-flex flex-column align-center" Elevation="1" Style="min-width:120px">
+                                <MudText Typo="Typo.h5" Color="@(_anom_report.TotalNegative > 0 ? Color.Error : Color.Success)">
+                                    @_anom_report.TotalNegative
+                                </MudText>
+                                <MudText Typo="Typo.caption">@TranslationService.GetTranslation("anomalies.negativeMovements.count", "Anomalie trovate")</MudText>
+                            </MudPaper>
+                        </div>
+
+                        @if (_anom_report.TotalNegative == 0)
+                        {
+                            <MudAlert Severity="Severity.Success">
+                                @TranslationService.GetTranslation("anomalies.negativeMovements.none", "Nessun movimento negativo trovato. Il magazzino è integro.")
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <div class="mh-280-scroll">
+                                <MudTable Items="@_anom_report.Items"
+                                          Dense="true" Striped="true" Hover="true" Elevation="0">
+                                    <HeaderContent>
+                                        <MudTh>@TranslationService.GetTranslation("field.product", "Prodotto")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.warehouse", "Magazzino")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.reason", "Causale")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.quantity", "Qtà")</MudTh>
+                                        <MudTh>@TranslationService.GetTranslation("field.date", "Data")</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd><MudText Typo="Typo.body2">@context.ProductName</MudText></MudTd>
+                                        <MudTd><MudText Typo="Typo.body2">@(context.WarehouseName ?? "-")</MudText></MudTd>
+                                        <MudTd><MudText Typo="Typo.body2">@context.Reason</MudText></MudTd>
+                                        <MudTd>
+                                            <MudText Typo="Typo.body2" Color="Color.Error" Class="fw-semibold">
+                                                @context.Quantity.ToString("N2")
+                                            </MudText>
+                                        </MudTd>
+                                        <MudTd><MudText Typo="Typo.body2">@context.MovementDate.ToString("dd/MM/yyyy")</MudText></MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            </div>
+
+                            <div class="d-flex gap-2 mt-2">
+                                <MudButton StartIcon="@Icons.Material.Outlined.Preview"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Info"
+                                           Disabled="@_anom_isFixing"
+                                           OnClick="@(async () => await FixNegativeMovementsAsync(true))">
+                                    @TranslationService.GetTranslation("anomalies.dryRun", "Anteprima bonifica")
+                                </MudButton>
+                                <MudButton StartIcon="@Icons.Material.Outlined.Build"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Warning"
+                                           Disabled="@_anom_isFixing"
+                                           OnClick="@(async () => await FixNegativeMovementsAsync(false))">
+                                    @TranslationService.GetTranslation("anomalies.applyFix", "Applica bonifica")
+                                </MudButton>
+                            </div>
+                        }
+
+                        @if (_anom_fixResult != null)
+                        {
+                            <MudAlert Severity="@(_anom_fixResult.Errors == 0 ? Severity.Success : Severity.Warning)" Class="mt-2">
+                                @if (_anom_fixResult.IsDryRun)
+                                {
+                                    <strong>@TranslationService.GetTranslation("anomalies.dryRunResult", "Anteprima:")</strong>
+                                    <span>@TranslationService.GetTranslationFormatted("anomalies.fixPreviewDetail",
+                                        " {0} movimenti verranno corretti, {1} giacenze aggiornate.",
+                                        _anom_fixResult.MovementsFixed, _anom_fixResult.StocksAdjusted)</span>
+                                }
+                                else
+                                {
+                                    <strong>@TranslationService.GetTranslation("anomalies.applied", "Bonifica applicata:")</strong>
+                                    <span>@TranslationService.GetTranslationFormatted("anomalies.fixAppliedDetail",
+                                        " {0} movimenti corretti, {1} giacenze aggiornate, {2} errori.",
+                                        _anom_fixResult.MovementsFixed, _anom_fixResult.StocksAdjusted, _anom_fixResult.Errors)</span>
+                                }
+                            </MudAlert>
+                        }
+                    }
+                    else
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            @TranslationService.GetTranslation("anomalies.loadPrompt", "Fare clic su 'Carica' per analizzare i movimenti con quantità negativa.")
+                        </MudAlert>
+                    }
+                </div>
+            </MudTabPanel>
+
         </MudTabs>
     </ChildContent>
 </EFDialog>
@@ -800,7 +962,7 @@
     [Parameter] public int InitialTab { get; set; } = 0;
 
     // ── General ──────────────────────────────────────────────
-    private bool _isProcessing => _recon_isLoading || _recon_isBulkApplying || _recon_isExporting || _rebuild_isLoading || _snapshot_isLoading;
+    private bool _isProcessing => _recon_isLoading || _recon_isBulkApplying || _recon_isExporting || _rebuild_isLoading || _snapshot_isLoading || _anom_isLoading || _anom_isFixing;
     private int _activeTab = 0;
     private bool _shouldReload = false;
     private bool _tab1Initialized = false;
@@ -1047,6 +1209,9 @@
     private bool _rebuild_includeArchived = true;
     private bool _rebuild_updateExisting = true;
     private bool _rebuild_forceRecalculate = false;
+    private decimal _rebuild_startingQuantity = 0m;
+    private bool _rebuild_allDates = false;
+    private bool _rebuild_allWarehouses = false;
 
     // Reference data (document types only — warehouses shared)
     private List<DocumentTypeDto> _documentTypes = new();
@@ -1200,13 +1365,16 @@
         return new RebuildMovementsRequestDto
         {
             DryRun = dryRun,
-            FromDate = _rebuild_fromDate.HasValue ? DateTime.SpecifyKind(_rebuild_fromDate.Value, DateTimeKind.Utc) : null,
-            ToDate = _rebuild_toDate.HasValue ? DateTime.SpecifyKind(_rebuild_toDate.Value, DateTimeKind.Utc) : null,
-            WarehouseId = _rebuild_warehouseId,
+            FromDate = (_rebuild_allDates || !_rebuild_fromDate.HasValue) ? null
+                : DateTime.SpecifyKind(_rebuild_fromDate.Value, DateTimeKind.Utc),
+            ToDate = (_rebuild_allDates || !_rebuild_toDate.HasValue) ? null
+                : DateTime.SpecifyKind(_rebuild_toDate.Value, DateTimeKind.Utc),
+            WarehouseId = _rebuild_allWarehouses ? null : _rebuild_warehouseId,
             DocumentTypeId = _rebuild_documentTypeId,
             DocumentStatuses = documentStatuses.Count > 0 ? documentStatuses : null,
             UpdateExisting = _rebuild_updateExisting,
-            ForceRecalculateFromMovements = _rebuild_forceRecalculate
+            ForceRecalculateFromMovements = _rebuild_forceRecalculate,
+            StartingQuantity = _rebuild_forceRecalculate ? _rebuild_startingQuantity : 0m
         };
     }
 
@@ -1416,6 +1584,61 @@
         if (_tab2Initialized) return;
         await InitTab2Async();
         _tab2Initialized = true;
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // TAB 3 – Anomalie (negative movements)
+    // ══════════════════════════════════════════════════════════
+    private bool _anom_isLoading = false;
+    private bool _anom_isFixing = false;
+    private NegativeMovementsReportDto? _anom_report;
+    private FixNegativeMovementsResultDto? _anom_fixResult;
+
+    private async Task LoadNegativeMovementsAsync()
+    {
+        _anom_isLoading = true;
+        _anom_fixResult = null;
+        StateHasChanged();
+        try
+        {
+            _anom_report = await StockReconciliationService.GetNegativeMovementsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading negative movements");
+            AppNotification.ShowError(TranslationService.GetTranslation("anomalies.loadError", "Errore nel caricamento delle anomalie"));
+        }
+        finally
+        {
+            _anom_isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task FixNegativeMovementsAsync(bool dryRun)
+    {
+        _anom_isFixing = true;
+        StateHasChanged();
+        try
+        {
+            _anom_fixResult = await StockReconciliationService.FixNegativeMovementsAsync(dryRun);
+            if (_anom_fixResult != null && !dryRun)
+            {
+                _shouldReload = true;
+                // Reload the report to reflect the fix
+                await LoadNegativeMovementsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error fixing negative movements");
+            AppNotification.ShowError(TranslationService.GetTranslation("anomalies.fixError", "Errore durante la bonifica"));
+        }
+        finally
+        {
+            _anom_isFixing = false;
+            StateHasChanged();
+        }
     }
 
     private void Close()

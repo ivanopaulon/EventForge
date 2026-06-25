@@ -1,3 +1,4 @@
+using EventForge.Server.Data.Entities.Warehouse;
 using Prym.DTOs.Documents;
 
 namespace EventForge.Server.Mappers;
@@ -26,6 +27,10 @@ public static class DocumentTypeMapper
             IsInventoryDocument = documentType.IsInventoryDocument,
             CreatesStockMovements = documentType.CreatesStockMovements,
             MovesStockOnRowChange = documentType.MovesStockOnRowChange,
+            IsTransferDocument = documentType.IsTransferDocument,
+            DefaultMovementReason = documentType.DefaultMovementReason.HasValue
+                ? documentType.DefaultMovementReason.Value.ToString()
+                : null,
             CreatedAt = documentType.CreatedAt,
             CreatedBy = documentType.CreatedBy,
             ModifiedAt = documentType.ModifiedAt,
@@ -57,7 +62,9 @@ public static class DocumentTypeMapper
             Notes = dto.Notes,
             IsInventoryDocument = dto.IsInventoryDocument,
             CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements,
-            MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange
+            MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange,
+            IsTransferDocument = !dto.IsInventoryDocument && dto.IsTransferDocument,
+            DefaultMovementReason = ParseMovementReason(dto.DefaultMovementReason)
         };
     }
 
@@ -76,5 +83,14 @@ public static class DocumentTypeMapper
         entity.IsInventoryDocument = dto.IsInventoryDocument;
         entity.CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements;
         entity.MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange;
+        entity.IsTransferDocument = !dto.IsInventoryDocument && dto.IsTransferDocument;
+        entity.DefaultMovementReason = ParseMovementReason(dto.DefaultMovementReason);
+    }
+
+    private static StockMovementReason? ParseMovementReason(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null;
+        return Enum.TryParse<StockMovementReason>(value, out var reason) ? reason : null;
     }
 }

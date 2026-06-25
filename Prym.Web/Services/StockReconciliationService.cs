@@ -116,6 +116,34 @@ public class StockReconciliationService(
         }
     }
 
+    public async Task<NegativeMovementsReportDto?> GetNegativeMovementsAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<NegativeMovementsReportDto>(
+                $"{BaseUrl}/negative-movements", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving negative movements");
+            return null;
+        }
+    }
+
+    public async Task<FixNegativeMovementsResultDto?> FixNegativeMovementsAsync(bool dryRun, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, FixNegativeMovementsResultDto>(
+                $"{BaseUrl}/negative-movements/fix?dryRun={dryRun}", new { }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error fixing negative movements");
+            return null;
+        }
+    }
+
     private static string BuildQueryString(StockReconciliationRequestDto request)
     {
         List<KeyValuePair<string, string>> queryParams = [];

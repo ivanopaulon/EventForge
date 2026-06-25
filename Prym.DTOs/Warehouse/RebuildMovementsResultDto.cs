@@ -70,6 +70,13 @@ public class RebuildMovementsRowResultDto
     public decimal Quantity { get; set; }
 
     /// <summary>
+    /// Effective unit cost that will be written to (or was read from) the StockMovement.
+    /// Populated for both Created and Updated items in DryRun mode and during the actual run.
+    /// Null when UnitPrice was zero or the document row had no pricing information.
+    /// </summary>
+    public decimal? UnitCost { get; set; }
+
+    /// <summary>
     /// Status of this row: "Created", "Updated", "AlreadyExists", "SkippedNoLocation", "Error".
     /// </summary>
     public string Status { get; set; } = string.Empty;

@@ -130,6 +130,35 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
+                        <MudSwitch @bind-Value="DocumentTypeIsTransferDocument"
+                                   @bind-Value:after="@(() => MarkChanged())"
+                                   Label="@TranslationService.GetTranslation("field.isTransferDocument", "Documento di Trasferimento")"
+                                   Color="Color.Info"
+                                   ThumbIcon="@(DocumentTypeIsTransferDocument ? Icons.Material.Filled.SwapHoriz : Icons.Material.Filled.Cancel)" />
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.isTransferDocument", "Se attivo, la ricostruzione movimenti genera un movimento di tipo Trasferimento invece di Entrata/Uscita.")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect @bind-Value="DocumentTypeDefaultMovementReason"
+                                   @bind-Value:after="@(() => MarkChanged())"
+                                   Label="@TranslationService.GetTranslation("field.defaultMovementReason", "Causale Movimento Default")"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Clearable="true">
+                            <MudSelectItem T="string?" Value="@("Purchase")">@TranslationService.GetTranslation("movementReason.purchase", "Acquisto")</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Sale")">@TranslationService.GetTranslation("movementReason.sale", "Vendita")</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Return")">@TranslationService.GetTranslation("movementReason.return", "Reso")</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Transfer")">@TranslationService.GetTranslation("movementReason.transfer", "Trasferimento")</MudSelectItem>
+                            <MudSelectItem T="string?" Value="@("Adjustment")">@TranslationService.GetTranslation("movementReason.adjustment", "Rettifica")</MudSelectItem>
+                        </MudSelect>
+                        <MudText Typo="Typo.caption" Class="mud-input-helper-text">
+                            @TranslationService.GetTranslation("documentType.helperText.defaultMovementReason", "Causale usata durante la ricostruzione movimenti. Se non impostata, viene derivata da Entrata/Uscita.")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
                         <MudSwitch @bind-Value="DocumentTypeCreatesStockMovements"
                                    @bind-Value:after="@(() => MarkChanged())"
                                    Disabled="@(DocumentTypeIsInventoryDocument || DocumentTypeMovesStockOnRowChange)"
@@ -293,6 +322,18 @@
         }
     }
 
+    private bool DocumentTypeIsTransferDocument
+    {
+        get => _documentType?.IsTransferDocument ?? false;
+        set { if (_documentType != null) _documentType.IsTransferDocument = value; }
+    }
+
+    private string? DocumentTypeDefaultMovementReason
+    {
+        get => _documentType?.DefaultMovementReason;
+        set { if (_documentType != null) _documentType.DefaultMovementReason = value; }
+    }
+
     private BusinessPartyType DocumentTypeRequiredPartyType
     {
         get => _documentType?.RequiredPartyType ?? BusinessPartyType.Both;
@@ -401,10 +442,12 @@
                     IsFiscal = _documentType.IsFiscal,
                     IsStockIncrease = _documentType.IsStockIncrease,
                     IsInventoryDocument = _documentType.IsInventoryDocument,
+                    IsTransferDocument = _documentType.IsTransferDocument,
                     CreatesStockMovements = _documentType.CreatesStockMovements,
                     MovesStockOnRowChange = _documentType.MovesStockOnRowChange,
                     RequiredPartyType = _documentType.RequiredPartyType,
-                    DefaultWarehouseId = _documentType.DefaultWarehouseId
+                    DefaultWarehouseId = _documentType.DefaultWarehouseId,
+                    DefaultMovementReason = _documentType.DefaultMovementReason
                 };
 
                 await DocumentTypeService.CreateDocumentTypeAsync(createDto);
@@ -420,10 +463,12 @@
                     IsFiscal = _documentType.IsFiscal,
                     IsStockIncrease = _documentType.IsStockIncrease,
                     IsInventoryDocument = _documentType.IsInventoryDocument,
+                    IsTransferDocument = _documentType.IsTransferDocument,
                     CreatesStockMovements = _documentType.CreatesStockMovements,
                     MovesStockOnRowChange = _documentType.MovesStockOnRowChange,
                     RequiredPartyType = _documentType.RequiredPartyType,
-                    DefaultWarehouseId = _documentType.DefaultWarehouseId
+                    DefaultWarehouseId = _documentType.DefaultWarehouseId,
+                    DefaultMovementReason = _documentType.DefaultMovementReason
                 };
 
                 await DocumentTypeService.UpdateDocumentTypeAsync(EntityId.Value, updateDto);

@@ -3672,6 +3672,55 @@ public class WarehouseManagementController(
 
     #endregion
 
+    #region Negative Movements
+
+    /// <summary>
+    /// Returns all StockMovement rows with Quantity &lt; 0 (legacy anomalies).
+    /// </summary>
+    [HttpGet("stock-reconciliation/negative-movements")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(NegativeMovementsReportDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetNegativeMovements(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await warehouseFacade.GetNegativeMovementsAsync(cancellationToken);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving negative movements.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Normalises negative-quantity StockMovements by flipping their sign to positive.
+    /// Stock levels are corrected accordingly.
+    /// Pass dryRun=true to preview without persisting.
+    /// </summary>
+    [HttpPost("stock-reconciliation/negative-movements/fix")]
+    [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+    [ProducesResponseType(typeof(FixNegativeMovementsResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> FixNegativeMovements(
+        [FromQuery] bool dryRun = false,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var ct = dryRun ? cancellationToken : CancellationToken.None;
+            var result = await warehouseFacade.FixNegativeMovementsAsync(dryRun, GetCurrentUser(), ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while fixing negative movements.", ex);
+        }
+    }
+
+    #endregion
+
     #region Export Operations
 
     /// <summary>
