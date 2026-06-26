@@ -22,7 +22,7 @@ public static class DocumentTypeMapper
             DefaultWarehouseId = documentType.DefaultWarehouseId,
             DefaultWarehouseName = documentType.DefaultWarehouse?.Name,
             IsFiscal = documentType.IsFiscal,
-            RequiredPartyType = (Prym.DTOs.Common.BusinessPartyType)documentType.RequiredPartyType,
+            RequiredPartyType = BusinessPartyTypeMapper.ToDto(documentType.RequiredPartyType),
             Notes = documentType.Notes,
             IsInventoryDocument = documentType.IsInventoryDocument,
             CreatesStockMovements = documentType.CreatesStockMovements,
@@ -58,9 +58,8 @@ public static class DocumentTypeMapper
             IsStockIncrease = dto.IsStockIncrease,
             DefaultWarehouseId = dto.DefaultWarehouseId,
             IsFiscal = dto.IsFiscal,
-            RequiredPartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)dto.RequiredPartyType,
+            RequiredPartyType = BusinessPartyTypeMapper.ToEntity(dto.RequiredPartyType),
             Notes = dto.Notes,
-            IsInventoryDocument = dto.IsInventoryDocument,
             CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements,
             MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange,
             IsTransferDocument = !dto.IsInventoryDocument && dto.IsTransferDocument,
@@ -78,7 +77,7 @@ public static class DocumentTypeMapper
         entity.IsStockIncrease = dto.IsStockIncrease;
         entity.DefaultWarehouseId = dto.DefaultWarehouseId;
         entity.IsFiscal = dto.IsFiscal;
-        entity.RequiredPartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)dto.RequiredPartyType;
+        entity.RequiredPartyType = BusinessPartyTypeMapper.ToEntity(dto.RequiredPartyType);
         entity.Notes = dto.Notes;
         entity.IsInventoryDocument = dto.IsInventoryDocument;
         entity.CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements;
