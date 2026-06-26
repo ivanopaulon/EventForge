@@ -24,7 +24,7 @@ public static class BusinessPartyTypeMapper
         EntityEnum.Cliente          => DtoEnum.Cliente,
         EntityEnum.Fornitore        => DtoEnum.Supplier,
         EntityEnum.ClienteFornitore => DtoEnum.Both,
-        _                           => DtoEnum.Cliente
+        _                           => throw new ArgumentOutOfRangeException(nameof(entity), entity, $"Unknown entity BusinessPartyType value: {entity}")
     };
 
     /// <summary>Converts a DTO <see cref="DtoEnum"/> to the corresponding entity value.</summary>
@@ -34,6 +34,6 @@ public static class BusinessPartyTypeMapper
         DtoEnum.Customer  => EntityEnum.Cliente,
         DtoEnum.Supplier  => EntityEnum.Fornitore,
         DtoEnum.Both      => EntityEnum.ClienteFornitore,
-        _                 => EntityEnum.Cliente
+        _                 => throw new ArgumentOutOfRangeException(nameof(dto), dto, $"Unknown DTO BusinessPartyType value: {dto}")
     };
 }

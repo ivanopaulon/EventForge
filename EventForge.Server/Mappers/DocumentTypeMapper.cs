@@ -59,7 +59,7 @@ public static class DocumentTypeMapper
             DefaultWarehouseId = dto.DefaultWarehouseId,
             IsFiscal = dto.IsFiscal,
             RequiredPartyType = BusinessPartyTypeMapper.ToEntity(dto.RequiredPartyType),
-            IsInventoryDocument = dto.IsInventoryDocument,
+            Notes = dto.Notes,
             CreatesStockMovements = (dto.IsInventoryDocument || dto.MovesStockOnRowChange) ? false : dto.CreatesStockMovements,
             MovesStockOnRowChange = dto.IsInventoryDocument ? false : dto.MovesStockOnRowChange,
             IsTransferDocument = !dto.IsInventoryDocument && dto.IsTransferDocument,
