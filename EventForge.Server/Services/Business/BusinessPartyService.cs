@@ -1,3 +1,4 @@
+using EventForge.Server.Mappers;
 using Microsoft.EntityFrameworkCore;
 using Prym.DTOs.Business;
 
@@ -140,7 +141,7 @@ public class BusinessPartyService(
                 .Include(bp => bp.DefaultSalesPriceList)
                 .Include(bp => bp.DefaultPurchasePriceList)
                 .Include(bp => bp.ForcedPriceList)
-                .Where(bp => bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType)
+                .Where(bp => bp.PartyType == BusinessPartyTypeMapper.ToEntity(partyType))
                 .WhereActiveTenant(currentTenantId.Value)
                 .OrderBy(bp => bp.Name)
                 .ToListAsync(cancellationToken);
@@ -176,7 +177,7 @@ public class BusinessPartyService(
             if (partyType.HasValue)
             {
                 query = query.Where(bp =>
-                    bp.PartyType == (Data.Entities.Business.BusinessPartyType)partyType.Value ||
+                    bp.PartyType == BusinessPartyTypeMapper.ToEntity(partyType.Value) ||
                     bp.PartyType == Data.Entities.Business.BusinessPartyType.ClienteFornitore
                 );
             }
@@ -223,7 +224,7 @@ public class BusinessPartyService(
             var businessParty = new BusinessParty
             {
                 TenantId = currentTenantId.Value,
-                PartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)createBusinessPartyDto.PartyType,
+                PartyType = BusinessPartyTypeMapper.ToEntity(createBusinessPartyDto.PartyType),
                 Name = createBusinessPartyDto.Name,
                 TaxCode = createBusinessPartyDto.TaxCode,
                 VatNumber = createBusinessPartyDto.VatNumber,
@@ -284,7 +285,7 @@ public class BusinessPartyService(
             if (businessParty is null)
                 return null;
 
-            businessParty.PartyType = (EventForge.Server.Data.Entities.Business.BusinessPartyType)updateBusinessPartyDto.PartyType;
+            businessParty.PartyType = BusinessPartyTypeMapper.ToEntity(updateBusinessPartyDto.PartyType);
             businessParty.Name = updateBusinessPartyDto.Name;
             businessParty.TaxCode = updateBusinessPartyDto.TaxCode;
             businessParty.VatNumber = updateBusinessPartyDto.VatNumber;
@@ -782,7 +783,7 @@ public class BusinessPartyService(
             return parties.Select(bp => new BusinessPartyDto
             {
                 Id = bp.Id,
-                PartyType = (Prym.DTOs.Common.BusinessPartyType)bp.PartyType,
+                PartyType = BusinessPartyTypeMapper.ToDto(bp.PartyType),
                 Name = bp.Name,
                 DateOfBirth = bp.DateOfBirth,
                 IsActive = bp.IsActive,
@@ -801,7 +802,7 @@ public class BusinessPartyService(
         return new BusinessPartyDto
         {
             Id = businessParty.Id,
-            PartyType = (Prym.DTOs.Common.BusinessPartyType)businessParty.PartyType,
+            PartyType = BusinessPartyTypeMapper.ToDto(businessParty.PartyType),
             Name = businessParty.Name,
             TaxCode = businessParty.TaxCode,
             VatNumber = businessParty.VatNumber,
@@ -1326,7 +1327,7 @@ public class BusinessPartyService(
         return new BusinessPartyDto
         {
             Id = businessParty.Id,
-            PartyType = (Prym.DTOs.Common.BusinessPartyType)businessParty.PartyType,
+            PartyType = BusinessPartyTypeMapper.ToDto(businessParty.PartyType),
             Name = businessParty.Name,
             TaxCode = businessParty.TaxCode,
             VatNumber = businessParty.VatNumber,
