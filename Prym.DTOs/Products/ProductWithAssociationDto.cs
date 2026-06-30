@@ -21,9 +21,9 @@ namespace Prym.DTOs.Products
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Product description.
+        /// Product short description.
         /// </summary>
-        public string? Description { get; set; }
+        public string? ShortDescription { get; set; }
 
         /// <summary>
         /// Indicates if this product is associated with the supplier.

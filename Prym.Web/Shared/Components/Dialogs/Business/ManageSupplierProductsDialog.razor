@@ -77,11 +77,11 @@
                                 </MudTableSortLabel>
                             </EFTableColumnHeader>
                         }
-                        else if (column.PropertyName == "Description")
+                        else if (column.PropertyName == "ShortDescription")
                         {
-                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="Description" OnDragStartCallback="@_efTable.HandleColumnDragStart">
-                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.Description ?? string.Empty))">
-                                    @TranslationService.GetTranslation("product.description", "Descrizione")
+                            <EFTableColumnHeader TItem="ProductWithAssociationDto" PropertyName="ShortDescription" OnDragStartCallback="@_efTable.HandleColumnDragStart">
+                                <MudTableSortLabel SortBy="@(new Func<ProductWithAssociationDto, object>(x => x.ShortDescription ?? string.Empty))">
+                                    @TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")
                                 </MudTableSortLabel>
                             </EFTableColumnHeader>
                         }
@@ -112,9 +112,9 @@
                             <strong>@item.Name</strong>
                         </MudText>
                     </MudTd>
-                    <MudTd DataLabel="@TranslationService.GetTranslation("product.description", "Descrizione")">
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")">
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                            @(item.Description ?? "-")
+                            @(item.ShortDescription ?? "-")
                         </MudText>
                     </MudTd>
                     <MudTd DataLabel="@TranslationService.GetTranslation("common.status", "Stato")">
@@ -188,7 +188,7 @@
     {
         new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0 },
         new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1 },
-        new() { PropertyName = "Description", DisplayName = "Descrizione", IsVisible = true, Order = 2 },
+        new() { PropertyName = "ShortDescription", DisplayName = "Descrizione Breve", IsVisible = true, Order = 2 },
         new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3 },
         new() { PropertyName = "UnitCost", DisplayName = "Costo", IsVisible = true, Order = 4 }
     };
@@ -251,7 +251,7 @@
 
         return product.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                (product.Code != null && product.Code.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)) ||
-               (product.Description != null && product.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+               (product.ShortDescription != null && product.ShortDescription.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
     }
 
     private void OnSelectedItemsChanged(HashSet<ProductWithAssociationDto> items)

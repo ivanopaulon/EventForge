@@ -25,7 +25,7 @@
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid" Class="ef-dialog-form">
             <MudGrid Spacing="3">
                 <!-- Code Field (Readonly if prefilled) -->
-                <MudItem xs="12">
+                <MudItem xs="12" sm="6">
                     <MudTextField @bind-Value="_model.Code"
                                   Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
                                   Variant="Variant.Outlined"
@@ -40,19 +40,45 @@
                     Margin="Margin.Dense"/>
                 </MudItem>
 
+                <!-- Name Field -->
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_model.Name"
+                                  Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
+                                  MaxLength="100"
+                                  Counter="100"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.Label"
+                                  HelperText="@TranslationService.GetTranslation("products.nameHelper", "Nome commerciale breve del prodotto, usato per la ricerca")"
+                    Margin="Margin.Dense"/>
+                </MudItem>
+
+                <!-- ShortDescription Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.ShortDescription"
+                                  Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="50"
+                                  Counter="50"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.ShortText"
+                                  HelperText="@TranslationService.GetTranslation("products.shortDescriptionHelper", "Testo breve mostrato nelle liste (max 50 caratteri)")"
+                    Margin="Margin.Dense"/>
+                </MudItem>
+
                 <!-- Description Field -->
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_model.Description"
-                                  Label="@($"{TranslationService.GetTranslation("field.description", "Descrizione")} *")"
+                                  Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                   Variant="Variant.Outlined"
-                                  Required="true"
-                                  RequiredError="@TranslationService.GetTranslation("validation.descriptionRequired", "La descrizione è obbligatoria")"
                                   Lines="3"
                                   MaxLength="500"
                                   Counter="500"
                                   Adornment="Adornment.Start"
                                   AdornmentIcon="@Icons.Material.Outlined.Description"
-                                  HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione del prodotto")"
+                                  HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione estesa opzionale (es. caratteristiche, note)")"
                     Margin="Margin.Dense"/>
                 </MudItem>
 
@@ -397,7 +423,6 @@
         // Set defaults
         _model.Status = ProductStatus.Active;
         _model.IsVatIncluded = true; // Always VAT included
-        _model.Name = string.Empty; // Will use Description as Name
     }
 
     private async Task LoadVatRates()
@@ -549,14 +574,6 @@
                         return;
                     }
                 }
-            }
-
-            // Use Description as Name if Name is empty (simplified creation)
-            if (string.IsNullOrWhiteSpace(_model.Name))
-            {
-                _model.Name = _model.Description?.Length > 100 
-                    ? _model.Description.Substring(0, 100) 
-                    : _model.Description ?? "Prodotto";
             }
 
             // Convert alternative units and codes to ProductCodeWithUnitDto format

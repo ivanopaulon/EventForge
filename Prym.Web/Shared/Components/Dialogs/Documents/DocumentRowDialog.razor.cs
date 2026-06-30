@@ -978,6 +978,8 @@ public partial class DocumentRowDialog : IAsyncDisposable
             // 1. Populate base fields
             _state.Model.ProductId = product.Id;
             _state.Model.ProductCode = product.Code;
+            // Document row description = product commercial name (Name), not ShortDescription/Description.
+            // The Name is used as the invoice/order line text by design — it is the display identifier.
             _state.Model.Description = product.Name;
 
             // 2. Populate price and VAT using PriceResolutionService

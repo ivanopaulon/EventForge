@@ -59,7 +59,7 @@
             else if (column.PropertyName == "ShortDescription")
             {
                 <EFTableColumnHeader TItem="ProductDto" PropertyName="ShortDescription">
-                    <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.ShortDescription ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.ShortDescription ?? string.Empty))">@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DefaultPrice")
@@ -106,7 +106,7 @@
             }
             else if (column.PropertyName == "ShortDescription")
             {
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.description", "Descrizione")">
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")">
                     <MudText Typo="Typo.body2" Class="text-truncate ef-max-400" >
                         @(string.IsNullOrEmpty(ctx.Item.ShortDescription) ? "-" : ctx.Item.ShortDescription)
                     </MudText>
@@ -190,7 +190,7 @@
             {
                 new() { PropertyName = "Code", DisplayName = "Codice", IsVisible = true, Order = 0, IsSearchable = true },
                 new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
-                new() { PropertyName = "ShortDescription", DisplayName = "Descrizione", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "ShortDescription", DisplayName = "Descrizione Breve", IsVisible = true, Order = 2, IsSearchable = true },
                 new() { PropertyName = "DefaultPrice", DisplayName = "Prezzo", IsVisible = true, Order = 3, IsSearchable = false }
             },
             // Quick filters are handled server-side (no client-side Predicate needed).

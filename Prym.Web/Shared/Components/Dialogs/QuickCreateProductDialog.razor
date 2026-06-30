@@ -6,6 +6,7 @@
 @inject IFinancialService FinancialService
 @inject IAppNotificationService AppNotification
 @inject ILogger<QuickCreateProductDialog> Logger
+@implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.AddShoppingCart"
           Title="@(IsEditMode 
@@ -48,11 +49,24 @@
 
                     <!-- Nome -->
                     <MudItem xs="12" sm="6">
-                        <PrymTextField @bind-Value="_model.Name"
+                        <PrymTextField T="string"
+                                       Value="_model.Name"
+                                       ValueChanged="@((string v) => OnNameChangedAsync(v))"
                                        Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
                                        Required="true"
                                        RequiredError="@TranslationService.GetTranslation("validation.nameRequired", "Il nome è obbligatorio")"
-                                       MaxLength="100" />
+                                       MaxLength="100"
+                                       Immediate="true"
+                                       DebounceInterval="600"
+                                       HelperText="@TranslationService.GetTranslation("products.nameHelper", "Nome commerciale breve del prodotto, usato per la ricerca")" />
+                    </MudItem>
+
+                    <!-- Descrizione Breve -->
+                    <MudItem xs="12">
+                        <PrymTextField @bind-Value="_model.ShortDescription"
+                                       Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                       MaxLength="50"
+                                       HelperText="@TranslationService.GetTranslation("products.shortDescriptionHelper", "Testo breve mostrato nelle liste (max 50 caratteri)")" />
                     </MudItem>
 
                     <!-- Descrizione -->
@@ -60,8 +74,50 @@
                         <PrymTextField @bind-Value="_model.Description"
                                        Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
                                        Lines="3"
-                                       MaxLength="500" />
+                                       MaxLength="500"
+                                       HelperText="@TranslationService.GetTranslation("products.descriptionHelper", "Descrizione estesa opzionale (es. caratteristiche, note)")" />
                     </MudItem>
+
+                    <!-- Avviso prodotti simili -->
+                    @if (_isDuplicateChecking)
+                    {
+                        <MudItem xs="12">
+                            <MudProgressLinear Indeterminate="true" Color="Color.Warning" />
+                        </MudItem>
+                    }
+                    else if (_similarProducts.Any())
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Warning" Class="mt-1" Dense="true">
+                                <MudText Typo="Typo.body2" Class="mb-2">
+                                    <strong>@TranslationService.GetTranslation("products.similarProductsFound", "Attenzione: esistono già prodotti con nome simile.")</strong>
+                                    @TranslationService.GetTranslation("products.similarProductsHint", " Verificare prima di creare un duplicato.")
+                                </MudText>
+                                @foreach (var similar in _similarProducts)
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-1">
+                                        <div>
+                                            <MudText Typo="Typo.body2"><strong>@similar.Name</strong></MudText>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                @TranslationService.GetTranslation("products.code", "Codice"): @similar.Code
+                                                @if (similar.DefaultPrice.HasValue)
+                                                {
+                                                    <span> — @similar.DefaultPrice.Value.ToString("C2")</span>
+                                                }
+                                            </MudText>
+                                        </div>
+                                        <MudButton Size="Size.Small"
+                                                   Variant="Variant.Outlined"
+                                                   Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Outlined.CheckCircle"
+                                                   OnClick="@(() => UseExistingProductAsync(similar))">
+                                            @TranslationService.GetTranslation("products.useExisting", "Usa questo")
+                                        </MudButton>
+                                    </MudStack>
+                                }
+                            </MudAlert>
+                        </MudItem>
+                    }
 
                     <!-- Dati Commerciali -->
                     <MudItem xs="12">
@@ -155,6 +211,11 @@
     private IEnumerable<UMDto>? _availableUnits;
     private ProductDto? _cachedExistingProduct = null; // Cache for complete product data
 
+    // Duplicate detection state
+    private List<ProductDto> _similarProducts = new();
+    private bool _isDuplicateChecking = false;
+    private CancellationTokenSource? _duplicateCheckCts;
+
     protected override async Task OnInitializedAsync()
     {
         await Task.WhenAll(
@@ -188,6 +249,7 @@
                 Id = ExistingProduct.Id,
                 Code = ExistingProduct.Code,
                 Name = ExistingProduct.Name,
+                ShortDescription = ExistingProduct.ShortDescription,
                 Description = ExistingProduct.Description,
                 DefaultPrice = ExistingProduct.DefaultPrice,
                 VatRateId = ExistingProduct.VatRateId,
@@ -299,6 +361,7 @@
             {
                 // Fields modified in this dialog
                 Name = _model.Name,
+                ShortDescription = _model.ShortDescription ?? string.Empty,
                 Description = _model.Description ?? string.Empty,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
@@ -307,7 +370,6 @@
                 Status = _model.Status,
                 
                 // FIXED: Preserve all other fields from existing product
-                ShortDescription = existingProduct.ShortDescription,
                 ImageUrl = existingProduct.ImageUrl,
                 ImageDocumentId = existingProduct.ImageDocumentId,
                 CategoryNodeId = existingProduct.CategoryNodeId,
@@ -377,6 +439,7 @@
             {
                 Code = _model.Code,
                 Name = _model.Name,
+                ShortDescription = _model.ShortDescription ?? string.Empty,
                 Description = _model.Description ?? string.Empty,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
@@ -437,6 +500,104 @@
 
     private void Cancel()
     {
+        _duplicateCheckCts?.Cancel();
+        _duplicateCheckCts?.Dispose();
         MudDialog.Cancel();
+    }
+
+    // ── Duplicate detection ──────────────────────────────────────────────────
+
+    private async Task OnNameChangedAsync(string value)
+    {
+        _model.Name = value;
+
+        // Cancel and dispose the previous in-flight check before starting a new one
+        _duplicateCheckCts?.Cancel();
+        _duplicateCheckCts?.Dispose();
+        _duplicateCheckCts = new CancellationTokenSource();
+        var cts = _duplicateCheckCts;
+
+        if (IsEditMode || string.IsNullOrWhiteSpace(value) || value.Trim().Length < 3)
+        {
+            _similarProducts = new List<ProductDto>();
+            _isDuplicateChecking = false;
+            StateHasChanged();
+            return;
+        }
+
+        _isDuplicateChecking = true;
+        StateHasChanged();
+
+        try
+        {
+            var result = await ProductService.SearchProductsAsync(value.Trim(), 5, cts.Token);
+            if (!cts.IsCancellationRequested)
+            {
+                _similarProducts = result?.SearchResults ?? new List<ProductDto>();
+                // Exclude exact code match from duplicate suggestions (it's already a different product)
+                if (result?.IsExactCodeMatch == true && result.ExactMatch?.Product != null)
+                {
+                    _similarProducts = _similarProducts
+                        .Where(p => p.Id != result.ExactMatch.Product.Id)
+                        .ToList();
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounce cancelled — ignore
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error during duplicate name check for '{Name}'", value);
+            _similarProducts = new List<ProductDto>();
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+            {
+                _isDuplicateChecking = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    private async Task UseExistingProductAsync(ProductDto existingProduct)
+    {
+        if (AutoAssignCode && !string.IsNullOrWhiteSpace(PrefilledCode))
+        {
+            _isLoading = true;
+            try
+            {
+                var codeDto = new CreateProductCodeDto
+                {
+                    ProductId = existingProduct.Id,
+                    Code = PrefilledCode,
+                    CodeType = "Barcode",
+                    Status = ProductCodeStatus.Active
+                };
+                await ProductService.CreateProductCodeAsync(codeDto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("products.codeAssignedToExisting",
+                    "Codice assegnato al prodotto esistente: {0}", existingProduct.Name));
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error assigning code {Code} to existing product {ProductId}", PrefilledCode, existingProduct.Id);
+                AppNotification.ShowWarning(TranslationService.GetTranslation("products.codeAssignmentWarning",
+                    "Prodotto selezionato ma codice non assegnato automaticamente"));
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+
+        MudDialog.Close(DialogResult.Ok(existingProduct));
+    }
+
+    public void Dispose()
+    {
+        _duplicateCheckCts?.Cancel();
+        _duplicateCheckCts?.Dispose();
     }
 }
