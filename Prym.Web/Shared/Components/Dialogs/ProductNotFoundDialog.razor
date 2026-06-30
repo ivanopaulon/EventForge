@@ -96,9 +96,16 @@
         @if (_selectedProduct == null)
         {
             <MudDivider Class="my-4" />
-            <MudText Typo="Typo.body2" Class="mb-3">
+            <MudText Typo="Typo.body2" Class="mb-2">
                 @TranslationService.GetTranslation("warehouse.noProductSelectedHint", "Non hai trovato il prodotto? Creane uno nuovo:")
             </MudText>
+            <MudAlert Severity="Severity.Info" Dense="true" Class="mb-2">
+                @TranslationService.GetTranslation("warehouse.createProductWarning", "Prima di creare un nuovo prodotto, assicurati che non esista già cercandolo sopra.")
+            </MudAlert>
+            <MudCheckBox @bind-Value="_hasConfirmedNotFound"
+                         Color="Color.Warning"
+                         Label="@TranslationService.GetTranslation("warehouse.confirmProductNotFound", "Confermo che il prodotto non esiste nel catalogo")"
+                         Class="mt-1" />
         }
     </ChildContent>
     <DialogActions>
@@ -123,7 +130,8 @@
             <MudButton StartIcon="@Icons.Material.Outlined.Add"
                       Color="Color.Primary"
                       Variant="Variant.Filled"
-                      OnClick="CreateNewProduct">
+                      OnClick="CreateNewProduct"
+                      Disabled="@(!_hasConfirmedNotFound)">
                 @TranslationService.GetTranslation("warehouse.createNewProduct", "Crea Nuovo Prodotto")
             </MudButton>
         }
@@ -160,6 +168,7 @@
     private MudTextField<string>? _altDescriptionField;
     private ProductDto? _selectedProduct;
     private CreateProductCodeDto _createCodeDto = new();
+    private bool _hasConfirmedNotFound = false;
     
     // Delay to allow form to render in the DOM before validation
     private const int FormRenderDelayMs = 150;
