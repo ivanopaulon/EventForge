@@ -54,6 +54,7 @@ public class ProductService(
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)) ||
+                    (p.Description != null && p.Description.ToLower().Contains(lowerSearchTerm)) ||
                     p.Codes.Any(c => !c.IsDeleted && c.Code.ToLower().Contains(lowerSearchTerm)));
             }
 
@@ -166,6 +167,7 @@ public class ProductService(
                     p.Code.ToLower().Contains(lowerSearchTerm) ||
                     p.Name.ToLower().Contains(lowerSearchTerm) ||
                     (p.ShortDescription != null && p.ShortDescription.ToLower().Contains(lowerSearchTerm)) ||
+                    (p.Description != null && p.Description.ToLower().Contains(lowerSearchTerm)) ||
                     p.Codes.Any(c => !c.IsDeleted && c.Code.ToLower().Contains(lowerSearchTerm)));
             }
 
@@ -2235,7 +2237,7 @@ public class ProductService(
                     ProductId = p.Id,
                     Code = p.Code,
                     Name = p.Name,
-                    Description = p.ShortDescription,
+                    ShortDescription = p.ShortDescription,
                     IsAssociated = association != null,
                     ProductSupplierId = association?.Id,
                     UnitCost = association?.UnitCost,
@@ -2686,6 +2688,7 @@ public class ProductService(
                 Id = p.Id,
                 Code = p.Code,
                 Name = p.Name,
+                ShortDescription = p.ShortDescription ?? string.Empty,
                 Description = p.Description,
                 Category = p.CategoryNode?.Name ?? string.Empty,
                 UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,
@@ -2728,6 +2731,7 @@ public class ProductService(
                 Id = p.Id,
                 Code = p.Code,
                 Name = p.Name,
+                ShortDescription = p.ShortDescription ?? string.Empty,
                 Description = p.Description,
                 Category = p.CategoryNode?.Name ?? string.Empty,
                 UnitOfMeasure = p.UnitOfMeasure?.Symbol ?? string.Empty,

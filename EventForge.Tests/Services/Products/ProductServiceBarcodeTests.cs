@@ -309,6 +309,66 @@ public class ProductServiceBarcodeTests : IDisposable
         Assert.Contains(result.Items, p => p.Id == _productId);
     }
 
+    [Fact]
+    public async Task GetProductsAsync_SearchByDescription_ReturnsMatchingProduct()
+    {
+        // Arrange - add a product whose search term appears only in Description
+        var descriptionProduct = new Product
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Product Without Desc In Name",
+            Code = "DESCONLY001",
+            Description = "Unique description text for C4 regression",
+            Status = Server.Data.Entities.Products.ProductStatus.Active,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.Products.Add(descriptionProduct);
+        await _context.SaveChangesAsync();
+
+        var pagination = new PaginationParameters { Page = 1, PageSize = 10 };
+        var searchTerm = "C4 regression"; // only in Description
+
+        // Act
+        var result = await _productService.GetProductsAsync(pagination, searchTerm);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Items);
+        Assert.Contains(result.Items, p => p.Id == descriptionProduct.Id);
+    }
+
+    [Fact]
+    public async Task GetProductsForPosCatalogAsync_SearchByDescription_ReturnsMatchingProduct()
+    {
+        // Arrange - add a product whose search term appears only in Description
+        var descriptionProduct = new Product
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "POS Product Without Desc In Name",
+            Code = "POSDESCONLY001",
+            Description = "Unique POS description text for C4 regression",
+            Status = Server.Data.Entities.Products.ProductStatus.Active,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test"
+        };
+        _context.Products.Add(descriptionProduct);
+        await _context.SaveChangesAsync();
+
+        var pagination = new PaginationParameters { Page = 1, PageSize = 10 };
+        var searchTerm = "POS description text"; // only in Description
+
+        // Act
+        var result = await _productService.GetProductsForPosCatalogAsync(pagination, searchTerm);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.NotEmpty(result.Items);
+        Assert.Contains(result.Items, p => p.Id == descriptionProduct.Id);
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();

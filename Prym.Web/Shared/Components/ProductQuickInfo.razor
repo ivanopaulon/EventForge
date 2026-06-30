@@ -77,6 +77,14 @@
                     </MudItem>
                     <MudItem xs="12">
                         <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")
+                        </MudText>
+                        <MudText Typo="Typo.body2">
+                            @(string.IsNullOrWhiteSpace(Product.ShortDescription) ? "-" : Product.ShortDescription)
+                        </MudText>
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
                             @TranslationService.GetTranslation("products.description", "Descrizione")
                         </MudText>
                         <MudText Typo="Typo.body2">
@@ -123,6 +131,13 @@
                                       Required="true"
                                       RequiredError="@TranslationService.GetTranslation("validation.required", "Campo obbligatorio")"
                                       MaxLength="100"
+                                      Immediate="true"
+                    Margin="Margin.Dense"/>
+
+                        <MudTextField @bind-Value="_editShortDescription"
+                                      Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                      Variant="Variant.Outlined"
+                                      MaxLength="50"
                                       Immediate="true"
                     Margin="Margin.Dense"/>
 
@@ -208,6 +223,7 @@
 
     // Edit fields
     private string _editName = string.Empty;
+    private string _editShortDescription = string.Empty;
     private string _editDescription = string.Empty;
     private Guid? _editUnitOfMeasureId;
     private Guid? _editVatRateId;
@@ -301,6 +317,7 @@
 
         _isEditMode = true;
         _editName = Product.Name;
+        _editShortDescription = Product.ShortDescription ?? string.Empty;
         _editDescription = Product.Description ?? string.Empty;
         _editUnitOfMeasureId = Product.UnitOfMeasureId;
         _editVatRateId = Product.VatRateId;
@@ -310,6 +327,7 @@
     {
         _isEditMode = false;
         _editName = string.Empty;
+        _editShortDescription = string.Empty;
         _editDescription = string.Empty;
         _editUnitOfMeasureId = null;
         _editVatRateId = null;
@@ -327,8 +345,8 @@
             var updateDto = new UpdateProductDto
             {
                 Name = _editName,
+                ShortDescription = _editShortDescription,
                 Description = _editDescription,
-                ShortDescription = Product.ShortDescription ?? string.Empty,
                 Status = Product.Status,
                 IsVatIncluded = Product.IsVatIncluded,
                 DefaultPrice = Product.DefaultPrice,
@@ -355,6 +373,7 @@
             {
                 // Update local product data
                 Product.Name = updatedProduct.Name;
+                Product.ShortDescription = updatedProduct.ShortDescription;
                 Product.Description = updatedProduct.Description;
                 Product.UnitOfMeasureId = updatedProduct.UnitOfMeasureId;
                 Product.VatRateId = updatedProduct.VatRateId;

@@ -55,6 +55,19 @@
                     Margin="Margin.Dense"/>
                 </MudItem>
 
+                <!-- ShortDescription Field -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.ShortDescription"
+                                  Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="50"
+                                  Counter="50"
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Outlined.ShortText"
+                                  HelperText="@TranslationService.GetTranslation("products.shortDescriptionHelper", "Testo breve mostrato nelle liste (max 50 caratteri)")"
+                    Margin="Margin.Dense"/>
+                </MudItem>
+
                 <!-- Description Field -->
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_model.Description"

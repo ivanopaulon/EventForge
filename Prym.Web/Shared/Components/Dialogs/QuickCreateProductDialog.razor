@@ -61,6 +61,14 @@
                                        HelperText="@TranslationService.GetTranslation("products.nameHelper", "Nome commerciale breve del prodotto, usato per la ricerca")" />
                     </MudItem>
 
+                    <!-- Descrizione Breve -->
+                    <MudItem xs="12">
+                        <PrymTextField @bind-Value="_model.ShortDescription"
+                                       Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                       MaxLength="50"
+                                       HelperText="@TranslationService.GetTranslation("products.shortDescriptionHelper", "Testo breve mostrato nelle liste (max 50 caratteri)")" />
+                    </MudItem>
+
                     <!-- Descrizione -->
                     <MudItem xs="12">
                         <PrymTextField @bind-Value="_model.Description"
@@ -241,6 +249,7 @@
                 Id = ExistingProduct.Id,
                 Code = ExistingProduct.Code,
                 Name = ExistingProduct.Name,
+                ShortDescription = ExistingProduct.ShortDescription,
                 Description = ExistingProduct.Description,
                 DefaultPrice = ExistingProduct.DefaultPrice,
                 VatRateId = ExistingProduct.VatRateId,
@@ -352,6 +361,7 @@
             {
                 // Fields modified in this dialog
                 Name = _model.Name,
+                ShortDescription = _model.ShortDescription ?? string.Empty,
                 Description = _model.Description ?? string.Empty,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,
@@ -360,7 +370,6 @@
                 Status = _model.Status,
                 
                 // FIXED: Preserve all other fields from existing product
-                ShortDescription = existingProduct.ShortDescription,
                 ImageUrl = existingProduct.ImageUrl,
                 ImageDocumentId = existingProduct.ImageDocumentId,
                 CategoryNodeId = existingProduct.CategoryNodeId,
@@ -430,6 +439,7 @@
             {
                 Code = _model.Code,
                 Name = _model.Name,
+                ShortDescription = _model.ShortDescription ?? string.Empty,
                 Description = _model.Description ?? string.Empty,
                 DefaultPrice = _model.DefaultPrice,
                 VatRateId = _model.VatRateId,

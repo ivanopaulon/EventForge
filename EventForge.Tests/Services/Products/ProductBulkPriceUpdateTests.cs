@@ -335,6 +335,35 @@ public class ProductBulkPriceUpdateTests : IDisposable
         Assert.All(updatedProducts, p => Assert.Equal(57.50m, p.DefaultPrice)); // 50 * 1.15 = 57.50
     }
 
+    [Fact]
+    public async Task GetProductsForExportAsync_IncludesShortDescription()
+    {
+        // Arrange - add a product with a specific ShortDescription
+        var exportProduct = new Product
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantId,
+            Name = "Export Test Product",
+            Code = "EXPORTTEST001",
+            ShortDescription = "Short desc for export test",
+            DefaultPrice = 25m,
+            Status = EventForge.Server.Data.Entities.Products.ProductStatus.Active
+        };
+        _context.Products.Add(exportProduct);
+        await _context.SaveChangesAsync();
+
+        var pagination = new Prym.DTOs.Common.PaginationParameters { Page = 1, PageSize = 1000 };
+
+        // Act
+        var result = await _service.GetProductsForExportAsync(pagination);
+
+        // Assert
+        Assert.NotNull(result);
+        var exported = result.FirstOrDefault(p => p.Id == exportProduct.Id);
+        Assert.NotNull(exported);
+        Assert.Equal("Short desc for export test", exported.ShortDescription);
+    }
+
     public void Dispose()
     {
         _context.Database.EnsureDeleted();
