@@ -6,6 +6,7 @@
 @inject IFinancialService FinancialService
 @inject IAppNotificationService AppNotification
 @inject ILogger<QuickCreateProductDialog> Logger
+@implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.AddShoppingCart"
           Title="@(IsEditMode 
@@ -490,6 +491,7 @@
     private void Cancel()
     {
         _duplicateCheckCts?.Cancel();
+        _duplicateCheckCts?.Dispose();
         MudDialog.Cancel();
     }
 
@@ -499,8 +501,9 @@
     {
         _model.Name = value;
 
-        // Cancel any in-flight check
+        // Cancel and dispose the previous in-flight check before starting a new one
         _duplicateCheckCts?.Cancel();
+        _duplicateCheckCts?.Dispose();
         _duplicateCheckCts = new CancellationTokenSource();
         var cts = _duplicateCheckCts;
 
@@ -580,5 +583,11 @@
         }
 
         MudDialog.Close(DialogResult.Ok(existingProduct));
+    }
+
+    public void Dispose()
+    {
+        _duplicateCheckCts?.Cancel();
+        _duplicateCheckCts?.Dispose();
     }
 }
