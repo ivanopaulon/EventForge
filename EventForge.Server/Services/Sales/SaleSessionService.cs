@@ -1309,10 +1309,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         // Enrich with product details if available
         if (products.TryGetValue(item.ProductId, out var product))
         {
-#pragma warning disable CS0618 // Type or member is obsolete
-            dto.ProductImageUrl = product.ImageUrl;
-#pragma warning restore CS0618 // Type or member is obsolete
-            // Use ImageDocument if available, fallback to deprecated ImageUrl
             if (product.ImageDocument is not null)
             {
                 dto.ProductThumbnailUrl = product.ImageDocument.ThumbnailStorageKey ?? product.ImageDocument.StorageKey ?? string.Empty;

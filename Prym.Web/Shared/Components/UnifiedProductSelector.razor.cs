@@ -304,7 +304,7 @@ namespace Prym.Web.Shared.Components
 
         /// <summary>
         /// Search products by description.
-        /// IMPORTANT: Uses the EXACT same pattern as SearchBusinessPartiesAsync in GenericDocumentProcedure.
+        /// IMPORTANT: Uses the EXACT same pattern as SearchBusinessPartiesAsync in DocumentRowDialog.
         /// Simple, clean, NO StateHasChanged during search.
         /// </summary>
         private async Task<IEnumerable<ProductDto>> SearchProductsAsync(
@@ -373,7 +373,7 @@ namespace Prym.Web.Shared.Components
         /// <summary>
         /// Called when a product is selected from the autocomplete dropdown.
         /// CRITICAL: This is the missing piece that propagates selection to parent components.
-        /// Pattern: Same as OnBusinessPartySelectedAsync in GenericDocumentProcedure.
+        /// Pattern: Same as OnBusinessPartySelectedAsync in DocumentRowDialog.
         /// </summary>
         private async Task OnProductSelectionChangedAsync(ProductDto? product)
         {

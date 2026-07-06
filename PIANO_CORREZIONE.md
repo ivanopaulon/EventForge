@@ -42,7 +42,7 @@ L'audit del 2026-07-06 ha identificato **18 problemi** distribuiti su 4 progetti
 | P13 | `Directory.Packages.props` — `PackageVersion Include="EPPlus"` diventerà inutilizzato dopo P01 | Debito tecnico | 🟢 Bassa | XS | Basso | Directory.Packages.props |
 | P14 | `NotificationCenter.razor:259` — commento `<!-- Pagination placeholder -->` fuorviante; la paginazione è implementata | Documentazione / Commento | 🟢 Bassa | XS | Basso | Prym.Web / Pages/Notifications |
 | P15 | `FiscalPrintersDashboard.razor:8` — TODO EFTable per real-time SignalR (dipende da feature EFTable non pianificata) | TODO documentato | 🟢 Bassa | — | Basso | Prym.Web / Pages/Admin |
-| P16 | `InventoryProcedure.razor:7` — TODO ManagementPageHeader per uniformare header | TODO cosmetico | 🟢 Bassa | XS | Basso | Prym.Web / Pages/Warehouse |
+| P16 | ~~`InventoryProcedure.razor:7` — TODO ManagementPageHeader per uniformare header~~ **✅ RISOLTO — 2026-07-06 (Milestone 5)**: header refactored a `ManagementPageHeader` con breadcrumbs e ExtraActions. | TODO cosmetico | 🟢 Bassa | XS | Basso | Prym.Web / Pages/Warehouse |
 | P17 | `InventoryMerge.razor:7` — TODO EFTable embedded (dipende da archetype WizardPage futuro) | TODO cosmetico | 🟢 Bassa | — | Basso | Prym.Web / Pages/Warehouse |
 | P18 | `docs/decision-log/ADR-CLOSEDXML-MIGRATION.md` dichiara la migrazione "Implemented" — parzialmente falso (ExportService.cs ancora su EPPlus) | Documentazione | 🟡 Media | XS | Basso | docs/decision-log |
 
@@ -385,7 +385,7 @@ I seguenti TODO sono documentati e non urgenti. Vanno tenuti nel backlog fino a 
 
 **Completato:**
 - P10 ✅: `GetActiveSessionsAsync` e `GetOperatorSessionsAsync` rimossi da `ISaleSessionService`, `SaleSessionService`, `SalesController`. Client `SalesService.cs` migrato agli endpoint paginati `pos-sessions/open` e `pos-sessions/operator/{id}`.
-- P11 ✅ (parziale): `ImageUrl` rimosso da tutti i DTO (`ProductDto`, `CreateProductDto`, `UpdateProductDto`, `ProductDetailDto`), validator, `ProductService.cs`, UI Blazor (`ProductPreviewCard.razor`, `ProductQuickInfo.razor`, `DocumentRowDialog.razor.cs`, `QuickCreateProductDialog.razor`). Zero pragma CS0618 residui nei file server. `UpdateProductImageAsync` (dead code) rimosso.
+- P11 ✅: `ImageUrl` rimosso da tutti i DTO (`ProductDto`, `CreateProductDto`, `UpdateProductDto`, `ProductDetailDto`), validator, `ProductService.cs`, UI Blazor (`ProductPreviewCard.razor`, `ProductQuickInfo.razor`, `DocumentRowDialog.razor.cs`, `QuickCreateProductDialog.razor`). Ultimo consumer server-side (`SaleSessionService.cs`) rimosso in Milestone 5. Zero pragma CS0618 residui nell'intera soluzione. `UpdateProductImageAsync` (dead code) rimosso.
 
 **Pendente (checkpoint umano):**
 - Eseguire `Migrations/20260706_RemoveImageUrlFromProducts.sql` per rimuovere la colonna DB `Products.ImageUrl`. Prerequisiti: verificare che nessun client esterno usi il campo; eseguire la query di validazione nel file SQL.
@@ -395,9 +395,21 @@ I seguenti TODO sono documentati e non urgenti. Vanno tenuti nel backlog fino a 
 
 ---
 
-### Milestone 5 — Backlog cosmetic (schedulare in sprint futuri)
-**Contenuto:** Task F (P15, P16, P17)  
-**Nota:** P16 (InventoryProcedure header) può essere eseguito in qualsiasi sprint senza dipendenze. P15 e P17 richiedono feature EFTable/WizardPage da pianificare.
+### Milestone 5 — Backlog cosmetic ✅ COMPLETATA PARZIALMENTE 2026-07-06
+**Contenuto:** Task F (P15, P16, P17 — P15 e P17 escluse per dipendenze esterne)  
+**Stato:** P16 IMPLEMENTATA. P15 e P17 SOSPESE (dipendenze non soddisfatte).
+
+**Completato:**
+- P16 ✅: `InventoryProcedure.razor` — header refactored da `MudGrid`/`MudText` manuale a `ManagementPageHeader` (Title, Icon, BreadcrumbItems, ExtraActions con pulsante "Gestisci Inventari"). `_breadcrumbs` aggiunto nel code block.
+- `GenericDocumentProcedure.razor` ✅: file eliminato (era già assente dalla versione precedente). Commenti di riferimento aggiornati in `UnifiedProductSelector.razor.cs` e `DocumentRowDialog.razor.cs`.
+- P11 (SaleSessionService) ✅: rimosso ultimo uso di `product.ImageUrl` (campo `[Obsolete]`) in `SaleSessionService.cs`. Logica semplificata a `ImageDocument`-only. Zero `pragma warning disable CS0618` residui nel progetto server.
+
+**Pendente (P11 — checkpoint umano):**
+- Eseguire `Migrations/20260706_RemoveImageUrlFromProducts.sql` per rimuovere la colonna DB `Products.ImageUrl`. Poi rimuovere il campo `[Obsolete] Product.ImageUrl` dall'entità C#.
+
+**Sospeso:**
+- P15 (`FiscalPrintersDashboard.razor`) — richiede supporto SignalR real-time in EFTable; non pianificabile.
+- P17 (`InventoryMerge.razor`) — richiede archetype WizardPage; non pianificabile.
 
 ---
 
