@@ -307,9 +307,6 @@ public class ProductService(
                         ShortDescription = createProductDto.ShortDescription,
                         Description = createProductDto.Description,
                         Code = createProductDto.Code,
-#pragma warning disable CS0618 // Type or member is obsolete
-                        ImageUrl = createProductDto.ImageUrl,
-#pragma warning restore CS0618 // Type or member is obsolete
                         ImageDocumentId = createProductDto.ImageDocumentId,
                         Status = (EntityProductStatus)createProductDto.Status,
                         IsVatIncluded = createProductDto.IsVatIncluded,
@@ -558,9 +555,6 @@ public class ProductService(
                 ShortDescription = product.ShortDescription,
                 Description = product.Description,
                 Code = product.Code,
-#pragma warning disable CS0618 // Type or member is obsolete
-                ImageUrl = product.ImageUrl,
-#pragma warning restore CS0618 // Type or member is obsolete
                 ImageDocumentId = product.ImageDocumentId,
                 IsVatIncluded = product.IsVatIncluded,
                 DefaultPrice = product.DefaultPrice,
@@ -593,9 +587,6 @@ public class ProductService(
             product.ShortDescription = updateProductDto.ShortDescription;
             product.Description = updateProductDto.Description;
             // Note: Code and IsBundle are intentionally not updatable after creation
-#pragma warning disable CS0618 // Type or member is obsolete
-            product.ImageUrl = updateProductDto.ImageUrl;
-#pragma warning restore CS0618 // Type or member is obsolete
             product.ImageDocumentId = updateProductDto.ImageDocumentId;
             product.Status = (EntityProductStatus)updateProductDto.Status;
             product.IsVatIncluded = updateProductDto.IsVatIncluded;
@@ -668,7 +659,6 @@ public class ProductService(
             }
 
             // Store original for audit
-#pragma warning disable CS0618 // ImageUrl is obsolete but kept for backward compatibility in audit trail
             var originalProduct = new Product
             {
                 Id = product.Id,
@@ -676,9 +666,7 @@ public class ProductService(
                 ShortDescription = product.ShortDescription,
                 Description = product.Description,
                 Code = product.Code,
-                ImageUrl = product.ImageUrl,
                 IsVatIncluded = product.IsVatIncluded,
-#pragma warning restore CS0618
                 DefaultPrice = product.DefaultPrice,
                 VatRateId = product.VatRateId,
                 UnitOfMeasureId = product.UnitOfMeasureId,
@@ -1446,40 +1434,6 @@ public class ProductService(
         return true;
     }
 
-    public async Task<ProductDto?> UpdateProductImageAsync(Guid productId, string imageUrl, string currentUser, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var product = await context.Products
-                .Include(p => p.Codes.Where(c => !c.IsDeleted))
-                .Include(p => p.Units.Where(u => !u.IsDeleted))
-                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
-                .Include(p => p.ImageDocument)
-                .FirstOrDefaultAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
-
-            if (product is null)
-            {
-                logger.LogWarning("Product {ProductId} not found for image update by user {User}.", productId, currentUser);
-                return null;
-            }
-
-#pragma warning disable CS0618 // Type or member is obsolete
-            product.ImageUrl = imageUrl;
-#pragma warning restore CS0618 // Type or member is obsolete
-            product.ModifiedAt = DateTime.UtcNow;
-            product.ModifiedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Product {ProductId} image updated successfully by user {User}.", productId, currentUser);
-            return MapToProductDto(product);
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
     public async Task<ProductDto?> UploadProductImageAsync(Guid productId, Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default)
     {
         try
@@ -1683,9 +1637,6 @@ public class ProductService(
             ShortDescription = product.ShortDescription,
             Description = product.Description,
             Code = product.Code,
-#pragma warning disable CS0618 // Type or member is obsolete
-            ImageUrl = product.ImageUrl,
-#pragma warning restore CS0618 // Type or member is obsolete
             ImageDocumentId = product.ImageDocumentId,
             ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
             Status = (Prym.DTOs.Common.ProductStatus)product.Status,
@@ -1729,9 +1680,6 @@ public class ProductService(
             ShortDescription = product.ShortDescription,
             Description = product.Description,
             Code = product.Code,
-#pragma warning disable CS0618 // Type or member is obsolete
-            ImageUrl = product.ImageUrl,
-#pragma warning restore CS0618 // Type or member is obsolete
             ImageDocumentId = product.ImageDocumentId,
             ThumbnailUrl = product.ImageDocument?.Url ?? product.ImageDocument?.ThumbnailStorageKey ?? product.ImageDocument?.StorageKey,
             Status = (Prym.DTOs.Common.ProductStatus)product.Status,

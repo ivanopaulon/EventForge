@@ -1,3 +1,4 @@
+using Prym.DTOs.Common;
 using Prym.DTOs.Sales;
 
 namespace Prym.Web.Services.Sales;
@@ -68,7 +69,9 @@ public class SalesService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<SaleSessionDto>>(BaseUrl, cancellationToken);
+            var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(
+                "api/v1/sales/pos-sessions/open?pageNumber=1&pageSize=1000", cancellationToken);
+            return result?.Items?.ToList();
         }
         catch (Exception ex)
         {
@@ -81,7 +84,9 @@ public class SalesService(
     {
         try
         {
-            return await httpClientService.GetAsync<List<SaleSessionDto>>($"{BaseUrl}/operator/{operatorId}", cancellationToken);
+            var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(
+                $"api/v1/sales/pos-sessions/operator/{operatorId}?pageNumber=1&pageSize=1000", cancellationToken);
+            return result?.Items?.ToList();
         }
         catch (Exception ex)
         {

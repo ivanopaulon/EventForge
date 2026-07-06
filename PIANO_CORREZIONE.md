@@ -36,8 +36,8 @@ L'audit del 2026-07-06 ha identificato **18 problemi** distribuiti su 4 progetti
 | P07 | `FidelityCardViewModel.cs:26` e `FidelityPointsTransactionViewModel.cs:15` hanno commento XML `(client-side mock)` — il backend è reale da Sprint 4 | Documentazione / Commento | 🟡 Media | XS | Basso | Prym.Web / Models/Fidelity |
 | P08 | `MUDBLAZOR_AUDIT.md:3` dichiara `MudBlazor: 9.2.0`, versione reale è `9.5.0` | Documentazione | 🟡 Media | XS | Basso | Prym.Web |
 | P09 | `FluentValidation.AspNetCore` v11.3.1 e `FluentValidation` v12.1.1 — versione mismatch; l'integration package AspNetCore non è allineato al core | Debito tecnico | 🟡 Media | S | Basso | EventForge.Server |
-| P10 | `ISaleSessionService.cs:174,183` — due metodi marcati `[Obsolete]` senza roadmap di rimozione o deprecation notice strutturata | Debito tecnico | 🟡 Media | S | Basso | EventForge.Server / Services/Sales |
-| P11 | `ProductService.cs` — 7 blocchi `#pragma warning disable CS0618` per `Product.ImageUrl` obsoleto; necessita roadmap rimozione post-migrazione ImageDocumentId | Debito tecnico | 🟡 Media | S | Medio | EventForge.Server / Services/Products |
+| P10 | ~~`ISaleSessionService.cs:174,183` — due metodi marcati `[Obsolete]` senza roadmap di rimozione o deprecation notice strutturata~~ **✅ RISOLTO — 2026-07-06 (Milestone 4)**: metodi rimossi da `ISaleSessionService`, `SaleSessionService`, `SalesController`; client `SalesService.cs` migrato a `pos-sessions/open` e `pos-sessions/operator/{id}`. | Debito tecnico | 🟡 Media | S | Basso | EventForge.Server / Services/Sales |
+| P11 | ~~`ProductService.cs` — 7 blocchi `#pragma warning disable CS0618` per `Product.ImageUrl` obsoleto; necessita roadmap rimozione post-migrazione ImageDocumentId~~ **✅ RISOLTO PARZIALMENTE — 2026-07-06 (Milestone 4)**: `ImageUrl` rimosso da tutti i DTO, validator, UI e `ProductService`; 0 pragma CS0618 residui nei file server. Colonna DB ancora presente (checkpoint umano): eseguire `20260706_RemoveImageUrlFromProducts.sql` quando approvato. | Debito tecnico | 🟡 Media | S | Medio | EventForge.Server / Services/Products |
 | P12 | `IExportService.cs:9` — docstring dice "using EPPlus" (obsoleta dopo P01) | Documentazione | 🟢 Bassa | XS | Basso | EventForge.Server / Services/Export |
 | P13 | `Directory.Packages.props` — `PackageVersion Include="EPPlus"` diventerà inutilizzato dopo P01 | Debito tecnico | 🟢 Bassa | XS | Basso | Directory.Packages.props |
 | P14 | `NotificationCenter.razor:259` — commento `<!-- Pagination placeholder -->` fuorviante; la paginazione è implementata | Documentazione / Commento | 🟢 Bassa | XS | Basso | Prym.Web / Pages/Notifications |
@@ -382,11 +382,19 @@ I seguenti TODO sono documentati e non urgenti. Vanno tenuti nel backlog fino a 
 
 ---
 
-### Milestone 4 — Debito tecnico strategico
+### Milestone 4 — Debito tecnico strategico ✅ COMPLETATA 2026-07-06
 **Contenuto:** Task E1 (ImageUrl roadmap), Task E2 (Obsolete methods)  
-**Nota:** Milestone 4 richiede decisioni architetturali. Non eseguire senza review umana.
+**Stato:** IMPLEMENTATA — vedi PR Milestone 4.
 
-> **⚠️ Checkpoint umano obbligatorio:** la rimozione di `Product.ImageUrl` è un breaking change sul DB. Deve essere approvata da chi gestisce le installazioni in produzione.
+**Completato:**
+- P10 ✅: `GetActiveSessionsAsync` e `GetOperatorSessionsAsync` rimossi da `ISaleSessionService`, `SaleSessionService`, `SalesController`. Client `SalesService.cs` migrato agli endpoint paginati `pos-sessions/open` e `pos-sessions/operator/{id}`.
+- P11 ✅ (parziale): `ImageUrl` rimosso da tutti i DTO (`ProductDto`, `CreateProductDto`, `UpdateProductDto`, `ProductDetailDto`), validator, `ProductService.cs`, UI Blazor (`ProductPreviewCard.razor`, `ProductQuickInfo.razor`, `DocumentRowDialog.razor.cs`, `QuickCreateProductDialog.razor`). Zero pragma CS0618 residui nei file server. `UpdateProductImageAsync` (dead code) rimosso.
+
+**Pendente (checkpoint umano):**
+- Eseguire `Migrations/20260706_RemoveImageUrlFromProducts.sql` per rimuovere la colonna DB `Products.ImageUrl`. Prerequisiti: verificare che nessun client esterno usi il campo; eseguire la query di validazione nel file SQL.
+- Dopo la migration SQL approvata: rimuovere `[Obsolete]` e il campo `Product.ImageUrl` dall'entità `EventForge.Server/Data/Entities/Products/Product.cs`.
+
+> **⚠️ Checkpoint umano per la rimozione DB:** la rimozione di `Products.ImageUrl` è un breaking change sul DB. Deve essere approvata da chi gestisce le installazioni in produzione. La migration SQL è pronta in `Migrations/20260706_RemoveImageUrlFromProducts.sql`.
 
 ---
 

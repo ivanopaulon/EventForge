@@ -38,13 +38,6 @@ namespace Prym.DTOs.Products
         public string Code { get; set; } = string.Empty;
 
         /// <summary>
-        /// Product image URL (deprecated - use ImageDocumentId).
-        /// </summary>
-        [MaxLength(500, ErrorMessage = "The image URL cannot exceed 500 characters.")]
-        [Display(Name = "Image", Description = "Product image URL (deprecated - use ImageDocumentId).")]
-        public string ImageUrl { get; set; } = string.Empty;
-
-        /// <summary>
         /// Image document identifier (references DocumentReference).
         /// </summary>
         [Display(Name = "Image Document", Description = "Image document identifier.")]

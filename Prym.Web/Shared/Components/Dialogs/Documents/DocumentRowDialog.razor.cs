@@ -1899,7 +1899,6 @@ public partial class DocumentRowDialog : IAsyncDisposable
                 Name = product.Name,
                 ShortDescription = product.ShortDescription ?? string.Empty,
                 Description = product.Description ?? string.Empty,
-                ImageUrl = product.ImageUrl ?? string.Empty,
                 ImageDocumentId = product.ImageDocumentId,
                 Status = product.Status,
                 IsVatIncluded = product.IsVatIncluded,
