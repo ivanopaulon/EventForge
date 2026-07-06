@@ -344,41 +344,38 @@ I seguenti TODO sono documentati e non urgenti. Vanno tenuti nel backlog fino a 
 
 ## 5. Timeline e Milestone
 
-### Milestone 1 — Sicurezza e compliance licenze
+### Milestone 1 — Sicurezza e compliance licenze ✅ COMPLETATA 2026-07-06
 **Contenuto:** Task A1 (EPPlus → ClosedXML), Task A2 (credenziali git)  
-**Priorità:** eseguire entro il prossimo sprint  
-**Criterio di uscita:**
-- Build passa senza dipendenza EPPlus
-- `grep -rn "pass123!\|OfficeOpenXml\|ExcelPackage" .` → 0 risultati nei file tracciati
-- Export Excel funzionante su almeno 3 endpoint (BusinessParties, Products, DocumentHeaders)
+**Stato:** IMPLEMENTATA.
 
-**Punto di verifica:** dopo Milestone 1, eseguire `dotnet build` + `dotnet test` full suite e confermare 0 regressioni.
-
-> **⚠️ Checkpoint umano obbligatorio prima di Task A2:** concordare con il team il processo di gestione delle credenziali dev (user secrets, variabili d'ambiente, o altro) per non interrompere il flusso di sviluppo locale.
+**Completato:**
+- A1 ✅: `ExportService.cs` migrato da EPPlus a ClosedXML. EPPlus rimosso da `EventForge.Server.csproj` e `Directory.Packages.props`. `IExportService.cs` docstring aggiornato. `ADR-CLOSEDXML-MIGRATION.md` aggiornato.
+- A2 ✅: Tutte le credenziali in chiaro sostituite con placeholder `REPLACE_*` in `EventForge.Server/appsettings.json` e `Prym.Agent/appsettings.json`. `appsettings.Development.json` aggiunto a `.gitignore`.
 
 ---
 
-### Milestone 2 — Pulizia strutturale
+### Milestone 2 — Pulizia strutturale ✅ COMPLETATA 2026-07-06
 **Contenuto:** Task B1 (file orfano), Task B2 (archive SHIFTS docs), Task B3 (banner AUDIT_REPORT), Task C1 (FluentValidation)  
-**Criterio di uscita:**
-- `ls Server/` → not found
-- `ls SHIFTS_*.md` → not found
-- FluentValidation.AspNetCore rimosso o allineato a v12
-- Build e test passano
+**Stato:** IMPLEMENTATA.
 
-**Punto di verifica:** review manuale del diff git — verificare che nessun file funzionale sia stato rimosso per errore.
+**Completato:**
+- B1 ✅: Directory `Server/` eliminata.
+- B2 ✅: `SHIFTS_PLAN.md` e `SHIFTS_AUDIT.md` spostati in `docs/archive/` con banner ARCHIVIATO.
+- B3 ✅: `audit/AUDIT_REPORT.md` — aggiunto banner OBSOLETO in cima.
+- C1 ✅: `FluentValidation.AspNetCore` v11.3.1 rimosso da `.csproj` e `Directory.Packages.props`.
 
 ---
 
-### Milestone 3 — Allineamento documentazione
+### Milestone 3 — Allineamento documentazione ✅ COMPLETATA 2026-07-06
 **Contenuto:** Task D1–D5  
-**Criterio di uscita:**
-- Nessun link rotto in `docs/features/README.md`
-- Commenti "mock" rimossi
-- Versione MudBlazor corretta nei doc
-- Commento pagination aggiornato
+**Stato:** IMPLEMENTATA.
 
-**Punto di verifica:** review umana rapida dei file modificati.
+**Completato:**
+- D1 ✅: Commenti `(client-side mock)` rimossi da `FidelityCardViewModel.cs` e `FidelityPointsTransactionViewModel.cs`.
+- D2 ✅: `MUDBLAZOR_AUDIT.md` — versione MudBlazor aggiornata a 9.5.0, data aggiornata a 2026-07-06.
+- D3 ✅: `docs/features/README.md` — link rotti rimossi/corretti.
+- D4 ✅: `NotificationCenter.razor` — commento `Pagination placeholder` aggiornato.
+- D5 ✅: `ADR-CLOSEDXML-MIGRATION.md` — Status e validation checklist aggiornati.
 
 ---
 
