@@ -6,7 +6,7 @@ namespace EventForge.Server.Services.Export;
 public interface IExportService
 {
     /// <summary>
-    /// Exports data to Excel format using EPPlus
+    /// Exports data to Excel format using ClosedXML
     /// </summary>
     /// <typeparam name="T">Type of data to export</typeparam>
     /// <param name="data">Collection of data to export</param>

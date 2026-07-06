@@ -23,7 +23,7 @@ public enum FidelityCardStatus
 }
 
 /// <summary>
-/// View Model per la carta fedeltà (client-side mock)
+/// View model client-side per FidelityCard. Il backend è implementato (FidelityCardsController, FidelityCardService).
 /// </summary>
 public class FidelityCardViewModel
 {

@@ -12,7 +12,7 @@ public enum TransactionType
 }
 
 /// <summary>
-/// View Model per transazione punti fedeltà (client-side mock)
+/// View model client-side per FidelityPointsTransaction. Il backend è implementato (FidelityCardsController, FidelityCardService).
 /// </summary>
 public class FidelityPointsTransactionViewModel
 {

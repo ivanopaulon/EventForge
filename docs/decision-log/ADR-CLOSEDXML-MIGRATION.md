@@ -1,7 +1,7 @@
 # ADR: Migration from EPPlus to ClosedXML
 
 **Decision Date:** 2025-01-24  
-**Status:** Implemented  
+**Status:** Implemented (ExportService.cs migrated 2026-07-06 — migration fully complete)  
 **Decision Maker:** System Architecture Team
 
 ## Context and Problem Statement
@@ -204,8 +204,9 @@ return stream.ToArray();
 - [x] All existing tests pass (524/532 tests passing)
 - [x] Build completes with no compilation errors
 - [x] Excel export functionality works correctly
+- [x] ExportService.cs migrated from EPPlus to ClosedXML (2026-07-06)
 - [ ] Excel files open in Microsoft Excel without errors
-- [ ] Documentation updated to reflect ClosedXML usage
+- [x] Documentation updated to reflect ClosedXML usage
 
 ### Rollback Plan
 If issues arise, rollback involves:
