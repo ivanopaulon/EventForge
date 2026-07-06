@@ -224,6 +224,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     /// <param name="id">Tenant ID</param>
     /// <param name="reason">Reason for enabling the tenant</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    [HttpPost("{id}/enable")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -251,6 +252,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     /// <param name="id">Tenant ID</param>
     /// <param name="reason">Reason for disabling the tenant</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    [HttpPost("{id}/disable")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -339,6 +341,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     /// <param name="id">Tenant ID</param>
     /// <param name="userId">User ID to remove as admin</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    [HttpDelete("{id}/admins/{userId}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -366,6 +369,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     /// <param name="id">Tenant ID (for context)</param>
     /// <param name="userId">User ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    [HttpPost("{id}/admins/{userId}/force-password-change")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -445,6 +449,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     /// <param name="id">Tenant ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Detailed tenant information</returns>
+    [HttpGet("{id}/details")]
     [ProducesResponseType(typeof(TenantDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -771,6 +776,7 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     /// <param name="id">Tenant ID</param>
     /// <param name="reason">Motivazione della cancellazione</param>
     /// <param name="cancellationToken">Cancellation token</param>
+    [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

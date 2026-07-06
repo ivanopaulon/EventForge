@@ -211,6 +211,34 @@ builder.Services.AddScoped<EventForge.Server.Services.External.AI.IOrderAIContex
 
 // Add Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
+
+// Precompute the set of simple type names that are duplicated across the server and DTO
+// assemblies. Only these get a namespace-qualified schemaId (see GetSchemaId below), so the
+// vast majority of schemas keep short, readable names while every conflict is disambiguated
+// automatically. This prevents a single overlooked duplicate (e.g. BulkUpdateResultDto in
+// both Prym.DTOs.Bulk and Prym.DTOs.PriceLists) from breaking swagger.json generation.
+var swaggerSchemaAssemblies = new List<Assembly> { Assembly.GetExecutingAssembly() };
+try
+{
+    swaggerSchemaAssemblies.Add(Assembly.Load("Prym.DTOs"));
+}
+catch (Exception ex)
+{
+    Serilog.Log.Warning(ex, "Could not load Prym.DTOs assembly for Swagger schema-id disambiguation");
+}
+
+var duplicateSchemaNames = swaggerSchemaAssemblies
+    .SelectMany(a =>
+    {
+        try { return a.GetTypes(); }
+        catch (ReflectionTypeLoadException ex) { return ex.Types.Where(t => t is not null).Cast<Type>(); }
+    })
+    .Where(t => !t.IsGenericTypeDefinition)
+    .GroupBy(t => t.Name)
+    .Where(g => g.Select(t => t.FullName).Distinct().Count() > 1)
+    .Select(g => g.Key)
+    .ToHashSet(StringComparer.Ordinal);
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -240,30 +268,52 @@ builder.Services.AddSwaggerGen(c =>
 
     // Prefix each operationId with the controller name to avoid duplicates
     // (e.g. GetAll in multiple controllers). Same fix as Prym.ManagementHub.
+    // Uses safe lookups: minimal-API endpoints (e.g. MapGet("/Dashboard")) have no
+    // "controller"/"action" route values, so indexing the dictionary directly would
+    // throw KeyNotFoundException and break the whole swagger.json generation.
     c.CustomOperationIds(d =>
-        $"{d.ActionDescriptor.RouteValues["controller"]}_{d.ActionDescriptor.RouteValues["action"]}");
+    {
+        d.ActionDescriptor.RouteValues.TryGetValue("controller", out var controller);
+        d.ActionDescriptor.RouteValues.TryGetValue("action", out var action);
+
+        if (!string.IsNullOrEmpty(controller) && !string.IsNullOrEmpty(action))
+            return $"{controller}_{action}";
+        if (!string.IsNullOrEmpty(action))
+            return action;
+        if (!string.IsNullOrEmpty(controller))
+            return controller;
+
+        // Fallback for endpoints without controller/action route values.
+        return d.ActionDescriptor.AttributeRouteInfo?.Name
+            ?? d.ActionDescriptor.DisplayName;
+    });
 
     // Configure custom schema IDs - simplified for better Swagger UI readability
     // Uses simple class names for non-generic types; for generic types, creates
-    // concatenated names from the generic type and its arguments (e.g., PagedResultOfProductDto)
-    c.CustomSchemaIds(type => GetSchemaId(type));
+    // concatenated names from the generic type and its arguments (e.g., PagedResultOfProductDto).
+    // Any type whose simple name collides with another type (across the server and DTO
+    // assemblies) is automatically disambiguated with a compact namespace-derived prefix,
+    // so a single missed conflict can no longer break the whole swagger.json generation.
+    c.CustomSchemaIds(type => GetSchemaId(type, duplicateSchemaNames));
 
-    static string GetSchemaId(Type type)
+    static string GetSchemaId(Type type, HashSet<string> duplicateNames)
     {
         // Handle generic types recursively (e.g., PagedResult<T>, ActionResult<PagedResult<T>>)
         if (type.IsGenericType)
         {
             var genericName = type.Name.Split('`')[0];
-            var genericArgs = string.Join("", type.GetGenericArguments().Select(t => GetSchemaId(t)));
+            var genericArgs = string.Join("", type.GetGenericArguments().Select(t => GetSchemaId(t, duplicateNames)));
             return $"{genericName}Of{genericArgs}";
         }
 
-        // Known conflicting types: use namespace prefix to avoid Swagger schema conflicts
-        // PrinterDto exists in both Prym.DTOs.Printing and Prym.DTOs.Station
-        if (type.Name == "PrinterDto")
+        // Conflicting types: use a namespace prefix to avoid Swagger schema id collisions.
+        // Examples: PrinterDto (Prym.DTOs.Printing vs Prym.DTOs.Station),
+        // BulkUpdateResultDto (Prym.DTOs.Bulk vs Prym.DTOs.PriceLists).
+        if (duplicateNames.Contains(type.Name))
         {
             var namespacePrefix = type.Namespace?
                 .Replace("Prym.DTOs.", "")
+                .Replace("EventForge.Server.", "")
                 .Replace(".", "") ?? "";
             return $"{namespacePrefix}{type.Name}";
         }
@@ -577,7 +627,8 @@ app.MapControllers();
 app.MapRazorPages();
 
 // Redirect /Dashboard to /Dashboard/Index for convenience
-app.MapGet("/Dashboard", () => Results.Redirect("/Dashboard/Index"));
+app.MapGet("/Dashboard", () => Results.Redirect("/Dashboard/Index"))
+    .ExcludeFromDescription();
 
 // Map Health Checks endpoints (preserve existing ResponseWriter logic)
 app.MapHealthChecks("/health", new HealthCheckOptions
