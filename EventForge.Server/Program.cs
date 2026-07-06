@@ -231,7 +231,7 @@ var duplicateSchemaNames = swaggerSchemaAssemblies
     .SelectMany(a =>
     {
         try { return a.GetTypes(); }
-        catch (ReflectionTypeLoadException ex) { return ex.Types.Where(t => t is not null).Cast<Type>(); }
+        catch (ReflectionTypeLoadException ex) { return ex.Types.OfType<Type>(); }
     })
     .Where(t => !t.IsGenericTypeDefinition)
     .GroupBy(t => t.Name)
