@@ -15,17 +15,29 @@ namespace EventForge.Server.Controllers;
 public class UpdateHubProxyController(
     IUpdateHubProxyService proxy,
     IConfiguration configuration,
-    ILogger<UpdateHubProxyController> logger) : ControllerBase
+    ILogger<UpdateHubProxyController> logger) : BaseApiController
 {
     /// <summary>Returns the configured UpdateHub base URL (empty string when not configured).</summary>
+    /// <returns>The UpdateHub base URL</returns>
+    /// <response code="200">Returns the UpdateHub base URL</response>
     [HttpGet("hub-url")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public IActionResult GetHubUrl()
     {
         var url = (configuration["UpdateHub:BaseUrl"] ?? string.Empty).TrimEnd('/');
         return Ok(new { HubUrl = url });
     }
+
     /// <summary>Returns all packages stored in the UpdateHub.</summary>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of packages</returns>
+    /// <response code="200">Returns list of packages</response>
+    /// <response code="503">UpdateHub is not configured</response>
+    /// <response code="502">UpdateHub returned an unexpected error</response>
     [HttpGet("packages")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> GetPackages(CancellationToken ct)
     {
         try
@@ -36,18 +48,25 @@ public class UpdateHubProxyController(
         catch (UpdateHubNotConfiguredException ex)
         {
             logger.LogWarning(ex, "UpdateHub not configured");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Detail = ex.Message });
+            return CreateServiceUnavailableProblem(ex.Message);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error fetching packages from UpdateHub");
-            return StatusCode(StatusCodes.Status502BadGateway,
-                new { Detail = ex.Message });
+            return CreateBadGatewayProblem(ex.Message);
         }
     }
 
     /// <summary>Returns all registered installations with their online/offline state.</summary>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>List of registered installations</returns>
+    /// <response code="200">Returns list of installations</response>
+    /// <response code="503">UpdateHub is not configured</response>
+    /// <response code="502">UpdateHub returned an unexpected error</response>
     [HttpGet("installations")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> GetInstallations(CancellationToken ct)
     {
         try
@@ -58,18 +77,27 @@ public class UpdateHubProxyController(
         catch (UpdateHubNotConfiguredException ex)
         {
             logger.LogWarning(ex, "UpdateHub not configured");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Detail = ex.Message });
+            return CreateServiceUnavailableProblem(ex.Message);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error fetching installations from UpdateHub");
-            return StatusCode(StatusCodes.Status502BadGateway,
-                new { Detail = ex.Message });
+            return CreateBadGatewayProblem(ex.Message);
         }
     }
 
     /// <summary>Dispatches an update command to a specific installation.</summary>
+    /// <param name="installationId">Target installation identifier</param>
+    /// <param name="request">Request containing the package identifier</param>
+    /// <param name="ct">Cancellation token</param>
+    /// <returns>Accepted if the command was dispatched</returns>
+    /// <response code="202">Command accepted by UpdateHub</response>
+    /// <response code="503">UpdateHub is not configured</response>
+    /// <response code="502">UpdateHub returned an unexpected error</response>
     [HttpPost("installations/{installationId:guid}/update")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> SendUpdate(Guid installationId, [FromBody] SendUpdateToInstallationRequest request, CancellationToken ct)
     {
         try
@@ -82,13 +110,12 @@ public class UpdateHubProxyController(
         catch (UpdateHubNotConfiguredException ex)
         {
             logger.LogWarning(ex, "UpdateHub not configured");
-            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { Detail = ex.Message });
+            return CreateServiceUnavailableProblem(ex.Message);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error sending update Installation={InstallationId}", installationId);
-            return StatusCode(StatusCodes.Status502BadGateway,
-                new { Detail = ex.Message });
+            return CreateBadGatewayProblem(ex.Message);
         }
     }
 }

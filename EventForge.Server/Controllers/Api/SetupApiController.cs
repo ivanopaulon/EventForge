@@ -15,7 +15,7 @@ public class SetupApiController(
     IFirstRunDetectionService firstRunDetection,
     ISqlServerDiscoveryService sqlServerDiscovery,
     ISetupWizardService setupWizard,
-    ILogger<SetupApiController> logger) : ControllerBase
+    ILogger<SetupApiController> logger) : BaseApiController
 {
 
     /// <summary>
@@ -24,8 +24,10 @@ public class SetupApiController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if first run, false if setup is complete</returns>
     /// <response code="200">Returns first run status</response>
+    /// <response code="500">An unexpected error occurred</response>
     [HttpGet("detect-first-run")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<bool>> DetectFirstRun(CancellationToken cancellationToken = default)
     {
         try
@@ -43,7 +45,7 @@ public class SetupApiController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error detecting first run");
-            return StatusCode(StatusCodes.Status500InternalServerError, "Error checking setup status");
+            return CreateInternalServerErrorProblem("Error checking setup status", ex);
         }
     }
 
@@ -53,8 +55,10 @@ public class SetupApiController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of discovered SQL Server instances</returns>
     /// <response code="200">Returns list of SQL Server instances</response>
+    /// <response code="500">An unexpected error occurred</response>
     [HttpGet("discover-sql-servers")]
     [ProducesResponseType(typeof(List<SqlServerInstance>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<SqlServerInstance>>> DiscoverSqlServers(CancellationToken cancellationToken = default)
     {
         try
@@ -72,7 +76,7 @@ public class SetupApiController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error discovering SQL Server instances");
-            return StatusCode(StatusCodes.Status500InternalServerError, "Error discovering SQL Server instances");
+            return CreateInternalServerErrorProblem("Error discovering SQL Server instances", ex);
         }
     }
 
@@ -83,8 +87,10 @@ public class SetupApiController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>True if connection successful</returns>
     /// <response code="200">Returns connection test result</response>
+    /// <response code="400">Server address is missing</response>
     [HttpPost("test-connection")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<bool>> TestConnection(
         [FromBody] TestConnectionRequest request,
         CancellationToken cancellationToken = default)
@@ -93,7 +99,7 @@ public class SetupApiController(
         {
             if (string.IsNullOrEmpty(request.ServerAddress))
             {
-                return BadRequest("Server address is required");
+                return CreateValidationProblemDetails("Server address is required.");
             }
 
             var success = await sqlServerDiscovery.TestConnectionAsync(
@@ -117,8 +123,12 @@ public class SetupApiController(
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>List of database names</returns>
     /// <response code="200">Returns list of databases</response>
+    /// <response code="400">Server address is missing</response>
+    /// <response code="500">An unexpected error occurred</response>
     [HttpPost("list-databases")]
     [ProducesResponseType(typeof(List<string>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<List<string>>> ListDatabases(
         [FromBody] TestConnectionRequest request,
         CancellationToken cancellationToken = default)
@@ -127,7 +137,7 @@ public class SetupApiController(
         {
             if (string.IsNullOrEmpty(request.ServerAddress))
             {
-                return BadRequest("Server address is required");
+                return CreateValidationProblemDetails("Server address is required.");
             }
 
             var databases = await sqlServerDiscovery.ListDatabasesAsync(
@@ -140,7 +150,7 @@ public class SetupApiController(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error listing databases");
-            return StatusCode(StatusCodes.Status500InternalServerError, "Error listing databases");
+            return CreateInternalServerErrorProblem("Error listing databases", ex);
         }
     }
 

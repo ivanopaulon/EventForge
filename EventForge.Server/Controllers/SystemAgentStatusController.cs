@@ -16,9 +16,13 @@ namespace EventForge.Server.Controllers;
 public class SystemAgentStatusController(
     AgentMonitorService agentMonitor,
     IConfiguration configuration,
-    ILogger<SystemAgentStatusController> logger) : ControllerBase
+    ILogger<SystemAgentStatusController> logger) : BaseApiController
 {
+    /// <summary>Returns the current live status of the co-located UpdateAgent.</summary>
+    /// <returns>Agent status information</returns>
+    /// <response code="200">Returns agent status</response>
     [HttpGet]
+    [ProducesResponseType(typeof(AgentStatusResponseDto), StatusCodes.Status200OK)]
     public IActionResult GetAgentStatus()
     {
         var agentLocalUrl = (configuration["Agent:LocalUrl"] ?? string.Empty).TrimEnd('/');
@@ -60,8 +64,13 @@ public class SystemAgentStatusController(
     }
 
     /// <summary>Manually triggers an Agent service restart. SuperAdmin only.</summary>
+    /// <returns>Restart result indicating success or failure</returns>
+    /// <response code="200">Restart was successfully triggered</response>
+    /// <response code="503">Agent service could not be restarted</response>
     [HttpPost("restart")]
     [Authorize(Roles = "SuperAdmin")]
+    [ProducesResponseType(typeof(AgentRestartResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     public IActionResult RestartAgent()
     {
         logger.LogInformation("Manual Agent restart requested by {User}",
@@ -71,8 +80,7 @@ public class SystemAgentStatusController(
 
         return result.Success
             ? Ok(new AgentRestartResultDto(true, result.Message))
-            : StatusCode(StatusCodes.Status503ServiceUnavailable,
-                new AgentRestartResultDto(false, result.Message));
+            : CreateServiceUnavailableProblem(result.Message);
     }
 
     // Builds a minimal (offline/not-configured/fallback online) response DTO.

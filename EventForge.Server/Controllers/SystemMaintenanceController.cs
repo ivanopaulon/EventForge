@@ -17,7 +17,7 @@ namespace EventForge.Server.Controllers;
 public class SystemMaintenanceController(
     IHubContext<AppHub> hub,
     IConfiguration configuration,
-    ILogger<SystemMaintenanceController> logger) : ControllerBase
+    ILogger<SystemMaintenanceController> logger) : BaseApiController
 {
     /// <summary>
     /// Receives a maintenance phase notification from the Agent and broadcasts it to clients.
@@ -27,7 +27,15 @@ public class SystemMaintenanceController(
     /// { "phase": "Starting|Started|ClientDeployed", "component": "Server|Client", "version": "1.2.3" }
     /// </code>
     /// </summary>
+    /// <param name="request">Maintenance notification payload</param>
+    /// <returns>OK when the notification was broadcast; 400 for unknown phase; 401 when secret is invalid</returns>
+    /// <response code="200">Notification broadcast to all connected clients</response>
+    /// <response code="400">Unknown or missing maintenance phase</response>
+    /// <response code="401">X-Maintenance-Secret header is missing or invalid</response>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ReceiveMaintenanceNotification(
         [FromBody] MaintenanceNotificationRequest request)
     {
@@ -35,7 +43,7 @@ public class SystemMaintenanceController(
         {
             logger.LogWarning("Maintenance notification rejected — invalid or missing X-Maintenance-Secret from {Ip}",
                 HttpContext.Connection.RemoteIpAddress);
-            return Unauthorized();
+            return CreateUnauthorizedProblem("Invalid or missing X-Maintenance-Secret header.");
         }
 
         logger.LogInformation("Maintenance notification: Phase={Phase} Component={Component} Version={Version}",
@@ -91,7 +99,7 @@ public class SystemMaintenanceController(
 
             default:
                 logger.LogWarning("Unknown maintenance phase: {Phase}", request.Phase);
-                return BadRequest($"Unknown phase: {request.Phase}");
+                return CreateValidationProblemDetails($"Unknown maintenance phase: '{request.Phase}'.");
         }
 
         return Ok();

@@ -152,6 +152,22 @@ public abstract class BaseApiController : ControllerBase
         return StatusCode(StatusCodes.Status500InternalServerError, problem);
     }
 
+    /// <summary>501 – feature not yet implemented.</summary>
+    protected ActionResult CreateNotImplementedProblem(string message) =>
+        StatusCode(StatusCodes.Status501NotImplemented, BuildProblemDetails(
+            "https://tools.ietf.org/html/rfc7231#section-6.6.2",
+            "Not Implemented",
+            StatusCodes.Status501NotImplemented,
+            message));
+
+    /// <summary>502 – upstream/proxy dependency returned an unexpected error.</summary>
+    protected ActionResult CreateBadGatewayProblem(string message) =>
+        StatusCode(StatusCodes.Status502BadGateway, BuildProblemDetails(
+            "https://tools.ietf.org/html/rfc7231#section-6.6.3",
+            "Bad Gateway",
+            StatusCodes.Status502BadGateway,
+            message));
+
     /// <summary>503 – downstream dependency unavailable.</summary>
     protected ActionResult CreateServiceUnavailableProblem(string message) =>
         StatusCode(StatusCodes.Status503ServiceUnavailable, BuildProblemDetails(
