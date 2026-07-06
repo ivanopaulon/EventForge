@@ -33,11 +33,6 @@ namespace Prym.DTOs.Products
         public string Code { get; set; } = string.Empty;
 
         /// <summary>
-        /// Product image URL (deprecated - use ImageDocumentId).
-        /// </summary>
-        public string ImageUrl { get; set; } = string.Empty;
-
-        /// <summary>
         /// Image document identifier (references DocumentReference).
         /// </summary>
         public Guid? ImageDocumentId { get; set; }

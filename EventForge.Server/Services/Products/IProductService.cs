@@ -247,15 +247,6 @@ public interface IProductService
     Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Updates the image URL for a product.
-    /// </summary>
-    /// <param name="productId">Product ID</param>
-    /// <param name="imageUrl">New image URL</param>
-    /// <param name="currentUser">Current user name</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>Updated product DTO or null if not found</returns>
-    Task<ProductDto?> UpdateProductImageAsync(Guid productId, string imageUrl, string currentUser, CancellationToken cancellationToken = default);
-
     /// <summary>
     /// Uploads an image file as a DocumentReference and links it to a product.
     /// </summary>

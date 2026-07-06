@@ -401,8 +401,10 @@ screenshots/
 
 # EventForge - Configuration overrides (git-ignored for security)
 /EventForge.Server/appsettings.overrides.json
+/EventForge.Server/appsettings.Development.json
 /EventForge.Server/appsettings.Production.json
 /EventForge.Server/appsettings.Staging.json
+/Prym.Agent/appsettings.Development.json
 
 # Update packages: Applied/ is managed automatically by New-UpdatePackage.ps1
 /Migrations/Applied/

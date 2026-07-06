@@ -85,7 +85,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Simple variable for product autocomplete binding.
-    /// ✅ PATTERN: Same as GenericDocumentProcedure BusinessParty autocomplete (line 687).
+    /// ✅ PATTERN: Same as BusinessParty autocomplete in DocumentRowDialog.
     /// ✅ CRITICAL: Simple variable, NOT a property with getter/setter.
     /// This allows Blazor's @bind-Value to work correctly without interference.
     /// </summary>
@@ -297,7 +297,7 @@ public partial class DocumentRowDialog : IAsyncDisposable
 
     /// <summary>
     /// Called AFTER _selectedProduct is bound by Blazor.
-    /// Pattern: Same as GenericDocumentProcedure but with product-specific field population.
+    /// Pattern: Same as BusinessParty autocomplete in UnifiedProductSelector but with product-specific field population.
     /// CRITICAL: This runs AFTER the binding is complete, so it doesn't interfere with typing.
     /// </summary>
     private async Task OnProductSelectedAsync(ProductDto? product)
@@ -1899,7 +1899,6 @@ public partial class DocumentRowDialog : IAsyncDisposable
                 Name = product.Name,
                 ShortDescription = product.ShortDescription ?? string.Empty,
                 Description = product.Description ?? string.Empty,
-                ImageUrl = product.ImageUrl ?? string.Empty,
                 ImageDocumentId = product.ImageDocumentId,
                 Status = product.Status,
                 IsVatIncluded = product.IsVatIncluded,

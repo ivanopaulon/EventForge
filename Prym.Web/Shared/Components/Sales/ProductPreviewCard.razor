@@ -18,9 +18,9 @@
         <MudGrid Spacing="3">
             <!-- Product Image -->
             <MudItem xs="12" sm="4" md="3">
-                @if (!string.IsNullOrWhiteSpace(Product.ImageUrl))
+                @if (!string.IsNullOrWhiteSpace(Product.ThumbnailUrl))
                 {
-                    <MudImage Src="@Product.ImageUrl" 
+                    <MudImage Src="@Product.ThumbnailUrl" 
                               Alt="@Product.Name"
                               Elevation="2" 
                               Class="rounded-lg cursor-pointer"

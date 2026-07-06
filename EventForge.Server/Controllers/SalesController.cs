@@ -171,66 +171,6 @@ public class SalesController(
     }
 
     /// <summary>
-    /// Gets all active sale sessions for the current tenant.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of active sale sessions</returns>
-    /// <response code="200">Returns the list of active sessions</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpGet("sessions")]
-    [ProducesResponseType(typeof(List<SaleSessionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [Obsolete("Use GetOpenSessions or GetPOSSessions with pagination instead")]
-    public async Task<ActionResult<List<SaleSessionDto>>> GetActiveSessions(
-        CancellationToken cancellationToken = default)
-    {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
-
-        try
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            var sessions = await saleSessionService.GetActiveSessionsAsync(cancellationToken);
-#pragma warning restore CS0618 // Type or member is obsolete
-            return Ok(sessions);
-        }
-        catch (Exception ex)
-        {
-            return CreateInternalServerErrorProblem("An error occurred while retrieving active sale sessions.", ex);
-        }
-    }
-
-    /// <summary>
-    /// Gets all sale sessions for a specific operator.
-    /// </summary>
-    /// <param name="operatorId">Operator ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of operator's sale sessions</returns>
-    /// <response code="200">Returns the list of operator's sessions</response>
-    /// <response code="403">If the user doesn't have access to the current tenant</response>
-    [HttpGet("sessions/operator/{operatorId:guid}")]
-    [ProducesResponseType(typeof(List<SaleSessionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [Obsolete("Use GetSessionsByOperator with pagination instead")]
-    public async Task<ActionResult<List<SaleSessionDto>>> GetOperatorSessions(
-        Guid operatorId,
-        CancellationToken cancellationToken = default)
-    {
-        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
-
-        try
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            var sessions = await saleSessionService.GetOperatorSessionsAsync(operatorId, cancellationToken);
-#pragma warning restore CS0618 // Type or member is obsolete
-            return Ok(sessions);
-        }
-        catch (Exception ex)
-        {
-            return CreateInternalServerErrorProblem("An error occurred while retrieving operator sale sessions.", ex);
-        }
-    }
-
-    /// <summary>
     /// Retrieves all POS sessions with pagination
     /// </summary>
     /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>

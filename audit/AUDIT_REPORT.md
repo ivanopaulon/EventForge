@@ -1,4 +1,6 @@
-﻿# EventForge Backend Audit Report
+﻿> **OBSOLETO** — Generato il 2025-09-05. Non riflette Sprint 4-5 (StationMonitor, FidelityCard, AI Order, RebuildMovements, CashierShift, ecc.). Conservato come riferimento storico. Per lo stato aggiornato vedere `PIANO_CORREZIONE.md`.
+
+# EventForge Backend Audit Report
 
 **Generated:** 2025-09-05 14:35:06 UTC
 

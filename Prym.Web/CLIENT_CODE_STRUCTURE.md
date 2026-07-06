@@ -50,7 +50,6 @@ Pages are routable Blazor components (with `@page` directive), organized by feat
 - `DocumentList.razor` — `/documents/list`
 - `DocumentTypeManagement.razor` — `/documents/types`
 - `DocumentCounterManagement.razor` — `/documents/counters`
-- `GenericDocumentProcedure.razor` — `/documents/create`, `/documents/edit/{id}`
 - **Dialog component**: `DocumentDetailDialog.razor`
 - **Dialog component**: `DocumentTypeDetailDialog.razor`
 

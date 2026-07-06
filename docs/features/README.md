@@ -5,27 +5,27 @@ Guide dettagliate per l'implementazione di funzionalità specifiche di EventForg
 ## 📋 Indice
 
 ### 💬 Communication Features
-- [Notifications & Chat System](./notifications-chat.md) - Sistema notifiche e chat completo
 - [Real-time Messaging](./NOTIFICATIONS_CHAT_IMPLEMENTATION.md) - Implementazione messaging real-time
 - [Chat UI Components](./NOTIFICATIONS_CHAT_UI_IMPLEMENTATION.md) - Componenti UI chat
-- [SignalR Integration](./signalr-integration.md) - Integrazione SignalR
+- [SignalR Integration](./SIGNALR_IMPLEMENTATION_STEP1.md) - Integrazione SignalR (Step 1)
+- Notifications & Chat System — documentazione da creare
 
 ### 📊 Business Features
 - [Promotions Engine](./PROMOTIONS_ENGINE.md) - Motore promozioni e sconti
-- [Retail Cart Session](./retail-cart.md) - Gestione carrello retail
-- [Document Management](./document-management.md) - Gestione documenti
-- [Workflow System](./workflow-system.md) - Sistema workflow
+- [Retail Cart Session](./RETAIL_CART_SESSION.md) - Gestione carrello retail
+- Document Management — documentazione da creare
+- Workflow System — documentazione da creare
 
 ### 🔧 Integration Features
-- [Barcode Integration](./barcode-integration.md) - Integrazione codici a barre
+- [Barcode Integration](./BARCODE_INTEGRATION_GUIDE.md) - Integrazione codici a barre
 - [Cross-Platform Barcode](./BARCODE_CROSS_PLATFORM_GUIDE.md) - Codici a barre cross-platform
-- [Printing System](./printing-system.md) - Sistema di stampa
+- Printing System — documentazione da creare
 
 ### 🎨 UI/UX Features
-- [Custom Theming](./theming-advanced.md) - Temi personalizzati avanzati
-- [Responsive Components](./responsive-components.md) - Componenti responsivi
-- [Accessibility Features](./accessibility-features.md) - Funzionalità accessibilità
-- [Performance Optimization](./performance-features.md) - Ottimizzazioni performance
+- Custom Theming — documentazione da creare
+- Responsive Components — documentazione da creare
+- Accessibility Features — documentazione da creare
+- Performance Optimization — documentazione da creare
 
 ## 🚀 Quick Implementation Guide
 

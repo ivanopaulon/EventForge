@@ -26,10 +26,6 @@ namespace Prym.DTOs.Products.Validators
                 .MaximumLength(500)
                 .WithMessage("The description cannot exceed 500 characters.");
 
-            RuleFor(x => x.ImageUrl)
-                .MaximumLength(500)
-                .WithMessage("The image URL cannot exceed 500 characters.");
-
             RuleFor(x => x.Status)
                 .NotNull()
                 .WithMessage("The product status is required.");

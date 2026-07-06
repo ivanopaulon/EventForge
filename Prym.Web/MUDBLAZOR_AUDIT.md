@@ -1,9 +1,9 @@
 # MudBlazor Design System Audit — EventForge.Client
 
 **Version:** Phase 1+2+3d+3e+3f+3g+3h+4+5+6+7+8+9  
-**MudBlazor:** 9.2.0  
+**MudBlazor:** 9.5.0  
 **Framework:** Blazor WASM (.NET 10)  
-**Audit date:** 2025 — updated 2026-04-12  
+**Audit date:** 2025 — updated 2026-07-06  
 
 ---
 

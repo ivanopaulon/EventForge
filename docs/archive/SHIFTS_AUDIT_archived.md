@@ -1,3 +1,5 @@
+> **ARCHIVIATO** — CashierShift è completamente implementato (vedi `EventForge.Server/Data/Entities/Store/CashierShift.cs`, `EventForge.Server/Controllers/ShiftsController.cs`). Questo documento è conservato come riferimento storico dell'analisi pre-implementazione.
+
 # SHIFTS_AUDIT.md — Cash Register Operator Shift Management
 
 ## Existing Relevant Entities

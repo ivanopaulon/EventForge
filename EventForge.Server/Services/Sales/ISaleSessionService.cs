@@ -167,23 +167,6 @@ public interface ISaleSessionService
     Task<PagedResult<SaleSessionDto>> GetOpenSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all active sale sessions for the current tenant (deprecated - use GetOpenSessionsAsync).
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of active sale sessions</returns>
-    [Obsolete("Use GetOpenSessionsAsync with pagination instead")]
-    Task<List<SaleSessionDto>> GetActiveSessionsAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Gets all sale sessions for a specific operator (deprecated - use GetSessionsByOperatorAsync).
-    /// </summary>
-    /// <param name="operatorId">Operator ID</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>List of operator's sale sessions</returns>
-    [Obsolete("Use GetSessionsByOperatorAsync with pagination instead")]
-    Task<List<SaleSessionDto>> GetOperatorSessionsAsync(Guid operatorId, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Voids a closed sale session, creating inverse stock movements and marking document as voided.
     /// </summary>
     /// <param name="sessionId">Session ID</param>
