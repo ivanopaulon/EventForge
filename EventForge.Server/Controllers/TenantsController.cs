@@ -771,10 +771,10 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     #endregion
 
     /// <summary>
-    /// Soft delete di un tenant.
+    /// Soft-deletes a tenant.
     /// </summary>
     /// <param name="id">Tenant ID</param>
-    /// <param name="reason">Motivazione della cancellazione</param>
+    /// <param name="reason">Reason for deletion</param>
     /// <param name="cancellationToken">Cancellation token</param>
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
