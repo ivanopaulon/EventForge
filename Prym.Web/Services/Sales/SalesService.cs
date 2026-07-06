@@ -11,6 +11,7 @@ public class SalesService(
     ILogger<SalesService> logger) : ISalesService
 {
     private const string BaseUrl = "api/v1/sales/sessions";
+    private const int MaxUnpaginatedPageSize = 1000;
 
     public async Task<SaleSessionDto?> CreateSessionAsync(CreateSaleSessionDto createDto, CancellationToken cancellationToken = default)
     {
@@ -70,8 +71,8 @@ public class SalesService(
         try
         {
             var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(
-                "api/v1/sales/pos-sessions/open?pageNumber=1&pageSize=1000", cancellationToken);
-            return result?.Items?.ToList();
+                $"api/v1/sales/pos-sessions/open?pageNumber=1&pageSize={MaxUnpaginatedPageSize}", cancellationToken);
+            return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
         {
@@ -85,8 +86,8 @@ public class SalesService(
         try
         {
             var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(
-                $"api/v1/sales/pos-sessions/operator/{operatorId}?pageNumber=1&pageSize=1000", cancellationToken);
-            return result?.Items?.ToList();
+                $"api/v1/sales/pos-sessions/operator/{operatorId}?pageNumber=1&pageSize={MaxUnpaginatedPageSize}", cancellationToken);
+            return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
         {
