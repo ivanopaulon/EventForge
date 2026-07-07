@@ -6,71 +6,20 @@
    tramite IDialogService.ShowAsync, che renderizza in un portal MudBlazor
    fuori dall'albero del componente POS2026. I CSS scoped di POS2026.razor.css
    (::deep) non raggiungono il portal; per questo i relativi stili sono qui.
-   ========================================================================== */
 
-/* ---- Variabili colore POS: single source of truth, globale ---- */
-/* Design tokens allineati a pos2026-layout-proposta.html. Definiti su :root (non su
-   .pos26-payment-dialog-wrap) perché questo file è caricato globalmente (vedi index.html)
-   e i dialog POS2026 vengono renderizzati da MudBlazor in un portal fuori dall'albero
-   DOM di POS2026.razor.css — un :root qui garantisce che i token siano disponibili
-   ovunque, incluso dentro POS2026.razor.css (scoped) e in qualunque dialog. */
+   I colori usano esclusivamente var(--mud-palette-*), definiti centralmente in
+   Prym.Web/Services/EventForgeTheme.cs e iniettati da MudThemeProvider: seguono
+   quindi sempre il tema scelto dall'utente (carbon-neon-light / carbon-neon-dark),
+   coerentemente con Prym.Web/MUDBLAZOR_GUIDELINES.md §3-§4. Non esiste più un set
+   di colori indipendente dal tema (vedi AUDIT_POS2026_PALETTE.md per lo storico). */
+
+/* ---- Variabili non-colore POS: single source of truth, globale ---- */
 :root {
-    --pos-brand-navy:      #1F2F46;
-    --pos-brand-blue:      #247BFF;
-    --pos-brand-blue-dim:  #1B5FC4;
-    --pos-brand-blue-bg:   #1A2C4A;
-
-    --pos-surface-0:       #17171A;
-    --pos-surface-1:       #212226;
-    --pos-surface-2:       #2B2C31;
-    --pos-surface-3:       #37383E;
-    --pos-border:          #3C3D44;
-
-    --pos-text-1:          #EDEDEF;
-    --pos-text-2:          #A6A7AE;
-    --pos-text-3:          #6E6F78;
-
-    --pos-success:         #2FAE7C;
-    --pos-success-bg:      #16332A;
-    --pos-warning:         #D69A3C;
-    --pos-warning-bg:      #362A15;
-    --pos-danger:          #E15B5B;
-    --pos-danger-bg:       #3A1E1E;
-
     --pos-radius-sm: 8px;
     --pos-radius-md: 12px;
     --pos-radius-lg: 16px;
 }
 
-/* Applica lo scope visivo scuro POS a qualunque contenuto di dialog la contenga.
-   I token --pos-* sono già globali (vedi :root sopra); questa classe si limita a
-   impostare sfondo/testo di base per il contenuto del dialog. Vedi Parte C del
-   consolidamento POS2026 per l'elenco dei dialog che la applicano. */
-.pos26-dialog-dark {
-    background: var(--pos-surface-1);
-    color: var(--pos-text-1);
-    border-radius: var(--pos-radius-md);
-    padding: 16px;
-}
-
-.pos26-dialog-dark .mud-input-outlined-border,
-.pos26-dialog-dark .mud-input-outlined .mud-input-slot {
-    border-color: var(--pos-border);
-}
-
-.pos26-dialog-dark .mud-input-slot,
-.pos26-dialog-dark .mud-input-slot::placeholder,
-.pos26-dialog-dark .mud-input-label,
-.pos26-dialog-dark .mud-select-input,
-.pos26-dialog-dark .mud-typography {
-    color: var(--pos-text-1);
-}
-
-.pos26-dialog-dark .mud-input-helper-text {
-    color: var(--pos-text-2);
-}
-
-/* ===== Pos26PaymentDialog ===== */
 .pos26-payment-dialog-wrap {
     display: grid;
     grid-template-columns: 1fr 220px;
@@ -111,15 +60,15 @@
 }
 
 .pos26-pay-summary-card--paid {
-    background: var(--pos-success-bg);
+    background: var(--mud-palette-success-lighten);
 }
 
 .pos26-pay-summary-card--ok {
-    background: var(--pos-success-bg);
+    background: var(--mud-palette-success-lighten);
 }
 
 .pos26-pay-summary-card--residuo {
-    background: var(--pos-warning-bg);
+    background: var(--mud-palette-warning-lighten);
 }
 
 .pos26-pay-card-label {
@@ -157,8 +106,8 @@
 }
 
 .pos26-pm-card--selected {
-    border: 2px solid var(--pos-brand-blue);
-    background: var(--pos-brand-blue-bg);
+    border: 2px solid var(--mud-palette-primary);
+    background: var(--mud-palette-primary-hover);
 }
 
 .pos26-pm-card--added {
@@ -172,7 +121,7 @@
 }
 
 .pos26-pm-icon {
-    color: var(--pos-brand-blue);
+    color: var(--mud-palette-primary);
 }
 
 .pos26-pm-name {
@@ -219,8 +168,8 @@
 }
 
 .pos26-pay-btn-add {
-    background: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
 }
 
 .pos26-pay-btn-tutto:disabled,
@@ -277,7 +226,7 @@
 }
 
 .pos26-payment-row-remove:hover {
-    color: var(--pos-danger);
+    color: var(--mud-palette-error);
 }
 
 /* ===== Banner resto contanti ===== */
@@ -285,8 +234,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: var(--pos-success-bg);
-    color: var(--pos-success);
+    background: var(--mud-palette-success-lighten);
+    color: var(--mud-palette-success);
     border-radius: 8px;
     padding: 8px 12px;
     font-size: 14px;
@@ -309,14 +258,14 @@
     align-items: center;
     gap: 4px;
     width: 100%;
-    color: var(--pos-warning);
+    color: var(--mud-palette-warning);
     font-weight: 600;
     font-size: 13px;
 }
 
 /* ===== Colonna destra: numpad ===== */
 .pos26-pay-right {
-    background: var(--pos-surface-0);
+    background: var(--mud-palette-background);
     border-radius: 12px;
     padding: 10px;
     display: flex;
@@ -325,13 +274,13 @@
 }
 
 .pos26-pay-numpad-display {
-    background: var(--pos-surface-1);
+    background: var(--mud-palette-surface);
     border-radius: 7px;
     padding: 8px 12px;
     font-size: 24px;
     font-weight: 700;
     font-family: monospace;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
     text-align: right;
 }
 
@@ -342,8 +291,8 @@
 }
 
 .pos26-pay-shortcut {
-    background: var(--pos-surface-1);
-    color: var(--pos-text-1);
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
     border: none;
     border-radius: 7px;
     padding: 6px;
@@ -354,7 +303,7 @@
 }
 
 .pos26-pay-shortcut:hover {
-    background: var(--pos-border);
+    background: var(--mud-palette-lines-default);
 }
 
 .pos26-pay-numpad-grid {
@@ -364,8 +313,8 @@
 }
 
 .pos26-pay-numpad-key {
-    background: var(--pos-border);
-    color: var(--pos-text-1);
+    background: var(--mud-palette-lines-default);
+    color: var(--mud-palette-text-primary);
     border: none;
     border-radius: 7px;
     font-size: 16px;
@@ -379,7 +328,7 @@
 }
 
 .pos26-pay-numpad-key:hover {
-    background: var(--pos-surface-3);
+    background: var(--mud-palette-action-default-hover);
 }
 
 .pos26-pay-numpad-key--dot {
@@ -390,8 +339,8 @@
 
 .pos26-pay-confirm {
     width: 100%;
-    background: var(--pos-border);
-    color: var(--pos-text-3);
+    background: var(--mud-palette-lines-default);
+    color: var(--mud-palette-text-disabled);
     border: none;
     border-radius: 7px;
     padding: 10px;
@@ -407,8 +356,8 @@
 }
 
 .pos26-pay-confirm--ready {
-    background: var(--pos-success);
-    color: #fff;
+    background: var(--mud-palette-success);
+    color: var(--mud-palette-success-text);
 }
 
 .pos26-pay-confirm:disabled {
