@@ -355,7 +355,7 @@ public partial class EpsonFiscalPrinterService
             return records.Select(r => new DailyClosureHistoryDto
             {
                 Id = r.Id,
-                PrinterId = r.PrinterId!.Value,
+                PrinterId = r.PrinterId ?? printerId,
                 PrinterName = printerName,
                 ZReportNumber = r.ZReportNumber,
                 ClosedAt = r.ClosedAt,
