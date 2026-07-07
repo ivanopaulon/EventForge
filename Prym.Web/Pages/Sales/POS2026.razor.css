@@ -1,27 +1,39 @@
 /* POS2026.razor.css — Scoped CSS per la pagina POS 2026 */
 
-/* ===== Variabili colore (usate come custom properties) ===== */
+/* ===== Design tokens POS2026 — da pos2026-layout-proposta.html (mockup approvato) =====
+   Nota: usiamo .pos2026-wrap invece di :root perché questo file è CSS isolation
+   (POS2026.razor.css) — i selettori bare :root non vengono garantiti dallo scoping
+   di Blazor, mentre una classe di root del componente sì. */
 .pos2026-wrap {
-    /* Accento cromatico allineato al brand ufficiale EventForge (Secondary #247BFF,
-       vedi EventForgeTheme.cs GetDefaultLightPalette / wwwroot/css/variables.css),
-       al posto del viola scollegato #7F77DD (Opzione A: brand + sfondo scuro per leggibilità touch). */
-    --pos-accent:        #247BFF;
-    --pos-accent-light:  #E5EFFF;
-    --pos-dark:          #2C2C2A;
-    --pos-darker:        #1D1D1B;
-    --pos-dark-border:   #444441;
-    --pos-dark-text:     #D3D1C7;
-    --pos-dark-muted:    #888780;
-    /* Colori semantici (successo/attenzione/errore): mantenuti come varianti dedicate
-       invece delle variabili --mud-palette-success/warning/error perché queste ultime
-       sono tarate per superfici chiare — su sfondo scuro touch risultano poco sature
-       e con contrasto insufficiente. I valori qui sono scelti per restare leggibili
-       su --pos-dark/--pos-darker mantenendo la stessa semantica (verde/ambra/rosso). */
-    --pos-green:         #1D9E75;
-    --pos-green-light:   #E1F5EE;
-    --pos-amber:         #BA7517;
-    --pos-amber-light:   #FAEEDA;
-    --pos-red-key:       #993C1D;
+    /* Brand ufficiale (EventForgeTheme.cs / variables.css) */
+    --pos-brand-navy:      #1F2F46;
+    --pos-brand-blue:      #247BFF;
+    --pos-brand-blue-dim:  #1B5FC4;
+    --pos-brand-blue-bg:   #1A2C4A;
+
+    /* Superfici scure — mantenute per leggibilità touch, non è un redesign "a tema chiaro" */
+    --pos-surface-0:       #17171A;  /* sfondo pagina */
+    --pos-surface-1:       #212226;  /* pannelli */
+    --pos-surface-2:       #2B2C31;  /* card / righe */
+    --pos-surface-3:       #37383E;  /* hover / bordi decisi */
+    --pos-border:          #3C3D44;
+
+    /* Testo */
+    --pos-text-1:          #EDEDEF;
+    --pos-text-2:          #A6A7AE;
+    --pos-text-3:          #6E6F78;
+
+    /* Semantici */
+    --pos-success:         #2FAE7C;
+    --pos-success-bg:      #16332A;
+    --pos-warning:         #D69A3C;
+    --pos-warning-bg:      #362A15;
+    --pos-danger:          #E15B5B;
+    --pos-danger-bg:       #3A1E1E;
+
+    --pos-radius-sm: 8px;
+    --pos-radius-md: 12px;
+    --pos-radius-lg: 16px;
 }
 
 /* ===== Layout principale: flex colonna (banner + contenuto) ===== */
@@ -92,7 +104,7 @@
         left: 0;
         right: 0;
         background: rgba(44, 44, 42, 0.97);
-        border-top: 1px solid var(--pos-dark-border, #444441);
+        border-top: 1px solid var(--pos-border, #444441);
         z-index: 11;
         height: 52px;
     }
@@ -107,7 +119,7 @@
     gap: 2px;
     border: none;
     background: transparent;
-    color: var(--pos-dark-muted, #888780);
+    color: var(--pos-text-3, #888780);
     font-size: 11px;
     cursor: pointer;
     transition: color 150ms, background 150ms;
@@ -115,7 +127,7 @@
 }
 
 .pos2026-mobile-tab--active {
-    color: var(--pos-accent, #247BFF);
+    color: var(--pos-brand-blue, #247BFF);
     background: rgba(36, 123, 255, 0.12);
 }
 
@@ -134,15 +146,111 @@
     padding-right: 2px;
 }
 
+/* ===== Pos26StatusBar — riga di stato compatta (Task 1, sostituisce POSHeader) ===== */
+::deep .pos26-statusbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 12px;
+    background: var(--pos-brand-navy);
+    border-radius: var(--pos-radius-md);
+    color: var(--pos-text-1);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+::deep .pos26-statusbar::-webkit-scrollbar {
+    display: none;
+}
+
+::deep .sb-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+::deep .sb-text {
+    white-space: nowrap;
+}
+
+::deep .sb-text--success { color: var(--pos-success); }
+::deep .sb-text--warning { color: var(--pos-warning); }
+::deep .sb-text--danger  { color: var(--pos-danger); }
+::deep .sb-text--muted   { color: var(--pos-text-3); }
+
+::deep .sb-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+::deep .sb-dot--success { background: var(--pos-success); }
+::deep .sb-dot--warning { background: var(--pos-warning); }
+::deep .sb-dot--danger  { background: var(--pos-danger); }
+
+::deep .sb-sep {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+}
+
+::deep .sb-spacer {
+    flex: 1 1 auto;
+    min-width: 8px;
+}
+
+::deep .sb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--pos-text-1);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 150ms, border 150ms;
+}
+
+::deep .sb-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+::deep .sb-btn--primary {
+    background: var(--pos-brand-blue);
+    border-color: var(--pos-brand-blue);
+}
+
+::deep .sb-btn--primary:hover {
+    background: var(--pos-brand-blue-dim);
+}
+
+::deep .sb-btn--warning {
+    background: var(--pos-warning);
+    border-color: var(--pos-warning);
+    color: #1a1305;
+}
+
 /* ===== Colonna destra ===== */
 .pos2026-right {
     display: flex;
     flex-direction: column;
-    background: var(--pos-dark);
+    background: var(--pos-surface-1);
     overflow: hidden;
     /* Prevents content being hidden behind the fixed shortcuts bar (~28px) */
     padding-bottom: 28px;
-    border-left: 2px solid var(--pos-dark-border);
+    border-left: 2px solid var(--pos-border);
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);
 }
 
@@ -153,7 +261,7 @@
     left: 0;
     right: 0;
     background: rgba(44, 44, 42, 0.95);
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
     display: flex;
     gap: 20px;
     padding: 4px 16px;
@@ -162,7 +270,7 @@
 }
 
 .pos2026-shortcuts-bar span strong {
-    color: var(--pos-accent);
+    color: var(--pos-brand-blue);
     margin-right: 4px;
 }
 
@@ -173,8 +281,8 @@
     gap: 8px;
     background: var(--mud-palette-surface);
     border: 1px solid var(--mud-palette-lines-default);
-    border-radius: 20px;
-    padding: 4px 8px;
+    border-radius: var(--pos-radius-md);
+    padding: 3px 8px;
 }
 
 ::deep .pos26-searchbar-input-wrap {
@@ -225,13 +333,13 @@
 }
 
 ::deep .pos26-customer-chip--active {
-    background: var(--pos-accent-light);
+    background: var(--pos-brand-blue-bg);
     color: #1F2F46;
-    border-color: var(--pos-accent);
+    border-color: var(--pos-brand-blue);
 }
 
 ::deep .pos26-customer-initials {
-    background: var(--pos-accent);
+    background: var(--pos-brand-blue);
     color: #fff;
     border-radius: 50%;
     width: 18px;
@@ -277,51 +385,7 @@
     align-self: flex-end;
 }
 
-/* ===== Pos26SortBar ===== */
-::deep .pos26-sortbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-::deep .pos26-sort-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid var(--mud-palette-lines-default);
-    border-radius: 20px;
-    padding: 3px 10px;
-    background: transparent;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--mud-palette-text-secondary);
-    transition: background 150ms, border 150ms;
-    min-height: 28px;
-}
-
-::deep .pos26-sort-pill--active {
-    background: var(--pos-accent);
-    color: #fff;
-    border-color: var(--pos-accent);
-}
-
-/* ===== Pos26CategoryBar ===== */
-::deep .pos26-categorybar-wrap {
-    overflow: hidden;
-}
-
-::deep .pos26-categorybar {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-}
-
-::deep .pos26-categorybar::-webkit-scrollbar {
-    display: none;
-}
-
+/* ===== Pos26FilterBar — chip categoria (Task 3, sempre visibili) ===== */
 ::deep .pos26-category-pill {
     display: inline-flex;
     align-items: center;
@@ -335,28 +399,19 @@
     white-space: nowrap;
     transition: background 150ms, border 150ms;
     min-height: 26px;
+    flex-shrink: 0;
 }
 
 ::deep .pos26-category-pill--active {
-    background: var(--pos-dark);
+    background: var(--pos-brand-blue);
     color: #fff;
-    border-color: var(--pos-dark);
-}
-
-/* ===== Pos26ContextBanner ===== */
-::deep .pos26-context-banner {
-    display: flex;
-    align-items: center;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 12px;
-    gap: 4px;
+    border-color: var(--pos-brand-blue);
 }
 
 /* ===== Pos26ProductGrid ===== */
 ::deep .pos26-product-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
     gap: 8px;
 }
 
@@ -419,9 +474,9 @@
     align-items: center;
     gap: 4px;
     padding: 6px 4px 6px;
-    border-radius: 10px;
-    border: 1px solid var(--mud-palette-lines-default);
-    background: var(--mud-palette-surface);
+    border-radius: var(--pos-radius-md);
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface-1);
     cursor: pointer;
     transition: border 150ms, background 150ms;
     user-select: none;
@@ -429,16 +484,17 @@
 }
 
 ::deep .pos26-product-card--in-cart {
-    border: 2px solid var(--pos-accent);
+    border: 2px solid var(--pos-brand-blue);
 }
 
 ::deep .pos26-product-card:hover {
-    background: var(--mud-palette-background-grey);
+    background: var(--pos-surface-2);
+    border-color: var(--pos-brand-blue);
 }
 
 /* Feedback aggiunta al carrello: border flash verde */
 ::deep .pos26-product-card--added {
-    border: 2px solid var(--pos-green) !important;
+    border: 2px solid var(--pos-success) !important;
     transition: border 0ms;
 }
 
@@ -446,7 +502,7 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background: var(--pos-accent);
+    background: var(--pos-brand-blue);
     color: #fff;
     border-radius: 50%;
     width: 18px;
@@ -481,9 +537,9 @@
     line-height: 1.4;
 }
 
-::deep .pos26-badge--green   { background: var(--pos-green-light);  color: #085041; }
-::deep .pos26-badge--amber   { background: var(--pos-amber-light);  color: #633806; }
-::deep .pos26-badge--red     { background: #FCEBEB; color: #7A1919; }
+::deep .pos26-badge--green   { background: var(--pos-success-bg);  color: var(--pos-success); }
+::deep .pos26-badge--amber   { background: var(--pos-warning-bg);  color: var(--pos-warning); }
+::deep .pos26-badge--red     { background: var(--pos-danger-bg);   color: var(--pos-danger); }
 ::deep .pos26-badge--promo   { top: auto; bottom: 2px; left: 2px; }
 
 ::deep .pos26-product-img {
@@ -514,13 +570,13 @@
     text-align: center;
     line-height: 1.3;
     word-break: break-word;
-    color: var(--mud-palette-text-primary);
+    color: var(--pos-text-1);
 }
 
 ::deep .pos26-product-price {
     font-size: 12px;
     font-weight: 600;
-    color: var(--pos-green);
+    color: var(--pos-success);
 }
 
 /* Chip disponibilità stock — piccolo indicatore sotto il prezzo */
@@ -532,9 +588,9 @@
     line-height: 1.5;
     letter-spacing: 0.2px;
 }
-::deep .pos26-stock-chip--ok  { background: var(--pos-green-light);  color: #085041; }
-::deep .pos26-stock-chip--low { background: var(--pos-amber-light);  color: #633806; }
-::deep .pos26-stock-chip--out { background: #FCEBEB;                 color: #7A1919; }
+::deep .pos26-stock-chip--ok  { background: var(--pos-success-bg);  color: var(--pos-success); }
+::deep .pos26-stock-chip--low { background: var(--pos-warning-bg);  color: var(--pos-warning); }
+::deep .pos26-stock-chip--out { background: var(--pos-danger-bg);   color: var(--pos-danger); }
 
 /* ===== Pos26Receipt ===== */
 ::deep .pos26-receipt {
@@ -542,8 +598,8 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--pos-dark);
-    color: var(--pos-dark-text);
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
 }
 
 ::deep .pos26-receipt-header {
@@ -551,7 +607,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 10px;
-    border-bottom: 1px solid var(--pos-dark-border);
+    border-bottom: 1px solid var(--pos-border);
     flex-wrap: wrap;
 }
 
@@ -563,7 +619,7 @@
 
 ::deep .pos26-receipt-label {
     font-size: 10px;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
     text-transform: uppercase;
 }
 
@@ -578,7 +634,7 @@
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
 }
 
 /* Tessera fedeltà + punti: già visibili nel chip cliente di Pos26SearchBar durante la vendita,
@@ -599,7 +655,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
     display: flex;
     align-items: center;
     padding: 4px;
@@ -610,7 +666,7 @@
 
 ::deep .pos26-receipt-clear:hover {
     background: rgba(255,255,255,.05);
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
 }
 
 ::deep .pos26-receipt-clear:disabled {
@@ -623,7 +679,7 @@
     overflow-y: auto;
     padding: 4px 8px;
     scrollbar-width: thin;
-    scrollbar-color: var(--pos-dark-border) transparent;
+    scrollbar-color: var(--pos-border) transparent;
 }
 
 ::deep .pos26-receipt-empty {
@@ -632,7 +688,7 @@
     align-items: center;
     gap: 8px;
     padding: 24px;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
     font-size: 12px;
 }
 
@@ -662,18 +718,18 @@
 
 ::deep .pos26-receipt-row-detail {
     font-size: 11px;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
 }
 
 ::deep .pos26-receipt-row-discount {
-    color: var(--pos-amber);
+    color: var(--pos-warning);
 }
 
 ::deep .pos26-receipt-note-icon {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
     padding: 0;
     display: inline-flex;
 }
@@ -682,7 +738,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
     padding: 2px;
     display: inline-flex;
     align-items: center;
@@ -692,7 +748,7 @@
 }
 
 ::deep .pos26-receipt-edit-btn:hover {
-    color: var(--pos-accent);
+    color: var(--pos-brand-blue);
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -704,9 +760,9 @@
 }
 
 ::deep .pos26-receipt-qty-btn {
-    background: var(--pos-dark-border);
+    background: var(--pos-border);
     border: none;
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
     width: 20px;
     height: 20px;
     border-radius: 4px;
@@ -720,7 +776,7 @@
 }
 
 ::deep .pos26-receipt-qty-btn:hover {
-    background: var(--pos-accent);
+    background: var(--pos-brand-blue);
     color: #fff;
 }
 
@@ -735,16 +791,16 @@
     font-weight: 600;
     min-width: 52px;
     text-align: right;
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
 }
 
 ::deep .pos26-receipt-muted {
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
 }
 
 ::deep .pos26-receipt-footer {
     padding: 8px 10px;
-    border-top: 1px solid var(--pos-dark-border);
+    border-top: 1px solid var(--pos-border);
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -754,128 +810,85 @@
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
 }
 
 ::deep .pos26-receipt-total-row--discount {
-    color: var(--pos-amber);
+    color: var(--pos-warning);
 }
 
 ::deep .pos26-receipt-total-row--vat {
-    color: var(--pos-dark-muted);
+    color: var(--pos-text-3);
 }
 
 ::deep .pos26-receipt-total-row--grand {
     font-size: 14px;
     font-weight: 700;
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
 }
 
 ::deep .pos26-receipt-grand-total {
-    color: var(--pos-green);
+    color: var(--pos-success);
 }
 
-/* ===== Pos26Numpad ===== */
+/* ===== Pos26Numpad → azioni pagamento (Task 7, ridotto da griglia numerica a CTA) ===== */
 ::deep .pos26-numpad {
-    background: var(--pos-darker);
+    background: var(--pos-surface-0);
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    border-top: 1px solid var(--pos-dark-border);
+    border-top: 1px solid var(--pos-border);
 }
 
-::deep .pos26-numpad-display {
-    background: var(--pos-dark);
-    border-radius: 7px;
-    padding: 6px 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-::deep .pos26-numpad-mode {
-    font-size: 11px;
-    color: var(--pos-dark-muted);
-    text-transform: uppercase;
-}
-
-::deep .pos26-numpad-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--pos-dark-text);
-    font-family: monospace;
-}
-
-::deep .pos26-numpad-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-}
-
-::deep .pos26-numpad-key {
-    background: var(--pos-dark-border);
-    color: var(--pos-dark-text);
-    border: none;
-    border-radius: 7px;
-    font-size: 16px;
-    font-weight: 600;
-    min-height: 38px;
-    cursor: pointer;
+::deep .pos26-pay-cta {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 150ms, border 150ms;
-    user-select: none;
+    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+    border: none;
+    border-radius: var(--pos-radius-md);
+    background: var(--pos-success);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms, opacity 150ms;
 }
 
-::deep .pos26-numpad-key:hover {
-    background: #5a5a57;
+::deep .pos26-pay-cta:hover {
+    background: #268f66;
 }
 
-::deep .pos26-numpad-key:disabled {
+::deep .pos26-pay-cta:disabled {
     opacity: .4;
     cursor: not-allowed;
 }
 
-::deep .pos26-numpad-key--discount {
-    min-height: 50px;
-    font-size: 18px;
-}
-
-/* Riga sconto isolata sopra la griglia numerica (P2.2): due tasti a piena larghezza,
-   più alti dei tasti numerici, per essere immediatamente distinguibili al tocco. */
-::deep .pos26-numpad-discount-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-}
-
-/* Badge "MODALITÀ SCONTO %/€" — sfondo pieno colorato, molto più prominente della piccola
-   etichetta pos26-numpad-mode (11px), riusa lo stile di prominenza di pos26-pay-resto-banner. */
-::deep .pos26-numpad-mode-banner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: var(--pos-accent);
-    color: #fff;
-    border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-::deep .pos26-numpad-key--pay {
-    grid-column: 1 / 3;
-    font-size: 14px;
-}
-
-::deep .pos26-numpad-key--cancel {
-    grid-column: 3 / 4;
+::deep .pos26-pay-cta-shortcut {
     font-size: 12px;
+    font-weight: 600;
+    opacity: 0.85;
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 5px;
+    padding: 1px 6px;
+}
+
+::deep .pos26-cancel-link {
+    background: none;
+    border: none;
+    color: var(--pos-text-3);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
+    padding: 2px 0;
+    text-decoration: underline;
+}
+
+::deep .pos26-cancel-link:hover {
+    color: var(--pos-text-1);
 }
 
 /* Pulsante stampa ricevuta non fiscale */
@@ -886,10 +899,10 @@
     width: 100%;
     margin-top: 6px;
     padding: 6px 12px;
-    border: 1px solid var(--pos-dark-border);
+    border: 1px solid var(--pos-border);
     border-radius: 8px;
     background: transparent;
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
     font-size: 12px;
     cursor: pointer;
     transition: background 150ms;
@@ -897,6 +910,130 @@
 
 ::deep .pos26-numpad-print-btn:hover {
     background: rgba(255,255,255,0.08);
+}
+
+/* ===== Pos26DiscountZone — Task 6, elemento "firma" del redesign ===== */
+::deep .pos26-discount-zone {
+    position: relative;
+    padding: 0 10px 8px;
+}
+
+::deep .pos26-discount-pills {
+    display: flex;
+    gap: 6px;
+}
+
+::deep .pos26-discount-pill {
+    flex: 1;
+    min-height: 48px;
+    border-radius: var(--pos-radius-md);
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+}
+
+::deep .pos26-discount-pill:hover {
+    background: var(--pos-surface-2);
+    border-color: var(--pos-brand-blue);
+}
+
+::deep .pos26-discount-pill--active {
+    background: var(--pos-brand-blue);
+    border-color: var(--pos-brand-blue);
+    color: #fff;
+}
+
+::deep .pos26-discount-popover {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 100%;
+    margin-bottom: 6px;
+    background: var(--pos-surface-2);
+    border: 1px solid var(--pos-border);
+    border-radius: var(--pos-radius-md);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.35);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+}
+
+::deep .pos26-discount-presets {
+    display: flex;
+    gap: 6px;
+}
+
+::deep .pos26-discount-preset {
+    flex: 1;
+    min-height: 40px;
+    border-radius: var(--pos-radius-sm);
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+}
+
+::deep .pos26-discount-preset:hover {
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
+}
+
+::deep .pos26-discount-custom {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+::deep .pos26-discount-custom-field {
+    flex: 1;
+}
+
+::deep .pos26-discount-apply-btn {
+    min-height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--pos-radius-sm);
+    background: var(--pos-brand-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+::deep .pos26-discount-apply-btn:hover {
+    background: var(--pos-brand-blue-dim);
+}
+
+::deep .pos26-discount-confirm {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding: 5px 10px;
+    background: var(--pos-success-bg);
+    color: var(--pos-success);
+    border-radius: var(--pos-radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+::deep .pos26-discount-remove-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0 0 8px;
 }
 
 /* ===== @media print: receipt visibile, tutto il resto nascosto ===== */
@@ -932,8 +1069,8 @@
     display: flex;
     gap: 6px;
     padding: 6px 8px;
-    background: var(--mud-palette-background-grey, #f5f5f5);
-    border-bottom: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    background: var(--pos-surface-1);
+    border-bottom: 1px solid var(--pos-border);
     flex-wrap: wrap;
 }
 
@@ -944,8 +1081,8 @@
     padding: 4px 8px;
     border-radius: 20px;
     border: 1px solid transparent;
-    background: var(--mud-palette-surface, #fff);
-    color: var(--mud-palette-text-primary);
+    background: var(--pos-surface-2);
+    color: var(--pos-text-1);
     font-size: 11px;
     cursor: pointer;
     transition: background 150ms, border 150ms;
@@ -953,23 +1090,23 @@
 }
 
 .pos26-fn-btn:hover {
-    background: var(--pos-accent-light);
-    border-color: var(--pos-accent);
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
 }
 
 .pos26-fn-btn--active {
-    background: var(--pos-accent-light);
-    border-color: var(--pos-accent);
-    color: var(--pos-accent);
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
+    color: var(--pos-brand-blue);
 }
 
 .pos26-fn-btn--danger {
-    color: var(--pos-red-key);
+    color: var(--pos-danger);
 }
 
 .pos26-fn-btn--danger:hover {
-    background: #fdecea;
-    border-color: var(--pos-red-key);
+    background: var(--pos-danger-bg);
+    border-color: var(--pos-danger);
 }
 
 .pos26-fn-btn--danger:disabled {
@@ -981,7 +1118,7 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background: var(--pos-accent);
+    background: var(--pos-brand-blue);
     color: #fff;
     border-radius: 10px;
     font-size: 9px;
@@ -1024,11 +1161,11 @@
 }
 
 .pos26-fn-input:focus {
-    border-color: var(--pos-accent);
+    border-color: var(--pos-brand-blue);
 }
 
 .pos26-fn-btn-add {
-    background: var(--pos-green);
+    background: var(--pos-success);
     color: #fff;
     border: none;
     border-radius: 7px;
@@ -1094,9 +1231,9 @@
 }
 
 .pos26-fn-type-btn--active {
-    background: var(--pos-accent-light);
-    border-color: var(--pos-accent);
-    color: var(--pos-accent);
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
+    color: var(--pos-brand-blue);
     font-weight: 600;
 }
 
@@ -1121,14 +1258,14 @@
 }
 
 .pos26-fn-table-btn--active {
-    background: var(--pos-accent-light);
-    border-color: var(--pos-accent);
-    color: var(--pos-accent);
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
+    color: var(--pos-brand-blue);
 }
 
 .pos26-fn-table-btn:hover {
-    background: var(--pos-accent-light);
-    border-color: var(--pos-accent);
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
 }
 
 /* Riga sessione parcheggiata */
@@ -1164,7 +1301,7 @@
 
 .pos26-fn-parked-total {
     font-size: 12px;
-    color: var(--pos-green);
+    color: var(--pos-success);
     font-weight: 600;
 }
 
@@ -1209,25 +1346,47 @@
 }
 
 /* ==========================================================================
-   Pos26FilterBar — pannello filtri collassabile (Azione 2)
+   Pos26FilterBar — riga sempre visibile (Task 3): categorie + ordina, no pannello
    ========================================================================== */
 
 ::deep .pos26-filterbar-wrap {
     display: flex;
-    flex-direction: column;
-    gap: 0;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
 }
 
-::deep .pos26-filterbar-summary {
+::deep .pos26-filterbar-row {
     display: flex;
     align-items: center;
     gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex: 1;
+    min-width: 0;
+    padding-bottom: 2px;
 }
 
-::deep .pos26-filterbar-active-pill {
+::deep .pos26-filterbar-row::-webkit-scrollbar {
+    display: none;
+}
+
+::deep .pos26-filterbar-context-chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    white-space: nowrap;
+    background: var(--pos-surface-3);
+    color: var(--pos-text-2);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+::deep .pos26-filterbar-sort-trigger {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
     border: 1px solid var(--mud-palette-lines-default);
     border-radius: 20px;
     padding: 3px 10px;
@@ -1237,45 +1396,12 @@
     color: var(--mud-palette-text-secondary);
     transition: background 150ms, border 150ms;
     min-height: 28px;
+    flex-shrink: 0;
 }
 
-::deep .pos26-filterbar-active-pill:hover {
-    background: var(--pos-accent-light);
-    border-color: var(--pos-accent);
-}
-
-::deep .pos26-filterbar-category-tag {
-    color: var(--pos-accent);
-    font-weight: 600;
-}
-
-::deep .pos26-filterbar-chevron {
-    opacity: 0.5;
-}
-
-::deep .pos26-filterbar-panel {
-    margin-top: 6px;
-    padding: 10px;
-    background: var(--mud-palette-background-grey, #f5f5f5);
-    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-::deep .pos26-filterbar-section-label {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--mud-palette-text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-::deep .pos26-filterbar-sort-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+::deep .pos26-filterbar-sort-trigger:hover {
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
 }
 
 /* ==========================================================================
@@ -1291,7 +1417,7 @@
     align-items: center;
     font-size: 10px;
     font-weight: 700;
-    color: var(--pos-amber);
+    color: var(--pos-warning);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 4px;
@@ -1327,10 +1453,10 @@
     top: calc(100% + 4px);
     left: 0;
     z-index: 100;
-    background: var(--mud-palette-surface);
-    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--pos-surface-2);
+    border: 1px solid var(--pos-border);
     border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    box-shadow: 0 4px 16px rgba(0,0,0,.35);
     min-width: 160px;
     display: flex;
     flex-direction: column;
@@ -1342,7 +1468,7 @@
     align-items: center;
     padding: 8px 14px;
     font-size: 12px;
-    color: var(--mud-palette-text-primary);
+    color: var(--pos-text-1);
     background: none;
     border: none;
     cursor: pointer;
@@ -1356,7 +1482,7 @@
 }
 
 .pos26-fn-more-item--active {
-    color: var(--pos-accent);
+    color: var(--pos-brand-blue);
     font-weight: 600;
 }
 

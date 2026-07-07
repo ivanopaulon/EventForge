@@ -17,7 +17,7 @@
     [Parameter] public bool AllowsChange { get; set; }
     [Parameter] public EventCallback<Guid> OnRemove { get; set; }
 
-    // Contanti = ambra (semantico); altri metodi = blu brand (allineato a --pos-accent-light, P3).
+    // Contanti = ambra (semantico); altri metodi = blu brand (allineato a --pos-brand-blue-bg, P3).
     private string _color => AllowsChange ? "#FAEEDA" : "#E5EFFF";
 
     private async Task HandleRemove() => await OnRemove.InvokeAsync(TempId);
