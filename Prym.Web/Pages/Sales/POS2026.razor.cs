@@ -268,21 +268,32 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     /// <summary>
-    /// Carica la disponibilità stock per tutti i prodotti in un'unica chiamata API.
+    /// Carica la disponibilità stock per tutti i prodotti, gestendo la paginazione.
     /// Aggrega AvailableQuantity (Quantity − Reserved) per prodotto su tutte le location/lotti.
     /// Viene eseguita in parallelo con il caricamento prodotti all'avvio.
     /// </summary>
     private async Task LoadStockAvailabilityAsync()
     {
+        const int stockPageSize = 500;
         try
         {
-            var result = await StockService.GetStockAsync(page: 1, pageSize: 500);
-            if (result?.Items != null)
+            var allItems = new List<StockDto>();
+            var firstPage = await StockService.GetStockAsync(page: 1, pageSize: stockPageSize);
+            if (firstPage?.Items != null)
             {
-                _stockByProductId = result.Items
-                    .GroupBy(s => s.ProductId)
-                    .ToDictionary(g => g.Key, g => g.Sum(s => s.AvailableQuantity));
+                allItems.AddRange(firstPage.Items);
+                // Recupera le pagine rimanenti se il catalogo supera stockPageSize record
+                for (int p = 2; p <= (firstPage.TotalPages); p++)
+                {
+                    var page = await StockService.GetStockAsync(page: p, pageSize: stockPageSize);
+                    if (page?.Items != null)
+                        allItems.AddRange(page.Items);
+                }
             }
+
+            _stockByProductId = allItems
+                .GroupBy(s => s.ProductId)
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.AvailableQuantity));
         }
         catch (Exception ex)
         {

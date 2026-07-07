@@ -165,9 +165,9 @@
 
     private string GetStockColorClass() => StockAvailable switch
     {
-        <= 0            => "out",
-        < 5             => "low",
-        _               => "ok"
+        <= 0              => "out",
+        < LowStockThreshold => "low",
+        _                 => "ok"
     };
 
     private static string FormatStock(decimal qty) => qty switch
@@ -175,6 +175,9 @@
         <= 0  => "Esaurito",
         _     => $"{qty:0.##} disp."
     };
+
+    /// <summary>Soglia sotto la quale la disponibilità è considerata "bassa" (chip ambra).</summary>
+    private const decimal LowStockThreshold = 5m;
 
     public void Dispose()
     {
