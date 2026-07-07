@@ -54,6 +54,8 @@ public class ProductManagementController(
     /// <param name="pagination">Pagination parameters (page, pageSize)</param>
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="classificationNodeId">Optional classification node ID to filter products by category</param>
+    /// <param name="includeInactive">If true, includes inactive products in the result</param>
+    /// <param name="quickFilter">Quick filter string for product name or code</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
     /// <response code="200">Returns the paginated list of products</response>

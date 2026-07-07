@@ -364,8 +364,12 @@ builder.Services.AddCors(options =>
 
         _ = policy
             .WithOrigins(allowedOrigins)
-            .AllowAnyHeader()
-            .AllowAnyMethod()
+            .WithHeaders(
+                "Authorization", "Content-Type", "Accept",
+                "X-Requested-With",
+                "X-Maintenance-Secret", "X-Agent-Internal-Token",
+                "Baggage", "traceparent", "tracestate") // SignalR negotiate + OpenTelemetry propagation headers
+            .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             .AllowCredentials(); // Required for SignalR WebSocket connections
     });
 });

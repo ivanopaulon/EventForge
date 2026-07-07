@@ -275,12 +275,13 @@ public partial class EventForgeDbContext : DbContext
     }
 
     /// <summary>
-    /// Saves changes with automatic audit tracking for auditable entities.
+    /// Applies audit fields and queues audit log entries for all pending auditable entity changes.
     /// Sales entities (SaleSession, SaleItem, SalePayment, SessionNote) are excluded from automatic audit tracking
     /// to prevent DbUpdateConcurrencyException caused by ChangeTracker conflicts during high-frequency operations.
     /// These entities use manual audit logging in SaleSessionService for better control and clarity.
+    /// This method is purely synchronous — all ChangeTracker operations are in-memory only.
     /// </summary>
-    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    private void ApplyAuditEntries()
     {
         var currentUser = GetCurrentUser();
         var auditEntries = new List<EntityChangeLog>();
@@ -353,7 +354,14 @@ public partial class EventForgeDbContext : DbContext
                 entity.ModifiedBy = currentUser;
             }
         }
+    }
 
+    /// <summary>
+    /// Saves changes with automatic audit tracking for auditable entities (asynchronous).
+    /// </summary>
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditEntries();
         // Single SaveChanges call saves all entities atomically
         // Audit logs are only created for non-Sales entities
         return await base.SaveChangesAsync(cancellationToken);
@@ -361,10 +369,12 @@ public partial class EventForgeDbContext : DbContext
 
     /// <summary>
     /// Saves changes with automatic audit tracking for auditable entities (synchronous).
+    /// Uses the same in-memory audit logic as SaveChangesAsync — no thread-blocking.
     /// </summary>
     public override int SaveChanges()
     {
-        return SaveChangesAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        ApplyAuditEntries();
+        return base.SaveChanges();
     }
 
     /// <summary>

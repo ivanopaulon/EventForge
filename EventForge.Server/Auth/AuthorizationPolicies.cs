@@ -19,4 +19,11 @@ public static class AuthorizationPolicies
     /// Policy that requires at least Admin role (Admin or SuperAdmin).
     /// </summary>
     public const string RequireAdmin = "RequireAdmin";
+
+    /// <summary>
+    /// Policy that validates the <c>X-Maintenance-Secret</c> header.
+    /// Used for internal endpoints that accept requests from the EventForge Agent
+    /// without a JWT bearer token.
+    /// </summary>
+    public const string MaintenanceSecret = "MaintenanceSecret";
 }

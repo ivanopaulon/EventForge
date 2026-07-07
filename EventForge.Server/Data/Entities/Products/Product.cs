@@ -36,15 +36,6 @@ public class Product : AuditableEntity
     public string Code { get; set; } = string.Empty;
 
     /// <summary>
-    /// Product image URL (DEPRECATED - use ImageDocument instead).
-    /// Kept for backward compatibility. New implementations should use ImageDocumentId and ImageDocument.
-    /// </summary>
-    [MaxLength(500, ErrorMessage = "The image URL cannot exceed 500 characters.")]
-    [Display(Name = "Image", Description = "Product image URL (DEPRECATED - use ImageDocument instead).")]
-    [Obsolete("Use ImageDocumentId and ImageDocument navigation property instead. This property is kept for backward compatibility.")]
-    public string ImageUrl { get; set; } = string.Empty;
-
-    /// <summary>
     /// Image document identifier (references DocumentReference).
     /// </summary>
     [Display(Name = "Image Document", Description = "Image document identifier.")]
