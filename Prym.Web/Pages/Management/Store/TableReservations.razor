@@ -1,0 +1,300 @@
+@page "/store/table-reservations"
+@using Prym.DTOs.Sales
+@using Prym.Web.Services.Sales
+@using Prym.Web.Shared.Components.Dialogs.Store
+@using Prym.Web.Shared.Management
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
+@inject ITableManagementService TableManagementService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<TableReservations> Logger
+
+<PageTitle>@TranslationService.GetTranslation("reservations.title", "Prenotazioni Tavoli")</PageTitle>
+
+<ManagementPageHeader Title="@TranslationService.GetTranslation("reservations.title", "Prenotazioni Tavoli")"
+                      Icon="@Icons.Material.Outlined.EventSeat">
+    <ExtraActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Size="Size.Small"
+                   OnClick="@(() => OpenDialogAsync(null))">
+            Nuova Prenotazione
+        </MudButton>
+    </ExtraActions>
+</ManagementPageHeader>
+
+@* ──────────────────── FILTER PANEL ──────────────────── *@
+<MudPaper Elevation="1" Class="pa-3 mb-0">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4" md="3">
+            <MudDatePicker @bind-Date="_filterDate"
+                           Label="Data"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="ef-datepicker" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="string?" @bind-Value="_filterStatus"
+                       Label="Stato"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Clearable="true">
+                <MudSelectItem T="string?" Value="@("Pending")">In attesa</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Confirmed")">Confermata</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Arrived")">Arrivato</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("Cancelled")">Annullata</MudSelectItem>
+                <MudSelectItem T="string?" Value="@("NoShow")">No-show</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudStack Row Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="ApplyFiltersAsync">
+                    Cerca
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Today"
+                           Variant="Variant.Outlined"
+                           OnClick="GoToTodayAsync">
+                    Oggi
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<EFTable TItem="TableReservationDto"
+         Items="@_filteredReservations"
+         Hover="true"
+         Dense="true"
+         Striped="true"
+         IsLoading="@_isLoading"
+         LoadingProgressColor="Color.Primary"
+         Breakpoint="Breakpoint.Sm"
+         ShowSearch="false"
+         ShowFilters="false"
+         ShowRefresh="true"
+         OnRefresh="ApplyFiltersAsync"
+         ShowCreate="false"
+         ShowExport="false"
+         ShowColumnConfiguration="false"
+         ComponentKey="table-reservations">
+    <HeaderContent Context="columns">
+        <MudTh>Ora</MudTh>
+        <MudTh>Tavolo</MudTh>
+        <MudTh>Cliente</MudTh>
+        <MudTh>Telefono</MudTh>
+        <MudTh>Coperti</MudTh>
+        <MudTh>Stato</MudTh>
+        <MudTh Class="text-center">Azioni</MudTh>
+    </HeaderContent>
+    <RowTemplate Context="res">
+        <MudTd DataLabel="Ora">@res.ReservationDateTime.ToLocalTime().ToString("HH:mm")</MudTd>
+        <MudTd DataLabel="Tavolo">@res.TableNumber</MudTd>
+        <MudTd DataLabel="Cliente">@res.CustomerName</MudTd>
+        <MudTd DataLabel="Telefono">@(res.PhoneNumber ?? "-")</MudTd>
+        <MudTd DataLabel="Coperti">@res.NumberOfGuests</MudTd>
+        <MudTd DataLabel="Stato">
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(res.Status)">@GetStatusLabel(res.Status)</MudChip>
+        </MudTd>
+        <MudTd Class="text-center">
+            <MudStack Row Spacing="1" Justify="Justify.Center">
+                @if (res.Status == "Pending")
+                {
+                    <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle" Color="Color.Success" Size="Size.Small"
+                                   Title="Conferma" OnClick="@(() => ConfirmAsync(res))" />
+                }
+                @if (res.Status is "Pending" or "Confirmed")
+                {
+                    <MudIconButton Icon="@Icons.Material.Outlined.HowToReg" Color="Color.Info" Size="Size.Small"
+                                   Title="Segna arrivato" OnClick="@(() => MarkArrivedAsync(res))" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.PersonOff" Color="Color.Warning" Size="Size.Small"
+                                   Title="No-show" OnClick="@(() => MarkNoShowAsync(res))" />
+                }
+                @if (res.Status is "Pending" or "Confirmed")
+                {
+                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" Size="Size.Small"
+                                   Title="Modifica" OnClick="@(() => OpenDialogAsync(res.Id))" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Cancel" Color="Color.Error" Size="Size.Small"
+                                   Title="Annulla" OnClick="@(() => CancelReservationAsync(res))" />
+                }
+            </MudStack>
+        </MudTd>
+    </RowTemplate>
+</EFTable>
+
+@code {
+    private DateTime? _filterDate = DateTime.Today;
+    private string? _filterStatus;
+
+    private List<TableReservationDto> _reservations = new();
+    private List<TableReservationDto> _filteredReservations = new();
+    private bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ApplyFiltersAsync();
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var date = _filterDate ?? DateTime.Today;
+            _reservations = await TableManagementService.GetReservationsByDateAsync(date) ?? new();
+            ApplyStatusFilter();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reservations.");
+            AppNotification.ShowError("Errore durante il caricamento delle prenotazioni.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ApplyStatusFilter()
+    {
+        _filteredReservations = string.IsNullOrEmpty(_filterStatus)
+            ? _reservations.OrderBy(r => r.ReservationDateTime).ToList()
+            : _reservations.Where(r => r.Status == _filterStatus).OrderBy(r => r.ReservationDateTime).ToList();
+    }
+
+    private async Task GoToTodayAsync()
+    {
+        _filterDate = DateTime.Today;
+        await ApplyFiltersAsync();
+    }
+
+    private async Task OpenDialogAsync(Guid? reservationId)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(TableReservationDetailDialog.ReservationId), reservationId }
+        };
+
+        var dialog = await DialogService.ShowAsync<TableReservationDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            AppNotification.ShowSuccess("Prenotazione salvata correttamente.");
+            await ApplyFiltersAsync();
+        }
+    }
+
+    private async Task ConfirmAsync(TableReservationDto reservation)
+    {
+        try
+        {
+            var result = await TableManagementService.ConfirmReservationAsync(reservation.Id);
+            if (result is null)
+            {
+                AppNotification.ShowError("Impossibile confermare la prenotazione.");
+                return;
+            }
+            AppNotification.ShowSuccess("Prenotazione confermata.");
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error confirming reservation {Id}.", reservation.Id);
+            AppNotification.ShowError("Errore durante la conferma della prenotazione.");
+        }
+    }
+
+    private async Task MarkArrivedAsync(TableReservationDto reservation)
+    {
+        try
+        {
+            var result = await TableManagementService.MarkArrivedAsync(reservation.Id);
+            if (result is null)
+            {
+                AppNotification.ShowError("Impossibile aggiornare la prenotazione.");
+                return;
+            }
+            AppNotification.ShowSuccess("Cliente segnato come arrivato.");
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking reservation arrived {Id}.", reservation.Id);
+            AppNotification.ShowError("Errore durante l'aggiornamento della prenotazione.");
+        }
+    }
+
+    private async Task MarkNoShowAsync(TableReservationDto reservation)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "No-show", $"Segnare {reservation.CustomerName} come non presentato?",
+            yesText: "Conferma", cancelText: "Annulla");
+        if (confirmed != true) return;
+
+        try
+        {
+            var result = await TableManagementService.MarkNoShowAsync(reservation.Id);
+            if (result is null)
+            {
+                AppNotification.ShowError("Impossibile aggiornare la prenotazione.");
+                return;
+            }
+            AppNotification.ShowSuccess("Prenotazione segnata come no-show.");
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error marking reservation no-show {Id}.", reservation.Id);
+            AppNotification.ShowError("Errore durante l'aggiornamento della prenotazione.");
+        }
+    }
+
+    private async Task CancelReservationAsync(TableReservationDto reservation)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Annulla prenotazione", $"Annullare la prenotazione di {reservation.CustomerName}?",
+            yesText: "Conferma", cancelText: "Annulla");
+        if (confirmed != true) return;
+
+        try
+        {
+            var success = await TableManagementService.CancelReservationAsync(reservation.Id);
+            if (!success)
+            {
+                AppNotification.ShowError("Impossibile annullare la prenotazione.");
+                return;
+            }
+            AppNotification.ShowSuccess("Prenotazione annullata.");
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling reservation {Id}.", reservation.Id);
+            AppNotification.ShowError("Errore durante l'annullamento della prenotazione.");
+        }
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Pending" => Color.Warning,
+        "Confirmed" => Color.Info,
+        "Arrived" => Color.Success,
+        "Cancelled" => Color.Error,
+        "NoShow" => Color.Default,
+        _ => Color.Default
+    };
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        "Pending" => "In attesa",
+        "Confirmed" => "Confermata",
+        "Arrived" => "Arrivato",
+        "Cancelled" => "Annullata",
+        "NoShow" => "No-show",
+        _ => status
+    };
+}

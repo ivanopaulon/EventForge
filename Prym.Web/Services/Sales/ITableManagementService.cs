@@ -13,6 +13,11 @@ public interface ITableManagementService
     Task<TableSessionDto?> GetTableAsync(Guid id, CancellationToken ct = default);
 
     /// <summary>
+    /// Gets all tables (paginated, includes any status), for management/administration screens.
+    /// </summary>
+    Task<List<TableSessionDto>?> GetAllTablesAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Gets all available tables.
     /// </summary>
     Task<List<TableSessionDto>?> GetAvailableTablesAsync(CancellationToken ct = default);

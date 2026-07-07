@@ -25,6 +25,21 @@ public class TableManagementService(
         }
     }
 
+    public async Task<List<TableSessionDto>?> GetAllTablesAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<Prym.DTOs.Common.PagedResult<TableSessionDto>>(
+                $"{BaseUrl}/paginated?pageNumber=1&pageSize=1000", ct);
+            return result?.Items?.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving all tables");
+            return null;
+        }
+    }
+
     public async Task<List<TableSessionDto>?> GetAvailableTablesAsync(CancellationToken ct = default)
     {
         try

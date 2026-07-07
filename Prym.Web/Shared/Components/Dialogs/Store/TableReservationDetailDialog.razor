@@ -1,0 +1,260 @@
+@using Prym.DTOs.Sales
+@using Prym.Web.Services.Sales
+@inject ITableManagementService TableManagementService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<TableReservationDetailDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.EventSeat"
+          Title="@(ReservationId.HasValue ? "Modifica Prenotazione" : "Nuova Prenotazione")"
+          IsProcessing="_isSaving"
+          OnClose="Cancel"
+          MinWidth="600px">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudForm @ref="_form">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudSelect @bind-Value="_tableId"
+                                   Label="Tavolo"
+                                   Required="true"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Class="ef-select"
+                                   Disabled="ReservationId.HasValue">
+                            @foreach (var table in _tables)
+                            {
+                                <MudSelectItem Value="table.Id">@table.TableNumber @(string.IsNullOrWhiteSpace(table.TableName) ? "" : $"- {table.TableName}") (@table.Capacity posti)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_customerName"
+                                      Label="Nome cliente"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="200"
+                                      Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_phoneNumber"
+                                      Label="Telefono"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="20"
+                                      Class="ef-input" />
+                    </MudItem>
+
+                    <MudItem xs="6" sm="3">
+                        <MudNumericField @bind-Value="_numberOfGuests"
+                                         Label="Coperti"
+                                         Required="true"
+                                         Min="1"
+                                         Max="50"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudNumericField @bind-Value="_durationMinutes"
+                                         Label="Durata (min)"
+                                         Min="15"
+                                         Max="480"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudDatePicker @bind-Date="_reservationDate"
+                                       Label="Data"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       Class="ef-datepicker" />
+                    </MudItem>
+                    <MudItem xs="6" sm="3">
+                        <MudTimePicker @bind-Time="_reservationTime"
+                                       Label="Ora"
+                                       Required="true"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       AmPm="false" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_specialRequests"
+                                      Label="Richieste speciali"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Lines="2"
+                                      MaxLength="1000"
+                                      Class="ef-input" />
+                    </MudItem>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="Cancel" Disabled="_isSaving">
+            Annulla
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving || _isLoading">
+            Salva
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? ReservationId { get; set; }
+    [Parameter] public Guid? PreselectedTableId { get; set; }
+    [Parameter] public DateTime? PreselectedDateTime { get; set; }
+
+    private MudForm? _form;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    private Guid _tableId;
+    private string _customerName = string.Empty;
+    private string? _phoneNumber;
+    private int _numberOfGuests = 2;
+    private int? _durationMinutes = 90;
+    private DateTime? _reservationDate = DateTime.Today;
+    private TimeSpan? _reservationTime = new TimeSpan(20, 0, 0);
+    private string? _specialRequests;
+
+    private List<TableSessionDto> _tables = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tables = await TableManagementService.GetAllTablesAsync() ?? [];
+
+            if (ReservationId.HasValue)
+            {
+                var reservation = await TableManagementService.GetReservationAsync(ReservationId.Value);
+                if (reservation is not null)
+                {
+                    _tableId = reservation.TableId;
+                    _customerName = reservation.CustomerName;
+                    _phoneNumber = reservation.PhoneNumber;
+                    _numberOfGuests = reservation.NumberOfGuests;
+                    _durationMinutes = reservation.DurationMinutes;
+                    var local = reservation.ReservationDateTime.ToLocalTime();
+                    _reservationDate = local.Date;
+                    _reservationTime = local.TimeOfDay;
+                    _specialRequests = reservation.SpecialRequests;
+                }
+            }
+            else if (PreselectedTableId.HasValue)
+            {
+                _tableId = PreselectedTableId.Value;
+                if (PreselectedDateTime.HasValue)
+                {
+                    _reservationDate = PreselectedDateTime.Value.Date;
+                    _reservationTime = PreselectedDateTime.Value.TimeOfDay;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading reservation dialog data");
+            _errorMessage = "Errore durante il caricamento dei dati.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+
+        if (_tableId == Guid.Empty)
+        {
+            _errorMessage = "Seleziona un tavolo.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_customerName))
+        {
+            _errorMessage = "Inserisci il nome del cliente.";
+            return;
+        }
+        if (_reservationDate is null || _reservationTime is null)
+        {
+            _errorMessage = "Inserisci data e ora della prenotazione.";
+            return;
+        }
+
+        var reservationDateTime = DateTime.SpecifyKind(
+            _reservationDate.Value.Add(_reservationTime.Value), DateTimeKind.Local).ToUniversalTime();
+
+        _isSaving = true;
+        try
+        {
+            TableReservationDto? result;
+
+            if (ReservationId.HasValue)
+            {
+                var updateDto = new UpdateTableReservationDto
+                {
+                    CustomerName = _customerName,
+                    PhoneNumber = _phoneNumber,
+                    NumberOfGuests = _numberOfGuests,
+                    ReservationDateTime = reservationDateTime,
+                    DurationMinutes = _durationMinutes,
+                    SpecialRequests = _specialRequests
+                };
+                result = await TableManagementService.UpdateReservationAsync(ReservationId.Value, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateTableReservationDto
+                {
+                    TableId = _tableId,
+                    CustomerName = _customerName,
+                    PhoneNumber = _phoneNumber,
+                    NumberOfGuests = _numberOfGuests,
+                    ReservationDateTime = reservationDateTime,
+                    DurationMinutes = _durationMinutes,
+                    SpecialRequests = _specialRequests
+                };
+                result = await TableManagementService.CreateReservationAsync(createDto);
+            }
+
+            if (result is null)
+            {
+                _errorMessage = "Impossibile salvare la prenotazione.";
+                _isSaving = false;
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving reservation");
+            _errorMessage = ex.Message;
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
