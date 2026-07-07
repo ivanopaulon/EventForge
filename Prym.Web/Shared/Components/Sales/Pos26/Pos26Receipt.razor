@@ -99,6 +99,12 @@
         }
     </div>
 
+    @* Zona sconto dedicata (Task 6) — interposta tra righe e totali senza estrarre i totali da questo componente. *@
+    @if (ExtraContent is not null)
+    {
+        @ExtraContent
+    }
+
     @* Footer totali *@
     <div class="pos26-receipt-footer">
         <div class="pos26-receipt-total-row">
@@ -144,6 +150,9 @@
     /// Il parent apre <see cref="POSTouchLineEditDialog"/> e salva le modifiche.
     /// </summary>
     [Parameter] public EventCallback<SaleItemDto> OnEditItem { get; set; }
+
+    /// <summary>Contenuto aggiuntivo renderizzato tra le righe scontrino e i totali (Task 6 — Pos26DiscountZone).</summary>
+    [Parameter] public RenderFragment? ExtraContent { get; set; }
 
     private const int MaxReceiptNameLength = 24;
     private const int ReceiptTruncateAt = 22;

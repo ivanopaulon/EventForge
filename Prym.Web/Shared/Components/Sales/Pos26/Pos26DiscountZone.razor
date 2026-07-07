@@ -1,0 +1,121 @@
+@* Pos26DiscountZone — zona sconto dedicata (Task 6), estratta da Pos26Numpad.
+   Elemento "firma" del redesign: due pill button ben visibili (min-height 48px)
+   invece dei vecchi tasti %sc/€sc del numpad (38px), con popover di preset rapidi
+   + campo valore personalizzato (MudNumericField, tastiera nativa del dispositivo). *@
+
+<div class="pos26-discount-zone">
+    <div class="pos26-discount-pills">
+        <button class="pos26-discount-pill @(_openPopover == PopoverMode.Percent ? "pos26-discount-pill--active" : "")"
+                @onclick="() => TogglePopover(PopoverMode.Percent)">
+            % Sconto
+        </button>
+        <button class="pos26-discount-pill @(_openPopover == PopoverMode.Fixed ? "pos26-discount-pill--active" : "")"
+                @onclick="() => TogglePopover(PopoverMode.Fixed)">
+            € Sconto fisso
+        </button>
+    </div>
+
+    @if (_openPopover != PopoverMode.None)
+    {
+        <div class="pos26-discount-popover">
+            <div class="pos26-discount-presets">
+                @if (_openPopover == PopoverMode.Percent)
+                {
+                    @foreach (var preset in _percentPresets)
+                    {
+                        <button class="pos26-discount-preset" @onclick="() => ApplyPercentPresetAsync(preset)">@preset%</button>
+                    }
+                }
+                else
+                {
+                    @foreach (var preset in _fixedPresets)
+                    {
+                        <button class="pos26-discount-preset" @onclick="() => ApplyFixedPresetAsync(preset)">€@preset</button>
+                    }
+                }
+            </div>
+            <div class="pos26-discount-custom">
+                <MudNumericField T="decimal"
+                                  @bind-Value="_customValue"
+                                  Label="@(_openPopover == PopoverMode.Percent ? "Sconto %" : "Sconto €")"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Min="0"
+                                  Class="pos26-discount-custom-field" />
+                <button class="pos26-discount-apply-btn" @onclick="ApplyCustomAsync">Applica</button>
+            </div>
+        </div>
+    }
+
+    @if (CurrentDiscountPercent > 0)
+    {
+        <div class="pos26-discount-confirm">
+            <span>
+                ✓ Sconto @CurrentDiscountPercent.ToString("F1")% applicato
+                @if (CurrentDiscountAmount > 0)
+                {
+                    @($" (−€{CurrentDiscountAmount:F2})")
+                }
+            </span>
+            <button class="pos26-discount-remove-btn" @onclick="RemoveDiscountAsync" title="Rimuovi sconto" aria-label="Rimuovi sconto">×</button>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Invocato per sconto percentuale (0-100).</summary>
+    [Parameter] public EventCallback<decimal> OnApplyDiscount { get; set; }
+    /// <summary>Invocato per sconto a valore fisso in €.</summary>
+    [Parameter] public EventCallback<decimal> OnApplyFixedDiscount { get; set; }
+    /// <summary>Invocato per rimuovere lo sconto corrente (equivalente ad applicare 0%).</summary>
+    [Parameter] public EventCallback OnRemoveDiscount { get; set; }
+    /// <summary>Percentuale di sconto attualmente applicata alla sessione (0 = nessuno sconto).</summary>
+    [Parameter] public decimal CurrentDiscountPercent { get; set; }
+    /// <summary>Importo in € dello sconto corrente, solo per la riga di conferma testuale.</summary>
+    [Parameter] public decimal CurrentDiscountAmount { get; set; }
+
+    private enum PopoverMode { None, Percent, Fixed }
+
+    private PopoverMode _openPopover = PopoverMode.None;
+    private decimal _customValue;
+
+    private readonly decimal[] _percentPresets = [5, 10, 15];
+    private readonly decimal[] _fixedPresets = [1, 2, 5];
+
+    private void TogglePopover(PopoverMode mode)
+    {
+        _openPopover = _openPopover == mode ? PopoverMode.None : mode;
+        _customValue = 0;
+    }
+
+    private async Task ApplyPercentPresetAsync(decimal preset)
+    {
+        await OnApplyDiscount.InvokeAsync(preset);
+        _openPopover = PopoverMode.None;
+    }
+
+    private async Task ApplyFixedPresetAsync(decimal preset)
+    {
+        await OnApplyFixedDiscount.InvokeAsync(preset);
+        _openPopover = PopoverMode.None;
+    }
+
+    private async Task ApplyCustomAsync()
+    {
+        if (_customValue <= 0) return;
+
+        if (_openPopover == PopoverMode.Percent)
+            await OnApplyDiscount.InvokeAsync(_customValue);
+        else if (_openPopover == PopoverMode.Fixed)
+            await OnApplyFixedDiscount.InvokeAsync(_customValue);
+
+        _openPopover = PopoverMode.None;
+        _customValue = 0;
+    }
+
+    private async Task RemoveDiscountAsync()
+    {
+        if (OnRemoveDiscount.HasDelegate)
+            await OnRemoveDiscount.InvokeAsync();
+    }
+}

@@ -520,13 +520,22 @@
                       OnIncrease="@IncreaseQuantity"
                       OnDecrease="@DecreaseQuantity"
                       OnEditItemNotes="@EditItemNotesAsync"
-                      OnEditItem="@EditLineItemAsync" />
+                      OnEditItem="@EditLineItemAsync">
+            <ExtraContent>
+                @* Zona sconto dedicata (Task 6) — interposta tra righe e totali dentro Pos26Receipt
+                   tramite RenderFragment ExtraContent (approccio a minor refactoring rispetto
+                   a estrarre i totali fuori dal componente). *@
+                <Pos26DiscountZone OnApplyDiscount="@ApplyDiscountAsync"
+                                   OnApplyFixedDiscount="@ApplyFixedDiscountAsync"
+                                   OnRemoveDiscount="@RemoveDiscountAsync"
+                                   CurrentDiscountPercent="@CurrentDiscountPercent"
+                                   CurrentDiscountAmount="@(ViewModel.CurrentSession?.DiscountAmount ?? 0m)" />
+            </ExtraContent>
+        </Pos26Receipt>
 
         <Pos26Numpad CanPay="@ViewModel.CanPay"
                      OnPay="@OpenPaymentDialogAsync"
                      OnCancel="@CancelSessionAsync"
-                     OnApplyDiscount="@ApplyDiscountAsync"
-                     OnApplyFixedDiscount="@ApplyFixedDiscountAsync"
                      HasFiscalPrinter="@_fiscalPrinterId.HasValue"
                      OnPrintReceipt="@PrintBrowserReceiptAsync" />
 

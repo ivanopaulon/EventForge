@@ -27,8 +27,9 @@
         @* Chip contesto "ultimi acquisti" — sostituisce il vecchio Pos26ContextBanner a piena larghezza *@
         @if (HasCustomer && SortMode == Pos26SortMode.UltimiAcquisti && Customer is not null)
         {
-            <span class="pos26-filterbar-context-chip">
-                ↻ Ultimi acquisti di @Customer.Name
+            <span class="pos26-filterbar-context-chip" aria-label="@($"Ultimi acquisti di {Customer.Name}")">
+                <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" Class="mr-1" />
+                Ultimi acquisti di @Customer.Name
             </span>
         }
     </div>

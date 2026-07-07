@@ -385,51 +385,7 @@
     align-self: flex-end;
 }
 
-/* ===== Pos26SortBar ===== */
-::deep .pos26-sortbar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-::deep .pos26-sort-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: 1px solid var(--mud-palette-lines-default);
-    border-radius: 20px;
-    padding: 3px 10px;
-    background: transparent;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--mud-palette-text-secondary);
-    transition: background 150ms, border 150ms;
-    min-height: 28px;
-}
-
-::deep .pos26-sort-pill--active {
-    background: var(--pos-brand-blue);
-    color: #fff;
-    border-color: var(--pos-brand-blue);
-}
-
-/* ===== Pos26CategoryBar ===== */
-::deep .pos26-categorybar-wrap {
-    overflow: hidden;
-}
-
-::deep .pos26-categorybar {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 2px;
-}
-
-::deep .pos26-categorybar::-webkit-scrollbar {
-    display: none;
-}
-
+/* ===== Pos26FilterBar — chip categoria (Task 3, sempre visibili) ===== */
 ::deep .pos26-category-pill {
     display: inline-flex;
     align-items: center;
@@ -443,22 +399,13 @@
     white-space: nowrap;
     transition: background 150ms, border 150ms;
     min-height: 26px;
+    flex-shrink: 0;
 }
 
 ::deep .pos26-category-pill--active {
-    background: var(--pos-surface-1);
+    background: var(--pos-brand-blue);
     color: #fff;
-    border-color: var(--pos-surface-1);
-}
-
-/* ===== Pos26ContextBanner ===== */
-::deep .pos26-context-banner {
-    display: flex;
-    align-items: center;
-    border-radius: 6px;
-    padding: 4px 10px;
-    font-size: 12px;
-    gap: 4px;
+    border-color: var(--pos-brand-blue);
 }
 
 /* ===== Pos26ProductGrid ===== */
@@ -884,7 +831,7 @@
     color: var(--pos-success);
 }
 
-/* ===== Pos26Numpad ===== */
+/* ===== Pos26Numpad → azioni pagamento (Task 7, ridotto da griglia numerica a CTA) ===== */
 ::deep .pos26-numpad {
     background: var(--pos-surface-0);
     padding: 8px;
@@ -894,97 +841,54 @@
     border-top: 1px solid var(--pos-border);
 }
 
-::deep .pos26-numpad-display {
-    background: var(--pos-surface-1);
-    border-radius: 7px;
-    padding: 6px 10px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-::deep .pos26-numpad-mode {
-    font-size: 11px;
-    color: var(--pos-text-3);
-    text-transform: uppercase;
-}
-
-::deep .pos26-numpad-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--pos-text-1);
-    font-family: monospace;
-}
-
-::deep .pos26-numpad-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 5px;
-}
-
-::deep .pos26-numpad-key {
-    background: var(--pos-border);
-    color: var(--pos-text-1);
-    border: none;
-    border-radius: 7px;
-    font-size: 16px;
-    font-weight: 600;
-    min-height: 38px;
-    cursor: pointer;
+::deep .pos26-pay-cta {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 150ms, border 150ms;
-    user-select: none;
+    gap: 8px;
+    width: 100%;
+    min-height: 52px;
+    border: none;
+    border-radius: var(--pos-radius-md);
+    background: var(--pos-success);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms, opacity 150ms;
 }
 
-::deep .pos26-numpad-key:hover {
-    background: #5a5a57;
+::deep .pos26-pay-cta:hover {
+    background: #268f66;
 }
 
-::deep .pos26-numpad-key:disabled {
+::deep .pos26-pay-cta:disabled {
     opacity: .4;
     cursor: not-allowed;
 }
 
-::deep .pos26-numpad-key--discount {
-    min-height: 50px;
-    font-size: 18px;
-}
-
-/* Riga sconto isolata sopra la griglia numerica (P2.2): due tasti a piena larghezza,
-   più alti dei tasti numerici, per essere immediatamente distinguibili al tocco. */
-::deep .pos26-numpad-discount-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5px;
-}
-
-/* Badge "MODALITÀ SCONTO %/€" — sfondo pieno colorato, molto più prominente della piccola
-   etichetta pos26-numpad-mode (11px), riusa lo stile di prominenza di pos26-pay-resto-banner. */
-::deep .pos26-numpad-mode-banner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    background: var(--pos-brand-blue);
-    color: #fff;
-    border-radius: 7px;
-    padding: 6px 10px;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
-::deep .pos26-numpad-key--pay {
-    grid-column: 1 / 3;
-    font-size: 14px;
-}
-
-::deep .pos26-numpad-key--cancel {
-    grid-column: 3 / 4;
+::deep .pos26-pay-cta-shortcut {
     font-size: 12px;
+    font-weight: 600;
+    opacity: 0.85;
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 5px;
+    padding: 1px 6px;
+}
+
+::deep .pos26-cancel-link {
+    background: none;
+    border: none;
+    color: var(--pos-text-3);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
+    padding: 2px 0;
+    text-decoration: underline;
+}
+
+::deep .pos26-cancel-link:hover {
+    color: var(--pos-text-1);
 }
 
 /* Pulsante stampa ricevuta non fiscale */
@@ -1006,6 +910,130 @@
 
 ::deep .pos26-numpad-print-btn:hover {
     background: rgba(255,255,255,0.08);
+}
+
+/* ===== Pos26DiscountZone — Task 6, elemento "firma" del redesign ===== */
+::deep .pos26-discount-zone {
+    position: relative;
+    padding: 0 10px 8px;
+}
+
+::deep .pos26-discount-pills {
+    display: flex;
+    gap: 6px;
+}
+
+::deep .pos26-discount-pill {
+    flex: 1;
+    min-height: 48px;
+    border-radius: var(--pos-radius-md);
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+}
+
+::deep .pos26-discount-pill:hover {
+    background: var(--pos-surface-2);
+    border-color: var(--pos-brand-blue);
+}
+
+::deep .pos26-discount-pill--active {
+    background: var(--pos-brand-blue);
+    border-color: var(--pos-brand-blue);
+    color: #fff;
+}
+
+::deep .pos26-discount-popover {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 100%;
+    margin-bottom: 6px;
+    background: var(--pos-surface-2);
+    border: 1px solid var(--pos-border);
+    border-radius: var(--pos-radius-md);
+    box-shadow: 0 -4px 16px rgba(0,0,0,.35);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+}
+
+::deep .pos26-discount-presets {
+    display: flex;
+    gap: 6px;
+}
+
+::deep .pos26-discount-preset {
+    flex: 1;
+    min-height: 40px;
+    border-radius: var(--pos-radius-sm);
+    border: 1px solid var(--pos-border);
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 150ms, border 150ms;
+}
+
+::deep .pos26-discount-preset:hover {
+    background: var(--pos-brand-blue-bg);
+    border-color: var(--pos-brand-blue);
+}
+
+::deep .pos26-discount-custom {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+::deep .pos26-discount-custom-field {
+    flex: 1;
+}
+
+::deep .pos26-discount-apply-btn {
+    min-height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--pos-radius-sm);
+    background: var(--pos-brand-blue);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+::deep .pos26-discount-apply-btn:hover {
+    background: var(--pos-brand-blue-dim);
+}
+
+::deep .pos26-discount-confirm {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding: 5px 10px;
+    background: var(--pos-success-bg);
+    color: var(--pos-success);
+    border-radius: var(--pos-radius-sm);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+::deep .pos26-discount-remove-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0 0 8px;
 }
 
 /* ===== @media print: receipt visibile, tutto il resto nascosto ===== */
