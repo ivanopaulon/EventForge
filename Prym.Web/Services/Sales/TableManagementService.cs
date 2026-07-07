@@ -10,6 +10,8 @@ public class TableManagementService(
     ILogger<TableManagementService> logger) : ITableManagementService
 {
     private const string BaseUrl = "api/v1/tables";
+    private const int MaxUnpaginatedPageSize = 1000;
+
 
     public async Task<TableSessionDto?> GetTableAsync(Guid id, CancellationToken ct = default)
     {
@@ -30,7 +32,7 @@ public class TableManagementService(
         try
         {
             var result = await httpClientService.GetAsync<Prym.DTOs.Common.PagedResult<TableSessionDto>>(
-                $"{BaseUrl}/paginated?pageNumber=1&pageSize=1000", ct);
+                $"{BaseUrl}/paginated?pageNumber=1&pageSize={MaxUnpaginatedPageSize}", ct);
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)

@@ -1,0 +1,166 @@
+@using Prym.DTOs.Sales
+
+<div class="table-floor-plan @(EditMode ? "table-floor-plan--edit" : "")">
+    @if (!Tables.Any())
+    {
+        <div class="table-floor-plan__empty">
+            <MudIcon Icon="@Icons.Material.Outlined.TableRestaurant" Size="Size.Large" Color="Color.Default" />
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun tavolo configurato.</MudText>
+        </div>
+    }
+    else
+    {
+        @foreach (var areaGroup in Tables.GroupBy(GetAreaLabel).OrderBy(g => g.Key))
+        {
+            <div class="table-floor-plan__area">
+                <MudText Typo="Typo.subtitle2" Class="table-floor-plan__area-title">@areaGroup.Key</MudText>
+                <div class="table-floor-plan__canvas"
+                     @ondragover="@OnCanvasDragOver"
+                     @ondragover:preventDefault="@EditMode"
+                     @ondrop="@(e => OnCanvasDropAsync(e, areaGroup.Key))">
+                    @foreach (var table in areaGroup)
+                    {
+                        var left = table.PositionX ?? DefaultPosition(table, areaGroup.ToList()).X;
+                        var top = table.PositionY ?? DefaultPosition(table, areaGroup.ToList()).Y;
+                        <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "")"
+                             style="left:@(left)px; top:@(top)px;"
+                             draggable="@EditMode"
+                             @ondragstart="@(e => OnDragStart(e, table))"
+                             @onclick="@(() => OnTableClickAsync(table))">
+                            <span class="table-floor-plan__table-number">@table.TableNumber</span>
+                            @if (!string.IsNullOrWhiteSpace(table.TableName))
+                            {
+                                <span class="table-floor-plan__table-name">@table.TableName</span>
+                            }
+                            <span class="table-floor-plan__table-capacity">
+                                <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" /> @table.Capacity
+                            </span>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Tables to display on the floor plan.
+    /// </summary>
+    [Parameter, EditorRequired] public List<TableSessionDto> Tables { get; set; } = new();
+
+    /// <summary>
+    /// When true, tables can be dragged to reposition (used in admin management page).
+    /// When false, the floor plan is read-only and used for table selection (e.g. POS).
+    /// </summary>
+    [Parameter] public bool EditMode { get; set; }
+
+    /// <summary>
+    /// Currently selected/highlighted table.
+    /// </summary>
+    [Parameter] public Guid? SelectedTableId { get; set; }
+
+    /// <summary>
+    /// Raised when a table is clicked (view mode: select table for sale; edit mode: could open edit dialog).
+    /// </summary>
+    [Parameter] public EventCallback<TableSessionDto> OnTableClick { get; set; }
+
+    /// <summary>
+    /// Raised when a table has been dragged to a new position (edit mode only).
+    /// </summary>
+    [Parameter] public EventCallback<(TableSessionDto Table, int X, int Y)> OnPositionChanged { get; set; }
+
+    /// <summary>
+    /// Label used for tables that don't have an explicit <see cref="TableSessionDto.Area"/> assigned.
+    /// </summary>
+    [Parameter] public string DefaultAreaLabel { get; set; } = "Sala";
+
+    /// <summary>
+    /// Number of columns used to lay out tables without an explicit position on the fallback grid.
+    /// </summary>
+    [Parameter] public int DefaultGridColumns { get; set; } = 5;
+
+    /// <summary>
+    /// Cell size (width/height in pixels) used to lay out tables without an explicit position on the fallback grid.
+    /// </summary>
+    [Parameter] public int DefaultGridCellSize { get; set; } = 110;
+
+    private TableSessionDto? _draggedTable;
+    private double _dragStartClientX;
+    private double _dragStartClientY;
+
+    private void OnDragStart(DragEventArgs e, TableSessionDto table)
+    {
+        _draggedTable = table;
+        _dragStartClientX = e.ClientX;
+        _dragStartClientY = e.ClientY;
+    }
+
+    private void OnCanvasDragOver(DragEventArgs e)
+    {
+        // No-op: presence of the handler + preventDefault (via @ondragover:preventDefault) is what
+        // allows the browser to treat this container as a valid drop target.
+    }
+
+    private async Task OnCanvasDropAsync(DragEventArgs e, string area)
+    {
+        if (!EditMode || _draggedTable is null) return;
+
+        var deltaX = e.ClientX - _dragStartClientX;
+        var deltaY = e.ClientY - _dragStartClientY;
+
+        var areaTables = Tables.Where(t => GetAreaLabel(t) == area).ToList();
+        var (currentX, currentY) = ((int)(_draggedTable.PositionX ?? DefaultPosition(_draggedTable, areaTables).X),
+                                     (int)(_draggedTable.PositionY ?? DefaultPosition(_draggedTable, areaTables).Y));
+
+        var newX = Math.Max(0, currentX + (int)deltaX);
+        var newY = Math.Max(0, currentY + (int)deltaY);
+
+        var table = _draggedTable;
+        _draggedTable = null;
+
+        table.PositionX = newX;
+        table.PositionY = newY;
+
+        if (OnPositionChanged.HasDelegate)
+        {
+            await OnPositionChanged.InvokeAsync((table, newX, newY));
+        }
+    }
+
+    private async Task OnTableClickAsync(TableSessionDto table)
+    {
+        if (EditMode) return; // In edit mode, clicks are reserved for drag; use dedicated edit button/dialog instead.
+        if (OnTableClick.HasDelegate)
+        {
+            await OnTableClick.InvokeAsync(table);
+        }
+    }
+
+    private string GetAreaLabel(TableSessionDto table) =>
+        string.IsNullOrWhiteSpace(table.Area) ? DefaultAreaLabel : table.Area!;
+
+    /// <summary>
+    /// Deterministic fallback grid position for tables without an explicit PositionX/PositionY,
+    /// so the floor plan still renders something sensible before positions have been configured.
+    /// </summary>
+    private (int X, int Y) DefaultPosition(TableSessionDto table, List<TableSessionDto> areaTables)
+    {
+        var index = areaTables.FindIndex(t => t.Id == table.Id);
+        if (index < 0) index = 0;
+        var col = index % DefaultGridColumns;
+        var row = index / DefaultGridColumns;
+        return (col * DefaultGridCellSize + 20, row * DefaultGridCellSize + 20);
+    }
+
+
+    private static string StatusCssClass(string status) => status switch
+    {
+        "Available" => "available",
+        "Occupied" => "occupied",
+        "Reserved" => "reserved",
+        "Cleaning" => "cleaning",
+        "OutOfService" => "out-of-service",
+        _ => "available"
+    };
+}
