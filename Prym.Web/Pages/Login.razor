@@ -210,13 +210,18 @@
         try
         {
             _isLoadingTenants = true;
-            _tenants = (await AuthService.GetAvailableTenantsAsync()).ToList();
-            _serverError = false;
+            var result = await AuthService.GetAvailableTenantsWithStatusAsync();
+            _tenants = result.Tenants.ToList();
+            _serverError = result.IsServerUnreachable;
 
             if (_tenants.Any())
             {
                 _selectedTenantId ??= _tenants.First().Id.ToString();
                 CancelRetry();
+            }
+            else if (_serverError)
+            {
+                EnsureRetryStarted();
             }
         }
         catch (Exception ex)

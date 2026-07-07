@@ -25,6 +25,7 @@ namespace Prym.Web.Services
     public class HealthService(
         IHttpClientFactory httpClientFactory,
         IHttpClientService httpClientService,
+        IServerConfigService serverConfigService,
         ILogger<HealthService> logger) : IHealthService
     {
         public Task<HealthStatusDto?> GetHealthAsync(CancellationToken ct = default)
@@ -77,6 +78,9 @@ namespace Prym.Web.Services
             try
             {
                 var httpClient = httpClientFactory.CreateClient("ApiClient");
+                var serverUrl = await serverConfigService.GetServerUrlAsync();
+                if (!string.IsNullOrWhiteSpace(serverUrl))
+                    httpClient.BaseAddress = new Uri(serverUrl);
                 var response = await httpClient.GetAsync(relativeUrl);
                 if (!response.IsSuccessStatusCode)
                 {

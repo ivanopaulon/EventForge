@@ -6,6 +6,12 @@ using System.Net.Http.Json;
 
 namespace Prym.Web.Services
 {
+    // Risultato della chiamata a GetAvailableTenantsWithStatusAsync.
+    // Distingue esplicitamente tra lista vuota per assenza dati e lista vuota per server non raggiungibile.
+    public sealed record TenantsLoadResult(
+        IReadOnlyList<TenantResponseDto> Tenants,
+        bool IsServerUnreachable);
+
     public interface IAuthService
     {
         Task<LoginResponseDto?> LoginAsync(LoginRequestDto loginRequest, CancellationToken ct = default);
@@ -21,8 +27,12 @@ namespace Prym.Web.Services
         Task<bool> IsAdminOrSuperAdminAsync(CancellationToken ct = default);
         event Action? OnAuthenticationStateChanged;
 
-        // Nuovo: recupera i tenant disponibili per il login (leggero, cached lato client)
+        // Recupera i tenant disponibili per il login (leggero, cached lato client)
         Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync(CancellationToken ct = default);
+
+        // Recupera i tenant disponibili distinguendo tra lista vuota e server non raggiungibile.
+        // Usa questo metodo nella UI per mostrare il messaggio corretto all'utente.
+        Task<TenantsLoadResult> GetAvailableTenantsWithStatusAsync(CancellationToken ct = default);
 
         // Refresh the JWT token to extend the session
         Task<bool> RefreshTokenAsync(CancellationToken ct = default);
@@ -37,6 +47,7 @@ namespace Prym.Web.Services
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IJSRuntime _jsRuntime;
         private readonly ILogger<AuthService> _logger;
+        private readonly IServerConfigService _serverConfigService;
         private string? _accessToken;
         private UserDto? _currentUser;
         private readonly string _tokenKey = "auth_token";
@@ -47,11 +58,25 @@ namespace Prym.Web.Services
 
         public event Action? OnAuthenticationStateChanged;
 
-        public AuthService(IHttpClientFactory httpClientFactory, IJSRuntime jsRuntime, ILogger<AuthService> logger)
+        public AuthService(IHttpClientFactory httpClientFactory, IJSRuntime jsRuntime, ILogger<AuthService> logger, IServerConfigService serverConfigService)
         {
             _httpClientFactory = httpClientFactory;
             _jsRuntime = jsRuntime;
             _logger = logger;
+            _serverConfigService = serverConfigService;
+        }
+
+        /// <summary>
+        /// Crea un HttpClient anonimo con BaseAddress risolto dinamicamente da IServerConfigService.
+        /// Garantisce che ef_server_url impostato dall'utente venga sempre rispettato.
+        /// </summary>
+        private async Task<HttpClient> CreateAnonymousClientAsync(CancellationToken ct = default)
+        {
+            var httpClient = _httpClientFactory.CreateClient("ApiClient");
+            var serverUrl = await _serverConfigService.GetServerUrlAsync(ct);
+            if (!string.IsNullOrWhiteSpace(serverUrl))
+                httpClient.BaseAddress = new Uri(serverUrl);
+            return httpClient;
         }
 
         public async Task<bool> IsAuthenticatedAsync(CancellationToken ct = default)
@@ -135,7 +160,7 @@ namespace Prym.Web.Services
         {
             try
             {
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = await CreateAnonymousClientAsync(ct);
 
                 _logger.LogDebug("Invio richiesta di autenticazione per {Username}", loginRequest.Username);
                 var response = await httpClient.PostAsJsonAsync("api/v1/auth/login", loginRequest);
@@ -206,17 +231,26 @@ namespace Prym.Web.Services
 
         /// <summary>
         /// Recupera i tenant disponibili per il login. Metodo leggero, con caching client-side per ridurre round-trip.
-        /// Endpoint server previsto: GET /api/v1/auth/tenants
+        /// Endpoint server previsto: GET /api/v1/tenants/available.
+        /// Wrapper retrocompatibile su GetAvailableTenantsWithStatusAsync.
         /// </summary>
-        // Modifica: implementazione pi� robusta di GetAvailableTenantsAsync con timeout, retry e logging
         public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync(CancellationToken ct = default)
+            => (await GetAvailableTenantsWithStatusAsync(ct)).Tenants;
+
+        /// <summary>
+        /// Recupera i tenant disponibili distinguendo tra lista vuota per assenza dati e server non raggiungibile.
+        /// Endpoint server previsto: GET /api/v1/tenants/available.
+        /// IsServerUnreachable = true quando la richiesta fallisce per timeout o eccezione di rete/server;
+        /// IsServerUnreachable = false quando il server risponde (anche con lista vuota o errore applicativo).
+        /// </summary>
+        public async Task<TenantsLoadResult> GetAvailableTenantsWithStatusAsync(CancellationToken ct = default)
         {
+            if (_cachedTenants != null && _cachedTenants.Any())
+                return new TenantsLoadResult(_cachedTenants, IsServerUnreachable: false);
+
             try
             {
-                if (_cachedTenants != null && _cachedTenants.Any())
-                    return _cachedTenants;
-
-                var httpClient = _httpClientFactory.CreateClient("ApiClient");
+                var httpClient = await CreateAnonymousClientAsync(ct);
                 var endpoint = "api/v1/tenants/available";
                 const int timeoutSeconds = 10;
                 const int maxAttempts = 2;
@@ -233,14 +267,14 @@ namespace Prym.Web.Services
                         if (!response.IsSuccessStatusCode)
                         {
                             _logger.LogWarning("GET {Endpoint} returned status {StatusCode} on attempt {Attempt}", endpoint, response.StatusCode, attempt);
-                            // If server returned non-success, no point in retrying for 4xx (but we allow one retry for transient 5xx)
+                            // Retry once on transient 5xx
                             if ((int)response.StatusCode >= 500 && attempt < maxAttempts)
                             {
                                 await Task.Delay(500);
                                 continue;
                             }
 
-                            return Enumerable.Empty<TenantResponseDto>();
+                            return new TenantsLoadResult([], IsServerUnreachable: true);
                         }
 
                         var tenants = await response.Content.ReadFromJsonAsync<IEnumerable<TenantResponseDto>>(cancellationToken: cts.Token);
@@ -249,7 +283,8 @@ namespace Prym.Web.Services
                         sw.Stop();
                         _logger.LogInformation("Loaded {Count} tenants from {Endpoint} in {ElapsedMs}ms (attempt {Attempt})", _cachedTenants.Count, endpoint, sw.ElapsedMilliseconds, attempt);
 
-                        return _cachedTenants;
+                        // 2xx: server raggiungibile, lista può essere vuota per assenza di tenant configurati
+                        return new TenantsLoadResult(_cachedTenants, IsServerUnreachable: false);
                     }
                     catch (TaskCanceledException tex)
                     {
@@ -265,12 +300,11 @@ namespace Prym.Web.Services
 
                         if (attempt < maxAttempts)
                         {
-                            // small backoff before retry
                             await Task.Delay(500);
                             continue;
                         }
 
-                        return Enumerable.Empty<TenantResponseDto>();
+                        return new TenantsLoadResult([], IsServerUnreachable: true);
                     }
                     catch (Exception ex)
                     {
@@ -282,16 +316,16 @@ namespace Prym.Web.Services
                             continue;
                         }
 
-                        return Enumerable.Empty<TenantResponseDto>();
+                        return new TenantsLoadResult([], IsServerUnreachable: true);
                     }
                 }
 
-                return Enumerable.Empty<TenantResponseDto>();
+                return new TenantsLoadResult([], IsServerUnreachable: true);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Unexpected error in GetAvailableTenantsAsync");
-                return Enumerable.Empty<TenantResponseDto>();
+                _logger.LogWarning(ex, "Unexpected error in GetAvailableTenantsWithStatusAsync");
+                return new TenantsLoadResult([], IsServerUnreachable: true);
             }
         }
 
@@ -380,7 +414,7 @@ namespace Prym.Web.Services
                 {
                     try
                     {
-                        var client = _httpClientFactory.CreateClient("ApiClient");
+                        var client = await CreateAnonymousClientAsync(ct);
 
                         // The refresh-token endpoint requires [Authorize], so we must send the current token
                         if (!string.IsNullOrEmpty(currentToken))
