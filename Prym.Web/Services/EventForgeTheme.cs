@@ -4,17 +4,17 @@ namespace Prym.Web.Services;
 
 /// <summary>
 /// Centralizes all MudBlazor theme definitions for EventForge.
-/// Use <see cref="GetMudTheme"/> to get the full theme for a given key,
-/// or <see cref="GetLightPalette"/> / <see cref="GetDarkPalette"/> if you only need a palette.
+/// Use <see cref="GetMudTheme"/> to get the full theme (light and dark palettes for the
+/// single "Carbon Neon" EventForge theme), or <see cref="GetLightPalette"/> / <see cref="GetDarkPalette"/>
+/// if you only need a palette. Light/dark mode selection itself is handled by
+/// MudThemeProvider's IsDarkMode flag, driven by <see cref="IThemeService.IsDarkMode"/>.
 /// </summary>
 public static class EventForgeTheme
 {
     /// <summary>
-    /// Returns the full MudTheme for the given theme key (light/dark variants of the
-    /// single "Carbon Neon" EventForge theme). The <paramref name="themeKey"/> only
-    /// affects which mode (light/dark) is produced; there are no other custom themes.
+    /// Returns the full MudTheme (both light and dark palettes) for EventForge.
     /// </summary>
-    public static MudTheme GetMudTheme(string themeKey) => new()
+    public static MudTheme GetMudTheme() => new()
     {
         PaletteLight = GetLightPalette(),
         PaletteDark = GetDarkPalette(),
