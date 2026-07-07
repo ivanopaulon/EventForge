@@ -515,6 +515,19 @@
     color: var(--pos-green);
 }
 
+/* Chip disponibilità stock — piccolo indicatore sotto il prezzo */
+::deep .pos26-stock-chip {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 6px;
+    line-height: 1.5;
+    letter-spacing: 0.2px;
+}
+::deep .pos26-stock-chip--ok  { background: var(--pos-green-light);  color: #085041; }
+::deep .pos26-stock-chip--low { background: var(--pos-amber-light);  color: #633806; }
+::deep .pos26-stock-chip--out { background: #FCEBEB;                 color: #7A1919; }
+
 /* ===== Pos26Receipt ===== */
 ::deep .pos26-receipt {
     flex: 1;

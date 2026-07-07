@@ -19,6 +19,7 @@
 @using Prym.DTOs.Business
 @using Prym.DTOs.Business.Fidelity
 @using Prym.DTOs.FiscalPrinting
+@using Prym.DTOs.Warehouse
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 @attribute [Authorize]
@@ -41,6 +42,7 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
 @inject IAuthService AuthService
+@inject IStockService StockService
 
 <PageTitle>POS 2026</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading || _isLoadingProducts"
@@ -507,6 +509,7 @@
                                               CartQuantity="@(_cartQuantities.TryGetValue(product.Id, out var q) ? q : 0)"
                                               IsLastPurchase="@_lastPurchaseIds.Contains(product.Id)"
                                               IsBestSeller="true"
+                                              StockAvailable="@(_stockByProductId.TryGetValue(product.Id, out var sq) ? sq : (decimal?)null)"
                                               OnAddToCart="@OnAddProductToCartAsync"
                                               OnLongPress="@OpenProductDetailAsync" />
                         }
@@ -519,6 +522,7 @@
                               CartQuantities="@_cartQuantities"
                               LastPurchaseIds="@_lastPurchaseIds"
                               BestSellerIds="@_bestSellerIds"
+                              StockAvailability="@_stockByProductId"
                               OnAddToCart="@OnAddProductToCartAsync"
                               OnLongPress="@OpenProductDetailAsync"
                               IsLoading="@_isLoadingProducts" />

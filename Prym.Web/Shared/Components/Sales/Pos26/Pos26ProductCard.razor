@@ -48,6 +48,10 @@
     <div class="pos26-product-info">
         <span class="pos26-product-name">@TruncateName(Product.Name)</span>
         <span class="pos26-product-price">@FormatPrice(Product.DefaultPrice)</span>
+        @if (StockAvailable.HasValue)
+        {
+            <span class="pos26-stock-chip pos26-stock-chip--@GetStockColorClass()">@FormatStock(StockAvailable.Value)</span>
+        }
     </div>
 </div>
 
@@ -56,6 +60,8 @@
     [Parameter] public int CartQuantity { get; set; }
     [Parameter] public bool IsLastPurchase { get; set; }
     [Parameter] public bool IsBestSeller { get; set; }
+    /// <summary>Quantità disponibile aggregata su tutte le location. Null = dato non caricato.</summary>
+    [Parameter] public decimal? StockAvailable { get; set; }
     [Parameter] public EventCallback<ProductDto> OnAddToCart { get; set; }
     /// <summary>
     /// Triggered when the user long-presses (≥500 ms) the card.
@@ -156,6 +162,19 @@
 
     private static string FormatPrice(decimal? price) =>
         price.HasValue ? $"€{price.Value:F2}" : "–";
+
+    private string GetStockColorClass() => StockAvailable switch
+    {
+        <= 0            => "out",
+        < 5             => "low",
+        _               => "ok"
+    };
+
+    private static string FormatStock(decimal qty) => qty switch
+    {
+        <= 0  => "Esaurito",
+        _     => $"{qty:0.##} disp."
+    };
 
     public void Dispose()
     {
