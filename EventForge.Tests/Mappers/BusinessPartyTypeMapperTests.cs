@@ -30,6 +30,10 @@ public class BusinessPartyTypeMapperTests
     public void ToDto_ClienteFornitore_ReturnsDtoBoth()
         => Assert.Equal(DtoEnum.Both, BusinessPartyTypeMapper.ToDto(EntityEnum.ClienteFornitore));
 
+    [Fact]
+    public void ToDto_UnknownLegacyValue_ReturnsDtoBothInsteadOfThrowing()
+        => Assert.Equal(DtoEnum.Both, BusinessPartyTypeMapper.ToDto((EntityEnum)3));
+
     #endregion
 
     #region DTO → Entity

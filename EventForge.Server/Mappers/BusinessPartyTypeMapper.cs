@@ -19,12 +19,18 @@ namespace EventForge.Server.Mappers;
 public static class BusinessPartyTypeMapper
 {
     /// <summary>Converts an entity <see cref="EntityEnum"/> to the corresponding DTO value.</summary>
+    /// <remarks>
+    /// Some legacy rows were persisted before this mapper existed, using a direct integer
+    /// cast from the DTO enum (Both=3) into the entity column, which has no matching member.
+    /// Any value outside the defined entity range is therefore treated as the most permissive
+    /// option (ClienteFornitore/Both) instead of throwing, so stale data doesn't 500 the API.
+    /// </remarks>
     public static DtoEnum ToDto(EntityEnum entity) => entity switch
     {
         EntityEnum.Cliente          => DtoEnum.Cliente,
         EntityEnum.Fornitore        => DtoEnum.Supplier,
         EntityEnum.ClienteFornitore => DtoEnum.Both,
-        _                           => throw new ArgumentOutOfRangeException(nameof(entity), entity, $"Unknown entity BusinessPartyType value: {entity}")
+        _                           => DtoEnum.Both
     };
 
     /// <summary>Converts a DTO <see cref="DtoEnum"/> to the corresponding entity value.</summary>
