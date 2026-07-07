@@ -1364,7 +1364,7 @@ public partial class POS2026 : IAsyncDisposable
 
             // Marca il tavolo come occupato (Parte F.4): evita che resti visibile come
             // disponibile e possa essere assegnato due volte. Usa il sessionId catturato
-            // prima del reload — ViewModel.CurrentSession potrebbe risultare null in casi limite.
+            // prima di ReloadSessionAsync, che potrebbe azzerare/sostituire CurrentSession.
             try
             {
                 await TableManagementService.UpdateTableStatusAsync(
@@ -1373,6 +1373,7 @@ public partial class POS2026 : IAsyncDisposable
             catch (Exception statusEx)
             {
                 Logger.LogWarning(statusEx, "Errore aggiornamento stato tavolo {TableId} a Occupied.", table.Id);
+                AppNotification.ShowWarning($"Tavolo {table.TableNumber} assegnato, ma il suo stato potrebbe non essere aggiornato per altri operatori.");
             }
 
             if (_tablePickerParkOnSelect)

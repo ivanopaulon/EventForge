@@ -192,6 +192,9 @@ public class ThemeService(
         // ma non bloccante per l'esperienza percepita dato che localStorage/DOM sono già stati
         // aggiornati sopra. Il fire-and-forget precedente perdeva silenziosamente il salvataggio
         // se il circuito terminava prima del completamento del task interno.
+        // WaitAsync(ct) è fuori dal blocco try/finally: se viene cancellato prima di acquisire
+        // il lock lancia OperationCanceledException senza mai entrare nel finally, quindi
+        // Release() non viene mai chiamato su un semaforo non acquisito.
         await _serverSyncLock.WaitAsync(ct);
         try
         {
