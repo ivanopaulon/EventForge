@@ -1,9 +1,9 @@
 {
   "_Comment": "Copy this file to appsettings.Development.json and fill in your local values. That file is git-ignored.",
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData;User Id=vsapp;******;TrustServerCertificate=True;",
-    "SqlServer": "Server=localhost\\SQLEXPRESS;Database=EventData;User Id=vsapp;******;TrustServerCertificate=True;",
-    "LogDb": "Server=localhost\\SQLEXPRESS;Database=EventLogger;User Id=vsapp;******;TrustServerCertificate=True;"
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData;Integrated Security=True;TrustServerCertificate=True;",
+    "SqlServer": "Server=localhost\\SQLEXPRESS;Database=EventData;Integrated Security=True;TrustServerCertificate=True;",
+    "LogDb": "Server=localhost\\SQLEXPRESS;Database=EventLogger;Integrated Security=True;TrustServerCertificate=True;"
   },
   "Encryption": {
     "Key": "LocalDevEncryptionKey-AtLeast32Chars!!"
