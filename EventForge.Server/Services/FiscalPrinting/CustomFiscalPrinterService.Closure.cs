@@ -405,6 +405,16 @@ public partial class CustomFiscalPrinterService
                 };
             }
 
+            if (record.PrinterId is null)
+            {
+                return new FiscalPrintResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure).",
+                    PrintDate = DateTime.UtcNow
+                };
+            }
+
             logger.LogInformation(
                 "Custom ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}",
                 closureId, record.PrinterId);
@@ -446,6 +456,9 @@ public partial class CustomFiscalPrinterService
 
         if (!record.FiscalClosurePending)
             return new DailyClosureResultDto { Success = false, ErrorMessage = "La chiusura fiscale per questo record non è pendente." };
+
+        if (record.PrinterId is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure)." };
 
         logger.LogInformation("Custom RetryFiscalClosureAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, record.PrinterId);
 

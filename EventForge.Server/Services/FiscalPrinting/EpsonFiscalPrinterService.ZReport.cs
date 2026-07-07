@@ -34,6 +34,9 @@ public partial class EpsonFiscalPrinterService
             if (record.HasPdf && record.PdfBytes is { Length: > 0 })
                 return record.PdfBytes;
 
+            if (record.PrinterId is null)
+                return null;
+
             var printerName = await context.Printers
                 .AsNoTracking()
                 .Where(p => p.Id == record.PrinterId && !p.IsDeleted)

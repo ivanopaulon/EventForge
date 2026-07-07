@@ -24,6 +24,9 @@ public partial class CustomFiscalPrinterService
             if (record.HasPdf && record.PdfBytes is { Length: > 0 })
                 return record.PdfBytes;
 
+            if (record.PrinterId is null)
+                return null;
+
             // Load printer name
             var printerName = await context.Printers
                 .AsNoTracking()
