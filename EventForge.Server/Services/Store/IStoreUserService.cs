@@ -181,6 +181,16 @@ public interface IStoreUserService
     Task<bool> StoreUserExistsAsync(Guid storeUserId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Validates the quick PIN for a store user.
+    /// </summary>
+    Task<bool> ValidatePinAsync(Guid storeUserId, string pin, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sets a new quick PIN for a store user.
+    /// </summary>
+    Task SetPinAsync(Guid storeUserId, string pin, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets all store users that have a DateOfBirth set. Used for birthday tracking in the scheduler.
     /// </summary>
     Task<IEnumerable<StoreUserDto>> GetStoreUsersWithBirthdayAsync(CancellationToken cancellationToken = default);

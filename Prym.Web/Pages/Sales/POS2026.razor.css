@@ -439,6 +439,19 @@
 }
 
 /* ===== Pos26ProductCard ===== */
+/* Product cards use the light/corporate MudBlazor palette instead of the dark POS
+   surface tokens: override the --pos-* custom properties locally on this subtree so
+   descendant rules (name/price/badges) that reference var(--pos-text-1) etc. resolve
+   to light-theme colors without touching the shared dark tokens used by numpad/payment. */
+::deep .pos26-product-card {
+    --pos-surface-1: var(--mud-palette-surface);
+    --pos-surface-2: var(--mud-palette-background-grey);
+    --pos-text-1: var(--mud-palette-text-primary);
+    --pos-text-2: var(--mud-palette-text-secondary);
+    --pos-text-3: var(--mud-palette-text-secondary);
+    --pos-border: var(--mud-palette-lines-default);
+}
+
 ::deep .pos26-product-card {
     position: relative;
     display: flex;
@@ -565,6 +578,17 @@
 ::deep .pos26-stock-chip--out { background: var(--pos-danger-bg);   color: var(--pos-danger); }
 
 /* ===== Pos26Receipt ===== */
+/* Receipt preview uses the light/corporate MudBlazor palette (not the dark POS
+   surface tokens): override --pos-* locally so descendants keep working unchanged. */
+::deep .pos26-receipt {
+    --pos-surface-1: var(--mud-palette-surface);
+    --pos-surface-2: var(--mud-palette-background-grey);
+    --pos-text-1: var(--mud-palette-text-primary);
+    --pos-text-2: var(--mud-palette-text-secondary);
+    --pos-text-3: var(--mud-palette-text-secondary);
+    --pos-border: var(--mud-palette-lines-default);
+}
+
 ::deep .pos26-receipt {
     flex: 1;
     display: flex;
@@ -637,7 +661,7 @@
 }
 
 ::deep .pos26-receipt-clear:hover {
-    background: rgba(255,255,255,.05);
+    background: var(--mud-palette-action-default-hover);
     color: var(--pos-text-1);
 }
 
@@ -669,7 +693,7 @@
     align-items: flex-start;
     gap: 6px;
     padding: 4px 0;
-    border-bottom: 1px solid rgba(255,255,255,.05);
+    border-bottom: 1px solid var(--pos-border);
 }
 
 ::deep .pos26-receipt-row-info {

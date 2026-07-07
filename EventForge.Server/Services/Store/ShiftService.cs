@@ -179,6 +179,26 @@ public class ShiftService(
         return entities.Select(MapToDto).ToList();
     }
 
+    public async Task<CashierShiftDto?> GetActiveShiftForOperatorAsync(Guid storeUserId, DateTime? atUtc = null, CancellationToken ct = default)
+    {
+        var tenantId = RequireTenantId();
+        var effectiveAtUtc = NormalizeUtc(atUtc ?? DateTime.UtcNow);
+
+        var entity = await context.CashierShifts
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Include(s => s.StoreUser)
+            .Include(s => s.Pos)
+            .Where(s => s.StoreUserId == storeUserId
+                     && s.Status == ShiftStatus.InProgress
+                     && s.ShiftStart <= effectiveAtUtc
+                     && s.ShiftEnd >= effectiveAtUtc)
+            .OrderBy(s => s.ShiftStart)
+            .FirstOrDefaultAsync(ct);
+
+        return entity is null ? null : MapToDto(entity);
+    }
+
     #region Helpers
 
     private Guid RequireTenantId()
@@ -187,6 +207,14 @@ public class ShiftService(
             throw new InvalidOperationException("Tenant context is required for shift operations.");
         return tenantContext.CurrentTenantId.Value;
     }
+
+    private static DateTime NormalizeUtc(DateTime value) =>
+        value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
     private static CashierShiftDto MapToDto(CashierShift s) => new()
     {

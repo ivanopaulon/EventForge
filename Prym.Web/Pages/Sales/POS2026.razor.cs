@@ -95,6 +95,11 @@ public partial class POS2026 : IAsyncDisposable
     // --- Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) ---
     private bool _showMoreMenu = false;
 
+    // --- Flusso giornaliero ---
+    private DailyFlowDto? _dailyFlow;
+    private bool _isDailyFlowOpen = false;
+    private bool _isDailyFlowLoading = false;
+
     // --- Note flags (richiesti da AddSessionNoteDto.NoteFlagId) ---
     private List<NoteFlagDto> _noteFlags = new();
     private Guid? _selectedNoteFlagId;
@@ -108,6 +113,7 @@ public partial class POS2026 : IAsyncDisposable
     // --- Morning closure check ---
     private bool _previousDayClosureMissing = false;
     private DateTime? _lastClosureDate = null;
+    private string? _shiftGuardMessage;
 
     // --- Keyboard shortcuts JS (stesso pattern di POS.razor) ---
     private IJSObjectReference? _shortcutsModule;
@@ -156,6 +162,16 @@ public partial class POS2026 : IAsyncDisposable
             }
 
             RebuildCartQuantities();
+
+            if (ViewModel.SelectedOperatorId.HasValue && ViewModel.SelectedPosId.HasValue)
+            {
+                var hasActiveShift = await EnsureActiveShiftForOperatorAsync(ViewModel.SelectedOperatorId.Value, showNotification: false);
+                if (!hasActiveShift)
+                {
+                    ViewModel.SelectedPosId = null;
+                    AppNotification.ShowWarning(_shiftGuardMessage ?? "Nessun turno di cassa attivo per l'operatore. Contattare il responsabile.");
+                }
+            }
 
             // Carica sessioni aperte e controlla possibilità di split (non dipende dalla sessione corrente)
             await Task.WhenAll(LoadOpenSessionsAsync(), CheckCanSplitAsync());
@@ -331,6 +347,24 @@ public partial class POS2026 : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "POS2026: impossibile caricare i tavoli disponibili.");
+        }
+    }
+
+    private async Task LoadDailyFlowAsync()
+    {
+        try
+        {
+            _isDailyFlowLoading = true;
+            _dailyFlow = await TableManagementService.GetDailyFlowAsync(DateTime.Today);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare il flusso giornaliero.");
+        }
+        finally
+        {
+            _isDailyFlowLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -1315,6 +1349,21 @@ public partial class POS2026 : IAsyncDisposable
             await LoadParkedSessionsAsync();
     }
 
+    private async Task ToggleDailyFlowAsync()
+    {
+        _showMoreMenu = false;
+        _isDailyFlowOpen = !_isDailyFlowOpen;
+        if (_isDailyFlowOpen)
+            await LoadDailyFlowAsync();
+    }
+
+    private async Task OnDailyFlowOpenChangedAsync(bool isOpen)
+    {
+        _isDailyFlowOpen = isOpen;
+        if (_isDailyFlowOpen && _dailyFlow is null)
+            await LoadDailyFlowAsync();
+    }
+
     // =========================================================================
     //  Menu azioni secondarie ("Altro") — Azione 2
     // =========================================================================
@@ -1335,6 +1384,34 @@ public partial class POS2026 : IAsyncDisposable
         _showParkedSessions = !_showParkedSessions;
         if (_showParkedSessions)
             await LoadParkedSessionsAsync();
+    }
+
+    private async Task HandleDailyFlowSessionOpenedAsync(Guid sessionId)
+    {
+        try
+        {
+            var session = await SalesService.GetSessionAsync(sessionId);
+            if (session is null)
+            {
+                AppNotification.ShowWarning("Sessione tavolo non trovata.");
+                return;
+            }
+
+            await ViewModel.ResumeSessionAsync(session);
+            RebuildCartQuantities();
+            _isDailyFlowOpen = false;
+
+            await Task.WhenAll(
+                LoadDailyFlowAsync(),
+                LoadAvailableTablesAsync(),
+                LoadOpenSessionsAsync(),
+                CheckCanSplitAsync());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore apertura sessione da flusso giornaliero: {SessionId}", sessionId);
+            AppNotification.ShowWarning("Impossibile aprire la sessione del tavolo.");
+        }
     }
 
     private async Task OpenSplitFromMenu()
@@ -1532,9 +1609,16 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             ViewModel.SelectedOperatorId = op.Id;
+            _shiftGuardMessage = null;
             // Auto-select cassa se unica disponibile (stesso comportamento di POSTouch)
             if (ViewModel.AvailablePos.Count == 1)
             {
+                if (!await EnsureActiveShiftForOperatorAsync(op.Id))
+                {
+                    StateHasChanged();
+                    return;
+                }
+
                 ViewModel.SelectedPosId = ViewModel.AvailablePos[0].Id;
                 LoadFiscalPrinterIdFromPos(ViewModel.SelectedPosId);
                 await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
@@ -1555,6 +1639,16 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
+            if (!ViewModel.SelectedOperatorId.HasValue)
+            {
+                return;
+            }
+
+            if (!await EnsureActiveShiftForOperatorAsync(ViewModel.SelectedOperatorId.Value))
+            {
+                return;
+            }
+
             ViewModel.SelectedPosId = pos.Id;
             LoadFiscalPrinterIdFromPos(pos.Id);
             await Task.WhenAll(LoadFiscalDrawerAsync(), ConnectFiscalHubAsync());
@@ -1572,6 +1666,7 @@ public partial class POS2026 : IAsyncDisposable
     {
         ViewModel.SelectedOperatorId = null;
         ViewModel.SelectedPosId = null;
+        _shiftGuardMessage = null;
     }
 
     private async Task OnOperatorIdChangedAsync(Guid? value)
@@ -1579,6 +1674,7 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             ViewModel.SelectedOperatorId = value;
+            _shiftGuardMessage = null;
             await LoadFiscalDrawerAsync();
         }
         catch (Exception ex)
@@ -1598,6 +1694,51 @@ public partial class POS2026 : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore cambio POS POS2026.");
+        }
+    }
+
+    private async Task OnOperatorSwitchedAsync(StoreUserDto operatorDto)
+    {
+        if (!await EnsureActiveShiftForOperatorAsync(operatorDto.Id))
+        {
+            return;
+        }
+
+        ViewModel.SelectedOperatorId = operatorDto.Id;
+        await LoadFiscalDrawerAsync();
+        AppNotification.ShowSuccess($"Operatore attivo: {operatorDto.Name}");
+        StateHasChanged();
+    }
+
+    private async Task<bool> EnsureActiveShiftForOperatorAsync(Guid operatorId, bool showNotification = true)
+    {
+        try
+        {
+            var activeShift = await ShiftService.GetActiveShiftForOperatorAsync(operatorId);
+            if (activeShift is not null)
+            {
+                _shiftGuardMessage = null;
+                return true;
+            }
+
+            _shiftGuardMessage = "Nessun turno di cassa attivo per l'operatore. Contattare il responsabile.";
+            if (showNotification)
+            {
+                AppNotification.ShowWarning(_shiftGuardMessage);
+            }
+
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "POS2026: errore durante la verifica del turno attivo per l'operatore {OperatorId}.", operatorId);
+            _shiftGuardMessage = "Nessun turno di cassa attivo per l'operatore. Contattare il responsabile.";
+            if (showNotification)
+            {
+                AppNotification.ShowWarning(_shiftGuardMessage);
+            }
+
+            return false;
         }
     }
 

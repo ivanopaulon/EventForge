@@ -9,7 +9,10 @@
     @* Operatore *@
     <div class="sb-item">
         <span class="sb-dot sb-dot--success"></span>
-        <span class="sb-text">@(SelectedOperatorName ?? "—")</span>
+        <Pos26OperatorBadge CurrentOperatorId="@SelectedOperatorId"
+                            CurrentOperatorName="@SelectedOperatorName"
+                            Operators="@AvailableOperators"
+                            OnOperatorSelected="@OnOperatorSwitch" />
     </div>
 
     <span class="sb-sep"></span>
@@ -85,6 +88,8 @@
 
 @code {
     [Parameter] public string? SelectedOperatorName { get; set; }
+    [Parameter] public Guid? SelectedOperatorId { get; set; }
+    [Parameter] public IReadOnlyList<StoreUserDto>? AvailableOperators { get; set; }
     [Parameter] public string? SelectedPosName { get; set; }
     [Parameter] public bool IsUpdatingItems { get; set; }
     [Parameter] public string LoadingTooltipText { get; set; } = string.Empty;
@@ -98,6 +103,7 @@
     [Parameter] public bool IsDailyClosureRequired { get; set; }
     [Parameter] public EventCallback OnOpenPhysicalDrawerClick { get; set; }
     [Parameter] public EventCallback OnDailyClosureClick { get; set; }
+    [Parameter] public EventCallback<StoreUserDto> OnOperatorSwitch { get; set; }
 
     private string PrinterStatusLabel =>
         !HasFiscalPrinter ? "Non configurata" :

@@ -1,0 +1,151 @@
+@inject Prym.Web.Services.Store.IStoreUserService StoreUserService
+@inject IAppNotificationService AppNotification
+@inject ILogger<PinPromptDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Pin"
+          Title="@($"PIN operatore — {StoreUserName}")"
+          IsProcessing="@_isValidating"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <div class="pa-4">
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                Inserisci il PIN rapido dell'operatore selezionato.
+            </MudText>
+
+            <MudPaper Elevation="0" Class="pa-4 mb-4 pin-display">
+                <MudText Typo="Typo.h4" Align="Align.Center">
+                    @(string.IsNullOrEmpty(_pin) ? "• • • •" : string.Join(' ', Enumerable.Repeat("●", _pin.Length)))
+                </MudText>
+                <MudText Typo="Typo.caption" Align="Align.Center" Color="Color.Secondary">
+                    PIN da 4 a 6 cifre
+                </MudText>
+            </MudPaper>
+
+            <MudGrid Spacing="2">
+                @foreach (var digit in _digits)
+                {
+                    <MudItem xs="4">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   FullWidth="true"
+                                   Class="pin-key"
+                                   Disabled="@_isValidating"
+                                   OnClick="@(() => AddDigit(digit))">
+                            @digit
+                        </MudButton>
+                    </MudItem>
+                }
+
+                <MudItem xs="4">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               FullWidth="true"
+                               Class="pin-key"
+                               Disabled="@_isValidating"
+                               OnClick="ClearPin">
+                        C
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               FullWidth="true"
+                               Class="pin-key"
+                               Disabled="@_isValidating"
+                               OnClick="@(() => AddDigit("0"))">
+                        0
+                    </MudButton>
+                </MudItem>
+                <MudItem xs="4">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               FullWidth="true"
+                               Class="pin-key"
+                               Disabled="@_isValidating"
+                               OnClick="Backspace">
+                        <MudIcon Icon="@Icons.Material.Filled.Backspace" />
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="@_isValidating">Annulla</MudButton>
+        <MudButton OnClick="ConfirmAsync"
+                   Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(_isValidating || _pin.Length < 4 || _pin.Length > 6)">
+            Conferma
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid StoreUserId { get; set; }
+    [Parameter] public string StoreUserName { get; set; } = string.Empty;
+
+    private readonly string[] _digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
+    private string _pin = string.Empty;
+    private bool _isValidating;
+
+    private void AddDigit(string digit)
+    {
+        if (_pin.Length < 6)
+        {
+            _pin += digit;
+        }
+    }
+
+    private void ClearPin() => _pin = string.Empty;
+
+    private void Backspace()
+    {
+        if (_pin.Length > 0)
+        {
+            _pin = _pin[..^1];
+        }
+    }
+
+    private async Task ConfirmAsync()
+    {
+        _isValidating = true;
+        try
+        {
+            var isValid = await StoreUserService.ValidatePinAsync(StoreUserId, _pin);
+            if (!isValid)
+            {
+                AppNotification.ShowWarning("PIN operatore non valido.");
+            }
+
+            MudDialog.Close(DialogResult.Ok(isValid));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error validating quick PIN for operator {StoreUserId}.", StoreUserId);
+            AppNotification.ShowError("Errore durante la validazione del PIN operatore.");
+        }
+        finally
+        {
+            _isValidating = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
+
+<style>
+    .pin-display {
+        border-radius: 12px;
+        background: var(--mud-palette-background-grey);
+    }
+
+    .pin-key {
+        min-height: 72px;
+        font-size: 1.4rem;
+        font-weight: 700;
+    }
+</style>

@@ -191,4 +191,30 @@ public class ShiftsController(IShiftService shiftService, ITenantContext tenantC
             return CreateInternalServerErrorProblem("An error occurred while retrieving shifts for the operator.", ex);
         }
     }
+
+    /// <summary>
+    /// Gets the active shift for a specific operator.
+    /// </summary>
+    [HttpGet("active-for-operator/{storeUserId:guid}")]
+    [ProducesResponseType(typeof(CashierShiftDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CashierShiftDto>> GetActiveShiftForOperator(Guid storeUserId, CancellationToken ct = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var result = await shiftService.GetActiveShiftForOperatorAsync(storeUserId, DateTime.UtcNow, ct);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the active shift for the operator.", ex);
+        }
+    }
 }

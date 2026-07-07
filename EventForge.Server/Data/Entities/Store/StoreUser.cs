@@ -40,6 +40,13 @@ public class StoreUser : AuditableEntity
     public string? PasswordHash { get; set; }
 
     /// <summary>
+    /// Quick PIN hash of the operator for fast POS operator switching.
+    /// </summary>
+    [MaxLength(200, ErrorMessage = "The quick PIN hash cannot exceed 200 characters.")]
+    [Display(Name = "Quick PIN Hash", Description = "Quick PIN hash for fast POS operator switching.")]
+    public string? QuickPinHash { get; set; }
+
+    /// <summary>
     /// Role or permissions of the operator.
     /// </summary>
     [MaxLength(50, ErrorMessage = "The role cannot exceed 50 characters.")]

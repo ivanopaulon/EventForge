@@ -22,8 +22,8 @@
                     {
                         var left = table.PositionX ?? DefaultPosition(table, areaGroup.ToList()).X;
                         var top = table.PositionY ?? DefaultPosition(table, areaGroup.ToList()).Y;
-                        <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "")"
-                             style="left:@(left)px; top:@(top)px;"
+                        <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @GetShapeCssClass(table) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "")"
+                             style="@GetTableStyle(table, left, top)"
                              draggable="@EditMode"
                              @ondragstart="@(e => OnDragStart(e, table))"
                              @onclick="@(() => OnTableClickAsync(table))">
@@ -139,6 +139,15 @@
 
     private string GetAreaLabel(TableSessionDto table) =>
         string.IsNullOrWhiteSpace(table.Area) ? DefaultAreaLabel : table.Area!;
+
+    private static string GetShapeCssClass(TableSessionDto table) => table.Shape switch
+    {
+        TableShapeDto.Circle => "table-floor-plan__table--circle",
+        _ => "table-floor-plan__table--rectangle"
+    };
+
+    private static string GetTableStyle(TableSessionDto table, int left, int top) =>
+        $"left:{left}px; top:{top}px; width:{table.Width}px; height:{table.Height}px;";
 
     /// <summary>
     /// Deterministic fallback grid position for tables without an explicit PositionX/PositionY,

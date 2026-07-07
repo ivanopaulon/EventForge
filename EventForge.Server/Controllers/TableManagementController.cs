@@ -4,6 +4,7 @@ using EventForge.Server.Services.Sales;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
+using Prym.DTOs.Constants;
 using Prym.DTOs.Sales;
 
 namespace EventForge.Server.Controllers;
@@ -17,6 +18,7 @@ namespace EventForge.Server.Controllers;
 [RequireLicenseFeature("SalesManagement")]
 public class TableManagementController(
     ITableManagementService tableService,
+    ISaleSessionService saleSessionService,
     ILogger<TableManagementController> logger) : BaseApiController
 {
 
@@ -304,6 +306,25 @@ public class TableManagementController(
     }
 
     /// <summary>
+    /// Gets the aggregated daily flow for reservations and tables.
+    /// </summary>
+    [HttpGet("daily-flow")]
+    [ProducesResponseType(typeof(DailyFlowDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<DailyFlowDto>> GetDailyFlow([FromQuery] DateTime? date, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var dailyFlow = await tableService.GetDailyFlowAsync(date ?? DateTime.Today, cancellationToken);
+            return Ok(dailyFlow);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting daily flow for date {Date}", date ?? DateTime.Today);
+            return CreateInternalServerErrorProblem("An error occurred while getting the daily flow.", ex);
+        }
+    }
+
+    /// <summary>
     /// Gets a specific reservation by ID.
     /// </summary>
     [HttpGet("reservations/{id}")]
@@ -450,6 +471,109 @@ public class TableManagementController(
         {
             logger.LogError(ex, "Error marking reservation {ReservationId} as arrived", id);
             return StatusCode(500, new { error = "An error occurred while marking the reservation as arrived." });
+        }
+    }
+
+    /// <summary>
+    /// Marks a reservation as arrived and assigns or creates a sale session for the table.
+    /// </summary>
+    [HttpPost("reservations/{id}/check-in")]
+    [ProducesResponseType(typeof(ReservationCheckInResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ReservationCheckInResultDto>> CheckInReservation(
+        Guid id,
+        [FromBody] ReservationCheckInRequestDto dto,
+        CancellationToken cancellationToken)
+    {
+        logger.LogInformation("Reservation {ReservationId} check-in requested.", id);
+
+        if (!ModelState.IsValid)
+        {
+            return CreateValidationProblemDetails();
+        }
+
+        try
+        {
+            var reservation = await tableService.MarkArrivedAsync(id, cancellationToken);
+            if (reservation is null)
+            {
+                return NotFound(new { error = "Reservation not found." });
+            }
+
+            var currentUser = GetCurrentUser();
+            SaleSessionDto? saleSession;
+
+            if (dto.SaleSessionId.HasValue)
+            {
+                saleSession = await saleSessionService.UpdateSessionAsync(
+                    dto.SaleSessionId.Value,
+                    new UpdateSaleSessionDto
+                    {
+                        SaleType = dto.SaleType ?? SaleTypes.Retail,
+                        TableId = reservation.TableId
+                    },
+                    currentUser,
+                    cancellationToken);
+
+                if (saleSession is null)
+                {
+                    return NotFound(new { error = "Sale session not found." });
+                }
+            }
+            else
+            {
+                if (!dto.OperatorId.HasValue || !dto.PosId.HasValue)
+                {
+                    return CreateValidationProblemDetails("OperatorId and PosId are required when no sale session is provided.");
+                }
+
+                saleSession = await saleSessionService.CreateSessionAsync(
+                    new CreateSaleSessionDto
+                    {
+                        OperatorId = dto.OperatorId.Value,
+                        PosId = dto.PosId.Value,
+                        CustomerId = dto.CustomerId,
+                        SaleType = dto.SaleType ?? SaleTypes.Retail,
+                        TableId = reservation.TableId,
+                        Currency = string.IsNullOrWhiteSpace(dto.Currency) ? Currencies.EUR : dto.Currency
+                    },
+                    currentUser,
+                    cancellationToken);
+            }
+
+            var updatedTable = await tableService.UpdateTableStatusAsync(
+                reservation.TableId,
+                new UpdateTableStatusDto
+                {
+                    Status = "Occupied",
+                    SaleSessionId = saleSession.Id
+                },
+                cancellationToken);
+
+            if (updatedTable is null)
+            {
+                return NotFound(new { error = "Table not found." });
+            }
+
+            return Ok(new ReservationCheckInResultDto
+            {
+                ReservationId = reservation.Id,
+                TableId = reservation.TableId,
+                TableNumber = reservation.TableNumber,
+                SaleSessionId = saleSession.Id,
+                Reservation = reservation
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogWarning(ex, "Invalid reservation check-in operation for {ReservationId}", id);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking in reservation {ReservationId}", id);
+            return CreateInternalServerErrorProblem("An error occurred while checking in the reservation.", ex);
         }
     }
 

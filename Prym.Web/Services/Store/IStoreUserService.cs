@@ -53,4 +53,6 @@ public interface IStoreUserService
     Task<StoreUserDto?> UploadImageAsync(Guid id, IBrowserFile file, CancellationToken ct = default);
     Task<DocumentReferenceDto?> GetImageAsync(Guid id, CancellationToken ct = default);
     Task<bool> DeleteImageAsync(Guid id, CancellationToken ct = default);
+    Task<bool> ValidatePinAsync(Guid id, string pin, CancellationToken ct = default);
+    Task SetPinAsync(Guid id, string pin, CancellationToken ct = default);
 }

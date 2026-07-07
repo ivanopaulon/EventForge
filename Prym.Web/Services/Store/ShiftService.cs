@@ -128,4 +128,21 @@ public class ShiftService(
             throw;
         }
     }
+
+    public async Task<CashierShiftDto?> GetActiveShiftForOperatorAsync(Guid storeUserId, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClient.GetFromJsonAsync<CashierShiftDto>($"{ApiBase}/active-for-operator/{storeUserId}", ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error getting active shift for operator {OperatorId}", storeUserId);
+            throw;
+        }
+    }
 }

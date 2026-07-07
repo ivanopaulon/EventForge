@@ -16,6 +16,7 @@ namespace EventForge.Tests.Controllers;
 public class TableManagementControllerTests
 {
     private readonly Mock<ITableManagementService> _mockService;
+    private readonly Mock<ISaleSessionService> _mockSaleSessionService;
     private readonly Mock<ILogger<TableManagementController>> _mockLogger;
     private readonly TableManagementController _controller;
     private readonly Mock<HttpContext> _mockHttpContext;
@@ -25,6 +26,7 @@ public class TableManagementControllerTests
     public TableManagementControllerTests()
     {
         _mockService = new Mock<ITableManagementService>();
+        _mockSaleSessionService = new Mock<ISaleSessionService>();
         _mockLogger = new Mock<ILogger<TableManagementController>>();
 
         // Setup HttpContext mock for header testing
@@ -37,6 +39,7 @@ public class TableManagementControllerTests
 
         _controller = new TableManagementController(
             _mockService.Object,
+            _mockSaleSessionService.Object,
             _mockLogger.Object)
         {
             ControllerContext = new ControllerContext

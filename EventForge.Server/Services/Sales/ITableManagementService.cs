@@ -71,6 +71,11 @@ public interface ITableManagementService
     Task<List<TableReservationDto>> GetReservationsByDateAsync(DateTime date, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the aggregated daily flow for reservations and table status.
+    /// </summary>
+    Task<DailyFlowDto> GetDailyFlowAsync(DateTime date, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a specific reservation by ID.
     /// </summary>
     Task<TableReservationDto?> GetReservationAsync(Guid reservationId, CancellationToken cancellationToken = default);

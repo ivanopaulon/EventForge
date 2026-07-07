@@ -251,4 +251,55 @@ public class StoreUserService(
             throw new InvalidOperationException("Errore nella rimozione dell'immagine operatore.", ex);
         }
     }
+
+    public async Task<bool> ValidatePinAsync(Guid id, string pin, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync($"api/v1/store-users/{id}/validate-pin", new StoreUserPinDto { Pin = pin }, ct);
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return false;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "PIN operatore", logger);
+                throw new InvalidOperationException(errorMessage);
+            }
+
+            return await response.Content.ReadFromJsonAsync<bool>(cancellationToken: ct);
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error validating quick PIN for store user {Id}", id);
+            throw new InvalidOperationException("Errore durante la validazione del PIN operatore.", ex);
+        }
+    }
+
+    public async Task SetPinAsync(Guid id, string pin, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await httpClient.PostAsJsonAsync($"api/v1/store-users/{id}/pin", new StoreUserPinDto { Pin = pin }, ct);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorMessage = await StoreServiceHelper.GetErrorMessageAsync(response, "PIN operatore", logger);
+                throw new InvalidOperationException(errorMessage);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error setting quick PIN for store user {Id}", id);
+            throw new InvalidOperationException("Errore durante il salvataggio del PIN operatore.", ex);
+        }
+    }
 }

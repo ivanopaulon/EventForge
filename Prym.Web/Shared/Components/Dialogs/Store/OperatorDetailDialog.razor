@@ -116,6 +116,32 @@
                                }
                            </MudStack>
                        </MudPaper>
+
+                       <MudPaper Elevation="0" Class="pa-4 mb-4">
+                           <MudText Typo="Typo.subtitle1" Class="mb-3">
+                               <MudIcon Icon="@Icons.Material.Outlined.Pin" Class="mr-2" />
+                               PIN rapido POS
+                           </MudText>
+                           <MudGrid>
+                               <MudItem xs="12" md="8">
+                                   <MudTextField @bind-Value="_quickPin"
+                                                 Label="Nuovo PIN rapido"
+                                                 InputType="InputType.Password"
+                                                 HelperText="PIN numerico da 4 a 6 cifre"
+                                                 MaxLength="6"
+                                                 Immediate="true" />
+                               </MudItem>
+                               <MudItem xs="12" md="4" Class="d-flex align-end">
+                                   <MudButton Variant="Variant.Filled"
+                                              Color="Color.Primary"
+                                              StartIcon="@Icons.Material.Filled.Save"
+                                              Disabled="@(_isSavingQuickPin || string.IsNullOrWhiteSpace(_quickPin))"
+                                              OnClick="SaveQuickPinAsync">
+                                       Salva PIN
+                                   </MudButton>
+                               </MudItem>
+                           </MudGrid>
+                       </MudPaper>
                     }
 
                     <MudForm @ref="_form" Model="@ViewModel.Entity">
@@ -247,6 +273,8 @@
     private MudForm? _form;
     private IBrowserFile? _selectedImage;
     private bool _isUploadingImage;
+    private string _quickPin = string.Empty;
+    private bool _isSavingQuickPin;
 
     protected override async Task OnInitializedAsync()
     {
@@ -352,6 +380,37 @@
         {
             Logger.LogError(ex, "Error saving operator.");
             AppNotification.ShowWarning("Si è verificato un errore nel salvataggio.");
+        }
+    }
+
+    private async Task SaveQuickPinAsync()
+    {
+        if (ViewModel.Entity == null || ViewModel.Entity.Id == Guid.Empty)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_quickPin) || !System.Text.RegularExpressions.Regex.IsMatch(_quickPin, @"^\d{4,6}$"))
+        {
+            AppNotification.ShowWarning("Il PIN rapido deve contenere da 4 a 6 cifre.");
+            return;
+        }
+
+        _isSavingQuickPin = true;
+        try
+        {
+            await StoreUserService.SetPinAsync(ViewModel.Entity.Id, _quickPin);
+            _quickPin = string.Empty;
+            AppNotification.ShowSuccess("PIN rapido salvato con successo.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving quick PIN for operator {OperatorId}.", ViewModel.Entity.Id);
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isSavingQuickPin = false;
         }
     }
 

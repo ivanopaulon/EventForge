@@ -53,6 +53,31 @@
                                       MaxLength="100"
                                       Class="ef-input" />
                     </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudSelect T="TableShapeDto" @bind-Value="_shape"
+                                   Label="Forma"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense">
+                            <MudSelectItem T="TableShapeDto" Value="@TableShapeDto.Rectangle">Rettangolo</MudSelectItem>
+                            <MudSelectItem T="TableShapeDto" Value="@TableShapeDto.Circle">Cerchio</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int" @bind-Value="_width"
+                                         Label="Larghezza (px)"
+                                         Min="40"
+                                         Max="300"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudNumericField T="int" @bind-Value="_height"
+                                         Label="Altezza (px)"
+                                         Min="40"
+                                         Max="300"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
                     @if (TableId.HasValue)
                     {
                         <MudItem xs="12">
@@ -93,6 +118,9 @@
     private string? _tableName;
     private int _capacity = 2;
     private string? _area;
+    private TableShapeDto _shape = TableShapeDto.Rectangle;
+    private int _width = 90;
+    private int _height = 90;
     private bool _isActive = true;
 
     protected override async Task OnInitializedAsync()
@@ -108,6 +136,9 @@
                     _tableName = table.TableName;
                     _capacity = table.Capacity;
                     _area = table.Area;
+                    _shape = table.Shape;
+                    _width = table.Width;
+                    _height = table.Height;
                     _isActive = table.IsActive;
                 }
             }
@@ -137,6 +168,11 @@
             _errorMessage = "Inserisci una capienza valida.";
             return;
         }
+        if (_width is < 40 or > 300 || _height is < 40 or > 300)
+        {
+            _errorMessage = "Larghezza e altezza devono essere comprese tra 40 e 300 px.";
+            return;
+        }
 
         _isSaving = true;
         try
@@ -150,6 +186,9 @@
                     TableNumber = _tableNumber,
                     TableName = _tableName,
                     Capacity = _capacity,
+                    Shape = _shape,
+                    Width = _width,
+                    Height = _height,
                     Area = _area,
                     IsActive = _isActive
                 };
@@ -162,6 +201,9 @@
                     TableNumber = _tableNumber,
                     TableName = _tableName,
                     Capacity = _capacity,
+                    Shape = _shape,
+                    Width = _width,
+                    Height = _height,
                     Area = _area
                 };
                 result = await TableManagementService.CreateTableAsync(createDto);

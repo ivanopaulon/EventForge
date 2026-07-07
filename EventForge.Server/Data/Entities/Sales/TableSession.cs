@@ -59,6 +59,22 @@ public class TableSession : AuditableEntity
     public int? PositionY { get; set; }
 
     /// <summary>
+    /// Visual shape used by the floor-plan renderer.
+    /// </summary>
+    [Required]
+    public TableShape Shape { get; set; } = TableShape.Rectangle;
+
+    /// <summary>
+    /// Visual width in pixels used by the floor-plan renderer.
+    /// </summary>
+    public int Width { get; set; } = 90;
+
+    /// <summary>
+    /// Visual height in pixels used by the floor-plan renderer.
+    /// </summary>
+    public int Height { get; set; } = 90;
+
+    /// <summary>
     /// Reservations for this table.
     /// </summary>
     public ICollection<TableReservation> Reservations { get; set; } = new List<TableReservation>();
@@ -93,6 +109,22 @@ public enum TableStatus
     /// Table is out of service.
     /// </summary>
     OutOfService = 4
+}
+
+/// <summary>
+/// Table shape enumeration.
+/// </summary>
+public enum TableShape
+{
+    /// <summary>
+    /// Rectangular table.
+    /// </summary>
+    Rectangle = 0,
+
+    /// <summary>
+    /// Circular table.
+    /// </summary>
+    Circle = 1
 }
 
 /// <summary>
