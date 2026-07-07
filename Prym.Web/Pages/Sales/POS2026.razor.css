@@ -76,7 +76,7 @@
         left: 0;
         right: 0;
         background: rgba(23, 23, 26, 0.97);
-        border-top: 1px solid var(--pos-border);
+        border-top: 1px solid var(--mud-palette-lines-default);
         z-index: 11;
         height: 52px;
     }
@@ -91,7 +91,7 @@
     gap: 2px;
     border: none;
     background: transparent;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     font-size: 11px;
     cursor: pointer;
     transition: color 150ms, background 150ms;
@@ -99,7 +99,7 @@
 }
 
 .pos2026-mobile-tab--active {
-    color: var(--pos-brand-blue);
+    color: var(--mud-palette-primary);
     background: rgba(36, 123, 255, 0.12);
 }
 
@@ -126,9 +126,9 @@
     height: 44px;
     min-height: 44px;
     padding: 0 12px;
-    background: var(--pos-brand-navy);
+    background: var(--mud-palette-dark);
     border-radius: var(--pos-radius-md);
-    color: var(--pos-text-1);
+    color: var(--mud-palette-dark-text);
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -150,10 +150,13 @@
     white-space: nowrap;
 }
 
-::deep .sb-text--success { color: var(--pos-success); }
-::deep .sb-text--warning { color: var(--pos-warning); }
-::deep .sb-text--danger  { color: var(--pos-danger); }
-::deep .sb-text--muted   { color: var(--pos-text-3); }
+::deep .sb-text--success { color: var(--mud-palette-success); }
+::deep .sb-text--warning { color: var(--mud-palette-warning); }
+::deep .sb-text--danger  { color: var(--mud-palette-error); }
+/* .pos26-statusbar has a fixed var(--mud-palette-dark) background in both themes (see below):
+   use --mud-palette-dark-text (not --mud-palette-text-disabled) so contrast stays correct
+   even when the page theme's disabled-text color would otherwise be too dark on this bar. */
+::deep .sb-text--muted   { color: var(--mud-palette-dark-text); opacity: 0.7; }
 
 ::deep .sb-dot {
     width: 8px;
@@ -162,9 +165,9 @@
     flex-shrink: 0;
 }
 
-::deep .sb-dot--success { background: var(--pos-success); }
-::deep .sb-dot--warning { background: var(--pos-warning); }
-::deep .sb-dot--danger  { background: var(--pos-danger); }
+::deep .sb-dot--success { background: var(--mud-palette-success); }
+::deep .sb-dot--warning { background: var(--mud-palette-warning); }
+::deep .sb-dot--danger  { background: var(--mud-palette-error); }
 
 ::deep .sb-sep {
     width: 1px;
@@ -186,7 +189,9 @@
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.06);
-    color: var(--pos-text-1);
+    /* See .sb-text--muted above: this button sits on .pos26-statusbar's fixed dark
+       background, so it needs --mud-palette-dark-text, not the page-theme text color. */
+    color: var(--mud-palette-dark-text);
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -200,29 +205,29 @@
 }
 
 ::deep .sb-btn--primary {
-    background: var(--pos-brand-blue);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
 }
 
 ::deep .sb-btn--primary:hover {
-    background: var(--pos-brand-blue-dim);
+    background: var(--mud-palette-primary-darken);
 }
 
 ::deep .sb-btn--warning {
-    background: var(--pos-warning);
-    border-color: var(--pos-warning);
-    color: #1a1305;
+    background: var(--mud-palette-warning);
+    border-color: var(--mud-palette-warning);
+    color: var(--mud-palette-warning-text);
 }
 
 /* ===== Colonna destra ===== */
 .pos2026-right {
     display: flex;
     flex-direction: column;
-    background: var(--pos-surface-1);
+    background: var(--mud-palette-surface);
     overflow: hidden;
     /* Prevents content being hidden behind the fixed shortcuts bar (~28px) */
     padding-bottom: 28px;
-    border-left: 2px solid var(--pos-border);
+    border-left: 2px solid var(--mud-palette-lines-default);
     box-shadow: -4px 0 12px rgba(0, 0, 0, 0.25);
 }
 
@@ -233,7 +238,7 @@
     left: 0;
     right: 0;
     background: rgba(23, 23, 26, 0.95);
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
     display: flex;
     gap: 20px;
     padding: 4px 16px;
@@ -242,7 +247,7 @@
 }
 
 .pos2026-shortcuts-bar span strong {
-    color: var(--pos-brand-blue);
+    color: var(--mud-palette-primary);
     margin-right: 4px;
 }
 
@@ -305,14 +310,14 @@
 }
 
 ::deep .pos26-customer-chip--active {
-    background: var(--pos-brand-blue-bg);
-    color: var(--pos-brand-navy);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    color: var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
 }
 
 ::deep .pos26-customer-initials {
-    background: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
     border-radius: 50%;
     width: 18px;
     height: 18px;
@@ -375,9 +380,9 @@
 }
 
 ::deep .pos26-category-pill--active {
-    background: var(--pos-brand-blue);
-    color: #fff;
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    border-color: var(--mud-palette-primary);
 }
 
 /* ===== Pos26ProductGrid ===== */
@@ -439,19 +444,6 @@
 }
 
 /* ===== Pos26ProductCard ===== */
-/* Product cards use the light/corporate MudBlazor palette instead of the dark POS
-   surface tokens: override the --pos-* custom properties locally on this subtree so
-   descendant rules (name/price/badges) that reference var(--pos-text-1) etc. resolve
-   to light-theme colors without touching the shared dark tokens used by numpad/payment. */
-::deep .pos26-product-card {
-    --pos-surface-1: var(--mud-palette-surface);
-    --pos-surface-2: var(--mud-palette-background-grey);
-    --pos-text-1: var(--mud-palette-text-primary);
-    --pos-text-2: var(--mud-palette-text-secondary);
-    --pos-text-3: var(--mud-palette-text-secondary);
-    --pos-border: var(--mud-palette-lines-default);
-}
-
 ::deep .pos26-product-card {
     position: relative;
     display: flex;
@@ -460,8 +452,8 @@
     gap: 4px;
     padding: 6px 4px 6px;
     border-radius: var(--pos-radius-md);
-    border: 1px solid var(--pos-border);
-    background: var(--pos-surface-1);
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
     cursor: pointer;
     transition: border 150ms, background 150ms;
     user-select: none;
@@ -469,17 +461,17 @@
 }
 
 ::deep .pos26-product-card--in-cart {
-    border: 2px solid var(--pos-brand-blue);
+    border: 2px solid var(--mud-palette-primary);
 }
 
 ::deep .pos26-product-card:hover {
-    background: var(--pos-surface-2);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-background-grey);
+    border-color: var(--mud-palette-primary);
 }
 
 /* Feedback aggiunta al carrello: border flash verde */
 ::deep .pos26-product-card--added {
-    border: 2px solid var(--pos-success) !important;
+    border: 2px solid var(--mud-palette-success) !important;
     transition: border 0ms;
 }
 
@@ -487,8 +479,8 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
     border-radius: 50%;
     width: 18px;
     height: 18px;
@@ -522,9 +514,9 @@
     line-height: 1.4;
 }
 
-::deep .pos26-badge--green   { background: var(--pos-success-bg);  color: var(--pos-success); }
-::deep .pos26-badge--amber   { background: var(--pos-warning-bg);  color: var(--pos-warning); }
-::deep .pos26-badge--red     { background: var(--pos-danger-bg);   color: var(--pos-danger); }
+::deep .pos26-badge--green   { background: var(--mud-palette-success-lighten);  color: var(--mud-palette-success); }
+::deep .pos26-badge--amber   { background: var(--mud-palette-warning-lighten);  color: var(--mud-palette-warning); }
+::deep .pos26-badge--red     { background: var(--mud-palette-error-lighten);   color: var(--mud-palette-error); }
 ::deep .pos26-badge--promo   { top: auto; bottom: 2px; left: 2px; }
 
 ::deep .pos26-product-img {
@@ -555,13 +547,13 @@
     text-align: center;
     line-height: 1.3;
     word-break: break-word;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
 }
 
 ::deep .pos26-product-price {
     font-size: 12px;
     font-weight: 600;
-    color: var(--pos-success);
+    color: var(--mud-palette-success);
 }
 
 /* Chip disponibilità stock — piccolo indicatore sotto il prezzo */
@@ -573,29 +565,18 @@
     line-height: 1.5;
     letter-spacing: 0.2px;
 }
-::deep .pos26-stock-chip--ok  { background: var(--pos-success-bg);  color: var(--pos-success); }
-::deep .pos26-stock-chip--low { background: var(--pos-warning-bg);  color: var(--pos-warning); }
-::deep .pos26-stock-chip--out { background: var(--pos-danger-bg);   color: var(--pos-danger); }
+::deep .pos26-stock-chip--ok  { background: var(--mud-palette-success-lighten);  color: var(--mud-palette-success); }
+::deep .pos26-stock-chip--low { background: var(--mud-palette-warning-lighten);  color: var(--mud-palette-warning); }
+::deep .pos26-stock-chip--out { background: var(--mud-palette-error-lighten);   color: var(--mud-palette-error); }
 
 /* ===== Pos26Receipt ===== */
-/* Receipt preview uses the light/corporate MudBlazor palette (not the dark POS
-   surface tokens): override --pos-* locally so descendants keep working unchanged. */
-::deep .pos26-receipt {
-    --pos-surface-1: var(--mud-palette-surface);
-    --pos-surface-2: var(--mud-palette-background-grey);
-    --pos-text-1: var(--mud-palette-text-primary);
-    --pos-text-2: var(--mud-palette-text-secondary);
-    --pos-text-3: var(--mud-palette-text-secondary);
-    --pos-border: var(--mud-palette-lines-default);
-}
-
 ::deep .pos26-receipt {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--pos-surface-1);
-    color: var(--pos-text-1);
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
 }
 
 ::deep .pos26-receipt-header {
@@ -603,7 +584,7 @@
     align-items: center;
     gap: 6px;
     padding: 8px 10px;
-    border-bottom: 1px solid var(--pos-border);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
     flex-wrap: wrap;
 }
 
@@ -615,7 +596,7 @@
 
 ::deep .pos26-receipt-label {
     font-size: 10px;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     text-transform: uppercase;
 }
 
@@ -630,7 +611,7 @@
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
 }
 
 /* Tessera fedeltà + punti: già visibili nel chip cliente di Pos26SearchBar durante la vendita,
@@ -651,7 +632,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     display: flex;
     align-items: center;
     padding: 4px;
@@ -662,7 +643,7 @@
 
 ::deep .pos26-receipt-clear:hover {
     background: var(--mud-palette-action-default-hover);
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
 }
 
 ::deep .pos26-receipt-clear:disabled {
@@ -675,7 +656,7 @@
     overflow-y: auto;
     padding: 4px 8px;
     scrollbar-width: thin;
-    scrollbar-color: var(--pos-border) transparent;
+    scrollbar-color: var(--mud-palette-lines-default) transparent;
 }
 
 ::deep .pos26-receipt-empty {
@@ -684,7 +665,7 @@
     align-items: center;
     gap: 8px;
     padding: 24px;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     font-size: 12px;
 }
 
@@ -693,7 +674,7 @@
     align-items: flex-start;
     gap: 6px;
     padding: 4px 0;
-    border-bottom: 1px solid var(--pos-border);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
 }
 
 ::deep .pos26-receipt-row-info {
@@ -714,18 +695,18 @@
 
 ::deep .pos26-receipt-row-detail {
     font-size: 11px;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
 }
 
 ::deep .pos26-receipt-row-discount {
-    color: var(--pos-warning);
+    color: var(--mud-palette-warning);
 }
 
 ::deep .pos26-receipt-note-icon {
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     padding: 0;
     display: inline-flex;
 }
@@ -734,7 +715,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     padding: 2px;
     display: inline-flex;
     align-items: center;
@@ -744,7 +725,7 @@
 }
 
 ::deep .pos26-receipt-edit-btn:hover {
-    color: var(--pos-brand-blue);
+    color: var(--mud-palette-primary);
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -756,9 +737,9 @@
 }
 
 ::deep .pos26-receipt-qty-btn {
-    background: var(--pos-border);
+    background: var(--mud-palette-lines-default);
     border: none;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
     width: 20px;
     height: 20px;
     border-radius: 4px;
@@ -772,8 +753,8 @@
 }
 
 ::deep .pos26-receipt-qty-btn:hover {
-    background: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
 }
 
 ::deep .pos26-receipt-qty {
@@ -787,16 +768,16 @@
     font-weight: 600;
     min-width: 52px;
     text-align: right;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
 }
 
 ::deep .pos26-receipt-muted {
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
 }
 
 ::deep .pos26-receipt-footer {
     padding: 8px 10px;
-    border-top: 1px solid var(--pos-border);
+    border-top: 1px solid var(--mud-palette-lines-default);
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -806,35 +787,35 @@
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
 }
 
 ::deep .pos26-receipt-total-row--discount {
-    color: var(--pos-warning);
+    color: var(--mud-palette-warning);
 }
 
 ::deep .pos26-receipt-total-row--vat {
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
 }
 
 ::deep .pos26-receipt-total-row--grand {
     font-size: 14px;
     font-weight: 700;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
 }
 
 ::deep .pos26-receipt-grand-total {
-    color: var(--pos-success);
+    color: var(--mud-palette-success);
 }
 
 /* ===== Pos26Numpad → azioni pagamento (Task 7, ridotto da griglia numerica a CTA) ===== */
 ::deep .pos26-numpad {
-    background: var(--pos-surface-0);
+    background: var(--mud-palette-background);
     padding: 8px;
     display: flex;
     flex-direction: column;
     gap: 6px;
-    border-top: 1px solid var(--pos-border);
+    border-top: 1px solid var(--mud-palette-lines-default);
 }
 
 ::deep .pos26-pay-cta {
@@ -846,8 +827,8 @@
     min-height: 52px;
     border: none;
     border-radius: var(--pos-radius-md);
-    background: var(--pos-success);
-    color: #fff;
+    background: var(--mud-palette-success);
+    color: var(--mud-palette-success-text);
     font-size: 18px;
     font-weight: 700;
     cursor: pointer;
@@ -855,7 +836,7 @@
 }
 
 ::deep .pos26-pay-cta:hover {
-    background: #268f66;
+    background: var(--mud-palette-success-darken);
 }
 
 ::deep .pos26-pay-cta:disabled {
@@ -875,7 +856,7 @@
 ::deep .pos26-cancel-link {
     background: none;
     border: none;
-    color: var(--pos-text-3);
+    color: var(--mud-palette-text-disabled);
     font-size: 12px;
     cursor: pointer;
     text-align: center;
@@ -884,7 +865,7 @@
 }
 
 ::deep .pos26-cancel-link:hover {
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
 }
 
 /* Pulsante stampa ricevuta non fiscale */
@@ -895,10 +876,10 @@
     width: 100%;
     margin-top: 6px;
     padding: 6px 12px;
-    border: 1px solid var(--pos-border);
+    border: 1px solid var(--mud-palette-lines-default);
     border-radius: 8px;
     background: transparent;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
     font-size: 12px;
     cursor: pointer;
     transition: background 150ms;
@@ -923,9 +904,9 @@
     flex: 1;
     min-height: 48px;
     border-radius: var(--pos-radius-md);
-    border: 1px solid var(--pos-border);
-    background: var(--pos-surface-1);
-    color: var(--pos-text-1);
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
@@ -933,14 +914,14 @@
 }
 
 ::deep .pos26-discount-pill:hover {
-    background: var(--pos-surface-2);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-background-grey);
+    border-color: var(--mud-palette-primary);
 }
 
 ::deep .pos26-discount-pill--active {
-    background: var(--pos-brand-blue);
-    border-color: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    border-color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
 }
 
 ::deep .pos26-discount-popover {
@@ -949,8 +930,8 @@
     right: 10px;
     bottom: 100%;
     margin-bottom: 6px;
-    background: var(--pos-surface-2);
-    border: 1px solid var(--pos-border);
+    background: var(--mud-palette-background-grey);
+    border: 1px solid var(--mud-palette-lines-default);
     border-radius: var(--pos-radius-md);
     box-shadow: 0 -4px 16px rgba(0,0,0,.35);
     padding: 10px;
@@ -969,9 +950,9 @@
     flex: 1;
     min-height: 40px;
     border-radius: var(--pos-radius-sm);
-    border: 1px solid var(--pos-border);
-    background: var(--pos-surface-1);
-    color: var(--pos-text-1);
+    border: 1px solid var(--mud-palette-lines-default);
+    background: var(--mud-palette-surface);
+    color: var(--mud-palette-text-primary);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -979,8 +960,8 @@
 }
 
 ::deep .pos26-discount-preset:hover {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
 }
 
 ::deep .pos26-discount-custom {
@@ -998,15 +979,15 @@
     padding: 0 16px;
     border: none;
     border-radius: var(--pos-radius-sm);
-    background: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
 }
 
 ::deep .pos26-discount-apply-btn:hover {
-    background: var(--pos-brand-blue-dim);
+    background: var(--mud-palette-primary-darken);
 }
 
 ::deep .pos26-discount-confirm {
@@ -1015,8 +996,8 @@
     justify-content: space-between;
     margin-top: 6px;
     padding: 5px 10px;
-    background: var(--pos-success-bg);
-    color: var(--pos-success);
+    background: var(--mud-palette-success-lighten);
+    color: var(--mud-palette-success);
     border-radius: var(--pos-radius-sm);
     font-size: 12px;
     font-weight: 600;
@@ -1065,8 +1046,8 @@
     display: flex;
     gap: 6px;
     padding: 6px 8px;
-    background: var(--pos-surface-1);
-    border-bottom: 1px solid var(--pos-border);
+    background: var(--mud-palette-surface);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
     flex-wrap: wrap;
 }
 
@@ -1077,8 +1058,8 @@
     padding: 4px 8px;
     border-radius: 20px;
     border: 1px solid transparent;
-    background: var(--pos-surface-2);
-    color: var(--pos-text-1);
+    background: var(--mud-palette-background-grey);
+    color: var(--mud-palette-text-primary);
     font-size: 11px;
     cursor: pointer;
     transition: background 150ms, border 150ms;
@@ -1086,23 +1067,23 @@
 }
 
 .pos26-fn-btn:hover {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
 }
 
 .pos26-fn-btn--active {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
-    color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary);
 }
 
 .pos26-fn-btn--danger {
-    color: var(--pos-danger);
+    color: var(--mud-palette-error);
 }
 
 .pos26-fn-btn--danger:hover {
-    background: var(--pos-danger-bg);
-    border-color: var(--pos-danger);
+    background: var(--mud-palette-error-lighten);
+    border-color: var(--mud-palette-error);
 }
 
 .pos26-fn-btn--danger:disabled {
@@ -1111,13 +1092,13 @@
 }
 
 .pos26-fn-btn--park {
-    color: var(--pos-warning);
-    border-color: var(--pos-warning);
+    color: var(--mud-palette-warning);
+    border-color: var(--mud-palette-warning);
 }
 
 .pos26-fn-btn--park:hover {
-    background: var(--pos-warning-bg);
-    border-color: var(--pos-warning);
+    background: var(--mud-palette-warning-lighten);
+    border-color: var(--mud-palette-warning);
 }
 
 .pos26-fn-btn--park:disabled {
@@ -1129,8 +1110,8 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background: var(--pos-brand-blue);
-    color: #fff;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
     border-radius: 10px;
     font-size: 9px;
     padding: 1px 4px;
@@ -1141,8 +1122,8 @@
 .pos26-fn-panel {
     margin: 0 8px 6px;
     padding: 8px;
-    background: var(--mud-palette-background-grey, #f9f9f9);
-    border: 1px solid var(--mud-palette-lines-default, #e0e0e0);
+    background: var(--mud-palette-background-grey);
+    border: 1px solid var(--mud-palette-lines-default);
     border-radius: 10px;
 }
 
@@ -1172,12 +1153,12 @@
 }
 
 .pos26-fn-input:focus {
-    border-color: var(--pos-brand-blue);
+    border-color: var(--mud-palette-primary);
 }
 
 .pos26-fn-btn-add {
-    background: var(--pos-success);
-    color: #fff;
+    background: var(--mud-palette-success);
+    color: var(--mud-palette-success-text);
     border: none;
     border-radius: 7px;
     padding: 5px 10px;
@@ -1242,9 +1223,9 @@
 }
 
 .pos26-fn-type-btn--active {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
-    color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary);
     font-weight: 600;
 }
 
@@ -1269,14 +1250,14 @@
 }
 
 .pos26-fn-table-btn--active {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
-    color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary);
 }
 
 .pos26-fn-table-btn:hover {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
 }
 
 /* Riga sessione parcheggiata */
@@ -1312,13 +1293,13 @@
 
 .pos26-fn-parked-table {
     font-size: 11px;
-    color: var(--pos-text-2);
+    color: var(--mud-palette-text-secondary);
     font-weight: 600;
 }
 
 .pos26-fn-parked-total {
     font-size: 12px;
-    color: var(--pos-success);
+    color: var(--mud-palette-success);
     font-weight: 600;
 }
 
@@ -1392,8 +1373,8 @@
     display: inline-flex;
     align-items: center;
     white-space: nowrap;
-    background: var(--pos-surface-3);
-    color: var(--pos-text-2);
+    background: var(--mud-palette-action-default-hover);
+    color: var(--mud-palette-text-secondary);
     border-radius: 20px;
     padding: 3px 12px;
     font-size: 12px;
@@ -1417,8 +1398,8 @@
 }
 
 ::deep .pos26-filterbar-sort-trigger:hover {
-    background: var(--pos-brand-blue-bg);
-    border-color: var(--pos-brand-blue);
+    background: var(--mud-palette-primary-hover);
+    border-color: var(--mud-palette-primary);
 }
 
 /* ==========================================================================
@@ -1434,7 +1415,7 @@
     align-items: center;
     font-size: 10px;
     font-weight: 700;
-    color: var(--pos-warning);
+    color: var(--mud-palette-warning);
     text-transform: uppercase;
     letter-spacing: 0.05em;
     margin-bottom: 4px;
@@ -1470,8 +1451,8 @@
     top: calc(100% + 4px);
     left: 0;
     z-index: 100;
-    background: var(--pos-surface-2);
-    border: 1px solid var(--pos-border);
+    background: var(--mud-palette-background-grey);
+    border: 1px solid var(--mud-palette-lines-default);
     border-radius: 10px;
     box-shadow: 0 4px 16px rgba(0,0,0,.35);
     min-width: 160px;
@@ -1485,7 +1466,7 @@
     align-items: center;
     padding: 8px 14px;
     font-size: 12px;
-    color: var(--pos-text-1);
+    color: var(--mud-palette-text-primary);
     background: none;
     border: none;
     cursor: pointer;
@@ -1499,7 +1480,7 @@
 }
 
 .pos26-fn-more-item--active {
-    color: var(--pos-brand-blue);
+    color: var(--mud-palette-primary);
     font-weight: 600;
 }
 

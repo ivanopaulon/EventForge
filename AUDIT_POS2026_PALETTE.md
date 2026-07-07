@@ -160,4 +160,57 @@ Verifica sui 3 componenti richiesti:
 
 ## 6. Nota metodologica
 
-Questo audit non ha modificato alcun file di codice. È stato creato solo questo file `AUDIT_POS2026_PALETTE.md`, come esplicitamente richiesto come output della Fase 1. La Fase 2 (piano di remediation con opzioni A/B/C) è presentata separatamente in risposta e richiede l'approvazione esplicita di Ivano prima di procedere alla Fase 3.
+Questo audit non ha modificato alcun file di codice. È stato creato solo questo file `AUDIT_POS2026_PALETTE.md`, come esplicitamente richiesto come output della Fase 1. La Fase 2 (piano di remediation con opzioni A/B/C) è stata presentata separatamente in risposta; **Ivano ha approvato l'Opzione A — Unificazione totale su MudBlazor**. La Fase 3 è stata implementata di conseguenza (vedi §7).
+
+---
+
+## 7. Fase 3 — Changelog implementazione (Opzione A)
+
+Rimappatura completa di tutti i token `--pos-*` colore su `var(--mud-palette-*)`. I soli token non-colore (`--pos-radius-sm/md/lg`) sono stati mantenuti invariati (fuori scope, non sono colori). Rimozione della classe wrapper `.pos26-dialog-dark` da tutti gli 8 dialog che la usavano, poiché `EFDialog` fornisce già uno sfondo/testo coerente col tema (`var(--mud-palette-surface)`/`var(--mud-palette-text-primary)`), rendendo il wrapper scuro statico ridondante e in conflitto col tema.
+
+### Mappatura token → variabile MudBlazor
+
+| Token rimosso | Nuovo riferimento | Motivazione |
+|---|---|---|
+| `--pos-brand-navy` | `var(--mud-palette-dark)` (testo: `var(--mud-palette-dark-text)`) | Accento sempre scuro ma theme-aware, stesso pattern già usato in `TableFloorPlan.razor.css`/`entity-drawer.css` |
+| `--pos-brand-blue` | `var(--mud-palette-primary)` (testo su sfondo: `var(--mud-palette-primary-text)`) | Colore brand/accent primario del tema |
+| `--pos-brand-blue-dim` | `var(--mud-palette-primary-darken)` | Variante scura per stato hover, pattern già usato in `MainLayout.razor.css` |
+| `--pos-brand-blue-bg` | `var(--mud-palette-primary-hover)` | Tinta chiara per stato selezionato/attivo, stesso pattern di `EFDialog.razor` (tab attiva) |
+| `--pos-surface-0` | `var(--mud-palette-background)` | Sfondo pannello "incassato" (numpad), più scuro della superficie dialog |
+| `--pos-surface-1` | `var(--mud-palette-surface)` | Superficie dialog/card standard |
+| `--pos-surface-2` | `var(--mud-palette-background-grey)` | Superficie secondaria |
+| `--pos-surface-3` | `var(--mud-palette-action-default-hover)` | Stato hover |
+| `--pos-border` | `var(--mud-palette-lines-default)` | Bordi standard |
+| `--pos-text-1` | `var(--mud-palette-text-primary)` | Testo primario |
+| `--pos-text-2` | `var(--mud-palette-text-secondary)` | Testo secondario |
+| `--pos-text-3` | `var(--mud-palette-text-disabled)` | Testo terziario/disabled |
+| `--pos-success` / `--pos-success-bg` | `var(--mud-palette-success)` / `var(--mud-palette-success-lighten)` | Stato semantico positivo, pattern già in `app.css` (`.bg-success-light`) |
+| `--pos-warning` / `--pos-warning-bg` | `var(--mud-palette-warning)` / `var(--mud-palette-warning-lighten)` | Stato semantico attenzione |
+| `--pos-danger` / `--pos-danger-bg` | `var(--mud-palette-error)` / `var(--mud-palette-error-lighten)` | Stato semantico errore |
+
+### File modificati
+
+| File | Prima | Dopo | Motivazione |
+|---|---|---|---|
+| `Prym.Web/wwwroot/css/pos26-payment.css` | `:root` con 17 hex letterali + regole `.pos26-dialog-dark`; commento riferiva `pos2026-layout-proposta.html` | `:root` con soli 3 token radius (non-colore); `.pos26-dialog-dark` rimossa; tutte le regole colore rimappate su `var(--mud-palette-*)`; commento aggiornato a riferire `EventForgeTheme.cs` | Elimina il secondo sistema di colori statico; rimuove riferimento a mockup non versionato |
+| `Prym.Web/Pages/Sales/POS2026.razor.css` | 142 `var(--pos-*)` colore + 13 hex letterali isolati (`#fff`, `#1a1305`, `#268f66`, fallback `#f9f9f9`/`#e0e0e0`) + 2 subtree di override locale ridondanti | Tutti i riferimenti colore rimappati su `var(--mud-palette-*)`; hex isolati sostituiti con token semantici corretti (incl. varianti `-text` per contrasto su sfondi accent); subtree di override rimossi (non più necessari, i token base sono già theme-aware) | Uniforma l'intero file su un'unica fonte di colore |
+| `Prym.Web/Pages/Sales/POS2026.razor` | 1 `Style="color:var(--pos-success);"` su `MudIcon` (icona coupon) | `Color="Color.Success"` | Usa il parametro `Color=` del componente MudBlazor invece di CSS inline |
+| `Prym.Web/Shared/Components/Sales/Pos26/Pos26ProductCard.razor` | `Style="color:var(--pos-text-3);"` su `MudIcon` (placeholder immagine) | `Style="color:var(--mud-palette-text-disabled);"` | Nessun parametro `Color=` MudBlazor equivalente a "disabled text"; mantenuto come var CSS theme-aware |
+| `Prym.Web/Shared/Components/Sales/Pos26/Pos26PaymentDialog.razor` | `"background:var(--pos-danger);color:#fff;"` (stringa C# per tasto backspace numpad) | `"background:var(--mud-palette-error);color:var(--mud-palette-error-text);"` | Rimappatura token + contrasto testo corretto |
+| `Prym.Web/Shared/Components/Sales/Pos26/Pos26PaymentMethodCard.razor` | `Style="color:#1D9E75;"` su `MudIcon` (spunta "già aggiunto") | `Color="Color.Success"` | Hex isolato sostituito con parametro `Color=` del componente |
+| `Prym.Web/Shared/Components/Sales/Pos26/Pos26PaymentRow.razor` | `_color` C# restituiva `"#FAEEDA"`/`"#E5EFFF"` (hex isolati) | Restituisce `"var(--mud-palette-warning-lighten)"`/`"var(--mud-palette-primary-hover)"` | Elimina hex isolati indipendenti dal tema |
+| `Prym.Web/Shared/Components/Dialogs/Sales/SessionNoteDialog.razor` | Fallback `flag.Color ?? "#666"` | Fallback `flag.Color ?? "var(--mud-palette-text-disabled)"` | Il colore custom per-flag resta legittimo (dato di dominio), solo il fallback statico è stato sostituito |
+| `Prym.Web/Shared/Components/Dialogs/Sales/POSTouchLineEditDialog.razor` | Wrapper `<div class="pos26-dialog-dark">`; `Style="background: rgba(255,255,255,0.06);..."` | Wrapper rimosso; `Style="background: var(--mud-palette-background-grey);..."` | Elimina doppio sfondo statico e overlay bianco fisso |
+| `Prym.Web/Shared/Components/Dialogs/Sales/MergeSessionsDialog.razor` | Wrapper `<div class="pos26-dialog-dark">` | Wrapper rimosso | `EFDialog` fornisce già sfondo/testo theme-aware |
+| `Prym.Web/Shared/Components/Dialogs/Sales/FiscalDrawerTransactionDialog.razor` | `<div class="pa-4 pos26-dialog-dark">` | `<div class="pa-4">` | Come sopra, mantenuto solo il padding utility |
+| `Prym.Web/Shared/Components/Dialogs/Sales/SplitPaymentDialog.razor` | Wrapper `<div class="pos26-dialog-dark">` | Wrapper rimosso | Come sopra |
+| `Prym.Web/Shared/Components/Dialogs/Sales/Pos26CustomerChangeDialog.razor` | Wrapper `<div class="pos26-dialog-dark">` | Wrapper rimosso | Come sopra |
+| `Prym.Web/Shared/Components/Dialogs/Sales/Pos26DrawerClosureDialog.razor` | `<div class="pa-4 pos26-dialog-dark">` | `<div class="pa-4">` | Come sopra |
+| `Prym.Web/Shared/Components/Dialogs/Sales/ItemNotesDialog.razor` | Wrapper `<div class="pos26-dialog-dark">` | Wrapper rimosso | Come sopra |
+| `Prym.Web/Shared/Components/Dialogs/DailyClosureDialog.razor` | Wrapper `<div class="pos26-dialog-dark">` | Wrapper rimosso | Come sopra |
+
+### Verifica
+
+- `dotnet build Prym.Web/Prym.Web.csproj -c Debug` → **Build succeeded, 0 Error(s)**, nessun nuovo warning nei file toccati.
+- Scansione repo-wide finale: **0** occorrenze residue di `var(--pos-*)` colore, **0** hex/rgba letterali isolati nello scope auditato (radius `--pos-radius-*` mantenuti, non sono colori).
+- Nessuna modifica alla logica funzionale: solo classi CSS, attributi `Style=`/`Color=` e wrapper `<div>` di puro styling sono stati toccati.

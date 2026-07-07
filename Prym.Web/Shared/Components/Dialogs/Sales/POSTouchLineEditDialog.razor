@@ -7,14 +7,13 @@
           OnClose="Cancel">
 
     <ChildContent>
-        <div class="pos26-dialog-dark">
         <MudStack Spacing="4">
 
             @if (Item != null)
             {
                 <!-- Item info bar -->
                 <MudPaper Elevation="0"
-                          Style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 10px 14px;">
+                          Style="background: var(--mud-palette-background-grey); border-radius: 8px; padding: 10px 14px;">
                     <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                         <MudStack Spacing="0">
                             <MudText Typo="Typo.body2" Class="text-dark-muted">
@@ -111,7 +110,6 @@
             }
 
         </MudStack>
-        </div>
     </ChildContent>
 
     <DialogActions>

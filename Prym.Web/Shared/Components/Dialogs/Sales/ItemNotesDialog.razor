@@ -5,7 +5,6 @@
           IsProcessing="false"
           OnClose="Cancel">
     <ChildContent>
-        <div class="pos26-dialog-dark">
         @if (Item != null)
         {
             <!-- Item Context -->
@@ -47,7 +46,6 @@
                       HelperText="@TranslationService.GetTranslation("sales.ctrlEnterToSave", "Ctrl+Enter per salvare")"
                       @onkeydown="@HandleKeyDown"
                       Class="mb-3" />
-        </div>
     </ChildContent>
     <DialogActions>
         <MudButton OnClick="Cancel"
