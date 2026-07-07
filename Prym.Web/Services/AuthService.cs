@@ -7,7 +7,9 @@ using System.Net.Http.Json;
 namespace Prym.Web.Services
 {
     // Risultato della chiamata a GetAvailableTenantsWithStatusAsync.
-    // Distingue esplicitamente tra lista vuota per assenza dati e lista vuota per server non raggiungibile.
+    // Distingue tra:
+    //   IsServerUnreachable = true  → nessuna risposta ricevuta (timeout/eccezione di rete) o server in errore 5xx
+    //   IsServerUnreachable = false → server raggiungibile (risposta 2xx anche vuota, o 4xx errore applicativo)
     public sealed record TenantsLoadResult(
         IReadOnlyList<TenantResponseDto> Tenants,
         bool IsServerUnreachable);
@@ -232,16 +234,16 @@ namespace Prym.Web.Services
         /// <summary>
         /// Recupera i tenant disponibili per il login. Metodo leggero, con caching client-side per ridurre round-trip.
         /// Endpoint server previsto: GET /api/v1/tenants/available.
-        /// Wrapper retrocompatibile su GetAvailableTenantsWithStatusAsync.
+        /// Wrapper retrocompatibile su GetAvailableTenantsWithStatusAsync; il caching è gestito nell'implementazione sottostante.
         /// </summary>
         public async Task<IEnumerable<TenantResponseDto>> GetAvailableTenantsAsync(CancellationToken ct = default)
             => (await GetAvailableTenantsWithStatusAsync(ct)).Tenants;
 
         /// <summary>
-        /// Recupera i tenant disponibili distinguendo tra lista vuota per assenza dati e server non raggiungibile.
+        /// Recupera i tenant disponibili distinguendo tra lista vuota per assenza dati e server non raggiungibile/non disponibile.
         /// Endpoint server previsto: GET /api/v1/tenants/available.
-        /// IsServerUnreachable = true quando la richiesta fallisce per timeout o eccezione di rete/server;
-        /// IsServerUnreachable = false quando il server risponde (anche con lista vuota o errore applicativo).
+        /// IsServerUnreachable = true quando: la richiesta fallisce per timeout/eccezione di rete, oppure il server risponde con 5xx.
+        /// IsServerUnreachable = false quando: il server risponde con 2xx (anche lista vuota = nessun tenant configurato) o con 4xx (errore applicativo; il server è raggiungibile).
         /// </summary>
         public async Task<TenantsLoadResult> GetAvailableTenantsWithStatusAsync(CancellationToken ct = default)
         {
@@ -267,14 +269,20 @@ namespace Prym.Web.Services
                         if (!response.IsSuccessStatusCode)
                         {
                             _logger.LogWarning("GET {Endpoint} returned status {StatusCode} on attempt {Attempt}", endpoint, response.StatusCode, attempt);
-                            // Retry once on transient 5xx
-                            if ((int)response.StatusCode >= 500 && attempt < maxAttempts)
+
+                            if ((int)response.StatusCode >= 500)
                             {
-                                await Task.Delay(500);
-                                continue;
+                                // 5xx: server raggiungibile ma non disponibile/guasto — un retry è sensato
+                                if (attempt < maxAttempts)
+                                {
+                                    await Task.Delay(500);
+                                    continue;
+                                }
+                                return new TenantsLoadResult([], IsServerUnreachable: true);
                             }
 
-                            return new TenantsLoadResult([], IsServerUnreachable: true);
+                            // 4xx: il server è raggiungibile ma ha risposto con un errore applicativo (es. 401, 404)
+                            return new TenantsLoadResult([], IsServerUnreachable: false);
                         }
 
                         var tenants = await response.Content.ReadFromJsonAsync<IEnumerable<TenantResponseDto>>(cancellationToken: cts.Token);

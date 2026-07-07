@@ -122,7 +122,7 @@ public class AuthServiceTenantsTests
         Assert.Empty(result.Tenants);
     }
 
-    // (b) 5xx dal server → IsServerUnreachable == true (server non funzionante = irraggiungibile)
+    // (b) 5xx dal server → IsServerUnreachable == true (server non disponibile/guasto → retry sensato)
     [Fact]
     public async Task GetAvailableTenantsWithStatusAsync_ServerError500_IsServerUnreachableTrue()
     {
@@ -131,6 +131,18 @@ public class AuthServiceTenantsTests
         var result = await service.GetAvailableTenantsWithStatusAsync();
 
         Assert.True(result.IsServerUnreachable);
+        Assert.Empty(result.Tenants);
+    }
+
+    // 4xx dal server → IsServerUnreachable == false (server raggiungibile, errore applicativo)
+    [Fact]
+    public async Task GetAvailableTenantsWithStatusAsync_ClientError401_IsServerUnreachableFalse()
+    {
+        var (service, _) = CreateService(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        var result = await service.GetAvailableTenantsWithStatusAsync();
+
+        Assert.False(result.IsServerUnreachable);
         Assert.Empty(result.Tenants);
     }
 
