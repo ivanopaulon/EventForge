@@ -9,7 +9,12 @@ public class DailyClosureHistoryDto
     /// <summary>Unique identifier of this closure record.</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Identifier of the fiscal printer that executed the closure.</summary>
+    /// <summary>
+    /// Identifier of the fiscal printer that executed the closure.
+    /// <c>Guid.Empty</c> when the closure was executed without a physical printer
+    /// (<see cref="ClosureType"/> = <c>NonFiscale</c>); UI clients use this as the
+    /// "no printer" sentinel value (see <c>AllClosuresHistory.razor</c>).
+    /// </summary>
     public Guid PrinterId { get; set; }
 
     /// <summary>Display name of the printer (denormalised for list views).</summary>

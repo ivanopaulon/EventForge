@@ -12,9 +12,12 @@ public class DailyClosureRecord : AuditableEntity
 {
     // ── Foreign key ───────────────────────────────────────────────────────────
 
-    /// <summary>Identifier of the fiscal <see cref="Printer"/> that produced this Z-report.</summary>
-    [Required]
-    public Guid PrinterId { get; set; }
+    /// <summary>
+    /// Identifier of the fiscal <see cref="Printer"/> that produced this Z-report.
+    /// <c>null</c> when the closure was executed without a physical fiscal printer
+    /// (<see cref="ClosureType"/> = <c>"NonFiscale"</c>).
+    /// </summary>
+    public Guid? PrinterId { get; set; }
 
     /// <summary>Navigation property to the printer.</summary>
     public Printer? Printer { get; set; }

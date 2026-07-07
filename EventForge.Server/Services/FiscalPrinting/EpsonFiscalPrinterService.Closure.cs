@@ -355,7 +355,7 @@ public partial class EpsonFiscalPrinterService
             return records.Select(r => new DailyClosureHistoryDto
             {
                 Id = r.Id,
-                PrinterId = r.PrinterId,
+                PrinterId = r.PrinterId ?? printerId,
                 PrinterName = printerName,
                 ZReportNumber = r.ZReportNumber,
                 ClosedAt = r.ClosedAt,
@@ -408,6 +408,16 @@ public partial class EpsonFiscalPrinterService
                 };
             }
 
+            if (record.PrinterId is null)
+            {
+                return new FiscalPrintResult
+                {
+                    Success = false,
+                    ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure).",
+                    PrintDate = DateTime.UtcNow
+                };
+            }
+
             logger.LogInformation(
                 "Epson ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}",
                 closureId, record.PrinterId);
@@ -424,9 +434,9 @@ public partial class EpsonFiscalPrinterService
                 Operator = record.Operator
             };
 
-            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
             var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-            return await ExecuteXmlAsync(channel, xml, record.PrinterId, cancellationToken).ConfigureAwait(false);
+            return await ExecuteXmlAsync(channel, xml, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -449,6 +459,9 @@ public partial class EpsonFiscalPrinterService
         if (!record.FiscalClosurePending)
             return new DailyClosureResultDto { Success = false, ErrorMessage = "La chiusura fiscale per questo record non è pendente." };
 
+        if (record.PrinterId is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure)." };
+
         logger.LogInformation("Epson RetryFiscalClosureAsync | ClosureId={ClosureId} PrinterId={PrinterId}", closureId, record.PrinterId);
 
         var closureDto = new DailyClosureResultDto
@@ -465,9 +478,9 @@ public partial class EpsonFiscalPrinterService
 
         try
         {
-            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
             var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-            var printResult = await ExecuteXmlAsync(channel, xml, record.PrinterId, cancellationToken).ConfigureAwait(false);
+            var printResult = await ExecuteXmlAsync(channel, xml, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
 
             if (printResult.Success)
             {
