@@ -73,6 +73,21 @@ public class ManagementHubOptions
     /// </summary>
     public int MaxConcurrentUpdates { get; set; } = 1;
 
+    // ── Orphaned update reconciliation ────────────────────────────────────
+    /// <summary>
+    /// Minutes after <see cref="UpdateHistory.StartedAt"/> before an <c>InProgress</c> update
+    /// whose installation is <c>Offline</c> is considered orphaned and forcibly failed.
+    /// Deliberately longer than typical SignalR reconnection windows to avoid false positives
+    /// on short network blips. Default: 15.
+    /// </summary>
+    public int OrphanedUpdateGraceMinutes { get; set; } = 15;
+
+    /// <summary>
+    /// Seconds between runs of the background orphaned-update reconciliation check.
+    /// Default: 300 (5 minutes).
+    /// </summary>
+    public int OrphanedUpdateCheckIntervalSeconds { get; set; } = 300;
+
     // ── Build from folder ─────────────────────────────────────────────────
     /// <summary>
     /// Default local path to the Server publish/deploy folder shown in the
