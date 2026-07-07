@@ -49,10 +49,30 @@ public class PackageWatcherService(
 
             watcher.Created += (_, e) => ScheduleIngestion(e.FullPath, pendingFiles, stoppingToken);
             watcher.Changed += (_, e) => ScheduleIngestion(e.FullPath, pendingFiles, stoppingToken);
+            watcher.Error += (_, e) =>
+                logger.LogError(e.GetException(),
+                    "PackageWatcherService: FileSystemWatcher reported an error — new package files may be missed until the next periodic scan.");
 
             logger.LogInformation("PackageWatcherService watching: {Path}", Path.GetFullPath(IncomingPath));
 
-            await Task.Delay(Timeout.Infinite, stoppingToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            // ── Periodic fallback scan ────────────────────────────────────────────
+            // Re-scans the incoming folder every 10 minutes so packages deposited while
+            // the FileSystemWatcher had an internal overflow (or silently stopped raising
+            // events) are still ingested without requiring a service restart.
+            using var periodicTimer = new PeriodicTimer(TimeSpan.FromMinutes(10));
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await periodicTimer.WaitForNextTickAsync(stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                await ScanIncomingFolderAsync(stoppingToken);
+            }
 
             logger.LogInformation("PackageWatcherService stopped.");
         }
@@ -100,7 +120,7 @@ public class PackageWatcherService(
         }
     }
 
-    private async Task IngestFileAsync(string zipPath, CancellationToken ct)
+    protected async Task IngestFileAsync(string zipPath, CancellationToken ct)
     {
         if (!File.Exists(zipPath)) return;
 
@@ -184,10 +204,40 @@ public class PackageWatcherService(
                 UploadedBy = "watcher"
             };
 
-            await packageService.CreateAsync(package, ct);
-            logger.LogInformation(
-                "Package ingested: {Component} {Version} ({Checksum}) — ReadyToDeploy",
-                component, manifest.Version, actualChecksum[..8]);
+            try
+            {
+                await packageService.CreateAsync(package, ct);
+                logger.LogInformation(
+                    "Package ingested: {Component} {Version} ({Checksum}) — ReadyToDeploy",
+                    component, manifest.Version, actualChecksum[..8]);
+            }
+            catch (Exception dbEx)
+            {
+                // The file has already been moved to PackageStorePath. Move it to the failed/
+                // subdirectory under IncomingPackagesPath so it is not silently lost and can
+                // be inspected and recovered manually. Do NOT move it back to Incoming — a
+                // DB conflict (e.g. duplicate Version+Component) would cause an infinite retry loop.
+                var failedDir = Path.Combine(IncomingPath, "failed");
+                try
+                {
+                    Directory.CreateDirectory(failedDir);
+                    var failedPath = Path.Combine(failedDir, Path.GetFileName(destPath));
+                    File.Move(destPath, failedPath, overwrite: true);
+                    logger.LogError(dbEx,
+                        "Failed to persist package record for {File}. " +
+                        "The zip has been moved to '{FailedPath}' for manual recovery.",
+                        fileName, failedPath);
+                }
+                catch (Exception moveEx)
+                {
+                    logger.LogError(moveEx,
+                        "Failed to move orphaned package file '{DestPath}' to the failed/ folder after a DB error (original error below). " +
+                        "The file remains as an orphan in PackageStorePath and must be removed manually.",
+                        destPath);
+                    logger.LogError(dbEx,
+                        "Original DB error that caused the orphan for {File}.", fileName);
+                }
+            }
         }
         catch (IOException ex) when (ex.Message.Contains("being used by another process", StringComparison.OrdinalIgnoreCase))
         {

@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.UpdateShared", "Prym.U
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.Agent.Updater", "Prym.Agent.Updater\Prym.Agent.Updater.csproj", "{E2F3A4B5-C6D7-8E9F-0A1B-2C3D4E5F6A7B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Prym.ManagementHub.Tests", "Prym.ManagementHub.Tests\Prym.ManagementHub.Tests.csproj", "{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,18 @@ Global
 		{E2F3A4B5-C6D7-8E9F-0A1B-2C3D4E5F6A7B}.Release|x64.Build.0 = Release|Any CPU
 		{E2F3A4B5-C6D7-8E9F-0A1B-2C3D4E5F6A7B}.Release|x86.ActiveCfg = Release|Any CPU
 		{E2F3A4B5-C6D7-8E9F-0A1B-2C3D4E5F6A7B}.Release|x86.Build.0 = Release|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Debug|x64.Build.0 = Debug|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Debug|x86.Build.0 = Debug|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Release|x64.ActiveCfg = Release|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Release|x64.Build.0 = Release|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Release|x86.ActiveCfg = Release|Any CPU
+		{92C96E11-0E71-422A-8EAC-5C8ADA240E6B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

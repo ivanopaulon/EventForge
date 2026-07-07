@@ -2,7 +2,7 @@ namespace Prym.ManagementHub.Hubs;
 
 /// <summary>
 /// SignalR hub for communication between the Update Hub and distributed UpdateAgent services.
-/// Agents authenticate via API key passed as query parameter during negotiation.
+/// Agents authenticate via the <c>X-Api-Key</c> HTTP header passed during negotiation.
 /// </summary>
 public class AgentHub(
     ILogger<AgentHub> logger,
@@ -209,6 +209,9 @@ public class AgentHub(
         var installationId = GetInstallationId();
         if (installationId is null) return;
 
+        UpdateHistory? history = null;
+        var throttleAcquired = false;
+
         try
         {
             var pkg = await packageService.GetByIdAsync(packageId);
@@ -227,13 +230,14 @@ public class AgentHub(
             var installation = await installationService.GetByIdAsync(installationId.Value);
             if (installation is null) return;
 
-            var history = await installationService.StartUpdateHistoryAsync(
+            history = await installationService.StartUpdateHistoryAsync(
                 installationId.Value, packageId,
                 installation.InstalledVersionServer,
                 installation.InstalledVersionClient,
                 fromVersionAgent: installation.AgentVersion);
 
             await updateThrottle.AcquireAsync(Context.ConnectionAborted);
+            throttleAcquired = true;
 
             var httpContext = Context.GetHttpContext();
             var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
@@ -260,6 +264,26 @@ public class AgentHub(
         {
             logger.LogError(ex, "Error in RequestStartUpdate Installation={InstallationId} Package={PackageId}",
                 installationId, packageId);
+
+            if (throttleAcquired)
+                updateThrottle.Release();
+
+            if (history is not null)
+            {
+                try
+                {
+                    await installationService.CompleteUpdateHistoryAsync(
+                        history.Id, UpdateHistoryStatus.Failed,
+                        $"Dispatch to Agent failed: {ex.Message}", rolledBack: false);
+                }
+                catch (Exception cleanupEx)
+                {
+                    logger.LogError(cleanupEx,
+                        "Failed to mark UpdateHistory {HistoryId} as Failed after a dispatch error.",
+                        history.Id);
+                }
+            }
+
             throw;
         }
     }

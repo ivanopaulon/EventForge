@@ -112,6 +112,15 @@ public interface IInstallationService
     /// active (InProgress) history records that have not yet completed.
     /// </summary>
     Task<(bool Success, string? Error)> DeleteAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the IDs of <see cref="UpdateHistory"/> records that are stuck in
+    /// <see cref="UpdateHistoryStatus.InProgress"/> (excluding those waiting for a maintenance window)
+    /// whose associated <see cref="Installation"/> is <see cref="InstallationStatus.Offline"/>
+    /// and whose <see cref="UpdateHistory.StartedAt"/> is older than <paramref name="cutoff"/>.
+    /// Used by <see cref="OrphanedUpdateReconciliationService"/> to clean up abandoned updates.
+    /// </summary>
+    Task<IReadOnlyList<Guid>> GetOrphanedInProgressHistoryAsync(DateTime cutoff, CancellationToken ct = default);
 }
 
 /// <summary>Lightweight package metadata resolved from an <see cref="UpdateHistory"/> record.</summary>

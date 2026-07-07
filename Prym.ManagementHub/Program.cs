@@ -85,6 +85,7 @@ builder.Services.AddSingleton<IUpdateThrottleService, UpdateThrottleService>();
 builder.Services.AddHostedService<PackageWatcherService>();
 builder.Services.AddHostedService<AgentStatusCheckService>();
 builder.Services.AddHostedService<PackageCleanupService>();
+builder.Services.AddHostedService<OrphanedUpdateReconciliationService>();
 builder.Services.AddHealthChecks();
 
 // Rate limiting: protect the self-enrollment endpoint from brute-force token guessing.

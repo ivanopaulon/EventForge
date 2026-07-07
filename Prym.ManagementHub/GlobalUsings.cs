@@ -6,3 +6,5 @@ global using Prym.ManagementHub.Data.Entities;
 global using Prym.ManagementHub.Hubs;
 global using Prym.ManagementHub.Services;
 global using Prym.ManagementHub.Utilities;
+
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Prym.ManagementHub.Tests")]

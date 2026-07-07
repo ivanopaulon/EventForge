@@ -314,4 +314,14 @@ public class InstallationService(ManagementHubDbContext db, IConnectionTracker c
         await db.SaveChangesAsync(ct);
         return (true, null);
     }
+
+    public async Task<IReadOnlyList<Guid>> GetOrphanedInProgressHistoryAsync(DateTime cutoff, CancellationToken ct = default)
+        => await db.UpdateHistories
+            .Where(h => h.Status == UpdateHistoryStatus.InProgress
+                        && h.PhaseDescription != "AwaitingMaintenanceWindow"
+                        && h.StartedAt < cutoff
+                        && h.Installation != null
+                        && h.Installation.Status == InstallationStatus.Offline)
+            .Select(h => h.Id)
+            .ToListAsync(ct);
 }

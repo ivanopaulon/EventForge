@@ -79,33 +79,54 @@ public class InstallationsController(
         var package = await packageService.GetByIdAsync(request.PackageId);
         if (package is null) return NotFound("Package not found.");
 
+        if (package.Status == PackageStatus.Archived)
+            return Conflict("Package is archived and cannot be deployed.");
+
         var connectionId = connectionTracker.GetConnectionId(id);
         if (connectionId is null)
             return Conflict("Installation is not currently connected.");
 
-        await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+        UpdateHistory? history = null;
+        var throttleAcquired = false;
 
-        var history = await installationService.StartUpdateHistoryAsync(
-            id, request.PackageId,
-            installation.InstalledVersionServer,
-            installation.InstalledVersionClient);
+        try
+        {
+            await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+            throttleAcquired = true;
 
-        var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
-            ? hubOptions.BaseUrl.TrimEnd('/')
-            : $"{Request.Scheme}://{Request.Host}";
-        var downloadUrl = $"{baseUrl}/api/v1/packages/{package.Id}/download";
-        var command = new StartUpdateCommand(
-            history.Id,
-            package.Id,
-            package.Version,
-            package.Component.ToString(),
-            downloadUrl,
-            package.Checksum);
+            history = await installationService.StartUpdateHistoryAsync(
+                id, request.PackageId,
+                installation.InstalledVersionServer,
+                installation.InstalledVersionClient);
 
-        await hubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
-        logger.LogInformation("Update command sent to Installation={InstallationId} Package={PackageId}", id, request.PackageId);
+            var baseUrl = !string.IsNullOrWhiteSpace(hubOptions.BaseUrl)
+                ? hubOptions.BaseUrl.TrimEnd('/')
+                : $"{Request.Scheme}://{Request.Host}";
+            var downloadUrl = $"{baseUrl}/api/v1/packages/{package.Id}/download";
+            var command = new StartUpdateCommand(
+                history.Id,
+                package.Id,
+                package.Version,
+                package.Component.ToString(),
+                downloadUrl,
+                package.Checksum);
 
-        return Accepted(new { HistoryId = history.Id });
+            await hubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
+            logger.LogInformation("Update command sent to Installation={InstallationId} Package={PackageId}", id, request.PackageId);
+
+            return Accepted(new { HistoryId = history.Id });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error dispatching update to Installation={InstallationId} Package={PackageId}", id, request.PackageId);
+
+            if (throttleAcquired)
+                updateThrottle.Release();
+
+            await TryFailHistoryAsync(history?.Id, $"Dispatch to Agent failed: {ex.Message}");
+
+            return StatusCode(500, "Failed to dispatch update to the installation.");
+        }
     }
 
     /// <summary>Broadcast update notification to all connected agents.</summary>
@@ -119,7 +140,7 @@ public class InstallationsController(
 
         var onlineIds = connectionTracker.GetOnlineInstallationIds();
         if (onlineIds.Count == 0)
-            return Accepted(new { PackageId = package.Id, package.Version, SentTo = 0 });
+            return Accepted(new { PackageId = package.Id, package.Version, SentTo = 0, Failed = 0 });
 
         var installations = await installationService.GetByIdsAsync(onlineIds);
         var installationMap = installations.ToDictionary(i => i.Id);
@@ -138,33 +159,65 @@ public class InstallationsController(
         // and there are many online agents, this request will block until each slot is available.
         // This is intentional per the throttling design and is acceptable for admin-triggered
         // broadcasts. Consider a background queue if non-blocking dispatch is needed.
+        var dispatched = 0;
+        var failed = 0;
+
         foreach (var id in onlineIds)
         {
-            var connectionId = connectionTracker.GetConnectionId(id);
-            if (connectionId is null) continue;
+            UpdateHistory? history = null;
+            var throttleAcquired = false;
 
-            if (!installationMap.TryGetValue(id, out var installation))
+            try
             {
-                logger.LogWarning("Broadcast: online installation {Id} not found in map — skipping.", id);
-                continue;
+                var connectionId = connectionTracker.GetConnectionId(id);
+                if (connectionId is null) continue;
+
+                if (!installationMap.TryGetValue(id, out var installation))
+                {
+                    logger.LogWarning("Broadcast: online installation {Id} not found in map — skipping.", id);
+                    continue;
+                }
+
+                await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+                throttleAcquired = true;
+
+                history = await installationService.StartUpdateHistoryAsync(
+                    id, request.PackageId,
+                    installation.InstalledVersionServer,
+                    installation.InstalledVersionClient);
+
+                var command = new StartUpdateCommand(
+                    history.Id, package.Id, package.Version,
+                    package.Component.ToString(), downloadUrl, package.Checksum);
+
+                await hubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
+                dispatched++;
             }
+            catch (OperationCanceledException)
+            {
+                logger.LogWarning("Broadcast cancelled by client for Package={PackageId} — stopping dispatch loop.", request.PackageId);
 
-            await updateThrottle.AcquireAsync(HttpContext.RequestAborted);
+                if (throttleAcquired)
+                    updateThrottle.Release();
 
-            var history = await installationService.StartUpdateHistoryAsync(
-                id, request.PackageId,
-                installation.InstalledVersionServer,
-                installation.InstalledVersionClient);
+                await TryFailHistoryAsync(history?.Id, "Broadcast cancelled by client.");
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Broadcast: failed to dispatch to Installation={InstallationId} Package={PackageId}", id, request.PackageId);
+                failed++;
 
-            var command = new StartUpdateCommand(
-                history.Id, package.Id, package.Version,
-                package.Component.ToString(), downloadUrl, package.Checksum);
+                if (throttleAcquired)
+                    updateThrottle.Release();
 
-            await hubContext.Clients.Client(connectionId).SendAsync("StartUpdate", command);
+                await TryFailHistoryAsync(history?.Id, $"Broadcast dispatch failed: {ex.Message}");
+            }
         }
 
-        logger.LogInformation("Update broadcast: Package={PackageId} Version={Version}", package.Id, package.Version);
-        return Accepted(new { PackageId = package.Id, package.Version, SentTo = onlineIds.Count });
+        logger.LogInformation("Update broadcast: Package={PackageId} Version={Version} Dispatched={Dispatched} Failed={Failed}",
+            package.Id, package.Version, dispatched, failed);
+        return Accepted(new { PackageId = package.Id, package.Version, SentTo = dispatched, Failed = failed });
     }
 
     /// <summary>Revoke an installation's API key. The agent will be blocked with 403 until reinstated.</summary>
@@ -250,6 +303,24 @@ public class InstallationsController(
         logger.LogInformation("UnblockQueue sent to Installation={InstallationId} Package={PackageId} Skip={Skip}",
             id, request.PackageId, request.SkipAndRemove);
         return Accepted();
+    }
+    /// <summary>
+    /// Marks an <see cref="UpdateHistory"/> record as <see cref="UpdateHistoryStatus.Failed"/>
+    /// if a history ID is available. Errors are logged and swallowed so cleanup never masks the
+    /// primary exception.
+    /// </summary>
+    private async Task TryFailHistoryAsync(Guid? historyId, string errorMessage)
+    {
+        if (historyId is null) return;
+        try
+        {
+            await installationService.CompleteUpdateHistoryAsync(
+                historyId.Value, UpdateHistoryStatus.Failed, errorMessage, rolledBack: false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to mark UpdateHistory {HistoryId} as Failed during cleanup.", historyId);
+        }
     }
 }
 
