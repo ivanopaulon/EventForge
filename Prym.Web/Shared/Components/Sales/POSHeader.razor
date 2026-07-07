@@ -143,6 +143,21 @@
                            OnClick="@OnCancelClick" />
         </MudTooltip>
 
+        @* ── Chiudi Giornata: punto d'ingresso unico, sempre cliccabile, per cassetto + chiusura fiscale ── *@
+        <MudTooltip Text="@(IsDailyClosureRequired
+                            ? TranslationService.GetTranslation("sales.dailyClosureRequired", "Chiusura giornaliera richiesta — clicca per eseguire")
+                            : TranslationService.GetTranslation("sales.closeDayTooltip", "Chiudi giornata (cassetto + chiusura fiscale)"))">
+            <MudBadge Color="Color.Error" Dot="true" Overlap="true" Visible="@IsDailyClosureRequired">
+                <MudButton Variant="Variant.Filled"
+                           Color="@(IsDailyClosureRequired ? Color.Warning : Color.Default)"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.EventNote"
+                           OnClick="@OnDailyClosureClick">
+                    @TranslationService.GetTranslation("sales.closeDay", "Chiudi Giornata")
+                </MudButton>
+            </MudBadge>
+        </MudTooltip>
+
     </MudStack>
 
     @* ── Row 2: Fiscal Drawer info + actions (only when drawer is configured) ── *@
@@ -236,20 +251,6 @@
                                    Color="Color.Info"
                                    Size="Size.Small"
                                    OnClick="@OnOpenPhysicalDrawerClick" />
-                </MudTooltip>
-            }
-
-            @* ── Daily closure required ── *@
-            @if (IsDailyClosureRequired)
-            {
-                <MudTooltip Text="@TranslationService.GetTranslation("sales.dailyClosureRequired", "Chiusura giornaliera richiesta — clicca per eseguire")">
-                    <MudButton Variant="Variant.Filled"
-                               Color="Color.Warning"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Outlined.EventNote"
-                               OnClick="@OnDailyClosureClick">
-                        @TranslationService.GetTranslation("sales.dailyClosure", "Chiusura Z")
-                    </MudButton>
                 </MudTooltip>
             }
 

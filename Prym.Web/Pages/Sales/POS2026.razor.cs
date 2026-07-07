@@ -1806,32 +1806,89 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
-    private async Task OpenDailyClosureDialogAsync()
+    /// <summary>
+    /// Punto d'ingresso unico per la chiusura giornata (P1.2): concatena, in sequenza logica,
+    /// la riconciliazione del cassetto (se una sessione è aperta) e la chiusura fiscale esistente
+    /// (<see cref="DailyClosureDialog"/>, invariata). Se l'operatore annulla lo step cassetto,
+    /// l'intero wizard si interrompe e la chiusura fiscale non viene eseguita.
+    /// </summary>
+    private async Task OpenEndOfDayWizardAsync()
     {
         try
         {
-            var parameters = new DialogParameters
+            decimal? drawerClosingBalance = null;
+            decimal? drawerDifference = null;
+
+            // Step 1 — Riconciliazione cassetto, solo se una sessione è effettivamente aperta.
+            if (_fiscalDrawerSummary?.HasOpenSession == true)
+            {
+                var expectedBalanceBeforeClosure = _fiscalDrawerSummary.CurrentBalance;
+                var drawerParameters = new DialogParameters
+                {
+                    [nameof(Pos26DrawerClosureDialog.FiscalDrawerId)] = _fiscalDrawerSummary.Id,
+                    [nameof(Pos26DrawerClosureDialog.FiscalDrawerSummary)] = _fiscalDrawerSummary,
+                    [nameof(Pos26DrawerClosureDialog.OperatorId)] = ViewModel.SelectedOperatorId
+                };
+                var drawerDialog = await DialogService.ShowAsync<Pos26DrawerClosureDialog>(
+                    string.Empty, drawerParameters, EFDialogDefaults.Options);
+                var drawerResult = await drawerDialog.Result;
+
+                if (drawerResult?.Canceled != false)
+                {
+                    // Annullato dall'utente — interrompe l'intero wizard, la chiusura fiscale non viene eseguita.
+                    return;
+                }
+
+                if (drawerResult.Data is FiscalDrawerSessionDto drawerSession)
+                {
+                    drawerClosingBalance = drawerSession.ClosingBalance;
+                    drawerDifference = drawerSession.ClosingBalance - expectedBalanceBeforeClosure;
+                }
+
+                await LoadFiscalDrawerAsync();
+            }
+
+            // Step 2 — Chiusura fiscale (Z-report o "Non Fiscale"), componente esistente invariato.
+            var closureParameters = new DialogParameters
             {
                 [nameof(DailyClosureDialog.PrinterId)] = _fiscalPrinterId,
                 [nameof(DailyClosureDialog.PosId)] = ViewModel.SelectedPosId,
                 [nameof(DailyClosureDialog.PrinterName)] = _fiscalPrinterId.HasValue ? "Stampante POS" : null
             };
-            var dialog = await DialogService.ShowAsync<DailyClosureDialog>(
-                string.Empty, parameters, EFDialogDefaults.Options);
-            var result = await dialog.Result;
-            if (result?.Canceled == false)
+            var closureDialog = await DialogService.ShowAsync<DailyClosureDialog>(
+                string.Empty, closureParameters, EFDialogDefaults.Options);
+            var closureResult = await closureDialog.Result;
+
+            if (closureResult?.Canceled == false)
             {
                 if (_fiscalPrinterId.HasValue)
                     _fiscalPrinterStatus = await FiscalPrintingService.GetStatusAsync(_fiscalPrinterId.Value);
-                // Se la chiusura è andata a buon fine, nascondi il banner di avviso
-                if (result.Data is DailyClosureResultDto closureResult && closureResult.Success)
+
+                var fiscalSuccess = closureResult.Data is DailyClosureResultDto fiscalClosure && fiscalClosure.Success;
+                if (fiscalSuccess)
                     _previousDayClosureMissing = false;
+
+                // Notifica di riepilogo finale.
+                if (drawerClosingBalance.HasValue)
+                {
+                    var diffText = drawerDifference.HasValue
+                        ? $" (differenza €{drawerDifference.Value:F2})"
+                        : string.Empty;
+                    AppNotification.ShowSuccess(
+                        $"Giornata chiusa — Cassetto: €{drawerClosingBalance.Value:F2} contati{diffText} · " +
+                        (fiscalSuccess ? "Chiusura fiscale completata." : "Chiusura fiscale non completata."));
+                }
+                else if (fiscalSuccess)
+                {
+                    AppNotification.ShowSuccess("Giornata chiusa — Chiusura fiscale completata.");
+                }
+
                 StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "POS2026: errore dialog chiusura giornaliera.");
+            Logger.LogError(ex, "POS2026: errore durante il wizard di chiusura giornata.");
             AppNotification.ShowWarning("Si è verificato un errore.");
         }
     }

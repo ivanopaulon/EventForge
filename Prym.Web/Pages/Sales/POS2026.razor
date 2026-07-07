@@ -72,7 +72,7 @@
                     </MudText>
                 </MudStack>
                 <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
-                           OnClick="@OpenDailyClosureDialogAsync"
+                           OnClick="@OpenEndOfDayWizardAsync"
                            StartIcon="@Icons.Material.Filled.EventNote">
                     Esegui Chiusura
                 </MudButton>
@@ -226,7 +226,7 @@
                    HasFiscalPrinter="@_fiscalPrinterId.HasValue"
                    IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
                    OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
-                   OnDailyClosureClick="@OpenDailyClosureDialogAsync"
+                   OnDailyClosureClick="@OpenEndOfDayWizardAsync"
                    OnParkClick="@ParkSessionAsync"
                    OnCancelClick="@CancelSessionAsync" />
 
