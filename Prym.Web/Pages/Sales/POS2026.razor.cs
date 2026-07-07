@@ -994,7 +994,8 @@ public partial class POS2026 : IAsyncDisposable
                 [nameof(Pos26PaymentDialog.Ordine)] = ViewModel.CurrentSession,
                 [nameof(Pos26PaymentDialog.Cliente)] = ViewModel.SelectedCustomer,
                 [nameof(Pos26PaymentDialog.PaymentMethods)] = paymentMethods,
-                [nameof(Pos26PaymentDialog.FidelityCard)] = (object?)_fidelityCard
+                [nameof(Pos26PaymentDialog.FidelityCard)] = (object?)_fidelityCard,
+                [nameof(Pos26PaymentDialog.FiscalDrawerId)] = _fiscalDrawerSummary?.Id
             };
 
             var dialog = await DialogService.ShowAsync<Pos26PaymentDialog>(

@@ -2,9 +2,13 @@
 @* Aperto tramite IDialogService.ShowAsync come tutti gli altri dialog del progetto *@
 @using Prym.DTOs.Business
 @using Prym.DTOs.Business.Fidelity
+@using Prym.DTOs.Store
 @using Prym.Web.Models.Sales
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
+@inject Prym.Web.Services.Store.IFiscalDrawerService FiscalDrawerService
+@inject ILogger<Pos26PaymentDialog> Logger
+@implements IDisposable
 
 <EFDialog Icon="@Icons.Material.Outlined.Payment"
           Title="Pagamento POS 2026"
@@ -132,6 +136,37 @@
                     €@_importoDigitato.ToString("F2")
                 </div>
 
+                @* Anteprima resto in tempo reale (mentre si digita, prima di "Aggiungi") *@
+                @if (_selectedMethod?.AllowsChange == true && _importoDigitato > 0 && _changePreview != null)
+                {
+                    <div class="pos26-pay-resto-banner pos26-pay-resto-banner--preview">
+                        <MudIcon Icon="@Icons.Material.Outlined.AttachMoney" Size="Size.Small" />
+                        @if (_changePreview.ChangeAmount > 0)
+                        {
+                            <span>Resto: <strong>€@_changePreview.ChangeAmount.ToString("F2")</strong></span>
+                        }
+                        else
+                        {
+                            <span>Importo esatto</span>
+                        }
+                        @if (_changePreview.ChangeBreakdown.Count > 0)
+                        {
+                            <span class="pos26-pay-resto-breakdown">
+                                (@string.Join(", ", _changePreview.ChangeBreakdown
+                                    .Where(c => c.Quantity > 0)
+                                    .Select(c => $"{c.Quantity}× €{c.Value:0.##}")))
+                            </span>
+                        }
+                        @if (!_changePreview.HasSufficientFunds)
+                        {
+                            <span class="pos26-pay-resto-warning">
+                                <MudIcon Icon="@Icons.Material.Outlined.Warning" Size="Size.Small" />
+                                Fondi insufficienti nel cassetto per il resto esatto
+                            </span>
+                        }
+                    </div>
+                }
+
                 @* Scorciatoie rapide *@
                 <div class="pos26-pay-shortcuts">
                     @foreach (var shortcut in _shortcuts)
@@ -206,6 +241,7 @@
     [Parameter] public BusinessPartyDto? Cliente { get; set; }
     [Parameter] public List<PaymentMethodDto>? PaymentMethods { get; set; }
     [Parameter] public FidelityCardDto? FidelityCard { get; set; }
+    [Parameter] public Guid? FiscalDrawerId { get; set; }
 
     // Record temporaneo per righe di pagamento nel dialog
     private record PendingRow(Guid TempId, PaymentMethodDto Metodo, decimal Importo);
@@ -220,6 +256,12 @@
 
     private ElementReference _wrapRef;
     private bool _focused = false;
+
+    // Anteprima resto in tempo reale (P1.1) — calcolata via IFiscalDrawerService.CalculateChangeAsync
+    // con debounce per non chiamare l'API ad ogni singola cifra digitata.
+    private CalculateChangeResponseDto? _changePreview;
+    private CancellationTokenSource? _changeDebounceCts;
+    private const int ChangePreviewDebounceMs = 300;
 
     private readonly decimal[] _shortcuts = [5, 10, 20, 50];
 
@@ -272,8 +314,12 @@
         _paymentMethods = PaymentMethods ?? new();
         // Pre-select first available payment method for faster transaction flow
         _selectedMethod = _paymentMethods.FirstOrDefault();
-        // Importo predefinito = residuo
-        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        // Importo predefinito = residuo, tranne per i metodi che danno resto (es. contanti): in quel
+        // caso lasciamo l'input vuoto, perché precompilare l'esatto residuo azzererebbe sempre il resto
+        // se l'operatore preme "Aggiungi" senza modificare l'importo (gesto naturale e veloce).
+        _numpadInput = _selectedMethod?.AllowsChange == true
+            ? string.Empty
+            : (_residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -319,18 +365,23 @@
     private void OnSelectMethod(PaymentMethodDto method)
     {
         _selectedMethod = method;
-        // Reset importo al residuo corrente
-        _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        // Reset importo al residuo corrente, tranne per i metodi che danno resto (vedi OnInitialized).
+        _numpadInput = method.AllowsChange
+            ? string.Empty
+            : (_residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty);
+        TriggerChangePreviewDebounced();
     }
 
     private void SetTutto()
     {
         _numpadInput = _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        TriggerChangePreviewDebounced();
     }
 
     private void SetShortcut(decimal amount)
     {
         _numpadInput = (_importoDigitato + amount).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        TriggerChangePreviewDebounced();
     }
 
     private void ApplicaPunti()
@@ -338,6 +389,7 @@
         _pointsToRedeem = MaxRedeemablePoints;
         _pointsApplied = _pointsToRedeem > 0;
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        TriggerChangePreviewDebounced();
     }
 
     private void AnnullaPunti()
@@ -345,6 +397,7 @@
         _pointsToRedeem = 0;
         _pointsApplied = false;
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        TriggerChangePreviewDebounced();
     }
 
     private void HandleNumpadKey(string key)
@@ -364,6 +417,7 @@
                     _numpadInput += key;
                 break;
         }
+        TriggerChangePreviewDebounced();
     }
 
     private void AggiungiPagamento()
@@ -393,6 +447,7 @@
 
         // Reset
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        TriggerChangePreviewDebounced();
     }
 
     private async Task PagaEsattiAsync()
@@ -407,6 +462,61 @@
     {
         _pagamentiAggiunti.RemoveAll(p => p.TempId == tempId);
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+        TriggerChangePreviewDebounced();
+    }
+
+    /// <summary>
+    /// Avvia (con debounce) il calcolo del resto in tempo reale tramite
+    /// <see cref="IFiscalDrawerService.CalculateChangeAsync"/>, solo quando il metodo selezionato
+    /// dà resto (contanti) ed è stato digitato un importo. Il calcolo precedente in corso viene
+    /// annullato ad ogni nuova digitazione per evitare chiamate API ridondanti.
+    /// </summary>
+    private void TriggerChangePreviewDebounced()
+    {
+        _changeDebounceCts?.Cancel();
+        _changeDebounceCts?.Dispose();
+        _changeDebounceCts = null;
+        _changePreview = null;
+
+        if (!FiscalDrawerId.HasValue || _selectedMethod?.AllowsChange != true || _importoDigitato <= 0)
+        {
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        _changeDebounceCts = cts;
+        _ = CalculateChangePreviewAsync(FiscalDrawerId.Value, _residuo, _importoDigitato, cts);
+    }
+
+    private async Task CalculateChangePreviewAsync(Guid fiscalDrawerId, decimal totalAmount, decimal receivedAmount, CancellationTokenSource cts)
+    {
+        try
+        {
+            await Task.Delay(ChangePreviewDebounceMs, cts.Token);
+
+            var request = new CalculateChangeRequestDto { TotalAmount = totalAmount, ReceivedAmount = receivedAmount };
+            var response = await FiscalDrawerService.CalculateChangeAsync(fiscalDrawerId, request, cts.Token);
+
+            if (cts.Token.IsCancellationRequested || !ReferenceEquals(_changeDebounceCts, cts))
+                return;
+
+            _changePreview = response;
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Debounce annullato da una nuova digitazione — comportamento atteso, nessun log necessario.
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile calcolare l'anteprima del resto per il cassetto {FiscalDrawerId}.", fiscalDrawerId);
+        }
+    }
+
+    public void Dispose()
+    {
+        _changeDebounceCts?.Cancel();
+        _changeDebounceCts?.Dispose();
     }
 
     private async Task ConfermaAsync()

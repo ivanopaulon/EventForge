@@ -245,6 +245,27 @@
     font-weight: 600;
 }
 
+/* Anteprima resto live nella colonna destra (numpad), mentre si digita l'importo prima di "Aggiungi" */
+.pos26-pay-resto-banner--preview {
+    flex-wrap: wrap;
+}
+
+.pos26-pay-resto-breakdown {
+    font-weight: 400;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.pos26-pay-resto-warning {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    color: var(--pos-amber);
+    font-weight: 600;
+    font-size: 13px;
+}
+
 /* ===== Colonna destra: numpad ===== */
 .pos26-pay-right {
     background: var(--pos-darker);
