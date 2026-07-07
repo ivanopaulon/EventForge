@@ -1,0 +1,318 @@
+@using MudBlazor
+@using Prym.DTOs.Constants
+@using Prym.DTOs.Sales
+@using Prym.Web.Services
+@using Prym.Web.Services.Sales
+@inject ITableManagementService TableManagementService
+@inject IAppNotificationService AppNotification
+@inject ILogger<Pos26DailyFlowPanel> Logger
+
+<MudOverlay Visible="@IsOpen"
+            AutoClose="true"
+            DarkBackground="true"
+            LockScroll="false"
+            OnClosed="CloseAsync" />
+
+@if (IsOpen)
+{
+    <MudPaper Class="pos26-dailyflow-panel" Elevation="12">
+        <MudStack Spacing="2" Class="pa-4 h-100">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6">Flusso Giornaliero</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Prenotazioni di oggi e stato live dei tavoli
+                    </MudText>
+                </MudStack>
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Refresh"
+                                   Size="Size.Small"
+                                   Disabled="@IsBusy"
+                                   OnClick="RefreshAsync" />
+                    <MudIconButton Icon="@Icons.Material.Outlined.Close"
+                                   Size="Size.Small"
+                                   OnClick="CloseAsync" />
+                </MudStack>
+            </MudStack>
+
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle2">Prenotazioni</MudText>
+                    <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary">
+                        <MudButton OnClick='() => SetSlot(TimeSlot.Pranzo)' Variant="@(SelectedSlot == TimeSlot.Pranzo ? Variant.Filled : Variant.Outlined)">Pranzo</MudButton>
+                        <MudButton OnClick='() => SetSlot(TimeSlot.Cena)' Variant="@(SelectedSlot == TimeSlot.Cena ? Variant.Filled : Variant.Outlined)">Cena</MudButton>
+                    </MudButtonGroup>
+                </MudStack>
+
+                @if (IsBusy && DailyFlow is null)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (FilteredReservations.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nessuna prenotazione nel turno selezionato.</MudText>
+                }
+                else
+                {
+                    <MudStack Spacing="1" Class="pos26-dailyflow-scroll">
+                        @foreach (var reservation in FilteredReservations)
+                        {
+                            <MudPaper Outlined="true" Class="pa-2">
+                                <MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.subtitle2">@reservation.ReservationDateTime.ToLocalTime().ToString("HH:mm") · Tavolo @reservation.TableNumber</MudText>
+                                        <MudText Typo="Typo.body2">@reservation.CustomerName · @reservation.NumberOfGuests coperti</MudText>
+                                        @if (!string.IsNullOrWhiteSpace(reservation.PhoneNumber))
+                                        {
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@reservation.PhoneNumber</MudText>
+                                        }
+                                    </MudStack>
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="@GetReservationColor(reservation.Status)"
+                                             Variant="Variant.Outlined">
+                                        @reservation.Status
+                                    </MudChip>
+                                </MudStack>
+
+                                @if (string.Equals(reservation.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Success"
+                                               Size="Size.Small"
+                                               Class="mt-2"
+                                               Disabled="@(_processingReservationId == reservation.Id)"
+                                               OnClick="() => CheckInAsync(reservation)">
+                                        Check-in
+                                    </MudButton>
+                                }
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="pa-3 flex-grow-1">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Tavoli</MudText>
+
+                @if (DailyFlow?.Tables.Count > 0)
+                {
+                    <MudStack Spacing="1" Class="pos26-dailyflow-scroll">
+                        @foreach (var table in DailyFlow.Tables)
+                        {
+                            <MudPaper Outlined="true" Class="pa-2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.subtitle2">
+                                            Tavolo @table.TableNumber
+                                            @if (!string.IsNullOrWhiteSpace(table.TableName))
+                                            {
+                                                <span>· @table.TableName</span>
+                                            }
+                                        </MudText>
+                                        <MudStack Row="true" Spacing="1" Class="mt-1">
+                                            <MudChip T="string"
+                                                     Size="Size.Small"
+                                                     Color="@GetTableColor(table.Status)"
+                                                     Variant="Variant.Filled">
+                                                @table.Status
+                                            </MudChip>
+                                            @if (table.HasOpenBill && table.CurrentPartialAmount.HasValue)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                                    Conto € @table.CurrentPartialAmount.Value.ToString("F2")
+                                                </MudChip>
+                                            }
+                                            else if (table.HasOpenBill)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">
+                                                    Conto aperto
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudStack>
+
+                                    @if (table.NextReservationTime.HasValue && table.MinutesUntilNextReservation.HasValue)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                                            Prenotazione tra @table.MinutesUntilNextReservation minuti
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                }
+                else if (IsBusy)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun tavolo disponibile.</MudText>
+                }
+            </MudPaper>
+        </MudStack>
+    </MudPaper>
+}
+
+<style>
+    .pos26-dailyflow-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        z-index: 1400;
+        width: min(440px, 100vw);
+        height: 100vh;
+        overflow: hidden;
+        border-radius: 0;
+    }
+
+    .pos26-dailyflow-scroll {
+        overflow-y: auto;
+        max-height: 42vh;
+    }
+
+    .pos26-dailyflow-panel .flex-grow-1 {
+        min-height: 0;
+    }
+</style>
+
+@code {
+    [Parameter] public bool IsOpen { get; set; }
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+    [Parameter] public DailyFlowDto? DailyFlow { get; set; }
+    [Parameter] public bool IsBusy { get; set; }
+    [Parameter] public Guid? CurrentSaleSessionId { get; set; }
+    [Parameter] public Guid? SelectedOperatorId { get; set; }
+    [Parameter] public Guid? SelectedPosId { get; set; }
+    [Parameter] public EventCallback<Guid> OnSessionOpened { get; set; }
+    [Parameter] public EventCallback OnRefreshRequested { get; set; }
+
+    private Guid? _processingReservationId;
+    private TimeSlot SelectedSlot { get; set; } = GetDefaultSlot();
+
+    private List<TableReservationDto> FilteredReservations =>
+        (DailyFlow?.TodayReservations ?? [])
+            .Where(r => MatchesSlot(r.ReservationDateTime) &&
+                        (string.Equals(r.Status, "Confirmed", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(r.Status, "Arrived", StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(r => r.ReservationDateTime)
+            .ToList();
+
+    private static TimeSlot GetDefaultSlot()
+    {
+        var hour = DateTime.Now.Hour;
+        return hour >= 18 ? TimeSlot.Cena : TimeSlot.Pranzo;
+    }
+
+    private void SetSlot(TimeSlot slot) => SelectedSlot = slot;
+
+    private bool MatchesSlot(DateTime dateTime)
+    {
+        var timeOfDay = dateTime.TimeOfDay;
+        return SelectedSlot == TimeSlot.Pranzo
+            ? timeOfDay >= TimeSpan.FromHours(11) && timeOfDay <= TimeSpan.FromHours(15)
+            : timeOfDay >= TimeSpan.FromHours(18);
+    }
+
+    private async Task CheckInAsync(TableReservationDto reservation)
+    {
+        if (_processingReservationId.HasValue)
+        {
+            return;
+        }
+
+        if (!CurrentSaleSessionId.HasValue && (!SelectedOperatorId.HasValue || !SelectedPosId.HasValue))
+        {
+            AppNotification.ShowWarning("Seleziona operatore e cassa prima del check-in.");
+            return;
+        }
+
+        try
+        {
+            _processingReservationId = reservation.Id;
+
+            var result = await TableManagementService.CheckInReservationAsync(
+                reservation.Id,
+                new ReservationCheckInRequestDto
+                {
+                    SaleSessionId = CurrentSaleSessionId,
+                    OperatorId = CurrentSaleSessionId.HasValue ? null : SelectedOperatorId,
+                    PosId = CurrentSaleSessionId.HasValue ? null : SelectedPosId,
+                    SaleType = SaleTypes.Retail,
+                    Currency = Currencies.EUR
+                });
+
+            if (result is null)
+            {
+                AppNotification.ShowWarning("Check-in non riuscito.");
+                return;
+            }
+
+            AppNotification.ShowSuccess($"Check-in completato per {reservation.CustomerName}.");
+
+            if (OnRefreshRequested.HasDelegate)
+            {
+                await OnRefreshRequested.InvokeAsync();
+            }
+
+            if (OnSessionOpened.HasDelegate)
+            {
+                await OnSessionOpened.InvokeAsync(result.SaleSessionId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il check-in della prenotazione {ReservationId}", reservation.Id);
+            AppNotification.ShowError("Errore durante il check-in.");
+        }
+        finally
+        {
+            _processingReservationId = null;
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (OnRefreshRequested.HasDelegate)
+        {
+            await OnRefreshRequested.InvokeAsync();
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        if (IsOpenChanged.HasDelegate)
+        {
+            await IsOpenChanged.InvokeAsync(false);
+        }
+    }
+
+    private static Color GetReservationColor(string status) => status switch
+    {
+        "Confirmed" => Color.Primary,
+        "Arrived" => Color.Success,
+        "Pending" => Color.Warning,
+        "Cancelled" => Color.Error,
+        "NoShow" => Color.Error,
+        "Completed" => Color.Info,
+        _ => Color.Default
+    };
+
+    private static Color GetTableColor(string status) => status switch
+    {
+        "Available" => Color.Success,
+        "Occupied" => Color.Error,
+        "Reserved" => Color.Warning,
+        "Cleaning" => Color.Info,
+        "OutOfService" => Color.Dark,
+        _ => Color.Default
+    };
+
+    private enum TimeSlot
+    {
+        Pranzo,
+        Cena
+    }
+}

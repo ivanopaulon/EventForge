@@ -24,4 +24,7 @@ public interface IShiftService
 
     /// <summary>Deletes a shift.</summary>
     Task<bool> DeleteAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Gets the active shift for a specific operator.</summary>
+    Task<CashierShiftDto?> GetActiveShiftForOperatorAsync(Guid storeUserId, CancellationToken ct = default);
 }

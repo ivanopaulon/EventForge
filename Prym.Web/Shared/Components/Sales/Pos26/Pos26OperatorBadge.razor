@@ -1,0 +1,87 @@
+@using Prym.Web.Shared.Components.Dialogs.Sales
+@using Prym.DTOs.Store
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ILogger<Pos26OperatorBadge> Logger
+
+<div class="d-flex align-center gap-2">
+    <MudChip T="string"
+             Color="Color.Success"
+             Variant="Variant.Outlined"
+             Icon="@Icons.Material.Filled.Person">
+        @(CurrentOperatorName ?? "—")
+    </MudChip>
+
+    <MudMenu Dense="true" Disabled="@(!_switchableOperators.Any())">
+        <ActivatorContent>
+            <MudIconButton Icon="@Icons.Material.Outlined.SwitchAccount"
+                           Color="Color.Primary"
+                           Size="Size.Small"
+                           Disabled="@(!_switchableOperators.Any())"
+                           Title="Cambia operatore" />
+        </ActivatorContent>
+        <ChildContent>
+            @foreach (var operatorDto in _switchableOperators)
+            {
+                <MudMenuItem OnClick="@(() => PromptSwitchAsync(operatorDto))">
+                    @operatorDto.Name
+                </MudMenuItem>
+            }
+        </ChildContent>
+    </MudMenu>
+</div>
+
+@code {
+    [Parameter] public Guid? CurrentOperatorId { get; set; }
+    [Parameter] public string? CurrentOperatorName { get; set; }
+    [Parameter] public IReadOnlyList<StoreUserDto>? Operators { get; set; }
+    [Parameter] public EventCallback<StoreUserDto> OnOperatorSelected { get; set; }
+
+    private IReadOnlyList<StoreUserDto> _switchableOperators = [];
+
+    protected override void OnParametersSet()
+    {
+        _switchableOperators = Operators?
+            .Where(op => op.Id != CurrentOperatorId)
+            .OrderBy(op => op.Name)
+            .ToList()
+            ?? [];
+    }
+
+    private async Task PromptSwitchAsync(StoreUserDto operatorDto)
+    {
+        try
+        {
+            var parameters = new DialogParameters<PinPromptDialog>
+            {
+                { x => x.StoreUserId, operatorDto.Id },
+                { x => x.StoreUserName, operatorDto.Name }
+            };
+
+            var dialog = await DialogService.ShowAsync<PinPromptDialog>(
+                "Conferma operatore",
+                parameters,
+                new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseOnEscapeKey = true });
+
+            var result = await dialog.Result;
+            if (result is null || result.Canceled)
+            {
+                return;
+            }
+
+            if (result.Data is bool validated && validated)
+            {
+                await OnOperatorSelected.InvokeAsync(operatorDto);
+            }
+            else
+            {
+                AppNotification.ShowWarning("Cambio operatore annullato: PIN non valido.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error switching POS operator to {OperatorId}.", operatorDto.Id);
+            AppNotification.ShowError("Impossibile cambiare operatore.");
+        }
+    }
+}

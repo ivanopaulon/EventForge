@@ -127,6 +127,23 @@ public class TableManagementService(
         }
     }
 
+    public async Task<DailyFlowDto?> GetDailyFlowAsync(DateTime? date = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var endpoint = date.HasValue
+                ? $"{BaseUrl}/daily-flow?date={date.Value:yyyy-MM-dd}"
+                : $"{BaseUrl}/daily-flow";
+
+            return await httpClientService.GetAsync<DailyFlowDto>(endpoint, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving daily flow for date {Date}", date);
+            return null;
+        }
+    }
+
     public async Task<TableReservationDto?> GetReservationAsync(Guid id, CancellationToken ct = default)
     {
         try
@@ -191,6 +208,22 @@ public class TableManagementService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Error marking reservation arrived {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<ReservationCheckInResultDto?> CheckInReservationAsync(Guid id, ReservationCheckInRequestDto request, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<ReservationCheckInRequestDto, ReservationCheckInResultDto>(
+                $"{BaseUrl}/reservations/{id}/check-in",
+                request,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error checking in reservation {Id}", id);
             return null;
         }
     }

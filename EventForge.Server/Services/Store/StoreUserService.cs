@@ -1,3 +1,4 @@
+using EventForge.Server.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 using Prym.DTOs.Store;
 
@@ -9,6 +10,7 @@ namespace EventForge.Server.Services.Store;
 public class StoreUserService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    IPasswordService passwordService,
     ITenantContext tenantContext,
     ILogger<StoreUserService> logger) : IStoreUserService
 {
@@ -924,6 +926,67 @@ public class StoreUserService(
         }
     }
 
+    public async Task<bool> ValidatePinAsync(Guid storeUserId, string pin, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
+            var quickPinHash = await context.StoreUsers
+                .AsNoTracking()
+                .Where(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value)
+                .Select(su => su.QuickPinHash)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return VerifyQuickPin(pin, quickPinHash);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task SetPinAsync(Guid storeUserId, string pin, string currentUser, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for store user operations.");
+            }
+
+            var storeUser = await context.StoreUsers
+                .FirstOrDefaultAsync(su => su.Id == storeUserId && !su.IsDeleted && su.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (storeUser is null)
+            {
+                throw new InvalidOperationException($"Store user with ID {storeUserId} not found.");
+            }
+
+            var originalValues = context.Entry(storeUser).CurrentValues.Clone();
+            var originalStoreUser = (StoreUser)originalValues.ToObject();
+            var (hash, salt) = passwordService.HashPassword(pin);
+
+            storeUser.QuickPinHash = $"{hash}|{salt}";
+            storeUser.ModifiedAt = DateTime.UtcNow;
+            storeUser.ModifiedBy = currentUser;
+
+            await context.SaveChangesAsync(cancellationToken);
+            _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
+
+            logger.LogInformation("Quick PIN updated for store user {StoreUserId} by {User}.", storeUserId, currentUser);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<StoreUserDto>> GetStoreUsersWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -1055,6 +1118,23 @@ public class StoreUserService(
             ModifiedAt = storeUserPrivilege.ModifiedAt,
             ModifiedBy = storeUserPrivilege.ModifiedBy
         };
+    }
+
+    private bool VerifyQuickPin(string pin, string? storedQuickPinHash)
+    {
+        if (string.IsNullOrWhiteSpace(pin) || string.IsNullOrWhiteSpace(storedQuickPinHash))
+        {
+            return false;
+        }
+
+        var parts = storedQuickPinHash.Split('|', 2, StringSplitOptions.TrimEntries);
+        if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
+        {
+            logger.LogWarning("Quick PIN hash for a store user is not in the expected format.");
+            return false;
+        }
+
+        return passwordService.VerifyPassword(pin, parts[0], parts[1]);
     }
 
     #endregion

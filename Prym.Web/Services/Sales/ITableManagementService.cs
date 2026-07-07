@@ -48,6 +48,11 @@ public interface ITableManagementService
     Task<List<TableReservationDto>?> GetReservationsByDateAsync(DateTime date, CancellationToken ct = default);
 
     /// <summary>
+    /// Gets the aggregated daily flow for reservations and tables.
+    /// </summary>
+    Task<DailyFlowDto?> GetDailyFlowAsync(DateTime? date = null, CancellationToken ct = default);
+
+    /// <summary>
     /// Gets a reservation by ID.
     /// </summary>
     Task<TableReservationDto?> GetReservationAsync(Guid id, CancellationToken ct = default);
@@ -71,6 +76,11 @@ public interface ITableManagementService
     /// Marks a reservation as arrived.
     /// </summary>
     Task<TableReservationDto?> MarkArrivedAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>
+    /// Checks in a reservation and assigns or creates a sale session for the table.
+    /// </summary>
+    Task<ReservationCheckInResultDto?> CheckInReservationAsync(Guid id, ReservationCheckInRequestDto request, CancellationToken ct = default);
 
     /// <summary>
     /// Cancels a reservation.

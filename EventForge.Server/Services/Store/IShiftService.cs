@@ -24,4 +24,7 @@ public interface IShiftService
 
     /// <summary>Gets all shifts for a specific operator within the specified date range.</summary>
     Task<List<CashierShiftDto>> GetShiftsByOperatorAsync(Guid storeUserId, DateOnly from, DateOnly to, CancellationToken ct = default);
+
+    /// <summary>Gets the active shift for a specific operator at the requested UTC time.</summary>
+    Task<CashierShiftDto?> GetActiveShiftForOperatorAsync(Guid storeUserId, DateTime? atUtc = null, CancellationToken ct = default);
 }

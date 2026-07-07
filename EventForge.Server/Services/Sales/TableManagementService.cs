@@ -9,6 +9,8 @@ public class TableManagementService(
     ILogger<TableManagementService> logger,
     ITenantContext tenantContext) : ITableManagementService
 {
+    private const int MinTableDimension = 40;
+    private const int MaxTableDimension = 300;
 
     private Guid GetTenantId()
     {
@@ -179,6 +181,9 @@ public class TableManagementService(
                 TableNumber = dto.TableNumber,
                 TableName = dto.TableName,
                 Capacity = dto.Capacity,
+                Shape = MapShape(dto.Shape),
+                Width = NormalizeTableDimension(dto.Width),
+                Height = NormalizeTableDimension(dto.Height),
                 Area = dto.Area,
                 PositionX = dto.PositionX,
                 PositionY = dto.PositionY,
@@ -231,6 +236,9 @@ public class TableManagementService(
 
             if (dto.TableName is not null) table.TableName = dto.TableName;
             if (dto.Capacity.HasValue) table.Capacity = dto.Capacity.Value;
+            if (dto.Shape.HasValue) table.Shape = MapShape(dto.Shape.Value);
+            if (dto.Width.HasValue) table.Width = NormalizeTableDimension(dto.Width.Value);
+            if (dto.Height.HasValue) table.Height = NormalizeTableDimension(dto.Height.Value);
             if (dto.Area is not null) table.Area = dto.Area;
             if (dto.PositionX.HasValue) table.PositionX = dto.PositionX;
             if (dto.PositionY.HasValue) table.PositionY = dto.PositionY;
@@ -334,6 +342,102 @@ public class TableManagementService(
                 .ToListAsync(cancellationToken);
 
             return reservations.Select(MapReservationToDto).ToList();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task<DailyFlowDto> GetDailyFlowAsync(DateTime date, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tenantId = GetTenantId();
+            var startDate = date.Date;
+            var endDate = startDate.AddDays(1);
+            var now = DateTime.UtcNow;
+            var nextReservationLimit = now.AddMinutes(60);
+
+            var tables = await context.Set<TableSession>()
+                .AsNoTracking()
+                .Where(t => t.TenantId == tenantId && !t.IsDeleted)
+                .OrderBy(t => t.Area)
+                .ThenBy(t => t.TableNumber)
+                .ToListAsync(cancellationToken);
+
+            var reservations = await context.Set<TableReservation>()
+                .AsNoTracking()
+                .Include(r => r.Table)
+                .Where(r => r.TenantId == tenantId && !r.IsDeleted &&
+                            r.ReservationDateTime >= startDate && r.ReservationDateTime < endDate)
+                .OrderBy(r => r.ReservationDateTime)
+                .ToListAsync(cancellationToken);
+
+            var tableIds = tables.Select(t => t.Id).ToList();
+            var activeSaleSessions = await context.Set<SaleSession>()
+                .AsNoTracking()
+                .Where(s => s.TenantId == tenantId && !s.IsDeleted &&
+                            s.TableId.HasValue &&
+                            tableIds.Contains(s.TableId.Value) &&
+                            s.Status != SaleSessionStatus.Closed &&
+                            s.Status != SaleSessionStatus.Cancelled)
+                .OrderByDescending(s => s.ModifiedAt ?? s.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            var activeSessionById = activeSaleSessions.ToDictionary(s => s.Id);
+            var activeSessionByTableId = activeSaleSessions
+                .GroupBy(s => s.TableId!.Value)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var reservationsByTableId = reservations
+                .GroupBy(r => r.TableId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            return new DailyFlowDto
+            {
+                TodayReservations = reservations.Select(MapReservationToDto).ToList(),
+                Tables = tables.Select(table =>
+                {
+                    SaleSession? openSession = null;
+
+                    if (table.CurrentSaleSessionId.HasValue &&
+                        activeSessionById.TryGetValue(table.CurrentSaleSessionId.Value, out var currentSession))
+                    {
+                        openSession = currentSession;
+                    }
+                    else if (activeSessionByTableId.TryGetValue(table.Id, out var mappedSession))
+                    {
+                        openSession = mappedSession;
+                    }
+
+                    TableReservation? nextReservation = null;
+                    if (reservationsByTableId.TryGetValue(table.Id, out var tableReservations))
+                    {
+                        nextReservation = tableReservations
+                            .FirstOrDefault(r => r.Status == ReservationStatus.Confirmed &&
+                                                 r.ReservationDateTime >= now &&
+                                                 r.ReservationDateTime <= nextReservationLimit);
+                    }
+
+                    return new TableDailyStatusDto
+                    {
+                        TableId = table.Id,
+                        TableNumber = table.TableNumber,
+                        TableName = table.TableName,
+                        Status = table.Status.ToString(),
+                        HasOpenBill = openSession is not null,
+                        OpenSaleSessionId = openSession?.Id,
+                        CurrentPartialAmount = openSession?.FinalTotal,
+                        NextReservationId = nextReservation?.Id,
+                        NextReservationTime = nextReservation?.ReservationDateTime,
+                        NextReservationCustomerName = nextReservation?.CustomerName,
+                        MinutesUntilNextReservation = nextReservation is null
+                            ? null
+                            : Math.Max(0, (int)Math.Ceiling((nextReservation.ReservationDateTime - now).TotalMinutes))
+                    };
+                }).ToList()
+            };
         }
         catch
         {
@@ -589,6 +693,9 @@ public class TableManagementService(
             TableNumber = table.TableNumber,
             TableName = table.TableName,
             Capacity = table.Capacity,
+            Shape = MapShape(table.Shape),
+            Width = table.Width,
+            Height = table.Height,
             Status = table.Status.ToString(),
             CurrentSaleSessionId = table.CurrentSaleSessionId,
             Area = table.Area,
@@ -599,6 +706,22 @@ public class TableManagementService(
             ModifiedAt = table.ModifiedAt
         };
     }
+
+    private static TableShapeDto MapShape(TableShape shape) => shape switch
+    {
+        TableShape.Rectangle => TableShapeDto.Rectangle,
+        TableShape.Circle => TableShapeDto.Circle,
+        _ => throw new ArgumentOutOfRangeException(nameof(shape), shape, "Unsupported table shape.")
+    };
+
+    private static TableShape MapShape(TableShapeDto shape) => shape switch
+    {
+        TableShapeDto.Rectangle => TableShape.Rectangle,
+        TableShapeDto.Circle => TableShape.Circle,
+        _ => throw new ArgumentOutOfRangeException(nameof(shape), shape, "Unsupported table shape.")
+    };
+
+    private static int NormalizeTableDimension(int value) => Math.Clamp(value, MinTableDimension, MaxTableDimension);
 
     private static TableReservationDto MapReservationToDto(TableReservation reservation)
     {
