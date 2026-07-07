@@ -483,21 +483,21 @@
             return;
         }
 
-        var cts = new CancellationTokenSource();
-        _changeDebounceCts = cts;
-        _ = CalculateChangePreviewAsync(FiscalDrawerId.Value, _residuo, _importoDigitato, cts);
+        var cancellationTokenSource = new CancellationTokenSource();
+        _changeDebounceCts = cancellationTokenSource;
+        _ = CalculateChangePreviewAsync(FiscalDrawerId.Value, _residuo, _importoDigitato, cancellationTokenSource);
     }
 
-    private async Task CalculateChangePreviewAsync(Guid fiscalDrawerId, decimal totalAmount, decimal receivedAmount, CancellationTokenSource cts)
+    private async Task CalculateChangePreviewAsync(Guid fiscalDrawerId, decimal totalAmount, decimal receivedAmount, CancellationTokenSource cancellationTokenSource)
     {
         try
         {
-            await Task.Delay(ChangePreviewDebounceMs, cts.Token);
+            await Task.Delay(ChangePreviewDebounceMs, cancellationTokenSource.Token);
 
             var request = new CalculateChangeRequestDto { TotalAmount = totalAmount, ReceivedAmount = receivedAmount };
-            var response = await FiscalDrawerService.CalculateChangeAsync(fiscalDrawerId, request, cts.Token);
+            var response = await FiscalDrawerService.CalculateChangeAsync(fiscalDrawerId, request, cancellationTokenSource.Token);
 
-            if (cts.IsCancellationRequested || !ReferenceEquals(_changeDebounceCts, cts))
+            if (cancellationTokenSource.IsCancellationRequested || !ReferenceEquals(_changeDebounceCts, cancellationTokenSource))
                 return;
 
             _changePreview = response;
