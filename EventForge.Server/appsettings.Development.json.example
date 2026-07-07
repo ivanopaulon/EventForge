@@ -1,9 +1,11 @@
 {
-  "_Comment": "Copy this file to appsettings.Development.json and fill in your local values. That file is git-ignored.",
+  "_Comment": "Copy this file to appsettings.Development.json and fill in your local values. That file is git-ignored. Values here override appsettings.json for the Development environment.",
   "ConnectionStrings": {
     "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData;Integrated Security=True;TrustServerCertificate=True;",
     "SqlServer": "Server=localhost\\SQLEXPRESS;Database=EventData;Integrated Security=True;TrustServerCertificate=True;",
-    "LogDb": "Server=localhost\\SQLEXPRESS;Database=EventLogger;Integrated Security=True;TrustServerCertificate=True;"
+    "LogDb": "Server=localhost\\SQLEXPRESS;Database=EventLogger;Integrated Security=True;TrustServerCertificate=True;",
+    "_Comment_Redis": "Redis is optional for local dev; the default localhost:6379 from appsettings.json works without authentication. Override only if your Redis instance uses a non-default port or password.",
+    "Redis": "localhost:6379"
   },
   "Encryption": {
     "Key": "LocalDevEncryptionKey-AtLeast32Chars!!"
@@ -20,15 +22,8 @@
   "Agent": {
     "Password": "LocalAgent@Dev2024!"
   },
-  "Environments": {
-    "Development": {
-      "UpdateHub": {
-        "AdminApiKey": "local-dev-admin-key",
-        "MaintenanceSecret": "local-dev-maintenance-secret"
-      },
-      "Agent": {
-        "Password": "LocalAgent@Dev2024!"
-      }
-    }
+  "UpdateHub": {
+    "AdminApiKey": "local-dev-admin-key",
+    "MaintenanceSecret": "local-dev-maintenance-secret"
   }
 }
