@@ -1512,7 +1512,22 @@
     "mostRecent": "Più recenti",
     "oldest": "Meno recenti",
     "byTotal": "Per totale",
-    "byItems": "Per numero articoli"
+    "byItems": "Per numero articoli",
+    "drawerClosureTitle": "Chiusura Cassetto",
+    "drawerClosureSubtitle": "Conta il contante presente nel cassetto e confermalo per chiudere la sessione.",
+    "openingBalance": "Fondo apertura",
+    "totalSales": "Vendite (contanti)",
+    "totalDeposits": "Versamenti",
+    "totalWithdrawals": "Prelievi",
+    "expectedBalance": "Saldo atteso",
+    "closingBalanceCounted": "Importo contato",
+    "balanceMatches": "Il saldo contato corrisponde al saldo atteso.",
+    "balanceDifference": "Differenza",
+    "countedMinusExpected": "contato − atteso",
+    "closureNotes": "Note (opzionale)",
+    "confirmDrawerClosure": "Conferma Chiusura Cassetto",
+    "drawerClosureSuccess": "Cassetto chiuso correttamente.",
+    "drawerClosureError": "Errore durante la chiusura del cassetto."
   },
   "status": {
     "active": "Attivo",

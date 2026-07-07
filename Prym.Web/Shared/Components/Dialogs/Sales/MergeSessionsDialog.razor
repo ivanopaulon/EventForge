@@ -9,6 +9,7 @@
           OnClose="Cancel"
           MinWidth="min(600px, 95vw)">
     <ChildContent>
+        <div class="pos26-dialog-dark">
         <MudText Typo="Typo.body2" Class="mb-4">
             @TranslationService.GetTranslation("sales.merge.description", "Seleziona almeno 2 sessioni da unire in un'unica sessione")
         </MudText>
@@ -68,6 +69,7 @@
                              T="string" />
             }
         }
+        </div>
     </ChildContent>
     
     <DialogActions>

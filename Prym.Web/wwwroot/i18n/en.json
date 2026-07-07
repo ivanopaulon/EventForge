@@ -1501,7 +1501,22 @@
     "mostRecent": "Most recent",
     "oldest": "Oldest",
     "byTotal": "By total",
-    "byItems": "By items count"
+    "byItems": "By items count",
+    "drawerClosureTitle": "Drawer Closure",
+    "drawerClosureSubtitle": "Count the cash in the drawer and confirm it to close the session.",
+    "openingBalance": "Opening float",
+    "totalSales": "Sales (cash)",
+    "totalDeposits": "Deposits",
+    "totalWithdrawals": "Withdrawals",
+    "expectedBalance": "Expected balance",
+    "closingBalanceCounted": "Counted amount",
+    "balanceMatches": "The counted balance matches the expected balance.",
+    "balanceDifference": "Difference",
+    "countedMinusExpected": "counted − expected",
+    "closureNotes": "Notes (optional)",
+    "confirmDrawerClosure": "Confirm Drawer Closure",
+    "drawerClosureSuccess": "Drawer closed successfully.",
+    "drawerClosureError": "Error closing the drawer."
   },
   "status": {
     "active": "Active",
