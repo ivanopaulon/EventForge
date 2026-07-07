@@ -497,7 +497,7 @@
             var request = new CalculateChangeRequestDto { TotalAmount = totalAmount, ReceivedAmount = receivedAmount };
             var response = await FiscalDrawerService.CalculateChangeAsync(fiscalDrawerId, request, cts.Token);
 
-            if (cts.Token.IsCancellationRequested || !ReferenceEquals(_changeDebounceCts, cts))
+            if (!ReferenceEquals(_changeDebounceCts, cts))
                 return;
 
             _changePreview = response;

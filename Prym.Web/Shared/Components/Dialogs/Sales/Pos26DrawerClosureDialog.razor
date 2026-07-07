@@ -133,7 +133,7 @@
         _closingBalance = FiscalDrawerSummary?.CurrentBalance ?? 0m;
     }
 
-    private static string FormatAmount(decimal? amount) => (amount ?? 0m).ToString("N2", System.Globalization.CultureInfo.InvariantCulture);
+    private static string FormatAmount(decimal? amount) => (amount ?? 0m).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
     private static string GetCurrencySymbol(string? currencyCode) => currencyCode switch
     {
