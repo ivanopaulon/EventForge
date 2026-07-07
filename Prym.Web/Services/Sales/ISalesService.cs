@@ -83,6 +83,16 @@ public interface ISalesService
     Task<SaleSessionDto?> CloseSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Voids a closed sale session, creating inverse stock movements and marking it as cancelled.
+    /// </summary>
+    Task<SaleSessionDto?> VoidSessionAsync(Guid sessionId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets sale sessions within a date range (for sales history/receipts UI).
+    /// </summary>
+    Task<List<SaleSessionDto>?> GetSessionsByDateAsync(DateTime startDate, DateTime? endDate = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Splits a sale session.
     /// </summary>
     Task<SplitResultDto?> SplitSessionAsync(SplitSessionDto splitDto, CancellationToken cancellationToken = default);

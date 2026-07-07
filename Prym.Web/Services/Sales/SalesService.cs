@@ -219,6 +219,38 @@ public class SalesService(
         }
     }
 
+    public async Task<SaleSessionDto?> VoidSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await httpClientService.PostAsync<object, SaleSessionDto>($"{BaseUrl}/{sessionId}/void", new { }, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error voiding session {SessionId}", sessionId);
+            return null;
+        }
+    }
+
+    public async Task<List<SaleSessionDto>?> GetSessionsByDateAsync(DateTime startDate, DateTime? endDate = null, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var query = $"api/v1/sales/pos-sessions/date-range?startDate={startDate:O}&pageNumber=1&pageSize={MaxUnpaginatedPageSize}";
+            if (endDate.HasValue)
+            {
+                query += $"&endDate={endDate.Value:O}";
+            }
+            var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(query, cancellationToken);
+            return result?.Items?.ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving sessions by date range");
+            return null;
+        }
+    }
+
     public async Task<SplitResultDto?> SplitSessionAsync(SplitSessionDto splitDto, CancellationToken cancellationToken = default)
     {
         try
