@@ -27,6 +27,17 @@
             </button>
         }
     </div>
+
+    @* Pulsante stampa ricevuta non fiscale (visibile solo senza stampante fiscale) *@
+    @if (!HasFiscalPrinter && OnPrintReceipt.HasDelegate)
+    {
+        <button class="pos26-numpad-print-btn"
+                @onclick="OnPrintReceipt"
+                title="Stampa ricevuta non fiscale (browser)">
+            <MudIcon Icon="@Icons.Material.Outlined.Print" Size="Size.Small" Class="mr-1" />
+            Stampa ricevuta
+        </button>
+    }
 </div>
 
 @code {
@@ -39,6 +50,10 @@
     /// <summary>Invocato per sconto a valore fisso in €.</summary>
     [Parameter] public EventCallback<decimal> OnApplyFixedDiscount { get; set; }
     [Parameter] public bool CanPay { get; set; }
+    /// <summary>Indica se è configurata una stampante fiscale. Se false, viene mostrato il pulsante "Stampa ricevuta".</summary>
+    [Parameter] public bool HasFiscalPrinter { get; set; }
+    /// <summary>Invocato quando il cassiere richiede la stampa non-fiscale (browser print).</summary>
+    [Parameter] public EventCallback OnPrintReceipt { get; set; }
 
     private enum NumpadMode { Normal, DiscountPercent, DiscountFixed }
 

@@ -11,6 +11,7 @@ using Prym.DTOs.FiscalPrinting;
 using Prym.DTOs.Products;
 using Prym.DTOs.Sales;
 using Prym.DTOs.Store;
+using Prym.DTOs.Warehouse;
 using Prym.Web.Models.Sales;
 using Prym.Web.Services;
 using Prym.Web.Shared.Components.Dialogs;
@@ -38,6 +39,9 @@ public partial class POS2026 : IAsyncDisposable
     private List<ClassificationNodeDto> _classificationNodes = new();   // nodi categoria reali
     private List<string> _categories = new();
     private bool _isLoadingProducts = false;
+
+    // --- Disponibilità stock per prodotto (somma AvailableQuantity su tutte le location) ---
+    private Dictionary<Guid, decimal> _stockByProductId = new();
 
     // --- Filtri e ordinamento ---
     private string _searchTerm = string.Empty;
@@ -72,6 +76,9 @@ public partial class POS2026 : IAsyncDisposable
     // --- Sessioni parcheggiate ---
     private List<SaleSessionDto> _parkedSessions = new();
     private bool _showParkedSessions = false;
+
+    // --- Mobile tab (0 = Prodotti, 1 = Scontrino+Paga) ---
+    private int _mobileTab = 0;
 
     // --- Nota ordine ---
     private bool _showNoteInput = false;
@@ -205,10 +212,11 @@ public partial class POS2026 : IAsyncDisposable
         // dopo che sia i prodotti sia i best sellers sono stati caricati in parallelo.
         try
         {
-            // Carica prodotti e best sellers in parallelo — unico render al completamento di entrambi.
+            // Carica prodotti, best sellers e disponibilità stock in parallelo — unico render al completamento.
             var productsTask = ProductService.GetPosCatalogAsync(page: 1, pageSize: 100);
             var bestSellersTask = LoadBestSellerIdsAsync();
-            await Task.WhenAll(productsTask, bestSellersTask);
+            var stockTask = LoadStockAvailabilityAsync();
+            await Task.WhenAll(productsTask, bestSellersTask, stockTask);
 
             var result = productsTask.Result;
             _allProducts = result?.Items?.ToList() ?? new();
@@ -256,6 +264,40 @@ public partial class POS2026 : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "POS2026: impossibile caricare best seller da analytics. Fallback a ordine alfabetico.");
+        }
+    }
+
+    /// <summary>
+    /// Carica la disponibilità stock per tutti i prodotti, gestendo la paginazione.
+    /// Aggrega AvailableQuantity (Quantity − Reserved) per prodotto su tutte le location/lotti.
+    /// Viene eseguita in parallelo con il caricamento prodotti all'avvio.
+    /// </summary>
+    private async Task LoadStockAvailabilityAsync()
+    {
+        const int stockPageSize = 500;
+        try
+        {
+            var allItems = new List<StockDto>();
+            var firstPage = await StockService.GetStockAsync(page: 1, pageSize: stockPageSize);
+            if (firstPage?.Items != null)
+            {
+                allItems.AddRange(firstPage.Items);
+                // Recupera le pagine rimanenti se il catalogo supera stockPageSize record
+                for (int p = 2; p <= (firstPage.TotalPages); p++)
+                {
+                    var page = await StockService.GetStockAsync(page: p, pageSize: stockPageSize);
+                    if (page?.Items != null)
+                        allItems.AddRange(page.Items);
+                }
+            }
+
+            _stockByProductId = allItems
+                .GroupBy(s => s.ProductId)
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.AvailableQuantity));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "POS2026: impossibile caricare disponibilità stock.");
         }
     }
 
@@ -837,6 +879,41 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Apre il dialog di modifica riga (quantità, prezzo, sconto) e salva le modifiche tramite UpdateItemAsync.
+    /// Invocato dal bottone di modifica in <see cref="Pos26Receipt"/>.
+    /// </summary>
+    private async Task EditLineItemAsync(SaleItemDto item)
+    {
+        if (!ViewModel.HasActiveSession) return;
+        try
+        {
+            var parameters = new DialogParameters { ["Item"] = item };
+            var dialog = await DialogService.ShowAsync<POSTouchLineEditDialog>(
+                string.Empty, parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = false });
+            var result = await dialog.Result;
+            if (result?.Canceled == false && result.Data is POSTouchLineEditDialog.EditResult edit)
+            {
+                var updateDto = new UpdateSaleItemDto
+                {
+                    Quantity = edit.Quantity,
+                    UnitPrice = edit.UnitPrice,
+                    DiscountPercent = edit.DiscountPercent,
+                    Notes = item.Notes
+                };
+                await SalesService.UpdateItemAsync(ViewModel.CurrentSession!.Id, item.Id, updateDto);
+                await ViewModel.ReloadSessionAsync();
+                RebuildCartQuantities();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore modifica riga articolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
     // =========================================================================
     //  Sconto globale dal numpad (percentuale e valore fisso)
     // =========================================================================
@@ -882,6 +959,24 @@ public partial class POS2026 : IAsyncDisposable
     // =========================================================================
     //  Dialog pagamento
     // =========================================================================
+
+    /// <summary>Stampa la ricevuta tramite il dialog di stampa del browser (per POS senza stampante fiscale).</summary>
+    private async Task PrintBrowserReceiptAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Connessione WebAssembly persa — ignorare silenziosamente
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nell'avvio della stampa browser.");
+            AppNotification.ShowWarning("Impossibile avviare la stampa.");
+        }
+    }
 
     private async Task OpenPaymentDialogAsync()
     {

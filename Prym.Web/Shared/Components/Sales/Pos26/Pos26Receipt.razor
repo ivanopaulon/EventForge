@@ -78,6 +78,14 @@
                         <span class="pos26-receipt-qty">@item.Quantity.ToString("G")</span>
                         <button class="pos26-receipt-qty-btn" @onclick="() => OnIncrease.InvokeAsync(item)">+</button>
                         <span class="pos26-receipt-row-total">€@item.TotalAmount.ToString("F2")</span>
+                        @if (OnEditItem.HasDelegate)
+                        {
+                            <button class="pos26-receipt-edit-btn"
+                                    @onclick="() => OnEditItem.InvokeAsync(item)"
+                                    title="Modifica quantità, prezzo e sconto">
+                                <MudIcon Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" />
+                            </button>
+                        }
                     </div>
                 </div>
             }
@@ -131,7 +139,15 @@
     [Parameter] public EventCallback<SaleItemDto> OnIncrease { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnDecrease { get; set; }
     [Parameter] public EventCallback<SaleItemDto> OnEditItemNotes { get; set; }
+    /// <summary>
+    /// Invocato quando il cassiere tocca il pulsante modifica riga.
+    /// Il parent apre <see cref="POSTouchLineEditDialog"/> e salva le modifiche.
+    /// </summary>
+    [Parameter] public EventCallback<SaleItemDto> OnEditItem { get; set; }
+
+    private const int MaxReceiptNameLength = 24;
+    private const int ReceiptTruncateAt = 22;
 
     private static string TruncateName(string name) =>
-        name.Length > 20 ? name[..18] + "…" : name;
+        name.Length > MaxReceiptNameLength ? name[..ReceiptTruncateAt] + "…" : name;
 }

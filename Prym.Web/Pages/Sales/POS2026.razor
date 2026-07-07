@@ -19,6 +19,7 @@
 @using Prym.DTOs.Business
 @using Prym.DTOs.Business.Fidelity
 @using Prym.DTOs.FiscalPrinting
+@using Prym.DTOs.Warehouse
 @using Microsoft.AspNetCore.SignalR.Client
 @implements IAsyncDisposable
 @attribute [Authorize]
@@ -41,6 +42,7 @@
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
 @inject IAuthService AuthService
+@inject IStockService StockService
 
 <PageTitle>POS 2026</PageTitle>
 <PageLoadingOverlay Visible="ViewModel.IsLoading || _isLoadingProducts"
@@ -150,6 +152,31 @@
                                         @pos.Location
                                     </MudText>
                                 }
+                                @* Indicatore stampante fiscale configurata *@
+                                @if (pos.DefaultFiscalPrinterId.HasValue)
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="Color.Success"
+                                             Variant="Variant.Outlined"
+                                             Icon="@Icons.Material.Outlined.Print"
+                                             title="@($"Stampante: {pos.DefaultFiscalPrinterName ?? "configurata"}")"
+                                             Class="text-xs mt-1">
+                                        @(pos.DefaultFiscalPrinterName ?? "Stampante")
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="Color.Default"
+                                             Variant="Variant.Outlined"
+                                             Icon="@Icons.Material.Outlined.PrintDisabled"
+                                             title="Nessuna stampante fiscale configurata"
+                                             Class="text-xs mt-1">
+                                        Senza stampante
+                                    </MudChip>
+                                }
                             </MudStack>
                         </MudPaper>
                     </MudItem>
@@ -173,7 +200,7 @@
     {
 
     @* ===== CONTENUTO PRINCIPALE (due colonne) ===== *@
-    <div class="pos2026-content">
+    <div class="pos2026-content @(_mobileTab == 1 ? "pos2026-content--tab-receipt" : "")">
 
     @* ===== COLONNA SINISTRA ===== *@
     <div class="pos2026-left">
@@ -444,7 +471,7 @@
                     {
                         <div class="pos26-fn-parked-row">
                             <div class="pos26-fn-parked-info">
-                                <span class="pos26-fn-parked-id">@parked.Id.ToString()[..8]</span>
+                                <span class="pos26-fn-parked-id" aria-label="Parcheggiata alle @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</span>
                                 @if (!string.IsNullOrEmpty(parked.CustomerName))
                                 { <span class="pos26-fn-parked-customer">@parked.CustomerName</span> }
                                 <span class="pos26-fn-parked-total">€ @parked.FinalTotal.ToString("F2")</span>
@@ -482,6 +509,7 @@
                                               CartQuantity="@(_cartQuantities.TryGetValue(product.Id, out var q) ? q : 0)"
                                               IsLastPurchase="@_lastPurchaseIds.Contains(product.Id)"
                                               IsBestSeller="true"
+                                              StockAvailable="@(_stockByProductId.TryGetValue(product.Id, out var sq) ? sq : (decimal?)null)"
                                               OnAddToCart="@OnAddProductToCartAsync"
                                               OnLongPress="@OpenProductDetailAsync" />
                         }
@@ -494,6 +522,7 @@
                               CartQuantities="@_cartQuantities"
                               LastPurchaseIds="@_lastPurchaseIds"
                               BestSellerIds="@_bestSellerIds"
+                              StockAvailability="@_stockByProductId"
                               OnAddToCart="@OnAddProductToCartAsync"
                               OnLongPress="@OpenProductDetailAsync"
                               IsLoading="@_isLoadingProducts" />
@@ -515,13 +544,16 @@
                       OnClearCart="@ClearCartAsync"
                       OnIncrease="@IncreaseQuantity"
                       OnDecrease="@DecreaseQuantity"
-                      OnEditItemNotes="@EditItemNotesAsync" />
+                      OnEditItemNotes="@EditItemNotesAsync"
+                      OnEditItem="@EditLineItemAsync" />
 
         <Pos26Numpad CanPay="@ViewModel.CanPay"
                      OnPay="@OpenPaymentDialogAsync"
                      OnCancel="@CancelSessionAsync"
                      OnApplyDiscount="@ApplyDiscountAsync"
-                     OnApplyFixedDiscount="@ApplyFixedDiscountAsync" />
+                     OnApplyFixedDiscount="@ApplyFixedDiscountAsync"
+                     HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+                     OnPrintReceipt="@PrintBrowserReceiptAsync" />
 
     </div>
 
@@ -534,6 +566,19 @@
 @* Shortcut tastiera (stesso pattern POS.razor) *@
 @if (ViewModel.HasActiveSession)
 {
+    @* Tab bar mobile: visibile solo su schermi <600px, sopra la shortcut bar *@
+    <div class="pos2026-mobile-tabbar" aria-label="Navigazione sezioni">
+        <button class="pos2026-mobile-tab @(_mobileTab == 0 ? "pos2026-mobile-tab--active" : "")"
+                @onclick="@(() => _mobileTab = 0)">
+            <MudIcon Icon="@Icons.Material.Outlined.GridView" Size="Size.Small" />
+            Prodotti
+        </button>
+        <button class="pos2026-mobile-tab @(_mobileTab == 1 ? "pos2026-mobile-tab--active" : "")"
+                @onclick="@(() => _mobileTab = 1)">
+            <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" />
+            Scontrino
+        </button>
+    </div>
     <div class="pos2026-shortcuts-bar" aria-label="Scorciatoie tastiera">
         <span><strong>F2</strong> Paga</span>
         <span><strong>F3</strong> Parcheggia</span>

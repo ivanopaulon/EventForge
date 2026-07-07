@@ -56,6 +56,19 @@
                                      Size="Size.Small" />
                         }
 
+                        <!-- Shift badge -->
+                        @if (op.IsOnShift)
+                        {
+                            <MudChip T="string"
+                                     Size="Size.Small"
+                                     Color="Color.Success"
+                                     Variant="Variant.Filled"
+                                     Icon="@Icons.Material.Filled.AccessTime"
+                                     Class="text-xs mt-1">
+                                Turno attivo
+                            </MudChip>
+                        }
+
                     </MudStack>
                 </MudPaper>
             </MudItem>

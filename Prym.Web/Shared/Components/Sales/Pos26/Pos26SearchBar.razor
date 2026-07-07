@@ -85,7 +85,18 @@
     private bool _showCustomerSelector = false;
     private string _currentInput = string.Empty;  // always in sync with the real input value
 
+    // --- Rilevamento barcode hardware via timing ---
+    private long _lastKeyTickCount = 0;
+    private int _rapidKeyCount = 0;
+    private CancellationTokenSource? _barcodeTimerCts;
+
     private const int DebounceDelayMs = 300;
+    /// <summary>Intervallo massimo tra tasti consecutivi per classificare come barcode hardware (ms).</summary>
+    private const int BarcodeMaxIntervalMs = 50;
+    /// <summary>Numero minimo di caratteri rapidi prima di attivare il rilevamento barcode.</summary>
+    private const int BarcodeMinChars = 4;
+    /// <summary>Silenzio post-sequenza prima di sparare OnBarcodeDetected (ms).</summary>
+    private const int BarcodeSilenceMs = 80;
 
     private void OnInputChanged(ChangeEventArgs e)
     {
@@ -110,7 +121,11 @@
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        // Rilevamento barcode: Enter dopo sequenza di tasti rapida.
+        var now = Environment.TickCount64;
+        var intervalMs = _lastKeyTickCount == 0 ? long.MaxValue : now - _lastKeyTickCount;
+        _lastKeyTickCount = now;
+
+        // Rilevamento barcode: Enter dopo sequenza di tasti rapida (comportamento primario).
         // Usa _currentInput (aggiornata sincronamente) invece del parametro SearchTerm
         // che potrebbe essere stale se il debounce non ha ancora completato.
         if (e.Key == "Enter" && !string.IsNullOrEmpty(_currentInput))
@@ -118,7 +133,64 @@
             _debounceCts?.Cancel();
             _debounceCts?.Dispose();
             _debounceCts = null;
+            _barcodeTimerCts?.Cancel();
+            _barcodeTimerCts?.Dispose();
+            _barcodeTimerCts = null;
+            _rapidKeyCount = 0;
             await OnBarcodeDetected.InvokeAsync(_currentInput);
+            return;
+        }
+
+        // Rilevamento barcode via timing (fallback per lettori che non inviano Enter).
+        // Considera solo caratteri stampabili (lunghezza 1, alfanumerici o punteggiatura)
+        // per evitare che tasti modificatori o funzione alterino il contatore.
+        bool isPrintable = e.Key.Length == 1 && (char.IsLetterOrDigit(e.Key[0]) || char.IsPunctuation(e.Key[0]) || char.IsSymbol(e.Key[0]));
+        if (isPrintable && intervalMs < BarcodeMaxIntervalMs)
+        {
+            _rapidKeyCount++;
+        }
+        else if (isPrintable)
+        {
+            // Intervallo troppo lungo: reset contatore sequenza rapida
+            _rapidKeyCount = 1;
+        }
+        // Tasti non stampabili (Shift, Ctrl, frecce...) non modificano il contatore
+
+        if (_rapidKeyCount >= BarcodeMinChars)
+        {
+            // Avvia/riavvia timer di silenzio: se non arriva nessun altro tasto entro BarcodeSilenceMs,
+            // scatta il barcode detected con il valore corrente.
+            _barcodeTimerCts?.Cancel();
+            _barcodeTimerCts?.Dispose();
+            _barcodeTimerCts = new CancellationTokenSource();
+            _ = FireBarcodeAfterSilenceAsync(_currentInput, _barcodeTimerCts.Token);
+        }
+    }
+
+    /// <summary>Attende il silenzio post-sequenza e poi spara OnBarcodeDetected se non cancellato.</summary>
+    private async Task FireBarcodeAfterSilenceAsync(string value, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(BarcodeSilenceMs, token);
+            if (!string.IsNullOrEmpty(value))
+            {
+                await InvokeAsync(async () =>
+                {
+                    _debounceCts?.Cancel();
+                    _debounceCts?.Dispose();
+                    _debounceCts = null;
+                    _rapidKeyCount = 0;
+                    await OnBarcodeDetected.InvokeAsync(value);
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* timer annullato da nuovo tasto — atteso */ }
+        catch (ObjectDisposedException) { /* componente disposed — atteso */ }
+        catch (Exception ex)
+        {
+            // Eccezione inattesa nel rilevamento barcode — non fatale, log su console
+            Console.Error.WriteLine($"[Pos26SearchBar] Errore rilevamento barcode: {ex.Message}");
         }
     }
 
@@ -166,5 +238,7 @@
     {
         _debounceCts?.Cancel();
         _debounceCts?.Dispose();
+        _barcodeTimerCts?.Cancel();
+        _barcodeTimerCts?.Dispose();
     }
 }
