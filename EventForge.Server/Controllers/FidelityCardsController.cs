@@ -53,6 +53,31 @@ public class FidelityCardsController(
         }
     }
 
+    [HttpGet("by-card-number/{cardNumber}")]
+    [ProducesResponseType(typeof(FidelityCardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<FidelityCardDto>> GetCardByCardNumber(
+        [FromRoute] string cardNumber,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        if (string.IsNullOrWhiteSpace(cardNumber))
+            return CreateValidationProblemDetails("cardNumber è obbligatorio.");
+
+        try
+        {
+            var card = await fidelityCardService.GetCardByCardNumberAsync(cardNumber, cancellationToken);
+            return card is null ? CreateNotFoundProblem($"Fidelity card '{cardNumber}' not found.") : Ok(card);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the fidelity card by card number.", ex);
+        }
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(FidelityCardDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]

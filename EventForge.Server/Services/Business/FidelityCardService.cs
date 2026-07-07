@@ -47,6 +47,19 @@ public class FidelityCardService(
         return card is null ? null : MapCard(card);
     }
 
+    public async Task<FidelityCardDto?> GetCardByCardNumberAsync(string cardNumber, CancellationToken ct = default)
+    {
+        var tenantId = GetRequiredTenantId();
+
+        var card = await context.FidelityCards
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Where(c => c.CardNumber == cardNumber)
+            .FirstOrDefaultAsync(ct);
+
+        return card is null ? null : MapCard(card);
+    }
+
     public async Task<FidelityCardDto> CreateCardAsync(CreateFidelityCardDto dto, string currentUser, CancellationToken ct = default)
     {
         var tenantId = GetRequiredTenantId();

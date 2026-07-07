@@ -7,6 +7,7 @@ public interface IFidelityService
     Task<IEnumerable<FidelityCardDto>> GetAllCardsAsync(CancellationToken ct = default);
     Task<IEnumerable<FidelityCardDto>> GetCardsByBusinessPartyAsync(Guid businessPartyId, CancellationToken ct = default);
     Task<FidelityCardDto?> GetCardByIdAsync(Guid id, CancellationToken ct = default);
+    Task<FidelityCardDto?> GetCardByCardNumberAsync(string cardNumber, CancellationToken ct = default);
     Task<FidelityCardDto> CreateCardAsync(CreateFidelityCardDto dto, CancellationToken ct = default);
     Task<FidelityCardDto?> UpdateCardAsync(Guid id, UpdateFidelityCardDto dto, CancellationToken ct = default);
     Task RevokeCardAsync(Guid cardId, CancellationToken ct = default);
@@ -63,6 +64,24 @@ public class FidelityService(
         {
             logger.LogError(ex, "Error retrieving fidelity card {CardId}", id);
             throw;
+        }
+    }
+
+    public async Task<FidelityCardDto?> GetCardByCardNumberAsync(string cardNumber, CancellationToken ct = default)
+    {
+        try
+        {
+            return await httpClientService.GetAsync<FidelityCardDto>(
+                $"{BaseUrl}/by-card-number/{Uri.EscapeDataString(cardNumber)}", ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Errore nel lookup tessera per cardNumber {CardNumber}", cardNumber);
+            return null;
         }
     }
 
