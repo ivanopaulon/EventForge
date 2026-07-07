@@ -1731,7 +1731,7 @@ public partial class POS2026 : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "POS2026: errore durante la verifica del turno attivo per l'operatore {OperatorId}.", operatorId);
+            Logger.LogError(ex, "Errore durante la verifica del turno attivo per l'operatore {OperatorId}.", operatorId);
             _shiftGuardMessage = "Nessun turno di cassa attivo per l'operatore. Contattare il responsabile.";
             if (showNotification)
             {

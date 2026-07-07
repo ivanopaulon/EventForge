@@ -8,10 +8,15 @@ namespace Prym.DTOs.Store;
 public class StoreUserPinDto
 {
     /// <summary>
+    /// Regular expression pattern shared by client and server validation: 4 to 6 numeric digits.
+    /// </summary>
+    public const string PinPattern = @"^\d{4,6}$";
+
+    /// <summary>
     /// Numeric quick PIN (4-6 digits).
     /// </summary>
     [Required(ErrorMessage = "Il PIN è obbligatorio.")]
-    [RegularExpression(@"^\d{4,6}$", ErrorMessage = "Il PIN deve contenere da 4 a 6 cifre.")]
+    [RegularExpression(PinPattern, ErrorMessage = "Il PIN deve contenere da 4 a 6 cifre.")]
     public string Pin { get; set; } = string.Empty;
 }
 

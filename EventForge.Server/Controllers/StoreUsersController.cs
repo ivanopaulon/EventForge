@@ -288,7 +288,6 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
     /// </summary>
     [HttpPost("/api/v1/store-users/{id:guid}/validate-pin")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(bool), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<bool>> ValidatePin(Guid id, [FromBody] StoreUserPinDto dto, CancellationToken cancellationToken = default)
     {
@@ -298,7 +297,7 @@ public class StoreUsersController(IStoreUserService storeUserService, ITenantCon
         try
         {
             var isValid = await storeUserService.ValidatePinAsync(id, dto.Pin, cancellationToken);
-            return isValid ? Ok(true) : Unauthorized(false);
+            return Ok(isValid);
         }
         catch (Exception ex)
         {

@@ -356,7 +356,7 @@ public class TableManagementService(
             var tenantId = GetTenantId();
             var startDate = date.Date;
             var endDate = startDate.AddDays(1);
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var nextReservationLimit = now.AddMinutes(60);
 
             var tables = await context.Set<TableSession>()

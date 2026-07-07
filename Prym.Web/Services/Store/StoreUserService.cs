@@ -257,10 +257,6 @@ public class StoreUserService(
         try
         {
             var response = await httpClient.PostAsJsonAsync($"api/v1/store-users/{id}/validate-pin", new StoreUserPinDto { Pin = pin }, ct);
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                return false;
-            }
 
             if (!response.IsSuccessStatusCode)
             {

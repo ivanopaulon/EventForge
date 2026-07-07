@@ -390,7 +390,7 @@
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(_quickPin) || !System.Text.RegularExpressions.Regex.IsMatch(_quickPin, @"^\d{4,6}$"))
+        if (string.IsNullOrWhiteSpace(_quickPin) || !System.Text.RegularExpressions.Regex.IsMatch(_quickPin, Prym.DTOs.Store.StoreUserPinDto.PinPattern))
         {
             AppNotification.ShowWarning("Il PIN rapido deve contenere da 4 a 6 cifre.");
             return;
