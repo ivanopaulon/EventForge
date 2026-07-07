@@ -259,6 +259,8 @@ a, .btn-link {
     align-items: center;
     gap: 4px;
     margin: 24px 0 12px;
+    max-width: min(420px, 92vw);
+    text-align: center;
 }
 
 /* Phase text — populated by Blazor via --blazor-load-percentage-text */

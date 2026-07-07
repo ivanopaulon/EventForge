@@ -179,6 +179,8 @@
             const REQUEST_TIMEOUT_MS = 5000;
             const PROGRESS_CAP = 95;
             const PROGRESS_STEP = 5;
+            // Dopo quanti tentativi falliti mostrare il messaggio di stallo (STALLED_AFTER_ATTEMPTS × RETRY_DELAY_MS ≈ 20s)
+            const STALLED_AFTER_ATTEMPTS = 5;
 
             function normalizeUrl(url) {
                 const trimmed = (url || "").trim();
@@ -226,13 +228,23 @@
                 const baseUrl = resolveServerBaseUrl();
                 const healthUrl = new URL(HEALTH_PATH, baseUrl).toString();
                 let visualProgress = 0;
+                let failedAttempts = 0;
 
                 while (true) {
-                    setSplashStatus("Verifica connessione server...", visualProgress);
+                    const isStalled = failedAttempts >= STALLED_AFTER_ATTEMPTS;
+                    const statusText = isStalled
+                        ? `Il server non risponde da oltre ${Math.round(STALLED_AFTER_ATTEMPTS * RETRY_DELAY_MS / 1000)}s. Verifica la connessione di rete o la configurazione del server.`
+                        : "Verifica connessione al server...";
+                    setSplashStatus(statusText, visualProgress);
 
                     if (await isServerReachable(healthUrl)) {
-                        setSplashStatus("Connessione stabilita, avvio applicazione...", 100);
                         return;
+                    }
+
+                    failedAttempts++;
+                    if (failedAttempts === 1) {
+                        // Log diagnostico visibile in DevTools senza dover leggere il sorgente
+                        console.warn(`[PRYM] Health check fallito. URL: ${healthUrl} (baseUrl: ${baseUrl}). Verificare ef_server_url in localStorage o ApiSettings:BaseUrl in appsettings.json.`);
                     }
 
                     visualProgress = Math.min(PROGRESS_CAP, visualProgress + PROGRESS_STEP);
@@ -253,6 +265,7 @@
             (async function bootstrapAfterHealthCheck() {
                 try {
                     await waitForServerReady();
+                    setSplashStatus("Connessione stabilita, download applicazione...", 100);
                     await loadBlazorRuntime();
                 } catch (error) {
                     console.error("[PRYM] Bootstrap pre-check failed:", error);
