@@ -1,0 +1,113 @@
+@* Pos26StatusBar — riga di stato compatta (sostituisce POSHeader in POS2026).
+   Nel contesto POS2026 operatore e cassa sono sempre già selezionati quando questo
+   componente è renderizzato (Step 2 del flusso guidato) — mostra quindi solo testo,
+   senza reimplementare i picker MudSelect di POSHeader. *@
+@using Prym.DTOs.FiscalPrinting
+@using Prym.DTOs.Store
+
+<div class="pos26-statusbar">
+    @* Operatore *@
+    <div class="sb-item">
+        <span class="sb-dot sb-dot--success"></span>
+        <span class="sb-text">@(SelectedOperatorName ?? "—")</span>
+    </div>
+
+    <span class="sb-sep"></span>
+
+    @* Cassa *@
+    <div class="sb-item">
+        <MudIcon Icon="@Icons.Material.Outlined.PointOfSale" Size="Size.Small" />
+        <span class="sb-text">@(SelectedPosName ?? "—")</span>
+    </div>
+
+    <span class="sb-sep"></span>
+
+    @* Stato stampante fiscale *@
+    <div class="sb-item">
+        <MudIcon Icon="@PrinterIcon" Size="Size.Small" />
+        <span class="sb-text @PrinterStatusCssClass">@PrinterStatusLabel</span>
+    </div>
+
+    @if (IsUpdatingItems)
+    {
+        <MudTooltip Text="@LoadingTooltipText">
+            <MudProgressCircular Size="Size.Small" Color="Color.Warning" Indeterminate="true" Class="ml-1" />
+        </MudTooltip>
+    }
+
+    @* Saldo cassetto *@
+    @if (FiscalDrawerSummary is not null)
+    {
+        <span class="sb-sep"></span>
+        <div class="sb-item">
+            <MudIcon Icon="@Icons.Material.Outlined.Inbox" Size="Size.Small" />
+            <span class="sb-text">€@FiscalDrawerSummary.CurrentBalance.ToString("N2")</span>
+        </div>
+    }
+
+    <div class="sb-spacer"></div>
+
+    @* Apri sessione cassetto (solo quando cassetto configurato ma non aperto) *@
+    @if (FiscalDrawerSummary is not null && !FiscalDrawerSummary.HasOpenSession)
+    {
+        <button class="sb-btn" @onclick="OnOpenDrawerSessionClick" title="Apri sessione cassetto">
+            <MudIcon Icon="@Icons.Material.Outlined.LockOpen" Size="Size.Small" />
+            <span>Apri sessione</span>
+        </button>
+    }
+
+    @if (FiscalDrawerSummary?.HasOpenSession == true)
+    {
+        <button class="sb-btn" @onclick="OnDepositClick" title="Versamento">
+            <MudIcon Icon="@Icons.Material.Outlined.ArrowUpward" Size="Size.Small" />
+            <span>Versamento</span>
+        </button>
+        <button class="sb-btn" @onclick="OnWithdrawalClick" title="Prelievo">
+            <MudIcon Icon="@Icons.Material.Outlined.ArrowDownward" Size="Size.Small" />
+            <span>Prelievo</span>
+        </button>
+    }
+
+    @if (HasFiscalPrinter)
+    {
+        <button class="sb-btn" @onclick="OnOpenPhysicalDrawerClick" title="Apri cassetto (stampante fiscale)">
+            <MudIcon Icon="@Icons.Material.Outlined.OpenInBrowser" Size="Size.Small" />
+        </button>
+    }
+
+    <button class="sb-btn sb-btn--primary @(IsDailyClosureRequired ? "sb-btn--warning" : "")"
+            @onclick="OnDailyClosureClick"
+            title="Chiudi giornata (cassetto + chiusura fiscale)">
+        <MudIcon Icon="@Icons.Material.Outlined.EventNote" Size="Size.Small" />
+        <span>Chiudi Giornata</span>
+    </button>
+</div>
+
+@code {
+    [Parameter] public string? SelectedOperatorName { get; set; }
+    [Parameter] public string? SelectedPosName { get; set; }
+    [Parameter] public bool IsUpdatingItems { get; set; }
+    [Parameter] public string LoadingTooltipText { get; set; } = string.Empty;
+    [Parameter] public FiscalDrawerSummaryDto? FiscalDrawerSummary { get; set; }
+    [Parameter] public EventCallback OnOpenDrawerSessionClick { get; set; }
+    [Parameter] public EventCallback OnDepositClick { get; set; }
+    [Parameter] public EventCallback OnWithdrawalClick { get; set; }
+    [Parameter] public bool HasFiscalPrinter { get; set; }
+    [Parameter] public bool IsFiscalPrinterOnline { get; set; }
+    /// <summary>Usato solo per colorare il bottone chiusura, non per condizionarne la visibilità.</summary>
+    [Parameter] public bool IsDailyClosureRequired { get; set; }
+    [Parameter] public EventCallback OnOpenPhysicalDrawerClick { get; set; }
+    [Parameter] public EventCallback OnDailyClosureClick { get; set; }
+
+    private string PrinterStatusLabel =>
+        !HasFiscalPrinter ? "Non configurata" :
+        IsFiscalPrinterOnline ? "Stampante OK" : "Offline";
+
+    private string PrinterIcon =>
+        !HasFiscalPrinter ? Icons.Material.Outlined.PrintDisabled :
+        IsFiscalPrinterOnline ? Icons.Material.Outlined.Print : Icons.Material.Outlined.PrintDisabled;
+
+    private string PrinterStatusCssClass =>
+        !HasFiscalPrinter ? "sb-text--muted" :
+        IsFiscalPrinterOnline ? "sb-text--success" : "sb-text--danger";
+}

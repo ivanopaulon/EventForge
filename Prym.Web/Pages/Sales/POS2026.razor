@@ -80,21 +80,6 @@
         </MudAlert>
     }
 
-    @* ===== BANNER INFORMATIVO: NESSUNA STAMPANTE FISCALE CONFIGURATA ===== *@
-    @if (_noPrinterConfigured)
-    {
-        <MudAlert Severity="Severity.Info"
-                  Icon="@Icons.Material.Filled.PrintDisabled"
-                  Class="pos2026-closure-banner"
-                  ShowCloseIcon="false"
-                  Dense="true">
-            <MudText Typo="Typo.body2">
-                ℹ️ Nessuna stampante fiscale configurata per questo punto cassa. La verifica della chiusura giornaliera non è disponibile.
-                Configura la stampante nelle impostazioni POS per abilitare la stampa fiscale.
-            </MudText>
-        </MudAlert>
-    }
-
     @* ===========================================================================================
        STEP 0 — Nessun operatore selezionato: griglia operatori a schermo intero
        =========================================================================================== *@
@@ -205,28 +190,20 @@
     @* ===== COLONNA SINISTRA ===== *@
     <div class="pos2026-left">
 
-        @* Header operatore/cassa — riusa POSHeader esistente *@
-        <POSHeader AvailableOperators="@ViewModel.AvailableOperators"
-                   SelectedOperatorId="@ViewModel.SelectedOperatorId"
-                   SelectedOperatorIdChanged="@OnOperatorIdChangedAsync"
-                   AvailablePos="@ViewModel.AvailablePos"
-                   SelectedPosId="@ViewModel.SelectedPosId"
-                   SelectedPosIdChanged="@OnPosIdChangedAsync"
-                   SessionNumber="@ViewModel.CurrentSession?.Id"
-                   IsSessionActive="@ViewModel.HasActiveSession"
-                   IsUpdatingItems="@ViewModel.IsUpdatingItems"
-                   LoadingTooltipText="@GetLoadingTooltipText()"
-                   LoadingSpinnerColor="@GetLoadingSpinnerColor()"
-                   FiscalDrawerSummary="@_fiscalDrawerSummary"
-                   OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
-                   OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
-                   OnWithdrawalClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))"
-                   HasFiscalPrinter="@_fiscalPrinterId.HasValue"
-                   IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
-                   OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
-                   OnDailyClosureClick="@OpenEndOfDayWizardAsync"
-                   OnParkClick="@ParkSessionAsync"
-                   OnCancelClick="@CancelSessionAsync" />
+        @* Status bar operatore/cassa/stampante/cassetto — sostituisce POSHeader (Task 1) *@
+        <Pos26StatusBar SelectedOperatorName="@SelectedOperatorName"
+                         SelectedPosName="@SelectedPosName"
+                         IsUpdatingItems="@ViewModel.IsUpdatingItems"
+                         LoadingTooltipText="@GetLoadingTooltipText()"
+                         FiscalDrawerSummary="@_fiscalDrawerSummary"
+                         OnOpenDrawerSessionClick="@OpenDrawerSessionAsync"
+                         OnDepositClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Deposit))"
+                         OnWithdrawalClick="@(() => OpenDrawerTransactionDialogAsync(FiscalDrawerTransactionType.Withdrawal))"
+                         HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+                         IsFiscalPrinterOnline="@(_fiscalPrinterStatus?.IsOnline == true)"
+                         IsDailyClosureRequired="@(_fiscalPrinterStatus?.IsDailyClosureRequired == true)"
+                         OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
+                         OnDailyClosureClick="@OpenEndOfDayWizardAsync" />
 
         @* Riga ricerca + FilterBar collassabile *@
         <Pos26SearchBar @ref="_searchBar"

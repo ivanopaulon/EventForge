@@ -1480,6 +1480,30 @@ public partial class POS2026 : IAsyncDisposable
     private Color GetLoadingSpinnerColor() =>
         ViewModel.IsUpdatingItems ? Color.Warning : Color.Primary;
 
+    /// <summary>Nome dell'operatore selezionato, risolto da <see cref="POSViewModel.AvailableOperators"/>
+    /// (la stessa risoluzione che avveniva dentro il vecchio POSHeader, ora sostituito da Pos26StatusBar).</summary>
+    private string? SelectedOperatorName =>
+        ViewModel.AvailableOperators?.FirstOrDefault(o => o.Id == ViewModel.SelectedOperatorId)?.Name;
+
+    /// <summary>Nome della cassa selezionata, risolto da <see cref="POSViewModel.AvailablePos"/>.</summary>
+    private string? SelectedPosName =>
+        ViewModel.AvailablePos?.FirstOrDefault(p => p.Id == ViewModel.SelectedPosId)?.Name;
+
+    /// <summary>Percentuale di sconto globale corrente, calcolata da DiscountAmount/OriginalTotal
+    /// (il DTO sessione non espone una percentuale diretta — vedi ApplyDiscountAsync).</summary>
+    private decimal CurrentDiscountPercent
+    {
+        get
+        {
+            var subtotal = ViewModel.CurrentSession?.OriginalTotal ?? 0m;
+            var discount = ViewModel.CurrentSession?.DiscountAmount ?? 0m;
+            return subtotal > 0 ? Math.Round(discount / subtotal * 100, 2) : 0m;
+        }
+    }
+
+    /// <summary>Rimuove lo sconto globale corrente riapplicando uno sconto dello 0% (Task 6 — Pos26DiscountZone).</summary>
+    private Task RemoveDiscountAsync() => ApplyDiscountAsync(0m);
+
     private void OnViewModelStateChanged()
     {
         RebuildCartQuantities();
