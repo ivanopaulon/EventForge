@@ -145,6 +145,9 @@
     /// </summary>
     [Parameter] public EventCallback<SaleItemDto> OnEditItem { get; set; }
 
+    private const int MaxReceiptNameLength = 24;
+    private const int ReceiptTruncateAt = 22;
+
     private static string TruncateName(string name) =>
-        name.Length > 24 ? name[..22] + "…" : name;
+        name.Length > MaxReceiptNameLength ? name[..ReceiptTruncateAt] + "…" : name;
 }
