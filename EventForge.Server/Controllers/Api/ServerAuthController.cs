@@ -10,12 +10,11 @@ namespace EventForge.Server.Controllers.Api;
 /// </summary>
 [Route("api/v1/auth")]
 [ApiController]
-[Produces("application/json")]
 public class ServerAuthController(
     EventForgeDbContext context,
     IPasswordService passwordService,
     IJwtTokenService jwtTokenService,
-    ILogger<ServerAuthController> logger) : ControllerBase
+    ILogger<ServerAuthController> logger) : BaseApiController
 {
 
     /// <summary>
@@ -63,7 +62,7 @@ public class ServerAuthController(
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(ModelState);
+            return CreateValidationProblemDetails();
         }
 
         // Find user in database with tenant and include navigation
@@ -79,14 +78,7 @@ public class ServerAuthController(
             logger.LogWarning("Login attempt failed for username {Username} in tenant {TenantId}: User not found or inactive",
                 request.Username, request.TenantId);
 
-            return Unauthorized(new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Authentication Failed",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Invalid credentials",
-                Instance = HttpContext.Request.Path
-            });
+            return CreateUnauthorizedProblem("Invalid credentials");
         }
 
         // Check if account is locked
@@ -95,14 +87,7 @@ public class ServerAuthController(
             logger.LogWarning("Login attempt for locked account: {Username} in tenant {TenantId}",
                 request.Username, request.TenantId);
 
-            return Unauthorized(new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Account Locked",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Account is temporarily locked. Please try again later.",
-                Instance = HttpContext.Request.Path
-            });
+            return CreateUnauthorizedProblem("Account is temporarily locked. Please try again later.");
         }
 
         // Verify password using Argon2
@@ -126,14 +111,7 @@ public class ServerAuthController(
             logger.LogWarning("Login attempt failed for username {Username} in tenant {TenantId}: Invalid password",
                 request.Username, request.TenantId);
 
-            return Unauthorized(new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Authentication Failed",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Invalid credentials",
-                Instance = HttpContext.Request.Path
-            });
+            return CreateUnauthorizedProblem("Invalid credentials");
         }
 
         // Get user roles
@@ -148,14 +126,7 @@ public class ServerAuthController(
             logger.LogWarning("Login attempt by non-admin user: {Username} in tenant {TenantId}",
                 request.Username, request.TenantId);
 
-            return Unauthorized(new ProblemDetails
-            {
-                Type = "https://tools.ietf.org/html/rfc7235#section-3.1",
-                Title = "Access Denied",
-                Status = StatusCodes.Status401Unauthorized,
-                Detail = "Server access requires Admin or SuperAdmin role",
-                Instance = HttpContext.Request.Path
-            });
+            return CreateUnauthorizedProblem("Server access requires Admin or SuperAdmin role");
         }
 
         // Reset failed login attempts on successful login

@@ -3576,6 +3576,7 @@ public class WarehouseManagementController(
     [HttpGet("stock-reconciliation/export")]
     [Authorize(Roles = "SuperAdmin,Admin,Manager")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status501NotImplemented)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> ExportStockReconciliation(
         [FromQuery] StockReconciliationRequestDto request,
@@ -3589,7 +3590,7 @@ public class WarehouseManagementController(
             if (fileBytes is null || fileBytes.Length == 0)
             {
                 logger.LogWarning("Export generated no data or feature not yet implemented");
-                return StatusCode(501, new { message = "Excel export feature not yet implemented" });
+                return CreateNotImplementedProblem("Excel export feature not yet implemented");
             }
 
             var fileName = $"StockReconciliation_{DateTime.UtcNow:yyyyMMdd_HHmmss}.xlsx";
