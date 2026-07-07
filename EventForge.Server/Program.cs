@@ -367,6 +367,7 @@ builder.Services.AddCors(options =>
             .WithHeaders(
                 "Authorization", "Content-Type", "Accept",
                 "X-Requested-With",
+                "X-Correlation-ID",
                 "X-Maintenance-Secret", "X-Agent-Internal-Token",
                 "Baggage", "traceparent", "tracestate") // OpenTelemetry distributed tracing propagation headers
             .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")

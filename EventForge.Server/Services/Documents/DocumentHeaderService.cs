@@ -553,6 +553,11 @@ public class DocumentHeaderService(
     {
         var query = context.DocumentHeaders.AsNoTracking().Where(dh => !dh.IsDeleted);
 
+        // Restrict to the current tenant to prevent cross-tenant data leakage
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (currentTenantId.HasValue)
+            query = query.Where(dh => dh.TenantId == currentTenantId.Value);
+
         // Exclude archived documents by default unless explicitly requested or a specific status is filtered
         if (!parameters.Status.HasValue && !parameters.IncludeArchived)
             query = query.Where(dh => dh.Status != Prym.DTOs.Common.DocumentStatus.Archived);
