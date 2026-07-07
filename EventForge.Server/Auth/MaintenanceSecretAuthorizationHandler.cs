@@ -27,7 +27,6 @@ public class MaintenanceSecretAuthorizationHandler(
         if (httpContext is null)
         {
             logger.LogWarning("MaintenanceSecret authorization: no HttpContext available");
-            context.Fail();
             return Task.CompletedTask;
         }
 
@@ -35,7 +34,6 @@ public class MaintenanceSecretAuthorizationHandler(
         if (string.IsNullOrWhiteSpace(expectedSecret))
         {
             logger.LogWarning("MaintenanceSecret authorization: UpdateHub:MaintenanceSecret is not configured");
-            context.Fail();
             return Task.CompletedTask;
         }
 

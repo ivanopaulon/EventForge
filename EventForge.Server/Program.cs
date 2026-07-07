@@ -368,7 +368,7 @@ builder.Services.AddCors(options =>
                 "Authorization", "Content-Type", "Accept",
                 "X-Requested-With",
                 "X-Maintenance-Secret", "X-Agent-Internal-Token",
-                "Baggage", "traceparent", "tracestate") // SignalR negotiate + OpenTelemetry propagation headers
+                "Baggage", "traceparent", "tracestate") // OpenTelemetry distributed tracing propagation headers
             .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             .AllowCredentials(); // Required for SignalR WebSocket connections
     });
