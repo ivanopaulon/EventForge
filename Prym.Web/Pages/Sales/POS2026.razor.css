@@ -1110,6 +1110,21 @@
     cursor: not-allowed;
 }
 
+.pos26-fn-btn--park {
+    color: var(--pos-warning);
+    border-color: var(--pos-warning);
+}
+
+.pos26-fn-btn--park:hover {
+    background: var(--pos-warning-bg);
+    border-color: var(--pos-warning);
+}
+
+.pos26-fn-btn--park:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 .pos26-fn-badge {
     position: absolute;
     top: -4px;
@@ -1292,6 +1307,12 @@
 
 .pos26-fn-parked-customer {
     font-size: 12px;
+    font-weight: 600;
+}
+
+.pos26-fn-parked-table {
+    font-size: 11px;
+    color: var(--pos-text-2);
     font-weight: 600;
 }
 

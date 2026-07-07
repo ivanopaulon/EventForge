@@ -91,6 +91,9 @@ public partial class POS2026 : IAsyncDisposable
     // --- Tavolo / selezione tipo vendita ---
     private List<TableSessionDto> _availableTables = new();
     private bool _showTablePicker = false;
+    // Quando true, la selezione di un tavolo esegue anche il parcheggio automatico
+    // della sessione attiva (flusso "Parcheggia su tavolo" — Parte F.2).
+    private bool _tablePickerParkOnSelect = false;
 
     // --- Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) ---
     private bool _showMoreMenu = false;
@@ -1046,7 +1049,21 @@ public partial class POS2026 : IAsyncDisposable
 
             var result = await dialog.Result;
             if (result is { Canceled: false } && result.Data is RisultatoPagamento risultato)
+            {
                 await ProcessPaymentResultAsync(risultato);
+            }
+            else if (result is { Canceled: false } &&
+                     result.Data is Pos26PaymentDialogAction action &&
+                     action == Pos26PaymentDialogAction.SplitRequested)
+            {
+                // Dividi conto richiesto dal dialog di pagamento (Parte F.5): nessun pagamento
+                // registrato, apre subito SplitPaymentDialog con la stessa sessione.
+                await OpenSplitDialogAsync();
+                // Se resta un residuo da pagare dopo lo split (o lo split non ha completato
+                // la sessione), riapri il dialog di pagamento per continuare l'incasso.
+                if (ViewModel.CanPay)
+                    await OpenPaymentDialogAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -1147,6 +1164,9 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task CloseSaleAsync()
     {
+        // Recupera il tavolo prima che ViewModel.CloseSaleAsync() -> PrepareNewSaleAsync() azzeri
+        // la sessione corrente, per poterlo liberare (Parte F.4) dopo la chiusura.
+        var tableIdToFree = ViewModel.CurrentSession?.TableId;
         try
         {
             await ViewModel.CloseSaleAsync();
@@ -1154,11 +1174,29 @@ public partial class POS2026 : IAsyncDisposable
                 await TriggerFiscalPrintAsync(ViewModel.CurrentSession!);
             // Notification ("Sale completed successfully!") already emitted by POSViewModel.
             RebuildCartQuantities();
+            await ReleaseTableIfAssignedAsync(tableIdToFree);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore chiusura vendita POS2026.");
             AppNotification.ShowError("Errore durante la chiusura della vendita.");
+        }
+    }
+
+    /// <summary>Riporta un tavolo a "Available" (Parte F.4), tipicamente dopo la chiusura o
+    /// l'annullamento di una sessione che lo aveva assegnato. Se la sessione viene solo
+    /// parcheggiata, il tavolo resta "Occupied" (non richiamare da ParkSessionAsync).</summary>
+    private async Task ReleaseTableIfAssignedAsync(Guid? tableId)
+    {
+        if (!tableId.HasValue) return;
+        try
+        {
+            await TableManagementService.UpdateTableStatusAsync(
+                tableId.Value, new UpdateTableStatusDto { Status = TableStatuses.Available });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Errore liberazione tavolo {TableId}.", tableId.Value);
         }
     }
 
@@ -1168,6 +1206,7 @@ public partial class POS2026 : IAsyncDisposable
         {
             await ViewModel.ParkSessionAsync();
             // Notification ("Session parked") already emitted by POSViewModel.
+            // Il tavolo, se assegnato, resta "Occupied": la sessione è solo sospesa, non chiusa.
             RebuildCartQuantities();
         }
         catch (Exception ex)
@@ -1180,6 +1219,7 @@ public partial class POS2026 : IAsyncDisposable
     private async Task CancelSessionAsync()
     {
         if (!ViewModel.HasActiveSession) return;
+        var tableIdToFree = ViewModel.CurrentSession?.TableId;
         try
         {
             var confirmed = await ShowConfirmAsync("Annulla vendita", "Annullare la vendita corrente?");
@@ -1187,6 +1227,7 @@ public partial class POS2026 : IAsyncDisposable
             await ViewModel.CancelSessionAsync();
             _cartQuantities.Clear();
             // Notification ("Session cancelled") already emitted by POSViewModel.
+            await ReleaseTableIfAssignedAsync(tableIdToFree);
         }
         catch (Exception ex)
         {
@@ -1295,20 +1336,51 @@ public partial class POS2026 : IAsyncDisposable
             await LoadAvailableTablesAsync();
     }
 
+    private void CloseTablePicker()
+    {
+        _showTablePicker = false;
+        _tablePickerParkOnSelect = false;
+    }
+
+    /// <summary>Avvia il flusso combinato "Parcheggia su tavolo" (Parte F.2): apre il selettore
+    /// tavoli e, dopo la selezione, esegue automaticamente anche il parcheggio della sessione.</summary>
+    private async Task OpenParkToTableFlowAsync() => await OpenTablePickerFromMenuAsync(parkOnSelect: true);
+
     private async Task AssignTableAsync(TableSessionDto table)
     {
         if (!ViewModel.HasActiveSession) return;
         try
         {
+            var sessionId = ViewModel.CurrentSession!.Id;
             var updateDto = new UpdateSaleSessionDto
             {
                 SaleType = SaleTypes.Retail,
                 TableId = table.Id
             };
-            await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
+            await SalesService.UpdateSessionAsync(sessionId, updateDto);
             await ViewModel.ReloadSessionAsync();
             AppNotification.ShowSuccess($"Tavolo {table.TableNumber} assegnato.");
             _showTablePicker = false;
+
+            // Marca il tavolo come occupato (Parte F.4): evita che resti visibile come
+            // disponibile e possa essere assegnato due volte. Usa il sessionId catturato
+            // prima di ReloadSessionAsync, che potrebbe azzerare/sostituire CurrentSession.
+            try
+            {
+                await TableManagementService.UpdateTableStatusAsync(
+                    table.Id, new UpdateTableStatusDto { Status = TableStatuses.Occupied, SaleSessionId = sessionId });
+            }
+            catch (Exception statusEx)
+            {
+                Logger.LogWarning(statusEx, "Errore aggiornamento stato tavolo {TableId} a Occupied.", table.Id);
+                AppNotification.ShowWarning($"Tavolo {table.TableNumber} assegnato, ma il suo stato potrebbe non essere aggiornato per altri operatori.");
+            }
+
+            if (_tablePickerParkOnSelect)
+            {
+                _tablePickerParkOnSelect = false;
+                await ParkSessionAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -1372,10 +1444,25 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task ToggleTablePickerFromMenu()
     {
-        _showMoreMenu = false;
-        _showTablePicker = !_showTablePicker;
+        // Toggle: se già aperto lo chiude (senza forzare parkOnSelect), altrimenti lo apre
+        // nel percorso normale (assegna tavolo senza parcheggiare).
         if (_showTablePicker)
-            await LoadAvailableTablesAsync();
+        {
+            CloseTablePicker();
+            return;
+        }
+        await OpenTablePickerFromMenuAsync(parkOnSelect: false);
+    }
+
+    /// <summary>Apre il selettore tavoli dal menu "Altro", condividendo la logica comune a
+    /// entrambi i percorsi: quello normale (assegna tavolo senza parcheggiare, per il caso
+    /// dine-in) e quello combinato "Parcheggia su tavolo" (Parte F.2).</summary>
+    private async Task OpenTablePickerFromMenuAsync(bool parkOnSelect)
+    {
+        _showMoreMenu = false;
+        _tablePickerParkOnSelect = parkOnSelect;
+        _showTablePicker = true;
+        await LoadAvailableTablesAsync();
     }
 
     private async Task ToggleParkedFromMenu()

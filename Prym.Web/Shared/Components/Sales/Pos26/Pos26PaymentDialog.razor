@@ -16,6 +16,18 @@
           OnClose="Cancel"
           MinWidth="min(860px, 95vw)"
           Height="calc(100dvh - 48px)">
+    <TitleActions>
+        @* Dividi conto (Parte F.5): chiude questo dialog senza registrare pagamenti e apre
+           SplitPaymentDialog dallo stesso punto — prima raggiungibile solo dal menu "Altro". *@
+        <MudButton StartIcon="@Icons.Material.Outlined.CallSplit"
+                   Variant="Variant.Text"
+                   Size="Size.Small"
+                   Disabled="@_isProcessing"
+                   OnClick="RequestSplit"
+                   Class="mr-2">
+            Dividi conto
+        </MudButton>
+    </TitleActions>
     <ChildContent>
         <div class="pos26-payment-dialog-wrap"
              @ref="_wrapRef"
@@ -553,4 +565,10 @@
     }
 
     private void Cancel() => MudDialog?.Cancel();
+
+    /// <summary>Chiude il dialog senza registrare alcun pagamento, segnalando al chiamante
+    /// (POS2026.razor.cs → OpenPaymentDialogAsync) di aprire SplitPaymentDialog al suo posto
+    /// (Parte F.5). Usa DialogResult.Ok con un marker dedicato per distinguerlo da un
+    /// pagamento completato (RisultatoPagamento) e da un annullamento semplice.</summary>
+    private void RequestSplit() => MudDialog?.Close(DialogResult.Ok(Pos26PaymentDialogAction.SplitRequested));
 }

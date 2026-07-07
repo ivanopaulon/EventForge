@@ -78,3 +78,10 @@ public record RigaPagamento(
     PaymentMethodDto Metodo,
     decimal Importo
 );
+
+/// <summary>Azioni non di pagamento che Pos26PaymentDialog può restituire al chiamante
+/// (Parte F.5 — "Dividi conto" dal dialog di pagamento).</summary>
+public enum Pos26PaymentDialogAction
+{
+    SplitRequested
+}
