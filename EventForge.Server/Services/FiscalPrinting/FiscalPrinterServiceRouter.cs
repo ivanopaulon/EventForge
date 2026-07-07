@@ -294,8 +294,8 @@ public sealed class FiscalPrinterServiceRouter(
 
         // Batch-load printer names for all real printer IDs
         var printerIds = records
-            .Select(r => r.PrinterId)
-            .Where(id => id != Guid.Empty)
+            .Where(r => r.PrinterId.HasValue)
+            .Select(r => r.PrinterId!.Value)
             .Distinct()
             .ToList();
 
@@ -309,8 +309,8 @@ public sealed class FiscalPrinterServiceRouter(
         return records.Select(r => new DailyClosureHistoryDto
         {
             Id = r.Id,
-            PrinterId = r.PrinterId,
-            PrinterName = r.PrinterId != Guid.Empty && printerNames.TryGetValue(r.PrinterId, out var name)
+            PrinterId = r.PrinterId ?? Guid.Empty,
+            PrinterName = r.PrinterId.HasValue && printerNames.TryGetValue(r.PrinterId.Value, out var name)
                 ? name
                 : "—",
             ZReportNumber = r.ZReportNumber,
@@ -335,16 +335,19 @@ public sealed class FiscalPrinterServiceRouter(
         try
         {
             // ReprintZReport needs a closure ID, not a printer ID; look up the printer ID first
-            var printerId = await context.DailyClosureRecords
+            var closure = await context.DailyClosureRecords
                 .AsNoTracking()
                 .Where(r => r.Id == closureId && !r.IsDeleted)
-                .Select(r => (Guid?)r.PrinterId)
+                .Select(r => new { r.PrinterId })
                 .FirstOrDefaultAsync(ct);
 
-            if (printerId is null)
+            if (closure is null)
                 return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} not found" };
 
-            return await (await ResolveAsync(printerId.Value, ct)).ReprintZReportAsync(closureId, ct);
+            if (closure.PrinterId is null)
+                return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure)." };
+
+            return await (await ResolveAsync(closure.PrinterId.Value, ct)).ReprintZReportAsync(closureId, ct);
         }
         catch
         {
@@ -358,16 +361,16 @@ public sealed class FiscalPrinterServiceRouter(
     {
         try
         {
-            var printerId = await context.DailyClosureRecords
+            var closure = await context.DailyClosureRecords
                 .AsNoTracking()
                 .Where(r => r.Id == closureId && !r.IsDeleted)
-                .Select(r => (Guid?)r.PrinterId)
+                .Select(r => new { r.PrinterId })
                 .FirstOrDefaultAsync(ct);
 
-            if (printerId is null)
+            if (closure?.PrinterId is null)
                 return null;
 
-            return await (await ResolveAsync(printerId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
+            return await (await ResolveAsync(closure.PrinterId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
         }
         catch
         {
@@ -412,16 +415,19 @@ public sealed class FiscalPrinterServiceRouter(
     public async Task<DailyClosureResultDto> RetryFiscalClosureAsync(
         Guid closureId, CancellationToken ct = default)
     {
-        var printerId = await context.DailyClosureRecords
+        var closure = await context.DailyClosureRecords
             .AsNoTracking()
             .Where(r => r.Id == closureId && !r.IsDeleted)
-            .Select(r => (Guid?)r.PrinterId)
+            .Select(r => new { r.PrinterId })
             .FirstOrDefaultAsync(ct);
 
-        if (printerId is null)
+        if (closure is null)
             return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure {closureId} not found." };
 
-        return await (await ResolveAsync(printerId.Value, ct)).RetryFiscalClosureAsync(closureId, ct);
+        if (closure.PrinterId is null)
+            return new DailyClosureResultDto { Success = false, ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure)." };
+
+        return await (await ResolveAsync(closure.PrinterId.Value, ct)).RetryFiscalClosureAsync(closureId, ct);
     }
 
     // -------------------------------------------------------------------------
@@ -482,7 +488,7 @@ public sealed class FiscalPrinterServiceRouter(
         // There is no physical fiscal printer, so Z-number is 0 (not applicable)
         var record = new Data.Entities.FiscalPrinting.DailyClosureRecord
         {
-            PrinterId = Guid.Empty,
+            PrinterId = null,
             TenantId = pos.TenantId,
             ZReportNumber = 0,
             ClosedAt = closedAt,

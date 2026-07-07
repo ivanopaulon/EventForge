@@ -355,7 +355,7 @@ public partial class EpsonFiscalPrinterService
             return records.Select(r => new DailyClosureHistoryDto
             {
                 Id = r.Id,
-                PrinterId = r.PrinterId,
+                PrinterId = r.PrinterId!.Value,
                 PrinterName = printerName,
                 ZReportNumber = r.ZReportNumber,
                 ClosedAt = r.ClosedAt,
@@ -424,9 +424,9 @@ public partial class EpsonFiscalPrinterService
                 Operator = record.Operator
             };
 
-            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
             var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-            return await ExecuteXmlAsync(channel, xml, record.PrinterId, cancellationToken).ConfigureAwait(false);
+            return await ExecuteXmlAsync(channel, xml, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
         }
         catch
         {
@@ -465,9 +465,9 @@ public partial class EpsonFiscalPrinterService
 
         try
         {
-            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
             var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-            var printResult = await ExecuteXmlAsync(channel, xml, record.PrinterId, cancellationToken).ConfigureAwait(false);
+            var printResult = await ExecuteXmlAsync(channel, xml, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
 
             if (printResult.Success)
             {

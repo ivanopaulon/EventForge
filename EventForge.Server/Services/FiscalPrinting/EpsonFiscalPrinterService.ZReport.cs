@@ -38,12 +38,12 @@ public partial class EpsonFiscalPrinterService
                 .AsNoTracking()
                 .Where(p => p.Id == record.PrinterId && !p.IsDeleted)
                 .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? record.PrinterId.ToString();
+                .FirstOrDefaultAsync(cancellationToken) ?? record.PrinterId!.Value.ToString();
 
             var closureDto = new DailyClosureHistoryDto
             {
                 Id = record.Id,
-                PrinterId = record.PrinterId,
+                PrinterId = record.PrinterId!.Value,
                 PrinterName = printerName,
                 ZReportNumber = record.ZReportNumber,
                 ClosedAt = record.ClosedAt,

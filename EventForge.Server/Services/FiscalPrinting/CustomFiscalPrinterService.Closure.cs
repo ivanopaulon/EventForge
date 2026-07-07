@@ -346,7 +346,7 @@ public partial class CustomFiscalPrinterService
             return records.Select(r => new DailyClosureHistoryDto
             {
                 Id = r.Id,
-                PrinterId = r.PrinterId,
+                PrinterId = r.PrinterId!.Value,
                 PrinterName = printerName,
                 ZReportNumber = r.ZReportNumber,
                 ClosedAt = r.ClosedAt,
@@ -421,9 +421,9 @@ public partial class CustomFiscalPrinterService
                 Operator = record.Operator
             };
 
-            await using var channel = await CreateChannelAsync(record.PrinterId, cancellationToken).ConfigureAwait(false);
+            await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
             var sequence = _builder.BuildPrintZReportSummarySequence(closureDto);
-            return await ExecuteSequenceAsync(channel, sequence, record.PrinterId, cancellationToken).ConfigureAwait(false);
+            return await ExecuteSequenceAsync(channel, sequence, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -451,7 +451,7 @@ public partial class CustomFiscalPrinterService
 
         try
         {
-            var printResult = await DailyClosureAsync(record.PrinterId, cancellationToken);
+            var printResult = await DailyClosureAsync(record.PrinterId!.Value, cancellationToken);
 
             if (printResult.Success)
             {
