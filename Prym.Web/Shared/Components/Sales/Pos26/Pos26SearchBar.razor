@@ -86,7 +86,7 @@
     private string _currentInput = string.Empty;  // always in sync with the real input value
 
     // --- Rilevamento barcode hardware via timing ---
-    private DateTime _lastKeyTime = DateTime.MinValue;
+    private long _lastKeyTickCount = 0;
     private int _rapidKeyCount = 0;
     private CancellationTokenSource? _barcodeTimerCts;
 
@@ -121,9 +121,9 @@
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        var now = DateTime.UtcNow;
-        var intervalMs = (now - _lastKeyTime).TotalMilliseconds;
-        _lastKeyTime = now;
+        var now = Environment.TickCount64;
+        var intervalMs = _lastKeyTickCount == 0 ? long.MaxValue : now - _lastKeyTickCount;
+        _lastKeyTickCount = now;
 
         // Rilevamento barcode: Enter dopo sequenza di tasti rapida (comportamento primario).
         // Usa _currentInput (aggiornata sincronamente) invece del parametro SearchTerm
@@ -142,15 +142,19 @@
         }
 
         // Rilevamento barcode via timing (fallback per lettori che non inviano Enter).
-        if (e.Key.Length == 1 && intervalMs < BarcodeMaxIntervalMs)
+        // Considera solo caratteri stampabili (lunghezza 1, alfanumerici o punteggiatura)
+        // per evitare che tasti modificatori o funzione alterino il contatore.
+        bool isPrintable = e.Key.Length == 1 && (char.IsLetterOrDigit(e.Key[0]) || char.IsPunctuation(e.Key[0]) || char.IsSymbol(e.Key[0]));
+        if (isPrintable && intervalMs < BarcodeMaxIntervalMs)
         {
             _rapidKeyCount++;
         }
-        else
+        else if (isPrintable)
         {
             // Intervallo troppo lungo: reset contatore sequenza rapida
             _rapidKeyCount = 1;
         }
+        // Tasti non stampabili (Shift, Ctrl, frecce...) non modificano il contatore
 
         if (_rapidKeyCount >= BarcodeMinChars)
         {
@@ -159,21 +163,34 @@
             _barcodeTimerCts?.Cancel();
             _barcodeTimerCts?.Dispose();
             _barcodeTimerCts = new CancellationTokenSource();
-            var token = _barcodeTimerCts.Token;
-            _ = Task.Delay(BarcodeSilenceMs, token).ContinueWith(async t =>
+            _ = FireBarcodeAfterSilenceAsync(_currentInput, _barcodeTimerCts.Token);
+        }
+    }
+
+    /// <summary>Attende il silenzio post-sequenza e poi spara OnBarcodeDetected se non cancellato.</summary>
+    private async Task FireBarcodeAfterSilenceAsync(string value, CancellationToken token)
+    {
+        try
+        {
+            await Task.Delay(BarcodeSilenceMs, token);
+            if (!string.IsNullOrEmpty(value))
             {
-                if (t.IsCompletedSuccessfully && !string.IsNullOrEmpty(_currentInput))
+                await InvokeAsync(async () =>
                 {
-                    await InvokeAsync(async () =>
-                    {
-                        _debounceCts?.Cancel();
-                        _debounceCts?.Dispose();
-                        _debounceCts = null;
-                        _rapidKeyCount = 0;
-                        await OnBarcodeDetected.InvokeAsync(_currentInput);
-                    });
-                }
-            }, TaskScheduler.Default);
+                    _debounceCts?.Cancel();
+                    _debounceCts?.Dispose();
+                    _debounceCts = null;
+                    _rapidKeyCount = 0;
+                    await OnBarcodeDetected.InvokeAsync(value);
+                });
+            }
+        }
+        catch (OperationCanceledException) { /* timer annullato da nuovo tasto — atteso */ }
+        catch (ObjectDisposedException) { /* componente disposed — atteso */ }
+        catch (Exception ex)
+        {
+            // Eccezione inattesa nel rilevamento barcode — non fatale, log su console
+            Console.Error.WriteLine($"[Pos26SearchBar] Errore rilevamento barcode: {ex.Message}");
         }
     }
 

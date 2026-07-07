@@ -70,6 +70,7 @@
     // Feedback visivo aggiunta al carrello
     private bool _justAdded = false;
     private bool _badgeBumped = false;
+    private CancellationTokenSource? _addFeedbackCts;
 
     // IsPromo always returns false until ProductDto exposes a promotional-price property.
     private bool IsPromo => false;
@@ -81,19 +82,32 @@
         _ = TriggerAddFeedbackAsync();
     }
 
-    /// <summary>Attiva le classi CSS di feedback (border flash + badge pop) per 300ms.</summary>
+    /// <summary>Attiva le classi CSS di feedback (border flash + badge pop) per AddFeedbackDurationMs.</summary>
     private async Task TriggerAddFeedbackAsync()
     {
+        _addFeedbackCts?.Cancel();
+        _addFeedbackCts?.Dispose();
+        _addFeedbackCts = new CancellationTokenSource();
+        var token = _addFeedbackCts.Token;
         _justAdded = true;
         _badgeBumped = true;
         StateHasChanged();
-        await Task.Delay(300);
-        _justAdded = false;
-        _badgeBumped = false;
-        StateHasChanged();
+        try
+        {
+            await Task.Delay(AddFeedbackDurationMs, token);
+        }
+        catch (OperationCanceledException) { /* nuova aggiunta durante l'animazione — atteso */ }
+        finally
+        {
+            _justAdded = false;
+            _badgeBumped = false;
+            StateHasChanged();
+        }
     }
 
     private const int LongPressThresholdMs = 500;
+    /// <summary>Durata (ms) delle animazioni CSS di feedback aggiunta al carrello.</summary>
+    private const int AddFeedbackDurationMs = 300;
 
     private void OnPointerDown(PointerEventArgs args)
     {
@@ -147,5 +161,7 @@
     {
         _longPressCts?.Cancel();
         _longPressCts?.Dispose();
+        _addFeedbackCts?.Cancel();
+        _addFeedbackCts?.Dispose();
     }
 }

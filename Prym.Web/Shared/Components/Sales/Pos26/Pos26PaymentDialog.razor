@@ -281,7 +281,9 @@
         if (firstRender && !_focused)
         {
             _focused = true;
-            try { await _wrapRef.FocusAsync(); } catch { /* ignore — dialog may not be mounted yet */ }
+            try { await _wrapRef.FocusAsync(); }
+            catch (JSException) { /* dialog non ancora montato nel DOM — atteso */ }
+            catch (InvalidOperationException) { /* ElementReference non inizializzato — atteso */ }
         }
     }
 

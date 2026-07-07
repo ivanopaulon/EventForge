@@ -444,7 +444,7 @@
                     {
                         <div class="pos26-fn-parked-row">
                             <div class="pos26-fn-parked-info">
-                                <span class="pos26-fn-parked-id">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</span>
+                                <span class="pos26-fn-parked-id" aria-label="Parcheggiata alle @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</span>
                                 @if (!string.IsNullOrEmpty(parked.CustomerName))
                                 { <span class="pos26-fn-parked-customer">@parked.CustomerName</span> }
                                 <span class="pos26-fn-parked-total">€ @parked.FinalTotal.ToString("F2")</span>

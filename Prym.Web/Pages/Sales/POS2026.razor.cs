@@ -893,6 +893,10 @@ public partial class POS2026 : IAsyncDisposable
         {
             await JSRuntime.InvokeVoidAsync("window.print");
         }
+        catch (JSDisconnectedException)
+        {
+            // Connessione WebAssembly persa — ignorare silenziosamente
+        }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore nell'avvio della stampa browser.");
