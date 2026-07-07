@@ -643,6 +643,16 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
+    private async Task OpenCameraBarcodeScannerAsync()
+    {
+        var parameters = new DialogParameters<CameraBarcodeScannerDialog>
+        {
+            { d => d.OnBarcodeDetected, EventCallback.Factory.Create<string>(this, HandleBarcodeAsync) }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+        await DialogService.ShowAsync<CameraBarcodeScannerDialog>("Scansiona con fotocamera", parameters, options);
+    }
+
     private void OnSortModeChangedAsync(Pos26SortMode mode)
     {
         _sortMode = mode;
@@ -669,8 +679,11 @@ public partial class POS2026 : IAsyncDisposable
 
             if (customer != null)
             {
-                // Carica gli ultimi acquisti del cliente appena selezionato
-                await LoadLastPurchaseIdsAsync(customer.Id);
+                // Carica ultimi acquisti e fidelity card in parallelo
+                await Task.WhenAll(
+                    LoadLastPurchaseIdsAsync(customer.Id),
+                    LoadFidelityCardAsync(customer.Id)
+                );
                 if (_sortMode == Pos26SortMode.BestSeller)
                     _sortMode = Pos26SortMode.UltimiAcquisti;
             }
@@ -681,9 +694,7 @@ public partial class POS2026 : IAsyncDisposable
                     _sortMode = Pos26SortMode.BestSeller;
             }
 
-            if (customer != null)
-                await LoadFidelityCardAsync(customer.Id);
-            else
+            if (customer == null)
                 _fidelityCard = null;
 
             RebuildFilteredProducts();
