@@ -1,3 +1,4 @@
+using EventForge.Server.Auth;
 using EventForge.Server.Services.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,19 +12,17 @@ namespace EventForge.Server.Controllers;
 /// Blazor client — so Agent logs appear alongside Server and Client entries in the
 /// centralised log viewer at <c>/dashboard/logs</c> filtered as <c>[Agent:]</c> source.
 ///
-/// Authentication: <c>X-Maintenance-Secret</c> header matched against
-/// <c>UpdateHub:MaintenanceSecret</c> in configuration — the same shared secret already
-/// used by the Agent for maintenance phase notifications.
+/// Authentication: <c>X-Maintenance-Secret</c> header validated by the <see cref="AuthorizationPolicies.MaintenanceSecret"/>
+/// policy — the same shared secret already used by the Agent for maintenance phase notifications.
 /// No JWT is required so the Agent can post logs even before a user session exists.
 /// </summary>
 [ApiController]
 [Route("api/v1/agent-logs")]
-[AllowAnonymous]
+[Authorize(Policy = AuthorizationPolicies.MaintenanceSecret)]
 [Produces("application/json")]
 public class AgentLogsController(
     ILogger<AgentLogsController> logger,
-    ILogIngestionService logIngestionService,
-    IConfiguration configuration) : BaseApiController
+    ILogIngestionService logIngestionService) : BaseApiController
 {
     /// <summary>
     /// Receives a batch of Agent log entries and enqueues them for asynchronous processing.
@@ -36,14 +35,6 @@ public class AgentLogsController(
         [FromBody] AgentLogBatchDto batch,
         CancellationToken cancellationToken = default)
     {
-        if (!IsAuthorized())
-        {
-            logger.LogWarning(
-                "Agent log batch rejected — invalid or missing X-Maintenance-Secret from {Ip}",
-                HttpContext.Connection.RemoteIpAddress);
-            return Unauthorized();
-        }
-
         if (!ModelState.IsValid)
             return CreateValidationProblemDetails();
 
@@ -87,13 +78,5 @@ public class AgentLogsController(
         {
             return CreateInternalServerErrorProblem("Failed to enqueue agent log batch.", ex);
         }
-    }
-
-    private bool IsAuthorized()
-    {
-        var expectedSecret = configuration["UpdateHub:MaintenanceSecret"] ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(expectedSecret)) return false;
-        Request.Headers.TryGetValue("X-Maintenance-Secret", out var provided);
-        return string.Equals(provided, expectedSecret, StringComparison.Ordinal);
     }
 }

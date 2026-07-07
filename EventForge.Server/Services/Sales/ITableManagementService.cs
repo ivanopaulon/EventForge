@@ -40,12 +40,6 @@ public interface ITableManagementService
     Task<List<TableSessionDto>> GetAllAvailableTablesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all tables for the current tenant (deprecated - use GetTablesAsync).
-    /// </summary>
-    [Obsolete("Use GetTablesAsync with pagination instead")]
-    Task<List<TableSessionDto>> GetAllTablesAsync(CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Gets a specific table by ID.
     /// </summary>
     Task<TableSessionDto?> GetTableAsync(Guid tableId, CancellationToken cancellationToken = default);

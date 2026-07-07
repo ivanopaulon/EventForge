@@ -713,6 +713,10 @@ public static class ServiceCollectionExtensions
         // MUST be registered as Scoped, not Singleton. The handler will be instantiated per request.
         _ = services.AddScoped<IAuthorizationHandler, EventForge.Server.Auth.TenantAdminAuthorizationHandler>();
 
+        // MaintenanceSecretAuthorizationHandler: validates X-Maintenance-Secret for agent/internal endpoints.
+        // Registered as Scoped because it depends on IHttpContextAccessor (request-scoped).
+        _ = services.AddScoped<IAuthorizationHandler, EventForge.Server.Auth.MaintenanceSecretAuthorizationHandler>();
+
         _ = services.AddAuthorizationBuilder()
             .AddPolicy("RequireUser", policy =>
                 policy.RequireAuthenticatedUser())
@@ -735,7 +739,9 @@ public static class ServiceCollectionExtensions
             .AddPolicy("RequireTenantAdmin", policy =>
                 policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.TenantAdmin)))
             .AddPolicy("RequireTenantFullAccess", policy =>
-                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.FullAccess)));
+                policy.Requirements.Add(new EventForge.Server.Auth.TenantAdminRequirement(Prym.DTOs.Common.AdminAccessLevel.FullAccess)))
+            .AddPolicy(EventForge.Server.Auth.AuthorizationPolicies.MaintenanceSecret, policy =>
+                policy.AddRequirements(new EventForge.Server.Auth.MaintenanceSecretRequirement()));
     }
 
     /// <summary>

@@ -79,49 +79,6 @@ public class ProductImageTests
     }
 
     [Fact]
-    public void Product_ImageUrl_ShouldBeMarkedObsolete()
-    {
-        // Arrange
-        _ = new Product();
-
-        // Act - Check that ImageUrl property exists but is marked obsolete
-#pragma warning disable CS0618 // Testing obsolete property intentionally
-        var imageUrlProperty = typeof(Product).GetProperty(nameof(Product.ImageUrl));
-#pragma warning restore CS0618
-
-        // Assert
-        Assert.NotNull(imageUrlProperty);
-        var obsoleteAttribute = imageUrlProperty?.GetCustomAttributes(typeof(ObsoleteAttribute), false).FirstOrDefault() as ObsoleteAttribute;
-        Assert.NotNull(obsoleteAttribute);
-        Assert.Contains("ImageDocument", obsoleteAttribute.Message);
-    }
-
-    [Fact]
-    public void Product_ShouldSupport_BothImageUrlAndImageDocumentId()
-    {
-        // Arrange
-        var imageDocumentId = Guid.NewGuid();
-        var imageUrl = "/images/products/legacy_image.jpg";
-
-        // Act
-        var product = new Product
-        {
-            Name = "Test Product",
-            Code = "TEST-001",
-#pragma warning disable CS0618 // Type or member is obsolete
-            ImageUrl = imageUrl,
-#pragma warning restore CS0618 // Type or member is obsolete
-            ImageDocumentId = imageDocumentId
-        };
-
-        // Assert
-#pragma warning disable CS0618 // Type or member is obsolete
-        Assert.Equal(imageUrl, product.ImageUrl);
-#pragma warning restore CS0618 // Type or member is obsolete
-        Assert.Equal(imageDocumentId, product.ImageDocumentId);
-    }
-
-    [Fact]
     public void DocumentReference_ForProductImage_ShouldHaveValidProperties()
     {
         // Arrange

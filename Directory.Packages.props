@@ -99,5 +99,7 @@
     <!-- Security: pin transitive packages to patched versions (NU1903) -->
     <!-- CVE-2026-26171 / CVE-2026-33116: DoS in System.Security.Cryptography.Xml <= 10.0.5; fixed in 10.0.6 -->
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.9" />
+    <!-- GHSA-2m69-gcr7-jv3q: DoS in SQLitePCLRaw.lib.e_sqlite3 <= 2.1.11; fixed in 2.1.12+ -->
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
   </ItemGroup>
 </Project>

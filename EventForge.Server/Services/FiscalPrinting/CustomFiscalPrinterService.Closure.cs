@@ -8,6 +8,7 @@ public partial class CustomFiscalPrinterService
 {
     /// <inheritdoc />
     /// <remarks>DB-only operation – implemented in <see cref="FiscalPrinterServiceRouter"/>; not delegated here.</remarks>
+    /// <exception cref="NotSupportedException">Always thrown — this method must be called via <see cref="FiscalPrinterServiceRouter"/>, not directly on the printer implementation.</exception>
     public Task<PreviousDayClosureStatusDto> GetPreviousDayClosureStatusAsync(
         Guid printerId, CancellationToken cancellationToken = default)
         => throw new NotSupportedException(

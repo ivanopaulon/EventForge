@@ -1657,7 +1657,7 @@ public class StockReconciliationService(
     ///  - When <paramref name="forceRecalculateFromMovements"/> is <c>true</c>, also
     ///    overwrites the quantity of <em>existing</em> Stock rows with the net computed
     ///    from the full movement history (inbound − outbound) plus <paramref name="startingQuantity"/>.
-    ///    <see cref="Math.Abs"/> is applied to each movement quantity to handle legacy rows that were
+    ///    <see cref="Math.Abs(decimal)"/> is applied to each movement quantity to handle legacy rows that were
     ///    incorrectly persisted with a negative value (e.g. old TransferOrderService shipment movements).
     ///    Use this flag when the Stock balances were already wrong before the rebuild.
     /// NOTE: When <paramref name="forceRecalculateFromMovements"/> is <c>false</c>, the

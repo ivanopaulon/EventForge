@@ -11,20 +11,6 @@ public class TableManagementService(
 {
     private const string BaseUrl = "api/v1/tables";
 
-    public async Task<List<TableSessionDto>?> GetAllTablesAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            return await httpClientService.GetAsync<List<TableSessionDto>>(BaseUrl, ct);
-
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error retrieving all tables");
-            return null;
-        }
-    }
-
     public async Task<TableSessionDto?> GetTableAsync(Guid id, CancellationToken ct = default)
     {
         try

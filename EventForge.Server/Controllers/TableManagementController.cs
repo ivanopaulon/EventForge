@@ -21,29 +21,6 @@ public class TableManagementController(
 {
 
     /// <summary>
-    /// Gets all tables.
-    /// </summary>
-    [HttpGet]
-    [ProducesResponseType(typeof(List<TableSessionDto>), StatusCodes.Status200OK)]
-    [Obsolete("Use GetTables with pagination instead")]
-    public async Task<ActionResult<List<TableSessionDto>>> GetAllTables(CancellationToken cancellationToken)
-    {
-
-        try
-        {
-#pragma warning disable CS0618 // Type or member is obsolete
-            var tables = await tableService.GetAllTablesAsync(cancellationToken);
-#pragma warning restore CS0618 // Type or member is obsolete
-            return Ok(tables);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error getting all tables");
-            return StatusCode(500, new { error = "An error occurred while getting tables." });
-        }
-    }
-
-    /// <summary>
     /// Retrieves all tables with pagination
     /// </summary>
     /// <param name="pagination">Pagination parameters. Max pageSize based on role: User=1000, Admin=5000, SuperAdmin=10000</param>

@@ -15,6 +15,8 @@ public interface IProductService
     /// <param name="pagination">Pagination parameters</param>
     /// <param name="searchTerm">Optional search term to filter products by code, name, or description</param>
     /// <param name="classificationNodeId">Optional classification node ID to filter products by category</param>
+    /// <param name="includeInactive">If true, includes inactive products in the result</param>
+    /// <param name="quickFilter">Quick filter string for product name or code</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Paginated list of products</returns>
     Task<PagedResult<ProductDto>> GetProductsAsync(PaginationParameters pagination, string? searchTerm = null, Guid? classificationNodeId = null, bool includeInactive = false, string? quickFilter = null, CancellationToken cancellationToken = default);
@@ -246,7 +248,6 @@ public interface IProductService
     /// <returns>True if exists, false otherwise</returns>
     Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default);
 
-    /// <summary>
     /// <summary>
     /// Uploads an image file as a DocumentReference and links it to a product.
     /// </summary>

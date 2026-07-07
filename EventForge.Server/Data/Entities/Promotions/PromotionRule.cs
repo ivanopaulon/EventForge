@@ -71,13 +71,6 @@ public class PromotionRule : AuditableEntity
     public List<Guid>? CategoryIds { get; set; }
 
     /// <summary>
-    /// List of customer groups this rule applies to.
-    /// </summary>
-    [Obsolete("Use BusinessPartyGroupIds instead")]
-    [Display(Name = "Customer Group IDs (Deprecated)", Description = "List of customer groups this rule applies to (deprecated).")]
-    public List<Guid>? CustomerGroupIds { get; set; }
-
-    /// <summary>
     /// List of Business Party Groups this rule applies to.
     /// </summary>
     [Display(Name = "Business Party Group IDs", Description = "Gruppi BP a cui si applica la regola")]

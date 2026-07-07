@@ -119,26 +119,6 @@ public class TableManagementService(
         }
     }
 
-    public async Task<List<TableSessionDto>> GetAllTablesAsync(CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var tenantId = GetTenantId();
-
-            var tables = await context.Set<TableSession>()
-                .AsNoTracking()
-                .Where(t => t.TenantId == tenantId && !t.IsDeleted)
-                .OrderBy(t => t.TableNumber)
-                .ToListAsync(cancellationToken);
-
-            return tables.Select(MapToDto).ToList();
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
     public async Task<TableSessionDto?> GetTableAsync(Guid tableId, CancellationToken cancellationToken = default)
     {
         try

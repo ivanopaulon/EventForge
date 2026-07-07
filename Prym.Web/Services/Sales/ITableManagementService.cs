@@ -8,11 +8,6 @@ namespace Prym.Web.Services.Sales;
 public interface ITableManagementService
 {
     /// <summary>
-    /// Gets all tables.
-    /// </summary>
-    Task<List<TableSessionDto>?> GetAllTablesAsync(CancellationToken ct = default);
-
-    /// <summary>
     /// Gets a table by ID.
     /// </summary>
     Task<TableSessionDto?> GetTableAsync(Guid id, CancellationToken ct = default);
