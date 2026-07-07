@@ -1192,7 +1192,7 @@ public partial class POS2026 : IAsyncDisposable
         try
         {
             await TableManagementService.UpdateTableStatusAsync(
-                tableId.Value, new UpdateTableStatusDto { Status = "Available" });
+                tableId.Value, new UpdateTableStatusDto { Status = TableStatuses.Available });
         }
         catch (Exception ex)
         {
@@ -1336,6 +1336,12 @@ public partial class POS2026 : IAsyncDisposable
             await LoadAvailableTablesAsync();
     }
 
+    private void CloseTablePicker()
+    {
+        _showTablePicker = false;
+        _tablePickerParkOnSelect = false;
+    }
+
     /// <summary>Avvia il flusso combinato "Parcheggia su tavolo" (Parte F.2): apre il selettore
     /// tavoli e, dopo la selezione, esegue automaticamente anche il parcheggio della sessione.</summary>
     private async Task OpenParkToTableFlowAsync()
@@ -1366,7 +1372,7 @@ public partial class POS2026 : IAsyncDisposable
             try
             {
                 await TableManagementService.UpdateTableStatusAsync(
-                    table.Id, new UpdateTableStatusDto { Status = "Occupied", SaleSessionId = ViewModel.CurrentSession?.Id });
+                    table.Id, new UpdateTableStatusDto { Status = TableStatuses.Occupied, SaleSessionId = ViewModel.CurrentSession?.Id });
             }
             catch (Exception statusEx)
             {

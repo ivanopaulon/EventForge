@@ -52,7 +52,7 @@ public class ThemeService(
     IJSRuntime jsRuntime,
     IProfileService profileService,
     IAuthService authService,
-    ILogger<ThemeService> logger) : IThemeService
+    ILogger<ThemeService> logger) : IThemeService, IDisposable
 {
     private const string ThemeKey = "eventforge-theme";
 
@@ -235,4 +235,6 @@ public class ThemeService(
             logger.LogDebug(ex, "Failed to apply theme to document (normal in SSR)");
         }
     }
+
+    public void Dispose() => _serverSyncLock.Dispose();
 }
