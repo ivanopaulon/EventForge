@@ -63,7 +63,7 @@
 
 @code {
     private bool _loginDialogShown = false;
-    private MudTheme _appTheme = EventForgeTheme.GetMudTheme("default");
+    private readonly MudTheme _appTheme = EventForgeTheme.GetMudTheme();
 
     protected override Task OnInitializedAsync()
     {
@@ -76,22 +76,15 @@
         // Subscribe to authentication state changes for protected routes
         AuthService.OnAuthenticationStateChanged += OnAuthenticationStateChanged;
 
-        // Subscribe to theme changes
+        // Subscribe to theme changes (IsDarkMode toggles light/dark within the same MudTheme)
         ThemeService.OnThemeChanged += OnThemeChanged;
-        UpdateTheme();
 
         return Task.CompletedTask;
     }
 
     private void OnThemeChanged()
     {
-        UpdateTheme();
         InvokeAsync(StateHasChanged);
-    }
-
-    private void UpdateTheme()
-    {
-        _appTheme = EventForgeTheme.GetMudTheme(ThemeService.CurrentTheme);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

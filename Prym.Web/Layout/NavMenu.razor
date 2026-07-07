@@ -196,6 +196,11 @@
                             Match="NavLinkMatch.All">
                     @TranslationService.GetTranslation("nav.salesDashboard", "Dashboard Vendite")
                 </MudNavLink>
+                <MudNavLink Href="/sales/history"
+                            Icon="@Icons.Material.Outlined.Receipt"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.salesHistory", "Storico Vendite")
+                </MudNavLink>
             </MudNavGroup>
 
             <!-- Configurazione Store -->
@@ -249,6 +254,16 @@
                                 Icon="@Icons.Material.Outlined.ShoppingCart"
                                 Match="NavLinkMatch.All">
                         Sessioni Carrello
+                    </MudNavLink>
+                    <MudNavLink Href="/store/table-reservations"
+                                Icon="@Icons.Material.Outlined.EventSeat"
+                                Match="NavLinkMatch.All">
+                        Prenotazioni Tavoli
+                    </MudNavLink>
+                    <MudNavLink Href="/store/tables"
+                                Icon="@Icons.Material.Outlined.TableRestaurant"
+                                Match="NavLinkMatch.All">
+                        Gestione Tavoli
                     </MudNavLink>
                 </MudNavGroup>
             }

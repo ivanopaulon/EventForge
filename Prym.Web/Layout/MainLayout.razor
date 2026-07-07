@@ -24,8 +24,6 @@
 @inject IHttpClientFactory HttpClientFactory
 @implements IAsyncDisposable
 
-<MudThemeProvider @ref="_mudThemeProvider" Theme="_currentTheme" IsDarkMode="@ThemeService.IsDarkMode" />
-
 <MudLayout>
     <!-- AppBar: [Menu] [Home] [ThemeToggle] ---- [Logo] -->
     <MudAppBar Elevation="1" role="banner" Class="ef-appbar">
@@ -137,8 +135,6 @@
 @code {
     private bool _drawerOpen = true;
     private bool _isAuthenticated = false;
-    private MudThemeProvider? _mudThemeProvider;
-    private MudTheme _currentTheme = new();
     private readonly SemaphoreSlim _authStateLock = new(1, 1);
     private BrandingConfigurationDto? _branding;
 
@@ -169,8 +165,6 @@
         
         // Load branding configuration
         await LoadBrandingAsync();
-        
-        UpdateTheme();
     }
 
     private async Task LoadBrandingAsync()
@@ -189,7 +183,6 @@
 
     private void OnThemeChanged()
     {
-        UpdateTheme();
         InvokeAsync(StateHasChanged);
     }
 
@@ -201,11 +194,6 @@
     private void OnLanguageChanged(object? sender, string newLanguage)
     {
         InvokeAsync(StateHasChanged);
-    }
-
-    private void UpdateTheme()
-    {
-        _currentTheme = EventForgeTheme.GetMudTheme(ThemeService.CurrentTheme);
     }
 
     private string GetLogoSrc()

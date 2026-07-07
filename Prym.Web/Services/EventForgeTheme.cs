@@ -4,19 +4,20 @@ namespace Prym.Web.Services;
 
 /// <summary>
 /// Centralizes all MudBlazor theme definitions for EventForge.
-/// Use <see cref="GetMudTheme"/> to get the full theme for a given key,
-/// or <see cref="GetLightPalette"/> / <see cref="GetDarkPalette"/> if you only need a palette.
+/// Use <see cref="GetMudTheme"/> to get the full theme (light and dark palettes for the
+/// single "Carbon Neon" EventForge theme), or <see cref="GetLightPalette"/> / <see cref="GetDarkPalette"/>
+/// if you only need a palette. Light/dark mode selection itself is handled by
+/// MudThemeProvider's IsDarkMode flag, driven by <see cref="IThemeService.IsDarkMode"/>.
 /// </summary>
 public static class EventForgeTheme
 {
     /// <summary>
-    /// Returns the full MudTheme for the given theme key.
-    /// Falls back to the default theme when the key is unrecognized.
+    /// Returns the full MudTheme (both light and dark palettes) for EventForge.
     /// </summary>
-    public static MudTheme GetMudTheme(string themeKey) => new()
+    public static MudTheme GetMudTheme() => new()
     {
-        PaletteLight = GetLightPalette(themeKey),
-        PaletteDark = GetDarkPalette(themeKey),
+        PaletteLight = GetLightPalette(),
+        PaletteDark = GetDarkPalette(),
         Typography = GetTypography(),
         LayoutProperties = new LayoutProperties
         {
@@ -37,125 +38,48 @@ public static class EventForgeTheme
         }
     };
 
-    /// <summary>Returns the light-mode palette for the given theme key.</summary>
-    public static PaletteLight GetLightPalette(string themeKey) => themeKey switch
+    /// <summary>Returns the light-mode palette for the EventForge Carbon Neon theme.</summary>
+    public static PaletteLight GetLightPalette() => new()
     {
-        "carbon-neon-light" or "carbon-neon" => new PaletteLight
-        {
-            Primary = "#0099CC",
-            Secondary = "#00D9FF",
-            Tertiary = "#7B68EE",
-            AppbarBackground = "#FFFFFF",
-            AppbarText = "#1A1A1A",
-            Background = "#F5F5F5",
-            Surface = "#FFFFFF",
-            DrawerBackground = "#FFFFFF",
-            DrawerText = "#1A1A1A",
-            TextPrimary = "#1A1A1A",
-            TextSecondary = "#6B6B6B",
-            Info = "#0099CC",
-            Success = "#00C853",
-            Warning = "#FFB300",
-            Error = "#FF3D00"
-        },
-        _ => GetDefaultLightPalette()
+        Primary = "#0099CC",
+        Secondary = "#00D9FF",
+        Tertiary = "#7B68EE",
+        AppbarBackground = "#FFFFFF",
+        AppbarText = "#1A1A1A",
+        Background = "#F5F5F5",
+        Surface = "#FFFFFF",
+        DrawerBackground = "#FFFFFF",
+        DrawerText = "#1A1A1A",
+        TextPrimary = "#1A1A1A",
+        TextSecondary = "#6B6B6B",
+        Info = "#0099CC",
+        Success = "#00C853",
+        Warning = "#FFB300",
+        Error = "#FF3D00"
     };
 
-    /// <summary>Returns the dark-mode palette for the given theme key.</summary>
-    public static PaletteDark GetDarkPalette(string themeKey) => themeKey switch
+    /// <summary>Returns the dark-mode palette for the EventForge Carbon Neon theme.</summary>
+    public static PaletteDark GetDarkPalette() => new()
     {
-        "carbon-neon-dark" or "carbon-neon" => new PaletteDark
-        {
-            Primary = "#00F5FF",
-            Secondary = "#FF006E",
-            Background = "#121212",
-            Surface = "#262626",
-            DrawerBackground = "#1A1A1A",
-            DrawerText = "#F5F5F5",
-            AppbarBackground = "#000000",
-            AppbarText = "#FFFFFF",
-            TextPrimary = "#FFFFFF",
-            TextSecondary = "#B3B3B3",
-            ActionDefault = "#00E5FF",
-            Divider = "rgba(255,255,255,0.1)",
-            Info = "#00E5FF",
-            Success = "#10B981",
-            Warning = "#F59E0B",
-            Error = "#EF4444"
-        },
-        _ => GetDefaultDarkPalette()
+        Primary = "#00F5FF",
+        Secondary = "#FF006E",
+        Background = "#121212",
+        Surface = "#262626",
+        DrawerBackground = "#1A1A1A",
+        DrawerText = "#F5F5F5",
+        AppbarBackground = "#000000",
+        AppbarText = "#FFFFFF",
+        TextPrimary = "#FFFFFF",
+        TextSecondary = "#B3B3B3",
+        ActionDefault = "#00E5FF",
+        Divider = "rgba(255,255,255,0.1)",
+        Info = "#00E5FF",
+        Success = "#10B981",
+        Warning = "#F59E0B",
+        Error = "#EF4444"
     };
 
     // ── Private helpers ──────────────────────────────────────────────────────
-
-    private static PaletteLight GetDefaultLightPalette() => new()
-    {
-        Primary = "#1F2F46",
-        Secondary = "#247BFF",
-        Tertiary = "#FF6B2C",
-        AppbarBackground = "#1F2F46",
-        AppbarText = "#ffffff",
-        Background = "#F5F6FA",
-        Surface = "#ffffff",
-        DrawerBackground = "#1F2F46",
-        DrawerText = "#d7d7d7",
-        DrawerIcon = "#d7d7d7",
-        BackgroundGray = "#ECEEF2",
-        Divider = "rgba(0, 0, 0, 0.12)",
-        DividerLight = "rgba(0, 0, 0, 0.06)",
-        TextPrimary = "#2D2D2D",
-        TextSecondary = "#666666",
-        TextDisabled = "rgba(0, 0, 0, 0.38)",
-        ActionDefault = "rgba(0, 0, 0, 0.54)",
-        ActionDisabled = "rgba(0, 0, 0, 0.26)",
-        ActionDisabledBackground = "rgba(0, 0, 0, 0.12)",
-        LinesDefault = "rgba(0, 0, 0, 0.12)",
-        LinesInputs = "rgba(0, 0, 0, 0.42)",
-        TableHover = "rgba(0, 0, 0, 0.04)",
-        TableLines = "rgba(0, 0, 0, 0.12)",
-        TableStriped = "rgba(0, 0, 0, 0.02)",
-        OverlayDark = "rgba(0, 0, 0, 0.5)",
-        OverlayLight = "rgba(255, 255, 255, 0.7)",
-        Info = "#247BFF",
-        Success = "#4caf50",
-        Warning = "#ff9800",
-        Error = "#f44336"
-    };
-
-    private static PaletteDark GetDefaultDarkPalette() => new()
-    {
-        Black = "#1a1a2e",
-        Background = "#1a1a2e",
-        Surface = "#2d2d30",
-        BackgroundGray = "#222236",
-        Divider = "rgba(255, 255, 255, 0.12)",
-        DividerLight = "rgba(255, 255, 255, 0.06)",
-        TextPrimary = "#e0e0e0",
-        TextSecondary = "#b0b0b0",
-        TextDisabled = "rgba(255, 255, 255, 0.38)",
-        AppbarBackground = "#1a1a2e",
-        AppbarText = "#e0e0e0",
-        DrawerBackground = "#1a1a2e",
-        DrawerText = "#b0b0b0",
-        DrawerIcon = "#b0b0b0",
-        ActionDefault = "rgba(255, 255, 255, 0.7)",
-        ActionDisabled = "rgba(255, 255, 255, 0.26)",
-        ActionDisabledBackground = "rgba(255, 255, 255, 0.12)",
-        LinesDefault = "rgba(255, 255, 255, 0.12)",
-        LinesInputs = "rgba(255, 255, 255, 0.42)",
-        TableHover = "rgba(255, 255, 255, 0.04)",
-        TableLines = "rgba(255, 255, 255, 0.12)",
-        TableStriped = "rgba(255, 255, 255, 0.02)",
-        OverlayDark = "rgba(0, 0, 0, 0.7)",
-        OverlayLight = "rgba(255, 255, 255, 0.2)",
-        Primary = "#4fc3f7",
-        Secondary = "#ffb74d",
-        Tertiary = "#4fc3f7",
-        Info = "#4fc3f7",
-        Success = "#66bb6a",
-        Warning = "#ffb74d",
-        Error = "#f06292"
-    };
 
     private static readonly string[] _displayFonts = ["Noto Sans Display", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"];
     private static readonly string[] _bodyFonts = ["Noto Sans", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"];

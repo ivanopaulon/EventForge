@@ -1,0 +1,210 @@
+@page "/store/tables"
+@using Prym.DTOs.Sales
+@using Prym.Web.Services.Sales
+@using Prym.Web.Shared.Components.Sales
+@using Prym.Web.Shared.Components.Dialogs.Store
+@using Prym.Web.Shared.Management
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
+@inject ITableManagementService TableManagementService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<TableManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("tables.title", "Gestione Tavoli")</PageTitle>
+
+<ManagementPageHeader Title="@TranslationService.GetTranslation("tables.title", "Gestione Tavoli")"
+                      Icon="@Icons.Material.Outlined.TableRestaurant">
+    <ExtraActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   Size="Size.Small"
+                   OnClick="@(() => OpenDialogAsync(null))">
+            Nuovo Tavolo
+        </MudButton>
+    </ExtraActions>
+</ManagementPageHeader>
+
+<MudTabs Elevation="0" Rounded="true" Class="mt-2" PanelClass="pa-0">
+    <MudTabPanel Text="Elenco" Icon="@Icons.Material.Outlined.ViewList">
+        <EFTable TItem="TableSessionDto"
+                 Items="@_tables"
+                 Hover="true"
+                 Dense="true"
+                 Striped="true"
+                 IsLoading="@_isLoading"
+                 LoadingProgressColor="Color.Primary"
+                 Breakpoint="Breakpoint.Sm"
+                 ShowSearch="false"
+                 ShowFilters="false"
+                 ShowRefresh="true"
+                 OnRefresh="LoadTablesAsync"
+                 ShowCreate="false"
+                 ShowExport="false"
+                 ShowColumnConfiguration="false"
+                 ComponentKey="table-management-list">
+            <HeaderContent Context="columns">
+                <MudTh>Numero</MudTh>
+                <MudTh>Nome</MudTh>
+                <MudTh>Zona</MudTh>
+                <MudTh>Capienza</MudTh>
+                <MudTh>Stato</MudTh>
+                <MudTh>Attivo</MudTh>
+                <MudTh Class="text-center">Azioni</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="table">
+                <MudTd DataLabel="Numero">@table.TableNumber</MudTd>
+                <MudTd DataLabel="Nome">@(table.TableName ?? "-")</MudTd>
+                <MudTd DataLabel="Zona">@(table.Area ?? "-")</MudTd>
+                <MudTd DataLabel="Capienza">@table.Capacity</MudTd>
+                <MudTd DataLabel="Stato">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(table.Status)">@GetStatusLabel(table.Status)</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Attivo">
+                    @if (table.IsActive)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                    }
+                </MudTd>
+                <MudTd Class="text-center">
+                    <MudStack Row Spacing="1" Justify="Justify.Center">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" Size="Size.Small"
+                                       Title="Modifica" OnClick="@(() => OpenDialogAsync(table.Id))" />
+                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Size="Size.Small"
+                                       Title="Elimina" OnClick="@(() => DeleteTableAsync(table))" />
+                    </MudStack>
+                </MudTd>
+            </RowTemplate>
+        </EFTable>
+    </MudTabPanel>
+    <MudTabPanel Text="Planimetria" Icon="@Icons.Material.Outlined.Map">
+        <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+            Trascina i tavoli per posizionarli nella sala. La posizione viene salvata automaticamente.
+        </MudAlert>
+        @if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-3" />
+        }
+        <TableFloorPlan Tables="@_tables"
+                         EditMode="true"
+                         OnPositionChanged="OnPositionChangedAsync" />
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<TableSessionDto> _tables = new();
+    private bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTablesAsync();
+    }
+
+    private async Task LoadTablesAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _tables = await TableManagementService.GetAllTablesAsync() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading tables.");
+            AppNotification.ShowError("Errore durante il caricamento dei tavoli.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OpenDialogAsync(Guid? tableId)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(TableDetailDialog.TableId), tableId }
+        };
+
+        var dialog = await DialogService.ShowAsync<TableDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            AppNotification.ShowSuccess("Tavolo salvato correttamente.");
+            await LoadTablesAsync();
+        }
+    }
+
+    private async Task DeleteTableAsync(TableSessionDto table)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Elimina tavolo", $"Eliminare il tavolo {table.TableNumber}?",
+            yesText: "Conferma", cancelText: "Annulla");
+        if (confirmed != true) return;
+
+        try
+        {
+            var success = await TableManagementService.DeleteTableAsync(table.Id);
+            if (!success)
+            {
+                AppNotification.ShowError("Impossibile eliminare il tavolo. Potrebbe avere una sessione attiva.");
+                return;
+            }
+            AppNotification.ShowSuccess("Tavolo eliminato.");
+            await LoadTablesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting table {Id}.", table.Id);
+            AppNotification.ShowError("Errore durante l'eliminazione del tavolo.");
+        }
+    }
+
+    private async Task OnPositionChangedAsync((TableSessionDto Table, int X, int Y) change)
+    {
+        try
+        {
+            var updateDto = new UpdateTableSessionDto
+            {
+                PositionX = change.X,
+                PositionY = change.Y
+            };
+            var result = await TableManagementService.UpdateTableAsync(change.Table.Id, updateDto);
+            if (result is null)
+            {
+                AppNotification.ShowError("Impossibile salvare la nuova posizione del tavolo.");
+                await LoadTablesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating table position {Id}.", change.Table.Id);
+            AppNotification.ShowError("Errore durante il salvataggio della posizione.");
+            await LoadTablesAsync();
+        }
+    }
+
+    private static Color GetStatusColor(string status) => status switch
+    {
+        "Available" => Color.Success,
+        "Occupied" => Color.Error,
+        "Reserved" => Color.Warning,
+        "Cleaning" => Color.Info,
+        "OutOfService" => Color.Dark,
+        _ => Color.Default
+    };
+
+    private static string GetStatusLabel(string status) => status switch
+    {
+        "Available" => "Disponibile",
+        "Occupied" => "Occupato",
+        "Reserved" => "Prenotato",
+        "Cleaning" => "Pulizia",
+        "OutOfService" => "Fuori servizio",
+        _ => status
+    };
+}

@@ -1,0 +1,188 @@
+@using Prym.DTOs.Sales
+@using Prym.Web.Services.Sales
+@inject ITableManagementService TableManagementService
+@inject ILogger<TableDetailDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.TableRestaurant"
+          Title="@(TableId.HasValue ? "Modifica Tavolo" : "Nuovo Tavolo")"
+          IsProcessing="_isSaving"
+          OnClose="Cancel"
+          MinWidth="500px">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudForm @ref="_form">
+                <MudGrid>
+                    <MudItem xs="6">
+                        <MudTextField @bind-Value="_tableNumber"
+                                      Label="Numero tavolo"
+                                      Required="true"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="50"
+                                      Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="6">
+                        <MudNumericField @bind-Value="_capacity"
+                                         Label="Capienza (posti)"
+                                         Required="true"
+                                         Min="1"
+                                         Max="50"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_tableName"
+                                      Label="Nome/descrizione"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="100"
+                                      Class="ef-input" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_area"
+                                      Label="Zona/Sala"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      MaxLength="100"
+                                      Class="ef-input" />
+                    </MudItem>
+                    @if (TableId.HasValue)
+                    {
+                        <MudItem xs="12">
+                            <MudSwitch @bind-Value="_isActive" Color="Color.Primary" Label="Attivo" />
+                        </MudItem>
+                    }
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Error" Dense="true">@_errorMessage</MudAlert>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudForm>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="Cancel" Disabled="_isSaving">
+            Annulla
+        </MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving || _isLoading">
+            Salva
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] public IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid? TableId { get; set; }
+
+    private MudForm? _form;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    private string _tableNumber = string.Empty;
+    private string? _tableName;
+    private int _capacity = 2;
+    private string? _area;
+    private bool _isActive = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (TableId.HasValue)
+            {
+                var table = await TableManagementService.GetTableAsync(TableId.Value);
+                if (table is not null)
+                {
+                    _tableNumber = table.TableNumber;
+                    _tableName = table.TableName;
+                    _capacity = table.Capacity;
+                    _area = table.Area;
+                    _isActive = table.IsActive;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading table dialog data");
+            _errorMessage = "Errore durante il caricamento dei dati.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_tableNumber))
+        {
+            _errorMessage = "Inserisci il numero del tavolo.";
+            return;
+        }
+        if (_capacity <= 0)
+        {
+            _errorMessage = "Inserisci una capienza valida.";
+            return;
+        }
+
+        _isSaving = true;
+        try
+        {
+            TableSessionDto? result;
+
+            if (TableId.HasValue)
+            {
+                var updateDto = new UpdateTableSessionDto
+                {
+                    TableNumber = _tableNumber,
+                    TableName = _tableName,
+                    Capacity = _capacity,
+                    Area = _area,
+                    IsActive = _isActive
+                };
+                result = await TableManagementService.UpdateTableAsync(TableId.Value, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateTableSessionDto
+                {
+                    TableNumber = _tableNumber,
+                    TableName = _tableName,
+                    Capacity = _capacity,
+                    Area = _area
+                };
+                result = await TableManagementService.CreateTableAsync(createDto);
+            }
+
+            if (result is null)
+            {
+                _errorMessage = "Impossibile salvare il tavolo.";
+                _isSaving = false;
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving table");
+            _errorMessage = ex.Message;
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,212 @@
+@page "/sales/history"
+@using Prym.DTOs.Sales
+@using Prym.Web.Services.Sales
+@using Prym.Web.Shared.Management
+@attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
+@inject ISalesService SalesService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<SalesHistory> Logger
+
+<PageTitle>@TranslationService.GetTranslation("sales.history", "Storico Vendite")</PageTitle>
+
+<ManagementPageHeader Title="@TranslationService.GetTranslation("sales.history", "Storico Vendite")"
+                      Icon="@Icons.Material.Outlined.Receipt" />
+
+@* ──────────────────── FILTER PANEL ──────────────────── *@
+<MudPaper Elevation="1" Class="pa-3 mb-0">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="4" md="3">
+            <MudDatePicker @bind-Date="_filterFrom"
+                           Label="Da"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="ef-datepicker" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudDatePicker @bind-Date="_filterTo"
+                           Label="A"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Class="ef-datepicker" />
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="SaleSessionStatusDto?" @bind-Value="_filterStatus"
+                       Label="Stato"
+                       Variant="Variant.Outlined"
+                       Margin="Margin.Dense"
+                       Clearable="true">
+                <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Closed">Chiusa</MudSelectItem>
+                <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Cancelled">Annullata</MudSelectItem>
+                <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Open">Aperta</MudSelectItem>
+                <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Suspended">Sospesa</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudStack Row Spacing="2">
+                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="ApplyFiltersAsync">
+                    Cerca
+                </MudButton>
+                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                           Variant="Variant.Outlined"
+                           OnClick="ClearFiltersAsync">
+                    Pulisci
+                </MudButton>
+            </MudStack>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<EFTable TItem="SaleSessionDto"
+         Items="@_filteredSessions"
+         Hover="true"
+         Dense="true"
+         Striped="true"
+         IsLoading="@_isLoading"
+         LoadingProgressColor="Color.Primary"
+         Breakpoint="Breakpoint.Sm"
+         ShowSearch="false"
+         ShowFilters="false"
+         ShowRefresh="true"
+         OnRefresh="ApplyFiltersAsync"
+         ShowCreate="false"
+         ShowExport="false"
+         ShowColumnConfiguration="false"
+         ComponentKey="sales-history">
+    <HeaderContent Context="columns">
+        <MudTh>Data/Ora</MudTh>
+        <MudTh>Operatore</MudTh>
+        <MudTh>Cassa</MudTh>
+        <MudTh>Cliente</MudTh>
+        <MudTh>Tavolo</MudTh>
+        <MudTh>Totale</MudTh>
+        <MudTh>Stato</MudTh>
+        <MudTh Class="text-center">Azioni</MudTh>
+    </HeaderContent>
+    <RowTemplate Context="session">
+        <MudTd DataLabel="Data/Ora">@session.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudTd>
+        <MudTd DataLabel="Operatore">@(session.OperatorName ?? "-")</MudTd>
+        <MudTd DataLabel="Cassa">@(session.PosName ?? "-")</MudTd>
+        <MudTd DataLabel="Cliente">@(session.CustomerName ?? "-")</MudTd>
+        <MudTd DataLabel="Tavolo">@(session.TableNumber ?? "-")</MudTd>
+        <MudTd DataLabel="Totale">@session.FinalTotal.ToString("C2", new System.Globalization.CultureInfo("it-IT"))</MudTd>
+        <MudTd DataLabel="Stato">
+            <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(session.Status)">@GetStatusLabel(session.Status)</MudChip>
+        </MudTd>
+        <MudTd Class="text-center">
+            @if (session.Status == SaleSessionStatusDto.Closed)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Cancel"
+                               Color="Color.Error"
+                               Size="Size.Small"
+                               Title="Annulla vendita"
+                               OnClick="@(() => VoidSessionAsync(session))" />
+            }
+        </MudTd>
+    </RowTemplate>
+</EFTable>
+
+@code {
+    private DateTime? _filterFrom = DateTime.Today.AddDays(-7);
+    private DateTime? _filterTo = DateTime.Today;
+    private SaleSessionStatusDto? _filterStatus;
+
+    private List<SaleSessionDto> _sessions = new();
+    private List<SaleSessionDto> _filteredSessions = new();
+    private bool _isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ApplyFiltersAsync();
+    }
+
+    private async Task ApplyFiltersAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var start = (_filterFrom ?? DateTime.Today.AddDays(-7)).Date;
+            var end = (_filterTo ?? DateTime.Today).Date.AddDays(1).AddTicks(-1);
+            _sessions = await SalesService.GetSessionsByDateAsync(start, end) ?? new();
+            ApplyStatusFilter();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading sales history.");
+            AppNotification.ShowError("Errore durante il caricamento dello storico vendite.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ApplyStatusFilter()
+    {
+        _filteredSessions = _filterStatus is null
+            ? _sessions
+            : _sessions.Where(s => s.Status == _filterStatus).ToList();
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _filterFrom = DateTime.Today.AddDays(-7);
+        _filterTo = DateTime.Today;
+        _filterStatus = null;
+        await ApplyFiltersAsync();
+    }
+
+    private async Task VoidSessionAsync(SaleSessionDto session)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Annulla vendita",
+            $"Annullare definitivamente la vendita del {session.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} per un totale di {session.FinalTotal.ToString("C2", new System.Globalization.CultureInfo("it-IT"))}? " +
+            "Verranno generati movimenti di magazzino inversi. L'operazione non è reversibile.",
+            yesText: "Conferma",
+            cancelText: "Annulla");
+
+        if (confirmed != true) return;
+
+        try
+        {
+            var voided = await SalesService.VoidSessionAsync(session.Id);
+            if (voided is null)
+            {
+                AppNotification.ShowError("Impossibile annullare la vendita selezionata.");
+                return;
+            }
+
+            AppNotification.ShowSuccess("Vendita annullata correttamente.");
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error voiding session {SessionId}.", session.Id);
+            AppNotification.ShowError("Si è verificato un errore durante l'annullamento della vendita.");
+        }
+    }
+
+    private static Color GetStatusColor(SaleSessionStatusDto status) => status switch
+    {
+        SaleSessionStatusDto.Open => Color.Info,
+        SaleSessionStatusDto.Suspended => Color.Warning,
+        SaleSessionStatusDto.Closed => Color.Success,
+        SaleSessionStatusDto.Cancelled => Color.Error,
+        _ => Color.Default
+    };
+
+    private static string GetStatusLabel(SaleSessionStatusDto status) => status switch
+    {
+        SaleSessionStatusDto.Open => "Aperta",
+        SaleSessionStatusDto.Suspended => "Sospesa",
+        SaleSessionStatusDto.Closed => "Chiusa",
+        SaleSessionStatusDto.Cancelled => "Annullata",
+        SaleSessionStatusDto.Splitting => "In divisione",
+        SaleSessionStatusDto.Merging => "In unione",
+        _ => status.ToString()
+    };
+}

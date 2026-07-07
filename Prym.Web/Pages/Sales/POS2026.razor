@@ -414,16 +414,10 @@
                 </div>
                 @if (_availableTables.Any())
                 {
-                    <div class="pos26-fn-tables-grid">
-                        @foreach (var table in _availableTables)
-                        {
-                            <button class="pos26-fn-table-btn @(ViewModel.CurrentSession?.TableNumber == table.TableNumber ? "pos26-fn-table-btn--active" : "")"
-                                    @onclick="() => AssignTableAsync(table)">
-                                @table.TableNumber
-                                @if (!string.IsNullOrEmpty(table.TableName)) { <br /><small>@table.TableName</small> }
-                            </button>
-                        }
-                    </div>
+                    <TableFloorPlan Tables="@_availableTables"
+                                     EditMode="false"
+                                     SelectedTableId="@(_availableTables.FirstOrDefault(t => t.TableNumber == ViewModel.CurrentSession?.TableNumber)?.Id)"
+                                     OnTableClick="@AssignTableAsync" />
                 }
                 else
                 {
