@@ -27,6 +27,7 @@ namespace Prym.Web.Pages.Sales;
 public partial class POS2026 : IAsyncDisposable
 {
     [Inject] IFidelityService FidelityService { get; set; } = default!;
+    [Inject] IBusinessPartyService BusinessPartyService { get; set; } = default!;
 
     // --- Componente reference per focus ---
     private Pos26SearchBar? _searchBar;
@@ -66,6 +67,7 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Fidelity card ---
     private FidelityCardDto? _fidelityCard;
+    private bool _isFidelityLookupInProgress = false;  // guard: prevenzione race condition su scan rapidi
 
     // --- Sessioni parcheggiate ---
     private List<SaleSessionDto> _parkedSessions = new();
@@ -552,8 +554,11 @@ public partial class POS2026 : IAsyncDisposable
     private async Task HandleBarcodeAsync(string barcode)
     {
         if (string.IsNullOrWhiteSpace(barcode)) return;
+        if (_isFidelityLookupInProgress) return;
+
         try
         {
+            // 1. Lookup prodotto — ha sempre la precedenza
             var result = await ProductService.SearchProductsAsync(barcode, maxResults: 1);
             var product = result?.ExactMatch?.Product ?? result?.SearchResults?.FirstOrDefault();
             if (product != null)
@@ -561,15 +566,80 @@ public partial class POS2026 : IAsyncDisposable
                 await OnAddProductToCartAsync(product);
                 _searchTerm = string.Empty;
                 StateHasChanged();
+                return;
             }
-            else
+
+            // 2. Nessun prodotto trovato → tenta lookup tessera fedeltà
+            _isFidelityLookupInProgress = true;
+            try
             {
-                AppNotification.ShowWarning($"Prodotto non trovato per il codice: {barcode}");
+                var card = await FidelityService.GetCardByCardNumberAsync(barcode);
+
+                if (card is null)
+                {
+                    AppNotification.ShowWarning($"Codice non riconosciuto come prodotto né tessera cliente: {barcode}");
+                    return;
+                }
+
+                if (card.Status != FidelityCardStatus.Active)
+                {
+                    var statusLabel = card.Status switch
+                    {
+                        FidelityCardStatus.Suspended => "sospesa",
+                        FidelityCardStatus.Expired   => "scaduta",
+                        FidelityCardStatus.Revoked   => "revocata",
+                        _                            => card.Status.ToString()
+                    };
+                    AppNotification.ShowWarning($"Tessera {statusLabel} — cliente non selezionato automaticamente.");
+                    return;
+                }
+
+                if (card.BusinessPartyId is null)
+                {
+                    AppNotification.ShowWarning("Tessera non collegata a nessun cliente.");
+                    return;
+                }
+
+                // 3. Tessera valida — carica il BusinessParty
+                var newCustomer = await BusinessPartyService.GetBusinessPartyAsync(card.BusinessPartyId.Value);
+                if (newCustomer is null)
+                {
+                    AppNotification.ShowWarning("Cliente della tessera non trovato.");
+                    return;
+                }
+
+                // 4. Se c'è già un cliente diverso selezionato → dialog esplicito
+                if (ViewModel.SelectedCustomer != null && ViewModel.SelectedCustomer.Id != newCustomer.Id)
+                {
+                    var parameters = new DialogParameters<Pos26CustomerChangeDialog>
+                    {
+                        { d => d.CurrentCustomer, ViewModel.SelectedCustomer },
+                        { d => d.NewCustomer, newCustomer },
+                        { d => d.NewFidelityCard, card }
+                    };
+                    var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small };
+                    var dialog = await DialogService.ShowAsync<Pos26CustomerChangeDialog>(
+                        "Cambio Cliente", parameters, options);
+                    var dialogResult = await dialog.Result;
+                    if (dialogResult is null || dialogResult.Canceled) return;
+                }
+
+                // 5. Selezione cliente (percorso nominale o dopo conferma dialog)
+                await OnSelectedCustomerChangedAsync(newCustomer);
+                AppNotification.ShowSuccess(
+                    $"Cliente: {newCustomer.Name} | Tessera: {card.CardNumber} | ⭐ {card.CurrentPoints} pt");
+                StateHasChanged();
+            }
+            finally
+            {
+                _isFidelityLookupInProgress = false;
             }
         }
         catch (Exception ex)
         {
+            _isFidelityLookupInProgress = false;
             Logger.LogError(ex, "Errore nella ricerca barcode POS2026: {Barcode}", barcode);
+            AppNotification.ShowWarning("Errore nella lettura del codice.");
         }
     }
 

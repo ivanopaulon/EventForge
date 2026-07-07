@@ -1,0 +1,65 @@
+@* Dialog conferma cambio cliente da scan barcode tessera fedeltà.
+   Aperto da HandleBarcodeAsync quando viene scansionata una tessera intestata
+   a un cliente diverso da quello correntemente selezionato nel POS2026. *@
+@using Prym.DTOs.Business
+@using Prym.DTOs.Business.Fidelity
+
+<EFDialog Icon="@Icons.Material.Outlined.SwitchAccount"
+          Title="Cambio Cliente"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="min(440px, 95vw)">
+    <ChildContent>
+        <MudStack Spacing="3" Class="pa-2">
+            <MudAlert Severity="Severity.Warning" Icon="@Icons.Material.Filled.PersonSearch" Dense="true">
+                È stata scansionata una tessera fedeltà intestata a un cliente diverso da quello attualmente selezionato.
+            </MudAlert>
+
+            <MudStack Row="false" Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">CLIENTE CORRENTE</MudText>
+                <MudText Typo="Typo.body1"><strong>@CurrentCustomer?.Name</strong></MudText>
+            </MudStack>
+
+            <MudDivider />
+
+            <MudStack Row="false" Spacing="1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">NUOVO CLIENTE (DALLA TESSERA)</MudText>
+                <MudText Typo="Typo.body1"><strong>@NewCustomer?.Name</strong></MudText>
+                @if (NewFidelityCard is not null)
+                {
+                    <MudText Typo="Typo.caption">
+                        Tessera: <strong>@NewFidelityCard.CardNumber</strong>
+                        &nbsp;|&nbsp;⭐ <strong>@NewFidelityCard.CurrentPoints pt</strong>
+                    </MudText>
+                }
+            </MudStack>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                Vuoi sostituire il cliente corrente con il nuovo?
+            </MudText>
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Default"
+                   OnClick="Cancel">
+            Annulla
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="Confirm">
+            Cambia Cliente
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
+
+    [Parameter] public BusinessPartyDto? CurrentCustomer { get; set; }
+    [Parameter] public BusinessPartyDto? NewCustomer { get; set; }
+    [Parameter] public FidelityCardDto? NewFidelityCard { get; set; }
+
+    private void Confirm() => MudDialog?.Close(DialogResult.Ok(true));
+    private void Cancel() => MudDialog?.Cancel();
+}
