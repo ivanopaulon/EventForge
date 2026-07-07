@@ -1833,7 +1833,7 @@ public partial class POS2026 : IAsyncDisposable
                     string.Empty, drawerParameters, EFDialogDefaults.Options);
                 var drawerResult = await drawerDialog.Result;
 
-                if (drawerResult?.Canceled != false)
+                if (drawerResult == null || drawerResult.Canceled)
                 {
                     // Annullato dall'utente — interrompe l'intero wizard, la chiusura fiscale non viene eseguita.
                     return;
