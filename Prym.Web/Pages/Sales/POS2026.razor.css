@@ -2,13 +2,21 @@
 
 /* ===== Variabili colore (usate come custom properties) ===== */
 .pos2026-wrap {
-    --pos-accent:        #7F77DD;
-    --pos-accent-light:  #EEEDFE;
+    /* Accento cromatico allineato al brand ufficiale EventForge (Secondary #247BFF,
+       vedi EventForgeTheme.cs GetDefaultLightPalette / wwwroot/css/variables.css),
+       al posto del viola scollegato #7F77DD (Opzione A: brand + sfondo scuro per leggibilità touch). */
+    --pos-accent:        #247BFF;
+    --pos-accent-light:  #E5EFFF;
     --pos-dark:          #2C2C2A;
     --pos-darker:        #1D1D1B;
     --pos-dark-border:   #444441;
     --pos-dark-text:     #D3D1C7;
     --pos-dark-muted:    #888780;
+    /* Colori semantici (successo/attenzione/errore): mantenuti come varianti dedicate
+       invece delle variabili --mud-palette-success/warning/error perché queste ultime
+       sono tarate per superfici chiare — su sfondo scuro touch risultano poco sature
+       e con contrasto insufficiente. I valori qui sono scelti per restare leggibili
+       su --pos-dark/--pos-darker mantenendo la stessa semantica (verde/ambra/rosso). */
     --pos-green:         #1D9E75;
     --pos-green-light:   #E1F5EE;
     --pos-amber:         #BA7517;
@@ -107,7 +115,7 @@
 }
 
 .pos2026-mobile-tab--active {
-    color: var(--pos-accent, #7F77DD);
+    color: var(--pos-accent, #247BFF);
     background: rgba(127, 119, 221, 0.12);
 }
 
@@ -218,7 +226,7 @@
 
 ::deep .pos26-customer-chip--active {
     background: var(--pos-accent-light);
-    color: #3C3489;
+    color: #1F2F46;
     border-color: var(--pos-accent);
 }
 
