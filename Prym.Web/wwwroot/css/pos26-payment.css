@@ -10,8 +10,9 @@
 
 /* ---- Variabili colore POS (ridefinite localmente per il dialog portal) ---- */
 .pos26-payment-dialog-wrap {
-    --pos-accent:       #7F77DD;
-    --pos-accent-light: #EEEDFE;
+    /* Stesso accento brand-aligned di POS2026.razor.css (§Opzione A) — vedi commento lì per dettagli. */
+    --pos-accent:       #247BFF;
+    --pos-accent-light: #E5EFFF;
     --pos-dark:         #2C2C2A;
     --pos-darker:       #1D1D1B;
     --pos-dark-border:  #444441;
@@ -243,6 +244,27 @@
     padding: 8px 12px;
     font-size: 14px;
     font-weight: 600;
+}
+
+/* Anteprima resto live nella colonna destra (numpad), mentre si digita l'importo prima di "Aggiungi" */
+.pos26-pay-resto-banner--preview {
+    flex-wrap: wrap;
+}
+
+.pos26-pay-resto-breakdown {
+    font-weight: 400;
+    font-size: 13px;
+    opacity: 0.85;
+}
+
+.pos26-pay-resto-warning {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    color: var(--pos-amber);
+    font-weight: 600;
+    font-size: 13px;
 }
 
 /* ===== Colonna destra: numpad ===== */

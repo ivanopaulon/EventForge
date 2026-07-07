@@ -2,13 +2,21 @@
 
 /* ===== Variabili colore (usate come custom properties) ===== */
 .pos2026-wrap {
-    --pos-accent:        #7F77DD;
-    --pos-accent-light:  #EEEDFE;
+    /* Accento cromatico allineato al brand ufficiale EventForge (Secondary #247BFF,
+       vedi EventForgeTheme.cs GetDefaultLightPalette / wwwroot/css/variables.css),
+       al posto del viola scollegato #7F77DD (Opzione A: brand + sfondo scuro per leggibilità touch). */
+    --pos-accent:        #247BFF;
+    --pos-accent-light:  #E5EFFF;
     --pos-dark:          #2C2C2A;
     --pos-darker:        #1D1D1B;
     --pos-dark-border:   #444441;
     --pos-dark-text:     #D3D1C7;
     --pos-dark-muted:    #888780;
+    /* Colori semantici (successo/attenzione/errore): mantenuti come varianti dedicate
+       invece delle variabili --mud-palette-success/warning/error perché queste ultime
+       sono tarate per superfici chiare — su sfondo scuro touch risultano poco sature
+       e con contrasto insufficiente. I valori qui sono scelti per restare leggibili
+       su --pos-dark/--pos-darker mantenendo la stessa semantica (verde/ambra/rosso). */
     --pos-green:         #1D9E75;
     --pos-green-light:   #E1F5EE;
     --pos-amber:         #BA7517;
@@ -107,8 +115,8 @@
 }
 
 .pos2026-mobile-tab--active {
-    color: var(--pos-accent, #7F77DD);
-    background: rgba(127, 119, 221, 0.12);
+    color: var(--pos-accent, #247BFF);
+    background: rgba(36, 123, 255, 0.12);
 }
 
 /* ===== Colonna sinistra ===== */
@@ -218,7 +226,7 @@
 
 ::deep .pos26-customer-chip--active {
     background: var(--pos-accent-light);
-    color: #3C3489;
+    color: #1F2F46;
     border-color: var(--pos-accent);
 }
 
@@ -573,6 +581,20 @@
     color: var(--pos-dark-muted);
 }
 
+/* Tessera fedeltà + punti: già visibili nel chip cliente di Pos26SearchBar durante la vendita,
+   qui vengono mostrati solo sullo scontrino stampato (utile per il cliente in cassa). */
+::deep .pos26-receipt-fidelity {
+    display: none;
+}
+
+@media print {
+    ::deep .pos26-receipt-fidelity {
+        display: flex !important;
+        color: black;
+        font-size: 12px;
+    }
+}
+
 ::deep .pos26-receipt-clear {
     background: none;
     border: none;
@@ -817,11 +839,37 @@
 }
 
 ::deep .pos26-numpad-key--discount {
-    grid-column: 1 / 2;
+    min-height: 50px;
+    font-size: 18px;
+}
+
+/* Riga sconto isolata sopra la griglia numerica (P2.2): due tasti a piena larghezza,
+   più alti dei tasti numerici, per essere immediatamente distinguibili al tocco. */
+::deep .pos26-numpad-discount-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+/* Badge "MODALITÀ SCONTO %/€" — sfondo pieno colorato, molto più prominente della piccola
+   etichetta pos26-numpad-mode (11px), riusa lo stile di prominenza di pos26-pay-resto-banner. */
+::deep .pos26-numpad-mode-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--pos-accent);
+    color: #fff;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
 }
 
 ::deep .pos26-numpad-key--pay {
-    grid-column: 2 / 3;
+    grid-column: 1 / 3;
     font-size: 14px;
 }
 

@@ -1,0 +1,186 @@
+@* Pos26DrawerClosureDialog — riconciliazione cassetto contanti, primo step del flusso
+   unificato di chiusura giornata (vedi POS2026.razor.cs → OpenEndOfDayWizardAsync). *@
+@using Prym.DTOs.Store
+@using Prym.Web.Services.Store
+@inject IFiscalDrawerService FiscalDrawerService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<Pos26DrawerClosureDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Inbox"
+          Title="@TranslationService.GetTranslation("sales.drawerClosureTitle", "Chiusura Cassetto")"
+          IsProcessing="@_saving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <div class="pa-4">
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                @TranslationService.GetTranslation("sales.drawerClosureSubtitle", "Conta il contante presente nel cassetto e confermalo per chiudere la sessione.")
+            </MudText>
+
+            <MudPaper Elevation="0" Class="pa-3 mb-3" Style="background: var(--mud-palette-background-grey); border-radius: 8px;">
+                <MudGrid Spacing="1">
+                    <MudItem xs="8">
+                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("sales.openingBalance", "Fondo apertura")</MudText>
+                    </MudItem>
+                    <MudItem xs="4" Class="text-right">
+                        <MudText Typo="Typo.body2">@FormatAmount(FiscalDrawerSummary?.SessionOpeningBalance)</MudText>
+                    </MudItem>
+
+                    <MudItem xs="8">
+                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("sales.totalSales", "Vendite (contanti)")</MudText>
+                    </MudItem>
+                    <MudItem xs="4" Class="text-right">
+                        <MudText Typo="Typo.body2">+ @FormatAmount(FiscalDrawerSummary?.SessionTotalSales)</MudText>
+                    </MudItem>
+
+                    <MudItem xs="8">
+                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("sales.totalDeposits", "Versamenti")</MudText>
+                    </MudItem>
+                    <MudItem xs="4" Class="text-right">
+                        <MudText Typo="Typo.body2">+ @FormatAmount(FiscalDrawerSummary?.SessionTotalDeposits)</MudText>
+                    </MudItem>
+
+                    <MudItem xs="8">
+                        <MudText Typo="Typo.body2">@TranslationService.GetTranslation("sales.totalWithdrawals", "Prelievi")</MudText>
+                    </MudItem>
+                    <MudItem xs="4" Class="text-right">
+                        <MudText Typo="Typo.body2">− @FormatAmount(FiscalDrawerSummary?.SessionTotalWithdrawals)</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12"><MudDivider Class="my-1" /></MudItem>
+
+                    <MudItem xs="8">
+                        <MudText Typo="Typo.subtitle2"><strong>@TranslationService.GetTranslation("sales.expectedBalance", "Saldo atteso")</strong></MudText>
+                    </MudItem>
+                    <MudItem xs="4" Class="text-right">
+                        <MudText Typo="Typo.subtitle2"><strong>@FormatAmount(FiscalDrawerSummary?.CurrentBalance)</strong></MudText>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+
+            <MudForm @ref="_form">
+                <MudNumericField @bind-Value="_closingBalance"
+                                 Label="@TranslationService.GetTranslation("sales.closingBalanceCounted", "Importo contato")"
+                                 Required="true"
+                                 Min="0m"
+                                 Format="N2"
+                                 Variant="Variant.Outlined"
+                                 Class="ef-input mb-2"
+                                 Adornment="Adornment.Start"
+                                 AdornmentText="@GetCurrencySymbol(FiscalDrawerSummary?.CurrencyCode)"
+                                 Margin="Margin.Dense" />
+
+                @{
+                    var expected = FiscalDrawerSummary?.CurrentBalance ?? 0m;
+                    var difference = _closingBalance - expected;
+                    var diffColor = difference == 0m ? Color.Success : (Math.Abs(difference) <= 5m ? Color.Warning : Color.Error);
+                }
+                <MudAlert Severity="@(difference == 0m ? Severity.Success : (Math.Abs(difference) <= 5m ? Severity.Warning : Severity.Error))"
+                          Dense="true"
+                          Class="mb-3">
+                    @if (difference == 0m)
+                    {
+                        <span>@TranslationService.GetTranslation("sales.balanceMatches", "Il saldo contato corrisponde al saldo atteso.")</span>
+                    }
+                    else
+                    {
+                        <span>
+                            @TranslationService.GetTranslation("sales.balanceDifference", "Differenza")
+                            (@TranslationService.GetTranslation("sales.countedMinusExpected", "contato − atteso")):
+                            <strong>@(difference > 0 ? "+" : "")@FormatAmount(difference)</strong>
+                        </span>
+                    }
+                </MudAlert>
+
+                <MudTextField @bind-Value="_notes"
+                              Label="@TranslationService.GetTranslation("sales.closureNotes", "Note (opzionale)")"
+                              MaxLength="500"
+                              Variant="Variant.Outlined"
+                              Class="ef-input"
+                              Lines="2"
+                              Margin="Margin.Dense" />
+            </MudForm>
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Disabled="@_saving">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton OnClick="ConfirmAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="@_saving">
+            @TranslationService.GetTranslation("sales.confirmDrawerClosure", "Conferma Chiusura Cassetto")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid FiscalDrawerId { get; set; }
+    [Parameter] public FiscalDrawerSummaryDto? FiscalDrawerSummary { get; set; }
+    [Parameter] public Guid? OperatorId { get; set; }
+
+    private MudForm? _form;
+    private bool _saving;
+    private decimal _closingBalance;
+    private string? _notes;
+
+    protected override void OnInitialized()
+    {
+        // Precompila con il saldo atteso: velocizza il flusso quando il conteggio combacia,
+        // l'operatore può comunque modificarlo per riflettere il conteggio reale.
+        _closingBalance = FiscalDrawerSummary?.CurrentBalance ?? 0m;
+    }
+
+    private static string FormatAmount(decimal? amount) => (amount ?? 0m).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string GetCurrencySymbol(string? currencyCode) => currencyCode switch
+    {
+        "EUR" => "€", "USD" => "$", "GBP" => "£", "JPY" => "¥", "CNY" => "¥", _ => currencyCode ?? "€"
+    };
+
+    private async Task ConfirmAsync()
+    {
+        if (_form is null) return;
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            var dto = new CloseFiscalDrawerSessionDto
+            {
+                ClosingBalance = _closingBalance,
+                OperatorId = OperatorId,
+                Notes = string.IsNullOrWhiteSpace(_notes) ? null : _notes
+            };
+
+            var result = await FiscalDrawerService.CloseSessionAsync(FiscalDrawerId, dto);
+            if (result is not null)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("sales.drawerClosureSuccess", "Cassetto chiuso correttamente."));
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("sales.drawerClosureError", "Errore durante la chiusura del cassetto."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante la chiusura del cassetto fiscale {FiscalDrawerId}.", FiscalDrawerId);
+            AppNotification.ShowError(TranslationService.GetTranslation("sales.drawerClosureError", "Errore durante la chiusura del cassetto."));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

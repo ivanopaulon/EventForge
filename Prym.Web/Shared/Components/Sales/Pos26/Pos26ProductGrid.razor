@@ -26,7 +26,10 @@ else if (Products.Count == 0)
 else
 {
     <div class="pos26-product-grid">
-        <Virtualize Items="@Products.ToList()" Context="product" OverscanCount="10">
+        @* Virtualize.Items richiede ICollection<TItem>; Products è materializzato come List<ProductDto>
+           in RebuildFilteredProducts() (POS2026.razor.cs), quindi il cast è solo un'annotazione di tipo
+           a costo zero — non alloca una nuova collezione come faceva il precedente .ToList(). *@
+        <Virtualize Items="@((ICollection<ProductDto>)Products)" Context="product" OverscanCount="10">
             <Pos26ProductCard @key="product.Id"
                               Product="@product"
                               CartQuantity="@GetCartQty(product.Id)"
@@ -56,4 +59,50 @@ else
     private bool IsLastPurchaseProduct(Guid id) => LastPurchaseIds.Contains(id);
     private bool IsBestSellerProduct(Guid id) => BestSellerIds.Contains(id);
     private decimal? GetStockAvailable(Guid id) => StockAvailability.TryGetValue(id, out var s) ? s : null;
+
+    // ShouldRender guard state — tutte le collezioni osservate vengono ricreate dal padre
+    // solo quando il loro contenuto cambia davvero (vedi RebuildFilteredProducts/RebuildCartQuantities
+    // in POS2026.razor.cs), quindi un confronto per riferimento è sufficiente ed evita render inutili
+    // quando il padre chiama StateHasChanged() per motivi non correlati alla griglia (es. numpad sconto).
+    private IReadOnlyList<ProductDto>? _prevProducts;
+    private Dictionary<Guid, int>? _prevCartQuantities;
+    private HashSet<Guid>? _prevLastPurchaseIds;
+    private HashSet<Guid>? _prevBestSellerIds;
+    private Dictionary<Guid, decimal>? _prevStockAvailability;
+    private bool _prevIsLoading;
+    private bool _firstRender = true;
+
+    protected override bool ShouldRender()
+    {
+        if (_firstRender)
+        {
+            _firstRender = false;
+            CaptureShouldRenderState();
+            return true;
+        }
+
+        var changed = !ReferenceEquals(_prevProducts, Products)
+            || !ReferenceEquals(_prevCartQuantities, CartQuantities)
+            || !ReferenceEquals(_prevLastPurchaseIds, LastPurchaseIds)
+            || !ReferenceEquals(_prevBestSellerIds, BestSellerIds)
+            || !ReferenceEquals(_prevStockAvailability, StockAvailability)
+            || _prevIsLoading != IsLoading;
+
+        if (changed)
+        {
+            CaptureShouldRenderState();
+        }
+
+        return changed;
+    }
+
+    private void CaptureShouldRenderState()
+    {
+        _prevProducts = Products;
+        _prevCartQuantities = CartQuantities;
+        _prevLastPurchaseIds = LastPurchaseIds;
+        _prevBestSellerIds = BestSellerIds;
+        _prevStockAvailability = StockAvailability;
+        _prevIsLoading = IsLoading;
+    }
 }

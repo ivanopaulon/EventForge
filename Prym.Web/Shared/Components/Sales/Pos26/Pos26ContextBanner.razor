@@ -39,7 +39,9 @@
         (_bg, _fg, _icon) = SortMode switch
         {
             Pos26SortMode.UltimiAcquisti when Customer != null
-                => ("#EEEDFE", "#3C3489", Icons.Material.Outlined.History),
+                // Bg/fg derivati dal brand (--pos-accent-light/--pos-accent-dark equivalenti), coerenti con
+                // il chip cliente attivo in Pos26SearchBar (P3 — Opzione A).
+                => ("#E5EFFF", "#1F2F46", Icons.Material.Outlined.History),
             Pos26SortMode.BestSeller
                 => ("#FAEEDA", "#633806", Icons.Material.Outlined.TrendingUp),
             Pos26SortMode.UltimiAcquisti
