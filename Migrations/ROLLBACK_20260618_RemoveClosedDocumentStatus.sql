@@ -6,6 +6,7 @@
 --              been created after the migration.
 -- Author: EventForge
 -- Date: 2026-06-18
+-- Syntax: SQL Server (T-SQL)
 
 BEGIN TRANSACTION;
 
@@ -14,23 +15,23 @@ BEGIN TRANSACTION;
 -- Restore from backup instead if a precise rollback is required.
 
 -- Step 1: Revert Archived (4) documents to Closed (2).
-UPDATE "DocumentHeaders"
-SET    "Status" = 2,                        -- Closed
-       "ModifiedAt" = NOW() AT TIME ZONE 'UTC',
-       "ModifiedBy" = 'rollback_20260618'
-WHERE  "Status" = 4                         -- Archived
-  AND  "IsDeleted" = FALSE;
+UPDATE [DocumentHeaders]
+SET    [Status] = 2,                        -- Closed
+       [ModifiedAt] = GETUTCDATE(),
+       [ModifiedBy] = 'rollback_20260618'
+WHERE  [Status] = 4                         -- Archived
+  AND  [IsDeleted] = 0;
 
 -- Step 2: Revert ToStatus Archived (4) → Closed (2) in status history.
-UPDATE "DocumentStatusHistories"
-SET    "ToStatus" = 2                       -- Closed
-WHERE  "ToStatus" = 4;                      -- Archived
+UPDATE [DocumentStatusHistories]
+SET    [ToStatus] = 2                       -- Closed
+WHERE  [ToStatus] = 4;                      -- Archived
 
 -- Step 3: Revert FromStatus Active (1) → Closed (2) in status history entries
 --         where the next entry transitioned to Closed.
-UPDATE "DocumentStatusHistories"
-SET    "FromStatus" = 2                     -- Closed
-WHERE  "FromStatus" = 1                     -- Active (was Closed before migration)
-  AND  "ToStatus" = 4;                      -- entries that went to Archived
+UPDATE [DocumentStatusHistories]
+SET    [FromStatus] = 2                     -- Closed
+WHERE  [FromStatus] = 1                     -- Active (was Closed before migration)
+  AND  [ToStatus] = 4;                      -- entries that went to Archived
 
 COMMIT;
