@@ -209,7 +209,9 @@
                         SearchTermChanged="@OnSearchTermChanged"
                         Customer="@ViewModel.SelectedCustomer"
                         CustomerChanged="@OnSelectedCustomerChangedAsync"
-                        OnBarcodeDetected="@HandleBarcodeAsync" />
+                        OnBarcodeDetected="@HandleBarcodeAsync"
+                        OnCameraClick="@OpenCameraBarcodeScannerAsync"
+                        FidelityCard="@_fidelityCard" />
 
         @* FilterBar: ordina/categoria/contesto in pannello on-demand *@
         <Pos26FilterBar SortMode="@_sortMode"

@@ -1,5 +1,6 @@
 @* Pos26SearchBar — barra ricerca con chip cliente *@
 @using Prym.DTOs.Business
+@using Prym.DTOs.Business.Fidelity
 @using Prym.Web.Shared.Components.Business
 @implements IDisposable
 
@@ -22,6 +23,11 @@
                 <MudIcon Icon="@Icons.Material.Outlined.Close" Size="Size.Small" />
             </button>
         }
+        <button class="pos26-searchbar-camera"
+                @onclick="OnCameraClick"
+                title="Scansiona con fotocamera">
+            <MudIcon Icon="@Icons.Material.Filled.PhotoCamera" Size="Size.Small" />
+        </button>
     </div>
 
     <button class="pos26-customer-chip @(Customer != null ? "pos26-customer-chip--active" : "")"
@@ -31,6 +37,10 @@
         {
             <span class="pos26-customer-initials">@GetInitials(Customer.Name)</span>
             <span class="pos26-customer-name">@GetShortName(Customer.Name)</span>
+            @if (FidelityCard is not null)
+            {
+                <span class="pos26-customer-points" title="Punti fedeltà">⭐ @FidelityCard.CurrentPoints pt</span>
+            }
             <span class="pos26-customer-remove"
                   @onclick:stopPropagation="true"
                   @onclick="ClearCustomer">
@@ -67,6 +77,8 @@
     [Parameter] public EventCallback<BusinessPartyDto?> CustomerChanged { get; set; }
     [Parameter] public string Placeholder { get; set; } = "Cerca articolo o scansiona codice…";
     [Parameter] public EventCallback<string> OnBarcodeDetected { get; set; }
+    [Parameter] public EventCallback OnCameraClick { get; set; }
+    [Parameter] public FidelityCardDto? FidelityCard { get; set; }
 
     private ElementReference _inputRef;
     private CancellationTokenSource? _debounceCts;

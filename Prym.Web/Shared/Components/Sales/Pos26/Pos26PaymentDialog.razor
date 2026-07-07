@@ -159,6 +159,17 @@
                     }
                 </div>
 
+                @* Paga esatti — one-click per metodo senza resto e nessun pagamento ancora aggiunto *@
+                @if (_pagamentiAggiunti.Count == 0 && _residuo > 0 && _selectedMethod is not null && !_selectedMethod.AllowsChange)
+                {
+                    <button class="pos26-pay-confirm pos26-pay-confirm--ready pos26-pay-exact"
+                            @onclick="PagaEsattiAsync"
+                            title="@($"Paga €{_residuo:F2} con {_selectedMethod.Name} (importo esatto)")">
+                        <MudIcon Icon="@Icons.Material.Outlined.FlashOn" Size="Size.Small" Class="mr-1" />
+                        @($"Paga €{_residuo:F2} (esatto)")
+                    </button>
+                }
+
                 @* Tasto Conferma *@
                 <button class="pos26-pay-confirm @(_residuo <= 0 ? "pos26-pay-confirm--ready" : "")"
                         @onclick="ConfermaAsync"
@@ -335,6 +346,14 @@
 
         // Reset
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    private async Task PagaEsattiAsync()
+    {
+        if (_selectedMethod is null || _residuo <= 0) return;
+        _numpadInput = _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        AggiungiPagamento();
+        await ConfermaAsync();
     }
 
     private void RimuoviPagamento(Guid tempId)

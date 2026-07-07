@@ -16,4 +16,5 @@ public interface IFidelityCardService
     Task<FidelityPointsTransactionDto?> RedeemPointsAsync(Guid id, ModifyFidelityPointsDto dto, string currentUser, CancellationToken ct = default);
     Task<IEnumerable<FidelityPointsTransactionDto>> GetTransactionHistoryAsync(Guid cardId, CancellationToken ct = default);
     Task<bool> DeleteCardAsync(Guid id, string currentUser, CancellationToken ct = default);
+    Task<FidelityCardDto?> GetCardByCardNumberAsync(string cardNumber, CancellationToken ct = default);
 }
