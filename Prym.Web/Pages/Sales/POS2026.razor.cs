@@ -1344,35 +1344,31 @@ public partial class POS2026 : IAsyncDisposable
 
     /// <summary>Avvia il flusso combinato "Parcheggia su tavolo" (Parte F.2): apre il selettore
     /// tavoli e, dopo la selezione, esegue automaticamente anche il parcheggio della sessione.</summary>
-    private async Task OpenParkToTableFlowAsync()
-    {
-        _showMoreMenu = false;
-        _tablePickerParkOnSelect = true;
-        _showTablePicker = true;
-        await LoadAvailableTablesAsync();
-    }
+    private async Task OpenParkToTableFlowAsync() => await OpenTablePickerFromMenuAsync(parkOnSelect: true);
 
     private async Task AssignTableAsync(TableSessionDto table)
     {
         if (!ViewModel.HasActiveSession) return;
         try
         {
+            var sessionId = ViewModel.CurrentSession!.Id;
             var updateDto = new UpdateSaleSessionDto
             {
                 SaleType = SaleTypes.Retail,
                 TableId = table.Id
             };
-            await SalesService.UpdateSessionAsync(ViewModel.CurrentSession!.Id, updateDto);
+            await SalesService.UpdateSessionAsync(sessionId, updateDto);
             await ViewModel.ReloadSessionAsync();
             AppNotification.ShowSuccess($"Tavolo {table.TableNumber} assegnato.");
             _showTablePicker = false;
 
             // Marca il tavolo come occupato (Parte F.4): evita che resti visibile come
-            // disponibile e possa essere assegnato due volte.
+            // disponibile e possa essere assegnato due volte. Usa il sessionId catturato
+            // prima del reload — ViewModel.CurrentSession potrebbe risultare null in casi limite.
             try
             {
                 await TableManagementService.UpdateTableStatusAsync(
-                    table.Id, new UpdateTableStatusDto { Status = TableStatuses.Occupied, SaleSessionId = ViewModel.CurrentSession?.Id });
+                    table.Id, new UpdateTableStatusDto { Status = TableStatuses.Occupied, SaleSessionId = sessionId });
             }
             catch (Exception statusEx)
             {
@@ -1447,11 +1443,25 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task ToggleTablePickerFromMenu()
     {
-        _showMoreMenu = false;
-        _tablePickerParkOnSelect = false;
-        _showTablePicker = !_showTablePicker;
+        // Toggle: se già aperto lo chiude (senza forzare parkOnSelect), altrimenti lo apre
+        // nel percorso normale (assegna tavolo senza parcheggiare).
         if (_showTablePicker)
-            await LoadAvailableTablesAsync();
+        {
+            CloseTablePicker();
+            return;
+        }
+        await OpenTablePickerFromMenuAsync(parkOnSelect: false);
+    }
+
+    /// <summary>Apre il selettore tavoli dal menu "Altro", condividendo la logica comune a
+    /// entrambi i percorsi: quello normale (assegna tavolo senza parcheggiare, per il caso
+    /// dine-in) e quello combinato "Parcheggia su tavolo" (Parte F.2).</summary>
+    private async Task OpenTablePickerFromMenuAsync(bool parkOnSelect)
+    {
+        _showMoreMenu = false;
+        _tablePickerParkOnSelect = parkOnSelect;
+        _showTablePicker = true;
+        await LoadAvailableTablesAsync();
     }
 
     private async Task ToggleParkedFromMenu()

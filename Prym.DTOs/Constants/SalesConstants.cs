@@ -16,8 +16,8 @@ public static class Currencies
 }
 
 /// <summary>Valori stringa dello stato tavolo usati da TableSessionDto/UpdateTableStatusDto.
-/// Non è un enum lato DTO/entità (campo string libero); questa classe evita typo nei
-/// confronti/assegnazioni sparsi nel codice consumer (es. POS2026.razor.cs).</summary>
+/// Non è un enum lato DTO/entità (campo string libero); questa classe evita errori di
+/// battitura nei confronti/assegnazioni sparsi nel codice consumer (es. POS2026.razor.cs).</summary>
 public static class TableStatuses
 {
     public const string Available = "Available";
