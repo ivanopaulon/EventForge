@@ -1,1 +1,34 @@
-{"_Comment":"Copy this file to appsettings.Development.json and fill in the values. appsettings.Development.json is git-ignored.","ConnectionStrings":{"DefaultConnection":"Server=localhost\\SQLEXPRESS;Database=EventData;User Id=vsapp;******;TrustServerCertificate=True;","SqlServer":"Server=localhost\\SQLEXPRESS;Database=EventData;User Id=vsapp;******;TrustServerCertificate=True;","LogDb":"Server=localhost\\SQLEXPRESS;Database=EventLogger;User Id=vsapp;******;TrustServerCertificate=True;"},"Encryption":{"Key":"DevEncryptionKey-AtLeast32Chars-Local!!"},"Authentication":{"Jwt":{"SecretKey":"DevJwtSecretKey-AtLeast32Chars-LocalOnly!!"}},"Bootstrap":{"SuperAdminPassword":"LocalAdmin@Dev!","StoreOperatorPassword":"LocalOperator@Dev!"},"Agent":{"Password":"LocalAgent@Dev!"},"Environments":{"Development":{"UpdateHub":{"AdminApiKey":"local-dev-admin-key","MaintenanceSecret":"local-dev-maintenance-secret"},"Agent":{"Password":"LocalAgent@Dev!"}}}}
+{
+  "_Comment": "Copy this file to appsettings.Development.json and fill in your local values. That file is git-ignored.",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=EventData;User Id=vsapp;******;TrustServerCertificate=True;",
+    "SqlServer": "Server=localhost\\SQLEXPRESS;Database=EventData;User Id=vsapp;******;TrustServerCertificate=True;",
+    "LogDb": "Server=localhost\\SQLEXPRESS;Database=EventLogger;User Id=vsapp;******;TrustServerCertificate=True;"
+  },
+  "Encryption": {
+    "Key": "LocalDevEncryptionKey-AtLeast32Chars!!"
+  },
+  "Authentication": {
+    "Jwt": {
+      "SecretKey": "LocalDevJwtSecretKey-AtLeast32Chars!!"
+    }
+  },
+  "Bootstrap": {
+    "SuperAdminPassword": "LocalAdmin@Dev2024!",
+    "StoreOperatorPassword": "LocalOperator@Dev2024!"
+  },
+  "Agent": {
+    "Password": "LocalAgent@Dev2024!"
+  },
+  "Environments": {
+    "Development": {
+      "UpdateHub": {
+        "AdminApiKey": "local-dev-admin-key",
+        "MaintenanceSecret": "local-dev-maintenance-secret"
+      },
+      "Agent": {
+        "Password": "LocalAgent@Dev2024!"
+      }
+    }
+  }
+}
