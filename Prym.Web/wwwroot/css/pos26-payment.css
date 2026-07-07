@@ -8,9 +8,13 @@
    (::deep) non raggiungono il portal; per questo i relativi stili sono qui.
    ========================================================================== */
 
-/* ---- Variabili colore POS (ridefinite localmente per il dialog portal) ---- */
-/* Design tokens allineati a pos2026-layout-proposta.html — vedi POS2026.razor.css per i dettagli. */
-.pos26-payment-dialog-wrap {
+/* ---- Variabili colore POS: single source of truth, globale ---- */
+/* Design tokens allineati a pos2026-layout-proposta.html. Definiti su :root (non su
+   .pos26-payment-dialog-wrap) perché questo file è caricato globalmente (vedi index.html)
+   e i dialog POS2026 vengono renderizzati da MudBlazor in un portal fuori dall'albero
+   DOM di POS2026.razor.css — un :root qui garantisce che i token siano disponibili
+   ovunque, incluso dentro POS2026.razor.css (scoped) e in qualunque dialog. */
+:root {
     --pos-brand-navy:      #1F2F46;
     --pos-brand-blue:      #247BFF;
     --pos-brand-blue-dim:  #1B5FC4;
@@ -36,6 +40,34 @@
     --pos-radius-sm: 8px;
     --pos-radius-md: 12px;
     --pos-radius-lg: 16px;
+}
+
+/* Applica lo scope visivo scuro POS a qualunque contenuto di dialog la contenga.
+   I token --pos-* sono già globali (vedi :root sopra); questa classe si limita a
+   impostare sfondo/testo di base per il contenuto del dialog. Vedi Parte C del
+   consolidamento POS2026 per l'elenco dei dialog che la applicano. */
+.pos26-dialog-dark {
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
+    border-radius: var(--pos-radius-md);
+    padding: 16px;
+}
+
+.pos26-dialog-dark .mud-input-outlined-border,
+.pos26-dialog-dark .mud-input-outlined .mud-input-slot {
+    border-color: var(--pos-border);
+}
+
+.pos26-dialog-dark .mud-input-slot,
+.pos26-dialog-dark .mud-input-slot::placeholder,
+.pos26-dialog-dark .mud-input-label,
+.pos26-dialog-dark .mud-select-input,
+.pos26-dialog-dark .mud-typography {
+    color: var(--pos-text-1);
+}
+
+.pos26-dialog-dark .mud-input-helper-text {
+    color: var(--pos-text-2);
 }
 
 /* ===== Pos26PaymentDialog ===== */
@@ -245,7 +277,7 @@
 }
 
 .pos26-payment-row-remove:hover {
-    color: #993C1D;
+    color: var(--pos-danger);
 }
 
 /* ===== Banner resto contanti ===== */
@@ -254,7 +286,7 @@
     align-items: center;
     gap: 6px;
     background: var(--pos-success-bg);
-    color: #085041;
+    color: var(--pos-success);
     border-radius: 8px;
     padding: 8px 12px;
     font-size: 14px;
@@ -347,7 +379,7 @@
 }
 
 .pos26-pay-numpad-key:hover {
-    background: #5a5a57;
+    background: var(--pos-surface-3);
 }
 
 .pos26-pay-numpad-key--dot {

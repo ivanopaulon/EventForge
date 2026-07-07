@@ -1,40 +1,12 @@
 /* POS2026.razor.css — Scoped CSS per la pagina POS 2026 */
 
-/* ===== Design tokens POS2026 — da pos2026-layout-proposta.html (mockup approvato) =====
-   Nota: usiamo .pos2026-wrap invece di :root perché questo file è CSS isolation
-   (POS2026.razor.css) — i selettori bare :root non vengono garantiti dallo scoping
-   di Blazor, mentre una classe di root del componente sì. */
-.pos2026-wrap {
-    /* Brand ufficiale (EventForgeTheme.cs / variables.css) */
-    --pos-brand-navy:      #1F2F46;
-    --pos-brand-blue:      #247BFF;
-    --pos-brand-blue-dim:  #1B5FC4;
-    --pos-brand-blue-bg:   #1A2C4A;
-
-    /* Superfici scure — mantenute per leggibilità touch, non è un redesign "a tema chiaro" */
-    --pos-surface-0:       #17171A;  /* sfondo pagina */
-    --pos-surface-1:       #212226;  /* pannelli */
-    --pos-surface-2:       #2B2C31;  /* card / righe */
-    --pos-surface-3:       #37383E;  /* hover / bordi decisi */
-    --pos-border:          #3C3D44;
-
-    /* Testo */
-    --pos-text-1:          #EDEDEF;
-    --pos-text-2:          #A6A7AE;
-    --pos-text-3:          #6E6F78;
-
-    /* Semantici */
-    --pos-success:         #2FAE7C;
-    --pos-success-bg:      #16332A;
-    --pos-warning:         #D69A3C;
-    --pos-warning-bg:      #362A15;
-    --pos-danger:          #E15B5B;
-    --pos-danger-bg:       #3A1E1E;
-
-    --pos-radius-sm: 8px;
-    --pos-radius-md: 12px;
-    --pos-radius-lg: 16px;
-}
+/* ===== Design tokens POS2026 =====
+   I token --pos-* sono definiti come :root globale in wwwroot/css/pos26-payment.css
+   (caricato da index.html su ogni pagina) — single source of truth. Le custom
+   property CSS attraversano il DOM tree indipendentemente dallo scoping CSS-isolation
+   di Blazor (che limita solo la specificità dei selettori, non l'ereditarietà), quindi
+   non serve ridefinirli qui. Non rimuovere pos26-payment.css dall'index.html senza
+   aggiornare questo commento. */
 
 /* ===== Layout principale: flex colonna (banner + contenuto) ===== */
 .pos2026-wrap {
@@ -103,8 +75,8 @@
         bottom: 0;
         left: 0;
         right: 0;
-        background: rgba(44, 44, 42, 0.97);
-        border-top: 1px solid var(--pos-border, #444441);
+        background: rgba(23, 23, 26, 0.97);
+        border-top: 1px solid var(--pos-border);
         z-index: 11;
         height: 52px;
     }
@@ -119,7 +91,7 @@
     gap: 2px;
     border: none;
     background: transparent;
-    color: var(--pos-text-3, #888780);
+    color: var(--pos-text-3);
     font-size: 11px;
     cursor: pointer;
     transition: color 150ms, background 150ms;
@@ -127,7 +99,7 @@
 }
 
 .pos2026-mobile-tab--active {
-    color: var(--pos-brand-blue, #247BFF);
+    color: var(--pos-brand-blue);
     background: rgba(36, 123, 255, 0.12);
 }
 
@@ -260,7 +232,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: rgba(44, 44, 42, 0.95);
+    background: rgba(23, 23, 26, 0.95);
     color: var(--pos-text-1);
     display: flex;
     gap: 20px;
@@ -334,7 +306,7 @@
 
 ::deep .pos26-customer-chip--active {
     background: var(--pos-brand-blue-bg);
-    color: #1F2F46;
+    color: var(--pos-brand-navy);
     border-color: var(--pos-brand-blue);
 }
 

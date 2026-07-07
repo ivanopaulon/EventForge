@@ -10,6 +10,7 @@
           MinWidth="min(600px, 95vw)"
           MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
+        <div class="pos26-dialog-dark">
         <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" @bind-ActivePanelIndex="_activeTabIndex">
             
             <!-- TAB 1: EQUAL SPLIT -->
@@ -168,6 +169,7 @@
             </MudTabPanel>
             
         </MudTabs>
+        </div>
     </ChildContent>
     
     <DialogActions>

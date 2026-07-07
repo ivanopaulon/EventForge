@@ -107,7 +107,6 @@ public partial class POS2026 : IAsyncDisposable
 
     // --- Morning closure check ---
     private bool _previousDayClosureMissing = false;
-    private bool _noPrinterConfigured = false;
     private DateTime? _lastClosureDate = null;
 
     // --- Keyboard shortcuts JS (stesso pattern di POS.razor) ---
@@ -798,10 +797,20 @@ public partial class POS2026 : IAsyncDisposable
 
     private void RebuildCartQuantities()
     {
-        _cartQuantities = ViewModel.CurrentSession?.Items?
+        var next = ViewModel.CurrentSession?.Items?
             .GroupBy(i => i.ProductId)
             .ToDictionary(g => g.Key, g => (int)g.Sum(i => i.Quantity))
             ?? new();
+
+        // Riassegna solo se il contenuto è davvero cambiato, altrimenti mantieni lo stesso
+        // riferimento — necessario perché Pos26ProductGrid.ShouldRender() confronta per
+        // riferimento (vedi CartQuantities): un Dictionary nuovo identico nel contenuto
+        // vanificherebbe l'ottimizzazione ad ogni ViewModel.StateChanged.
+        if (_cartQuantities.Count != next.Count ||
+            !_cartQuantities.OrderBy(kv => kv.Key).SequenceEqual(next.OrderBy(kv => kv.Key)))
+        {
+            _cartQuantities = next;
+        }
     }
 
     private void IncreaseQuantity(SaleItemDto item)
@@ -1708,14 +1717,13 @@ public partial class POS2026 : IAsyncDisposable
         if (!_fiscalPrinterId.HasValue)
         {
             // No fiscal printer configured for this POS terminal.
-            // Set the flag so the UI can surface an informational notice.
-            _noPrinterConfigured = true;
+            // Nothing to check — Pos26StatusBar already derives this state from
+            // HasFiscalPrinter="@_fiscalPrinterId.HasValue" (same underlying value).
             Logger.LogDebug("POS2026: nessuna stampante fiscale configurata per questo punto cassa – verifica chiusura saltata.");
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        _noPrinterConfigured = false;
         try
         {
             var status = await FiscalPrintingService.GetPreviousDayClosureStatusAsync(_fiscalPrinterId.Value);
