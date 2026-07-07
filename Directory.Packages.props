@@ -20,7 +20,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.9" />
-    <PackageVersion Include="MudBlazor" Version="9.5.0" />
+    <PackageVersion Include="MudBlazor" Version="9.6.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageVersion Include="Serilog.Settings.Configuration" Version="10.0.1" />
@@ -49,7 +49,7 @@
     <!-- Polly for resiliency and transient fault handling -->
     <PackageVersion Include="Polly" Version="8.7.0" />
     <!-- Document Export packages -->
-    <PackageVersion Include="QuestPDF" Version="2026.6.1" />
+    <PackageVersion Include="QuestPDF" Version="2026.7.0" />
     <PackageVersion Include="ClosedXML" Version="0.105.0" />
     <!-- FluentValidation packages -->
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
@@ -85,11 +85,11 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageVersion>
     <!-- Syncfusion Blazor Scheduler for calendar/event management -->
-    <PackageVersion Include="Syncfusion.Blazor.Schedule" Version="33.2.15" />
-    <PackageVersion Include="Syncfusion.Blazor.Themes" Version="33.2.15" />
+    <PackageVersion Include="Syncfusion.Blazor.Schedule" Version="34.1.29" />
+    <PackageVersion Include="Syncfusion.Blazor.Themes" Version="34.1.29" />
     <!-- Syncfusion Blazor Rich Text Editor and In-Place Editor for chat composition/editing -->
-    <PackageVersion Include="Syncfusion.Blazor.RichTextEditor" Version="33.2.15" />
-    <PackageVersion Include="Syncfusion.Blazor.InPlaceEditor" Version="33.2.15" />
+    <PackageVersion Include="Syncfusion.Blazor.RichTextEditor" Version="34.1.29" />
+    <PackageVersion Include="Syncfusion.Blazor.InPlaceEditor" Version="34.1.29" />
     <!-- Bold Reports - server-side RDLC report processing and export (Community License) -->
     <PackageVersion Include="BoldReports.Net.Core" Version="13.1.38" />
     <!-- Roslyn CodeAnalysis: pin to highest version to resolve conflict between EF Core Design (5.0.0) and BoldReports (4.14.0) -->
