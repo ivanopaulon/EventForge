@@ -60,6 +60,6 @@
     [Parameter] public BusinessPartyDto? NewCustomer { get; set; }
     [Parameter] public FidelityCardDto? NewFidelityCard { get; set; }
 
-    private void Confirm() => MudDialog?.Close(DialogResult.Ok(true));
+    private void Confirm() => MudDialog?.Close(DialogResult.Ok());
     private void Cancel() => MudDialog?.Cancel();
 }

@@ -70,7 +70,7 @@ public class FidelityCardsController(
         try
         {
             var card = await fidelityCardService.GetCardByCardNumberAsync(cardNumber, cancellationToken);
-            return card is null ? CreateNotFoundProblem($"Fidelity card '{cardNumber}' not found.") : Ok(card);
+            return card is null ? CreateNotFoundProblem("Fidelity card not found.") : Ok(card);
         }
         catch (Exception ex)
         {
