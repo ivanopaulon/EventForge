@@ -81,6 +81,36 @@
         </MudAlert>
     }
 
+    @* ===== BANNER AVVISO SESSIONE CASSETTO NON APERTA (Parte G.4) =====
+       Mostrato solo se è configurato un cassetto fiscale (_fiscalDrawerSummary non null); se
+       nessun cassetto è configurato non c'è nulla da bloccare, coerente con la gestione
+       esistente del caso "nessuna stampante fiscale". *@
+    @if (_fiscalDrawerSummary is not null && _fiscalDrawerSummary.HasOpenSession == false)
+    {
+        <MudAlert Severity="Severity.Error"
+                  Icon="@Icons.Material.Filled.Warning"
+                  Class="pos2026-closure-banner"
+                  ShowCloseIcon="false"
+                  Dense="false">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Style="width:100%">
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.subtitle2">
+                        ⛔ Sessione Cassetto Non Aperta
+                    </MudText>
+                    <MudText Typo="Typo.body2">
+                        Nessuna sessione del cassetto fiscale è attualmente aperta. Aprire una sessione
+                        prima di avviare vendite o registrare pagamenti.
+                    </MudText>
+                </MudStack>
+                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                           OnClick="@OpenDrawerSessionAsync"
+                           StartIcon="@Icons.Material.Filled.Inbox">
+                    Apri Sessione
+                </MudButton>
+            </MudStack>
+        </MudAlert>
+    }
+
     @if (!string.IsNullOrWhiteSpace(_shiftGuardMessage))
     {
         <MudAlert Severity="Severity.Warning"
@@ -89,6 +119,7 @@
             @_shiftGuardMessage
         </MudAlert>
     }
+
 
     @* ===========================================================================================
        STEP 0 — Nessun operatore selezionato: griglia operatori a schermo intero
@@ -248,6 +279,16 @@
                 <span>Rimuovi</span>
             </button>
 
+            @* Parcheggia conto (azione primaria: unico modo per attivarla su terminale touch,
+               prima raggiungibile solo tramite la scorciatoia da tastiera F3) *@
+            <button class="pos26-fn-btn pos26-fn-btn--park"
+                    @onclick="ParkSessionAsync"
+                    disabled="@(!ViewModel.HasActiveSession)"
+                    title="Parcheggia conto (F3)">
+                <MudIcon Icon="@Icons.Material.Outlined.PauseCircleOutline" Size="Size.Small" />
+                <span>Parcheggia</span>
+            </button>
+
             @* Pulsante Note ordine *@
             <button class="pos26-fn-btn @(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? "pos26-fn-btn--active" : "")"
                     @onclick="ToggleNoteInput"
@@ -311,6 +352,14 @@
                                 @onclick="ToggleParkedFromMenu">
                             <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" Class="mr-1" />
                             Sospese
+                        </button>
+
+                        @* Parcheggia su tavolo: flusso combinato assegnazione tavolo + parcheggio *@
+                        <button class="pos26-fn-more-item"
+                                disabled="@(!ViewModel.HasActiveSession)"
+                                @onclick="OpenParkToTableFlowAsync">
+                            <MudIcon Icon="@Icons.Material.Outlined.TableRestaurant" Size="Size.Small" Class="mr-1" />
+                            Parcheggia su tavolo
                         </button>
 
                         @* Dividi conto *@
@@ -416,10 +465,17 @@
             </div>
         }
 
-        @* Selettore tavolo / tipo vendita (aperto dal menu "Altro") *@
+        @* Selettore tavolo / tipo vendita (aperto dal menu "Altro" o dal flusso "Parcheggia su tavolo") *@
         @if (_showTablePicker)
         {
             <div class="pos26-fn-panel pos26-fn-panel--table">
+                @if (_tablePickerParkOnSelect)
+                {
+                    <div class="pos26-fn-panel-header">
+                        <span>Seleziona il tavolo per parcheggiare il conto</span>
+                        <button class="pos26-fn-btn-close" @onclick="() => { _showTablePicker = false; _tablePickerParkOnSelect = false; }">✕</button>
+                    </div>
+                }
                 <div class="pos26-fn-table-types">
                     <button class="pos26-fn-type-btn @(ViewModel.CurrentSession?.SaleType == SaleTypes.Retail ? "pos26-fn-type-btn--active" : "")"
                             @onclick='() => SetSaleTypeAsync(SaleTypes.Retail)'>
@@ -462,6 +518,8 @@
                         <div class="pos26-fn-parked-row">
                             <div class="pos26-fn-parked-info">
                                 <span class="pos26-fn-parked-id" aria-label="Parcheggiata alle @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</span>
+                                @if (!string.IsNullOrEmpty(parked.TableNumber))
+                                { <span class="pos26-fn-parked-table">🪑 Tavolo @parked.TableNumber</span> }
                                 @if (!string.IsNullOrEmpty(parked.CustomerName))
                                 { <span class="pos26-fn-parked-customer">@parked.CustomerName</span> }
                                 <span class="pos26-fn-parked-total">€ @parked.FinalTotal.ToString("F2")</span>

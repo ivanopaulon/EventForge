@@ -56,6 +56,12 @@ public class ThemeService(
 {
     private const string ThemeKey = "eventforge-theme";
 
+    // Serializza le sync verso il profilo server: senza questo lock, due SetThemeAsync
+    // ravvicinati leggerebbero lo stesso profilo "vecchio" e scriverebbero in ordine
+    // non garantito, con rischio che l'ultimo a scrivere non corrisponda all'ultima
+    // scelta effettiva dell'utente.
+    private readonly SemaphoreSlim _serverSyncLock = new(1, 1);
+
     public static readonly List<ThemeInfo> AvailableThemes =
     [
         ThemeInfo.CarbonNeonDark,
@@ -182,28 +188,38 @@ public class ThemeService(
 
         OnThemeChanged?.Invoke();
 
-        // Background-sync to server profile (fire and forget, non-critical)
-        _ = Task.Run(async () =>
+        // Sync al profilo server — atteso (non più Task.Run scollegato dal circuito Blazor Server),
+        // ma non bloccante per l'esperienza percepita dato che localStorage/DOM sono già stati
+        // aggiornati sopra. Il fire-and-forget precedente perdeva silenziosamente il salvataggio
+        // se il circuito terminava prima del completamento del task interno.
+        await _serverSyncLock.WaitAsync(ct);
+        try
         {
-            try
+            if (await authService.IsAuthenticatedAsync())
             {
-                if (!await authService.IsAuthenticatedAsync())
-                    return;
-
-                var profile = await profileService.GetProfileAsync();
-                if (profile == null)
-                    return;
-
-                // Update only PreferredTheme; preserve all other display preference fields
-                var prefs = profile.DisplayPreferences ?? new UserDisplayPreferencesDto();
-                prefs.PreferredTheme = _currentTheme;
-                await profileService.UpdateDisplayPreferencesAsync(prefs);
+                var profile = await profileService.GetProfileAsync(ct);
+                if (profile != null)
+                {
+                    // Riapplica sempre _currentTheme (non themeKey): se un altro toggle è
+                    // arrivato mentre eravamo in coda sul lock, vince l'ultima scelta reale.
+                    var prefs = profile.DisplayPreferences ?? new UserDisplayPreferencesDto();
+                    prefs.PreferredTheme = _currentTheme;
+                    var updated = await profileService.UpdateDisplayPreferencesAsync(prefs, ct);
+                    if (updated == null)
+                    {
+                        logger.LogWarning("Server sync of theme {ThemeKey} failed (null response)", themeKey);
+                    }
+                }
             }
-            catch (Exception ex)
-            {
-                logger.LogDebug(ex, "Background sync of theme to server profile failed");
-            }
-        });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to sync theme {ThemeKey} to server profile", themeKey);
+        }
+        finally
+        {
+            _serverSyncLock.Release();
+        }
     }
 
     private async Task ApplyThemeToDocumentAsync()
