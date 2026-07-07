@@ -840,6 +840,41 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Apre il dialog di modifica riga (quantità, prezzo, sconto) e salva le modifiche tramite UpdateItemAsync.
+    /// Invocato dal bottone di modifica in <see cref="Pos26Receipt"/>.
+    /// </summary>
+    private async Task EditLineItemAsync(SaleItemDto item)
+    {
+        if (!ViewModel.HasActiveSession) return;
+        try
+        {
+            var parameters = new DialogParameters { ["Item"] = item };
+            var dialog = await DialogService.ShowAsync<POSTouchLineEditDialog>(
+                string.Empty, parameters,
+                new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = false });
+            var result = await dialog.Result;
+            if (result?.Canceled == false && result.Data is POSTouchLineEditDialog.EditResult edit)
+            {
+                var updateDto = new UpdateSaleItemDto
+                {
+                    Quantity = edit.Quantity,
+                    UnitPrice = edit.UnitPrice,
+                    DiscountPercent = edit.DiscountPercent,
+                    Notes = item.Notes
+                };
+                await SalesService.UpdateItemAsync(ViewModel.CurrentSession!.Id, item.Id, updateDto);
+                await ViewModel.ReloadSessionAsync();
+                RebuildCartQuantities();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore modifica riga articolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
     // =========================================================================
     //  Sconto globale dal numpad (percentuale e valore fisso)
     // =========================================================================

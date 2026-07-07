@@ -150,6 +150,31 @@
                                         @pos.Location
                                     </MudText>
                                 }
+                                @* Indicatore stampante fiscale configurata *@
+                                @if (pos.DefaultFiscalPrinterId.HasValue)
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="Color.Success"
+                                             Variant="Variant.Outlined"
+                                             Icon="@Icons.Material.Outlined.Print"
+                                             title="@($"Stampante: {pos.DefaultFiscalPrinterName ?? "configurata"}")"
+                                             Class="text-xs mt-1">
+                                        @(pos.DefaultFiscalPrinterName ?? "Stampante")
+                                    </MudChip>
+                                }
+                                else
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="Color.Default"
+                                             Variant="Variant.Outlined"
+                                             Icon="@Icons.Material.Outlined.PrintDisabled"
+                                             title="Nessuna stampante fiscale configurata"
+                                             Class="text-xs mt-1">
+                                        Senza stampante
+                                    </MudChip>
+                                }
                             </MudStack>
                         </MudPaper>
                     </MudItem>
@@ -515,7 +540,8 @@
                       OnClearCart="@ClearCartAsync"
                       OnIncrease="@IncreaseQuantity"
                       OnDecrease="@DecreaseQuantity"
-                      OnEditItemNotes="@EditItemNotesAsync" />
+                      OnEditItemNotes="@EditItemNotesAsync"
+                      OnEditItem="@EditLineItemAsync" />
 
         <Pos26Numpad CanPay="@ViewModel.CanPay"
                      OnPay="@OpenPaymentDialogAsync"

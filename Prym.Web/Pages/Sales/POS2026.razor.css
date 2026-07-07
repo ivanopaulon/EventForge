@@ -643,6 +643,24 @@
     display: inline-flex;
 }
 
+::deep .pos26-receipt-edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--pos-dark-muted);
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: color 150ms, background 150ms;
+    margin-left: 2px;
+}
+
+::deep .pos26-receipt-edit-btn:hover {
+    color: var(--pos-accent);
+    background: rgba(255, 255, 255, 0.08);
+}
+
 ::deep .pos26-receipt-row-actions {
     display: flex;
     align-items: center;
