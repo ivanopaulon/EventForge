@@ -2,7 +2,7 @@
 @using Prym.DTOs.Products
 @implements IDisposable
 
-<div class="pos26-product-card @(CartQuantity > 0 ? "pos26-product-card--in-cart" : "")"
+<div class="pos26-product-card @(CartQuantity > 0 ? "pos26-product-card--in-cart" : "") @(_justAdded ? "pos26-product-card--added" : "")"
      @onclick="HandleTap"
      @onpointerdown="OnPointerDown"
      @onpointerup="OnPointerUp"
@@ -12,7 +12,7 @@
     @* Badge quantità *@
     @if (CartQuantity > 0)
     {
-        <span class="pos26-qty-badge">@CartQuantity</span>
+        <span class="pos26-qty-badge @(_badgeBumped ? "pos26-qty-badge--bumped" : "")">@CartQuantity</span>
     }
 
     @* Badge articolo *@
@@ -67,6 +67,10 @@
     private CancellationTokenSource? _longPressCts;
     private bool _longPressTriggered;
 
+    // Feedback visivo aggiunta al carrello
+    private bool _justAdded = false;
+    private bool _badgeBumped = false;
+
     // IsPromo always returns false until ProductDto exposes a promotional-price property.
     private bool IsPromo => false;
 
@@ -74,6 +78,19 @@
     {
         if (_longPressTriggered) return;
         await OnAddToCart.InvokeAsync(Product);
+        _ = TriggerAddFeedbackAsync();
+    }
+
+    /// <summary>Attiva le classi CSS di feedback (border flash + badge pop) per 300ms.</summary>
+    private async Task TriggerAddFeedbackAsync()
+    {
+        _justAdded = true;
+        _badgeBumped = true;
+        StateHasChanged();
+        await Task.Delay(300);
+        _justAdded = false;
+        _badgeBumped = false;
+        StateHasChanged();
     }
 
     private const int LongPressThresholdMs = 500;
@@ -121,7 +138,7 @@
     }
 
     private static string TruncateName(string name) =>
-        name.Length > 22 ? name[..20] + "…" : name;
+        name.Length > 28 ? name[..26] + "…" : name;
 
     private static string FormatPrice(decimal? price) =>
         price.HasValue ? $"€{price.Value:F2}" : "–";

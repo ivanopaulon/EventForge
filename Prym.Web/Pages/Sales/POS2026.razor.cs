@@ -73,6 +73,9 @@ public partial class POS2026 : IAsyncDisposable
     private List<SaleSessionDto> _parkedSessions = new();
     private bool _showParkedSessions = false;
 
+    // --- Mobile tab (0 = Prodotti, 1 = Scontrino+Paga) ---
+    private int _mobileTab = 0;
+
     // --- Nota ordine ---
     private bool _showNoteInput = false;
     private string _orderNoteText = string.Empty;
@@ -882,6 +885,20 @@ public partial class POS2026 : IAsyncDisposable
     // =========================================================================
     //  Dialog pagamento
     // =========================================================================
+
+    /// <summary>Stampa la ricevuta tramite il dialog di stampa del browser (per POS senza stampante fiscale).</summary>
+    private async Task PrintBrowserReceiptAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore nell'avvio della stampa browser.");
+            AppNotification.ShowWarning("Impossibile avviare la stampa.");
+        }
+    }
 
     private async Task OpenPaymentDialogAsync()
     {

@@ -133,5 +133,5 @@
     [Parameter] public EventCallback<SaleItemDto> OnEditItemNotes { get; set; }
 
     private static string TruncateName(string name) =>
-        name.Length > 20 ? name[..18] + "…" : name;
+        name.Length > 24 ? name[..22] + "…" : name;
 }

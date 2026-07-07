@@ -173,7 +173,7 @@
     {
 
     @* ===== CONTENUTO PRINCIPALE (due colonne) ===== *@
-    <div class="pos2026-content">
+    <div class="pos2026-content @(_mobileTab == 1 ? "pos2026-content--tab-receipt" : "")">
 
     @* ===== COLONNA SINISTRA ===== *@
     <div class="pos2026-left">
@@ -444,7 +444,7 @@
                     {
                         <div class="pos26-fn-parked-row">
                             <div class="pos26-fn-parked-info">
-                                <span class="pos26-fn-parked-id">@parked.Id.ToString()[..8]</span>
+                                <span class="pos26-fn-parked-id">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</span>
                                 @if (!string.IsNullOrEmpty(parked.CustomerName))
                                 { <span class="pos26-fn-parked-customer">@parked.CustomerName</span> }
                                 <span class="pos26-fn-parked-total">€ @parked.FinalTotal.ToString("F2")</span>
@@ -521,7 +521,9 @@
                      OnPay="@OpenPaymentDialogAsync"
                      OnCancel="@CancelSessionAsync"
                      OnApplyDiscount="@ApplyDiscountAsync"
-                     OnApplyFixedDiscount="@ApplyFixedDiscountAsync" />
+                     OnApplyFixedDiscount="@ApplyFixedDiscountAsync"
+                     HasFiscalPrinter="@_fiscalPrinterId.HasValue"
+                     OnPrintReceipt="@PrintBrowserReceiptAsync" />
 
     </div>
 
@@ -534,6 +536,19 @@
 @* Shortcut tastiera (stesso pattern POS.razor) *@
 @if (ViewModel.HasActiveSession)
 {
+    @* Tab bar mobile: visibile solo su schermi <600px, sopra la shortcut bar *@
+    <div class="pos2026-mobile-tabbar" aria-label="Navigazione sezioni">
+        <button class="pos2026-mobile-tab @(_mobileTab == 0 ? "pos2026-mobile-tab--active" : "")"
+                @onclick="@(() => _mobileTab = 0)">
+            <MudIcon Icon="@Icons.Material.Outlined.GridView" Size="Size.Small" />
+            Prodotti
+        </button>
+        <button class="pos2026-mobile-tab @(_mobileTab == 1 ? "pos2026-mobile-tab--active" : "")"
+                @onclick="@(() => _mobileTab = 1)">
+            <MudIcon Icon="@Icons.Material.Outlined.Receipt" Size="Size.Small" />
+            Scontrino
+        </button>
+    </div>
     <div class="pos2026-shortcuts-bar" aria-label="Scorciatoie tastiera">
         <span><strong>F2</strong> Paga</span>
         <span><strong>F3</strong> Parcheggia</span>

@@ -13,7 +13,11 @@
           MinWidth="min(860px, 95vw)"
           Height="calc(100dvh - 48px)">
     <ChildContent>
-        <div class="pos26-payment-dialog-wrap">
+        <div class="pos26-payment-dialog-wrap"
+             @ref="_wrapRef"
+             tabindex="0"
+             @onkeydown="HandlePhysicalKey"
+             style="outline:none">
 
             @* ---- COLONNA SINISTRA: logica pagamento ---- *@
             <div class="pos26-pay-left">
@@ -214,6 +218,9 @@
     private int _pointsToRedeem = 0;
     private bool _pointsApplied = false;
 
+    private ElementReference _wrapRef;
+    private bool _focused = false;
+
     private readonly decimal[] _shortcuts = [5, 10, 20, 50];
 
     private record NumpadKeyDef(string Value, string Label, string Icon = "", string Css = "", string Style = "");
@@ -267,6 +274,44 @@
         _selectedMethod = _paymentMethods.FirstOrDefault();
         // Importo predefinito = residuo
         _numpadInput = _residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_focused)
+        {
+            _focused = true;
+            try { await _wrapRef.FocusAsync(); } catch { /* ignore — dialog may not be mounted yet */ }
+        }
+    }
+
+    /// <summary>Gestisce i tasti fisici della tastiera sul dialog di pagamento.</summary>
+    private async Task HandlePhysicalKey(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "0": case "1": case "2": case "3": case "4":
+            case "5": case "6": case "7": case "8": case "9":
+                HandleNumpadKey(e.Key);
+                break;
+            case ".":
+            case ",":
+                HandleNumpadKey(".");
+                break;
+            case "Backspace":
+                HandleNumpadKey("back");
+                break;
+            case "Enter":
+                // Enter: aggiunge il pagamento se c'è un importo; altrimenti conferma
+                if (_importoDigitato > 0 && _selectedMethod != null && _residuo > 0)
+                    AggiungiPagamento();
+                else if (_pagamentiAggiunti.Any() && _residuo <= 0)
+                    await ConfermaAsync();
+                break;
+            case "Escape":
+                Cancel();
+                break;
+        }
     }
 
     private void OnSelectMethod(PaymentMethodDto method)

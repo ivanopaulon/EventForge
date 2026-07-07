@@ -45,14 +45,70 @@
         height: auto;
         min-height: 100%;
         overflow: visible;
+        /* Extra bottom padding: mobile tab bar (~48px) + shortcut bar hidden */
+        padding-bottom: 52px;
     }
     .pos2026-content {
         grid-template-columns: 1fr;
-        grid-template-rows: 1fr auto;
+        grid-template-rows: 1fr;
     }
-    .pos2026-right {
-        max-height: 280px;
+    /* Tab Prodotti attivo: mostra sinistra, nasconde destra */
+    .pos2026-content .pos2026-right {
+        display: none;
     }
+    /* Tab Scontrino attivo: nasconde sinistra, mostra destra */
+    .pos2026-content--tab-receipt .pos2026-left {
+        display: none;
+    }
+    .pos2026-content--tab-receipt .pos2026-right {
+        display: flex;
+        max-height: none;
+        height: calc(100dvh - 52px);  /* sottrarre tab bar */
+    }
+    /* Shortcut bar nascosta su mobile (le shortcut tastiera non servono su touch) */
+    .pos2026-shortcuts-bar {
+        display: none;
+    }
+}
+
+/* ===== Mobile tab bar ===== */
+.pos2026-mobile-tabbar {
+    display: none; /* nascosta su desktop */
+}
+
+@media (max-width: 600px) {
+    .pos2026-mobile-tabbar {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(44, 44, 42, 0.97);
+        border-top: 1px solid var(--pos-dark-border, #444441);
+        z-index: 11;
+        height: 52px;
+    }
+}
+
+.pos2026-mobile-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: none;
+    background: transparent;
+    color: var(--pos-dark-muted, #888780);
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 150ms, background 150ms;
+    padding: 4px 0;
+}
+
+.pos2026-mobile-tab--active {
+    color: var(--pos-accent, #7F77DD);
+    background: rgba(127, 119, 221, 0.12);
 }
 
 /* ===== Colonna sinistra ===== */
@@ -372,6 +428,12 @@
     background: var(--mud-palette-background-grey);
 }
 
+/* Feedback aggiunta al carrello: border flash verde */
+::deep .pos26-product-card--added {
+    border: 2px solid var(--pos-green) !important;
+    transition: border 0ms;
+}
+
 ::deep .pos26-qty-badge {
     position: absolute;
     top: -4px;
@@ -386,6 +448,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Micro-animazione "pop" sul badge quantità quando cambia valore */
+@keyframes pos26-badge-pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.5); }
+    70%  { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+
+::deep .pos26-qty-badge--bumped {
+    animation: pos26-badge-pop 300ms ease-out;
 }
 
 ::deep .pos26-badge {
@@ -725,7 +799,49 @@
     font-size: 12px;
 }
 
-/* Pos26PaymentDialog styles are in wwwroot/css/pos26-payment.css (global)
+/* Pulsante stampa ricevuta non fiscale */
+::deep .pos26-numpad-print-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-top: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--pos-dark-border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--pos-dark-text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 150ms;
+}
+
+::deep .pos26-numpad-print-btn:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+/* ===== @media print: receipt visibile, tutto il resto nascosto ===== */
+@media print {
+    .pos2026-wrap > *:not(.pos2026-content),
+    .pos2026-left,
+    .pos2026-right .pos26-numpad,
+    .pos2026-shortcuts-bar,
+    .pos2026-mobile-tabbar {
+        display: none !important;
+    }
+    .pos2026-content {
+        grid-template-columns: 1fr !important;
+    }
+    .pos2026-right {
+        display: block !important;
+        width: 100% !important;
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding-bottom: 0 !important;
+    }
+}
    because the dialog is rendered via IDialogService in a portal outside this
    component tree and scoped ::deep selectors cannot reach it. */
 
@@ -957,9 +1073,9 @@
 }
 
 .pos26-fn-parked-id {
-    font-size: 10px;
-    color: var(--mud-palette-text-disabled);
-    font-family: monospace;
+    font-size: 11px;
+    color: var(--mud-palette-text-secondary);
+    font-weight: 600;
 }
 
 .pos26-fn-parked-customer {
