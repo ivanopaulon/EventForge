@@ -16,8 +16,8 @@ public static class EventForgeTheme
     /// </summary>
     public static MudTheme GetMudTheme(string themeKey) => new()
     {
-        PaletteLight = GetLightPalette(themeKey),
-        PaletteDark = GetDarkPalette(themeKey),
+        PaletteLight = GetLightPalette(),
+        PaletteDark = GetDarkPalette(),
         Typography = GetTypography(),
         LayoutProperties = new LayoutProperties
         {
@@ -38,8 +38,8 @@ public static class EventForgeTheme
         }
     };
 
-    /// <summary>Returns the light-mode palette for the given theme key.</summary>
-    public static PaletteLight GetLightPalette(string themeKey) => new()
+    /// <summary>Returns the light-mode palette for the EventForge Carbon Neon theme.</summary>
+    public static PaletteLight GetLightPalette() => new()
     {
         Primary = "#0099CC",
         Secondary = "#00D9FF",
@@ -58,8 +58,8 @@ public static class EventForgeTheme
         Error = "#FF3D00"
     };
 
-    /// <summary>Returns the dark-mode palette for the given theme key.</summary>
-    public static PaletteDark GetDarkPalette(string themeKey) => new()
+    /// <summary>Returns the dark-mode palette for the EventForge Carbon Neon theme.</summary>
+    public static PaletteDark GetDarkPalette() => new()
     {
         Primary = "#00F5FF",
         Secondary = "#FF006E",
