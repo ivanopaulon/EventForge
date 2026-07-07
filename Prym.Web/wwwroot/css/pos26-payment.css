@@ -9,18 +9,33 @@
    ========================================================================== */
 
 /* ---- Variabili colore POS (ridefinite localmente per il dialog portal) ---- */
+/* Design tokens allineati a pos2026-layout-proposta.html — vedi POS2026.razor.css per i dettagli. */
 .pos26-payment-dialog-wrap {
-    /* Stesso accento brand-aligned di POS2026.razor.css (§Opzione A) — vedi commento lì per dettagli. */
-    --pos-accent:       #247BFF;
-    --pos-accent-light: #E5EFFF;
-    --pos-dark:         #2C2C2A;
-    --pos-darker:       #1D1D1B;
-    --pos-dark-border:  #444441;
-    --pos-dark-text:    #D3D1C7;
-    --pos-dark-muted:   #888780;
-    --pos-green:        #1D9E75;
-    --pos-green-light:  #E1F5EE;
-    --pos-amber-light:  #FAEEDA;
+    --pos-brand-navy:      #1F2F46;
+    --pos-brand-blue:      #247BFF;
+    --pos-brand-blue-dim:  #1B5FC4;
+    --pos-brand-blue-bg:   #1A2C4A;
+
+    --pos-surface-0:       #17171A;
+    --pos-surface-1:       #212226;
+    --pos-surface-2:       #2B2C31;
+    --pos-surface-3:       #37383E;
+    --pos-border:          #3C3D44;
+
+    --pos-text-1:          #EDEDEF;
+    --pos-text-2:          #A6A7AE;
+    --pos-text-3:          #6E6F78;
+
+    --pos-success:         #2FAE7C;
+    --pos-success-bg:      #16332A;
+    --pos-warning:         #D69A3C;
+    --pos-warning-bg:      #362A15;
+    --pos-danger:          #E15B5B;
+    --pos-danger-bg:       #3A1E1E;
+
+    --pos-radius-sm: 8px;
+    --pos-radius-md: 12px;
+    --pos-radius-lg: 16px;
 }
 
 /* ===== Pos26PaymentDialog ===== */
@@ -64,15 +79,15 @@
 }
 
 .pos26-pay-summary-card--paid {
-    background: var(--pos-green-light);
+    background: var(--pos-success-bg);
 }
 
 .pos26-pay-summary-card--ok {
-    background: var(--pos-green-light);
+    background: var(--pos-success-bg);
 }
 
 .pos26-pay-summary-card--residuo {
-    background: var(--pos-amber-light);
+    background: var(--pos-warning-bg);
 }
 
 .pos26-pay-card-label {
@@ -110,8 +125,8 @@
 }
 
 .pos26-pm-card--selected {
-    border: 2px solid var(--pos-accent);
-    background: var(--pos-accent-light);
+    border: 2px solid var(--pos-brand-blue);
+    background: var(--pos-brand-blue-bg);
 }
 
 .pos26-pm-card--added {
@@ -125,7 +140,7 @@
 }
 
 .pos26-pm-icon {
-    color: var(--pos-accent);
+    color: var(--pos-brand-blue);
 }
 
 .pos26-pm-name {
@@ -172,7 +187,7 @@
 }
 
 .pos26-pay-btn-add {
-    background: var(--pos-accent);
+    background: var(--pos-brand-blue);
     color: #fff;
 }
 
@@ -238,7 +253,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: var(--pos-green-light);
+    background: var(--pos-success-bg);
     color: #085041;
     border-radius: 8px;
     padding: 8px 12px;
@@ -262,14 +277,14 @@
     align-items: center;
     gap: 4px;
     width: 100%;
-    color: var(--pos-amber);
+    color: var(--pos-warning);
     font-weight: 600;
     font-size: 13px;
 }
 
 /* ===== Colonna destra: numpad ===== */
 .pos26-pay-right {
-    background: var(--pos-darker);
+    background: var(--pos-surface-0);
     border-radius: 12px;
     padding: 10px;
     display: flex;
@@ -278,13 +293,13 @@
 }
 
 .pos26-pay-numpad-display {
-    background: var(--pos-dark);
+    background: var(--pos-surface-1);
     border-radius: 7px;
     padding: 8px 12px;
     font-size: 24px;
     font-weight: 700;
     font-family: monospace;
-    color: var(--pos-dark-text);
+    color: var(--pos-text-1);
     text-align: right;
 }
 
@@ -295,8 +310,8 @@
 }
 
 .pos26-pay-shortcut {
-    background: var(--pos-dark);
-    color: var(--pos-dark-text);
+    background: var(--pos-surface-1);
+    color: var(--pos-text-1);
     border: none;
     border-radius: 7px;
     padding: 6px;
@@ -307,7 +322,7 @@
 }
 
 .pos26-pay-shortcut:hover {
-    background: var(--pos-dark-border);
+    background: var(--pos-border);
 }
 
 .pos26-pay-numpad-grid {
@@ -317,8 +332,8 @@
 }
 
 .pos26-pay-numpad-key {
-    background: var(--pos-dark-border);
-    color: var(--pos-dark-text);
+    background: var(--pos-border);
+    color: var(--pos-text-1);
     border: none;
     border-radius: 7px;
     font-size: 16px;
@@ -343,8 +358,8 @@
 
 .pos26-pay-confirm {
     width: 100%;
-    background: var(--pos-dark-border);
-    color: var(--pos-dark-muted);
+    background: var(--pos-border);
+    color: var(--pos-text-3);
     border: none;
     border-radius: 7px;
     padding: 10px;
@@ -360,7 +375,7 @@
 }
 
 .pos26-pay-confirm--ready {
-    background: var(--pos-green);
+    background: var(--pos-success);
     color: #fff;
 }
 
