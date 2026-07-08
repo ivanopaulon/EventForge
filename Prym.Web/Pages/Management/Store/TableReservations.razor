@@ -24,7 +24,21 @@
     </ExtraActions>
 </ManagementPageHeader>
 
-@* ──────────────────── FILTER PANEL ──────────────────── *@
+@* Eccezione documentata (Categoria SpecializedListPage — archetipo):
+   questa pagina usa EFTable invece di EntityManagementPage perché il workflow delle
+   prenotazioni è un flusso a stati (Pending → Confirmed → Arrived, oppure → Cancelled/
+   NoShow condizionati) con transizioni dedicate (ConfirmReservationAsync,
+   MarkArrivedAsync, MarkNoShowAsync) e senza un DeleteAsync standard (solo
+   CancelReservationAsync, soft). Il modello Delete/ToggleStatus di
+   IEntityManagementService non rappresenta questo flusso senza forzature semantiche
+   (es. "cancel" mappato su "delete", perdita di alcune transizioni). *@
+@* Eccezione documentata (Categoria SpecializedListPage — filtro toolbar):
+   il filtro data + stato viene reso in un pannello sempre visibile sopra la tabella
+   invece che nello slot EFTable.FiltersPanel, perché quest'ultimo è collassato di
+   default (_filtersExpanded = false, nessun parametro per impostare lo stato iniziale)
+   e nasconderebbe un controllo primario della pagina dietro un toggle, con conseguente
+   perdita di usabilità rispetto al comportamento attuale.
+   TODO: rivalutare se EFTable esporrà un parametro InitiallyExpanded/FiltersExpanded. *@
 <MudPaper Elevation="1" Class="pa-3 mb-0">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="4" md="3">
@@ -100,25 +114,37 @@
             <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(res.Status)">@GetStatusLabel(res.Status)</MudChip>
         </MudTd>
         <MudTd Class="text-center">
-            <MudStack Row Spacing="1" Justify="Justify.Center">
+            <MudStack Row Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
                 @if (res.Status == "Pending")
                 {
-                    <MudIconButton Icon="@Icons.Material.Outlined.CheckCircle" Color="Color.Success" Size="Size.Small"
-                                   Title="Conferma" OnClick="@(() => ConfirmAsync(res))" />
+                    <MudTooltip Text="Conferma">
+                        <PrymIconButton Icon="@Icons.Material.Outlined.CheckCircle"
+                                        Color="Color.Success"
+                                        Size="Size.Small"
+                                        Class="ef-row-actionbutton"
+                                        OnClick="@(() => ConfirmAsync(res))" />
+                    </MudTooltip>
                 }
                 @if (res.Status is "Pending" or "Confirmed")
                 {
-                    <MudIconButton Icon="@Icons.Material.Outlined.HowToReg" Color="Color.Info" Size="Size.Small"
-                                   Title="Segna arrivato" OnClick="@(() => MarkArrivedAsync(res))" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.PersonOff" Color="Color.Warning" Size="Size.Small"
-                                   Title="No-show" OnClick="@(() => MarkNoShowAsync(res))" />
-                }
-                @if (res.Status is "Pending" or "Confirmed")
-                {
-                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" Size="Size.Small"
-                                   Title="Modifica" OnClick="@(() => OpenDialogAsync(res.Id))" />
-                    <MudIconButton Icon="@Icons.Material.Outlined.Cancel" Color="Color.Error" Size="Size.Small"
-                                   Title="Annulla" OnClick="@(() => CancelReservationAsync(res))" />
+                    <MudMenu Icon="@Icons.Material.Outlined.MoreVert"
+                             Size="Size.Small"
+                             Dense="true"
+                             Class="ef-row-actionbutton"
+                             Title="@TranslationService.GetTranslation("common.moreActions", "Altre azioni")">
+                        <MudMenuItem Icon="@Icons.Material.Outlined.HowToReg" OnClick="@(() => MarkArrivedAsync(res))">
+                            Segna arrivato
+                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Outlined.PersonOff" OnClick="@(() => MarkNoShowAsync(res))">
+                            No-show
+                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => OpenDialogAsync(res.Id))">
+                            Modifica
+                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Outlined.Cancel" OnClick="@(() => CancelReservationAsync(res))">
+                            Annulla
+                        </MudMenuItem>
+                    </MudMenu>
                 }
             </MudStack>
         </MudTd>

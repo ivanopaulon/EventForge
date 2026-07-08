@@ -14,7 +14,13 @@
 <ManagementPageHeader Title="@TranslationService.GetTranslation("sales.history", "Storico Vendite")"
                       Icon="@Icons.Material.Outlined.Receipt" />
 
-@* ──────────────────── FILTER PANEL ──────────────────── *@
+@* Eccezione documentata (Categoria SpecializedListPage — filtro toolbar):
+   il filtro data-range (Da/A) + stato viene reso in un pannello sempre visibile sopra
+   la tabella invece che nello slot EFTable.FiltersPanel, perché quest'ultimo è
+   collassato di default (_filtersExpanded = false, nessun parametro per impostare lo
+   stato iniziale) e nasconderebbe un controllo primario della pagina dietro un toggle,
+   con conseguente perdita di usabilità rispetto al comportamento attuale.
+   TODO: rivalutare se EFTable esporrà un parametro InitiallyExpanded/FiltersExpanded. *@
 <MudPaper Elevation="1" Class="pa-3 mb-0">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="4" md="3">
@@ -100,11 +106,13 @@
         <MudTd Class="text-center">
             @if (session.Status == SaleSessionStatusDto.Closed)
             {
-                <MudIconButton Icon="@Icons.Material.Outlined.Cancel"
-                               Color="Color.Error"
-                               Size="Size.Small"
-                               Title="Annulla vendita"
-                               OnClick="@(() => VoidSessionAsync(session))" />
+                <MudTooltip Text="Annulla vendita">
+                    <PrymIconButton Icon="@Icons.Material.Outlined.Cancel"
+                                    Color="Color.Error"
+                                    Size="Size.Small"
+                                    Class="ef-row-actionbutton"
+                                    OnClick="@(() => VoidSessionAsync(session))" />
+                </MudTooltip>
             }
         </MudTd>
     </RowTemplate>

@@ -27,6 +27,18 @@
 
 <MudTabs Elevation="0" Rounded="true" Class="mt-2" PanelClass="pa-0">
     <MudTabPanel Text="Elenco" Icon="@Icons.Material.Outlined.ViewList">
+        @* Eccezione documentata (Categoria SpecializedListPage — archetipo):
+           questa pagina usa EFTable invece di EntityManagementPage pur avendo azioni
+           CRUD (Modifica/Elimina) perché: 1) il client ITableManagementService espone
+           solo GetAllTablesAsync() senza equivalente paginato compatibile con
+           IEntityManagementService.GetPagedAsync (il server supporta paginazione, ma
+           il client no); 2) la pagina convive con il tab "Planimetria" (TableFloorPlan,
+           drag&drop), e EntityManagementPage renderizza da sé header+tabella a piena
+           pagina, non pensato per co-esistere con un editor grafico in un secondo tab
+           senza refactor strutturale del layout.
+           TODO: riesaminare se/quando ITableManagementService esporrà un metodo
+           paginato lato client; in tal caso valutare la migrazione a
+           EntityManagementPage seguendo ProductManagement.razor come modello. *@
         <EFTable TItem="TableSessionDto"
                  Items="@_tables"
                  Hover="true"
@@ -72,10 +84,20 @@
                 </MudTd>
                 <MudTd Class="text-center">
                     <MudStack Row Spacing="1" Justify="Justify.Center">
-                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Color="Color.Primary" Size="Size.Small"
-                                       Title="Modifica" OnClick="@(() => OpenDialogAsync(table.Id))" />
-                        <MudIconButton Icon="@Icons.Material.Outlined.Delete" Color="Color.Error" Size="Size.Small"
-                                       Title="Elimina" OnClick="@(() => DeleteTableAsync(table))" />
+                        <MudTooltip Text="Modifica">
+                            <PrymIconButton Icon="@Icons.Material.Outlined.Edit"
+                                            Color="Color.Primary"
+                                            Size="Size.Small"
+                                            Class="ef-row-actionbutton"
+                                            OnClick="@(() => OpenDialogAsync(table.Id))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Elimina">
+                            <PrymIconButton Icon="@Icons.Material.Outlined.Delete"
+                                            Color="Color.Error"
+                                            Size="Size.Small"
+                                            Class="ef-row-actionbutton"
+                                            OnClick="@(() => DeleteTableAsync(table))" />
+                        </MudTooltip>
                     </MudStack>
                 </MudTd>
             </RowTemplate>
