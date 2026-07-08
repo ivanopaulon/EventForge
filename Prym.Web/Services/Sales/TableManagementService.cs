@@ -42,16 +42,17 @@ public class TableManagementService(
         }
     }
 
-    public async Task<List<TableSessionDto>?> GetAvailableTablesAsync(CancellationToken ct = default)
+    public async Task<List<TableSessionDto>?> GetTablesForPickerAsync(CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<List<TableSessionDto>>($"{BaseUrl}/available", ct);
-
+            var result = await httpClientService.GetAsync<Prym.DTOs.Common.PagedResult<TableSessionDto>>(
+                $"{BaseUrl}/picker?page=1&pageSize={MaxUnpaginatedPageSize}", ct);
+            return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving available tables");
+            logger.LogError(ex, "Error retrieving tables for picker");
             return null;
         }
     }

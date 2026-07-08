@@ -40,6 +40,16 @@ public interface ITableManagementService
     Task<List<TableSessionDto>> GetAllAvailableTablesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets all active tables (any status) with pagination, for UI pickers that must show the
+    /// full floor plan (including occupied/reserved/cleaning/out-of-service tables) instead of
+    /// silently hiding zones that have no <see cref="TableStatus.Available"/> table at the moment.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Paginated list of active tables, any status</returns>
+    Task<PagedResult<TableSessionDto>> GetTablesForPickerAsync(PaginationParameters pagination, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets a specific table by ID.
     /// </summary>
     Task<TableSessionDto?> GetTableAsync(Guid tableId, CancellationToken cancellationToken = default);

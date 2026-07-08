@@ -90,6 +90,15 @@
     background-color: var(--mud-palette-dark);
 }
 
+.table-floor-plan__table--disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.table-floor-plan__table--disabled:hover {
+    transform: none;
+}
+
 .table-floor-plan__table-number {
     font-weight: 700;
     font-size: 0.95rem;

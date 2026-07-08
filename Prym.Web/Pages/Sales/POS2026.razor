@@ -38,7 +38,6 @@
 @inject IAnalyticsService AnalyticsService
 @inject IEntityManagementService EntityManagementService
 @inject ITableManagementService TableManagementService
-@inject Prym.Web.Services.Sales.INoteFlagService NoteFlagService
 @inject ILogger<POS2026> Logger
 @inject NavigationManager NavigationManager
 @inject IHttpClientFactory HttpClientFactory
@@ -260,9 +259,11 @@
                         FidelityCard="@_fidelityCard" />
 
         @* ===== TOOLBAR AZIONI — due righe fisse, tutte le azioni sempre visibili =====
-           Nessun pulsante apre più un pannello/menu: le 11 azioni (ex 6 in riga
-           principale + 5 nel vecchio "Altro") sono distribuite su due righe fisse,
-           raggruppate per competenza (Riga 1: vendita corrente; Riga 2: conto & turno). *@
+           Nessun pulsante apre più un pannello inline che spinge il contenuto della pagina:
+           Tavolo/Asporto, Note, Coupon e Sospese aprono ora un MudDialog dedicato (Finding 3),
+           stesso pattern di "Dividi conto"/"Unisci sessioni". Le 10 azioni sono distribuite su
+           due righe fisse, raggruppate per competenza (Riga 1: vendita corrente; Riga 2: conto
+           & turno), con larghezza uniforme (.pos26-fn-btn-uniform, Finding 1). *@
         <div class="pos26-fn-toolbar">
             @* ----- Riga 1 — Vendita corrente ----- *@
             <div class="pos26-fn-toolbar-row">
@@ -271,6 +272,7 @@
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Error"
                                Size="Size.Small"
+                               Class="pos26-fn-btn-uniform"
                                StartIcon="@Icons.Material.Outlined.RemoveCircle"
                                Disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
                                OnClick="RemoveLastItemAsync">
@@ -278,14 +280,16 @@
                     </MudButton>
                 </MudTooltip>
 
-                @* Tavolo / Asporto *@
+                @* Tavolo / Asporto — apre Pos26TablePickerDialog (Finding 3); include anche il
+                   toggle "Assegna e parcheggia" (Finding 1, Opzione A: assorbe il vecchio
+                   pulsante icona separato "Parcheggia su tavolo"). *@
                 <MudTooltip Text="Tavolo / Asporto">
-                    <MudButton Variant="@(_showTablePicker ? Variant.Filled : Variant.Outlined)"
-                               Color="@(_showTablePicker ? Color.Primary : Color.Default)"
+                    <MudButton Variant="@(!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber) ? Variant.Filled : Variant.Outlined)"
+                               Color="@(!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber) ? Color.Primary : Color.Default)"
                                Size="Size.Small"
+                               Class="pos26-fn-btn-uniform"
                                StartIcon="@Icons.Material.Outlined.TableBar"
-                               aria-pressed="@(_showTablePicker.ToString().ToLowerInvariant())"
-                               OnClick="ToggleTablePickerFromMenu">
+                               OnClick="OpenTablePickerDialogAsync">
                         @if (!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber))
                         { @($"Tavolo {ViewModel.CurrentSession.TableNumber}") }
                         else if (ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway)
@@ -295,35 +299,35 @@
                     </MudButton>
                 </MudTooltip>
 
-                @* Pulsante Note ordine *@
+                @* Pulsante Note ordine — apre SessionNoteDialog (Finding 3) *@
                 <MudTooltip Text="Note ordine">
                     <MudBadge Content="@(ViewModel.CurrentSession?.Notes.Count ?? 0)"
                               Color="Color.Primary"
                               Overlap="true"
                               Visible="@(ViewModel.CurrentSession?.Notes.Any() == true)">
-                        <MudButton Variant="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Variant.Filled : Variant.Outlined)"
-                                   Color="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Color.Primary : Color.Default)"
+                        <MudButton Variant="@(ViewModel.CurrentSession?.Notes.Any() == true ? Variant.Filled : Variant.Outlined)"
+                                   Color="@(ViewModel.CurrentSession?.Notes.Any() == true ? Color.Primary : Color.Default)"
                                    Size="Size.Small"
+                                   Class="pos26-fn-btn-uniform"
                                    StartIcon="@Icons.Material.Outlined.Note"
-                                   aria-pressed="@(_showNoteInput.ToString().ToLowerInvariant())"
-                                   OnClick="ToggleNoteInput">
+                                   OnClick="OpenNoteDialogAsync">
                             Note
                         </MudButton>
                     </MudBadge>
                 </MudTooltip>
 
-                @* Pulsante Coupon *@
+                @* Pulsante Coupon — apre CouponInputDialog (Finding 3) *@
                 <MudTooltip Text="Coupon">
                     <MudBadge Content="@(ViewModel.ActiveCouponCodes?.Count ?? 0)"
                               Color="Color.Primary"
                               Overlap="true"
                               Visible="@(ViewModel.ActiveCouponCodes?.Any() == true)">
-                        <MudButton Variant="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Variant.Filled : Variant.Outlined)"
-                                   Color="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Color.Primary : Color.Default)"
+                        <MudButton Variant="@(ViewModel.ActiveCouponCodes?.Any() == true ? Variant.Filled : Variant.Outlined)"
+                                   Color="@(ViewModel.ActiveCouponCodes?.Any() == true ? Color.Primary : Color.Default)"
                                    Size="Size.Small"
+                                   Class="pos26-fn-btn-uniform"
                                    StartIcon="@Icons.Material.Outlined.LocalOffer"
-                                   aria-pressed="@(_showCouponInput.ToString().ToLowerInvariant())"
-                                   OnClick="ToggleCouponInput">
+                                   OnClick="OpenCouponDialogAsync">
                             Coupon
                         </MudButton>
                     </MudBadge>
@@ -338,6 +342,7 @@
                     <MudButton Variant="Variant.Outlined"
                                Color="Color.Warning"
                                Size="Size.Small"
+                               Class="pos26-fn-btn-uniform"
                                StartIcon="@Icons.Material.Outlined.PauseCircleOutline"
                                Disabled="@(!ViewModel.HasActiveSession)"
                                OnClick="ParkSessionAsync">
@@ -345,28 +350,14 @@
                     </MudButton>
                 </MudTooltip>
 
-                @* Parcheggia su tavolo: flusso combinato assegnazione tavolo + parcheggio.
-                   Solo icona + tooltip/aria-label: azione affiancata a "Parcheggia conto",
-                   di cui è una variante — il testo non è necessario per la comprensione. *@
-                <MudTooltip Text="Parcheggia su tavolo">
-                    <MudIconButton Icon="@Icons.Material.Outlined.TableRestaurant"
-                                   Color="Color.Default"
-                                   Variant="Variant.Outlined"
-                                   Size="Size.Small"
-                                   aria-label="Parcheggia su tavolo"
-                                   title="Parcheggia su tavolo"
-                                   Disabled="@(!ViewModel.HasActiveSession)"
-                                   OnClick="OpenParkToTableFlowAsync" />
-                </MudTooltip>
-
-                @* Sessioni parcheggiate *@
+                @* Sessioni parcheggiate — apre Pos26ParkedSessionsDialog (Finding 3) *@
                 <MudTooltip Text="Sessioni sospese">
-                    <MudButton Variant="@(_showParkedSessions ? Variant.Filled : Variant.Outlined)"
-                               Color="@(_showParkedSessions ? Color.Primary : Color.Default)"
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
                                Size="Size.Small"
+                               Class="pos26-fn-btn-uniform"
                                StartIcon="@Icons.Material.Outlined.History"
-                               aria-pressed="@(_showParkedSessions.ToString().ToLowerInvariant())"
-                               OnClick="ToggleParkedFromMenu">
+                               OnClick="OpenParkedSessionsDialogAsync">
                         Sospese
                     </MudButton>
                 </MudTooltip>
@@ -378,6 +369,7 @@
                         <MudButton Variant="Variant.Outlined"
                                    Color="Color.Default"
                                    Size="Size.Small"
+                                   Class="pos26-fn-btn-uniform"
                                    StartIcon="@Icons.Material.Outlined.CallSplit"
                                    OnClick="OpenSplitFromMenu">
                             Dividi
@@ -392,6 +384,7 @@
                         <MudButton Variant="Variant.Outlined"
                                    Color="Color.Default"
                                    Size="Size.Small"
+                                   Class="pos26-fn-btn-uniform"
                                    StartIcon="@Icons.Material.Outlined.MergeType"
                                    OnClick="OpenMergeFromMenu">
                             Unisci
@@ -404,6 +397,7 @@
                     <MudButton Variant="@(_isDailyFlowOpen ? Variant.Filled : Variant.Outlined)"
                                Color="@(_isDailyFlowOpen ? Color.Primary : Color.Default)"
                                Size="Size.Small"
+                               Class="pos26-fn-btn-uniform"
                                StartIcon="@Icons.Material.Outlined.EventNote"
                                aria-pressed="@(_isDailyFlowOpen.ToString().ToLowerInvariant())"
                                OnClick="ToggleDailyFlowAsync">
@@ -412,158 +406,6 @@
                 </MudTooltip>
             </div>
         </div>
-
-        @* Input nota ordine *@
-        @if (_showNoteInput)
-        {
-            <div class="pos26-fn-panel">
-                @foreach (var nota in ViewModel.CurrentSession?.Notes ?? Enumerable.Empty<SessionNoteDto>())
-                {
-                    <div class="pos26-fn-note-item">
-                        @if (!string.IsNullOrEmpty(nota.NoteFlagIcon))
-                        {
-                            <MudIcon Icon="@nota.NoteFlagIcon" Size="Size.Small" Class="mr-1"
-                                     Style="@(!string.IsNullOrEmpty(nota.NoteFlagColor) ? $"color:{nota.NoteFlagColor}" : "")" />
-                        }
-                        else
-                        {
-                            <MudIcon Icon="@Icons.Material.Outlined.StickyNote2" Size="Size.Small" Class="mr-1" />
-                        }
-                        <span>@nota.Text</span>
-                    </div>
-                }
-                @* Selettore flag (visibile solo se ci sono più flag disponibili) *@
-                @if (_noteFlags.Count > 1)
-                {
-                    <div class="pos26-fn-row mb-1">
-                        <label for="pos26-note-flag-select" class="sr-only">Tipo nota</label>
-                        <select id="pos26-note-flag-select"
-                                class="pos26-fn-input"
-                                @bind="_selectedNoteFlagId">
-                            @foreach (var flag in _noteFlags)
-                            {
-                                <option value="@flag.Id">@flag.Name</option>
-                            }
-                        </select>
-                    </div>
-                }
-                <div class="pos26-fn-row">
-                    <label for="pos26-note-text-input" class="sr-only">Testo nota ordine</label>
-                    <input id="pos26-note-text-input"
-                           class="pos26-fn-input"
-                           type="text"
-                           placeholder="Aggiungi nota…"
-                           @bind="_orderNoteText"
-                           @bind:event="oninput"
-                           maxlength="500" />
-                    <button class="pos26-fn-btn-add" @onclick="SaveOrderNoteAsync"
-                            disabled="@(string.IsNullOrWhiteSpace(_orderNoteText) || !_selectedNoteFlagId.HasValue)">
-                        Aggiungi
-                    </button>
-                    <button class="pos26-fn-btn-close" @onclick="ToggleNoteInput">✕</button>
-                </div>
-            </div>
-        }
-
-        @* Input coupon *@
-        @if (_showCouponInput)
-        {
-            <div class="pos26-fn-panel">
-                @foreach (var couponCode in ViewModel.ActiveCouponCodes ?? Enumerable.Empty<string>())
-                {
-                    <div class="pos26-fn-note-item">
-                        <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Class="mr-1" Color="Color.Success" />
-                        <span>@couponCode</span>
-                    </div>
-                }
-                <div class="pos26-fn-row">
-                    <input class="pos26-fn-input"
-                           type="text"
-                           placeholder="Codice coupon…"
-                           @bind="_couponInput"
-                           @bind:event="oninput"
-                           maxlength="50" />
-                    <button class="pos26-fn-btn-add" @onclick="ApplyCouponAsync"
-                            disabled="@string.IsNullOrWhiteSpace(_couponInput)">
-                        Applica
-                    </button>
-                    <button class="pos26-fn-btn-close" @onclick="ToggleCouponInput">✕</button>
-                </div>
-            </div>
-        }
-
-        @* Selettore tavolo / tipo vendita (aperto dal menu "Altro" o dal flusso "Parcheggia su tavolo") *@
-        @if (_showTablePicker)
-        {
-            <div class="pos26-fn-panel pos26-fn-panel--table">
-                @if (_tablePickerParkOnSelect)
-                {
-                    <div class="pos26-fn-panel-header">
-                        <span>Seleziona il tavolo per parcheggiare il conto</span>
-                        <button class="pos26-fn-btn-close" @onclick="CloseTablePicker">✕</button>
-                    </div>
-                }
-                <div class="pos26-fn-table-types">
-                    <button class="pos26-fn-type-btn @(ViewModel.CurrentSession?.SaleType == SaleTypes.Retail ? "pos26-fn-type-btn--active" : "")"
-                            @onclick='() => SetSaleTypeAsync(SaleTypes.Retail)'>
-                        <MudIcon Icon="@Icons.Material.Outlined.StoreMallDirectory" Size="Size.Small" />
-                        Banco
-                    </button>
-                    <button class="pos26-fn-type-btn @(ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway ? "pos26-fn-type-btn--active" : "")"
-                            @onclick='() => SetSaleTypeAsync(SaleTypes.Takeaway)'>
-                        <MudIcon Icon="@Icons.Material.Outlined.ShoppingBag" Size="Size.Small" />
-                        Asporto
-                    </button>
-                    <button class="pos26-fn-btn-close pos26-fn-btn-close--inline" @onclick="() => _showTablePicker = false">✕</button>
-                </div>
-                @if (_availableTables.Any())
-                {
-                    <TableFloorPlan Tables="@_availableTables"
-                                     EditMode="false"
-                                     SelectedTableId="@(_availableTables.FirstOrDefault(t => t.TableNumber == ViewModel.CurrentSession?.TableNumber)?.Id)"
-                                     OnTableClick="@AssignTableAsync" />
-                }
-                else
-                {
-                    <div class="pos26-fn-empty">Nessun tavolo disponibile</div>
-                }
-            </div>
-        }
-
-        @* Pannello sessioni parcheggiate (aperto dal menu "Altro") *@
-        @if (_showParkedSessions)
-        {
-            <div class="pos26-fn-panel">
-                <div class="pos26-fn-panel-header">
-                    <span>Sessioni sospese</span>
-                    <button class="pos26-fn-btn-close" @onclick="() => _showParkedSessions = false">✕</button>
-                </div>
-                @if (_parkedSessions.Any())
-                {
-                    @foreach (var parked in _parkedSessions)
-                    {
-                        <div class="pos26-fn-parked-row">
-                            <div class="pos26-fn-parked-info">
-                                <span class="pos26-fn-parked-id" aria-label="Parcheggiata alle @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</span>
-                                @if (!string.IsNullOrEmpty(parked.TableNumber))
-                                { <span class="pos26-fn-parked-table">🪑 Tavolo @parked.TableNumber</span> }
-                                @if (!string.IsNullOrEmpty(parked.CustomerName))
-                                { <span class="pos26-fn-parked-customer">@parked.CustomerName</span> }
-                                <span class="pos26-fn-parked-total">€ @parked.FinalTotal.ToString("F2")</span>
-                                <span class="pos26-fn-parked-items">@parked.Items.Count art.</span>
-                            </div>
-                            <button class="pos26-fn-btn-add" @onclick="() => ResumeParkedSessionAsync(parked)">
-                                Riprendi
-                            </button>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <div class="pos26-fn-empty">Nessuna sessione sospesa</div>
-                }
-            </div>
-        }
 
         @* FilterBar: chip categoria + ordinamento — riposizionata adiacente all'area
            prodotti (fuori da .pos2026-product-area, che ha overflow-y: auto, per restare

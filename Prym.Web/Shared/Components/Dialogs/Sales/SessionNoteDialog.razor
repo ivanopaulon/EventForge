@@ -10,6 +10,27 @@
           OnClose="Cancel">
     
     <ChildContent>
+        @if (ExistingNotes is { Count: > 0 })
+        {
+            <MudStack Spacing="1" Class="mb-4">
+                @foreach (var nota in ExistingNotes)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        @if (!string.IsNullOrEmpty(nota.NoteFlagIcon))
+                        {
+                            <MudIcon Icon="@nota.NoteFlagIcon" Size="Size.Small"
+                                     Style="@(!string.IsNullOrEmpty(nota.NoteFlagColor) ? $"color:{nota.NoteFlagColor}" : "")" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Outlined.StickyNote2" Size="Size.Small" />
+                        }
+                        <MudText Typo="Typo.body2">@nota.Text</MudText>
+                    </MudStack>
+                }
+            </MudStack>
+            <MudDivider Class="mb-4" />
+        }
         <MudSelect T="Guid"
                    @bind-Value="_selectedNoteFlagId"
                    Label="Categoria Nota"
@@ -67,6 +88,9 @@
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid? SessionId { get; set; }
+
+    /// <summary>Note già presenti sulla sessione corrente, mostrate come riepilogo sopra il form.</summary>
+    [Parameter] public List<SessionNoteDto>? ExistingNotes { get; set; }
     
     private Guid _selectedNoteFlagId = Guid.Empty;
     private string _noteText = string.Empty;

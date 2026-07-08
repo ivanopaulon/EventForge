@@ -1,0 +1,93 @@
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.History"
+          Title="Sessioni Sospese"
+          IsProcessing="@_isResuming"
+          OnClose="Cancel"
+          MinWidth="min(600px, 95vw)">
+
+    <ChildContent>
+        @if (ParkedSessions is not { Count: > 0 })
+        {
+            <MudAlert Severity="Severity.Info">Nessuna sessione sospesa.</MudAlert>
+        }
+        else
+        {
+            @foreach (var parked in ParkedSessions)
+            {
+                <MudCard Class="mb-2" Elevation="1">
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudStack Spacing="1">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudText Typo="Typo.body2">🕐 @parked.UpdatedAt.ToLocalTime().ToString("HH:mm")</MudText>
+                                    @if (!string.IsNullOrEmpty(parked.TableNumber))
+                                    {
+                                        <MudText Typo="Typo.body2">🪑 Tavolo @parked.TableNumber</MudText>
+                                    }
+                                    @if (!string.IsNullOrEmpty(parked.CustomerName))
+                                    {
+                                        <MudText Typo="Typo.body2">@parked.CustomerName</MudText>
+                                    }
+                                </MudStack>
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <MudText Typo="Typo.subtitle2">€ @parked.FinalTotal.ToString("F2")</MudText>
+                                    <MudText Typo="Typo.caption">@parked.Items.Count art.</MudText>
+                                </MudStack>
+                            </MudStack>
+                            <MudButton Color="Color.Primary"
+                                       Variant="Variant.Filled"
+                                       Size="Size.Small"
+                                       Disabled="@_isResuming"
+                                       OnClick="@(() => ResumeAsync(parked))">
+                                Riprendi
+                            </MudButton>
+                        </MudStack>
+                    </MudCardContent>
+                </MudCard>
+            }
+        }
+    </ChildContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isResuming">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Sessioni sospese da mostrare (già filtrate/ordinate dal chiamante).</summary>
+    [Parameter] public List<SaleSessionDto>? ParkedSessions { get; set; }
+
+    /// <summary>Eseguito quando l'utente sceglie di riprendere una sessione; il chiamante
+    /// esegue l'operazione reale (stato server + POSViewModel) e ritorna true se completata
+    /// con successo, nel qual caso il dialog si chiude.</summary>
+    [Parameter] public Func<SaleSessionDto, Task<bool>>? OnResumeSession { get; set; }
+
+    private bool _isResuming;
+
+    private async Task ResumeAsync(SaleSessionDto session)
+    {
+        if (OnResumeSession is null || _isResuming) return;
+        _isResuming = true;
+        try
+        {
+            var success = await OnResumeSession(session);
+            if (success)
+            {
+                MudDialog.Close(DialogResult.Ok(session));
+            }
+        }
+        finally
+        {
+            _isResuming = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

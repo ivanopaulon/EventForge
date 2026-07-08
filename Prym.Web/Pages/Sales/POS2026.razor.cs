@@ -74,36 +74,20 @@ public partial class POS2026 : IAsyncDisposable
     private FidelityCardDto? _fidelityCard;
     private bool _isFidelityLookupInProgress = false;  // guard: prevenzione race condition su scan rapidi
 
-    // --- Sessioni parcheggiate ---
+    // --- Sessioni parcheggiate (Finding 3: aperte tramite Pos26ParkedSessionsDialog) ---
     private List<SaleSessionDto> _parkedSessions = new();
-    private bool _showParkedSessions = false;
 
     // --- Mobile tab (0 = Prodotti, 1 = Scontrino+Paga) ---
     private int _mobileTab = 0;
 
-    // --- Nota ordine ---
-    private bool _showNoteInput = false;
-    private string _orderNoteText = string.Empty;
-
-    // --- Coupon ---
-    private bool _showCouponInput = false;
-    private string _couponInput = string.Empty;
-
-    // --- Tavolo / selezione tipo vendita ---
+    // --- Tavolo / selezione tipo vendita (Finding 3: aperto tramite Pos26TablePickerDialog;
+    //     _availableTables contiene ora tutti i tavoli attivi di ogni zona/stato — Finding 4). ---
     private List<TableSessionDto> _availableTables = new();
-    private bool _showTablePicker = false;
-    // Quando true, la selezione di un tavolo esegue anche il parcheggio automatico
-    // della sessione attiva (flusso "Parcheggia su tavolo" — Parte F.2).
-    private bool _tablePickerParkOnSelect = false;
 
     // --- Flusso giornaliero ---
     private DailyFlowDto? _dailyFlow;
     private bool _isDailyFlowOpen = false;
     private bool _isDailyFlowLoading = false;
-
-    // --- Note flags (richiesti da AddSessionNoteDto.NoteFlagId) ---
-    private List<NoteFlagDto> _noteFlags = new();
-    private Guid? _selectedNoteFlagId;
 
     // --- Fiscal printing (stesso pattern di POS.razor) ---
     private Guid? _fiscalPrinterId;
@@ -143,8 +127,7 @@ public partial class POS2026 : IAsyncDisposable
                 ViewModel.InitializeAsync(username),
                 LoadProductsAndBestSellersAsync(),
                 LoadClassificationNodesAsync(),
-                LoadAvailableTablesAsync(),
-                LoadNoteFlagsAsync()
+                LoadAvailableTablesAsync()
             );
 
             BuildCategoryList();
@@ -348,7 +331,7 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            _availableTables = await TableManagementService.GetAvailableTablesAsync() ?? new();
+            _availableTables = await TableManagementService.GetTablesForPickerAsync() ?? new();
         }
         catch (Exception ex)
         {
@@ -373,24 +356,6 @@ public partial class POS2026 : IAsyncDisposable
             await InvokeAsync(StateHasChanged);
         }
     }
-
-    /// <summary>
-    /// Carica i flag nota attivi (richiesti da AddSessionNoteDto.NoteFlagId).
-    /// Il primo flag attivo viene pre-selezionato come default.
-    /// </summary>
-    private async Task LoadNoteFlagsAsync()
-    {
-        try
-        {
-            _noteFlags = await NoteFlagService.GetActiveAsync() ?? new();
-            _selectedNoteFlagId = _noteFlags.FirstOrDefault()?.Id;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "POS2026: impossibile caricare i flag nota.");
-        }
-    }
-
 
     /// Costruisce la lista delle categorie da mostrare nella CategoryBar.
     /// Usa i nodi di classificazione (GetClassificationNodesAsync) abbinati a CategoryNodeId dei prodotti.
@@ -1256,40 +1221,32 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Note ordine
+    //  Note ordine (Finding 3: dialog dedicato invece di pannello inline)
     // =========================================================================
 
-    private void ToggleNoteInput()
+    /// <summary>Apre il dialog nota ordine (<see cref="SessionNoteDialog"/>); alla conferma applica
+    /// la nota tramite <see cref="POSViewModel.AddSessionNoteAsync"/>, stessa logica già in uso
+    /// nel vecchio pannello inline.</summary>
+    private async Task OpenNoteDialogAsync()
     {
-        _showNoteInput = !_showNoteInput;
-        if (!_showNoteInput) _orderNoteText = string.Empty;
-    }
-
-    private async Task SaveOrderNoteAsync()
-    {
-        if (!ViewModel.HasActiveSession || string.IsNullOrWhiteSpace(_orderNoteText)) return;
-
-        // AddSessionNoteDto richiede un NoteFlagId valido.
-        // Usa il flag selezionato; se non disponibile mostra avviso.
-        if (!_selectedNoteFlagId.HasValue)
-        {
-            AppNotification.ShowWarning("Nessun flag nota disponibile. Configurare almeno un flag nota in Impostazioni.");
-            return;
-        }
-
+        if (!ViewModel.HasActiveSession) return;
         try
         {
-            var dto = new AddSessionNoteDto
+            var parameters = new DialogParameters
             {
-                NoteFlagId = _selectedNoteFlagId.Value,
-                Text = _orderNoteText.Trim()
+                { "SessionId", ViewModel.CurrentSession!.Id },
+                { "ExistingNotes", ViewModel.CurrentSession!.Notes.ToList() }
             };
-            var session = await ViewModel.AddSessionNoteAsync(dto);
-            if (session != null)
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+            var dialog = await DialogService.ShowAsync<SessionNoteDialog>("Nota Sessione", parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: AddSessionNoteDto dto })
             {
-                AppNotification.ShowSuccess("Nota aggiunta.");
-                _orderNoteText = string.Empty;
-                _showNoteInput = false;
+                var session = await ViewModel.AddSessionNoteAsync(dto);
+                if (session != null)
+                {
+                    AppNotification.ShowSuccess("Nota aggiunta.");
+                }
             }
         }
         catch (Exception ex)
@@ -1300,30 +1257,34 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Coupon
+    //  Coupon (Finding 3: dialog dedicato invece di pannello inline)
     // =========================================================================
 
-    private void ToggleCouponInput()
+    /// <summary>Apre il dialog coupon (<see cref="CouponInputDialog"/>); alla conferma applica il
+    /// coupon tramite <see cref="POSViewModel.ApplyCouponAsync"/>, stessa logica già in uso nel
+    /// vecchio pannello inline.</summary>
+    private async Task OpenCouponDialogAsync()
     {
-        _showCouponInput = !_showCouponInput;
-        if (!_showCouponInput) _couponInput = string.Empty;
-    }
-
-    private async Task ApplyCouponAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_couponInput)) return;
         try
         {
-            var (success, promoName, error) = await ViewModel.ApplyCouponAsync(_couponInput.Trim());
-            if (success)
+            var parameters = new DialogParameters
             {
-                AppNotification.ShowSuccess($"Coupon applicato: {promoName}");
-                _couponInput = string.Empty;
-                _showCouponInput = false;
-            }
-            else
+                { "ActiveCouponCodes", ViewModel.ActiveCouponCodes?.ToList() }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+            var dialog = await DialogService.ShowAsync<CouponInputDialog>("Applica Coupon", parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false, Data: string couponCode } && !string.IsNullOrWhiteSpace(couponCode))
             {
-                AppNotification.ShowWarning(error ?? "Coupon non valido.");
+                var (success, promoName, error) = await ViewModel.ApplyCouponAsync(couponCode);
+                if (success)
+                {
+                    AppNotification.ShowSuccess($"Coupon applicato: {promoName}");
+                }
+                else
+                {
+                    AppNotification.ShowWarning(error ?? "Coupon non valido.");
+                }
             }
         }
         catch (Exception ex)
@@ -1334,29 +1295,44 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Tavolo / tipo vendita
+    //  Tavolo / tipo vendita (Finding 3: dialog dedicato invece di pannello inline;
+    //  Finding 1 Opzione A: "Parcheggia su tavolo" è ora un toggle dentro il dialog invece
+    //  di un pulsante separato in toolbar; Finding 4: il dialog mostra tutti i tavoli di
+    //  tutte le zone, stato colorato, non solo i disponibili.)
     // =========================================================================
 
-    private async Task ToggleTablePickerAsync()
+    /// <summary>Apre il dialog tavolo/asporto (<see cref="Pos26TablePickerDialog"/>).</summary>
+    private async Task OpenTablePickerDialogAsync()
     {
-        _showTablePicker = !_showTablePicker;
-        if (_showTablePicker)
-            await LoadAvailableTablesAsync();
+        await LoadAvailableTablesAsync();
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Tables", _availableTables },
+                { "CurrentTableNumber", ViewModel.CurrentSession?.TableNumber },
+                { "CurrentSaleType", ViewModel.CurrentSession?.SaleType },
+                { "ParkOnSelectDefault", false },
+                { "OnTableSelected", (Func<TableSessionDto, bool, Task<bool>>)AssignTableAsync },
+                { "OnSaleTypeChanged", (Func<string, Task>)SetSaleTypeAsync }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+            await DialogService.ShowAsync<Pos26TablePickerDialog>("Tavolo / Asporto", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore apertura dialog tavolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
-    private void CloseTablePicker()
+    /// <summary>Assegna il tavolo scelto alla sessione corrente e, se richiesto, la parcheggia
+    /// subito dopo (flusso combinato ex "Parcheggia su tavolo", ora toggle nel dialog).
+    /// Ritorna true se l'assegnazione è andata a buon fine (il dialog si chiude), false altrimenti
+    /// (il dialog resta aperto, ad es. se non c'è una sessione attiva).</summary>
+    private async Task<bool> AssignTableAsync(TableSessionDto table, bool parkOnSelect)
     {
-        _showTablePicker = false;
-        _tablePickerParkOnSelect = false;
-    }
-
-    /// <summary>Avvia il flusso combinato "Parcheggia su tavolo" (Parte F.2): apre il selettore
-    /// tavoli e, dopo la selezione, esegue automaticamente anche il parcheggio della sessione.</summary>
-    private async Task OpenParkToTableFlowAsync() => await OpenTablePickerFromMenuAsync(parkOnSelect: true);
-
-    private async Task AssignTableAsync(TableSessionDto table)
-    {
-        if (!ViewModel.HasActiveSession) return;
+        if (!ViewModel.HasActiveSession) return false;
         try
         {
             var sessionId = ViewModel.CurrentSession!.Id;
@@ -1368,7 +1344,6 @@ public partial class POS2026 : IAsyncDisposable
             await SalesService.UpdateSessionAsync(sessionId, updateDto);
             await ViewModel.ReloadSessionAsync();
             AppNotification.ShowSuccess($"Tavolo {table.TableNumber} assegnato.");
-            _showTablePicker = false;
 
             // Marca il tavolo come occupato (Parte F.4): evita che resti visibile come
             // disponibile e possa essere assegnato due volte. Usa il sessionId catturato
@@ -1384,16 +1359,18 @@ public partial class POS2026 : IAsyncDisposable
                 AppNotification.ShowWarning($"Tavolo {table.TableNumber} assegnato, ma il suo stato potrebbe non essere aggiornato per altri operatori.");
             }
 
-            if (_tablePickerParkOnSelect)
+            if (parkOnSelect)
             {
-                _tablePickerParkOnSelect = false;
                 await ParkSessionAsync();
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore assegnazione tavolo POS2026.");
             AppNotification.ShowWarning("Si è verificato un errore.");
+            return false;
         }
     }
 
@@ -1419,14 +1396,28 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Sessioni parcheggiate
+    //  Sessioni parcheggiate (Finding 3: dialog dedicato invece di pannello inline)
     // =========================================================================
 
-    private async Task ToggleParkedSessionsAsync()
+    /// <summary>Apre il dialog sessioni sospese (<see cref="Pos26ParkedSessionsDialog"/>).</summary>
+    private async Task OpenParkedSessionsDialogAsync()
     {
-        _showParkedSessions = !_showParkedSessions;
-        if (_showParkedSessions)
-            await LoadParkedSessionsAsync();
+        await LoadParkedSessionsAsync();
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "ParkedSessions", _parkedSessions },
+                { "OnResumeSession", (Func<SaleSessionDto, Task<bool>>)ResumeParkedSessionAsync }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+            await DialogService.ShowAsync<Pos26ParkedSessionsDialog>("Sessioni Sospese", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore apertura dialog sessioni sospese POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
     }
 
     private async Task ToggleDailyFlowAsync()
@@ -1441,39 +1432,6 @@ public partial class POS2026 : IAsyncDisposable
         _isDailyFlowOpen = isOpen;
         if (_isDailyFlowOpen && _dailyFlow is null)
             await LoadDailyFlowAsync();
-    }
-
-    // =========================================================================
-    //  Azioni sempre visibili in toolbar (ex menu "Altro") — Azione 2
-    // =========================================================================
-
-    private async Task ToggleTablePickerFromMenu()
-    {
-        // Toggle: se già aperto lo chiude (senza forzare parkOnSelect), altrimenti lo apre
-        // nel percorso normale (assegna tavolo senza parcheggiare).
-        if (_showTablePicker)
-        {
-            CloseTablePicker();
-            return;
-        }
-        await OpenTablePickerFromMenuAsync(parkOnSelect: false);
-    }
-
-    /// <summary>Apre il selettore tavoli, condividendo la logica comune a entrambi i percorsi:
-    /// quello normale (assegna tavolo senza parcheggiare, per il caso dine-in) e quello
-    /// combinato "Parcheggia su tavolo" (Parte F.2).</summary>
-    private async Task OpenTablePickerFromMenuAsync(bool parkOnSelect)
-    {
-        _tablePickerParkOnSelect = parkOnSelect;
-        _showTablePicker = true;
-        await LoadAvailableTablesAsync();
-    }
-
-    private async Task ToggleParkedFromMenu()
-    {
-        _showParkedSessions = !_showParkedSessions;
-        if (_showParkedSessions)
-            await LoadParkedSessionsAsync();
     }
 
     private async Task HandleDailyFlowSessionOpenedAsync(Guid sessionId)
@@ -1514,7 +1472,7 @@ public partial class POS2026 : IAsyncDisposable
         await OpenMergeDialogAsync();
     }
 
-    private async Task ResumeParkedSessionAsync(SaleSessionDto session)
+    private async Task<bool> ResumeParkedSessionAsync(SaleSessionDto session)
     {
         try
         {
@@ -1526,14 +1484,16 @@ public partial class POS2026 : IAsyncDisposable
                 // ResumeSessionAsync imposta CurrentSession = resumed e aggiorna OperatorId/PosId
                 await ViewModel.ResumeSessionAsync(resumed);
                 RebuildCartQuantities();
-                _showParkedSessions = false;
                 AppNotification.ShowSuccess($"Sessione #{session.Id.ToString()[..8]} ripresa.");
+                return true;
             }
+            return false;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore ripresa sessione parcheggiata POS2026.");
             AppNotification.ShowWarning("Si è verificato un errore.");
+            return false;
         }
     }
 
