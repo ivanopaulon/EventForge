@@ -249,7 +249,7 @@
                          OnOpenPhysicalDrawerClick="@OpenPhysicalDrawerAsync"
                          OnDailyClosureClick="@OpenEndOfDayWizardAsync" />
 
-        @* Riga ricerca + FilterBar collassabile *@
+        @* Riga ricerca *@
         <Pos26SearchBar @ref="_searchBar"
                         SearchTerm="@_searchTerm"
                         SearchTermChanged="@OnSearchTermChanged"
@@ -259,153 +259,157 @@
                         OnCameraClick="@OpenCameraBarcodeScannerAsync"
                         FidelityCard="@_fidelityCard" />
 
-        @* FilterBar: ordina/categoria/contesto in pannello on-demand *@
-        <Pos26FilterBar SortMode="@_sortMode"
-                        OnSortChanged="@OnSortModeChangedAsync"
-                        HasCustomer="@(ViewModel.SelectedCustomer != null)"
-                        Customer="@ViewModel.SelectedCustomer"
-                        Categories="@_categories"
-                        SelectedCategory="@_selectedCategory"
-                        OnCategorySelected="@OnCategorySelectedAsync" />
-
-        @* ===== TOOLBAR AZIONI PRIMARIE E MENU AZIONI SECONDARIE =====
-           Piano D (opzione D3): i 6 controlli usano componenti MudBlazor nativi
-           (MudButton/MudBadge/MudTooltip) invece di <button> custom con classi CSS
-           dedicate — dimensionamento e touch target sono ora gestiti dal tema. *@
+        @* ===== TOOLBAR AZIONI — due righe fisse, tutte le azioni sempre visibili =====
+           Nessun pulsante apre più un pannello/menu: le 11 azioni (ex 6 in riga
+           principale + 5 nel vecchio "Altro") sono distribuite su due righe fisse,
+           raggruppate per competenza (Riga 1: vendita corrente; Riga 2: conto & turno). *@
         <div class="pos26-fn-toolbar">
-            @* Rimuovi ultimo articolo (azione primaria di emergenza) *@
-            <MudTooltip Text="Rimuovi ultimo articolo (F4)">
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Error"
-                           Size="Size.Small"
-                           StartIcon="@Icons.Material.Outlined.RemoveCircle"
-                           Disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
-                           OnClick="RemoveLastItemAsync">
-                    Rimuovi
-                </MudButton>
-            </MudTooltip>
-
-            @* Parcheggia conto (azione primaria: unico modo per attivarla su terminale touch,
-               prima raggiungibile solo tramite la scorciatoia da tastiera F3) *@
-            <MudTooltip Text="Parcheggia conto (F3)">
-                <MudButton Variant="Variant.Outlined"
-                           Color="Color.Warning"
-                           Size="Size.Small"
-                           StartIcon="@Icons.Material.Outlined.PauseCircleOutline"
-                           Disabled="@(!ViewModel.HasActiveSession)"
-                           OnClick="ParkSessionAsync">
-                    Parcheggia
-                </MudButton>
-            </MudTooltip>
-
-            @* Pulsante Note ordine *@
-            <MudTooltip Text="Note ordine">
-                <MudBadge Content="@(ViewModel.CurrentSession?.Notes.Count ?? 0)"
-                          Color="Color.Primary"
-                          Overlap="true"
-                          Visible="@(ViewModel.CurrentSession?.Notes.Any() == true)">
-                    <MudButton Variant="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Variant.Filled : Variant.Outlined)"
-                               Color="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Color.Primary : Color.Default)"
+            @* ----- Riga 1 — Vendita corrente ----- *@
+            <div class="pos26-fn-toolbar-row">
+                @* Rimuovi ultimo articolo (azione primaria di emergenza) *@
+                <MudTooltip Text="Rimuovi ultimo articolo (F4)">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Error"
                                Size="Size.Small"
-                               StartIcon="@Icons.Material.Outlined.Note"
-                               aria-pressed="@(_showNoteInput.ToString().ToLowerInvariant())"
-                               OnClick="ToggleNoteInput">
-                        Note
-                    </MudButton>
-                </MudBadge>
-            </MudTooltip>
-
-            @* Pulsante Coupon *@
-            <MudTooltip Text="Coupon">
-                <MudBadge Content="@(ViewModel.ActiveCouponCodes?.Count ?? 0)"
-                          Color="Color.Primary"
-                          Overlap="true"
-                          Visible="@(ViewModel.ActiveCouponCodes?.Any() == true)">
-                    <MudButton Variant="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Variant.Filled : Variant.Outlined)"
-                               Color="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Color.Primary : Color.Default)"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Outlined.LocalOffer"
-                               aria-pressed="@(_showCouponInput.ToString().ToLowerInvariant())"
-                               OnClick="ToggleCouponInput">
-                        Coupon
-                    </MudButton>
-                </MudBadge>
-            </MudTooltip>
-
-            <MudTooltip Text="Flusso Giornaliero">
-                <MudButton Variant="@(_isDailyFlowOpen ? Variant.Filled : Variant.Outlined)"
-                           Color="@(_isDailyFlowOpen ? Color.Primary : Color.Default)"
-                           Size="Size.Small"
-                           StartIcon="@Icons.Material.Outlined.EventNote"
-                           aria-pressed="@(_isDailyFlowOpen.ToString().ToLowerInvariant())"
-                           OnClick="ToggleDailyFlowAsync">
-                    Flusso Giornaliero
-                </MudButton>
-            </MudTooltip>
-
-            @* Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) *@
-            <div class="pos26-fn-more-wrap">
-                <MudTooltip Text="Altre azioni">
-                    <MudButton Variant="@(_showMoreMenu ? Variant.Filled : Variant.Outlined)"
-                               Color="@(_showMoreMenu ? Color.Primary : Color.Default)"
-                               Size="Size.Small"
-                               StartIcon="@Icons.Material.Outlined.MoreHoriz"
-                               OnClick="ToggleMoreMenu">
-                        Altro
+                               StartIcon="@Icons.Material.Outlined.RemoveCircle"
+                               Disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
+                               OnClick="RemoveLastItemAsync">
+                        Rimuovi
                     </MudButton>
                 </MudTooltip>
 
-                @if (_showMoreMenu)
+                @* Tavolo / Asporto *@
+                <MudTooltip Text="Tavolo / Asporto">
+                    <MudButton Variant="@(_showTablePicker ? Variant.Filled : Variant.Outlined)"
+                               Color="@(_showTablePicker ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.TableBar"
+                               aria-pressed="@(_showTablePicker.ToString().ToLowerInvariant())"
+                               OnClick="ToggleTablePickerFromMenu">
+                        @if (!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber))
+                        { @($"Tavolo {ViewModel.CurrentSession.TableNumber}") }
+                        else if (ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway)
+                        { @("Asporto") }
+                        else
+                        { @("Tavolo") }
+                    </MudButton>
+                </MudTooltip>
+
+                @* Pulsante Note ordine *@
+                <MudTooltip Text="Note ordine">
+                    <MudBadge Content="@(ViewModel.CurrentSession?.Notes.Count ?? 0)"
+                              Color="Color.Primary"
+                              Overlap="true"
+                              Visible="@(ViewModel.CurrentSession?.Notes.Any() == true)">
+                        <MudButton Variant="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Variant.Filled : Variant.Outlined)"
+                                   Color="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Color.Primary : Color.Default)"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.Note"
+                                   aria-pressed="@(_showNoteInput.ToString().ToLowerInvariant())"
+                                   OnClick="ToggleNoteInput">
+                            Note
+                        </MudButton>
+                    </MudBadge>
+                </MudTooltip>
+
+                @* Pulsante Coupon *@
+                <MudTooltip Text="Coupon">
+                    <MudBadge Content="@(ViewModel.ActiveCouponCodes?.Count ?? 0)"
+                              Color="Color.Primary"
+                              Overlap="true"
+                              Visible="@(ViewModel.ActiveCouponCodes?.Any() == true)">
+                        <MudButton Variant="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Variant.Filled : Variant.Outlined)"
+                                   Color="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Color.Primary : Color.Default)"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.LocalOffer"
+                                   aria-pressed="@(_showCouponInput.ToString().ToLowerInvariant())"
+                                   OnClick="ToggleCouponInput">
+                            Coupon
+                        </MudButton>
+                    </MudBadge>
+                </MudTooltip>
+            </div>
+
+            @* ----- Riga 2 — Conto & Turno ----- *@
+            <div class="pos26-fn-toolbar-row">
+                @* Parcheggia conto (azione primaria: unico modo per attivarla su terminale touch,
+                   prima raggiungibile solo tramite la scorciatoia da tastiera F3) *@
+                <MudTooltip Text="Parcheggia conto (F3)">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Warning"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.PauseCircleOutline"
+                               Disabled="@(!ViewModel.HasActiveSession)"
+                               OnClick="ParkSessionAsync">
+                        Parcheggia
+                    </MudButton>
+                </MudTooltip>
+
+                @* Parcheggia su tavolo: flusso combinato assegnazione tavolo + parcheggio.
+                   Solo icona + tooltip/aria-label: azione affiancata a "Parcheggia conto",
+                   di cui è una variante — il testo non è necessario per la comprensione. *@
+                <MudTooltip Text="Parcheggia su tavolo">
+                    <MudIconButton Icon="@Icons.Material.Outlined.TableRestaurant"
+                                   Color="Color.Default"
+                                   Variant="Variant.Outlined"
+                                   Size="Size.Small"
+                                   aria-label="Parcheggia su tavolo"
+                                   title="Parcheggia su tavolo"
+                                   Disabled="@(!ViewModel.HasActiveSession)"
+                                   OnClick="OpenParkToTableFlowAsync" />
+                </MudTooltip>
+
+                @* Sessioni parcheggiate *@
+                <MudTooltip Text="Sessioni sospese">
+                    <MudButton Variant="@(_showParkedSessions ? Variant.Filled : Variant.Outlined)"
+                               Color="@(_showParkedSessions ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.History"
+                               aria-pressed="@(_showParkedSessions.ToString().ToLowerInvariant())"
+                               OnClick="ToggleParkedFromMenu">
+                        Sospese
+                    </MudButton>
+                </MudTooltip>
+
+                @* Dividi conto *@
+                @if (_canSplit)
                 {
-                    <div class="pos26-fn-more-panel" @onclick:stopPropagation="true">
-                        @* Tavolo / Asporto *@
-                        <button class="pos26-fn-more-item @(_showTablePicker ? "pos26-fn-more-item--active" : "")"
-                                @onclick="ToggleTablePickerFromMenu">
-                            <MudIcon Icon="@Icons.Material.Outlined.TableBar" Size="Size.Small" Class="mr-1" />
-                            @if (!string.IsNullOrEmpty(ViewModel.CurrentSession?.TableNumber))
-                            { @($"Tavolo {ViewModel.CurrentSession.TableNumber}") }
-                            else if (ViewModel.CurrentSession?.SaleType == SaleTypes.Takeaway)
-                            { @("Asporto") }
-                            else
-                            { @("Tavolo / Asporto") }
-                        </button>
-
-                        @* Sessioni parcheggiate *@
-                        <button class="pos26-fn-more-item"
-                                @onclick="ToggleParkedFromMenu">
-                            <MudIcon Icon="@Icons.Material.Outlined.History" Size="Size.Small" Class="mr-1" />
-                            Sospese
-                        </button>
-
-                        @* Parcheggia su tavolo: flusso combinato assegnazione tavolo + parcheggio *@
-                        <button class="pos26-fn-more-item"
-                                disabled="@(!ViewModel.HasActiveSession)"
-                                @onclick="OpenParkToTableFlowAsync">
-                            <MudIcon Icon="@Icons.Material.Outlined.TableRestaurant" Size="Size.Small" Class="mr-1" />
-                            Parcheggia su tavolo
-                        </button>
-
-                        @* Dividi conto *@
-                        @if (_canSplit)
-                        {
-                            <button class="pos26-fn-more-item"
-                                    @onclick="OpenSplitFromMenu">
-                                <MudIcon Icon="@Icons.Material.Outlined.CallSplit" Size="Size.Small" Class="mr-1" />
-                                Dividi conto
-                            </button>
-                        }
-
-                        @* Unisci sessioni *@
-                        @if (_openSessions.Count >= 2)
-                        {
-                            <button class="pos26-fn-more-item"
-                                    @onclick="OpenMergeFromMenu">
-                                <MudIcon Icon="@Icons.Material.Outlined.MergeType" Size="Size.Small" Class="mr-1" />
-                                Unisci sessioni
-                            </button>
-                        }
-                    </div>
+                    <MudTooltip Text="Dividi conto">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.CallSplit"
+                                   OnClick="OpenSplitFromMenu">
+                            Dividi
+                        </MudButton>
+                    </MudTooltip>
                 }
+
+                @* Unisci sessioni *@
+                @if (_openSessions.Count >= 2)
+                {
+                    <MudTooltip Text="Unisci sessioni">
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Default"
+                                   Size="Size.Small"
+                                   StartIcon="@Icons.Material.Outlined.MergeType"
+                                   OnClick="OpenMergeFromMenu">
+                            Unisci
+                        </MudButton>
+                    </MudTooltip>
+                }
+
+                @* Giornata (ex "Flusso Giornaliero") *@
+                <MudTooltip Text="Giornata">
+                    <MudButton Variant="@(_isDailyFlowOpen ? Variant.Filled : Variant.Outlined)"
+                               Color="@(_isDailyFlowOpen ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.EventNote"
+                               aria-pressed="@(_isDailyFlowOpen.ToString().ToLowerInvariant())"
+                               OnClick="ToggleDailyFlowAsync">
+                        Giornata
+                    </MudButton>
+                </MudTooltip>
             </div>
         </div>
 
@@ -560,6 +564,17 @@
                 }
             </div>
         }
+
+        @* FilterBar: chip categoria + ordinamento — riposizionata adiacente all'area
+           prodotti (fuori da .pos2026-product-area, che ha overflow-y: auto, per restare
+           fissa durante lo scroll verticale della griglia/best-seller). *@
+        <Pos26FilterBar SortMode="@_sortMode"
+                        OnSortChanged="@OnSortModeChangedAsync"
+                        HasCustomer="@(ViewModel.SelectedCustomer != null)"
+                        Customer="@ViewModel.SelectedCustomer"
+                        Categories="@_categories"
+                        SelectedCategory="@_selectedCategory"
+                        OnCategorySelected="@OnCategorySelectedAsync" />
 
         <Pos26DailyFlowPanel IsOpen="@_isDailyFlowOpen"
                              IsOpenChanged="OnDailyFlowOpenChangedAsync"

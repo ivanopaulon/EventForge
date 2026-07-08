@@ -1057,23 +1057,34 @@
    component tree and scoped ::deep selectors cannot reach it. */
 
 /* =========================================================================
-   TOOLBAR FUNZIONI (Note, Coupon, Tavolo, Sospese)
-   Piano D (opzione D3): i 6 controlli primari (Rimuovi, Parcheggia, Note, Coupon,
-   Flusso Giornaliero, Altro) sono ora MudButton/MudBadge/MudTooltip nativi —
-   dimensionamento, touch target e stati (hover/disabled/colore) sono gestiti dal
-   tema MudBlazor. Le classi .pos26-fn-btn/--active/--danger/--park/.pos26-fn-badge
-   sono state rimosse perché non più referenziate. Restano invariati il contenitore
-   .pos26-fn-toolbar e le classi del menu "Altro" (.pos26-fn-more-*), fuori scope D.
+   TOOLBAR FUNZIONI — due righe fisse, tutte le azioni sempre visibili.
+   Nessuna azione è più dietro un pannello/menu ("Altro" è stato rimosso): gli
+   11 controlli (ex 6 in riga principale + 5 nel vecchio "Altro") sono
+   distribuiti su .pos26-fn-toolbar-row (Riga 1 Vendita corrente, Riga 2 Conto
+   & Turno), entrambe nowrap con overflow-x: auto come rete di sicurezza sotto
+   la soglia minima verificata — mai flex-wrap, mai una terza riga.
    ========================================================================= */
 
 .pos26-fn-toolbar {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 6px;
     padding: 6px 8px;
     background: var(--mud-palette-surface);
     border-bottom: 1px solid var(--mud-palette-lines-default);
-    flex-wrap: wrap;
+}
+
+.pos26-fn-toolbar-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.pos26-fn-toolbar-row::-webkit-scrollbar {
+    display: none;
 }
 
 /* Pannello funzioni (nota, coupon, tavolo, sospese) */
@@ -1302,14 +1313,20 @@
 }
 
 /* ==========================================================================
-   Pos26FilterBar — riga sempre visibile (Task 3): categorie + ordina, no pannello
+   Pos26FilterBar — riga sempre visibile (Task 3): categorie + ordina, no pannello.
+   Riposizionata adiacente a .pos2026-product-area (subito sopra), ma fuori da quel
+   contenitore (che ha overflow-y: auto) così resta fissa durante lo scroll
+   verticale della griglia/best-seller. Il bordo inferiore + padding-bottom
+   marcano una separazione visiva chiara dall'area scrollabile sottostante.
    ========================================================================== */
 
 ::deep .pos26-filterbar-wrap {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px 0;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+    margin-bottom: 2px;
 }
 
 ::deep .pos26-filterbar-row {
@@ -1397,48 +1414,7 @@
 }
 
 /* ==========================================================================
-   Menu azioni secondarie (Azione 2) — wrapper relativo per posizionamento panel
+   Menu azioni secondarie (Azione 2) — rimosso: tutte le azioni ora sempre
+   visibili su due righe fisse in .pos26-fn-toolbar (nessun pannello/menu).
    ========================================================================== */
-
-.pos26-fn-more-wrap {
-    position: relative;
-}
-
-.pos26-fn-more-panel {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    z-index: 100;
-    background: var(--mud-palette-background-grey);
-    border: 1px solid var(--mud-palette-lines-default);
-    border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.35);
-    min-width: 160px;
-    display: flex;
-    flex-direction: column;
-    padding: 4px 0;
-}
-
-.pos26-fn-more-item {
-    display: flex;
-    align-items: center;
-    padding: 8px 14px;
-    font-size: 12px;
-    color: var(--mud-palette-text-primary);
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    transition: background 100ms;
-    gap: 4px;
-}
-
-.pos26-fn-more-item:hover {
-    background: var(--mud-palette-background-grey);
-}
-
-.pos26-fn-more-item--active {
-    color: var(--mud-palette-primary);
-    font-weight: 600;
-}
 
