@@ -53,6 +53,19 @@
     border-radius: 4px;
 }
 
+/* ─── 4b. Dark-theme outlined input background override ────────────────────
+ * The whitesmoke fill from block 4 above is a light colour and, combined with
+ * the light text used by carbon-neon-dark (--text-primary: #FFFFFF), makes the
+ * selected value of outlined MudSelect/PrymSelect controls unreadable
+ * (white-on-whitesmoke). Override with the theme's own surface colour so the
+ * fill stays visually distinguished from the page background while remaining
+ * readable. Higher selector specificity than block 4 ensures this wins
+ * regardless of source order.
+ */
+[data-theme="carbon-neon-dark"] .mud-input-root-outlined {
+    background-color: var(--surface, #262626) !important;
+}
+
 /* ─── 5. Filter-bar uniform 36px height ────────────────────────────────────
  * Wrap filter-bar containers with class="filtri-bar" to enforce a consistent
  * 36px height for both MudButton and MudIconButton children.  Without this,

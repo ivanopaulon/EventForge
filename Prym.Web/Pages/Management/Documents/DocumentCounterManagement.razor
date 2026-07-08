@@ -38,43 +38,43 @@
         {
             @if (column.PropertyName == "DocumentTypeName")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="DocumentTypeName">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="DocumentTypeName" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.documentType", "Tipo Documento")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Series")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Series">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Series" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Series))">@TranslationService.GetTranslation("documentCounter.series", "Serie")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Year")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Year">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Year" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Year ?? 0))">@TranslationService.GetTranslation("documentCounter.year", "Anno")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CurrentValue")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="CurrentValue">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="CurrentValue" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.CurrentValue))">@TranslationService.GetTranslation("documentCounter.currentValue", "Valore Corrente")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Prefix")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Prefix">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="Prefix" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.Prefix ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.prefix", "Prefisso")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "FormatPattern")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="FormatPattern">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="FormatPattern" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.FormatPattern ?? string.Empty))">@TranslationService.GetTranslation("documentCounter.formatPattern", "Pattern")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ResetOnYearChange")
             {
-                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="ResetOnYearChange">
+                <EFTableColumnHeader TItem="DocumentCounterDto" PropertyName="ResetOnYearChange" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentCounterDto, object>(x => x.ResetOnYearChange))">@TranslationService.GetTranslation("documentCounter.resetOnYearChange", "Reset Anno")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

@@ -20,7 +20,7 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Name))">
                         @TranslationService.GetTranslation("field.name", "Nome")
                     </MudTableSortLabel>
@@ -28,31 +28,31 @@
             }
             else if (column.PropertyName == "Type")
             {
-                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Type">
+                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Type" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Type))">Tipo</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Category")
             {
-                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Category">
+                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Category" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Category))">Categoria</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Address")
             {
-                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Address">
+                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Address" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Address ?? string.Empty))">Indirizzo</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ConnectionType")
             {
-                <EFTableColumnHeader TItem="PrinterDto" PropertyName="ConnectionType">
+                <EFTableColumnHeader TItem="PrinterDto" PropertyName="ConnectionType" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.ConnectionType))">Connessione</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="PrinterDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PrinterDto, object>(x => x.Status))">
                         @TranslationService.GetTranslation("field.status", "Stato")
                     </MudTableSortLabel>

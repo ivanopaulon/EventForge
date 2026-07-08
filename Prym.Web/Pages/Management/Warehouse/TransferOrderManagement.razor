@@ -62,37 +62,37 @@
         {
             @if (column.PropertyName == "Number")
             {
-                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Number">
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Number" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Number))">@TranslationService.GetTranslation("transferOrder.column.number", "Number")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "OrderDate")
             {
-                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="OrderDate">
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="OrderDate" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.OrderDate))">@TranslationService.GetTranslation("transferOrder.column.orderDate", "Order Date")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "SourceWarehouseName")
             {
-                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="SourceWarehouseName">
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="SourceWarehouseName" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.SourceWarehouseName ?? string.Empty))">@TranslationService.GetTranslation("transferOrder.column.source", "Source")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DestinationWarehouseName")
             {
-                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="DestinationWarehouseName">
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="DestinationWarehouseName" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.DestinationWarehouseName ?? string.Empty))">@TranslationService.GetTranslation("transferOrder.column.destination", "Destination")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="Status" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Status))">@TranslationService.GetTranslation("common.status", "Status")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ItemsCount")
             {
-                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="ItemsCount">
+                <EFTableColumnHeader TItem="TransferOrderDto" PropertyName="ItemsCount" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<TransferOrderDto, object>(x => x.Rows.Count))">@TranslationService.GetTranslation("transferOrder.column.items", "Items")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

@@ -18,49 +18,49 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "StartDate")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="StartDate">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="StartDate" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.StartDate))">@TranslationService.GetTranslation("field.startDate", "Inizio")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "EndDate")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="EndDate">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="EndDate" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.EndDate))">@TranslationService.GetTranslation("field.endDate", "Fine")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Priority")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="Priority">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="Priority" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.Priority))">@TranslationService.GetTranslation("field.priority", "Priorità")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "MaxUses")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="MaxUses">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="MaxUses" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.MaxUses ?? int.MaxValue))">@TranslationService.GetTranslation("field.maxUses", "Utilizzi")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CouponCode")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="CouponCode">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="CouponCode" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.CouponCode ?? string.Empty))">@TranslationService.GetTranslation("field.couponCode", "Coupon")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "IsCombinable")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="IsCombinable">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="IsCombinable" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.IsCombinable))">@TranslationService.GetTranslation("field.isCombinable", "Combinabile")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CreatedAt")
             {
-                <EFTableColumnHeader TItem="PromotionDto" PropertyName="CreatedAt">
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="CreatedAt" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<PromotionDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

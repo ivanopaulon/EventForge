@@ -22,37 +22,37 @@
         {
             @if (column.PropertyName == "CardNumber")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CardNumber">
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CardNumber" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CardNumber))">Numero Carta</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Type")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Type">
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Type" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Type.ToString()))">Tipo</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Status.ToString()))">Stato</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CurrentPoints")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CurrentPoints">
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CurrentPoints" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CurrentPoints))">Punti</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DiscountPercentage")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="DiscountPercentage">
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="DiscountPercentage" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.DiscountPercentage))">Sconto %</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ValidTo")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="ValidTo">
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="ValidTo" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.ValidTo))">Scadenza</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

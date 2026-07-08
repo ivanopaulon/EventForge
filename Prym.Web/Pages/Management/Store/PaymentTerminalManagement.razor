@@ -20,31 +20,31 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "IpAddress")
             {
-                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="IpAddress">
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="IpAddress" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.IpAddress ?? string.Empty))">Indirizzo IP</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Port")
             {
-                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="Port">
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="Port" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.Port))">Porta</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ConnectionType")
             {
-                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="ConnectionType">
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="ConnectionType" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.ConnectionType))">Connessione</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "IsEnabled")
             {
-                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="IsEnabled">
+                <EFTableColumnHeader TItem="PaymentTerminalDto" PropertyName="IsEnabled" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentTerminalDto, object>(x => x.IsEnabled))">Stato</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
