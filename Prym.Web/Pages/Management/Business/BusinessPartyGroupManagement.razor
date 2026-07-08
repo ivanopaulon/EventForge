@@ -143,6 +143,7 @@
             SearchPlaceholderDefault = "Cerca gruppi",
             CreateTooltip = "businessPartyGroup.createNew",
             EntityTypeName = "BusinessPartyGroup",
+            ShowAuditLog = false,
             ShowToggleStatus = false,
             ShowView = false,
             GetDisplayName = g => g.Name,
@@ -172,7 +173,8 @@
             },
             DeleteConfirmMessageKey = "businessPartyGroup.confirmDelete",
             DeleteSuccessMessageKey = "businessPartyGroup.groupDeleted",
-            DeleteErrorMessageKey = "businessPartyGroup.deleteGroupError"
+            DeleteErrorMessageKey = "businessPartyGroup.deleteGroupError",
+            BulkDeleteConfirmMessageKey = "businessPartyGroup.confirmDeleteMultiple"
         };
     }
 
@@ -204,10 +206,10 @@
 
     private string GetGroupTypeLabel(BusinessPartyGroupType type) => type switch
     {
-        BusinessPartyGroupType.Customer => "Cliente",
-        BusinessPartyGroupType.Supplier => "Fornitore",
-        BusinessPartyGroupType.Both => "Entrambi",
-        _ => "N/D"
+        BusinessPartyGroupType.Customer => TranslationService.GetTranslation("businessPartyGroup.type.customer", "Cliente"),
+        BusinessPartyGroupType.Supplier => TranslationService.GetTranslation("businessPartyGroup.type.supplier", "Fornitore"),
+        BusinessPartyGroupType.Both => TranslationService.GetTranslation("businessPartyGroup.type.both", "Entrambi"),
+        _ => TranslationService.GetTranslation("common.notAvailable", "N/D")
     };
 
     private async Task OpenDetailDialogAsync(Guid? id)
