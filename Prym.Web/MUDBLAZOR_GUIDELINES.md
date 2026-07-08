@@ -366,6 +366,27 @@ Before committing any UI change, verify:
 4. **WorkspacePage** — standard header + full-height area — POS, calendario, designer, wizard
 5. **WizardPage** — standard header + step content + embedded table rules (use `MudTable` direct with documentation)
 
+### 7.2bis Riferimenti canonici
+
+Per l'archetipo **ManagementListPage**, il riferimento diretto da cui copiare struttura e pattern è:
+
+- `Prym.Web/Pages/Management/Products/ProductManagement.razor` — azioni di toolbar extra
+  (filtro classificazione, aggiornamento in blocco) tramite lo slot `AdditionalToolbarContent`.
+- `Prym.Web/Pages/Management/Business/BusinessPartyManagement.razor` — pagina unificata
+  clienti/fornitori (route `/business/parties/*`; `CustomerManagement.razor` e
+  `SupplierManagement.razor` sono redirect verso questa). Azioni di riga extra
+  (es. "Gestisci Prodotti" per i fornitori, Modifica) tramite lo slot `AdditionalRowActions`,
+  utile anche come esempio di entità con più stati/relazioni.
+
+Ogni nuova `ManagementListPage` deve partire da uno di questi due file come modello concreto,
+non essere scritta da zero solo sulla base della tabella delle regole.
+
+Per l'archetipo **SpecializedListPage** (`EFTable`), al momento non esiste nel codebase un
+riferimento pienamente conforme a tutte le regole della §7.4 — non assumere che una pagina
+`EFTable` esistente sia automaticamente un buon esempio da copiare senza prima verificarla
+contro la checklist §8. Se una pagina `EFTable` viene portata a piena conformità, va candidata
+qui come riferimento per le successive.
+
 ### 7.3 Mandatory exception documentation
 
 Every direct `<MudTable` usage inside `Pages/` **must** carry a comment block with all placeholders replaced:
@@ -391,6 +412,10 @@ The template fields to fill in:
 | ≤ 3 primary actions | `ActionButtonGroup` |
 | > 3 actions or mixed primary/secondary | `ActionButtonGroup` + `AdditionalRowActions` slot or `MudMenu` |
 | Manual groups of `MudIconButton` in list pages | ❌ Forbidden without exception documentation |
+| Single icon-only action (row or toolbar) | `PrymIconButton` (facade su `MudIconButton`, `Prym.UI/Components/PrymIconButton.razor`) — mai `MudIconButton` diretto in `Pages/`, salvo eccezione documentata |
+
+Esempio corretto di azione di riga extra: `BusinessPartyManagement.razor`, slot `AdditionalRowActions`.
+Esempio corretto di azione di toolbar extra: `ProductManagement.razor`, slot `AdditionalToolbarContent`.
 
 ### 7.5 Toolbar rules
 
@@ -411,6 +436,8 @@ Add these checks to every PR that introduces or modifies a page in `Pages/`:
 - [ ] If `MudTable` is used directly in a `Pages/` file, is an exception comment present with a concrete technical justification?
 - [ ] Are row actions using `ActionButtonGroup` or the shared `AdditionalRowActions` slot?
 - [ ] Is the header using `ManagementPageHeader` (not a manual `MudPaper`+icon+title duplicate)?
+- [ ] I pulsanti icona (di riga o di toolbar) usano `PrymIconButton`, non `MudIconButton` diretto?
+- [ ] Se la pagina è una `ManagementListPage`, ricalca la struttura di `ProductManagement.razor` / `BusinessPartyManagement.razor` (config/service, `AdditionalToolbarContent`, `AdditionalRowActions`)?
 
 ### Styling (existing checks)
 - [ ] No new `Style="font-weight:N"` on `<MudText` — use `Class="fw-*"` or `Typo=`
