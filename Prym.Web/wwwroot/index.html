@@ -137,7 +137,7 @@
         <div class="ef-splash">
             <!-- Brand row: text logo (src set by inline script below based on persisted theme) -->
             <div class="ef-splash-brand-row" role="img" aria-label="PRYM">
-                <img id="ef-splash-wordmark" class="ef-splash-wordmark" src="logoWhite.svg" alt="" aria-hidden="true" />
+                <img id="ef-splash-wordmark" class="ef-splash-wordmark ef-splash-wordmark-pulse" src="logoWhite.svg" alt="" aria-hidden="true" />
             </div>
             <!-- Tiny inline script: run immediately after img is parsed so data-theme is already set -->
             <script>
@@ -150,15 +150,9 @@
                 })();
             </script>
 
-            <!-- Loading phase text + percentage -->
+            <!-- Loading phase text -->
             <div class="ef-splash-status">
                 <span class="ef-splash-phase loading-progress-text"></span>
-                <span class="ef-splash-pct"></span>
-            </div>
-
-            <!-- Linear progress bar -->
-            <div class="ef-splash-bar-track">
-                <div class="ef-splash-bar-fill loading-progress"></div>
             </div>
         </div>
     </div>

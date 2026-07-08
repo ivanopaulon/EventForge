@@ -368,6 +368,10 @@
     background: rgba(0, 0, 0, 0.12) !important;
 }
 
+[data-theme="carbon-neon-light"] .efsd-wordmark {
+    filter: none;
+}
+
 [data-theme="carbon-neon-light"] .efsd-body {
     color: rgba(26, 26, 26, 0.87) !important;
 }
