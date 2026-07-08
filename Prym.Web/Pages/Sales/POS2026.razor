@@ -268,69 +268,92 @@
                         SelectedCategory="@_selectedCategory"
                         OnCategorySelected="@OnCategorySelectedAsync" />
 
-        @* ===== TOOLBAR AZIONI PRIMARIE E MENU AZIONI SECONDARIE ===== *@
+        @* ===== TOOLBAR AZIONI PRIMARIE E MENU AZIONI SECONDARIE =====
+           Piano D (opzione D3): i 6 controlli usano componenti MudBlazor nativi
+           (MudButton/MudBadge/MudTooltip) invece di <button> custom con classi CSS
+           dedicate — dimensionamento e touch target sono ora gestiti dal tema. *@
         <div class="pos26-fn-toolbar">
             @* Rimuovi ultimo articolo (azione primaria di emergenza) *@
-            <button class="pos26-fn-btn pos26-fn-btn--danger"
-                    @onclick="RemoveLastItemAsync"
-                    disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
-                    title="Rimuovi ultimo articolo (F4)">
-                <MudIcon Icon="@Icons.Material.Outlined.RemoveCircle" Size="Size.Small" />
-                <span>Rimuovi</span>
-            </button>
+            <MudTooltip Text="Rimuovi ultimo articolo (F4)">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.RemoveCircle"
+                           Disabled="@(ViewModel.CurrentSession?.Items.Any() != true || ViewModel.IsUpdatingItems)"
+                           OnClick="RemoveLastItemAsync">
+                    Rimuovi
+                </MudButton>
+            </MudTooltip>
 
             @* Parcheggia conto (azione primaria: unico modo per attivarla su terminale touch,
                prima raggiungibile solo tramite la scorciatoia da tastiera F3) *@
-            <button class="pos26-fn-btn pos26-fn-btn--park"
-                    @onclick="ParkSessionAsync"
-                    disabled="@(!ViewModel.HasActiveSession)"
-                    title="Parcheggia conto (F3)">
-                <MudIcon Icon="@Icons.Material.Outlined.PauseCircleOutline" Size="Size.Small" />
-                <span>Parcheggia</span>
-            </button>
+            <MudTooltip Text="Parcheggia conto (F3)">
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Warning"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.PauseCircleOutline"
+                           Disabled="@(!ViewModel.HasActiveSession)"
+                           OnClick="ParkSessionAsync">
+                    Parcheggia
+                </MudButton>
+            </MudTooltip>
 
             @* Pulsante Note ordine *@
-            <button class="pos26-fn-btn @(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? "pos26-fn-btn--active" : "")"
-                    @onclick="ToggleNoteInput"
-                    aria-pressed="@(_showNoteInput.ToString().ToLowerInvariant())"
-                    title="Note ordine">
-                <MudIcon Icon="@Icons.Material.Outlined.Note" Size="Size.Small" />
-                <span>Note</span>
-                @if (ViewModel.CurrentSession?.Notes.Any() == true)
-                {
-                    <span class="pos26-fn-badge">@ViewModel.CurrentSession.Notes.Count</span>
-                }
-            </button>
+            <MudTooltip Text="Note ordine">
+                <MudBadge Content="@(ViewModel.CurrentSession?.Notes.Count ?? 0)"
+                          Color="Color.Primary"
+                          Overlap="true"
+                          Visible="@(ViewModel.CurrentSession?.Notes.Any() == true)">
+                    <MudButton Variant="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Variant.Filled : Variant.Outlined)"
+                               Color="@(_showNoteInput || (ViewModel.CurrentSession?.Notes.Any() == true) ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.Note"
+                               aria-pressed="@(_showNoteInput.ToString().ToLowerInvariant())"
+                               OnClick="ToggleNoteInput">
+                        Note
+                    </MudButton>
+                </MudBadge>
+            </MudTooltip>
 
             @* Pulsante Coupon *@
-            <button class="pos26-fn-btn @(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? "pos26-fn-btn--active" : "")"
-                    @onclick="ToggleCouponInput"
-                    aria-pressed="@(_showCouponInput.ToString().ToLowerInvariant())"
-                    title="Coupon">
-                <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Small" />
-                <span>Coupon</span>
-                @if (ViewModel.ActiveCouponCodes?.Any() == true)
-                {
-                    <span class="pos26-fn-badge">@ViewModel.ActiveCouponCodes.Count</span>
-                }
-            </button>
+            <MudTooltip Text="Coupon">
+                <MudBadge Content="@(ViewModel.ActiveCouponCodes?.Count ?? 0)"
+                          Color="Color.Primary"
+                          Overlap="true"
+                          Visible="@(ViewModel.ActiveCouponCodes?.Any() == true)">
+                    <MudButton Variant="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Variant.Filled : Variant.Outlined)"
+                               Color="@(_showCouponInput || (ViewModel.ActiveCouponCodes?.Any() == true) ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.LocalOffer"
+                               aria-pressed="@(_showCouponInput.ToString().ToLowerInvariant())"
+                               OnClick="ToggleCouponInput">
+                        Coupon
+                    </MudButton>
+                </MudBadge>
+            </MudTooltip>
 
-            <button class="pos26-fn-btn @(_isDailyFlowOpen ? "pos26-fn-btn--active" : "")"
-                    @onclick="ToggleDailyFlowAsync"
-                    aria-pressed="@(_isDailyFlowOpen.ToString().ToLowerInvariant())"
-                    title="Flusso Giornaliero">
-                <MudIcon Icon="@Icons.Material.Outlined.EventNote" Size="Size.Small" />
-                <span>Flusso Giornaliero</span>
-            </button>
+            <MudTooltip Text="Flusso Giornaliero">
+                <MudButton Variant="@(_isDailyFlowOpen ? Variant.Filled : Variant.Outlined)"
+                           Color="@(_isDailyFlowOpen ? Color.Primary : Color.Default)"
+                           Size="Size.Small"
+                           StartIcon="@Icons.Material.Outlined.EventNote"
+                           aria-pressed="@(_isDailyFlowOpen.ToString().ToLowerInvariant())"
+                           OnClick="ToggleDailyFlowAsync">
+                    Flusso Giornaliero
+                </MudButton>
+            </MudTooltip>
 
             @* Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) *@
             <div class="pos26-fn-more-wrap">
-                <button class="pos26-fn-btn @(_showMoreMenu ? "pos26-fn-btn--active" : "")"
-                        @onclick="ToggleMoreMenu"
-                        title="Altre azioni">
-                    <MudIcon Icon="@Icons.Material.Outlined.MoreHoriz" Size="Size.Small" />
-                    <span>Altro</span>
-                </button>
+                <MudTooltip Text="Altre azioni">
+                    <MudButton Variant="@(_showMoreMenu ? Variant.Filled : Variant.Outlined)"
+                               Color="@(_showMoreMenu ? Color.Primary : Color.Default)"
+                               Size="Size.Small"
+                               StartIcon="@Icons.Material.Outlined.MoreHoriz"
+                               OnClick="ToggleMoreMenu">
+                        Altro
+                    </MudButton>
+                </MudTooltip>
 
                 @if (_showMoreMenu)
                 {
