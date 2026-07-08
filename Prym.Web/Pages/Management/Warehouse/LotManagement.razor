@@ -206,6 +206,10 @@
             ShowDelete = true,
             ShowAuditLog = false,
             ShowToggleStatus = false,
+            DeleteConfirmMessageKey = "lot.confirmDelete",
+            DeleteSuccessMessageKey = "lot.deleted",
+            DeleteErrorMessageKey = "lot.deleteError",
+            BulkDeleteConfirmMessageKey = "lot.confirmDeleteMultiple",
             GetDisplayName = l => l.Code,
             GetId = l => l.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

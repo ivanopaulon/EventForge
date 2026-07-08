@@ -183,6 +183,10 @@
             ShowAuditLog = false,
             ShowToggleStatus = false,
             ShowView = false,
+            DeleteConfirmMessageKey = "documentCounter.confirmDelete",
+            DeleteSuccessMessageKey = "documentCounter.deleted",
+            DeleteErrorMessageKey = "documentCounter.deleteError",
+            BulkDeleteConfirmMessageKey = "documentCounter.confirmDeleteMultiple",
             GetDisplayName = c => $"{c.DocumentTypeName} - {c.Series}",
             GetId = c => c.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

@@ -11,7 +11,11 @@
     "stockLevels": "Stock levels",
     "noStockFound": "No stock found for this product",
     "documentHistory": "Document history",
-    "noDocumentsFound": "No documents found for this product"
+    "noDocumentsFound": "No documents found for this product",
+    "confirmDelete": "Are you sure you want to delete the product '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected products? This action cannot be undone.",
+    "productDeleted": "Product deleted successfully!",
+    "deleteError": "Error deleting the product: {0}"
   },
   "helper": {
     "reorderPoint": "Level at which to trigger a replenishment order",
@@ -2453,7 +2457,8 @@
       "locationRequired": "Select a location",
       "notesRequired": "Notes required for changes greater than {0}",
       "notesTooLong": "Notes cannot exceed 500 characters"
-    }
+    },
+    "confirmDeleteMultipleFacilities": "Are you sure you want to delete {0} selected warehouses? This action cannot be undone."
   },
   "nav": {
     "stockManagement": "Stock",
@@ -2697,7 +2702,8 @@
     },
     "aria": {
       "uniqueId": "Unique identifier"
-    }
+    },
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected document types? This action cannot be undone."
   },
   "businessPartyType": {
     "customer": "Customer",
@@ -2729,7 +2735,8 @@
     "saveError": "[FROM IT] Errore nel salvataggio del marchio",
     "search": "[FROM IT] Cerca marchi",
     "searchPlaceholder": "[FROM IT] Inserisci nome...",
-    "updateSuccess": "[FROM IT] Marchio aggiornato con successo"
+    "updateSuccess": "[FROM IT] Marchio aggiornato con successo",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected brands? This action cannot be undone."
   },
   "entity": {
     "product": "[FROM IT] Prodotto"
@@ -2750,7 +2757,13 @@
     "vatRateDeleted": "[FROM IT] Aliquota IVA eliminata con successo!",
     "vatRateList": "[FROM IT] Lista Aliquote IVA",
     "vatRateManagement": "[FROM IT] Gestione Aliquote IVA",
-    "vatRateManagementDescription": "[FROM IT] Gestisci le aliquote IVA per la tua organizzazione"
+    "vatRateManagementDescription": "[FROM IT] Gestisci le aliquote IVA per la tua organizzazione",
+    "confirmDeleteMultipleVatNatures": "Are you sure you want to delete {0} selected VAT natures? This action cannot be undone.",
+    "confirmDeleteMultipleVatRates": "Are you sure you want to delete {0} selected VAT rates? This action cannot be undone.",
+    "confirmDeleteVatNature": "Are you sure you want to delete the VAT nature '{0}'? This action cannot be undone.",
+    "confirmDeleteVatRate": "Are you sure you want to delete the VAT rate '{0}'? This action cannot be undone.",
+    "deleteVatNatureError": "Error deleting the VAT nature: {0}",
+    "vatNatureDeleted": "VAT nature deleted successfully!"
   },
   "model": {
     "brandRequired": "[FROM IT] Il marchio è obbligatorio",
@@ -2842,7 +2855,12 @@
     "itemsLabel": "Items",
     "shipmentDateLabel": "Shipment Date",
     "ship": "Ship",
-    "receive": "Receive"
+    "receive": "Receive",
+    "cancelConfirm": "Are you sure you want to cancel the transfer order '{0}'? This action cannot be undone.",
+    "cancelFailed": "Error cancelling the transfer order: {0}",
+    "cancelMultipleConfirm": "Are you sure you want to cancel {0} selected transfer orders? This action cannot be undone.",
+    "cancelSuccess": "Transfer order cancelled successfully!",
+    "onlyPendingCanCancel": "Only pending orders can be cancelled"
   },
   "stock": {
     "showAllProducts": "Show all products",
@@ -3094,6 +3112,121 @@
     "noReports": "No reports found.",
     "loadError": "Error loading the report.",
     "deleteConfirm": "Delete the selected report?",
-    "deleted": "Report deleted successfully."
+    "deleted": "Report deleted successfully.",
+    "deleteError": "Error deleting the report: {0}",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected reports? This action cannot be undone."
+  },
+  "businessPartyGroup": {
+    "confirmDelete": "Are you sure you want to delete the group '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected groups? This action cannot be undone.",
+    "deleteGroupError": "Error deleting the group: {0}",
+    "groupDeleted": "Group deleted successfully!"
+  },
+  "businessparty": {
+    "confirmDelete": "Are you sure you want to delete '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected business parties? This action cannot be undone.",
+    "deleteError": "Error deleting: {0}",
+    "deleted": "Business party deleted successfully!"
+  },
+  "fidelity": {
+    "confirmDelete": "Are you sure you want to delete the fidelity card '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected fidelity cards? This action cannot be undone.",
+    "deleteError": "Error deleting the fidelity card: {0}",
+    "deleted": "Fidelity card deleted successfully!"
+  },
+  "paymentMethod": {
+    "confirmDelete": "Are you sure you want to delete the payment method '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected payment methods? This action cannot be undone.",
+    "paymentMethodDeleted": "Payment method deleted successfully!",
+    "deleteError": "Error deleting the payment method: {0}"
+  },
+  "pricelist": {
+    "confirmDelete": "Are you sure you want to delete the price list '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected price lists? This action cannot be undone.",
+    "deleteError": "Error deleting the price list: {0}",
+    "deleted": "Price list deleted successfully!"
+  },
+  "printer": {
+    "confirmDelete": "Are you sure you want to delete the printer '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected printers? This action cannot be undone.",
+    "deleted": "Printer deleted successfully!",
+    "deleteError": "Error deleting the printer: {0}"
+  },
+  "shift": {
+    "confirmDelete": "Are you sure you want to delete the shift '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected shifts? This action cannot be undone.",
+    "deleteError": "Error deleting the shift: {0}",
+    "deleted": "Shift deleted successfully!"
+  },
+  "station": {
+    "confirmDelete": "Are you sure you want to delete the station '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected stations? This action cannot be undone.",
+    "deleted": "Station deleted successfully!",
+    "deleteError": "Error deleting the station: {0}"
+  },
+  "store": {
+    "cannotDeleteSystemGroup": "Cannot delete a system group",
+    "confirmDeleteFiscalDrawer": "Are you sure you want to delete the fiscal drawer '{0}'? This action cannot be undone.",
+    "confirmDeleteMultipleFiscalDrawers": "Are you sure you want to delete {0} selected fiscal drawers? This action cannot be undone.",
+    "confirmDeleteMultipleOperatorGroups": "Are you sure you want to delete {0} selected operator groups? This action cannot be undone.",
+    "confirmDeleteMultipleOperators": "Are you sure you want to delete {0} selected operators? This action cannot be undone.",
+    "confirmDeleteMultiplePaymentTerminals": "Are you sure you want to delete {0} selected payment terminals? This action cannot be undone.",
+    "confirmDeleteMultiplePos": "Are you sure you want to delete {0} selected POS? This action cannot be undone.",
+    "confirmDeleteOperator": "Are you sure you want to delete the operator '{0}'? This action cannot be undone.",
+    "confirmDeleteOperatorGroup": "Are you sure you want to delete the operator group '{0}'? This action cannot be undone.",
+    "confirmDeletePaymentTerminal": "Are you sure you want to delete the payment terminal '{0}'? This action cannot be undone.",
+    "confirmDeletePos": "Are you sure you want to delete the POS '{0}'? This action cannot be undone.",
+    "fiscalDrawerDeleted": "Fiscal drawer deleted successfully!",
+    "operatorDeleted": "Operator deleted successfully!",
+    "operatorGroupDeleted": "Operator group deleted successfully!",
+    "paymentTerminalDeleted": "Payment terminal deleted successfully!",
+    "posDeleted": "POS deleted successfully!",
+    "deleteFiscalDrawerError": "Error deleting the fiscal drawer: {0}",
+    "deleteOperatorGroupError": "Error deleting the operator group: {0}",
+    "deleteOperatorError": "Error deleting the operator: {0}",
+    "deletePaymentTerminalError": "Error deleting the payment terminal: {0}",
+    "deletePosError": "Error deleting the POS: {0}"
+  },
+  "classificationNode": {
+    "confirmDelete": "Are you sure you want to delete the node '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected nodes? This action cannot be undone.",
+    "deleted": "Node deleted successfully!",
+    "deleteError": "Error deleting the node: {0}"
+  },
+  "documentCounter": {
+    "confirmDelete": "Are you sure you want to delete the counter '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected counters? This action cannot be undone.",
+    "deleted": "Counter deleted successfully!",
+    "deleteError": "Error deleting the counter: {0}"
+  },
+  "document": {
+    "confirmDelete": "Are you sure you want to delete the document '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected documents? This action cannot be undone.",
+    "deleted": "Document deleted successfully!",
+    "deleteError": "Error deleting the document: {0}"
+  },
+  "lot": {
+    "confirmDelete": "Are you sure you want to delete the lot '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected lots? This action cannot be undone.",
+    "deleted": "Lot deleted successfully!",
+    "deleteError": "Error deleting the lot: {0}"
+  },
+  "serial": {
+    "confirmDelete": "Are you sure you want to delete the serial '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected serials? This action cannot be undone.",
+    "deleted": "Serial deleted successfully!",
+    "deleteError": "Error deleting the serial: {0}"
+  },
+  "um": {
+    "confirmDelete": "Are you sure you want to delete the unit of measure '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected units of measure? This action cannot be undone.",
+    "deleted": "Unit of measure deleted successfully!",
+    "deleteError": "Error deleting the unit of measure: {0}"
+  },
+  "promotion": {
+    "confirmDelete": "Are you sure you want to delete the promotion '{0}'? This action cannot be undone.",
+    "confirmDeleteMultiple": "Are you sure you want to delete {0} selected promotions? This action cannot be undone.",
+    "deleted": "Promotion deleted successfully!",
+    "deleteError": "Error deleting the promotion: {0}"
   }
 }
