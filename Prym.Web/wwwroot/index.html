@@ -273,10 +273,10 @@
                 let resourcesSeen = 0;
 
                 return window.Blazor.start({
-                    loadBootResource: function (type, name) {
+                    loadBootResource: function (resourceType, resourceName) {
                         resourcesSeen++;
                         const progress = Math.min(DOWNLOAD_PROGRESS_CAP, resourcesSeen * DOWNLOAD_PROGRESS_STEP);
-                        setSplashStatus(`Download applicazione (${name})...`, progress);
+                        setSplashStatus(`Download applicazione (${resourceName})...`, progress);
                         // Returning null/undefined lets Blazor perform its own default fetch for the resource.
                         return null;
                     }

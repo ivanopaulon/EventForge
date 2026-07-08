@@ -154,9 +154,9 @@ public class LoadingDialogService : ILoadingDialogService
             {
                 await delayTask;
             }
-            catch
+            catch (OperationCanceledException)
             {
-                // Delay task observes its own cancellation; nothing else to do here.
+                // Expected when the delay was cancelled before elapsing (fast operation, overlay never shown).
             }
             finally
             {
