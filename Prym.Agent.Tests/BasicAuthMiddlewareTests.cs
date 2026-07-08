@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Prym.Agent.Configuration;
 using Prym.Agent.Middleware;
-using System.Security.Cryptography;
 using System.Text;
 
 namespace Prym.Agent.Tests;
@@ -13,7 +12,7 @@ namespace Prym.Agent.Tests;
 /// </summary>
 public class BasicAuthMiddlewareTests
 {
-    private const string ValidToken    = "super-secret-token-123";
+    private const string ValidToken = "super-secret-token-123";
     private const string ValidUsername = "admin";
     private const string ValidPassword = "Admin#123!";
 
@@ -21,8 +20,8 @@ public class BasicAuthMiddlewareTests
 
     private static AgentOptions BuildOptions(
         string internalToken = ValidToken,
-        string username      = ValidUsername,
-        string password      = ValidPassword) =>
+        string username = ValidUsername,
+        string password = ValidPassword) =>
         new()
         {
             InternalApiToken = internalToken,
@@ -32,7 +31,7 @@ public class BasicAuthMiddlewareTests
     private static DefaultHttpContext BuildContext(
         string path,
         string? internalTokenHeader = null,
-        string? authHeader          = null)
+        string? authHeader = null)
     {
         var ctx = new DefaultHttpContext();
         ctx.Request.Path = path;
@@ -61,8 +60,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_CorrectToken_Passes()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check", internalTokenHeader: ValidToken);
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check", internalTokenHeader: ValidToken);
 
         await mw.InvokeAsync(ctx);
 
@@ -73,8 +72,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_WrongToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check", internalTokenHeader: "wrong-token");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check", internalTokenHeader: "wrong-token");
 
         await mw.InvokeAsync(ctx);
 
@@ -85,8 +84,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_MissingToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check");
 
         await mw.InvokeAsync(ctx);
 
@@ -97,8 +96,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_EmptyToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check", internalTokenHeader: "");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check", internalTokenHeader: "");
 
         await mw.InvokeAsync(ctx);
 
@@ -111,8 +110,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesDownload_CorrectToken_Passes()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/download", internalTokenHeader: ValidToken);
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/download", internalTokenHeader: ValidToken);
 
         await mw.InvokeAsync(ctx);
 
@@ -123,8 +122,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesDownload_WrongToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/download", internalTokenHeader: "bad");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/download", internalTokenHeader: "bad");
 
         await mw.InvokeAsync(ctx);
 
@@ -135,8 +134,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesDownload_MissingToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/download");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/download");
 
         await mw.InvokeAsync(ctx);
 
@@ -151,8 +150,8 @@ public class BasicAuthMiddlewareTests
         // Legacy localhost-trust: when no token is configured, the middleware
         // lets the request through without checking X-Agent-Internal-Token.
         var opts = BuildOptions(internalToken: "");
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check");
 
         await mw.InvokeAsync(ctx);
 
@@ -163,8 +162,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesDownload_EmptyConfiguredToken_AllowsWithoutHeader()
     {
         var opts = BuildOptions(internalToken: "");
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/download");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/download");
 
         await mw.InvokeAsync(ctx);
 
@@ -177,8 +176,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_PathCaseInsensitive_Passes()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/API/AGENT/UPDATES/CHECK", internalTokenHeader: ValidToken);
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/API/AGENT/UPDATES/CHECK", internalTokenHeader: ValidToken);
 
         await mw.InvokeAsync(ctx);
 
@@ -191,8 +190,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_LongerToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check",
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check",
             internalTokenHeader: ValidToken + "-extra");
 
         await mw.InvokeAsync(ctx);
@@ -204,8 +203,8 @@ public class BasicAuthMiddlewareTests
     public async Task UpdatesCheck_ShorterToken_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/updates/check",
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/updates/check",
             internalTokenHeader: ValidToken[..^1]);
 
         await mw.InvokeAsync(ctx);
@@ -219,8 +218,8 @@ public class BasicAuthMiddlewareTests
     public async Task UIPath_ValidBasicAuth_Passes()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/status",
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/status",
             authHeader: MakeBasicHeader(ValidUsername, ValidPassword));
 
         await mw.InvokeAsync(ctx);
@@ -232,8 +231,8 @@ public class BasicAuthMiddlewareTests
     public async Task UIPath_WrongPassword_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/status",
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/status",
             authHeader: MakeBasicHeader(ValidUsername, "wrong-pass"));
 
         await mw.InvokeAsync(ctx);
@@ -245,8 +244,8 @@ public class BasicAuthMiddlewareTests
     public async Task UIPath_MissingAuth_Returns401()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/status");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/status");
 
         await mw.InvokeAsync(ctx);
 
@@ -257,8 +256,8 @@ public class BasicAuthMiddlewareTests
     public async Task UIPath_DisabledUI_Returns503()
     {
         var opts = BuildOptions(username: "", password: "");
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/status");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/status");
 
         await mw.InvokeAsync(ctx);
 
@@ -271,8 +270,8 @@ public class BasicAuthMiddlewareTests
     public async Task HealthProbe_NoAuth_Passes()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/api/agent/health");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/api/agent/health");
 
         await mw.InvokeAsync(ctx);
 
@@ -283,8 +282,8 @@ public class BasicAuthMiddlewareTests
     public async Task HealthProbe_CaseInsensitive_Passes()
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext("/API/AGENT/HEALTH");
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext("/API/AGENT/HEALTH");
 
         await mw.InvokeAsync(ctx);
 
@@ -301,8 +300,8 @@ public class BasicAuthMiddlewareTests
     public async Task StaticPaths_NoAuth_Pass(string path)
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext(path);
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext(path);
 
         await mw.InvokeAsync(ctx);
 
@@ -318,8 +317,8 @@ public class BasicAuthMiddlewareTests
     public async Task OtherInternalPaths_CorrectToken_Pass(string path)
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext(path, internalTokenHeader: ValidToken);
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext(path, internalTokenHeader: ValidToken);
 
         await mw.InvokeAsync(ctx);
 
@@ -333,8 +332,8 @@ public class BasicAuthMiddlewareTests
     public async Task OtherInternalPaths_MissingToken_Return401(string path)
     {
         var opts = BuildOptions();
-        var mw   = new BasicAuthMiddleware(NextDelegate, opts);
-        var ctx  = BuildContext(path);
+        var mw = new BasicAuthMiddleware(NextDelegate, opts);
+        var ctx = BuildContext(path);
 
         await mw.InvokeAsync(ctx);
 

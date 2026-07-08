@@ -1,5 +1,4 @@
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Data.Entities.Warehouse;
 using EventForge.Server.Services.Documents;
 using EventForge.Server.Services.Promotions;
 using EventForge.Server.Services.Store;

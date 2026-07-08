@@ -1,7 +1,6 @@
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
 using Prym.Web.Services;
-using System.Linq;
 
 namespace Prym.Web.Shared.Management.Adapters;
 

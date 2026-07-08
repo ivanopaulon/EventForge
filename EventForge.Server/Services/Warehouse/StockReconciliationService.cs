@@ -1,7 +1,5 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
-using EventForge.Server.Data.Entities.Audit;
-using EventForge.Server.Data.Entities.Warehouse;
 using Prym.DTOs.Warehouse;
 
 namespace EventForge.Server.Services.Warehouse;
@@ -1900,12 +1898,12 @@ public class StockReconciliationService(
         var affectedPairs = new HashSet<(Guid ProductId, Guid LocationId)>();
         foreach (var sm in negatives)
         {
-            if (sm.ToLocationId.HasValue)   affectedPairs.Add((sm.ProductId, sm.ToLocationId.Value));
+            if (sm.ToLocationId.HasValue) affectedPairs.Add((sm.ProductId, sm.ToLocationId.Value));
             if (sm.FromLocationId.HasValue) affectedPairs.Add((sm.ProductId, sm.FromLocationId.Value));
         }
 
         // Pre-load stock records for affected pairs so we can apply the sign correction.
-        var productIds  = affectedPairs.Select(p => p.ProductId).ToHashSet();
+        var productIds = affectedPairs.Select(p => p.ProductId).ToHashSet();
         var locationIds = affectedPairs.Select(p => p.LocationId).ToHashSet();
         var stocks = await context.Stocks
             .Where(s => s.TenantId == tenantId && !s.IsDeleted

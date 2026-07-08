@@ -1,4 +1,3 @@
-using EventForge.Server.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 using Prym.DTOs.Store;
 

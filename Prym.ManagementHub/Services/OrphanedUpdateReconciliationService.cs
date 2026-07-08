@@ -34,7 +34,8 @@ public class OrphanedUpdateReconciliationService(
     ManagementHubOptions hubOptions,
     ILogger<OrphanedUpdateReconciliationService> logger) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)    {
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
         var interval = TimeSpan.FromSeconds(
             hubOptions.OrphanedUpdateCheckIntervalSeconds > 0
                 ? hubOptions.OrphanedUpdateCheckIntervalSeconds

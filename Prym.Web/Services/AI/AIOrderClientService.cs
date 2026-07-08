@@ -1,5 +1,4 @@
 using Prym.DTOs.AI;
-using Prym.DTOs.Business;
 
 namespace Prym.Web.Services.AI;
 

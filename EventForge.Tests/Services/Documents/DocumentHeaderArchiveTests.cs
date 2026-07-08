@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Prym.DTOs.Common;
-using Prym.DTOs.Documents;
 
 namespace EventForge.Tests.Services.Documents;
 

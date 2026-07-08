@@ -1,6 +1,5 @@
 using Prym.DTOs.AI;
 using Prym.DTOs.Products;
-using System.Net.Http.Json;
 using System.Text.Json;
 
 namespace EventForge.Server.Services.External.AI;

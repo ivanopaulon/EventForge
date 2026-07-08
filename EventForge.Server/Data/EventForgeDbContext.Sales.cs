@@ -1,5 +1,4 @@
 using EventForge.Server.Data.Entities.Sales;
-using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
 
 namespace EventForge.Server.Data;

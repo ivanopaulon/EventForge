@@ -1,6 +1,4 @@
-using EventForge.Server.Data.Entities.Warehouse;
 using Microsoft.EntityFrameworkCore;
-using Prym.DTOs.Common;
 using Prym.DTOs.PriceHistory;
 
 namespace EventForge.Server.Services.Warehouse;

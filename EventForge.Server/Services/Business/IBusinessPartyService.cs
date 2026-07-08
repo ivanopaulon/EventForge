@@ -1,5 +1,4 @@
 using Prym.DTOs.Business;
-using Prym.DTOs.Common;
 
 namespace EventForge.Server.Services.Business;
 

@@ -1,7 +1,7 @@
+using Microsoft.AspNetCore.Components.Forms;
 using Prym.DTOs.Common;
 using Prym.DTOs.Store;
 using Prym.DTOs.Teams;
-using Microsoft.AspNetCore.Components.Forms;
 
 namespace Prym.Web.Services.Store;
 

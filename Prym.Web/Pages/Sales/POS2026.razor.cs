@@ -662,8 +662,8 @@ public partial class POS2026 : IAsyncDisposable
                 var statusLabel = card.Status switch
                 {
                     FidelityCardStatus.Suspended => "sospesa",
-                    FidelityCardStatus.Expired   => "scaduta",
-                    FidelityCardStatus.Revoked   => "revocata",
+                    FidelityCardStatus.Expired => "scaduta",
+                    FidelityCardStatus.Revoked => "revocata",
                     _ => card.Status.ToString()
                 };
                 if (card.Status is not (FidelityCardStatus.Suspended or FidelityCardStatus.Expired or FidelityCardStatus.Revoked))

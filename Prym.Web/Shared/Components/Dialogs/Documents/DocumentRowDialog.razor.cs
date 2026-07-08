@@ -2374,8 +2374,8 @@ public partial class DocumentRowDialog : IAsyncDisposable
     {
         DocumentRowType.Product => TranslationService.GetTranslation("documents.rowType.product", "Prodotto"),
         DocumentRowType.Service => TranslationService.GetTranslation("documents.rowType.service", "Servizio"),
-        DocumentRowType.Note    => TranslationService.GetTranslation("documents.rowType.note",    "Nota"),
-        _                       => rowType.ToString()
+        DocumentRowType.Note => TranslationService.GetTranslation("documents.rowType.note", "Nota"),
+        _ => rowType.ToString()
     };
 
     /// <summary>

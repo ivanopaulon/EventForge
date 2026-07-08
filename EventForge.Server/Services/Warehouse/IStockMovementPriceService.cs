@@ -1,4 +1,3 @@
-using Prym.DTOs.Common;
 using Prym.DTOs.PriceHistory;
 
 namespace EventForge.Server.Services.Warehouse;

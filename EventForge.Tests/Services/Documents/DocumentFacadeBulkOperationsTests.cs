@@ -5,9 +5,9 @@ using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Bulk;
 using Prym.DTOs.Common;
 using Prym.DTOs.Documents;
-using Prym.DTOs.Bulk;
 
 namespace EventForge.Tests.Services.Documents;
 

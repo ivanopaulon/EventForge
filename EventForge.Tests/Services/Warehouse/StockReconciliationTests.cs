@@ -630,11 +630,11 @@ public class StockReconciliationTests : IDisposable
 
     #endregion
 
-        #region GetStockIdsForReconciliation
+    #region GetStockIdsForReconciliation
 
-        [Fact]
-        public async Task GetStockIdsForReconciliation_StockWithReconciliationMovementOnly_DoesNotExcludeStock()
-        {
+    [Fact]
+    public async Task GetStockIdsForReconciliation_StockWithReconciliationMovementOnly_DoesNotExcludeStock()
+    {
         // GetStockIdsForReconciliation queries Stock entities, not movements — just verifies non-empty return
         var productId = Guid.NewGuid();
         SeedProduct(productId);

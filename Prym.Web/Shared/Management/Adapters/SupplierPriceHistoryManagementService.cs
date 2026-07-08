@@ -1,4 +1,3 @@
-using Prym.DTOs.Business;
 using Prym.DTOs.Common;
 using Prym.DTOs.PriceHistory;
 using Prym.Web.Services;

@@ -1,5 +1,5 @@
 using EventForge.Server.Mappers;
-using DtoEnum    = Prym.DTOs.Common.BusinessPartyType;
+using DtoEnum = Prym.DTOs.Common.BusinessPartyType;
 using EntityEnum = EventForge.Server.Data.Entities.Business.BusinessPartyType;
 
 namespace EventForge.Tests.Mappers;
