@@ -46,25 +46,25 @@
         {
             @if (column.PropertyName == "Code")
             {
-                <EFTableColumnHeader TItem="ProductDto" PropertyName="Code">
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="Code" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="ProductDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ShortDescription")
             {
-                <EFTableColumnHeader TItem="ProductDto" PropertyName="ShortDescription">
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="ShortDescription" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.ShortDescription ?? string.Empty))">@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DefaultPrice")
             {
-                <EFTableColumnHeader TItem="ProductDto" PropertyName="DefaultPrice">
+                <EFTableColumnHeader TItem="ProductDto" PropertyName="DefaultPrice" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<ProductDto, object>(x => x.DefaultPrice ?? 0))">@TranslationService.GetTranslation("field.price", "Prezzo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

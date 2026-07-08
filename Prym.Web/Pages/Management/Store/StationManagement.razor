@@ -19,31 +19,31 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="StationDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="StationDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StationDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "StationType")
             {
-                <EFTableColumnHeader TItem="StationDto" PropertyName="StationType">
+                <EFTableColumnHeader TItem="StationDto" PropertyName="StationType" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StationDto, object>(x => x.StationType))">@TranslationService.GetTranslation("field.stationType", "Tipo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Location")
             {
-                <EFTableColumnHeader TItem="StationDto" PropertyName="Location">
+                <EFTableColumnHeader TItem="StationDto" PropertyName="Location" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StationDto, object>(x => x.Location ?? string.Empty))">@TranslationService.GetTranslation("field.location", "Posizione")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="StationDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="StationDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StationDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Status")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "PrinterCount")
             {
-                <EFTableColumnHeader TItem="StationDto" PropertyName="PrinterCount">
+                <EFTableColumnHeader TItem="StationDto" PropertyName="PrinterCount" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StationDto, object>(x => x.PrinterCount))">@TranslationService.GetTranslation("field.printers", "Stampanti")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

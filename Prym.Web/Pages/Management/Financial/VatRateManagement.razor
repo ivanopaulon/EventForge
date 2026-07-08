@@ -19,37 +19,37 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Percentage")
             {
-                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Percentage">
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Percentage" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Percentage))">@TranslationService.GetTranslation("field.percentage", "Percentuale")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ValidFrom")
             {
-                <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidFrom">
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidFrom" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ValidTo")
             {
-                <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidTo">
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="ValidTo" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<VatRateDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido A")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CreatedAt")
             {
-                <EFTableColumnHeader TItem="VatRateDto" PropertyName="CreatedAt">
+                <EFTableColumnHeader TItem="VatRateDto" PropertyName="CreatedAt" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<VatRateDto, object>(x => x.CreatedAt))">@TranslationService.GetTranslation("field.createdAt", "Creato il")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

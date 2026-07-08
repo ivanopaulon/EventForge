@@ -21,43 +21,43 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.Name))">Nome</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Code")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Code">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Code" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.Code ?? string.Empty))">Codice</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "AssignmentType")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="AssignmentType">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="AssignmentType" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.AssignmentType))">Tipo</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CurrencyCode")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="CurrencyCode">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="CurrencyCode" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.CurrencyCode))">Valuta</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CurrentBalance")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="CurrentBalance">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="CurrentBalance" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.CurrentBalance))">Saldo</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.Status))">Stato</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "HasOpenSession")
             {
-                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="HasOpenSession">
+                <EFTableColumnHeader TItem="FiscalDrawerDto" PropertyName="HasOpenSession" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FiscalDrawerDto, object>(x => x.HasOpenSession))">Sessione</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

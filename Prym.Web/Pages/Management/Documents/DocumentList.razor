@@ -57,37 +57,37 @@
         {
             @if (column.PropertyName == "Number")
             {
-                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Number">
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Number" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Number))">@TranslationService.GetTranslation("documents.number", "Numero")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DocumentTypeName")
             {
-                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="DocumentTypeName">
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="DocumentTypeName" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.DocumentTypeName ?? string.Empty))">@TranslationService.GetTranslation("documents.type", "Tipo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Date")
             {
-                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Date">
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Date" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel InitialDirection="SortDirection.Descending" SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Date))">@TranslationService.GetTranslation("documents.date", "Data")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CustomerName")
             {
-                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="CustomerName">
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="CustomerName" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.BusinessPartyName ?? x.CustomerName ?? string.Empty))">@TranslationService.GetTranslation("documents.customer", "Cliente")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "TotalGrossAmount")
             {
-                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="TotalGrossAmount">
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="TotalGrossAmount" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.TotalGrossAmount))">@TranslationService.GetTranslation("documents.amount", "Importo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="DocumentHeaderDto" PropertyName="Status" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<DocumentHeaderDto, object>(x => x.Status))">@TranslationService.GetTranslation("documents.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

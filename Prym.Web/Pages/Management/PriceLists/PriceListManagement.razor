@@ -51,49 +51,49 @@
         {
             @if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Code")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Code">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Code" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Code ?? string.Empty))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Type")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Type">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Type" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Type))">@TranslationService.GetTranslation("pricelist.type", "Tipo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Status))">@TranslationService.GetTranslation("common.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Priority")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Priority">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="Priority" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.Priority))">@TranslationService.GetTranslation("field.priority", "Priorità")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ValidFrom")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="ValidFrom">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="ValidFrom" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.ValidFrom ?? DateTime.MinValue))">@TranslationService.GetTranslation("field.validFrom", "Valido Da")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ValidTo")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="ValidTo">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="ValidTo" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.ValidTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("field.validTo", "Valido Fino")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "EntryCount")
             {
-                <EFTableColumnHeader TItem="PriceListDto" PropertyName="EntryCount">
+                <EFTableColumnHeader TItem="PriceListDto" PropertyName="EntryCount" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceListDto, object>(x => x.EntryCount))">@TranslationService.GetTranslation("field.products", "Prodotti")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

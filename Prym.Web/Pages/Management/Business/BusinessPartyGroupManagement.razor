@@ -19,37 +19,37 @@
         {
             @if (column.PropertyName == "Priority")
             {
-                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Priority">
+                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Priority" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.Priority))" InitialDirection="SortDirection.Descending">@TranslationService.GetTranslation("field.priority", "Priorità")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Code")
             {
-                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Code">
+                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="Code" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.Code ?? string.Empty))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "GroupType")
             {
-                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="GroupType">
+                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="GroupType" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.GroupType))">@TranslationService.GetTranslation("field.groupType", "Tipo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ActiveMembersCount")
             {
-                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="ActiveMembersCount">
+                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="ActiveMembersCount" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<BusinessPartyGroupDto, object>(x => x.ActiveMembersCount))">@TranslationService.GetTranslation("field.members", "Membri")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ColorPreview")
             {
-                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="ColorPreview">
+                <EFTableColumnHeader TItem="BusinessPartyGroupDto" PropertyName="ColorPreview" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     @TranslationService.GetTranslation("field.color", "Colore")
                 </EFTableColumnHeader>
             }

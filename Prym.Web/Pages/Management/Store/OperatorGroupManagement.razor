@@ -19,37 +19,37 @@
         {
             @if (column.PropertyName == "Code")
             {
-                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Code">
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Code" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Status")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CashierCount")
             {
-                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="CashierCount">
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="CashierCount" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.CashierCount))">@TranslationService.GetTranslation("field.cashierCount", "Operatori")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "IsSystemGroup")
             {
-                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="IsSystemGroup">
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="IsSystemGroup" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.IsSystemGroup))">@TranslationService.GetTranslation("field.isSystemGroup", "Sistema")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "IsDefault")
             {
-                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="IsDefault">
+                <EFTableColumnHeader TItem="StoreUserGroupDto" PropertyName="IsDefault" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<StoreUserGroupDto, object>(x => x.IsDefault))">@TranslationService.GetTranslation("field.isDefault", "Default")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

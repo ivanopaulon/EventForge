@@ -31,43 +31,43 @@
         {
             @if (column.PropertyName == "Icon")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Icon">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Icon" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudText>@TranslationService.GetTranslation("field.icon", "Icona")</MudText>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Code")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Code">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Code" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.Code))">@TranslationService.GetTranslation("field.code", "Codice")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Name")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Name">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Description")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Description">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="Description" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.Description ?? string.Empty))">@TranslationService.GetTranslation("field.description", "Descrizione")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "IsActive")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="IsActive">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="IsActive" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.isActive", "Attivo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DisplayOrder")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="DisplayOrder">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="DisplayOrder" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.DisplayOrder))">@TranslationService.GetTranslation("field.displayOrder", "Ordine")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "AllowsChange")
             {
-                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="AllowsChange">
+                <EFTableColumnHeader TItem="PaymentMethodDto" PropertyName="AllowsChange" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PaymentMethodDto, object>(x => x.AllowsChange))">@TranslationService.GetTranslation("field.allowsChange", "Permette Resto")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

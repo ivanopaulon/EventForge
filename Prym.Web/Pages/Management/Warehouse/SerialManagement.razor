@@ -40,37 +40,37 @@
         {
             @if (column.PropertyName == "SerialNumber")
             {
-                <EFTableColumnHeader TItem="SerialDto" PropertyName="SerialNumber">
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="SerialNumber" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.SerialNumber))">@TranslationService.GetTranslation("serial.number", "Matricola")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ProductName")
             {
-                <EFTableColumnHeader TItem="SerialDto" PropertyName="ProductName">
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="ProductName" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.ProductName ?? string.Empty))">@TranslationService.GetTranslation("field.product", "Prodotto")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "LotCode")
             {
-                <EFTableColumnHeader TItem="SerialDto" PropertyName="LotCode">
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="LotCode" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.LotCode ?? string.Empty))">@TranslationService.GetTranslation("warehouse.lot", "Lotto")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="SerialDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="Status" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.Status))">@TranslationService.GetTranslation("warehouse.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "WarrantyExpiry")
             {
-                <EFTableColumnHeader TItem="SerialDto" PropertyName="WarrantyExpiry">
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="WarrantyExpiry" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.WarrantyExpiry ?? DateTime.MaxValue))">@TranslationService.GetTranslation("serial.warrantyExpiry", "Scad. Garanzia")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CurrentLocationCode")
             {
-                <EFTableColumnHeader TItem="SerialDto" PropertyName="CurrentLocationCode">
+                <EFTableColumnHeader TItem="SerialDto" PropertyName="CurrentLocationCode" OnDragStartCallback="@_managementPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<SerialDto, object>(x => x.CurrentLocationCode ?? string.Empty))">@TranslationService.GetTranslation("serial.currentLocation", "Ubicazione")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

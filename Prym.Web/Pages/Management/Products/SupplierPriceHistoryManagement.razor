@@ -93,45 +93,45 @@
         {
             @if (column.PropertyName == "ProductName")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ProductName">
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ProductName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.ProductName))">Prodotto</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "SupplierName")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="SupplierName">
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="SupplierName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.SupplierName))">Fornitore</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "OldPrice")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="OldPrice">
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="OldPrice" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.OldPrice))">Prezzo Prec.</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "NewPrice")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="NewPrice">
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="NewPrice" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.NewPrice))">Nuovo Prezzo</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "PriceChangePercentage")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="PriceChangePercentage">
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="PriceChangePercentage" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.PriceChangePercentage))">Var. %</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ChangeSource")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangeSource">Documento</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangeSource" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">Documento</EFTableColumnHeader>
             }
             else if (column.PropertyName == "ChangedByUserName")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangedByUserName">Operatore</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangedByUserName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">Operatore</EFTableColumnHeader>
             }
             else if (column.PropertyName == "ChangedAt")
             {
-                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangedAt">
+                <EFTableColumnHeader TItem="PriceHistoryItem" PropertyName="ChangedAt" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PriceHistoryItem, object>(x => x.ChangedAt))">Data</MudTableSortLabel>
                 </EFTableColumnHeader>
             }

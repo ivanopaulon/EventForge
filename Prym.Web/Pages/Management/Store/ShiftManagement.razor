@@ -79,37 +79,37 @@
         {
             @if (column.PropertyName == "StoreUserName")
             {
-                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="StoreUserName">
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="StoreUserName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.StoreUserName))">Operatore</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "PosName")
             {
-                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="PosName">
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="PosName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.PosName ?? string.Empty))">Cassa</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ShiftStart")
             {
-                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftStart">
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftStart" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftStart))">Inizio</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ShiftEnd")
             {
-                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftEnd">
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftEnd" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftEnd))">Fine</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
-                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Status">
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.Status))">Stato</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Notes")
             {
-                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Notes">
+                <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Notes" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudText Typo="Typo.body2">Note</MudText>
                 </EFTableColumnHeader>
             }

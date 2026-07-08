@@ -87,31 +87,31 @@
         {
             @if (column.PropertyName == "Id")
             {
-                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="Id">Sessione</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="Id" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">Sessione</EFTableColumnHeader>
             }
             else if (column.PropertyName == "SalesChannel")
             {
-                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="SalesChannel">Canale</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="SalesChannel" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">Canale</EFTableColumnHeader>
             }
             else if (column.PropertyName == "FinalTotal")
             {
-                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="FinalTotal">
+                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="FinalTotal" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CartSessionDto, object>(x => x.FinalTotal))">Totale</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ItemsCount")
             {
-                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="ItemsCount">Articoli</EFTableColumnHeader>
+                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="ItemsCount" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">Articoli</EFTableColumnHeader>
             }
             else if (column.PropertyName == "CreatedAt")
             {
-                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="CreatedAt">
+                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="CreatedAt" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CartSessionDto, object>(x => x.CreatedAt))">Creata</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "UpdatedAt")
             {
-                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="UpdatedAt">
+                <EFTableColumnHeader TItem="CartSessionDto" PropertyName="UpdatedAt" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<CartSessionDto, object>(x => x.UpdatedAt))">Aggiornata</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
