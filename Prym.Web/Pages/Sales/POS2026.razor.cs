@@ -17,6 +17,7 @@ using Prym.Web.Services;
 using Prym.Web.Shared.Components.Dialogs;
 using Prym.Web.Shared.Components.Dialogs.Sales;
 using Prym.Web.Shared.Components.Sales.Pos26;
+using Prym.Web.ViewModels;
 
 namespace Prym.Web.Pages.Sales;
 
@@ -196,6 +197,11 @@ public partial class POS2026 : IAsyncDisposable
                     "import", "./js/pos-shortcuts.js");
                 _dotNetRef = DotNetObjectReference.Create(this);
                 await _shortcutsModule.InvokeVoidAsync("setupPOSKeyboardShortcuts", _dotNetRef);
+
+                // Piano E (opzione E3): cattura barcode a livello documento, indipendente dal
+                // focus DOM ma disattivata quando un dialog è aperto o un altro campo di testo
+                // ha il focus (vedi pos-shortcuts.js/setupDocumentBarcodeCapture).
+                await _shortcutsModule.InvokeVoidAsync("setupDocumentBarcodeCapture", _dotNetRef);
 
                 // Resolve fiscal printer from the POS terminal already selected by the ViewModel
                 LoadFiscalPrinterIdFromPos(ViewModel.SelectedPosId);
@@ -791,7 +797,12 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            var result = await ViewModel.AddProductAsync(product);
+            // Piano A (opzione A3 — warning non bloccante): passa la disponibilità stock nota
+            // alla ViewModel, che genera un avviso differenziato (severità Warning) invece del
+            // toast di successo standard quando il prodotto risulta esaurito. L'aggiunta procede
+            // comunque in entrambi i casi — nessuna modifica alla logica di business del carrello.
+            var stockAvailable = _stockByProductId.TryGetValue(product.Id, out var stock) ? stock : (decimal?)null;
+            var result = await ViewModel.AddProductAsync(product, stockAvailable);
             if (result.Success)
             {
                 RebuildCartQuantities();
@@ -1536,10 +1547,20 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
-    private void HandleNotification(string message, bool isSuccess)
+    private void HandleNotification(string message, PosNotificationSeverity severity)
     {
-        if (isSuccess) AppNotification.ShowSuccess(message);
-        else AppNotification.ShowError(message);
+        switch (severity)
+        {
+            case PosNotificationSeverity.Success:
+                AppNotification.ShowSuccess(message);
+                break;
+            case PosNotificationSeverity.Warning:
+                AppNotification.ShowWarning(message);
+                break;
+            default:
+                AppNotification.ShowError(message);
+                break;
+        }
     }
 
     // =========================================================================
@@ -1877,6 +1898,26 @@ public partial class POS2026 : IAsyncDisposable
         catch (Exception ex)
         {
             Logger.LogError(ex, "Errore shortcut tastiera POS2026: {Key}", key);
+        }
+    }
+
+    /// <summary>
+    /// Piano E (opzione E3): invocato da <c>pos-shortcuts.js</c> (setupDocumentBarcodeCapture)
+    /// quando la cattura barcode a livello documento rileva una sequenza valida, indipendentemente
+    /// da quale elemento della pagina abbia il focus (tap su card, toolbar, ecc.). Riusa lo stesso
+    /// percorso di elaborazione della cattura sull'input di ricerca (<see cref="HandleBarcodeAsync"/>)
+    /// per garantire un comportamento identico indipendentemente dal punto di cattura.
+    /// </summary>
+    [JSInvokable]
+    public async Task HandleDocumentBarcodeDetected(string barcode)
+    {
+        try
+        {
+            await HandleBarcodeAsync(barcode);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore cattura barcode a livello documento POS2026: {Barcode}", barcode);
         }
     }
 
@@ -2241,6 +2282,7 @@ public partial class POS2026 : IAsyncDisposable
             try
             {
                 await _shortcutsModule.InvokeVoidAsync("cleanup");
+                await _shortcutsModule.InvokeVoidAsync("cleanupBarcodeCapture");
                 await _shortcutsModule.DisposeAsync();
             }
             catch (Exception ex)

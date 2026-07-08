@@ -11,6 +11,16 @@ using Timer = System.Timers.Timer;
 namespace Prym.Web.ViewModels;
 
 /// <summary>
+/// Severity of a notification raised by <see cref="POSViewModel"/> via <see cref="POSViewModel.OnNotification"/>.
+/// </summary>
+public enum PosNotificationSeverity
+{
+    Success,
+    Warning,
+    Error
+}
+
+/// <summary>
 /// ViewModel for POS page following MVVM pattern.
 /// Handles all business logic, state management, and API communication for the Point of Sale.
 /// </summary>
@@ -144,11 +154,12 @@ public class POSViewModel : IDisposable
     #region Events
 
     public event Action? StateChanged;
-    public event Action<string, bool>? OnNotification; // (message, isSuccess)
+    public event Action<string, PosNotificationSeverity>? OnNotification; // (message, severity)
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
-    private void NotifySuccess(string message) => OnNotification?.Invoke(message, true);
-    private void NotifyError(string message) => OnNotification?.Invoke(message, false);
+    private void NotifySuccess(string message) => OnNotification?.Invoke(message, PosNotificationSeverity.Success);
+    private void NotifyWarning(string message) => OnNotification?.Invoke(message, PosNotificationSeverity.Warning);
+    private void NotifyError(string message) => OnNotification?.Invoke(message, PosNotificationSeverity.Error);
 
     #endregion
 
@@ -402,10 +413,19 @@ public class POSViewModel : IDisposable
     /// <summary>
     /// Adds a product to the current session.
     /// </summary>
-    public async Task<(bool Success, string? Error)> AddProductAsync(ProductDto product)
+    /// <param name="product">Product to add.</param>
+    /// <param name="stockAvailable">
+    /// Optional available stock quantity aggregated across locations, as known by the caller
+    /// (e.g. POS2026 product grid). Null means the stock is unknown/not loaded: in that case
+    /// no stock-related warning is emitted. The addition is never blocked by low/zero stock
+    /// (Piano A — opzione A3: warning non bloccante); only the notification severity/message differs.
+    /// </param>
+    public async Task<(bool Success, string? Error)> AddProductAsync(ProductDto product, decimal? stockAvailable = null)
     {
         if (CurrentSession == null || product == null)
             return (false, "No active session or invalid product");
+
+        var isOutOfStock = stockAvailable.HasValue && stockAvailable.Value <= 0;
 
         try
         {
@@ -418,7 +438,10 @@ public class POSViewModel : IDisposable
                 // so the UI responds instantly; the API call happens after the debounce.
                 existingItem.Quantity++;
                 QueueItemUpdate(existingItem);
-                NotifySuccess($"Quantity increased: {product.Name}");
+                if (isOutOfStock)
+                    NotifyWarning($"Aggiunto — attenzione: stock esaurito: {product.Name}");
+                else
+                    NotifySuccess($"Quantità aumentata: {product.Name}");
                 return (true, null);
             }
             else
@@ -455,7 +478,10 @@ public class POSViewModel : IDisposable
                     {
                         CurrentSession = updatedSession;
                         NotifyStateChanged();
-                        NotifySuccess($"Product added: {product.Name}");
+                        if (isOutOfStock)
+                            NotifyWarning($"Aggiunto — attenzione: stock esaurito: {product.Name}");
+                        else
+                            NotifySuccess($"Prodotto aggiunto: {product.Name}");
                         return (true, null);
                     }
                     else

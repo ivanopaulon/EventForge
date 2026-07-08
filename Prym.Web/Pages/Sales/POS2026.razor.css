@@ -443,7 +443,17 @@
     100% { background-position: -200% 0; }
 }
 
-/* ===== Pos26ProductCard ===== */
+/* ===== Pos26ProductCard =====
+   Piano B (fix flicker durante scroll): l'altezza è ora fissa (height, non più min-height)
+   e ricomprende l'altezza massima possibile del blocco info (nome su 2 righe + prezzo + chip
+   stock), così che Virtualize misuri sempre lo stesso valore indipendentemente dal contenuto
+   reale della card — evitando la stima errata che causava il salto/flicker durante lo scroll
+   rapido. Il calcolo: padding verticale card 6+6 + gap card (tra img e blocco info) 4 + img 40
+   + nome 28 (2 righe, vedi .pos26-product-name) + gap interno info 1 + prezzo ~14
+   + gap interno info 1 + chip stock ~15.5 ≈ 116px (i "gap interno info" da 1px sono quelli
+   di .pos26-product-info, distinti dal gap di 4px del contenitore .pos26-product-card).
+   Le skeleton card riusano la stessa
+   classe base .pos26-product-card, quindi ereditano automaticamente la stessa altezza fissa. */
 ::deep .pos26-product-card {
     position: relative;
     display: flex;
@@ -457,7 +467,8 @@
     cursor: pointer;
     transition: border 150ms, background 150ms;
     user-select: none;
-    min-height: 90px;
+    height: 116px;
+    box-sizing: border-box;
 }
 
 ::deep .pos26-product-card--in-cart {
@@ -546,8 +557,15 @@
     font-size: 11px;
     text-align: center;
     line-height: 1.3;
-    word-break: break-word;
     color: var(--mud-palette-text-primary);
+    /* Piano B: altezza fissa a 2 righe (28px) con troncamento ellissi, al posto del
+       word-break libero che produceva un numero variabile di righe reali per card. */
+    height: 28px;
+    width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 ::deep .pos26-product-price {
@@ -1040,82 +1058,22 @@
 
 /* =========================================================================
    TOOLBAR FUNZIONI (Note, Coupon, Tavolo, Sospese)
+   Piano D (opzione D3): i 6 controlli primari (Rimuovi, Parcheggia, Note, Coupon,
+   Flusso Giornaliero, Altro) sono ora MudButton/MudBadge/MudTooltip nativi —
+   dimensionamento, touch target e stati (hover/disabled/colore) sono gestiti dal
+   tema MudBlazor. Le classi .pos26-fn-btn/--active/--danger/--park/.pos26-fn-badge
+   sono state rimosse perché non più referenziate. Restano invariati il contenitore
+   .pos26-fn-toolbar e le classi del menu "Altro" (.pos26-fn-more-*), fuori scope D.
    ========================================================================= */
 
 .pos26-fn-toolbar {
     display: flex;
+    align-items: center;
     gap: 6px;
     padding: 6px 8px;
     background: var(--mud-palette-surface);
     border-bottom: 1px solid var(--mud-palette-lines-default);
     flex-wrap: wrap;
-}
-
-.pos26-fn-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 20px;
-    border: 1px solid transparent;
-    background: var(--mud-palette-background-grey);
-    color: var(--mud-palette-text-primary);
-    font-size: 11px;
-    cursor: pointer;
-    transition: background 150ms, border 150ms;
-    position: relative;
-}
-
-.pos26-fn-btn:hover {
-    background: var(--mud-palette-primary-hover);
-    border-color: var(--mud-palette-primary);
-}
-
-.pos26-fn-btn--active {
-    background: var(--mud-palette-primary-hover);
-    border-color: var(--mud-palette-primary);
-    color: var(--mud-palette-primary);
-}
-
-.pos26-fn-btn--danger {
-    color: var(--mud-palette-error);
-}
-
-.pos26-fn-btn--danger:hover {
-    background: var(--mud-palette-error-lighten);
-    border-color: var(--mud-palette-error);
-}
-
-.pos26-fn-btn--danger:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.pos26-fn-btn--park {
-    color: var(--mud-palette-warning);
-    border-color: var(--mud-palette-warning);
-}
-
-.pos26-fn-btn--park:hover {
-    background: var(--mud-palette-warning-lighten);
-    border-color: var(--mud-palette-warning);
-}
-
-.pos26-fn-btn--park:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.pos26-fn-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: var(--mud-palette-primary);
-    color: var(--mud-palette-primary-text);
-    border-radius: 10px;
-    font-size: 9px;
-    padding: 1px 4px;
-    font-weight: 700;
 }
 
 /* Pannello funzioni (nota, coupon, tavolo, sospese) */
