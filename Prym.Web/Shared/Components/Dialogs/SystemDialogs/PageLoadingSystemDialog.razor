@@ -4,7 +4,7 @@
 <EFSystemDialog Title="PRYM"
                 Subtitle="@(State?.ShowProgressLog == true ? null : State?.Message)"
                 TopBar="EFSystemDialog.EFTopBar.Primary"
-                ShowProgressBar="true"
+                ShowProgressBar="@(State?.ProgressValue != null)"
                 ProgressColor="@(State?.ProgressColor ?? Color.Primary)"
                 ProgressIndeterminate="@(State?.ProgressValue == null)"
                 ProgressValue="@(State?.ProgressValue ?? 0)"

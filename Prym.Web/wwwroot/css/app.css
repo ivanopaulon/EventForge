@@ -234,14 +234,6 @@ a, .btn-link {
     color: #374151;
 }
 
-[data-theme="carbon-neon-light"] .ef-splash-pct::after {
-    color: #111827;
-}
-
-[data-theme="carbon-neon-light"] .ef-splash-bar-track {
-    background: rgba(0, 0, 0, 0.12);
-}
-
 .ef-splash-brand-row {
     display: flex;
     align-items: center;
@@ -251,6 +243,23 @@ a, .btn-link {
 .ef-splash-wordmark {
     height: 32px;
     width: auto;
+}
+
+.ef-splash-wordmark-pulse {
+    animation: ef-splash-pulse 1.8s infinite ease-in-out;
+}
+
+@keyframes ef-splash-pulse {
+    0%   { opacity: 0.70; }
+    50%  { opacity: 1.00; }
+    100% { opacity: 0.70; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ef-splash-wordmark-pulse {
+        animation: none;
+        opacity: 1;
+    }
 }
 
 .ef-splash-status {
@@ -270,40 +279,9 @@ a, .btn-link {
     font-size: 0.875rem;
 }
 
-/* Numeric percentage — populated by Blazor via --blazor-load-percentage */
-.ef-splash-pct::after {
-    content: var(--blazor-load-percentage, "0%");
-    color: #FFFFFF;
-    font-weight: 600;
-    font-size: 1.125rem;
-}
-
-.ef-splash-bar-track {
-    width: min(320px, 80vw);
-    height: 8px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.24);
-    overflow: hidden;
-}
-
-/* Linear bar fill — width driven by --blazor-load-percentage */
-.ef-splash-bar-fill {
-    height: 100%;
-    border-radius: 999px;
-    background: #FF2EA6;
-    width: var(--blazor-load-percentage, 0%);
-    transition: width 0.1s ease-in-out;
-}
-
 @media (max-width: 480px) {
     .ef-splash-wordmark {
         height: 24px;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .ef-splash-bar-fill {
-        transition: none;
     }
 }
 
