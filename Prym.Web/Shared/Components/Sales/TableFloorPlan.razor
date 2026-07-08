@@ -27,7 +27,7 @@
                         <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @GetShapeCssClass(table) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "") @(isDisabled ? "table-floor-plan__table--disabled" : "")"
                              style="@GetTableStyle(table, left, top)"
                              draggable="@EditMode"
-                             aria-disabled="@(isDisabled.ToString().ToLowerInvariant())"
+                             aria-disabled="@(isDisabled ? "true" : "false")"
                              @ondragstart="@(e => OnDragStart(e, table))"
                              @onclick="@(() => OnTableClickAsync(table))">
                             <span class="table-floor-plan__table-number">@table.TableNumber</span>
