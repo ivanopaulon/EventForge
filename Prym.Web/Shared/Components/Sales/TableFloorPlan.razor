@@ -1,4 +1,5 @@
 @using Prym.DTOs.Sales
+@using Prym.DTOs.Constants
 
 <div class="table-floor-plan @(EditMode ? "table-floor-plan--edit" : "")">
     @if (!Tables.Any())
@@ -22,7 +23,7 @@
                     {
                         var left = table.PositionX ?? DefaultPosition(table, areaGroup.ToList()).X;
                         var top = table.PositionY ?? DefaultPosition(table, areaGroup.ToList()).Y;
-                        var isDisabled = DisableNonAvailable && !EditMode && table.Status != "Available";
+                        var isDisabled = DisableNonAvailable && !EditMode && table.Status != TableStatuses.Available;
                         <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @GetShapeCssClass(table) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "") @(isDisabled ? "table-floor-plan__table--disabled" : "")"
                              style="@GetTableStyle(table, left, top)"
                              draggable="@EditMode"
@@ -141,7 +142,7 @@
     private async Task OnTableClickAsync(TableSessionDto table)
     {
         if (EditMode) return; // In edit mode, clicks are reserved for drag; use dedicated edit button/dialog instead.
-        if (DisableNonAvailable && table.Status != "Available") return; // Tavolo non assegnabile (Finding 4).
+        if (DisableNonAvailable && table.Status != TableStatuses.Available) return; // Tavolo non assegnabile (Finding 4).
         if (OnTableClick.HasDelegate)
         {
             await OnTableClick.InvokeAsync(table);

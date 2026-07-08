@@ -81,8 +81,8 @@ public partial class POS2026 : IAsyncDisposable
     private int _mobileTab = 0;
 
     // --- Tavolo / selezione tipo vendita (Finding 3: aperto tramite Pos26TablePickerDialog;
-    //     _availableTables contiene ora tutti i tavoli attivi di ogni zona/stato — Finding 4). ---
-    private List<TableSessionDto> _availableTables = new();
+    //     _pickerTables contiene ora tutti i tavoli attivi di ogni zona/stato — Finding 4). ---
+    private List<TableSessionDto> _pickerTables = new();
 
     // --- Flusso giornaliero ---
     private DailyFlowDto? _dailyFlow;
@@ -331,7 +331,7 @@ public partial class POS2026 : IAsyncDisposable
     {
         try
         {
-            _availableTables = await TableManagementService.GetTablesForPickerAsync() ?? new();
+            _pickerTables = await TableManagementService.GetTablesForPickerAsync() ?? new();
         }
         catch (Exception ex)
         {
@@ -1309,7 +1309,7 @@ public partial class POS2026 : IAsyncDisposable
         {
             var parameters = new DialogParameters
             {
-                { "Tables", _availableTables },
+                { "Tables", _pickerTables },
                 { "CurrentTableNumber", ViewModel.CurrentSession?.TableNumber },
                 { "CurrentSaleType", ViewModel.CurrentSession?.SaleType },
                 { "ParkOnSelectDefault", false },

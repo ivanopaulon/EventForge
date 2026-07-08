@@ -27,10 +27,12 @@
                     Asporto
                 </MudButton>
             </MudStack>
-            <MudSwitch @bind-Value="_parkOnSelect"
-                       Color="Color.Warning"
-                       Label="Assegna e parcheggia"
-                       T="bool" />
+            <MudTooltip Text="Se attivo, dopo aver scelto un tavolo la sessione corrente viene assegnata al tavolo e subito parcheggiata (ex azione separata 'Parcheggia su tavolo')">
+                <MudSwitch @bind-Value="_parkOnSelect"
+                           Color="Color.Warning"
+                           Label="Assegna e parcheggia"
+                           T="bool" />
+            </MudTooltip>
         </MudStack>
 
         @if (Tables is not { Count: > 0 })
