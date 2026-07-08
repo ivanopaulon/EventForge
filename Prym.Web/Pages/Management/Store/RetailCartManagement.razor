@@ -53,24 +53,22 @@
         </MudItem>
         <MudItem xs="12">
             <MudStack Row Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                           Variant="Variant.Outlined"
-                           Color="Color.Primary"
-                           OnClick="ApplyFiltersAsync">
+                <PrymButton Variant="Variant.Outlined" Color="Color.Primary"
+                            StartIcon="@Icons.Material.Outlined.Search"
+                            OnClick="ApplyFiltersAsync">
                     Aggiorna
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Link"
-                           Variant="Variant.Outlined"
-                           Color="Color.Secondary"
-                           OnClick="LoadSessionByIdAsync"
-                           Disabled="@string.IsNullOrWhiteSpace(_lookupSessionId)">
+                </PrymButton>
+                <PrymButton Variant="Variant.Outlined" Color="Color.Secondary"
+                            StartIcon="@Icons.Material.Outlined.Link"
+                            OnClick="LoadSessionByIdAsync"
+                            Disabled="@string.IsNullOrWhiteSpace(_lookupSessionId)">
                     Carica Sessione
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
-                           Variant="Variant.Text"
-                           OnClick="ResetFiltersAsync">
+                </PrymButton>
+                <PrymButton Variant="Variant.Text" Color="Color.Default"
+                            StartIcon="@Icons.Material.Outlined.Clear"
+                            OnClick="ResetFiltersAsync">
                     Ripristina filtri
-                </MudButton>
+                </PrymButton>
             </MudStack>
         </MudItem>
     </MudGrid>
@@ -161,18 +159,18 @@
         <MudTd Class="text-center">
             <MudStack Row Spacing="0" Justify="Justify.Center">
                 <MudTooltip Text="Dettagli sessione">
-                    <MudIconButton Icon="@Icons.Material.Outlined.Info"
-                                   Size="Size.Small"
-                                   Color="Color.Primary"
-                                   Class="ef-row-actionbutton"
-                                   OnClick="@(() => OpenDetailDialogAsync(ctx.Item))" />
+                    <PrymIconButton Icon="@Icons.Material.Outlined.Info"
+                                    Size="Size.Small"
+                                    Color="Color.Primary"
+                                    Class="ef-row-actionbutton"
+                                    OnClick="@(() => OpenDetailDialogAsync(ctx.Item))" />
                 </MudTooltip>
                 <MudTooltip Text="Svuota sessione">
-                    <MudIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
-                                   Size="Size.Small"
-                                   Color="Color.Warning"
-                                   Class="ef-row-actionbutton"
-                                   OnClick="@(() => ClearSessionItemsAsync(ctx.Item))" />
+                    <PrymIconButton Icon="@Icons.Material.Outlined.DeleteSweep"
+                                    Size="Size.Small"
+                                    Color="Color.Warning"
+                                    Class="ef-row-actionbutton"
+                                    OnClick="@(() => ClearSessionItemsAsync(ctx.Item))" />
                 </MudTooltip>
             </MudStack>
         </MudTd>

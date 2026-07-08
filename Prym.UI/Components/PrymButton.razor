@@ -1,5 +1,5 @@
-<MudButton Variant="_variant"
-           Color="_color"
+<MudButton Variant="_resolvedVariant"
+           Color="_resolvedColor"
            StartIcon="@StartIcon"
            EndIcon="@EndIcon"
            Size="Size"
@@ -15,30 +15,32 @@
 @code {
     public enum ButtonIntent { Primary, Secondary, Ghost, Danger, Warning }
 
-    [Parameter] public ButtonIntent    Intent       { get; set; } = ButtonIntent.Primary;
-    [Parameter] public string?         StartIcon    { get; set; }
-    [Parameter] public string?         EndIcon      { get; set; }
-    [Parameter] public Size            Size         { get; set; } = Size.Medium;
-    [Parameter] public bool            Disabled     { get; set; } = false;
-    [Parameter] public EventCallback   OnClick      { get; set; }
-    [Parameter] public string?         Href         { get; set; }
-    [Parameter] public string          HtmlTag      { get; set; } = "button";
-    [Parameter] public string?         Class        { get; set; }
-    [Parameter] public string?         Style        { get; set; }
-    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public ButtonIntent          Intent       { get; set; } = ButtonIntent.Primary;
+    [Parameter] public MudBlazor.Variant?    Variant      { get; set; }
+    [Parameter] public MudBlazor.Color?      Color        { get; set; }
+    [Parameter] public string?               StartIcon    { get; set; }
+    [Parameter] public string?               EndIcon      { get; set; }
+    [Parameter] public Size                  Size         { get; set; } = Size.Medium;
+    [Parameter] public bool                  Disabled     { get; set; } = false;
+    [Parameter] public EventCallback         OnClick      { get; set; }
+    [Parameter] public string?               Href         { get; set; }
+    [Parameter] public string                HtmlTag      { get; set; } = "button";
+    [Parameter] public string?               Class        { get; set; }
+    [Parameter] public string?               Style        { get; set; }
+    [Parameter] public RenderFragment?       ChildContent { get; set; }
 
-    private Variant _variant => Intent switch
+    private MudBlazor.Variant _resolvedVariant => Variant ?? Intent switch
     {
-        ButtonIntent.Secondary => Variant.Outlined,
-        ButtonIntent.Ghost     => Variant.Text,
-        _                      => Variant.Filled,
+        ButtonIntent.Secondary => MudBlazor.Variant.Outlined,
+        ButtonIntent.Ghost     => MudBlazor.Variant.Text,
+        _                      => MudBlazor.Variant.Filled,
     };
 
-    private Color _color => Intent switch
+    private MudBlazor.Color _resolvedColor => Color ?? Intent switch
     {
-        ButtonIntent.Danger   => Color.Error,
-        ButtonIntent.Warning  => Color.Warning,
-        ButtonIntent.Ghost    => Color.Default,
-        _                     => Color.Primary,
+        ButtonIntent.Danger   => MudBlazor.Color.Error,
+        ButtonIntent.Warning  => MudBlazor.Color.Warning,
+        ButtonIntent.Ghost    => MudBlazor.Color.Default,
+        _                     => MudBlazor.Color.Primary,
     };
 }

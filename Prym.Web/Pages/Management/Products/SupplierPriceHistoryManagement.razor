@@ -65,18 +65,16 @@
         </MudItem>
         <MudItem xs="12">
             <MudStack Row Spacing="2" Wrap="Wrap.Wrap">
-                <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="ApplyFiltersAsync">
+                <PrymButton Variant="Variant.Filled" Color="Color.Primary"
+                            StartIcon="@Icons.Material.Outlined.Search"
+                            OnClick="ApplyFiltersAsync">
                     Cerca
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
-                           Variant="Variant.Outlined"
-                           Color="Color.Secondary"
-                           OnClick="ResetFiltersAsync">
+                </PrymButton>
+                <PrymButton Variant="Variant.Outlined" Color="Color.Secondary"
+                            StartIcon="@Icons.Material.Outlined.Refresh"
+                            OnClick="ResetFiltersAsync">
                     Reset
-                </MudButton>
+                </PrymButton>
             </MudStack>
         </MudItem>
     </MudGrid>
