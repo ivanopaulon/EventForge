@@ -71,7 +71,7 @@ public class SalesService(
         try
         {
             var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(
-                $"api/v1/sales/pos-sessions/open?pageNumber=1&pageSize={MaxUnpaginatedPageSize}", cancellationToken);
+                $"api/v1/sales/pos-sessions/open?page=1&pageSize={MaxUnpaginatedPageSize}", cancellationToken);
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
@@ -86,7 +86,7 @@ public class SalesService(
         try
         {
             var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(
-                $"api/v1/sales/pos-sessions/operator/{operatorId}?pageNumber=1&pageSize={MaxUnpaginatedPageSize}", cancellationToken);
+                $"api/v1/sales/pos-sessions/operator/{operatorId}?page=1&pageSize={MaxUnpaginatedPageSize}", cancellationToken);
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
@@ -236,10 +236,10 @@ public class SalesService(
     {
         try
         {
-            var query = $"api/v1/sales/pos-sessions/date-range?startDate={startDate:O}&pageNumber=1&pageSize={MaxUnpaginatedPageSize}";
+            var query = $"api/v1/sales/pos-sessions/date-range?startDate={Uri.EscapeDataString(startDate.ToString("O"))}&page=1&pageSize={MaxUnpaginatedPageSize}";
             if (endDate.HasValue)
             {
-                query += $"&endDate={endDate.Value:O}";
+                query += $"&endDate={Uri.EscapeDataString(endDate.Value.ToString("O"))}";
             }
             var result = await httpClientService.GetAsync<PagedResult<SaleSessionDto>>(query, cancellationToken);
             return result?.Items?.ToList() ?? [];

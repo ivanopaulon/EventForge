@@ -39,7 +39,7 @@ public class CalendarReminderService(
     {
         try
         {
-            var url = $"api/v1/calendar-reminders/date-range?startDate={startDate:O}&endDate={endDate:O}";
+            var url = $"api/v1/calendar-reminders/date-range?startDate={Uri.EscapeDataString(startDate.ToString("O"))}&endDate={Uri.EscapeDataString(endDate.ToString("O"))}";
             return await httpClientService.GetAsync<IEnumerable<CalendarReminderDto>>(url, ct)
                 ?? Enumerable.Empty<CalendarReminderDto>();
         }

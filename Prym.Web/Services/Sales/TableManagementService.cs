@@ -32,7 +32,7 @@ public class TableManagementService(
         try
         {
             var result = await httpClientService.GetAsync<Prym.DTOs.Common.PagedResult<TableSessionDto>>(
-                $"{BaseUrl}/paginated?pageNumber=1&pageSize={MaxUnpaginatedPageSize}", ct);
+                $"{BaseUrl}/paginated?page=1&pageSize={MaxUnpaginatedPageSize}", ct);
             return result?.Items?.ToList() ?? [];
         }
         catch (Exception ex)
