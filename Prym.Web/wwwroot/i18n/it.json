@@ -11,7 +11,11 @@
     "stockLevels": "Giacenze a Magazzino",
     "noStockFound": "Nessuna giacenza trovata per questo prodotto",
     "documentHistory": "Storico Documenti",
-    "noDocumentsFound": "Nessun documento trovato per questo prodotto"
+    "noDocumentsFound": "Nessun documento trovato per questo prodotto",
+    "confirmDelete": "Sei sicuro di voler eliminare il prodotto '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} prodotti selezionati? Questa azione non può essere annullata.",
+    "productDeleted": "Prodotto eliminato con successo!",
+    "deleteError": "Errore nell'eliminazione del prodotto: {0}"
   },
   "helper": {
     "reorderPoint": "Livello al quale si dovrebbe creare un ordine di riapprovvigionamento",
@@ -2464,7 +2468,8 @@
       "locationRequired": "Seleziona un'ubicazione",
       "notesRequired": "Note obbligatorie per variazioni superiori a {0}",
       "notesTooLong": "Le note non possono superare 500 caratteri"
-    }
+    },
+    "confirmDeleteMultipleFacilities": "Sei sicuro di voler eliminare {0} magazzini selezionati? Questa azione non può essere annullata."
   },
   "nav": {
     "stockManagement": "Giacenze",
@@ -2502,7 +2507,13 @@
     "vatRateDeleted": "Aliquota IVA eliminata con successo!",
     "deleteVatRateError": "Errore nell'eliminazione dell'aliquota IVA: {0}",
     "loadingPageError": "Errore nel caricamento della pagina: {0}",
-    "loadingVatRatesError": "Errore nel caricamento delle aliquote IVA: {0}"
+    "loadingVatRatesError": "Errore nel caricamento delle aliquote IVA: {0}",
+    "confirmDeleteMultipleVatNatures": "Sei sicuro di voler eliminare {0} nature IVA selezionate? Questa azione non può essere annullata.",
+    "confirmDeleteMultipleVatRates": "Sei sicuro di voler eliminare {0} aliquote IVA selezionate? Questa azione non può essere annullata.",
+    "confirmDeleteVatNature": "Sei sicuro di voler eliminare la natura IVA '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteVatRate": "Sei sicuro di voler eliminare l'aliquota IVA '{0}'? Questa azione non può essere annullata.",
+    "deleteVatNatureError": "Errore nell'eliminazione della natura IVA: {0}",
+    "vatNatureDeleted": "Natura IVA eliminata con successo!"
   },
   "partyType": {
     "cliente": "Cliente",
@@ -2535,7 +2546,8 @@
     "deleteSuccess": "Marchio eliminato con successo",
     "saveError": "Errore nel salvataggio del marchio",
     "deleteError": "Errore nell'eliminazione del marchio",
-    "confirmDelete": "Sei sicuro di voler eliminare il marchio '{0}'?"
+    "confirmDelete": "Sei sicuro di voler eliminare il marchio '{0}'?",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} marchi selezionati? Questa azione non può essere annullata."
   },
   "model": {
     "management": "Gestione Modelli",
@@ -2777,7 +2789,8 @@
     },
     "aria": {
       "uniqueId": "Identificativo unico"
-    }
+    },
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} tipi documento selezionati? Questa azione non può essere annullata."
   },
   "businessPartyType": {
     "customer": "Cliente",
@@ -2850,7 +2863,12 @@
     "itemsLabel": "Articoli",
     "shipmentDateLabel": "Data Spedizione",
     "ship": "Spedisci",
-    "receive": "Ricevi"
+    "receive": "Ricevi",
+    "cancelConfirm": "Sei sicuro di voler annullare l'ordine di trasferimento '{0}'? Questa azione non può essere annullata.",
+    "cancelFailed": "Errore durante l'annullamento dell'ordine di trasferimento: {0}",
+    "cancelMultipleConfirm": "Sei sicuro di voler annullare {0} ordini di trasferimento selezionati? Questa azione non può essere annullata.",
+    "cancelSuccess": "Ordine di trasferimento annullato con successo!",
+    "onlyPendingCanCancel": "Solo gli ordini in attesa possono essere annullati"
   },
   "stock": {
     "showAllProducts": "Mostra tutti i prodotti",
@@ -3148,6 +3166,121 @@
     "noReports": "Nessun report trovato.",
     "loadError": "Errore durante il caricamento del report.",
     "deleteConfirm": "Eliminare il report selezionato?",
-    "deleted": "Report eliminato con successo."
+    "deleted": "Report eliminato con successo.",
+    "deleteError": "Errore nell'eliminazione del report: {0}",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} report selezionati? Questa azione non può essere annullata."
+  },
+  "businessPartyGroup": {
+    "confirmDelete": "Sei sicuro di voler eliminare il gruppo '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} gruppi selezionati? Questa azione non può essere annullata.",
+    "deleteGroupError": "Errore nell'eliminazione del gruppo: {0}",
+    "groupDeleted": "Gruppo eliminato con successo!"
+  },
+  "businessparty": {
+    "confirmDelete": "Sei sicuro di voler eliminare '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} anagrafiche selezionate? Questa azione non può essere annullata.",
+    "deleteError": "Errore nell'eliminazione: {0}",
+    "deleted": "Anagrafica eliminata con successo!"
+  },
+  "fidelity": {
+    "confirmDelete": "Sei sicuro di voler eliminare la carta fedeltà '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} carte fedeltà selezionate? Questa azione non può essere annullata.",
+    "deleteError": "Errore nell'eliminazione della carta fedeltà: {0}",
+    "deleted": "Carta fedeltà eliminata con successo!"
+  },
+  "paymentMethod": {
+    "confirmDelete": "Sei sicuro di voler eliminare il metodo di pagamento '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} metodi di pagamento selezionati? Questa azione non può essere annullata.",
+    "paymentMethodDeleted": "Metodo di pagamento eliminato con successo!",
+    "deleteError": "Errore nell'eliminazione del metodo di pagamento: {0}"
+  },
+  "pricelist": {
+    "confirmDelete": "Sei sicuro di voler eliminare il listino '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} listini selezionati? Questa azione non può essere annullata.",
+    "deleteError": "Errore nell'eliminazione del listino: {0}",
+    "deleted": "Listino eliminato con successo!"
+  },
+  "printer": {
+    "confirmDelete": "Sei sicuro di voler eliminare la stampante '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} stampanti selezionate? Questa azione non può essere annullata.",
+    "deleted": "Stampante eliminata con successo!",
+    "deleteError": "Errore nell'eliminazione della stampante: {0}"
+  },
+  "shift": {
+    "confirmDelete": "Sei sicuro di voler eliminare il turno '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} turni selezionati? Questa azione non può essere annullata.",
+    "deleteError": "Errore nell'eliminazione del turno: {0}",
+    "deleted": "Turno eliminato con successo!"
+  },
+  "station": {
+    "confirmDelete": "Sei sicuro di voler eliminare la stazione '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} stazioni selezionate? Questa azione non può essere annullata.",
+    "deleted": "Stazione eliminata con successo!",
+    "deleteError": "Errore nell'eliminazione della stazione: {0}"
+  },
+  "store": {
+    "cannotDeleteSystemGroup": "Impossibile eliminare un gruppo di sistema",
+    "confirmDeleteFiscalDrawer": "Sei sicuro di voler eliminare il cassetto fiscale '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultipleFiscalDrawers": "Sei sicuro di voler eliminare {0} cassetti fiscali selezionati? Questa azione non può essere annullata.",
+    "confirmDeleteMultipleOperatorGroups": "Sei sicuro di voler eliminare {0} gruppi operatori selezionati? Questa azione non può essere annullata.",
+    "confirmDeleteMultipleOperators": "Sei sicuro di voler eliminare {0} operatori selezionati? Questa azione non può essere annullata.",
+    "confirmDeleteMultiplePaymentTerminals": "Sei sicuro di voler eliminare {0} terminali di pagamento selezionati? Questa azione non può essere annullata.",
+    "confirmDeleteMultiplePos": "Sei sicuro di voler eliminare {0} punti cassa selezionati? Questa azione non può essere annullata.",
+    "confirmDeleteOperator": "Sei sicuro di voler eliminare l'operatore '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteOperatorGroup": "Sei sicuro di voler eliminare il gruppo operatori '{0}'? Questa azione non può essere annullata.",
+    "confirmDeletePaymentTerminal": "Sei sicuro di voler eliminare il terminale di pagamento '{0}'? Questa azione non può essere annullata.",
+    "confirmDeletePos": "Sei sicuro di voler eliminare il punto cassa '{0}'? Questa azione non può essere annullata.",
+    "fiscalDrawerDeleted": "Cassetto fiscale eliminato con successo!",
+    "operatorDeleted": "Operatore eliminato con successo!",
+    "operatorGroupDeleted": "Gruppo operatori eliminato con successo!",
+    "paymentTerminalDeleted": "Terminale di pagamento eliminato con successo!",
+    "posDeleted": "Punto cassa eliminato con successo!",
+    "deleteFiscalDrawerError": "Errore nell'eliminazione del cassetto fiscale: {0}",
+    "deleteOperatorGroupError": "Errore nell'eliminazione del gruppo operatori: {0}",
+    "deleteOperatorError": "Errore nell'eliminazione dell'operatore: {0}",
+    "deletePaymentTerminalError": "Errore nell'eliminazione del terminale di pagamento: {0}",
+    "deletePosError": "Errore nell'eliminazione del punto cassa: {0}"
+  },
+  "classificationNode": {
+    "confirmDelete": "Sei sicuro di voler eliminare il nodo '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} nodi selezionati? Questa azione non può essere annullata.",
+    "deleted": "Nodo eliminato con successo!",
+    "deleteError": "Errore nell'eliminazione del nodo: {0}"
+  },
+  "documentCounter": {
+    "confirmDelete": "Sei sicuro di voler eliminare il contatore '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} contatori selezionati? Questa azione non può essere annullata.",
+    "deleted": "Contatore eliminato con successo!",
+    "deleteError": "Errore nell'eliminazione del contatore: {0}"
+  },
+  "document": {
+    "confirmDelete": "Sei sicuro di voler eliminare il documento '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} documenti selezionati? Questa azione non può essere annullata.",
+    "deleted": "Documento eliminato con successo!",
+    "deleteError": "Errore nell'eliminazione del documento: {0}"
+  },
+  "lot": {
+    "confirmDelete": "Sei sicuro di voler eliminare il lotto '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} lotti selezionati? Questa azione non può essere annullata.",
+    "deleted": "Lotto eliminato con successo!",
+    "deleteError": "Errore nell'eliminazione del lotto: {0}"
+  },
+  "serial": {
+    "confirmDelete": "Sei sicuro di voler eliminare la matricola '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} matricole selezionate? Questa azione non può essere annullata.",
+    "deleted": "Matricola eliminata con successo!",
+    "deleteError": "Errore nell'eliminazione della matricola: {0}"
+  },
+  "um": {
+    "confirmDelete": "Sei sicuro di voler eliminare l'unità di misura '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} unità di misura selezionate? Questa azione non può essere annullata.",
+    "deleted": "Unità di misura eliminata con successo!",
+    "deleteError": "Errore nell'eliminazione dell'unità di misura: {0}"
+  },
+  "promotion": {
+    "confirmDelete": "Sei sicuro di voler eliminare la promozione '{0}'? Questa azione non può essere annullata.",
+    "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} promozioni selezionate? Questa azione non può essere annullata.",
+    "deleted": "Promozione eliminata con successo!",
+    "deleteError": "Errore nell'eliminazione della promozione: {0}"
   }
 }

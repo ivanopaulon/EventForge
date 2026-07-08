@@ -215,6 +215,10 @@
             ShowDelete = true,
             ShowAuditLog = false,
             ShowToggleStatus = false,
+            DeleteConfirmMessageKey = "serial.confirmDelete",
+            DeleteSuccessMessageKey = "serial.deleted",
+            DeleteErrorMessageKey = "serial.deleteError",
+            BulkDeleteConfirmMessageKey = "serial.confirmDeleteMultiple",
             GetDisplayName = s => s.SerialNumber,
             GetId = s => s.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

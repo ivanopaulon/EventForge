@@ -125,7 +125,12 @@
             SearchPlaceholderDefault = "Cerca marchi",
             CreateTooltip = "brand.createNew",
             EntityTypeName = "Brand",
+            ShowAuditLog = true,
             ShowToggleStatus = false,
+            DeleteConfirmMessageKey = "brand.confirmDelete",
+            DeleteSuccessMessageKey = "brand.deleteSuccess",
+            DeleteErrorMessageKey = "brand.deleteError",
+            BulkDeleteConfirmMessageKey = "brand.confirmDeleteMultiple",
             GetDisplayName = b => b.Name,
             GetId = b => b.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

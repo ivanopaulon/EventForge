@@ -225,6 +225,10 @@
             ShowDelete = true,
             CanEdit = d => d.Status == DocumentStatus.Active,
             CanDelete = d => d.Status == DocumentStatus.Active,
+            DeleteConfirmMessageKey = "document.confirmDelete",
+            DeleteSuccessMessageKey = "document.deleted",
+            DeleteErrorMessageKey = "document.deleteError",
+            BulkDeleteConfirmMessageKey = "document.confirmDeleteMultiple",
             GetDisplayName = d => string.IsNullOrEmpty(d.Series) ? d.Number : $"{d.Series}/{d.Number}",
             GetId = d => d.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

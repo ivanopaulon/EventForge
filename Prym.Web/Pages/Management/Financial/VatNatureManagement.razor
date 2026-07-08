@@ -108,7 +108,12 @@
             SearchPlaceholderDefault = "Cerca nature IVA",
             CreateTooltip = "financial.createNewVatNature",
             EntityTypeName = "VatNature",
+            ShowAuditLog = false,
             ShowToggleStatus = false,
+            DeleteConfirmMessageKey = "financial.confirmDeleteVatNature",
+            DeleteSuccessMessageKey = "financial.vatNatureDeleted",
+            DeleteErrorMessageKey = "financial.deleteVatNatureError",
+            BulkDeleteConfirmMessageKey = "financial.confirmDeleteMultipleVatNatures",
             GetDisplayName = n => n.Name,
             GetId = n => n.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

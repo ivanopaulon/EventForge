@@ -196,6 +196,11 @@
             CreateTooltip = "promotion.create",
             EntityTypeName = "Promotion",
             ShowToggleStatus = false,
+            ShowAuditLog = true,
+            DeleteConfirmMessageKey = "promotion.confirmDelete",
+            DeleteSuccessMessageKey = "promotion.deleted",
+            DeleteErrorMessageKey = "promotion.deleteError",
+            BulkDeleteConfirmMessageKey = "promotion.confirmDeleteMultiple",
             GetDisplayName = p => p.Name,
             GetId = p => p.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

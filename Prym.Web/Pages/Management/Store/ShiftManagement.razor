@@ -11,28 +11,28 @@
 @inject IAppNotificationService AppNotification
 @inject ILogger<ShiftManagement> Logger
 
-<PageTitle>Gestione Turni</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("shift.management", "Gestione Turni")</PageTitle>
 
 @* Date/operator filter panel — sits above EntityManagementPage *@
 <MudPaper Elevation="1" Class="pa-3 mb-0">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="4">
             <MudDatePicker @bind-Date="_filterFrom"
-                           Label="Da"
+                           Label="@TranslationService.GetTranslation("shift.filter.from", "Da")"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Class="ef-datepicker" />
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudDatePicker @bind-Date="_filterTo"
-                           Label="A"
+                           Label="@TranslationService.GetTranslation("shift.filter.to", "A")"
                            Variant="Variant.Outlined"
                            Margin="Margin.Dense"
                            Class="ef-datepicker" />
         </MudItem>
         <MudItem xs="12" sm="4">
             <MudSelect @bind-Value="_filterOperatorId"
-                       Label="Operatore"
+                       Label="@TranslationService.GetTranslation("shift.filter.operator", "Operatore")"
                        Variant="Variant.Outlined"
                        Margin="Margin.Dense"
                        Clearable="true"
@@ -48,19 +48,19 @@
                 <PrymButton Variant="Variant.Filled" Color="Color.Primary"
                             StartIcon="@Icons.Material.Outlined.Search"
                             OnClick="ApplyFiltersAsync">
-                    Cerca
+                    @TranslationService.GetTranslation("common.search", "Cerca")
                 </PrymButton>
                 <PrymButton Variant="Variant.Outlined" Color="Color.Default"
                             StartIcon="@Icons.Material.Outlined.Clear"
                             OnClick="ClearFiltersAsync">
-                    Pulisci
+                    @TranslationService.GetTranslation("common.clear", "Pulisci")
                 </PrymButton>
                 <MudSpacer />
-                <MudIconButton Icon="@Icons.Material.Outlined.CalendarMonth"
-                               Title="Calendario Turni"
-                               Href="/store/shifts/calendar"
-                               Color="Color.Primary"
-                               Variant="Variant.Outlined" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.CalendarMonth"
+                                Title="@TranslationService.GetTranslation("shift.calendar", "Calendario Turni")"
+                                Href="/store/shifts/calendar"
+                                Color="Color.Primary"
+                                Variant="Variant.Outlined" />
             </MudStack>
         </MudItem>
     </MudGrid>
@@ -79,41 +79,41 @@
             @if (column.PropertyName == "StoreUserName")
             {
                 <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="StoreUserName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.StoreUserName))">Operatore</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.StoreUserName))">@TranslationService.GetTranslation("shift.operator", "Operatore")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "PosName")
             {
                 <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="PosName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.PosName ?? string.Empty))">Cassa</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.PosName ?? string.Empty))">@TranslationService.GetTranslation("shift.pos", "Cassa")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ShiftStart")
             {
                 <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftStart" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftStart))">Inizio</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftStart))">@TranslationService.GetTranslation("shift.start", "Inizio")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ShiftEnd")
             {
                 <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="ShiftEnd" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftEnd))">Fine</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.ShiftEnd))">@TranslationService.GetTranslation("shift.end", "Fine")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
                 <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.Status))">Stato</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<CashierShiftDto, object>(x => x.Status))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Notes")
             {
                 <EFTableColumnHeader TItem="CashierShiftDto" PropertyName="Notes" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudText Typo="Typo.body2">Note</MudText>
+                    <MudText Typo="Typo.body2">@TranslationService.GetTranslation("shift.notes", "Note")</MudText>
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center ef-min-120">Azioni</MudTh>
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
 
     <RowTemplate Context="ctx">
@@ -121,7 +121,7 @@
         {
             @if (column.PropertyName == "StoreUserName")
             {
-                <MudTd DataLabel="Operatore">
+                <MudTd DataLabel="@TranslationService.GetTranslation("shift.operator", "Operatore")">
                     <div class="d-flex align-center gap-2">
                         <MudIcon Icon="@Icons.Material.Outlined.Person" Size="Size.Small" Color="Color.Primary" />
                         <MudText Typo="Typo.body2">@ctx.Item.StoreUserName</MudText>
@@ -130,7 +130,7 @@
             }
             else if (column.PropertyName == "PosName")
             {
-                <MudTd DataLabel="Cassa">
+                <MudTd DataLabel="@TranslationService.GetTranslation("shift.pos", "Cassa")">
                     @if (!string.IsNullOrEmpty(ctx.Item.PosName))
                     {
                         <MudText Typo="Typo.body2">@ctx.Item.PosName</MudText>
@@ -143,19 +143,19 @@
             }
             else if (column.PropertyName == "ShiftStart")
             {
-                <MudTd DataLabel="Inizio">
+                <MudTd DataLabel="@TranslationService.GetTranslation("shift.start", "Inizio")">
                     <MudText Typo="Typo.body2">@ctx.Item.ShiftStart.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
                 </MudTd>
             }
             else if (column.PropertyName == "ShiftEnd")
             {
-                <MudTd DataLabel="Fine">
+                <MudTd DataLabel="@TranslationService.GetTranslation("shift.end", "Fine")">
                     <MudText Typo="Typo.body2">@ctx.Item.ShiftEnd.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
                 </MudTd>
             }
             else if (column.PropertyName == "Status")
             {
-                <MudTd DataLabel="Stato">
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
                     <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)">
                         @GetStatusText(ctx.Item.Status)
                     </MudChip>
@@ -163,7 +163,7 @@
             }
             else if (column.PropertyName == "Notes")
             {
-                <MudTd DataLabel="Note">
+                <MudTd DataLabel="@TranslationService.GetTranslation("shift.notes", "Note")">
                     <MudText Typo="Typo.body2">@(ctx.Item.Notes ?? "—")</MudText>
                 </MudTd>
             }
@@ -196,10 +196,14 @@
             ExcelFileName = "Turni",
             SearchPlaceholderKey = "shift.search",
             SearchPlaceholderDefault = "Cerca per operatore, cassa o note…",
-            EntityTypeName = "Turno",
+            EntityTypeName = "Shift",
             ShowDelete = true,
             ShowEdit = true,
             ShowAuditLog = false,
+            DeleteConfirmMessageKey = "shift.confirmDelete",
+            DeleteSuccessMessageKey = "shift.deleted",
+            DeleteErrorMessageKey = "shift.deleteError",
+            BulkDeleteConfirmMessageKey = "shift.confirmDeleteMultiple",
             GetDisplayName = s => $"{s.StoreUserName} {s.ShiftStart.ToLocalTime():dd/MM/yyyy HH:mm}",
             GetId = s => s.Id,
             BreadcrumbItems =
@@ -259,24 +263,24 @@
 
     private async Task OpenDialogAsync(Guid? shiftId)
     {
-        var options = new DialogOptions
+        try
         {
-            CloseOnEscapeKey = false,
-            BackdropClick = false,
-            MaxWidth = MaxWidth.Small,
-            FullWidth = true
-        };
+            var parameters = new DialogParameters<ShiftDetailDialog>
+            {
+                { x => x.ShiftId, shiftId }
+            };
 
-        var parameters = new DialogParameters<ShiftDetailDialog>
+            var dialog = await DialogService.ShowAsync<ShiftDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false })
+                await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
         {
-            { x => x.ShiftId, shiftId }
-        };
-
-        var dialog = await DialogService.ShowAsync<ShiftDetailDialog>(string.Empty, parameters, options);
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-            await ApplyFiltersAsync();
+            Logger.LogError(ex, "Error opening shift dialog for ID {ShiftId}.", shiftId);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("shift.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
     }
 
     private static Color GetStatusColor(ShiftStatus status) => status switch
@@ -288,12 +292,12 @@
         _                      => Color.Default
     };
 
-    private static string GetStatusText(ShiftStatus status) => status switch
+    private string GetStatusText(ShiftStatus status) => status switch
     {
-        ShiftStatus.Scheduled  => "Pianificato",
-        ShiftStatus.InProgress => "In corso",
-        ShiftStatus.Completed  => "Completato",
-        ShiftStatus.Cancelled  => "Annullato",
+        ShiftStatus.Scheduled  => TranslationService.GetTranslation("shift.status.scheduled", "Pianificato"),
+        ShiftStatus.InProgress => TranslationService.GetTranslation("shift.status.inProgress", "In corso"),
+        ShiftStatus.Completed  => TranslationService.GetTranslation("shift.status.completed", "Completato"),
+        ShiftStatus.Cancelled  => TranslationService.GetTranslation("shift.status.cancelled", "Annullato"),
         _                      => status.ToString()
     };
 }

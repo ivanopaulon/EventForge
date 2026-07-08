@@ -148,6 +148,11 @@
             CreateTooltip = "documentType.createNew",
             EntityTypeName = "DocumentType",
             ShowToggleStatus = false,
+            ShowAuditLog = true,
+            DeleteConfirmMessageKey = "documentType.confirmDelete",
+            DeleteSuccessMessageKey = "documentType.deleteSuccess",
+            DeleteErrorMessageKey = "documentType.deleteError",
+            BulkDeleteConfirmMessageKey = "documentType.confirmDeleteMultiple",
             GetDisplayName = dt => dt.Name,
             GetId = dt => dt.Id,
             BreadcrumbItems = new List<BreadcrumbItem>

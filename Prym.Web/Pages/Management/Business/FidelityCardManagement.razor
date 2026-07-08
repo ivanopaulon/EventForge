@@ -9,7 +9,7 @@
 @inject IAppNotificationService AppNotification
 @inject ILogger<FidelityCardManagement> Logger
 
-<PageTitle>Gestione Carte Fedeltà</PageTitle>
+<PageTitle>@TranslationService.GetTranslation("fidelity.management", "Gestione Carte Fedeltà")</PageTitle>
 
 <EntityManagementPage TEntity="FidelityCardDto"
                       @ref="_entityPage"
@@ -23,41 +23,41 @@
             @if (column.PropertyName == "CardNumber")
             {
                 <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CardNumber" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CardNumber))">Numero Carta</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CardNumber))">@TranslationService.GetTranslation("fidelity.cardNumber", "Numero Carta")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Type")
             {
                 <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Type" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Type.ToString()))">Tipo</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Type.ToString()))">@TranslationService.GetTranslation("field.type", "Tipo")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
             {
                 <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Status.ToString()))">Stato</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Status.ToString()))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CurrentPoints")
             {
                 <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="CurrentPoints" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CurrentPoints))">Punti</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CurrentPoints))">@TranslationService.GetTranslation("fidelity.points", "Punti")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "DiscountPercentage")
             {
                 <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="DiscountPercentage" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.DiscountPercentage))">Sconto %</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.DiscountPercentage))">@TranslationService.GetTranslation("fidelity.discountPercentage", "Sconto %")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "ValidTo")
             {
                 <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="ValidTo" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.ValidTo))">Scadenza</MudTableSortLabel>
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.ValidTo))">@TranslationService.GetTranslation("fidelity.validTo", "Scadenza")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
         }
-        <MudTh Class="text-center ef-min-120">Azioni</MudTh>
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
     </HeaderContent>
 
     <RowTemplate Context="ctx">
@@ -65,7 +65,7 @@
         {
             @if (column.PropertyName == "CardNumber")
             {
-                <MudTd DataLabel="Numero Carta">
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.cardNumber", "Numero Carta")">
                     <div class="d-flex align-center">
                         <MudAvatar Color="@GetTypeColor(ctx.Item.Type)" Size="Size.Small" Class="mr-2">
                             <MudIcon Icon="@Icons.Material.Outlined.CardMembership" />
@@ -74,7 +74,7 @@
                             <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.CardNumber</MudText>
                             @if (ctx.Item.BusinessPartyId.HasValue)
                             {
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">Cliente associato</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("fidelity.associatedCustomer", "Cliente associato")</MudText>
                             }
                         </div>
                     </div>
@@ -82,13 +82,13 @@
             }
             else if (column.PropertyName == "Type")
             {
-                <MudTd DataLabel="Tipo">
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
                     <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(ctx.Item.Type)">@ctx.Item.Type</MudChip>
                 </MudTd>
             }
             else if (column.PropertyName == "Status")
             {
-                <MudTd DataLabel="Stato">
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
                     <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)" Variant="Variant.Filled">
                         @GetStatusLabel(ctx.Item.Status)
                     </MudChip>
@@ -96,14 +96,14 @@
             }
             else if (column.PropertyName == "CurrentPoints")
             {
-                <MudTd DataLabel="Punti">
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.points", "Punti")">
                     <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.CurrentPoints</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">/ @ctx.Item.TotalPointsEarned totali</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">/ @ctx.Item.TotalPointsEarned @TranslationService.GetTranslation("fidelity.totalPoints", "totali")</MudText>
                 </MudTd>
             }
             else if (column.PropertyName == "DiscountPercentage")
             {
-                <MudTd DataLabel="Sconto %">
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.discountPercentage", "Sconto %")">
                     @if (ctx.Item.DiscountPercentage > 0)
                     {
                         <MudText Typo="Typo.body2">@ctx.Item.DiscountPercentage.ToString("F1")%</MudText>
@@ -116,7 +116,7 @@
             }
             else if (column.PropertyName == "ValidTo")
             {
-                <MudTd DataLabel="Scadenza">
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.validTo", "Scadenza")">
                     <MudText Typo="Typo.body2" Color="@(ctx.Item.ValidTo < DateTime.UtcNow ? Color.Error : Color.Default)">
                         @ctx.Item.ValidTo.ToString("dd/MM/yyyy")
                     </MudText>
@@ -126,48 +126,48 @@
     </RowTemplate>
 
     <AdditionalRowActions Context="card">
-        <MudTooltip Text="Gestisci Punti">
-            <MudIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
-                           Size="Size.Small"
-                           Color="Color.Primary"
-                           Class="ef-row-actionbutton"
-                           OnClick="@(() => OpenManagePointsDialogAsync(card))" />
+        <MudTooltip Text="@TranslationService.GetTranslation("fidelity.managePoints", "Gestisci Punti")">
+            <PrymIconButton Icon="@Icons.Material.Outlined.AddCircleOutline"
+                            Size="Size.Small"
+                            Color="Color.Primary"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => OpenManagePointsDialogAsync(card))" />
         </MudTooltip>
-        <MudTooltip Text="Storico Transazioni">
-            <MudIconButton Icon="@Icons.Material.Outlined.History"
-                           Size="Size.Small"
-                           Color="Color.Info"
-                           Class="ef-row-actionbutton"
-                           OnClick="@(() => OpenHistoryDialogAsync(card))" />
+        <MudTooltip Text="@TranslationService.GetTranslation("fidelity.pointsHistory", "Storico Transazioni")">
+            <PrymIconButton Icon="@Icons.Material.Outlined.History"
+                            Size="Size.Small"
+                            Color="Color.Info"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => OpenHistoryDialogAsync(card))" />
         </MudTooltip>
         @if (card.Status == FidelityCardStatus.Active)
         {
-            <MudTooltip Text="Sospendi">
-                <MudIconButton Icon="@Icons.Material.Outlined.PauseCircleOutline"
-                               Size="Size.Small"
-                               Color="Color.Warning"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => SuspendCardAsync(card))" />
+            <MudTooltip Text="@TranslationService.GetTranslation("fidelity.suspend", "Sospendi")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.PauseCircleOutline"
+                                Size="Size.Small"
+                                Color="Color.Warning"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => SuspendCardAsync(card))" />
             </MudTooltip>
         }
         @if (card.Status == FidelityCardStatus.Suspended)
         {
-            <MudTooltip Text="Attiva">
-                <MudIconButton Icon="@Icons.Material.Outlined.PlayCircleOutline"
-                               Size="Size.Small"
-                               Color="Color.Success"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => ActivateCardAsync(card))" />
+            <MudTooltip Text="@TranslationService.GetTranslation("fidelity.activate", "Attiva")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.PlayCircleOutline"
+                                Size="Size.Small"
+                                Color="Color.Success"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => ActivateCardAsync(card))" />
             </MudTooltip>
         }
         @if (card.Status != FidelityCardStatus.Revoked)
         {
-            <MudTooltip Text="Revoca">
-                <MudIconButton Icon="@Icons.Material.Outlined.Cancel"
-                               Size="Size.Small"
-                               Color="Color.Error"
-                               Class="ef-row-actionbutton"
-                               OnClick="@(() => RevokeCardAsync(card))" />
+            <MudTooltip Text="@TranslationService.GetTranslation("fidelity.revoke", "Revoca")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.Cancel"
+                                Size="Size.Small"
+                                Color="Color.Error"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => RevokeCardAsync(card))" />
             </MudTooltip>
         }
     </AdditionalRowActions>
@@ -192,7 +192,8 @@
             ExcelFileName = "CarteFedeltà",
             SearchPlaceholderKey = "fidelity.search",
             SearchPlaceholderDefault = "Cerca per numero carta…",
-            EntityTypeName = "CartaFedeltà",
+            EntityTypeName = "FidelityCard",
+            CreateTooltip = "fidelity.createNew",
             ShowDelete = true,
             ShowEdit = true,
             ShowAuditLog = false,
@@ -200,6 +201,10 @@
             GetDisplayName = c => c.CardNumber,
             GetId = c => c.Id,
             CanDelete = c => c.Status == FidelityCardStatus.Revoked || c.Status == FidelityCardStatus.Expired,
+            DeleteConfirmMessageKey = "fidelity.confirmDelete",
+            DeleteSuccessMessageKey = "fidelity.deleted",
+            DeleteErrorMessageKey = "fidelity.deleteError",
+            BulkDeleteConfirmMessageKey = "fidelity.confirmDeleteMultiple",
             BreadcrumbItems =
             [
                 new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
@@ -230,7 +235,6 @@
     {
         try
         {
-            DialogOptions options = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
             IDialogReference dialog;
 
             if (id.HasValue)
@@ -238,15 +242,15 @@
                 var card = await FidelityService.GetCardByIdAsync(id.Value);
                 if (card is null)
                 {
-                    AppNotification.ShowWarning("Carta fedeltà non trovata.");
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("fidelity.notFound", "Carta fedeltà non trovata."));
                     return;
                 }
                 var parameters = new DialogParameters { [nameof(EditFidelityCardDialog.Card)] = card };
-                dialog = await DialogService.ShowAsync<EditFidelityCardDialog>("Modifica Carta Fedeltà", parameters, options);
+                dialog = await DialogService.ShowAsync<EditFidelityCardDialog>(string.Empty, parameters, EFDialogDefaults.Options);
             }
             else
             {
-                dialog = await DialogService.ShowAsync<CreateFidelityCardDialog>("Nuova Carta Fedeltà", new DialogParameters(), options);
+                dialog = await DialogService.ShowAsync<CreateFidelityCardDialog>(string.Empty, new DialogParameters(), EFDialogDefaults.Options);
             }
 
             var result = await dialog.Result;
@@ -256,34 +260,48 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error opening fidelity card dialog for ID {Id}.", id);
-            AppNotification.ShowWarning("Si è verificato un errore nell'apertura del dialogo.");
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelity.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
         }
     }
 
     private async Task OpenManagePointsDialogAsync(FidelityCardDto card)
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["CardId"] = card.Id,
-            ["CardNumber"] = card.CardNumber,
-            ["CurrentPoints"] = card.CurrentPoints
-        };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<ManageFidelityPointsDialog>("Gestione Punti", parameters, options);
-        var result = await dialog.Result;
-        if (result is { Canceled: false })
-            await _entityPage!.RefreshAsync();
+            var parameters = new DialogParameters
+            {
+                ["CardId"] = card.Id,
+                ["CardNumber"] = card.CardNumber,
+                ["CurrentPoints"] = card.CurrentPoints
+            };
+            var dialog = await DialogService.ShowAsync<ManageFidelityPointsDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening manage points dialog for fidelity card {CardId}.", card.Id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelity.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
     }
 
     private async Task OpenHistoryDialogAsync(FidelityCardDto card)
     {
-        var parameters = new DialogParameters
+        try
         {
-            ["CardId"] = card.Id,
-            ["CardNumber"] = card.CardNumber
-        };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
-        await DialogService.ShowAsync<FidelityPointsHistoryDialog>("Storico Punti", parameters, options);
+            var parameters = new DialogParameters
+            {
+                ["CardId"] = card.Id,
+                ["CardNumber"] = card.CardNumber
+            };
+            await DialogService.ShowAsync<FidelityPointsHistoryDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening points history dialog for fidelity card {CardId}.", card.Id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelity.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
     }
 
     private async Task SuspendCardAsync(FidelityCardDto card)
@@ -291,13 +309,13 @@
         try
         {
             await FidelityService.SuspendCardAsync(card.Id);
-            AppNotification.ShowSuccess($"Carta {card.CardNumber} sospesa.");
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("fidelity.suspended", "Carta {0} sospesa.", card.CardNumber));
             await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error suspending fidelity card {CardId}", card.Id);
-            AppNotification.ShowError("Errore durante la sospensione della carta.");
+            AppNotification.ShowError(TranslationService.GetTranslation("fidelity.suspendError", "Errore durante la sospensione della carta."));
         }
     }
 
@@ -306,33 +324,35 @@
         try
         {
             await FidelityService.ActivateCardAsync(card.Id);
-            AppNotification.ShowSuccess($"Carta {card.CardNumber} attivata.");
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("fidelity.activated", "Carta {0} attivata.", card.CardNumber));
             await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error activating fidelity card {CardId}", card.Id);
-            AppNotification.ShowError("Errore durante l'attivazione della carta.");
+            AppNotification.ShowError(TranslationService.GetTranslation("fidelity.activateError", "Errore durante l'attivazione della carta."));
         }
     }
 
     private async Task RevokeCardAsync(FidelityCardDto card)
     {
-        var result = await DialogService.ShowMessageBoxAsync("Conferma Revoca",
-            $"Revocare definitivamente la carta {card.CardNumber}? L'operazione non è reversibile.",
-            yesText: "Revoca", cancelText: "Annulla");
+        var result = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("fidelity.confirmRevokeTitle", "Conferma Revoca"),
+            TranslationService.GetTranslationFormatted("fidelity.confirmRevokeMessage", "Revocare definitivamente la carta {0}? L'operazione non è reversibile.", card.CardNumber),
+            yesText: TranslationService.GetTranslation("fidelity.revoke", "Revoca"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
         if (result != true) return;
 
         try
         {
             await FidelityService.RevokeCardAsync(card.Id);
-            AppNotification.ShowSuccess($"Carta {card.CardNumber} revocata.");
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("fidelity.revoked", "Carta {0} revocata.", card.CardNumber));
             await _entityPage!.RefreshAsync();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error revoking fidelity card {CardId}", card.Id);
-            AppNotification.ShowError("Errore durante la revoca della carta.");
+            AppNotification.ShowError(TranslationService.GetTranslation("fidelity.revokeError", "Errore durante la revoca della carta."));
         }
     }
 
@@ -354,12 +374,12 @@
         _                            => Color.Default
     };
 
-    private static string GetStatusLabel(FidelityCardStatus status) => status switch
+    private string GetStatusLabel(FidelityCardStatus status) => status switch
     {
-        FidelityCardStatus.Active    => "Attiva",
-        FidelityCardStatus.Suspended => "Sospesa",
-        FidelityCardStatus.Expired   => "Scaduta",
-        FidelityCardStatus.Revoked   => "Revocata",
+        FidelityCardStatus.Active    => TranslationService.GetTranslation("fidelity.status.active", "Attiva"),
+        FidelityCardStatus.Suspended => TranslationService.GetTranslation("fidelity.status.suspended", "Sospesa"),
+        FidelityCardStatus.Expired   => TranslationService.GetTranslation("fidelity.status.expired", "Scaduta"),
+        FidelityCardStatus.Revoked   => TranslationService.GetTranslation("fidelity.status.revoked", "Revocata"),
         _                            => status.ToString()
     };
 }
