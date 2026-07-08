@@ -22,6 +22,12 @@
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <Authorizing>
+                    <div class="d-flex flex-column align-center justify-center" style="min-height:60vh;">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+                        <MudText Typo="Typo.body1" Class="mt-4">Verifica autenticazione...</MudText>
+                    </div>
+                </Authorizing>
                 <NotAuthorized>
                     @* Show empty content - LoginDialog will be shown immediately via OnAfterRenderAsync *@
                     @if (!_loginDialogShown)

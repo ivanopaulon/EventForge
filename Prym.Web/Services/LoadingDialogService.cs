@@ -35,6 +35,15 @@ public interface ILoadingDialogService
     /// Gets the current state of the loading dialog
     /// </summary>
     LoadingDialogState GetCurrentState();
+
+    /// <summary>
+    /// Begins a multi-step loading operation whose overlay only becomes visible if the
+    /// operation is still running after <paramref name="delayMsBeforeShow"/> milliseconds,
+    /// avoiding flicker on fast (sub-threshold) loads. Update <see cref="CurrentOperation"/>
+    /// text via <see cref="UpdateOperationAsync"/> for each step, then dispose the returned
+    /// scope (e.g. via <c>await using</c>) to hide the overlay when the operation completes.
+    /// </summary>
+    Task<IAsyncDisposable> BeginOperationAsync(string title, int delayMsBeforeShow = 200, CancellationToken ct = default);
 }
 
 /// <summary>
@@ -97,6 +106,65 @@ public class LoadingDialogService : ILoadingDialogService
     public LoadingDialogState GetCurrentState()
     {
         return _currentState with { }; // Return a copy
+    }
+
+    public Task<IAsyncDisposable> BeginOperationAsync(string title, int delayMsBeforeShow = 200, CancellationToken ct = default)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        _currentState = new LoadingDialogState
+        {
+            IsVisible = false,
+            Title = title,
+            CurrentOperation = string.Empty
+        };
+
+        var delayTask = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(Math.Max(0, delayMsBeforeShow), cts.Token);
+                _currentState.IsVisible = true;
+                StateChanged?.Invoke(_currentState);
+            }
+            catch (OperationCanceledException)
+            {
+                // Operation completed before the delay elapsed — overlay never shown, no flicker.
+            }
+        }, CancellationToken.None);
+
+        return Task.FromResult<IAsyncDisposable>(new LoadingOperationScope(this, cts, delayTask));
+    }
+
+    /// <summary>
+    /// Scope returned by <see cref="BeginOperationAsync"/>. Disposing it cancels the pending
+    /// delayed show (if not yet elapsed) and hides the overlay (if it was shown).
+    /// </summary>
+    private sealed class LoadingOperationScope(LoadingDialogService owner, CancellationTokenSource cts, Task delayTask) : IAsyncDisposable
+    {
+        private bool _disposed;
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            cts.Cancel();
+            try
+            {
+                await delayTask;
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the delay was cancelled before elapsing (fast operation, overlay never shown).
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+
+            await owner.HideAsync();
+        }
     }
 }
 

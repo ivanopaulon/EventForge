@@ -252,13 +252,36 @@
                 }
             }
 
-            function loadBlazorRuntime() {
+            function loadBlazorScript() {
                 return new Promise((resolve, reject) => {
                     const script = document.createElement("script");
                     script.src = "_framework/blazor.webassembly.js";
+                    // Manual start (instead of Blazor's default autostart) so we can hook
+                    // loadBootResource below and keep updating the Italian splash phase text
+                    // while the WASM runtime/assemblies download, right up until Blazor
+                    // mounts and replaces #app (which removes the splash automatically).
+                    script.setAttribute("autostart", "false");
                     script.onload = resolve;
                     script.onerror = reject;
                     document.body.appendChild(script);
+                });
+            }
+
+            function startBlazorWithProgress() {
+                const DOWNLOAD_PROGRESS_CAP = 95; // leaves headroom for the final "Avvio interfaccia..." step
+                const DOWNLOAD_PROGRESS_STEP = 3;
+                let resourcesSeen = 0;
+
+                return window.Blazor.start({
+                    loadBootResource: function (resourceType, resourceName) {
+                        resourcesSeen++;
+                        const progress = Math.min(DOWNLOAD_PROGRESS_CAP, resourcesSeen * DOWNLOAD_PROGRESS_STEP);
+                        setSplashStatus(`Download applicazione (${resourceName})...`, progress);
+                        // Returning null/undefined lets Blazor perform its own default fetch for the resource.
+                        return null;
+                    }
+                }).then(function () {
+                    setSplashStatus("Avvio interfaccia...", 100);
                 });
             }
 
@@ -266,7 +289,8 @@
                 try {
                     await waitForServerReady();
                     setSplashStatus("Connessione stabilita, download applicazione...", 100);
-                    await loadBlazorRuntime();
+                    await loadBlazorScript();
+                    await startBlazorWithProgress();
                 } catch (error) {
                     console.error("[PRYM] Bootstrap pre-check failed:", error);
                     setSplashStatus("Errore inizializzazione. Riprova...", 0);

@@ -42,7 +42,7 @@ namespace Prym.Web.Services
         {
             try
             {
-                var url = $"api/v1/events/date-range?startDate={startDate:O}&endDate={endDate:O}&page=1&pageSize=1000";
+                var url = $"api/v1/events/date-range?startDate={Uri.EscapeDataString(startDate.ToString("O"))}&endDate={Uri.EscapeDataString(endDate.ToString("O"))}&page=1&pageSize=1000";
                 var result = await httpClientService.GetAsync<PagedResult<EventDto>>(url, ct);
                 return result?.Items ?? Enumerable.Empty<EventDto>();
             }
