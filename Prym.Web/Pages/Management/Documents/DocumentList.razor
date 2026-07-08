@@ -45,9 +45,9 @@
         @if (activeSelected.Count > 0)
         {
             <MudTooltip Text="@TranslationService.GetTranslation("documents.archiveSelected", "Archivia selezionati")">
-                <MudIconButton Icon="@Icons.Material.Outlined.Archive"
-                               Color="Color.Warning"
-                               OnClick="@BulkArchiveSelectedAsync" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.Archive"
+                                Color="Color.Warning"
+                                OnClick="@BulkArchiveSelectedAsync" />
             </MudTooltip>
         }
     </AdditionalToolbarContent>

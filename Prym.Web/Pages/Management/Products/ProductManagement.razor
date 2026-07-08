@@ -27,17 +27,17 @@
                 </MudChip>
             }
             <MudTooltip Text="@TranslationService.GetTranslation("product.filterByClassification", "Filtra per Classificazione")">
-                <MudIconButton Icon="@Icons.Material.Outlined.AccountTree"
-                               Color="@(_selectedClassificationNode != null ? Color.Info : Color.Default)"
-                               Size="Size.Small"
-                               OnClick="OpenClassificationFilterAsync" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.AccountTree"
+                                Color="@(_selectedClassificationNode != null ? Color.Info : Color.Default)"
+                                Size="Size.Small"
+                                OnClick="OpenClassificationFilterAsync" />
             </MudTooltip>
             <MudDivider Vertical FlexItem />
             <MudTooltip Text="@TranslationService.GetTranslation("product.bulkCatalogUpdate", "Aggiornamento Catalogo in Blocco")">
-                <MudIconButton Icon="@Icons.Material.Outlined.AutoFixHigh"
-                               Color="Color.Default"
-                               Size="Size.Small"
-                               OnClick="OpenBulkUpdateDialogAsync" />
+                <PrymIconButton Icon="@Icons.Material.Outlined.AutoFixHigh"
+                                Color="Color.Default"
+                                Size="Size.Small"
+                                OnClick="OpenBulkUpdateDialogAsync" />
             </MudTooltip>
         </MudStack>
     </AdditionalToolbarContent>

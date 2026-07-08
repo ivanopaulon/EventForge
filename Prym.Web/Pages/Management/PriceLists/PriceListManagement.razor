@@ -20,30 +20,26 @@
                    Label="@TranslationService.GetTranslation("pricelist.onlyDefault", "Solo Default")"
                    Color="Color.Primary"
                    Class="mr-2" />
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Success"
-                   StartIcon="@Icons.Material.Filled.PriceChange"
-                   OnClick="@OpenGenerateFromDefaultPricesDialog">
+        <PrymButton Variant="Variant.Outlined" Color="Color.Success"
+                    StartIcon="@Icons.Material.Filled.PriceChange"
+                    OnClick="@OpenGenerateFromDefaultPricesDialog">
             @TranslationService.GetTranslation("pricelist.generateFromDefaults", "Da Prezzi Default")
-        </MudButton>
-        <MudButton Variant="Variant.Outlined"
-                   Color="Color.Secondary"
-                   StartIcon="@Icons.Material.Outlined.AutoAwesome"
-                   OnClick="@OpenGenerateFromDocumentsDialog">
+        </PrymButton>
+        <PrymButton Variant="Variant.Outlined" Color="Color.Secondary"
+                    StartIcon="@Icons.Material.Outlined.AutoAwesome"
+                    OnClick="@OpenGenerateFromDocumentsDialog">
             @TranslationService.GetTranslation("pricelist.generateFromDocuments", "Genera da Documenti")
-        </MudButton>
-        <MudButton Variant="Variant.Text"
-                   Color="Color.Success"
-                   StartIcon="@Icons.Material.Outlined.CheckCircle"
-                   OnClick="@BulkActivate">
+        </PrymButton>
+        <PrymButton Variant="Variant.Text" Color="Color.Success"
+                    StartIcon="@Icons.Material.Outlined.CheckCircle"
+                    OnClick="@BulkActivate">
             @TranslationService.GetTranslation("pricelist.bulkActivate", "Attiva")
-        </MudButton>
-        <MudButton Variant="Variant.Text"
-                   Color="Color.Warning"
-                   StartIcon="@Icons.Material.Outlined.Pause"
-                   OnClick="@BulkSuspend">
+        </PrymButton>
+        <PrymButton Variant="Variant.Text" Color="Color.Warning"
+                    StartIcon="@Icons.Material.Outlined.Pause"
+                    OnClick="@BulkSuspend">
             @TranslationService.GetTranslation("pricelist.bulkSuspend", "Sospendi")
-        </MudButton>
+        </PrymButton>
     </AdditionalToolbarContent>
 
     <HeaderContent Context="columnConfigurations">

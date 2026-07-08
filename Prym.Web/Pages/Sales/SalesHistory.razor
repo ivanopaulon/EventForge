@@ -24,44 +24,38 @@
 <MudPaper Elevation="1" Class="pa-3 mb-0">
     <MudGrid Spacing="2">
         <MudItem xs="12" sm="4" md="3">
-            <MudDatePicker @bind-Date="_filterFrom"
-                           Label="Da"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Class="ef-datepicker" />
+            <PrymDatePicker @bind-Date="_filterFrom"
+                            Label="Da"
+                            Class="ef-datepicker" />
         </MudItem>
         <MudItem xs="12" sm="4" md="3">
-            <MudDatePicker @bind-Date="_filterTo"
-                           Label="A"
-                           Variant="Variant.Outlined"
-                           Margin="Margin.Dense"
-                           Class="ef-datepicker" />
+            <PrymDatePicker @bind-Date="_filterTo"
+                            Label="A"
+                            Class="ef-datepicker" />
         </MudItem>
         <MudItem xs="12" sm="4" md="3">
-            <MudSelect T="SaleSessionStatusDto?" @bind-Value="_filterStatus"
-                       Label="Stato"
-                       Variant="Variant.Outlined"
-                       Margin="Margin.Dense"
-                       Clearable="true">
+            <PrymSelect T="SaleSessionStatusDto?" @bind-Value="_filterStatus"
+                        Label="Stato"
+                        Clearable="true"
+                        Class="ef-select">
                 <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Closed">Chiusa</MudSelectItem>
                 <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Cancelled">Annullata</MudSelectItem>
                 <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Open">Aperta</MudSelectItem>
                 <MudSelectItem T="SaleSessionStatusDto?" Value="@SaleSessionStatusDto.Suspended">Sospesa</MudSelectItem>
-            </MudSelect>
+            </PrymSelect>
         </MudItem>
         <MudItem xs="12" md="3">
             <MudStack Row Spacing="2">
-                <MudButton StartIcon="@Icons.Material.Outlined.Search"
-                           Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="ApplyFiltersAsync">
+                <PrymButton Variant="Variant.Filled" Color="Color.Primary"
+                            StartIcon="@Icons.Material.Outlined.Search"
+                            OnClick="ApplyFiltersAsync">
                     Cerca
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Clear"
-                           Variant="Variant.Outlined"
-                           OnClick="ClearFiltersAsync">
+                </PrymButton>
+                <PrymButton Variant="Variant.Outlined" Color="Color.Default"
+                            StartIcon="@Icons.Material.Outlined.Clear"
+                            OnClick="ClearFiltersAsync">
                     Pulisci
-                </MudButton>
+                </PrymButton>
             </MudStack>
         </MudItem>
     </MudGrid>

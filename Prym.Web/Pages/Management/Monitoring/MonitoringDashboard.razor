@@ -16,27 +16,25 @@
     <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="pa-4">
 
         <!-- Header -->
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-            <MudIcon Icon="@Icons.Material.Filled.MonitorHeart" Color="Color.Primary" Size="Size.Large" Class="mr-2" />
-            <MudText Typo="Typo.h4">
-                @TranslationService.GetTranslation("monitoring.title", "Monitoring Dashboard")
-            </MudText>
-            <MudSpacer />
-            @if (_dashboard is not null)
-            {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @TranslationService.GetTranslation("monitoring.snapshotAt", "Snapshot:") @_dashboard.SnapshotAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
-                </MudText>
-            }
-            <MudButton Variant="Variant.Outlined"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Refresh"
-                       OnClick="@LoadDataAsync"
-                       Disabled="_isLoadingData"
-                       Class="ml-2">
-                @TranslationService.GetTranslation("common.refresh", "Aggiorna")
-            </MudButton>
-        </MudStack>
+        <ManagementPageHeader Icon="@Icons.Material.Filled.MonitorHeart"
+                              Title="@TranslationService.GetTranslation("monitoring.title", "Monitoring Dashboard")">
+            <ExtraActions>
+                @if (_dashboard is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("monitoring.snapshotAt", "Snapshot:") @_dashboard.SnapshotAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                    </MudText>
+                }
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="@LoadDataAsync"
+                           Disabled="_isLoadingData"
+                           Class="ml-2">
+                    @TranslationService.GetTranslation("common.refresh", "Aggiorna")
+                </MudButton>
+            </ExtraActions>
+        </ManagementPageHeader>
 
         @if (_isLoadingData)
         {
