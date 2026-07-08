@@ -18,9 +18,11 @@ public interface ITableManagementService
     Task<List<TableSessionDto>?> GetAllTablesAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Gets all available tables.
+    /// Gets all active tables (any status: available/occupied/reserved/cleaning/out-of-service),
+    /// for pickers that must show the whole floor plan (e.g. POS table/takeaway picker) so a zone
+    /// never disappears merely because it has no free table right now.
     /// </summary>
-    Task<List<TableSessionDto>?> GetAvailableTablesAsync(CancellationToken ct = default);
+    Task<List<TableSessionDto>?> GetTablesForPickerAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Creates a new table.

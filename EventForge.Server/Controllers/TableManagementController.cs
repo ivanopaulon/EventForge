@@ -123,6 +123,33 @@ public class TableManagementController(
     }
 
     /// <summary>
+    /// Retrieves all active tables (any status) for UI pickers that must show the whole floor
+    /// plan, e.g. the POS table/takeaway picker: zones must stay visible even when every table
+    /// in them is currently occupied/reserved/etc., instead of disappearing silently.
+    /// </summary>
+    /// <param name="pagination">Pagination parameters</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [OutputCache(PolicyName = "RealTimeShortCache")]
+    [HttpGet("picker")]
+    [ProducesResponseType(typeof(PagedResult<TableSessionDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<TableSessionDto>>> GetTablesForPicker(
+        [FromQuery, ModelBinder(typeof(PaginationModelBinder))] PaginationParameters pagination,
+        CancellationToken cancellationToken = default)
+    {
+
+        try
+        {
+            var result = await tableService.GetTablesForPickerAsync(pagination, cancellationToken);
+            SetPaginationHeaders(result, pagination);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while getting tables for picker.", ex);
+        }
+    }
+
+    /// <summary>
     /// Retrieves tables for specific zone (e.g., "Sala Principale", "Terrazza", "Bar")
     /// </summary>
     /// <param name="zone">Zone name</param>

@@ -1,0 +1,145 @@
+@using Prym.Web.Shared.Components.Sales
+@using Prym.DTOs.Constants
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.TableBar"
+          Title="Tavolo / Asporto"
+          IsProcessing="@_isBusy"
+          OnClose="Cancel"
+          MinWidth="min(1000px, 95vw)"
+          MinHeight="min(70vh, 640px)">
+
+    <ChildContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="@(_currentSaleType == SaleTypes.Retail ? Variant.Filled : Variant.Outlined)"
+                           Color="@(_currentSaleType == SaleTypes.Retail ? Color.Primary : Color.Default)"
+                           StartIcon="@Icons.Material.Outlined.StoreMallDirectory"
+                           Disabled="@_isBusy"
+                           OnClick="@(() => HandleSaleTypeClickAsync(SaleTypes.Retail))">
+                    Banco
+                </MudButton>
+                <MudButton Variant="@(_currentSaleType == SaleTypes.Takeaway ? Variant.Filled : Variant.Outlined)"
+                           Color="@(_currentSaleType == SaleTypes.Takeaway ? Color.Primary : Color.Default)"
+                           StartIcon="@Icons.Material.Outlined.ShoppingBag"
+                           Disabled="@_isBusy"
+                           OnClick="@(() => HandleSaleTypeClickAsync(SaleTypes.Takeaway))">
+                    Asporto
+                </MudButton>
+            </MudStack>
+            <MudTooltip Text="Se attivo, dopo aver scelto un tavolo la sessione corrente viene assegnata al tavolo e subito parcheggiata (ex azione separata 'Parcheggia su tavolo')">
+                <MudSwitch @bind-Value="_parkOnSelect"
+                           Color="Color.Warning"
+                           Label="Assegna e parcheggia"
+                           T="bool" />
+            </MudTooltip>
+        </MudStack>
+
+        @if (Tables is not { Count: > 0 })
+        {
+            <div class="pos26-picker-empty">
+                <MudIcon Icon="@Icons.Material.Outlined.TableRestaurant" Size="Size.Large" Color="Color.Default" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun tavolo configurato.</MudText>
+            </div>
+        }
+        else
+        {
+            <TableFloorPlan Tables="@Tables"
+                             EditMode="false"
+                             DisableNonAvailable="true"
+                             SelectedTableId="@_selectedTableId"
+                             OnTableClick="HandleTableClickAsync" />
+        }
+    </ChildContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel"
+                   Variant="Variant.Text"
+                   Disabled="@_isBusy">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Tavoli di tutte le zone, qualsiasi stato (Finding 4: nessuna zona sparisce
+    /// per il solo fatto di essere momentaneamente piena).</summary>
+    [Parameter] public List<TableSessionDto>? Tables { get; set; }
+
+    /// <summary>Numero del tavolo attualmente assegnato alla sessione corrente, se presente.</summary>
+    [Parameter] public string? CurrentTableNumber { get; set; }
+
+    /// <summary>Tipo vendita corrente (<see cref="SaleTypes.Retail"/> / <see cref="SaleTypes.Takeaway"/>).</summary>
+    [Parameter] public string? CurrentSaleType { get; set; }
+
+    /// <summary>Stato iniziale del toggle "Assegna e parcheggia" (Finding 1, Opzione A: sostituisce
+    /// il vecchio pulsante icona separato "Parcheggia su tavolo" in toolbar).</summary>
+    [Parameter] public bool ParkOnSelectDefault { get; set; }
+
+    /// <summary>Eseguito alla selezione di un tavolo (parametro: tavolo scelto, se applicare anche
+    /// il parcheggio). Il chiamante esegue l'assegnazione reale e ritorna true se completata con
+    /// successo, nel qual caso il dialog si chiude.</summary>
+    [Parameter] public Func<TableSessionDto, bool, Task<bool>>? OnTableSelected { get; set; }
+
+    /// <summary>Eseguito al cambio banco/asporto; il chiamante esegue l'aggiornamento reale.</summary>
+    [Parameter] public Func<string, Task>? OnSaleTypeChanged { get; set; }
+
+    private Guid? _selectedTableId;
+    private string? _currentSaleType;
+    private bool _parkOnSelect;
+    private bool _isBusy;
+
+    protected override void OnInitialized()
+    {
+        _currentSaleType = CurrentSaleType;
+        _parkOnSelect = ParkOnSelectDefault;
+        _selectedTableId = Tables?.FirstOrDefault(t => t.TableNumber == CurrentTableNumber)?.Id;
+    }
+
+    private async Task HandleSaleTypeClickAsync(string saleType)
+    {
+        if (_isBusy || OnSaleTypeChanged is null) return;
+        _isBusy = true;
+        try
+        {
+            await OnSaleTypeChanged(saleType);
+            _currentSaleType = saleType;
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task HandleTableClickAsync(TableSessionDto table)
+    {
+        if (_isBusy || OnTableSelected is null) return;
+        _isBusy = true;
+        try
+        {
+            var success = await OnTableSelected(table, _parkOnSelect);
+            if (success)
+            {
+                MudDialog.Close(DialogResult.Ok(table));
+            }
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
+
+<style>
+    .pos26-picker-empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 2rem;
+    }
+</style>

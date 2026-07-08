@@ -121,6 +121,40 @@ public class TableManagementService(
         }
     }
 
+    public async Task<PagedResult<TableSessionDto>> GetTablesForPickerAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var tenantId = GetTenantId();
+
+            var query = context.Set<TableSession>()
+                .AsNoTracking()
+                .Where(t => t.TenantId == tenantId && !t.IsDeleted && t.IsActive);
+
+            var totalCount = await query.CountAsync(cancellationToken);
+
+            var tables = await query
+                .OrderBy(t => t.Area)
+                .ThenBy(t => t.Capacity)
+                .ThenBy(t => t.TableNumber)
+                .Skip(pagination.CalculateSkip())
+                .Take(pagination.PageSize)
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<TableSessionDto>
+            {
+                Items = tables.Select(MapToDto),
+                TotalCount = totalCount,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
+            };
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
     public async Task<TableSessionDto?> GetTableAsync(Guid tableId, CancellationToken cancellationToken = default)
     {
         try

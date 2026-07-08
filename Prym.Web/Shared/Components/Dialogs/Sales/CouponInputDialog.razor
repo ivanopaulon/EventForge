@@ -7,6 +7,19 @@
 
     <ChildContent>
         <MudStack Spacing="3">
+            @if (ActiveCouponCodes is { Count: > 0 })
+            {
+                <MudStack Spacing="1">
+                    @foreach (var couponCode in ActiveCouponCodes)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Color="Color.Success" />
+                            <MudText Typo="Typo.body2">@couponCode</MudText>
+                        </MudStack>
+                    }
+                </MudStack>
+                <MudDivider />
+            }
             <MudTextField @bind-Value="_couponCode"
                           Label="@TranslationService.GetTranslation("sales.couponCode", "Codice Coupon")"
                           Variant="Variant.Outlined"
@@ -33,6 +46,9 @@
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+
+    /// <summary>Codici coupon già applicati alla sessione corrente, mostrati come riepilogo.</summary>
+    [Parameter] public List<string>? ActiveCouponCodes { get; set; }
 
     private string _couponCode = string.Empty;
 

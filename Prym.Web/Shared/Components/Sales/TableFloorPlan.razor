@@ -1,4 +1,5 @@
 @using Prym.DTOs.Sales
+@using Prym.DTOs.Constants
 
 <div class="table-floor-plan @(EditMode ? "table-floor-plan--edit" : "")">
     @if (!Tables.Any())
@@ -22,9 +23,11 @@
                     {
                         var left = table.PositionX ?? DefaultPosition(table, areaGroup.ToList()).X;
                         var top = table.PositionY ?? DefaultPosition(table, areaGroup.ToList()).Y;
-                        <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @GetShapeCssClass(table) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "")"
+                        var isDisabled = DisableNonAvailable && !EditMode && table.Status != TableStatuses.Available;
+                        <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @GetShapeCssClass(table) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "") @(isDisabled ? "table-floor-plan__table--disabled" : "")"
                              style="@GetTableStyle(table, left, top)"
                              draggable="@EditMode"
+                             aria-disabled="@(isDisabled ? "true" : "false")"
                              @ondragstart="@(e => OnDragStart(e, table))"
                              @onclick="@(() => OnTableClickAsync(table))">
                             <span class="table-floor-plan__table-number">@table.TableNumber</span>
@@ -59,6 +62,14 @@
     /// Currently selected/highlighted table.
     /// </summary>
     [Parameter] public Guid? SelectedTableId { get; set; }
+
+    /// <summary>
+    /// When true (view mode only), tables whose <see cref="TableSessionDto.Status"/> is not
+    /// "Available" are rendered as disabled (dimmed, not clickable) instead of being hidden —
+    /// used by pickers that must show the whole floor plan (Finding 4: a zone must never
+    /// disappear just because every one of its tables is currently occupied/reserved/etc.).
+    /// </summary>
+    [Parameter] public bool DisableNonAvailable { get; set; }
 
     /// <summary>
     /// Raised when a table is clicked (view mode: select table for sale; edit mode: could open edit dialog).
@@ -131,6 +142,7 @@
     private async Task OnTableClickAsync(TableSessionDto table)
     {
         if (EditMode) return; // In edit mode, clicks are reserved for drag; use dedicated edit button/dialog instead.
+        if (DisableNonAvailable && table.Status != TableStatuses.Available) return; // Tavolo non assegnabile (Finding 4).
         if (OnTableClick.HasDelegate)
         {
             await OnTableClick.InvokeAsync(table);
