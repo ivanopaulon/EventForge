@@ -14,6 +14,7 @@
 @inject NavigationManager NavigationManager
 @inject IAuthenticationDialogService AuthenticationDialogService
 @inject IAppNotificationService AppNotification
+@inject ILoadingDialogService LoadingDialogService
 @inject ITranslationService TranslationService
 @inject ILogger<MainLayout> Logger
 @inject IDialogService DialogService
@@ -159,12 +160,50 @@
         SessionKeepaliveService.OnRefreshFailure += OnSessionRefreshFailure;
         SessionKeepaliveService.OnSessionWarning += OnSessionWarning; // NEW
         
-        await ThemeService.InitializeAsync();
-        await FontPreferencesService.InitializeAsync();
-        await CheckAuthenticationState();
-        
-        // Load branding configuration
-        await LoadBrandingAsync();
+        // Delayed overlay (shown only if startup takes longer than the threshold) so fast
+        // loads don't flicker, while each step still gets an explicit timeout + error handling.
+        await using (await LoadingDialogService.BeginOperationAsync("Avvio applicazione...", delayMsBeforeShow: 200))
+        {
+            await LoadingDialogService.UpdateOperationAsync("Applicazione tema...");
+            await RunStartupStepAsync(() => ThemeService.InitializeAsync(), "tema");
+
+            await LoadingDialogService.UpdateOperationAsync("Preferenze visualizzazione...");
+            await RunStartupStepAsync(() => FontPreferencesService.InitializeAsync(), "preferenze di visualizzazione");
+
+            await LoadingDialogService.UpdateOperationAsync("Verifica autenticazione...");
+            await RunStartupStepAsync(() => CheckAuthenticationState(), "autenticazione");
+
+            await LoadingDialogService.UpdateOperationAsync("Configurazione applicazione...");
+            await RunStartupStepAsync(() => LoadBrandingAsync(), "configurazione applicazione");
+        }
+    }
+
+    /// <summary>
+    /// Runs a single startup initialization step with an explicit timeout, logging and
+    /// surfacing failures via <see cref="IAppNotificationService"/> instead of leaving the
+    /// app stuck or silently degraded. Failures never block the remaining startup steps.
+    /// </summary>
+    private async Task RunStartupStepAsync(Func<Task> step, string stepDescription, int timeoutMs = 10000)
+    {
+        try
+        {
+            var stepTask = step();
+            var completed = await Task.WhenAny(stepTask, Task.Delay(timeoutMs));
+            if (completed != stepTask)
+            {
+                Logger.LogWarning("Startup step '{Step}' did not complete within {TimeoutMs}ms.", stepDescription, timeoutMs);
+                AppNotification.ShowWarning($"Inizializzazione '{stepDescription}' più lenta del previsto. L'app continuerà a caricarsi in background.");
+                return;
+            }
+
+            // Propagate any exception captured by the (already completed) task.
+            await stepTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Startup step '{Step}' failed.", stepDescription);
+            AppNotification.ShowError($"Errore durante l'inizializzazione: {stepDescription}.", ex.Message);
+        }
     }
 
     private async Task LoadBrandingAsync()
