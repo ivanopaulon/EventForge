@@ -1068,7 +1068,7 @@
 .pos26-fn-toolbar {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 12px;
     padding: 6px 8px;
     background: var(--mud-palette-surface);
     border-bottom: 1px solid var(--mud-palette-lines-default);
@@ -1081,6 +1081,13 @@
     gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
+}
+
+/* Riga 2 ("Conto & Turno") separata visivamente da Riga 1 ("Vendita corrente"):
+   i due gruppi hanno competenza distinta, non solo spaziatura (Finding 2). */
+.pos26-fn-toolbar-row + .pos26-fn-toolbar-row {
+    padding-top: 8px;
+    border-top: 1px solid var(--mud-palette-lines-default);
 }
 
 .pos26-fn-toolbar-row::-webkit-scrollbar {
