@@ -96,9 +96,6 @@ public partial class POS2026 : IAsyncDisposable
     // della sessione attiva (flusso "Parcheggia su tavolo" — Parte F.2).
     private bool _tablePickerParkOnSelect = false;
 
-    // --- Menu azioni secondarie (Tavolo, Sospese, Dividi, Unisci) ---
-    private bool _showMoreMenu = false;
-
     // --- Flusso giornaliero ---
     private DailyFlowDto? _dailyFlow;
     private bool _isDailyFlowOpen = false;
@@ -1434,7 +1431,6 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task ToggleDailyFlowAsync()
     {
-        _showMoreMenu = false;
         _isDailyFlowOpen = !_isDailyFlowOpen;
         if (_isDailyFlowOpen)
             await LoadDailyFlowAsync();
@@ -1448,10 +1444,8 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     // =========================================================================
-    //  Menu azioni secondarie ("Altro") — Azione 2
+    //  Azioni sempre visibili in toolbar (ex menu "Altro") — Azione 2
     // =========================================================================
-
-    private void ToggleMoreMenu() => _showMoreMenu = !_showMoreMenu;
 
     private async Task ToggleTablePickerFromMenu()
     {
@@ -1465,12 +1459,11 @@ public partial class POS2026 : IAsyncDisposable
         await OpenTablePickerFromMenuAsync(parkOnSelect: false);
     }
 
-    /// <summary>Apre il selettore tavoli dal menu "Altro", condividendo la logica comune a
-    /// entrambi i percorsi: quello normale (assegna tavolo senza parcheggiare, per il caso
-    /// dine-in) e quello combinato "Parcheggia su tavolo" (Parte F.2).</summary>
+    /// <summary>Apre il selettore tavoli, condividendo la logica comune a entrambi i percorsi:
+    /// quello normale (assegna tavolo senza parcheggiare, per il caso dine-in) e quello
+    /// combinato "Parcheggia su tavolo" (Parte F.2).</summary>
     private async Task OpenTablePickerFromMenuAsync(bool parkOnSelect)
     {
-        _showMoreMenu = false;
         _tablePickerParkOnSelect = parkOnSelect;
         _showTablePicker = true;
         await LoadAvailableTablesAsync();
@@ -1478,7 +1471,6 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task ToggleParkedFromMenu()
     {
-        _showMoreMenu = false;
         _showParkedSessions = !_showParkedSessions;
         if (_showParkedSessions)
             await LoadParkedSessionsAsync();
@@ -1514,13 +1506,11 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task OpenSplitFromMenu()
     {
-        _showMoreMenu = false;
         await OpenSplitDialogAsync();
     }
 
     private async Task OpenMergeFromMenu()
     {
-        _showMoreMenu = false;
         await OpenMergeDialogAsync();
     }
 
