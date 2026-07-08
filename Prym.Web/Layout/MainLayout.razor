@@ -192,7 +192,7 @@
             if (completed != stepTask)
             {
                 Logger.LogWarning("Startup step '{Step}' did not complete within {TimeoutMs}ms.", stepDescription, timeoutMs);
-                AppNotification.ShowWarning($"Inizializzazione '{stepDescription}' più lenta del previsto. L'app continuerà a caricarsi in background.");
+                AppNotification.ShowWarning($"Inizializzazione '{stepDescription}' più lenta del previsto. L'applicazione continuerà a caricarsi in background.");
                 return;
             }
 
