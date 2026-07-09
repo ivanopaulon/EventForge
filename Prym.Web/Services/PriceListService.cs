@@ -449,4 +449,19 @@ public class PriceListService(
             return Enumerable.Empty<PriceListDto>();
         }
     }
+
+    public async Task<List<ProductPriceListMembershipDto>> GetPriceListsForProductAsync(Guid productId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<List<ProductPriceListMembershipDto>>(
+                $"api/v1/product-management/products/{productId}/price-lists", ct);
+            return result ?? new List<ProductPriceListMembershipDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error fetching price lists for product {ProductId}", productId);
+            return new List<ProductPriceListMembershipDto>();
+        }
+    }
 }

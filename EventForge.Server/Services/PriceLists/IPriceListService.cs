@@ -29,6 +29,15 @@ public interface IPriceListService
     Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default);
     Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets all price lists a given product belongs to, with an indication of whether
+    /// each price list entry is currently active. Used to power the "in which price lists
+    /// is this product?" indicator on the product detail page.
+    /// </summary>
+    /// <param name="productId">Product identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<List<ProductPriceListMembershipDto>> GetPriceListsForProductAsync(Guid productId, CancellationToken cancellationToken = default);
+
     // Enhanced price calculation methods (Issue #245)
     /// <summary>
     /// Gets the effective price for a product considering all applicable price lists with precedence logic.

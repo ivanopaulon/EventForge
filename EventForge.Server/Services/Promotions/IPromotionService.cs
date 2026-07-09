@@ -132,4 +132,14 @@ public interface IPromotionService
     /// Duplicates an existing promotion, optionally copying its rules.
     /// </summary>
     Task<DuplicatePromotionResultDto> DuplicatePromotionAsync(Guid promotionId, DuplicatePromotionDto dto, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all promotions a given product belongs to, either via an explicit
+    /// <c>PromotionRuleProduct</c> targeting entry or via a rule with no product targeting
+    /// (which applies to all products). Used to power the "in which promotions is this
+    /// product?" indicator on the product detail page.
+    /// </summary>
+    /// <param name="productId">Product identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task<List<ProductPromotionMembershipDto>> GetPromotionsForProductAsync(Guid productId, CancellationToken cancellationToken = default);
 }

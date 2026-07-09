@@ -6,6 +6,8 @@
 @inject IAppNotificationService AppNotification
 @inject IDialogService DialogService
 @inject ITranslationService TranslationService
+@inject IPriceListService PriceListService
+@inject IPromotionClientService PromotionClientService
 @inject ILogger<ProductDetailDialog> Logger
 @implements IDisposable
 
@@ -15,6 +17,17 @@
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
           MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <TitleActions>
+        @if (!ViewModel.IsNewEntity && _membershipLoaded)
+        {
+            <MudChip T="string" Size="Size.Small"
+                     Color="@((_priceListCount + _promotionCount) > 0 ? Color.Info : Color.Default)"
+                     Icon="@Icons.Material.Outlined.Sell"
+                     OnClick="OpenMembershipDetailAsync">
+                @_priceListCount @TranslationService.GetTranslation("product.membershipChip.priceLists", "listini"), @_promotionCount @TranslationService.GetTranslation("product.membershipChip.promotions", "promozioni")
+            </MudChip>
+        }
+    </TitleActions>
     <ChildContent>
         @if (ViewModel.IsLoading)
         {
@@ -130,6 +143,9 @@
     private int _activeTab = 0;
     private int _lotsCount = 0;
     private int _serialsCount = 0;
+    private int _priceListCount = 0;
+    private int _promotionCount = 0;
+    private bool _membershipLoaded = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,12 +153,50 @@
         try
         {
             await ViewModel.LoadEntityAsync(EntityId ?? Guid.Empty);
+
+            if (!ViewModel.IsNewEntity && ViewModel.Entity != null)
+            {
+                await LoadMembershipCountsAsync(ViewModel.Entity.Id);
+            }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading product {ProductId}.", EntityId);
             AppNotification.ShowWarning("Si è verificato un errore nel caricamento del prodotto.");
         }
+    }
+
+    private async Task LoadMembershipCountsAsync(Guid productId)
+    {
+        try
+        {
+            var priceListsTask = PriceListService.GetPriceListsForProductAsync(productId);
+            var promotionsTask = PromotionClientService.GetPromotionsForProductAsync(productId);
+            await Task.WhenAll(priceListsTask, promotionsTask);
+
+            _priceListCount = priceListsTask.Result.Count;
+            _promotionCount = promotionsTask.Result.Count;
+            _membershipLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading price list/promotion membership counts for product {ProductId}.", productId);
+        }
+    }
+
+    private async Task OpenMembershipDetailAsync()
+    {
+        if (ViewModel.Entity == null) return;
+
+        var parameters = new DialogParameters<ProductMembershipDialog>
+        {
+            { x => x.ProductId, ViewModel.Entity.Id }
+        };
+
+        await DialogService.ShowAsync<ProductMembershipDialog>(
+            TranslationService.GetTranslation("product.membershipDialog.title", "Listini e Promozioni"),
+            parameters,
+            new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true });
     }
 
     private void OnViewModelStateChanged()

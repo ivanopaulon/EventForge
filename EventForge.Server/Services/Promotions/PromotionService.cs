@@ -1876,4 +1876,68 @@ public class PromotionService(
         }
     }
 
+    public async Task<List<ProductPromotionMembershipDto>> GetPromotionsForProductAsync(Guid productId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for promotion operations.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            var promotions = await context.Promotions
+                .AsNoTracking()
+                .WhereActiveTenant(currentTenantId.Value)
+                .Include(p => p.Rules.Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value))
+                    .ThenInclude(r => r.Products.Where(rp => !rp.IsDeleted))
+                .ToListAsync(cancellationToken);
+
+            var result = new List<ProductPromotionMembershipDto>();
+
+            foreach (var promotion in promotions)
+            {
+                // DECISIONE DI PRODOTTO: una regola senza prodotti espliciti (Products vuoto) si applica
+                // a TUTTI i prodotti, quindi viene considerata "match" anche per il prodotto richiesto.
+                // Questo è più corretto (evita falsi "non è in nessuna promozione" quando in realtà uno
+                // sconto generico si applica comunque), a costo di un calcolo leggermente più oneroso.
+                // Il DTO espone AppliesToAllProducts per distinguere in UI il targeting esplicito da quello generico.
+                var matchingRule = promotion.Rules.FirstOrDefault(r =>
+                    r.Products.Any(rp => rp.ProductId == productId) || r.Products.Count == 0);
+
+                if (matchingRule is null)
+                {
+                    continue;
+                }
+
+                var appliesToAllProducts = matchingRule.Products.Count == 0;
+
+                var isActive = promotion.Status == Data.Entities.Promotions.PromotionStatus.Active
+                    && promotion.StartDate <= now
+                    && promotion.EndDate >= now;
+
+                result.Add(new ProductPromotionMembershipDto
+                {
+                    PromotionId = promotion.Id,
+                    PromotionName = promotion.Name,
+                    IsActive = isActive,
+                    StartDate = promotion.StartDate,
+                    EndDate = promotion.EndDate,
+                    AppliesToAllProducts = appliesToAllProducts
+                });
+            }
+
+            return result
+                .OrderByDescending(m => m.IsActive)
+                .ThenBy(m => m.PromotionName)
+                .ToList();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
 }

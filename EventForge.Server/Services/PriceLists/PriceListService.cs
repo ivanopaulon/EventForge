@@ -328,6 +328,31 @@ public class PriceListService(
         }
     }
 
+    public async Task<List<ProductPriceListMembershipDto>> GetPriceListsForProductAsync(Guid productId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var entries = await context.PriceListEntries
+                .AsNoTracking()
+                .Include(ple => ple.PriceList)
+                .Where(ple => ple.ProductId == productId && !ple.IsDeleted && ple.PriceList != null && !ple.PriceList.IsDeleted)
+                .OrderBy(ple => ple.PriceList!.Name)
+                .ToListAsync(cancellationToken);
+
+            return entries.Select(ple => new ProductPriceListMembershipDto
+            {
+                PriceListId = ple.PriceListId,
+                PriceListName = ple.PriceList?.Name ?? string.Empty,
+                Price = ple.Price,
+                IsActive = ple.Status == Data.Entities.PriceList.PriceListEntryStatus.Active
+            }).ToList();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
     public async Task<PriceListEntryDto?> GetPriceListEntryByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         try

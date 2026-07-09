@@ -1,0 +1,136 @@
+@using Prym.DTOs.PriceLists
+@using Prym.DTOs.Promotions
+@attribute [Authorize]
+@inject IPriceListService PriceListService
+@inject IPromotionClientService PromotionClientService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<ProductMembershipDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Sell"
+          Title="@TranslationService.GetTranslation("product.membershipDialog.title", "Listini e Promozioni")"
+          IsProcessing="@_isLoading"
+          OnClose="Close"
+          MinWidth="min(560px, 95vw)"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("product.membershipDialog.priceLists", "Listini prezzi")
+            </MudText>
+            @if (!_priceLists.Any())
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    @TranslationService.GetTranslation("product.membershipDialog.noPriceLists", "Il prodotto non è presente in nessun listino.")
+                </MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true" Class="mb-4">
+                    @foreach (var pl in _priceLists)
+                    {
+                        <MudListItem T="string">
+                            <div class="d-flex align-center justify-space-between gap-2 w-full">
+                                <MudText Typo="Typo.body2">@pl.PriceListName</MudText>
+                                <div class="d-flex align-center gap-2">
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@pl.Price.ToString("C2")</MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="@(pl.IsActive ? Color.Success : Color.Default)">
+                                        @(pl.IsActive
+                                            ? TranslationService.GetTranslation("status.active", "Attivo")
+                                            : TranslationService.GetTranslation("product.membershipDialog.historical", "Storico"))
+                                    </MudChip>
+                                </div>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            <MudDivider Class="mb-3" />
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @TranslationService.GetTranslation("product.membershipDialog.promotions", "Promozioni")
+            </MudText>
+            @if (!_promotions.Any())
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @TranslationService.GetTranslation("product.membershipDialog.noPromotions", "Il prodotto non è presente in nessuna promozione.")
+                </MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var promo in _promotions)
+                    {
+                        <MudListItem T="string">
+                            <div class="d-flex align-center justify-space-between gap-2 w-full">
+                                <div>
+                                    <MudText Typo="Typo.body2">@promo.PromotionName</MudText>
+                                    @if (promo.AppliesToAllProducts)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            @TranslationService.GetTranslation("product.membershipDialog.appliesToAll", "Si applica a tutti i prodotti")
+                                        </MudText>
+                                    }
+                                </div>
+                                <MudChip T="string" Size="Size.Small" Color="@(promo.IsActive ? Color.Success : Color.Default)">
+                                    @(promo.IsActive
+                                        ? TranslationService.GetTranslation("status.active", "Attivo")
+                                        : TranslationService.GetTranslation("product.membershipDialog.historical", "Storico"))
+                                </MudChip>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Close">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Guid ProductId { get; set; }
+
+    private bool _isLoading = true;
+    private List<ProductPriceListMembershipDto> _priceLists = new();
+    private List<ProductPromotionMembershipDto> _promotions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var priceListsTask = PriceListService.GetPriceListsForProductAsync(ProductId);
+            var promotionsTask = PromotionClientService.GetPromotionsForProductAsync(ProductId);
+            await Task.WhenAll(priceListsTask, promotionsTask);
+
+            _priceLists = priceListsTask.Result;
+            _promotions = promotionsTask.Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading price list/promotion membership for product {ProductId}.", ProductId);
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento di listini e promozioni.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+}
