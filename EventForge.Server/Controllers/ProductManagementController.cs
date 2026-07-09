@@ -1792,6 +1792,50 @@ public class ProductManagementController(
     }
 
     /// <summary>
+    /// Duplicates an existing promotion, optionally copying its rules.
+    /// </summary>
+    /// <param name="id">Source promotion ID</param>
+    /// <param name="dto">Duplication options</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The newly created promotion and the number of rules copied</returns>
+    /// <response code="201">Promotion duplicated successfully</response>
+    /// <response code="400">If the input data is invalid</response>
+    /// <response code="404">If the source promotion is not found</response>
+    /// <response code="403">If the user doesn't have access to the current tenant</response>
+    [HttpPost("promotions/{id:guid}/duplicate")]
+    [ProducesResponseType(typeof(DuplicatePromotionResultDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> DuplicatePromotion(
+        Guid id,
+        [FromBody] DuplicatePromotionDto dto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+            return CreateValidationProblemDetails();
+
+        var tenantValidation = await ValidateTenantAccessAsync(tenantContext);
+        if (tenantValidation is not null)
+            return tenantValidation;
+
+        try
+        {
+            var currentUser = GetCurrentUser();
+            var result = await promotionService.DuplicatePromotionAsync(id, dto, currentUser, cancellationToken);
+            return CreatedAtAction(nameof(GetPromotion), new { id = result.NewPromotion.Id }, result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return CreateNotFoundProblem(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while duplicating the promotion.", ex);
+        }
+    }
+
+    /// <summary>
     /// Validates a coupon code and returns the promotion details if valid.
     /// </summary>
     /// <param name="request">The coupon validation request containing the coupon code and optional customer ID.</param>

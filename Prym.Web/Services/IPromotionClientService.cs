@@ -25,4 +25,5 @@ public interface IPromotionClientService
     Task<bool> RemoveRuleProductAsync(Guid promotionId, Guid ruleId, Guid productId, CancellationToken ct = default);
     Task<PromotionDto?> ValidateCouponCodeAsync(string couponCode, CancellationToken ct = default);
     Task<PromotionApplicationResultDto> ApplyPromotionsAsync(ApplyPromotionRulesDto dto, CancellationToken ct = default);
+    Task<DuplicatePromotionResultDto> DuplicateAsync(Guid promotionId, DuplicatePromotionDto dto, CancellationToken ct = default);
 }

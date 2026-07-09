@@ -3230,6 +3230,12 @@
     "deleteError": "Error deleting the promotion: {0}",
     "bulkActivate": "Activate",
     "bulkSuspend": "Suspend",
+    "duplicate": "Duplicate",
+    "sourcePromotion": "Source promotion",
+    "duplicateCouponHint": "Leave empty: coupon codes must be unique.",
+    "copyRules": "Copy rules",
+    "duplicated": "Promotion duplicated successfully ({0} rules copied).",
+    "duplicateError": "Error duplicating the promotion.",
     "status": {
       "draft": "Draft",
       "active": "Active",

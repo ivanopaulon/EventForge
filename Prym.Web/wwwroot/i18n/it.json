@@ -3284,6 +3284,12 @@
     "deleteError": "Errore nell'eliminazione della promozione: {0}",
     "bulkActivate": "Attiva",
     "bulkSuspend": "Sospendi",
+    "duplicate": "Duplica",
+    "sourcePromotion": "Promozione sorgente",
+    "duplicateCouponHint": "Lascia vuoto: i codici coupon devono essere univoci.",
+    "copyRules": "Copia le regole",
+    "duplicated": "Promozione duplicata con successo ({0} regole copiate).",
+    "duplicateError": "Errore durante la duplicazione.",
     "status": {
       "draft": "Bozza",
       "active": "Attiva",

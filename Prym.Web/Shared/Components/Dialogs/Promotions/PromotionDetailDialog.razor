@@ -562,6 +562,12 @@
     <DialogActions>
         @if (_promotion != null)
         {
+            <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
+                        StartIcon="@Icons.Material.Outlined.ContentCopy"
+                        OnClick="@OpenDuplicateDialogAsync"
+                        Disabled="_isSaving">
+                @TranslationService.GetTranslation("promotion.duplicate", "Duplica")
+            </PrymButton>
             <PrymButton Intent="PrymButton.ButtonIntent.Danger"
                         StartIcon="@Icons.Material.Outlined.Delete"
                         OnClick="@DeletePromotion"
@@ -791,6 +797,19 @@
                 Logger.LogError(ex, "Error deleting promotion {Id}", Id);
             }
         }
+    }
+
+    private async Task OpenDuplicateDialogAsync()
+    {
+        if (_promotion == null) return;
+        var parameters = new DialogParameters<DuplicatePromotionDialog>
+        {
+            { x => x.SourcePromotion, _promotion }
+        };
+        var dialog = await DialogService.ShowAsync<DuplicatePromotionDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            MudDialog.Close(DialogResult.Ok(true)); // chiude anche il dialog corrente e aggiorna la lista
     }
 
     private Color GetStatusColor() => _promotion switch

@@ -242,4 +242,18 @@ public class PromotionClientService(
             throw;
         }
     }
+
+    public async Task<DuplicatePromotionResultDto> DuplicateAsync(Guid promotionId, DuplicatePromotionDto dto, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.PostAsync<DuplicatePromotionDto, DuplicatePromotionResultDto>($"{BaseUrl}/{promotionId}/duplicate", dto, ct);
+            return result ?? throw new InvalidOperationException("Failed to duplicate promotion");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error duplicating promotion {Id}", promotionId);
+            throw;
+        }
+    }
 }

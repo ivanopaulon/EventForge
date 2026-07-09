@@ -1,0 +1,87 @@
+@using Prym.DTOs.Promotions
+@inject ITranslationService TranslationService
+@inject IPromotionClientService PromotionService
+@inject IAppNotificationService AppNotification
+@inject ILogger<DuplicatePromotionDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.ContentCopy"
+          Title="@TranslationService.GetTranslation("promotion.duplicate", "Duplica Promozione")"
+          IsProcessing="@_isLoading"
+          OnClose="Cancel"
+          MinWidth="min(650px, 95vw)">
+    <ChildContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
+            <MudStack Spacing="3">
+                <MudPaper Elevation="1" Class="pa-4">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @TranslationService.GetTranslation("promotion.sourcePromotion", "Promozione sorgente")
+                    </MudText>
+                    <MudText Typo="Typo.body1">@SourcePromotion.Name</MudText>
+                </MudPaper>
+                <MudTextField @bind-Value="_name"
+                              Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                              Variant="Variant.Outlined"
+                              Required="true" />
+                <MudTextField @bind-Value="_couponCode"
+                              Label="@TranslationService.GetTranslation("field.couponCode", "Codice Coupon")"
+                              Variant="Variant.Outlined"
+                              HelperText="@TranslationService.GetTranslation("promotion.duplicateCouponHint", "Lascia vuoto: i codici coupon devono essere univoci.")" />
+                <MudSwitch @bind-Value="_copyRules"
+                           Label="@TranslationService.GetTranslation("promotion.copyRules", "Copia le regole")"
+                           Color="Color.Info" />
+            </MudStack>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="@(!_isFormValid || _isLoading)" OnClick="ConfirmAsync">
+            @TranslationService.GetTranslation("promotion.duplicate", "Duplica Promozione")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public PromotionDto SourcePromotion { get; set; } = null!;
+
+    private MudForm? _form;
+    private bool _isFormValid;
+    private bool _isLoading;
+    private string _name = string.Empty;
+    private string? _couponCode;
+    private bool _copyRules = true;
+
+    protected override void OnInitialized()
+    {
+        _name = $"{SourcePromotion.Name} (copia)";
+    }
+
+    private async Task ConfirmAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            var dto = new DuplicatePromotionDto
+            {
+                Name = _name,
+                CouponCode = string.IsNullOrWhiteSpace(_couponCode) ? null : _couponCode,
+                CopyRules = _copyRules
+            };
+            var result = await PromotionService.DuplicateAsync(SourcePromotion.Id, dto);
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted(
+                "promotion.duplicated", "Promozione duplicata con successo ({0} regole copiate).", result.RulesCopied));
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error duplicating promotion {Id}", SourcePromotion.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.duplicateError", "Errore durante la duplicazione."));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
