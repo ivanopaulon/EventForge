@@ -3282,6 +3282,14 @@
     "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} promozioni selezionate? Questa azione non può essere annullata.",
     "deleted": "Promozione eliminata con successo!",
     "deleteError": "Errore nell'eliminazione della promozione: {0}",
+    "bulkActivate": "Attiva",
+    "bulkSuspend": "Sospendi",
+    "status": {
+      "draft": "Bozza",
+      "active": "Attiva",
+      "suspended": "Sospesa",
+      "archived": "Archiviata"
+    },
     "ruleTypes": {
       "discount": "Sconto",
       "buyXGetY": "Compra X Prendi Y",

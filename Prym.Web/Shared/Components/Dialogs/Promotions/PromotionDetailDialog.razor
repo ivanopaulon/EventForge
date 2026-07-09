@@ -105,6 +105,18 @@
                                                        Color="Color.Info"
                                                        @bind-Value:after="@(() => _hasChanges = true)" />
                                         </MudItem>
+                                        <!-- Status -->
+                                        <MudItem xs="12" md="6">
+                                            <PrymSelect @bind-Value="_updateModel.Status"
+                                                        Label="@($"{TranslationService.GetTranslation("field.status", "Stato")} *")"
+                                                        Required="true"
+                                                        @bind-Value:after="@(() => _hasChanges = true)">
+                                                <MudSelectItem Value="@PromotionStatus.Draft">@TranslationService.GetTranslation("promotion.status.draft", "Bozza")</MudSelectItem>
+                                                <MudSelectItem Value="@PromotionStatus.Active">@TranslationService.GetTranslation("promotion.status.active", "Attiva")</MudSelectItem>
+                                                <MudSelectItem Value="@PromotionStatus.Suspended">@TranslationService.GetTranslation("promotion.status.suspended", "Sospesa")</MudSelectItem>
+                                                <MudSelectItem Value="@PromotionStatus.Archived">@TranslationService.GetTranslation("promotion.status.archived", "Archiviata")</MudSelectItem>
+                                            </PrymSelect>
+                                        </MudItem>
                                         <!-- MaxTotalDiscountPercentage -->
                                         <MudItem xs="12" md="6">
                                             <PrymNullableNumericField T="decimal" @bind-Value="_updateModel.MaxTotalDiscountPercentage"
@@ -610,7 +622,8 @@
                     StartDate = DateTime.Today,
                     EndDate = DateTime.Today.AddMonths(1),
                     Priority = 0,
-                    IsCombinable = true
+                    IsCombinable = true,
+                    Status = PromotionStatus.Active
                 };
                 _startDate = _updateModel.StartDate;
                 _endDate = _updateModel.EndDate;
@@ -670,6 +683,7 @@
             IsCombinable = _promotion.IsCombinable,
             MaxTotalDiscountPercentage = _promotion.MaxTotalDiscountPercentage,
             MaxUsesPerCustomer = _promotion.MaxUsesPerCustomer,
+            Status = _promotion.Status,
             RowVersion = _promotion.RowVersion
         };
 

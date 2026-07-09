@@ -1,3 +1,5 @@
+using Prym.DTOs.Common;
+
 namespace Prym.DTOs.Promotions
 {
 
@@ -77,9 +79,14 @@ namespace Prym.DTOs.Promotions
         public int? MaxUsesPerCustomer { get; set; }
 
         /// <summary>
+        /// Status of the promotion (Draft/Active/Suspended/Archived).
+        /// </summary>
+        public PromotionStatus Status { get; set; } = PromotionStatus.Active;
+
+        /// <summary>
         /// Indicates if the promotion is currently active.
         /// </summary>
-        public bool IsCurrentlyActive => DateTime.UtcNow >= StartDate && DateTime.UtcNow <= EndDate;
+        public bool IsCurrentlyActive => Status == PromotionStatus.Active && DateTime.UtcNow >= StartDate && DateTime.UtcNow <= EndDate;
 
         /// <summary>
         /// Date and time when the promotion was created (UTC).

@@ -3228,6 +3228,14 @@
     "confirmDeleteMultiple": "Are you sure you want to delete {0} selected promotions? This action cannot be undone.",
     "deleted": "Promotion deleted successfully!",
     "deleteError": "Error deleting the promotion: {0}",
+    "bulkActivate": "Activate",
+    "bulkSuspend": "Suspend",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "suspended": "Suspended",
+      "archived": "Archived"
+    },
     "ruleTypes": {
       "discount": "Discount",
       "buyXGetY": "Buy X Get Y",

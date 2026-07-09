@@ -14,6 +14,19 @@
                       Service="_service"
                       OnEditOverride="@(id => OpenDetailDialogAsync(id))"
                       OnCreateOverride="@(() => OpenDetailDialogAsync(null))">
+    <AdditionalToolbarContent>
+        <PrymButton Variant="Variant.Text" Color="Color.Success"
+                    StartIcon="@Icons.Material.Outlined.CheckCircle"
+                    OnClick="@BulkActivate">
+            @TranslationService.GetTranslation("promotion.bulkActivate", "Attiva")
+        </PrymButton>
+        <PrymButton Variant="Variant.Text" Color="Color.Warning"
+                    StartIcon="@Icons.Material.Outlined.Pause"
+                    OnClick="@BulkSuspend">
+            @TranslationService.GetTranslation("promotion.bulkSuspend", "Sospendi")
+        </PrymButton>
+    </AdditionalToolbarContent>
+
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -45,6 +58,12 @@
             {
                 <EFTableColumnHeader TItem="PromotionDto" PropertyName="MaxUses" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.MaxUses ?? int.MaxValue))">@TranslationService.GetTranslation("field.maxUses", "Utilizzi")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="PromotionDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<PromotionDto, object>(x => x.Status))">@TranslationService.GetTranslation("common.status", "Stato")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "CouponCode")
@@ -139,6 +158,14 @@
                     }
                 </MudTd>
             }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.status", "Stato")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)" Icon="@GetStatusIcon(ctx.Item.Status)">
+                        @TranslationService.GetTranslation($"promotion.status.{ctx.Item.Status.ToString().ToLower()}", ctx.Item.Status.ToString())
+                    </MudChip>
+                </MudTd>
+            }
             else if (column.PropertyName == "CouponCode")
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("field.couponCode", "Coupon")">
@@ -219,12 +246,14 @@
                 new() { PropertyName = "MaxUses", DisplayName = "Utilizzi", IsVisible = true, Order = 4, IsSearchable = false },
                 new() { PropertyName = "CouponCode", DisplayName = "Coupon", IsVisible = true, Order = 5, IsSearchable = false },
                 new() { PropertyName = "IsCombinable", DisplayName = "Combinabile", IsVisible = true, Order = 6, IsSearchable = false },
-                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = false, Order = 7, IsSearchable = false }
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 7, IsSearchable = false },
+                new() { PropertyName = "CreatedAt", DisplayName = "Creato il", IsVisible = false, Order = 8, IsSearchable = false }
             },
             QuickFilters = new()
             {
                 new() { Id = "all", Label = "Tutti", Predicate = _ => true, Description = "Mostra tutte le promozioni" },
                 new() { Id = "active", Label = "Attive", Predicate = p => p.IsCurrentlyActive, Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Promozioni attive" },
+                new() { Id = "suspended", Label = "Sospese", Predicate = p => p.Status == PromotionStatus.Suspended, Color = Color.Warning, Icon = Icons.Material.Outlined.Pause, Description = "Promozioni sospese" },
                 new() { Id = "expired", Label = "Scadute", Predicate = p => p.EndDate < DateTime.UtcNow, Color = Color.Error, Icon = Icons.Material.Outlined.EventBusy, Description = "Promozioni scadute" },
                 new() { Id = "expiring", Label = "In scadenza", Predicate = p => p.IsCurrentlyActive && p.EndDate <= DateTime.UtcNow.AddDays(7), Color = Color.Warning, Icon = Icons.Material.Outlined.AccessTime, Description = "In scadenza entro 7 giorni" },
                 new() { Id = "coupon", Label = "Con coupon", Predicate = p => !string.IsNullOrEmpty(p.CouponCode), Color = Color.Secondary, Icon = Icons.Material.Outlined.LocalOffer, Description = "Promozioni con codice coupon" },
@@ -239,6 +268,110 @@
         <= 50 => Color.Warning,
         _ => Color.Info
     };
+
+    private Color GetStatusColor(PromotionStatus status) => status switch
+    {
+        PromotionStatus.Active => Color.Success,
+        PromotionStatus.Suspended => Color.Warning,
+        PromotionStatus.Archived => Color.Default,
+        PromotionStatus.Draft => Color.Info,
+        _ => Color.Default
+    };
+
+    private string GetStatusIcon(PromotionStatus status) => status switch
+    {
+        PromotionStatus.Active => Icons.Material.Filled.CheckCircle,
+        PromotionStatus.Suspended => Icons.Material.Filled.Pause,
+        PromotionStatus.Archived => Icons.Material.Filled.Archive,
+        PromotionStatus.Draft => Icons.Material.Filled.EditNote,
+        _ => Icons.Material.Filled.Circle
+    };
+
+    private async Task BulkActivate()
+    {
+        var selected = _entityPage?.SelectedItems;
+        if (selected == null || selected.Count == 0)
+        {
+            AppNotification.ShowInfo("Seleziona almeno una promozione da attivare");
+            return;
+        }
+        try
+        {
+            var toActivate = selected.Where(p => p.Status != PromotionStatus.Active).ToList();
+            if (toActivate.Count == 0)
+            {
+                AppNotification.ShowInfo("Tutte le promozioni selezionate sono già attive");
+                return;
+            }
+            var tasks = toActivate.Select(p => PromotionService.UpdateAsync(p.Id, new UpdatePromotionDto
+            {
+                Name = p.Name,
+                Description = p.Description,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate,
+                MinOrderAmount = p.MinOrderAmount,
+                MaxUses = p.MaxUses,
+                CouponCode = p.CouponCode,
+                Priority = p.Priority,
+                IsCombinable = p.IsCombinable,
+                MaxTotalDiscountPercentage = p.MaxTotalDiscountPercentage,
+                MaxUsesPerCustomer = p.MaxUsesPerCustomer,
+                Status = PromotionStatus.Active,
+                RowVersion = p.RowVersion
+            }, CancellationToken.None));
+            await Task.WhenAll(tasks);
+            await _entityPage!.RefreshAsync();
+            AppNotification.ShowSuccess($"{toActivate.Count} promozione/i attivata/e");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk-activating promotions.");
+            AppNotification.ShowError("Errore durante l'attivazione massiva.");
+        }
+    }
+
+    private async Task BulkSuspend()
+    {
+        var selected = _entityPage?.SelectedItems;
+        if (selected == null || selected.Count == 0)
+        {
+            AppNotification.ShowInfo("Seleziona almeno una promozione da sospendere");
+            return;
+        }
+        try
+        {
+            var toSuspend = selected.Where(p => p.Status != PromotionStatus.Suspended).ToList();
+            if (toSuspend.Count == 0)
+            {
+                AppNotification.ShowInfo("Tutte le promozioni selezionate sono già sospese");
+                return;
+            }
+            var tasks = toSuspend.Select(p => PromotionService.UpdateAsync(p.Id, new UpdatePromotionDto
+            {
+                Name = p.Name,
+                Description = p.Description,
+                StartDate = p.StartDate,
+                EndDate = p.EndDate,
+                MinOrderAmount = p.MinOrderAmount,
+                MaxUses = p.MaxUses,
+                CouponCode = p.CouponCode,
+                Priority = p.Priority,
+                IsCombinable = p.IsCombinable,
+                MaxTotalDiscountPercentage = p.MaxTotalDiscountPercentage,
+                MaxUsesPerCustomer = p.MaxUsesPerCustomer,
+                Status = PromotionStatus.Suspended,
+                RowVersion = p.RowVersion
+            }, CancellationToken.None));
+            await Task.WhenAll(tasks);
+            await _entityPage!.RefreshAsync();
+            AppNotification.ShowSuccess($"{toSuspend.Count} promozione/i sospesa/e");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error bulk-suspending promotions.");
+            AppNotification.ShowError("Errore durante la sospensione massiva.");
+        }
+    }
 
     private async Task OpenDetailDialogAsync(Guid? id)
     {

@@ -87,7 +87,8 @@ public class PromotionService(
             var now = DateTime.UtcNow;
             var promotions = await context.Promotions
                 .AsNoTracking()
-                .Where(p => !p.IsDeleted && p.StartDate <= now && p.EndDate >= now)
+                .Where(p => !p.IsDeleted && p.Status == Data.Entities.Promotions.PromotionStatus.Active)
+                .Where(p => p.StartDate <= now && p.EndDate >= now)
                 .OrderByDescending(p => p.Priority)
                 .ThenBy(p => p.Name)
                 .ToListAsync(cancellationToken);
@@ -188,6 +189,7 @@ public class PromotionService(
             promotion.IsCombinable = updateDto.IsCombinable;
             promotion.MaxTotalDiscountPercentage = updateDto.MaxTotalDiscountPercentage;
             promotion.MaxUsesPerCustomer = updateDto.MaxUsesPerCustomer;
+            promotion.Status = ConvertStatus(updateDto.Status);
             promotion.ModifiedAt = DateTime.UtcNow;
             promotion.ModifiedBy = currentUser;
 
@@ -302,6 +304,7 @@ public class PromotionService(
             IsCombinable = promotion.IsCombinable,
             MaxTotalDiscountPercentage = promotion.MaxTotalDiscountPercentage,
             MaxUsesPerCustomer = promotion.MaxUsesPerCustomer,
+            Status = ConvertStatus(promotion.Status),
             CreatedAt = promotion.CreatedAt,
             CreatedBy = promotion.CreatedBy,
             ModifiedAt = promotion.ModifiedAt,
@@ -309,6 +312,30 @@ public class PromotionService(
             RowVersion = promotion.RowVersion
         };
     }
+
+    /// <summary>
+    /// Converts entity PromotionStatus to DTO PromotionStatus.
+    /// </summary>
+    private static Prym.DTOs.Common.PromotionStatus ConvertStatus(Data.Entities.Promotions.PromotionStatus entityStatus) => entityStatus switch
+    {
+        Data.Entities.Promotions.PromotionStatus.Draft => Prym.DTOs.Common.PromotionStatus.Draft,
+        Data.Entities.Promotions.PromotionStatus.Active => Prym.DTOs.Common.PromotionStatus.Active,
+        Data.Entities.Promotions.PromotionStatus.Suspended => Prym.DTOs.Common.PromotionStatus.Suspended,
+        Data.Entities.Promotions.PromotionStatus.Archived => Prym.DTOs.Common.PromotionStatus.Archived,
+        _ => Prym.DTOs.Common.PromotionStatus.Active
+    };
+
+    /// <summary>
+    /// Converts DTO PromotionStatus to entity PromotionStatus.
+    /// </summary>
+    private static Data.Entities.Promotions.PromotionStatus ConvertStatus(Prym.DTOs.Common.PromotionStatus dtoStatus) => dtoStatus switch
+    {
+        Prym.DTOs.Common.PromotionStatus.Draft => Data.Entities.Promotions.PromotionStatus.Draft,
+        Prym.DTOs.Common.PromotionStatus.Active => Data.Entities.Promotions.PromotionStatus.Active,
+        Prym.DTOs.Common.PromotionStatus.Suspended => Data.Entities.Promotions.PromotionStatus.Suspended,
+        Prym.DTOs.Common.PromotionStatus.Archived => Data.Entities.Promotions.PromotionStatus.Archived,
+        _ => Data.Entities.Promotions.PromotionStatus.Active
+    };
 
     public async Task<PromotionApplicationResultDto> ApplyPromotionRulesAsync(ApplyPromotionRulesDto applyDto, CancellationToken cancellationToken = default)
     {
@@ -545,6 +572,7 @@ public class PromotionService(
         var promotions = await context.Promotions
             .AsNoTracking()
             .WhereActiveTenant(currentTenantId.Value)
+            .Where(p => p.Status == Data.Entities.Promotions.PromotionStatus.Active)
             .Where(p => p.StartDate <= now && p.EndDate >= now)
             .Include(p => p.Rules.Where(r => !r.IsDeleted && r.TenantId == currentTenantId.Value))
                 .ThenInclude(r => r.Products)
@@ -1191,6 +1219,7 @@ public class PromotionService(
                 .Include(pr => pr.Promotion)
                 .Where(pr => !pr.IsDeleted &&
                            !pr.Promotion!.IsDeleted &&
+                           pr.Promotion.Status == Data.Entities.Promotions.PromotionStatus.Active &&
                            pr.Promotion.StartDate <= checkDateTime &&
                            pr.Promotion.EndDate >= checkDateTime);
 
@@ -1228,6 +1257,7 @@ public class PromotionService(
             var promotion = await context.Promotions
                 .AsNoTracking()
                 .Where(p => !p.IsDeleted && p.IsActive &&
+                            p.Status == Data.Entities.Promotions.PromotionStatus.Active &&
                             p.CouponCode != null &&
                             p.CouponCode.ToUpper() == normalizedCode &&
                             p.StartDate <= now && p.EndDate >= now)
