@@ -12,13 +12,17 @@
           MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
 
-        @* ─── Step indicator ─── *@
-        <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_step" Linear="true" Class="mb-4">
-            <MudStep Title="Pre-Check"  Icon="@Icons.Material.Filled.CheckCircleOutline" />
-            <MudStep Title="Conferma"   Icon="@Icons.Material.Filled.Warning" />
-            <MudStep Title="In corso"   Icon="@Icons.Material.Filled.HourglassTop" />
-            <MudStep Title="Completata" Icon="@Icons.Material.Filled.CheckCircle" />
-        </MudStepper>
+        @* ─── Step indicator ───
+           Eccezione documentata: DailyClosureDialog non usa PrymStepperActions perché il testo del
+           bottone finale (step 1) è condizionale sul tipo di chiusura pianificata
+           (_preCheck?.PlannedClosureType), non riconducibile al pattern generico
+           Indietro/Avanti/Conferma. La struttura @if (_step == N) sotto resta invariata. *@
+        <PrymStepper ActiveIndex="@_step" ActiveIndexChanged="@(i => _step = i)" Linear="true" Class="mb-4">
+            <PrymStep Title="Pre-Check"  Icon="@Icons.Material.Filled.CheckCircleOutline" />
+            <PrymStep Title="Conferma"   Icon="@Icons.Material.Filled.Warning" />
+            <PrymStep Title="In corso"   Icon="@Icons.Material.Filled.HourglassTop" />
+            <PrymStep Title="Completata" Icon="@Icons.Material.Filled.CheckCircle" />
+        </PrymStepper>
 
         @* ═══════════════════════════════════
            STEP 0 – Pre-check
@@ -352,7 +356,6 @@
     //  State
     // ─────────────────────────────────────────────────────────
 
-    private MudStepper? _stepper;
     private int _step;
     private bool _isLoadingPreCheck = true;
     private bool _confirmedCheckbox;

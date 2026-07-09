@@ -166,9 +166,8 @@
                                     Match="NavLinkMatch.All">
                             @TranslationService.GetTranslation("nav.inventoryDiagnostics", "Diagnostica e Correggi")
                         </MudNavLink>
-                        <MudNavLink Href="/warehouse/inventory-merge"
-                                    Icon="@Icons.Material.Outlined.MergeType"
-                                    Match="NavLinkMatch.All">
+                        <MudNavLink OnClick="OpenInventoryMergeDialogAsync"
+                                    Icon="@Icons.Material.Outlined.MergeType">
                             @TranslationService.GetTranslation("nav.inventoryMerge", "Accorpamento Inventari")
                         </MudNavLink>
                     </MudNavGroup>
@@ -379,6 +378,11 @@
             _openGroup = groupId;
         else if (_openGroup == groupId)
             _openGroup = null;
+    }
+
+    private async Task OpenInventoryMergeDialogAsync()
+    {
+        await DialogService.ShowAsync<InventoryMergeDialog>(string.Empty, EFDialogDefaults.Options);
     }
 
     protected override async Task OnInitializedAsync()

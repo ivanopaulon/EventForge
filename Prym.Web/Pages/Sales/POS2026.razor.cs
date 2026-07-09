@@ -1611,6 +1611,7 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task OpenMergeDialogAsync()
     {
+        await LoadOpenSessionsAsync(); // fix: garantisce che la lista sia fresca al momento dell'apertura, non stale dall'ultimo refresh
         try
         {
             var parameters = new DialogParameters

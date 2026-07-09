@@ -1,0 +1,98 @@
+@* EFStepperDialog — combina EFDialog + PrymStepper + PrymStepperActions per il caso standard
+   di un dialog multistep con Annulla + navigazione Indietro/Avanti/Conferma nel footer. *@
+
+<EFDialog Icon="@Icon"
+          Title="@Title"
+          IsProcessing="@IsProcessing"
+          OnClose="HandleCancel"
+          MinWidth="@MinWidth"
+          MinHeight="@MinHeight"
+          MaxHeight="@MaxHeight">
+    <TitleActions>
+        @TitleActions
+    </TitleActions>
+    <ChildContent>
+        <PrymStepper ActiveIndex="ActiveIndex" ActiveIndexChanged="ActiveIndexChanged" Linear="Linear">
+            @ChildContent
+        </PrymStepper>
+    </ChildContent>
+    <DialogActions>
+        @if (ShowCancel)
+        {
+            <MudButton OnClick="HandleCancel" Variant="Variant.Text" Color="Color.Default" Disabled="@Busy">
+                @CancelText
+            </MudButton>
+        }
+        @if (ExtraActions is not null)
+        {
+            @ExtraActions
+        }
+        @if (ShowStepperActions)
+        {
+            <PrymStepperActions ActiveIndex="ActiveIndex"
+                                 ActiveIndexChanged="ActiveIndexChanged"
+                                 StepCount="StepCount"
+                                 ShowPrevious="ShowPrevious"
+                                 CanGoNext="CanGoNext"
+                                 CanComplete="CanComplete"
+                                 Busy="Busy"
+                                 PreviousText="@PreviousText"
+                                 NextText="@NextText"
+                                 CompleteText="@CompleteText"
+                                 CompleteIcon="@CompleteIcon"
+                                 CompleteColor="CompleteColor"
+                                 OnComplete="OnComplete"
+                                 BeforeNextAsync="BeforeNextAsync"
+                                 ResolveNextIndex="ResolveNextIndex"
+                                 ResolvePreviousIndex="ResolvePreviousIndex" />
+        }
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public string Icon { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public bool IsProcessing { get; set; } = false;
+    [Parameter] public string MinWidth { get; set; } = "min(600px, 95vw)";
+    [Parameter] public string MinHeight { get; set; } = EFDialogDefaults.MinHeightSimple;
+    [Parameter] public string MaxHeight { get; set; } = "calc(100vh - 48px)";
+    [Parameter] public RenderFragment? TitleActions { get; set; }
+
+    [Parameter, EditorRequired] public int ActiveIndex { get; set; }
+    [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+    [Parameter] public bool Linear { get; set; } = true;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter, EditorRequired] public int StepCount { get; set; }
+    [Parameter] public bool ShowStepperActions { get; set; } = true;
+    [Parameter] public bool ShowPrevious { get; set; } = true;
+    [Parameter] public bool CanGoNext { get; set; } = true;
+    [Parameter] public bool CanComplete { get; set; } = true;
+    [Parameter] public bool Busy { get; set; } = false;
+    [Parameter] public string PreviousText { get; set; } = "Indietro";
+    [Parameter] public string NextText { get; set; } = "Avanti";
+    [Parameter] public string CompleteText { get; set; } = "Conferma";
+    [Parameter] public string CompleteIcon { get; set; } = Icons.Material.Outlined.Check;
+    [Parameter] public Color CompleteColor { get; set; } = Color.Primary;
+    [Parameter] public EventCallback OnComplete { get; set; }
+    [Parameter] public Func<int, Task<bool>>? BeforeNextAsync { get; set; }
+    [Parameter] public Func<int, int>? ResolveNextIndex { get; set; }
+    [Parameter] public Func<int, int>? ResolvePreviousIndex { get; set; }
+
+    [Parameter] public bool ShowCancel { get; set; } = true;
+    [Parameter] public string CancelText { get; set; } = "Annulla";
+    [Parameter] public EventCallback OnCancel { get; set; }
+    [Parameter] public RenderFragment? ExtraActions { get; set; }
+
+    private async Task HandleCancel()
+    {
+        if (OnCancel.HasDelegate)
+        {
+            await OnCancel.InvokeAsync();
+            return;
+        }
+        MudDialog.Cancel();
+    }
+}

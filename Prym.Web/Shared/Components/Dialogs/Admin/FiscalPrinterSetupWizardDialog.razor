@@ -1,115 +1,92 @@
-@namespace Prym.Web.Pages.FiscalAdmin
-@page "/admin/fiscal-printers/setup"
-@page "/admin/fiscal-printers-wizard/{PrinterId:guid}"
-@* Eccezione documentata (Categoria D — WizardPage):
-   questa pagina usa MudTable diretto perché è un wizard multi-step per la
+@* Eccezione documentata (Categoria D — WizardDialog):
+   questo dialog usa MudTable diretto perché è un wizard multi-step per la
    configurazione guidata delle stampanti fiscali. Le step tables embedded
    (articoli IVA, mappature, test) non sono compatibili con EntityManagementPage
    o EFTable senza duplicazioni strutturali o regressioni UX del wizard.
-   Riesaminare se in futuro si crea un archetipo WizardPage con EFTable embedded. *@
+   Riesaminare se in futuro si crea un archetipo WizardDialog con EFTable embedded. *@
 @using Prym.DTOs.FiscalPrinting
 @using Prym.DTOs.Station
 @using Prym.DTOs.VatRates
 @using Prym.DTOs.Store
 @using Prym.Web.Services.Sales
-@attribute [Authorize(Roles = "SuperAdmin,Admin")]
 @inject IFiscalPrintingService FiscalPrintingService
 @inject IFinancialService FinancialService
 @inject IPaymentMethodService PaymentMethodService
 @inject IHttpClientService HttpClientService
 @inject IAppNotificationService AppNotification
-@inject NavigationManager NavigationManager
-@inject ILogger<FiscalPrinterSetupWizard> Logger
+@inject ILogger<FiscalPrinterSetupWizardDialog> Logger
 
-<PageTitle>@(_isEditMode ? "Modifica Stampante" : "Wizard Configurazione Stampante Fiscale")</PageTitle>
+<EFStepperDialog Icon="@Icons.Material.Outlined.Print"
+                  Title="@(_isEditMode ? "Modifica Stampante Fiscale" : "Nuova Stampante Fiscale")"
+                  MinWidth="@EFDialogDefaults.MinWidthTabbed"
+                  ActiveIndex="@_activeStep"
+                  ActiveIndexChanged="@(i => _activeStep = i)"
+                  Linear="false"
+                  StepCount="8"
+                  CanGoNext="@CanAdvanceFromCurrentStep()"
+                  BeforeNextAsync="@HandleBeforeNextAsync"
+                  Busy="@(_isSaving)"
+                  CompleteText="@(_isEditMode ? "Aggiorna Configurazione" : "Salva Configurazione")"
+                  CompleteIcon="@Icons.Material.Outlined.Save"
+                  OnComplete="SaveConfigurationAsync">
+    <PrymStep Title="Connessione"         Icon="@Icons.Material.Filled.SettingsEthernet">
+        <MudPaper Class="pa-6 mb-4" Elevation="1">
+            <MudText Typo="Typo.subtitle1" Class="mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.SettingsEthernet" Class="mr-2" />
+                Seleziona il tipo di connessione della stampante fiscale
+            </MudText>
 
-<ManagementPageHeader Title="@(_isEditMode ? "Modifica Stampante" : "Configurazione Stampante Fiscale")"
-                      Icon="@Icons.Material.Outlined.Print"
-                      BreadcrumbItems="_breadcrumbs" />
-
-@* ──────────────────── STEP INDICATOR ──────────────────── *@
-<MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStep" Linear="false" Class="mb-4">
-    <MudStep Title="Connessione"         Icon="@Icons.Material.Filled.SettingsEthernet" />
-    <MudStep Title="Impostazioni"        Icon="@Icons.Material.Filled.Tune" />
-    <MudStep Title="Info Stampante"      Icon="@Icons.Material.Filled.Info" />
-    <MudStep Title="Configurazione"      Icon="@Icons.Material.Filled.TextFields" />
-    <MudStep Title="Tipo &amp; Carta"    Icon="@Icons.Material.Filled.Print" />
-    <MudStep Title="Dati Fiscali"        Icon="@Icons.Material.Filled.Code" />
-    <MudStep Title="Associa POS"         Icon="@Icons.Material.Filled.PointOfSale" />
-    <MudStep Title="Test &amp; Salva"    Icon="@Icons.Material.Filled.CheckCircle" />
-</MudStepper>
-
-@* ══════════════════════════════════════════════════════════════
-   STEP 0 – Tipo Connessione
-   ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 0)
-{
-    <MudPaper Class="pa-6 mb-4" Elevation="1">
-        <MudText Typo="Typo.subtitle1" Class="mb-4">
-            <MudIcon Icon="@Icons.Material.Filled.SettingsEthernet" Class="mr-2" />
-            Seleziona il tipo di connessione della stampante fiscale
-        </MudText>
-
-        <MudRadioGroup T="string" @bind-Value="_connectionType">
-            <MudStack Spacing="3">
-                <MudPaper Class="pa-4 border-default" Elevation="0">
-                    <MudRadio Value="@("TCP")" Color="Color.Primary">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.body1"><b>TCP/IP – Diretto</b></MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è in rete e raggiungibile direttamente dal <b>Server</b> via IP (porta 9100). L'indirizzo IP deve essere visibile dalla macchina server.</MudText>
-                        </MudStack>
-                    </MudRadio>
-                </MudPaper>
-                <MudPaper Class="pa-4 border-default" Elevation="0">
-                    <MudRadio Value="@("TcpViaAgent")" Color="Color.Primary">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.body1"><b>TCP/IP via Agente</b> – stampante in rete dell'Agent</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è in rete ma raggiungibile solo dall'<b>Agente</b> (es. fiscale al POS, su rete locale del negozio). Il server non vede l'IP direttamente; la comunicazione passa per l'Agente installato sul dispositivo.</MudText>
-                        </MudStack>
-                    </MudRadio>
-                </MudPaper>
-                <MudPaper Class="pa-4 border-default" Elevation="0">
-                    <MudRadio Value="@("Serial")" Color="Color.Primary">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.body1"><b>Seriale RS232</b> – Porta COM</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è connessa direttamente via cavo seriale (COM1, /dev/ttyUSB0, ecc.)</MudText>
-                        </MudStack>
-                    </MudRadio>
-                </MudPaper>
-                <MudPaper Class="pa-4 border-default" Elevation="0">
-                    <MudRadio Value="@("UsbViaAgent")" Color="Color.Primary">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.body1"><b>USB via Agente</b> – EventForge UpdateAgent</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è connessa via USB al client; il server la raggiunge tramite l'agente installato</MudText>
-                        </MudStack>
-                    </MudRadio>
-                </MudPaper>
-                <MudPaper Class="pa-4 border-default" Elevation="0">
-                    <MudRadio Value="@("NetworkShare")" Color="Color.Primary">
-                        <MudStack Spacing="0">
-                            <MudText Typo="Typo.body1"><b>Condivisione di Rete</b> – Windows Network Share</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è condivisa sulla rete locale Windows (\\server\stampante)</MudText>
-                        </MudStack>
-                    </MudRadio>
-                </MudPaper>
-            </MudStack>
-        </MudRadioGroup>
-
-        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-6">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 1)">
-                Avanti
-            </MudButton>
-        </MudStack>
-    </MudPaper>
-}
+            <MudRadioGroup T="string" @bind-Value="_connectionType">
+                <MudStack Spacing="3">
+                    <MudPaper Class="pa-4 border-default" Elevation="0">
+                        <MudRadio Value="@("TCP")" Color="Color.Primary">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1"><b>TCP/IP – Diretto</b></MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è in rete e raggiungibile direttamente dal <b>Server</b> via IP (porta 9100). L'indirizzo IP deve essere visibile dalla macchina server.</MudText>
+                            </MudStack>
+                        </MudRadio>
+                    </MudPaper>
+                    <MudPaper Class="pa-4 border-default" Elevation="0">
+                        <MudRadio Value="@("TcpViaAgent")" Color="Color.Primary">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1"><b>TCP/IP via Agente</b> – stampante in rete dell'Agent</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è in rete ma raggiungibile solo dall'<b>Agente</b> (es. fiscale al POS, su rete locale del negozio). Il server non vede l'IP direttamente; la comunicazione passa per l'Agente installato sul dispositivo.</MudText>
+                            </MudStack>
+                        </MudRadio>
+                    </MudPaper>
+                    <MudPaper Class="pa-4 border-default" Elevation="0">
+                        <MudRadio Value="@("Serial")" Color="Color.Primary">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1"><b>Seriale RS232</b> – Porta COM</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è connessa direttamente via cavo seriale (COM1, /dev/ttyUSB0, ecc.)</MudText>
+                            </MudStack>
+                        </MudRadio>
+                    </MudPaper>
+                    <MudPaper Class="pa-4 border-default" Elevation="0">
+                        <MudRadio Value="@("UsbViaAgent")" Color="Color.Primary">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1"><b>USB via Agente</b> – EventForge UpdateAgent</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è connessa via USB al client; il server la raggiunge tramite l'agente installato</MudText>
+                            </MudStack>
+                        </MudRadio>
+                    </MudPaper>
+                    <MudPaper Class="pa-4 border-default" Elevation="0">
+                        <MudRadio Value="@("NetworkShare")" Color="Color.Primary">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.body1"><b>Condivisione di Rete</b> – Windows Network Share</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">La stampante è condivisa sulla rete locale Windows (\\server\stampante)</MudText>
+                            </MudStack>
+                        </MudRadio>
+                    </MudPaper>
+                </MudStack>
+            </MudRadioGroup>
+        </MudPaper>
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 1 – TCP / TcpViaAgent / Serial / UsbViaAgent / NetworkShare config
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 1)
-{
+    <PrymStep Title="Impostazioni" Icon="@Icons.Material.Filled.Tune">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         @if (_connectionType == "TCP")
         {
@@ -210,29 +187,17 @@
                 </MudAlert>
             }
 
-            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-                <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 0)"
-                           StartIcon="@Icons.Material.Filled.ArrowBack">
-                    Indietro
+            <MudStack Row="true" Class="mt-6">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.NetworkCheck"
+                           OnClick="TestTcpAsync"
+                           Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_tcpIpAddress))">
+                    @if (_isTesting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Test Connessione
                 </MudButton>
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                               StartIcon="@Icons.Material.Filled.NetworkCheck"
-                               OnClick="TestTcpAsync"
-                               Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_tcpIpAddress))">
-                        @if (_isTesting)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                        }
-                        Test Connessione
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               EndIcon="@Icons.Material.Filled.ArrowForward"
-                               OnClick="AdvanceFromStep1Tcp"
-                               Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
-                        Avanti
-                    </MudButton>
-                </MudStack>
             </MudStack>
         }
         else if (_connectionType == "TcpViaAgent")
@@ -307,29 +272,17 @@
                 </MudAlert>
             }
 
-            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-                <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 0)"
-                           StartIcon="@Icons.Material.Filled.ArrowBack">
-                    Indietro
+            <MudStack Row="true" Class="mt-6">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.NetworkCheck"
+                           OnClick="TestTcpViaAgentAsync"
+                           Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_tcpIpAddress) || string.IsNullOrWhiteSpace(_agentId))">
+                    @if (_isTesting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    }
+                    Test via Agente
                 </MudButton>
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                               StartIcon="@Icons.Material.Filled.NetworkCheck"
-                               OnClick="TestTcpViaAgentAsync"
-                               Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_tcpIpAddress) || string.IsNullOrWhiteSpace(_agentId))">
-                        @if (_isTesting)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                        }
-                        Test via Agente
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               EndIcon="@Icons.Material.Filled.ArrowForward"
-                               OnClick="AdvanceFromStep1TcpViaAgent"
-                               Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
-                        Avanti
-                    </MudButton>
-                </MudStack>
             </MudStack>
         }
         else if (_connectionType == "Serial")
@@ -378,26 +331,14 @@
                 </MudAlert>
             }
 
-            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-                <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 0)"
-                           StartIcon="@Icons.Material.Filled.ArrowBack">
-                    Indietro
+            <MudStack Row="true" Class="mt-6">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
+                           StartIcon="@Icons.Material.Filled.NetworkCheck"
+                           OnClick="TestSerialAsync"
+                           Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_serialPortName))">
+                    @if (_isTesting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
+                    Test Connessione
                 </MudButton>
-                <MudStack Row="true" Spacing="2">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary"
-                               StartIcon="@Icons.Material.Filled.NetworkCheck"
-                               OnClick="TestSerialAsync"
-                               Disabled="@(_isTesting || string.IsNullOrWhiteSpace(_serialPortName))">
-                        @if (_isTesting) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
-                        Test Connessione
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                               EndIcon="@Icons.Material.Filled.ArrowForward"
-                               OnClick="AdvanceFromStep1Serial"
-                               Disabled="@(!_isEditMode && !(_testConnectionResult?.Success ?? false))">
-                        Avanti
-                    </MudButton>
-                </MudStack>
             </MudStack>
         }
         else
@@ -471,27 +412,14 @@
                     </MudItem>
                 }
             </MudGrid>
-
-            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-                <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 0)"
-                           StartIcon="@Icons.Material.Filled.ArrowBack">
-                    Indietro
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           EndIcon="@Icons.Material.Filled.ArrowForward"
-                           OnClick="AdvanceFromStep1Agent">
-                    Avanti
-                </MudButton>
-            </MudStack>
         }
     </MudPaper>
-}
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 2 – Info Stampante
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 2)
-{
+    <PrymStep Title="Info Stampante" Icon="@Icons.Material.Filled.Info">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2" />
@@ -560,27 +488,13 @@
                 </MudItem>
             </MudGrid>
         }
-
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 1)"
-                       StartIcon="@Icons.Material.Filled.ArrowBack">
-                Indietro
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 3)"
-                       Disabled="@(_printerInfo is null && _connectionType is not "TcpViaAgent" and not "UsbViaAgent" and not "Serial" and not "NetworkShare")">
-                Avanti
-            </MudButton>
-        </MudStack>
     </MudPaper>
-}
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 3 – Configurazione Base
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 3)
-{
+    <PrymStep Title="Configurazione" Icon="@Icons.Material.Filled.TextFields">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.TextFields" Class="mr-2" />
@@ -616,26 +530,13 @@
             </MudItem>
         </MudGrid>
 
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 2)"
-                       StartIcon="@Icons.Material.Filled.ArrowBack">
-                Indietro
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="AdvanceFromStep3"
-                       Disabled="@string.IsNullOrWhiteSpace(_printerName)">
-                Avanti
-            </MudButton>
-        </MudStack>
     </MudPaper>
-}
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 4 (NEW) – Tipo Stampante
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 4)
-{
+    <PrymStep Title="Tipo &amp; Carta" Icon="@Icons.Material.Filled.Print">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.Print" Class="mr-2" />
@@ -704,25 +605,13 @@
             </MudItem>
         </MudGrid>
 
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 3)"
-                       StartIcon="@Icons.Material.Filled.ArrowBack">
-                Indietro
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 5)">
-                Avanti
-            </MudButton>
-        </MudStack>
     </MudPaper>
-}
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 5 – Mapping Codici Fiscali (was 4)
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 5)
-{
+    <PrymStep Title="Dati Fiscali" Icon="@Icons.Material.Filled.Code">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.Code" Class="mr-2" />
@@ -807,25 +696,13 @@
             </MudTabPanel>
         </MudTabs>
 
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 4)"
-                       StartIcon="@Icons.Material.Filled.ArrowBack">
-                Indietro
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 6)">
-                Avanti
-            </MudButton>
-        </MudStack>
     </MudPaper>
-}
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 6 – Associa POS (was 5)
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 6)
-{
+    <PrymStep Title="Associa POS" Icon="@Icons.Material.Filled.PointOfSale">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.PointOfSale" Class="mr-2" />
@@ -859,25 +736,13 @@
             </MudTable>
         }
 
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 5)"
-                       StartIcon="@Icons.Material.Filled.ArrowBack">
-                Indietro
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       EndIcon="@Icons.Material.Filled.ArrowForward"
-                       OnClick="@(() => _activeStep = 7)">
-                Avanti
-            </MudButton>
-        </MudStack>
     </MudPaper>
-}
+    </PrymStep>
 
 @* ══════════════════════════════════════════════════════════════
    STEP 7 – Test Finale & Salva (was 6)
    ══════════════════════════════════════════════════════════════ *@
-@if (_activeStep == 7)
-{
+    <PrymStep Title="Test &amp; Salva" Icon="@Icons.Material.Filled.CheckCircle">
     <MudPaper Class="pa-6 mb-4" Elevation="1">
         <MudText Typo="Typo.subtitle1" Class="mb-4">
             <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Class="mr-2" />
@@ -948,31 +813,13 @@
         {
             <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_saveError</MudAlert>
         }
-
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-6">
-            <MudButton Variant="Variant.Text" OnClick="@(() => _activeStep = 6)"
-                       StartIcon="@Icons.Material.Filled.ArrowBack">
-                Indietro
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Success"
-                       StartIcon="@Icons.Material.Filled.Save"
-                       OnClick="SaveConfigurationAsync"
-                       Disabled="@_isSaving">
-                @if (_isSaving)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
-                    <span>@(_isEditMode ? "Aggiornamento..." : "Salvataggio...")</span>
-                }
-                else
-                {
-                    <span>@(_isEditMode ? "Aggiorna Configurazione" : "Salva Configurazione")</span>
-                }
-            </MudButton>
-        </MudStack>
     </MudPaper>
-}
+    </PrymStep>
+</EFStepperDialog>
 
 @code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
     // ──────────────────────────────────────────────────────────
     //  Parameters
     // ──────────────────────────────────────────────────────────
@@ -983,7 +830,6 @@
     //  State
     // ──────────────────────────────────────────────────────────
 
-    private MudStepper? _stepper;
     private int _activeStep;
     private bool _isEditMode => PrinterId.HasValue;
 
@@ -1044,12 +890,6 @@
     private Guid? _savedPrinterId;
 
     // ──────────────────────────────────────────────────────────
-    //  Breadcrumbs
-    // ──────────────────────────────────────────────────────────
-
-    private List<BreadcrumbItem> _breadcrumbs = new();
-
-    // ──────────────────────────────────────────────────────────
     //  Lifecycle
     // ──────────────────────────────────────────────────────────
 
@@ -1057,13 +897,6 @@
     {
         try
         {
-            _breadcrumbs =
-            [
-                new BreadcrumbItem("Home", href: "/"),
-                new BreadcrumbItem("Stampanti Fiscali", href: "/admin/fiscal-printers"),
-                new BreadcrumbItem(_isEditMode ? "Modifica Wizard" : "Nuovo Wizard", href: null, disabled: true)
-            ];
-
             var vatTask = FinancialService.GetVatRatesAsync(1, 100);
             var paymentTask = PaymentMethodService.GetAllAsync();
             var stationsTask = HttpClientService.GetAsync<PagedResult<StationDto>>(
@@ -1149,6 +982,53 @@
         _printerWidth = setup.PrinterWidth;
         _paperWidth = setup.PaperWidth;
         _printLanguage = setup.PrintLanguage;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Stepper navigation (centralized via EFStepperDialog)
+    // ──────────────────────────────────────────────────────────
+
+    // Riproduce fedelmente le condizioni "Disabled" originali dei bottoni "Avanti" per-step.
+    private bool CanAdvanceFromCurrentStep() => _activeStep switch
+    {
+        1 => _connectionType is "UsbViaAgent" or "NetworkShare"
+            || _isEditMode
+            || (_testConnectionResult?.Success ?? false),
+        2 => _printerInfo is not null || _connectionType != "TCP",
+        3 => !string.IsNullOrWhiteSpace(_printerName),
+        _ => true
+    };
+
+    // Riproduce i side-effect che originariamente scattavano insieme all'avanzamento
+    // di step (AdvanceFromStep1*/AdvanceFromStep3), ora disaccoppiati dall'indice
+    // che è gestito centralmente da PrymStepperActions.
+    private async Task<bool> HandleBeforeNextAsync(int currentIndex)
+    {
+        switch (currentIndex)
+        {
+            case 1:
+                switch (_connectionType)
+                {
+                    case "TCP":
+                        await AdvanceFromStep1Tcp();
+                        break;
+                    case "TcpViaAgent":
+                        await AdvanceFromStep1TcpViaAgent();
+                        break;
+                    case "Serial":
+                        await AdvanceFromStep1Serial();
+                        break;
+                    default:
+                        await AdvanceFromStep1Agent();
+                        break;
+                }
+                return true;
+            case 3:
+                AdvanceFromStep3();
+                return true;
+            default:
+                return true;
+        }
     }
 
     // ──────────────────────────────────────────────────────────
@@ -1239,7 +1119,6 @@
     {
         try
         {
-            _activeStep = 2;
             await LoadPrinterInfoAsync();
         }
         catch (Exception ex)
@@ -1253,7 +1132,6 @@
     {
         try
         {
-            _activeStep = 2;
             // For TcpViaAgent we skip the printer-info query (requires direct TCP from server).
             _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
             await Task.CompletedTask;
@@ -1293,7 +1171,6 @@
     {
         try
         {
-            _activeStep = 2;
             _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
         }
         catch (Exception ex)
@@ -1311,7 +1188,6 @@
     {
         try
         {
-            _activeStep = 2;
             _printerInfo = new FiscalPrinterInfoDto { IsOnline = true };
             await Task.CompletedTask;
         }
@@ -1388,7 +1264,6 @@
     {
         if (string.IsNullOrWhiteSpace(_printerName) && _printerInfo?.Model is not null)
             _printerName = $"Stampante Fiscale – {_printerInfo.Model}";
-        _activeStep = 4;
     }
 
     private void OnProtocolTypeChanged(string newProtocol)
@@ -1568,7 +1443,7 @@
                 : $"Stampante '{printer.Name}' configurata con successo!");
 
             await Task.Delay(1500);
-            NavigationManager.NavigateTo("/admin/fiscal-printers");
+            MudDialog.Close(DialogResult.Ok(printer));
         }
         catch (Exception ex)
         {

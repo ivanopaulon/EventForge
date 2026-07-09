@@ -3,15 +3,20 @@
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 
-<EFDialog Icon="@Icons.Material.Outlined.Analytics"
-          Title="@(IsNewMetric ? "Crea Nuova Metrica" : "Modifica Metrica")"
-          IsProcessing="false"
-          OnClose="Cancel"
-          MinWidth="min(700px, 95vw)">
-    <ChildContent>
-        <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStepIndex" Color="Color.Primary" Variant="Variant.Filled">
+<EFStepperDialog Icon="@Icons.Material.Outlined.Analytics"
+                  Title="@(IsNewMetric ? "Crea Nuova Metrica" : "Modifica Metrica")"
+                  IsProcessing="false"
+                  MinWidth="min(700px, 95vw)"
+                  ActiveIndex="@_activeStepIndex"
+                  ActiveIndexChanged="@(i => _activeStepIndex = i)"
+                  StepCount="4"
+                  CanGoNext="@IsCurrentStepValid()"
+                  CanComplete="@IsValid()"
+                  CompleteText="@(IsNewMetric ? "Crea Metrica" : "Salva")"
+                  CompleteIcon="@Icons.Material.Outlined.Save"
+                  OnComplete="Save">
             @* Step 1: Basic Information *@
-            <MudStep title="Informazioni Base" Icon="@Icons.Material.Outlined.Info">
+            <PrymStep Title="Informazioni Base" Icon="@Icons.Material.Outlined.Info">
                 <MudStack Spacing="3" Class="mt-4">
                     <MudText Typo="Typo.h6">
                         @(IsNewMetric ? "Crea Nuova Metrica" : "Modifica Metrica")
@@ -32,10 +37,10 @@
                                   HelperText="Testo tooltip per spiegare la metrica"
                     Margin="Margin.Dense"/>
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             @* Step 2: Calculation Type and Field Selection *@
-            <MudStep title="Tipo Calcolo" Icon="@Icons.Material.Outlined.Calculate">
+            <PrymStep Title="Tipo Calcolo" Icon="@Icons.Material.Outlined.Calculate">
                 <MudStack Spacing="3" Class="mt-4">
                     <MudText Typo="Typo.h6">Tipo di Calcolo e Campo</MudText>
                     
@@ -65,10 +70,10 @@
                         </MudAlert>
                     }
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             @* Step 3: Optional Filters *@
-            <MudStep title="Filtri" Icon="@Icons.Material.Outlined.FilterAlt" Optional="true">
+            <PrymStep Title="Filtri" Icon="@Icons.Material.Outlined.FilterAlt" Optional="true">
                 <MudStack Spacing="3" Class="mt-4">
                     <MudText Typo="Typo.h6">Filtri Opzionali</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -78,10 +83,10 @@
                     <FilterBuilder EntityType="@EntityType"
                                   @bind-FilterCondition="Metric.FilterCondition" />
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             @* Step 4: Visualization Settings with Live Preview *@
-            <MudStep title="Visualizzazione" Icon="@Icons.Material.Outlined.Palette">
+            <PrymStep Title="Visualizzazione" Icon="@Icons.Material.Outlined.Palette">
                 <MudStack Spacing="3" Class="mt-4">
                     <MudText Typo="Typo.h6">Impostazioni di Visualizzazione</MudText>
                     
@@ -185,43 +190,8 @@
                         </MudPaper>
                     }
                 </MudStack>
-            </MudStep>
-        </MudStepper>
-    </ChildContent>
-    
-    <DialogActions>
-        <MudButton OnClick="Cancel" StartIcon="@Icons.Material.Outlined.Close"
-                               Variant="Variant.Text" Color="Color.Default">
-            Annulla
-        </MudButton>
-        <MudSpacer />
-        
-        @if (_activeStepIndex > 0)
-        {
-            <MudButton OnClick="PrevStep" StartIcon="@Icons.Material.Outlined.ArrowBack"
-                               Variant="Variant.Text" Color="Color.Default">
-                Indietro
-            </MudButton>
-        }
-        
-        @if (_activeStepIndex < 3)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" 
-                       OnClick="NextStep" EndIcon="@Icons.Material.Outlined.ArrowForward"
-                       Disabled="@(!IsCurrentStepValid())">
-                Avanti
-            </MudButton>
-        }
-        else
-        {
-            <MudButton Color="Color.Primary" Variant="Variant.Filled"
-                       OnClick="Save" StartIcon="@Icons.Material.Outlined.Save"
-                       Disabled="@(!IsValid())">
-                @(IsNewMetric ? "Crea Metrica" : "Salva")
-            </MudButton>
-        }
-    </DialogActions>
-</EFDialog>
+            </PrymStep>
+</EFStepperDialog>
 
 @code {
     [CascadingParameter]
@@ -236,7 +206,6 @@
     [Parameter]
     public string EntityType { get; set; } = "VatRate";
 
-    private MudStepper? _stepper;
     private int _activeStepIndex = 0;
 
     protected override void OnInitialized()
@@ -291,16 +260,6 @@
         return IsStep1Valid() && IsStep2Valid();
     }
 
-    private void NextStep()
-    {
-        _activeStepIndex++;
-    }
-
-    private void PrevStep()
-    {
-        _activeStepIndex--;
-    }
-
     private Color GetColorFromString(string? colorStr)
     {
         return colorStr?.ToLower() switch
@@ -341,11 +300,6 @@
         }
 
         return previewNum.ToString("N0");
-    }
-
-    private void Cancel()
-    {
-        MudDialog.Cancel();
     }
 
     private void Save()

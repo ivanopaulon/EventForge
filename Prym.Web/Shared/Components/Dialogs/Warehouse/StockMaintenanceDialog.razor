@@ -207,14 +207,11 @@
                 }
                 else
                 {
-                    <MudStepper Class="min-h-0" @ref="_rebuild_stepper"
+                    <PrymStepper Class="min-h-0"
                                 ActiveIndex="@_rebuild_step"
                                 ActiveIndexChanged="@(async i => await OnRebuildStepChangedAsync(i))"
-                                NonLinear="false"
-                                Color="Color.Primary"
-                                Variant="Variant.Filled"
-                                DisableAnimation="false">
-                        <MudStep Title="Filtri" Icon="@Icons.Material.Outlined.Settings">
+                                Linear="true">
+                        <PrymStep Title="Filtri" Icon="@Icons.Material.Outlined.Settings">
                             <MudGrid Spacing="2">
                                 <MudItem xs="12" sm="6">
                                     <MudDatePicker @bind-Date="_rebuild_fromDate"
@@ -340,9 +337,9 @@
                                     </MudExpansionPanels>
                                 </MudItem>
                             </MudGrid>
-                        </MudStep>
+                        </PrymStep>
 
-                        <MudStep Title="Anteprima" Icon="@Icons.Material.Outlined.Preview">
+                        <PrymStep Title="Anteprima" Icon="@Icons.Material.Outlined.Preview">
                             @if (_rebuild_isLoading)
                             {
                                 <div class="d-flex flex-column align-center justify-center pa-8 gap-3">
@@ -458,9 +455,9 @@
                                     </div>
                                 }
                             }
-                        </MudStep>
+                        </PrymStep>
 
-                        <MudStep Title="Risultati" Icon="@Icons.Material.Outlined.CheckCircle">
+                        <PrymStep Title="Risultati" Icon="@Icons.Material.Outlined.CheckCircle">
                             @if (_rebuild_applyResult != null)
                             {
                                 <MudAlert Severity="@(_rebuild_applyResult.Errors == 0 ? Severity.Success : Severity.Warning)" Class="mb-4">
@@ -549,10 +546,11 @@
                                     </div>
                                 }
                             }
-                        </MudStep>
-                    </MudStepper>
+                        </PrymStep>
+                    </PrymStepper>
 
-                    @* Step-level action buttons (inline since actions differ per step) *@
+                    @* Step-level action buttons (inline since actions differ per step, non riconducibili
+                       a un pattern PrymStepperActions generico Indietro/Avanti/Conferma) *@
                     <div class="d-flex justify-end gap-2 mt-3">
                         @if (_rebuild_step == 0)
                         {
@@ -1271,7 +1269,6 @@
     private const int _previewMaxRows = 200;
     private int _rebuild_step = 0;
     private bool _rebuild_isLoading = false;
-    private MudStepper? _rebuild_stepper;
 
     // Filter state
     private DateTime? _rebuild_fromDate;

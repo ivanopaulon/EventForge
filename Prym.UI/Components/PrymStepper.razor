@@ -1,0 +1,29 @@
+<MudStepper ActiveIndex="ActiveIndex"
+            ActiveIndexChanged="ActiveIndexChanged"
+            Linear="Linear"
+            NonLinear="!Linear"
+            Class="@Class"
+            Style="@Style"
+            ActionContent="@(_ => _emptyActions)">
+    @ChildContent
+</MudStepper>
+
+@code {
+    /// <summary>Indice dello step attivo (0-based). Unico stato reale: nessun altro campo va tenuto in sync manualmente.</summary>
+    [Parameter] public int ActiveIndex { get; set; }
+    [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+
+    /// <summary>Se true (default), lo stepper è lineare: non si può saltare uno step senza passare dai precedenti.</summary>
+    [Parameter] public bool Linear { get; set; } = true;
+
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    // Fragment vuoto: sopprime SEMPRE la barra di navigazione nativa di MudStepper
+    // (Precedente/Successivo/Completa), che altrimenti MudStepper renderizza di default
+    // in ogni caso (vedi MudStepper.razor, MudCardActions class="mud-stepper-actions").
+    // La navigazione passa esclusivamente da PrymStepperActions, tipicamente nel
+    // DialogActions/footer fisso del dialog — un solo set di comandi, sempre.
+    private readonly RenderFragment _emptyActions = _ => { };
+}

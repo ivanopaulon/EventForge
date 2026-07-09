@@ -1,0 +1,93 @@
+@if (ActiveIndex > 0 && ShowPrevious)
+{
+    <MudButton OnClick="GoPreviousAsync"
+               StartIcon="@Icons.Material.Outlined.ArrowBack"
+               Variant="Variant.Text"
+               Color="Color.Default"
+               Disabled="Busy">
+        @PreviousText
+    </MudButton>
+}
+
+<MudSpacer />
+
+@if (ActiveIndex < StepCount - 1)
+{
+    <MudButton OnClick="GoNextAsync"
+               EndIcon="@Icons.Material.Outlined.ArrowForward"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               Disabled="@(Busy || !CanGoNext)">
+        @NextText
+    </MudButton>
+}
+else
+{
+    <MudButton OnClick="CompleteAsync"
+               StartIcon="@CompleteIcon"
+               Variant="Variant.Filled"
+               Color="CompleteColor"
+               Disabled="@(Busy || !CanComplete)">
+        @CompleteText
+    </MudButton>
+}
+
+@code {
+    /// <summary>Stesso valore passato a PrymStepper.ActiveIndex — un solo stato, condiviso per riferimento tramite binding, mai duplicato.</summary>
+    [Parameter, EditorRequired] public int ActiveIndex { get; set; }
+    [Parameter] public EventCallback<int> ActiveIndexChanged { get; set; }
+
+    /// <summary>Numero totale di step. Determina quando mostrare "Avanti" vs il bottone finale.</summary>
+    [Parameter, EditorRequired] public int StepCount { get; set; }
+
+    [Parameter] public bool ShowPrevious { get; set; } = true;
+    [Parameter] public bool CanGoNext { get; set; } = true;
+    [Parameter] public bool CanComplete { get; set; } = true;
+
+    /// <summary>Disabilita entrambi i bottoni (es. durante un salvataggio/import in corso).</summary>
+    [Parameter] public bool Busy { get; set; } = false;
+
+    [Parameter] public string PreviousText { get; set; } = "Indietro";
+    [Parameter] public string NextText { get; set; } = "Avanti";
+    [Parameter] public string CompleteText { get; set; } = "Conferma";
+    [Parameter] public string CompleteIcon { get; set; } = Icons.Material.Outlined.Check;
+    [Parameter] public Color CompleteColor { get; set; } = Color.Primary;
+
+    /// <summary>Eseguito quando si clicca il bottone finale (ultimo step). Non avanza automaticamente l'indice.</summary>
+    [Parameter] public EventCallback OnComplete { get; set; }
+
+    /// <summary>Eseguito prima di avanzare allo step successivo. Se impostato e ritorna false, non avanza (validazione custom per-step).</summary>
+    [Parameter] public Func<int, Task<bool>>? BeforeNextAsync { get; set; }
+
+    /// <summary>Calcola l'indice di destinazione quando si va avanti, dato l'indice corrente. Default: ActiveIndex + 1.
+    /// Da valorizzare quando la sequenza degli step non è lineare (es. step condizionalmente saltati in base a configurazione).</summary>
+    [Parameter] public Func<int, int>? ResolveNextIndex { get; set; }
+
+    /// <summary>Calcola l'indice di destinazione quando si torna indietro, dato l'indice corrente. Default: ActiveIndex - 1.</summary>
+    [Parameter] public Func<int, int>? ResolvePreviousIndex { get; set; }
+
+    private async Task GoPreviousAsync()
+    {
+        if (ActiveIndex <= 0) return;
+        var target = ResolvePreviousIndex?.Invoke(ActiveIndex) ?? (ActiveIndex - 1);
+        if (target < 0) target = 0;
+        await ActiveIndexChanged.InvokeAsync(target);
+    }
+
+    private async Task GoNextAsync()
+    {
+        if (BeforeNextAsync is not null)
+        {
+            var canProceed = await BeforeNextAsync(ActiveIndex);
+            if (!canProceed) return;
+        }
+        var target = ResolveNextIndex?.Invoke(ActiveIndex) ?? (ActiveIndex + 1);
+        if (target > StepCount - 1) target = StepCount - 1;
+        await ActiveIndexChanged.InvokeAsync(target);
+    }
+
+    private async Task CompleteAsync()
+    {
+        await OnComplete.InvokeAsync();
+    }
+}

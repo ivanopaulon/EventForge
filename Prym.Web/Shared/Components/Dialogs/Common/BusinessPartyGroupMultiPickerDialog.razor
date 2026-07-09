@@ -1,0 +1,113 @@
+@using Prym.DTOs.Business
+@inject IBusinessPartyGroupService BusinessPartyGroupService
+@inject ITranslationService TranslationService
+@inject ILogger<BusinessPartyGroupMultiPickerDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Group"
+          Title="@Title"
+          OnClose="Cancel"
+          MinWidth="min(700px, 95vw)">
+    <ChildContent>
+        <MudStack Spacing="3">
+            @* UnifiedBusinessPartySelector only surfaces groups as read-only info of a selected
+               business party (via OnGroupClick when GroupClickable="true"), it does not expose a
+               direct "search groups" mode. Since IBusinessPartyGroupService.GetGroupsAsync already
+               provides a dedicated groups endpoint, we search against it directly instead. *@
+            <MudAutocomplete T="BusinessPartyGroupDto"
+                              Value="null"
+                              ValueChanged="AddGroup"
+                              SearchFunc="SearchGroupsAsync"
+                              ToStringFunc="@(g => g?.Name ?? string.Empty)"
+                              Variant="Variant.Outlined"
+                              Dense="true"
+                              Margin="Margin.Dense"
+                              MinCharacters="0"
+                              DebounceInterval="300"
+                              ResetValueOnEmptyText="true"
+                              CoerceText="false"
+                              CoerceValue="false"
+                              Placeholder="@TranslationService.GetTranslation("promotion.rules.picker.searchGroup", "Cerca gruppo da aggiungere...")"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Outlined.Search" />
+
+            @if (_selected.Any())
+            {
+                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("promotion.rules.picker.selectedCount", "Selezionati") (@_selected.Count)</MudText>
+                <MudChipSet T="string" AllClosable="true" OnClose="@(chip => RemoveGroup(chip.Value))">
+                    @foreach (var g in _selected)
+                    {
+                        <MudChip T="string" Value="@g.Id.ToString()">@g.Name</MudChip>
+                    }
+                </MudChipSet>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @TranslationService.GetTranslation("promotion.rules.picker.noGroupSelected", "Nessun gruppo selezionato — la regola si applicherà a tutti i clienti.")
+                </MudAlert>
+            }
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton OnClick="Confirm" Variant="Variant.Filled" Color="Color.Primary">
+            @TranslationService.GetTranslation("common.confirm", "Conferma") (@_selected.Count)
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "Seleziona Gruppi";
+    [Parameter] public List<BusinessPartyGroupDto>? InitialSelection { get; set; }
+
+    private List<BusinessPartyGroupDto> _selected = new();
+    private List<BusinessPartyGroupDto>? _allGroups;
+
+    protected override void OnInitialized()
+    {
+        _selected = InitialSelection?.ToList() ?? new();
+    }
+
+    private async Task<IEnumerable<BusinessPartyGroupDto>> SearchGroupsAsync(string value, CancellationToken ct)
+    {
+        try
+        {
+            if (_allGroups == null)
+            {
+                var result = await BusinessPartyGroupService.GetGroupsAsync(1, 200, ct: ct);
+                _allGroups = result?.Items?.ToList() ?? new();
+            }
+
+            var query = _allGroups.Where(g => !_selected.Any(s => s.Id == g.Id));
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                query = query.Where(g => g.Name.Contains(value, StringComparison.OrdinalIgnoreCase)
+                    || (g.Code?.Contains(value, StringComparison.OrdinalIgnoreCase) ?? false));
+            }
+            return query.OrderBy(g => g.Name).Take(20).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error searching business party groups for promotion rule.");
+            return Enumerable.Empty<BusinessPartyGroupDto>();
+        }
+    }
+
+    private void AddGroup(BusinessPartyGroupDto? group)
+    {
+        if (group != null && !_selected.Any(g => g.Id == group.Id))
+        {
+            _selected.Add(group);
+        }
+    }
+
+    private void RemoveGroup(string? idString)
+    {
+        if (Guid.TryParse(idString, out var id))
+            _selected.RemoveAll(g => g.Id == id);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_selected));
+}

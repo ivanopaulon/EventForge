@@ -6,15 +6,27 @@
 @inject HttpClient Http
 @inject ILogger<ImportCsvDialog> Logger
 
-<EFDialog Icon="@Icons.Material.Outlined.UploadFile"
-          Title="Importazione CSV"
-          OnClose="Cancel"
-          MinWidth="min(800px, 95vw)">
-    <ChildContent>
-        <MudStepper @ref="_stepper" @bind-ActiveStepIndex="_activeStepIndex" Linear="true" Color="Color.Primary" Variant="Variant.Filled">
-            
+<EFStepperDialog Icon="@Icons.Material.Outlined.UploadFile"
+                  Title="Importazione CSV"
+                  MinWidth="min(800px, 95vw)"
+                  ActiveIndex="@_activeStepIndex"
+                  ActiveIndexChanged="@(i => _activeStepIndex = i)"
+                  StepCount="4"
+                  CanGoNext="@ResolveCanGoNext()"
+                  CanComplete="@ResolveCanComplete()"
+                  BeforeNextAsync="@HandleStepAdvance"
+                  IsProcessing="@_importInProgress"
+                  Busy="@_importInProgress"
+                  ShowStepperActions="@(_activeStepIndex < 4)"
+                  ShowCancel="@(_activeStepIndex < 4)"
+                  NextText="@TranslationService.GetTranslation("common.next", "Avanti")"
+                  PreviousText="@TranslationService.GetTranslation("common.back", "Indietro")"
+                  CancelText="@TranslationService.GetTranslation("common.cancel", "Annulla")"
+                  CompleteText="@TranslationService.GetTranslation("csvImport.import", "Importa")"
+                  OnComplete="ImportCsv"
+                  ExtraActions="@(_activeStepIndex == 4 ? CloseButtonFragment : null)">
             <!-- Step 1: Upload File -->
-            <MudStep Title="@TranslationService.GetTranslation("csvImport.step1.title", "Carica File")" 
+            <PrymStep Title="@TranslationService.GetTranslation("csvImport.step1.title", "Carica File")" 
                      Icon="@Icons.Material.Filled.Upload">
                 <MudStack Spacing="3">
                     <MudText Typo="Typo.body1">
@@ -48,10 +60,10 @@
                         @TranslationService.GetTranslation("csvImport.downloadTemplate", "Scarica Template CSV")
                     </MudButton>
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             <!-- Step 2: Column Mapping -->
-            <MudStep Title="@TranslationService.GetTranslation("csvImport.step2.title", "Mappa Colonne")" 
+            <PrymStep Title="@TranslationService.GetTranslation("csvImport.step2.title", "Mappa Colonne")" 
                      Icon="@Icons.Material.Filled.TableChart">
                 <MudStack Spacing="3">
                     <MudAlert Severity="Severity.Info" Dense="true">
@@ -184,10 +196,10 @@
                         </MudTable>
                     }
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             <!-- Step 3: Import Options -->
-            <MudStep Title="@TranslationService.GetTranslation("csvImport.step3.title", "Opzioni Import")" 
+            <PrymStep Title="@TranslationService.GetTranslation("csvImport.step3.title", "Opzioni Import")" 
                      Icon="@Icons.Material.Filled.Settings">
                 <MudStack Spacing="3">
                     <MudCheckBox @bind-Value="_importOptions.UpdateExisting" Color="Color.Primary">
@@ -210,10 +222,10 @@
                                   Variant="Variant.Outlined" MaxLength="3"
                     Margin="Margin.Dense"/>
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             <!-- Step 4: Preview & Validation -->
-            <MudStep Title="@TranslationService.GetTranslation("csvImport.step4.title", "Anteprima")" 
+            <PrymStep Title="@TranslationService.GetTranslation("csvImport.step4.title", "Anteprima")" 
                      Icon="@Icons.Material.Filled.Preview">
                 <MudStack Spacing="3">
                     @if (_validationResult != null)
@@ -282,10 +294,10 @@
                         }
                     }
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
             <!-- Step 5: Import Results -->
-            <MudStep Title="@TranslationService.GetTranslation("csvImport.step5.title", "Risultati")" 
+            <PrymStep Title="@TranslationService.GetTranslation("csvImport.step5.title", "Risultati")" 
                      Icon="@Icons.Material.Filled.DoneAll">
                 <MudStack Spacing="3">
                     @if (_importInProgress)
@@ -391,60 +403,15 @@
                         }
                     }
                 </MudStack>
-            </MudStep>
+            </PrymStep>
 
-        </MudStepper>
-    </ChildContent>
-    <DialogActions>
-        @if (_activeStepIndex == 0)
-        {
-            <MudButton OnClick="Cancel"
-                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step1Next" 
-                       Disabled="@(_selectedFile == null)">
-                @TranslationService.GetTranslation("common.next", "Avanti")
-            </MudButton>
-        }
-        else if (_activeStepIndex == 1)
-        {
-            <MudButton OnClick="@(() => _activeStepIndex--)"
-                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@Step2Next">
-                @TranslationService.GetTranslation("common.next", "Avanti")
-            </MudButton>
-        }
-        else if (_activeStepIndex == 2)
-        {
-            <MudButton OnClick="@(() => _activeStepIndex--)"
-                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => _activeStepIndex++)">
-                @TranslationService.GetTranslation("common.next", "Avanti")
-            </MudButton>
-        }
-        else if (_activeStepIndex == 3)
-        {
-            <MudButton OnClick="@(() => _activeStepIndex--)"
-                               Variant="Variant.Text" Color="Color.Default">@TranslationService.GetTranslation("common.back", "Indietro")</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@ImportCsv" 
-                       Disabled="@(!_validationResult?.IsValid ?? true)">
-                @TranslationService.GetTranslation("csvImport.import", "Importa")
-            </MudButton>
-        }
-        else if (_activeStepIndex == 4)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Close">
-                @TranslationService.GetTranslation("common.close", "Chiudi")
-            </MudButton>
-        }
-    </DialogActions>
-</EFDialog>
+</EFStepperDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance? MudDialog { get; set; }
     [Parameter] public Guid SupplierId { get; set; }
     [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
 
-    private MudStepper? _stepper;
     private int _activeStepIndex = 0;
     private IBrowserFile? _selectedFile;
     private CsvValidationResult? _validationResult;
@@ -459,20 +426,42 @@
         StateHasChanged();
     }
 
-    private async Task Step1Next()
+    private bool ResolveCanGoNext() => _activeStepIndex switch
+    {
+        0 => _selectedFile != null,
+        _ => true
+    };
+
+    private bool ResolveCanComplete() => _activeStepIndex switch
+    {
+        3 => _validationResult?.IsValid ?? false,
+        _ => true
+    };
+
+    private async Task<bool> HandleStepAdvance(int currentIndex)
+    {
+        return currentIndex switch
+        {
+            0 => await Step1Next(),
+            1 => Step2Next(),
+            _ => true
+        };
+    }
+
+    private async Task<bool> Step1Next()
     {
         // Validate and upload file
         if (_selectedFile == null)
         {
             AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.noFileSelected", "Seleziona un file CSV"));
-            return;
+            return false;
         }
 
         // Validate file size
         if (_selectedFile.Size > 10 * 1024 * 1024)
         {
             AppNotification.ShowError(TranslationService.GetTranslation("csvImport.fileTooLarge", "Il file supera i 10 MB"));
-            return;
+            return false;
         }
 
         try
@@ -498,40 +487,44 @@
                         AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.validationFailed", "Il file contiene errori"));
                     }
                     
-                    // Move to next step
-                    _activeStepIndex++;
+                    // Advance handled by caller (PrymStepperActions) upon returning true
+                    return true;
                 }
+
+                return false;
             }
             else
             {
                 AppNotification.ShowError(TranslationService.GetTranslation("csvImport.validationError", "Errore durante la validazione del file"));
+                return false;
             }
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error validating CSV file");
             AppNotification.ShowError(TranslationService.GetTranslation("csvImport.validationException", "Errore durante la validazione: " + ex.Message));
+            return false;
         }
     }
 
-    private void Step2Next()
+    private bool Step2Next()
     {
         // Validate column mapping
         if (string.IsNullOrWhiteSpace(_columnMapping.ProductCodeColumn))
         {
             AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.productCodeRequired", "La colonna Codice Prodotto è obbligatoria"));
-            return;
+            return false;
         }
 
         if (string.IsNullOrWhiteSpace(_columnMapping.UnitCostColumn))
         {
             AppNotification.ShowWarning(TranslationService.GetTranslation("csvImport.unitCostRequired", "La colonna Costo Unitario è obbligatoria"));
-            return;
+            return false;
         }
 
         // Update options with mapping
         _importOptions.ColumnMapping = _columnMapping;
-        _activeStepIndex++;
+        return true;
     }
 
     private async Task ImportCsv()
@@ -630,13 +623,18 @@
         return $"{len:0.##} {sizes[order]}";
     }
 
-    private void Cancel()
-    {
-        MudDialog?.Cancel();
-    }
-
     private void Close()
     {
         MudDialog?.Close(DialogResult.Ok(_importResult));
     }
+
+    private RenderFragment CloseButtonFragment => builder =>
+    {
+        builder.OpenComponent<MudButton>(0);
+        builder.AddAttribute(1, "Variant", Variant.Filled);
+        builder.AddAttribute(2, "Color", Color.Primary);
+        builder.AddAttribute(3, "OnClick", EventCallback.Factory.Create(this, Close));
+        builder.AddAttribute(4, "ChildContent", (RenderFragment)(b => b.AddContent(0, TranslationService.GetTranslation("common.close", "Chiudi"))));
+        builder.CloseComponent();
+    };
 }
