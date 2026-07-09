@@ -1517,6 +1517,60 @@ public partial class POS2026 : IAsyncDisposable
         }
     }
 
+    // =========================================================================
+    //  Richiama tavolo (Prompt 6): riprende come sessione corrente una sessione
+    //  già aperta su un tavolo occupato, individuato tramite
+    //  TableSessionDto.CurrentSaleSessionId — stesso meccanismo di ripresa usato
+    //  per le sessioni sospese, ma agganciato al picker tavoli.
+    // =========================================================================
+
+    /// <summary>Apre <see cref="Pos26TablePickerDialog"/> in modalità "richiama tavolo": i tavoli
+    /// occupati restano cliccabili e riprendono la loro sessione come corrente invece di essere
+    /// riassegnati.</summary>
+    private async Task OpenTableRecallDialogAsync()
+    {
+        await LoadAvailableTablesAsync();
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Tables", _pickerTables },
+                { "AllowResumeOccupied", true },
+                { "OnResumeSession", (Func<Guid, Task<bool>>)ResumeSessionByIdAsync }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseButton = true };
+            await DialogService.ShowAsync<Pos26TablePickerDialog>("Richiama Tavolo", parameters, options);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore apertura dialog richiamo tavolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+        }
+    }
+
+    private async Task<bool> ResumeSessionByIdAsync(Guid sessionId)
+    {
+        try
+        {
+            var updateDto = new UpdateSaleSessionDto { Status = SaleSessionStatusDto.Open };
+            var resumed = await SalesService.UpdateSessionAsync(sessionId, updateDto);
+            if (resumed != null)
+            {
+                await ViewModel.ResumeSessionAsync(resumed);
+                RebuildCartQuantities();
+                AppNotification.ShowSuccess($"Tavolo {resumed.TableNumber ?? "?"} ripreso.");
+                return true;
+            }
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore ripresa sessione da tavolo POS2026.");
+            AppNotification.ShowWarning("Si è verificato un errore.");
+            return false;
+        }
+    }
+
     private void HandleNotification(string message, PosNotificationSeverity severity)
     {
         switch (severity)

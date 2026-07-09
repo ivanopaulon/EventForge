@@ -23,7 +23,8 @@
                     {
                         var left = table.PositionX ?? DefaultPosition(table, areaGroup.ToList()).X;
                         var top = table.PositionY ?? DefaultPosition(table, areaGroup.ToList()).Y;
-                        var isDisabled = DisableNonAvailable && !EditMode && table.Status != TableStatuses.Available;
+                        var isResumable = IsResumableTable(table);
+                        var isDisabled = DisableNonAvailable && !EditMode && table.Status != TableStatuses.Available && !isResumable;
                         <div class="table-floor-plan__table table-floor-plan__table--@StatusCssClass(table.Status) @GetShapeCssClass(table) @(SelectedTableId == table.Id ? "table-floor-plan__table--selected" : "") @(isDisabled ? "table-floor-plan__table--disabled" : "")"
                              style="@GetTableStyle(table, left, top)"
                              draggable="@EditMode"
@@ -70,6 +71,13 @@
     /// disappear just because every one of its tables is currently occupied/reserved/etc.).
     /// </summary>
     [Parameter] public bool DisableNonAvailable { get; set; }
+
+    /// <summary>
+    /// When true (used together with <see cref="DisableNonAvailable"/>), tables that are not
+    /// "Available" remain clickable instead of being disabled — used by the "richiama tavolo"
+    /// flow, where clicking an occupied table resumes its session instead of assigning it.
+    /// </summary>
+    [Parameter] public bool AllowResumeOccupied { get; set; }
 
     /// <summary>
     /// Raised when a table is clicked (view mode: select table for sale; edit mode: could open edit dialog).
@@ -142,7 +150,7 @@
     private async Task OnTableClickAsync(TableSessionDto table)
     {
         if (EditMode) return; // In edit mode, clicks are reserved for drag; use dedicated edit button/dialog instead.
-        if (DisableNonAvailable && table.Status != TableStatuses.Available) return; // Tavolo non assegnabile (Finding 4).
+        if (DisableNonAvailable && table.Status != TableStatuses.Available && !IsResumableTable(table)) return; // Tavolo non assegnabile (Finding 4).
         if (OnTableClick.HasDelegate)
         {
             await OnTableClick.InvokeAsync(table);
@@ -151,6 +159,13 @@
 
     private string GetAreaLabel(TableSessionDto table) =>
         string.IsNullOrWhiteSpace(table.Area) ? DefaultAreaLabel : table.Area!;
+
+    /// <summary>
+    /// True when a non-available table can still be clicked because it's being targeted by the
+    /// "richiama tavolo" flow (<see cref="AllowResumeOccupied"/>) and has an open sale session.
+    /// </summary>
+    private bool IsResumableTable(TableSessionDto table) =>
+        AllowResumeOccupied && table.CurrentSaleSessionId.HasValue;
 
     private static string GetShapeCssClass(TableSessionDto table) => table.Shape switch
     {

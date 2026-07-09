@@ -47,6 +47,7 @@
             <TableFloorPlan Tables="@Tables"
                              EditMode="false"
                              DisableNonAvailable="true"
+                             AllowResumeOccupied="@AllowResumeOccupied"
                              SelectedTableId="@_selectedTableId"
                              OnTableClick="HandleTableClickAsync" />
         }
@@ -86,6 +87,17 @@
     /// <summary>Eseguito al cambio banco/asporto; il chiamante esegue l'aggiornamento reale.</summary>
     [Parameter] public Func<string, Task>? OnSaleTypeChanged { get; set; }
 
+    /// <summary>Quando true, i tavoli occupati restano cliccabili e, se hanno una sessione
+    /// associata, l'azione diventa "riprendi" (<see cref="OnResumeSession"/>) invece
+    /// dell'assegnazione normale — usato dal flusso "Richiama Tavolo".</summary>
+    [Parameter] public bool AllowResumeOccupied { get; set; }
+
+    /// <summary>Eseguito quando si clicca un tavolo occupato in modalità <see cref="AllowResumeOccupied"/>;
+    /// riceve l'id della sessione da riprendere (<see cref="TableSessionDto.CurrentSaleSessionId"/>).
+    /// Il chiamante esegue la ripresa reale e ritorna true se completata con successo, nel qual
+    /// caso il dialog si chiude.</summary>
+    [Parameter] public Func<Guid, Task<bool>>? OnResumeSession { get; set; }
+
     private Guid? _selectedTableId;
     private string? _currentSaleType;
     private bool _parkOnSelect;
@@ -115,7 +127,28 @@
 
     private async Task HandleTableClickAsync(TableSessionDto table)
     {
-        if (_isBusy || OnTableSelected is null) return;
+        if (_isBusy) return;
+
+        var isResumeModeActive = AllowResumeOccupied && OnResumeSession is not null;
+        var isOccupiedWithSession = table.Status != TableStatuses.Available && table.CurrentSaleSessionId.HasValue;
+        if (isResumeModeActive && isOccupiedWithSession)
+        {
+            _isBusy = true;
+            try
+            {
+                var resumed = await OnResumeSession!(table.CurrentSaleSessionId!.Value);
+                if (resumed)
+                {
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+            }
+            finally
+            {
+                _isBusy = false;
+            }
+            return;
+        }
+        if (OnTableSelected is null) return;
         _isBusy = true;
         try
         {
