@@ -3295,6 +3295,7 @@
       "exclusive": "Esclusiva"
     },
     "rules": {
+      "value": "Valore",
       "validation": {
         "discountRequired": "Imposta almeno una % di sconto o un importo fisso di sconto.",
         "buyXGetYRequired": "Imposta sia la quantità richiesta (X) sia la quantità omaggio (Y).",

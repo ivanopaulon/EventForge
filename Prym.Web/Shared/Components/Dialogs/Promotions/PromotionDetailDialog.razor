@@ -267,75 +267,76 @@
                         }
                         else
                         {
-                            <MudDataGrid T="PromotionRuleDto" Items="_rules" Hover="true" Striped="true" Dense="true">
-                                <Columns>
-                                    <TemplateColumn Title="@TranslationService.GetTranslation("field.ruleType", "Tipo")">
-                                        <CellTemplate>
-                                            @TranslateRuleType(context.Item.RuleType)
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <PropertyColumn Property="x => x.DiscountPercentage" Title="@TranslationService.GetTranslation("field.discountPercentage", "% Sconto")" Format="F2" />
-                                    <PropertyColumn Property="x => x.DiscountAmount" Title="@TranslationService.GetTranslation("field.discountAmount", "Importo Sconto")" Format="F2" />
-                                    <PropertyColumn Property="x => x.RequiredQuantity" Title="@TranslationService.GetTranslation("field.requiredQuantity", "Qt. Richiesta")" />
-                                    <PropertyColumn Property="x => x.FreeQuantity" Title="@TranslationService.GetTranslation("field.freeQuantity", "Qt. Omaggio")" />
-                                    <PropertyColumn Property="x => x.FixedPrice" Title="@TranslationService.GetTranslation("field.fixedPrice", "Prezzo Fisso")" Format="F2" />
-                                    <PropertyColumn Property="x => x.MinOrderAmount" Title="@TranslationService.GetTranslation("field.minOrderAmount", "Min Ordine")" Format="F2" />
-                                    <TemplateColumn Title="@TranslationService.GetTranslation("field.isCombinable", "Combinabile")">
-                                        <CellTemplate>
-                                            <MudIcon Icon="@(context.Item.IsCombinable ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
-                                                     Color="@(context.Item.IsCombinable ? Color.Success : Color.Error)"
-                                                     Size="Size.Small" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@TranslationService.GetTranslation("promotion.rules.targeting", "Target")">
-                                        <CellTemplate>
-                                            @{
-                                                var productsCount = context.Item.Products?.Count ?? 0;
-                                                var categoriesCount = context.Item.CategoryIds?.Count ?? 0;
-                                                var groupsCount = context.Item.BusinessPartyGroupIds?.Count ?? 0;
-                                            }
-                                            @if (productsCount > 0)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Inventory">
-                                                    @productsCount prodotti
-                                                </MudChip>
-                                            }
-                                            @if (categoriesCount > 0)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Category">
-                                                    @categoriesCount cat.
-                                                </MudChip>
-                                            }
-                                            @if (groupsCount > 0)
-                                            {
-                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Group">
-                                                    @groupsCount gruppi
-                                                </MudChip>
-                                            }
-                                            @if (productsCount == 0 && categoriesCount == 0 && groupsCount == 0)
-                                            {
-                                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                                    @TranslationService.GetTranslation("promotion.rules.allProducts", "Tutti")
-                                                </MudText>
-                                            }
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                    <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")">
-                                        <CellTemplate>
-                                            <MudIconButton Icon="@Icons.Material.Outlined.Edit"
-                                                           Color="Color.Primary"
-                                                           Size="Size.Small"
-                                                           OnClick="@(() => OpenEditRuleDialog(context.Item))"
-                                                           title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
-                                            <MudIconButton Icon="@Icons.Material.Outlined.Delete"
-                                                           Color="Color.Error"
-                                                           Size="Size.Small"
-                                                           OnClick="@(() => DeleteRule(context.Item))"
-                                                           title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
-                                        </CellTemplate>
-                                    </TemplateColumn>
-                                </Columns>
-                            </MudDataGrid>
+                            <div style="overflow-x: auto;">
+                                <MudDataGrid T="PromotionRuleDto" Items="_rules" Hover="true" Striped="true" Dense="true">
+                                    <Columns>
+                                        <TemplateColumn Title="@TranslationService.GetTranslation("field.ruleType", "Tipo")">
+                                            <CellTemplate>
+                                                @TranslateRuleType(context.Item.RuleType)
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="@TranslationService.GetTranslation("promotion.rules.value", "Valore")">
+                                            <CellTemplate>
+                                                @FormatRuleValue(context.Item)
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="@TranslationService.GetTranslation("promotion.rules.targeting", "Target")">
+                                            <CellTemplate>
+                                                @{
+                                                    var productsCount = context.Item.Products?.Count ?? 0;
+                                                    var categoriesCount = context.Item.CategoryIds?.Count ?? 0;
+                                                    var groupsCount = context.Item.BusinessPartyGroupIds?.Count ?? 0;
+                                                }
+                                                @if (productsCount > 0)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Outlined.Inventory">
+                                                        @productsCount prodotti
+                                                    </MudChip>
+                                                }
+                                                @if (categoriesCount > 0)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Icon="@Icons.Material.Outlined.Category">
+                                                        @categoriesCount cat.
+                                                    </MudChip>
+                                                }
+                                                @if (groupsCount > 0)
+                                                {
+                                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Icon="@Icons.Material.Outlined.Group">
+                                                        @groupsCount gruppi
+                                                    </MudChip>
+                                                }
+                                                @if (productsCount == 0 && categoriesCount == 0 && groupsCount == 0)
+                                                {
+                                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                                        @TranslationService.GetTranslation("promotion.rules.allProducts", "Tutti")
+                                                    </MudText>
+                                                }
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="@TranslationService.GetTranslation("field.isCombinable", "Combinabile")">
+                                            <CellTemplate>
+                                                <MudIcon Icon="@(context.Item.IsCombinable ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Cancel)"
+                                                         Color="@(context.Item.IsCombinable ? Color.Success : Color.Error)"
+                                                         Size="Size.Small" />
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                        <TemplateColumn Title="@TranslationService.GetTranslation("common.actions", "Azioni")">
+                                            <CellTemplate>
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                               Color="Color.Primary"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => OpenEditRuleDialog(context.Item))"
+                                                               title="@TranslationService.GetTranslation("common.edit", "Modifica")" />
+                                                <MudIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                               Color="Color.Error"
+                                                               Size="Size.Small"
+                                                               OnClick="@(() => DeleteRule(context.Item))"
+                                                               title="@TranslationService.GetTranslation("common.delete", "Elimina")" />
+                                            </CellTemplate>
+                                        </TemplateColumn>
+                                    </Columns>
+                                </MudDataGrid>
+                            </div>
                         }
 
                         <!-- Add/Edit Rule Dialog (inline) -->
@@ -847,6 +848,21 @@
         "TimeLimited" => TranslationService.GetTranslation("promotion.ruleTypes.timeLimited", "A Tempo Limitato"),
         "Exclusive" => TranslationService.GetTranslation("promotion.ruleTypes.exclusive", "Esclusiva"),
         _ => ruleType
+    };
+
+    private string FormatRuleValue(PromotionRuleDto rule) => rule.RuleType switch
+    {
+        "Discount" or "CategoryDiscount" or "CustomerSpecific" or "CartAmountDiscount" or "Coupon" =>
+            rule.DiscountPercentage.HasValue ? $"{rule.DiscountPercentage:F0}%"
+            : rule.DiscountAmount.HasValue ? $"€{rule.DiscountAmount:F2}"
+            : "—",
+        "BuyXGetY" =>
+            rule.RequiredQuantity.HasValue && rule.FreeQuantity.HasValue
+                ? $"{rule.RequiredQuantity}+{rule.FreeQuantity} omaggio"
+                : "—",
+        "FixedPrice" or "Bundle" =>
+            rule.FixedPrice.HasValue ? $"€{rule.FixedPrice:F2}" : "—",
+        _ => "—"
     };
 
     private async Task LoadRulesAsync()
