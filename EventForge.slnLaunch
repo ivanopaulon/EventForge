@@ -38,5 +38,20 @@
         "DebugTarget": "Prym.Agent"
       }
     ]
+  },
+  {
+    "Name": "Server + Client",
+    "Projects": [
+      {
+        "Path": "EventForge.Server\\EventForge.Server.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      },
+      {
+        "Path": "Prym.Web\\Prym.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "https"
+      }
+    ]
   }
 ]
