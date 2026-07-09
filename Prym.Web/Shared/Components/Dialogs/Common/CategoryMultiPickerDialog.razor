@@ -78,7 +78,7 @@
         }
     }
 
-    private void RemoveCategory(string idString)
+    private void RemoveCategory(string? idString)
     {
         if (Guid.TryParse(idString, out var id))
             _selected.RemoveAll(c => c.Id == id);

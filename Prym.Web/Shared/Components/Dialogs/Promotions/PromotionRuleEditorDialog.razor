@@ -1,0 +1,481 @@
+@using Prym.DTOs.Promotions
+@using Prym.DTOs.Products
+@using Prym.DTOs.Business
+@using Prym.DTOs.Common
+@inject IDialogService DialogService
+@inject IEntityManagementService EntityManagementService
+@inject IBusinessPartyGroupService BusinessPartyGroupService
+@inject ITranslationService TranslationService
+@inject ILogger<PromotionRuleEditorDialog> Logger
+
+<EFStepperDialog Icon="@Icons.Material.Outlined.Rule"
+                  Title="@(IsEditMode ? TranslationService.GetTranslation("promotion.rules.edit", "Modifica Regola") : TranslationService.GetTranslation("promotion.rules.addNew", "Nuova Regola"))"
+                  MinWidth="min(800px, 95vw)"
+                  ActiveIndex="@_step"
+                  ActiveIndexChanged="@(i => _step = i)"
+                  StepCount="4"
+                  CanGoNext="@ResolveCanGoNext()"
+                  CompleteText="@TranslationService.GetTranslation("common.save", "Salva")"
+                  OnComplete="Complete">
+    <PrymStep Title="@TranslationService.GetTranslation("promotion.rules.step.type", "Tipo Regola")" Icon="@Icons.Material.Outlined.Category">
+        <MudGrid Spacing="3" Class="mt-1">
+            <MudItem xs="12" md="6">
+                <PrymSelect @bind-Value="_ruleModel.RuleType"
+                            Label="@($"{TranslationService.GetTranslation("field.ruleType", "Tipo Regola")} *")"
+                            Required="true">
+                    @foreach (var ruleType in _availableRuleTypes)
+                    {
+                        <MudSelectItem Value="@ruleType">@TranslateRuleType(ruleType)</MudSelectItem>
+                    }
+                </PrymSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSwitch @bind-Value="_ruleModel.IsCombinable"
+                           Label="@TranslationService.GetTranslation("field.isCombinable", "Combinabile con altre promozioni")"
+                           Color="Color.Info" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.MinOrderAmount"
+                                           Label="@TranslationService.GetTranslation("field.minOrderAmount", "Importo Minimo Ordine")"
+                                           Format="F2"
+                                           Adornment="Adornment.Start"
+                                           AdornmentText="€" />
+            </MudItem>
+        </MudGrid>
+    </PrymStep>
+
+    <PrymStep Title="@TranslationService.GetTranslation("promotion.rules.step.parameters", "Parametri")" Icon="@Icons.Material.Outlined.Tune">
+        <MudGrid Spacing="3" Class="mt-1">
+            @if (_ruleModel.RuleType == "Discount" || _ruleModel.RuleType == "CategoryDiscount" || _ruleModel.RuleType == "CustomerSpecific")
+            {
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountPercentage"
+                                               Label="@TranslationService.GetTranslation("field.discountPercentage", "% Sconto")"
+                                               Format="F2"
+                                               Adornment="Adornment.End"
+                                               AdornmentText="%" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountAmount"
+                                               Label="@TranslationService.GetTranslation("field.discountAmount", "Importo Sconto Fisso")"
+                                               Format="F2"
+                                               Adornment="Adornment.Start"
+                                               AdornmentText="€" />
+                </MudItem>
+            }
+            @if (_ruleModel.RuleType == "CartAmountDiscount" || _ruleModel.RuleType == "Coupon")
+            {
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountPercentage"
+                                               Label="@TranslationService.GetTranslation("field.discountPercentage", "% Sconto")"
+                                               Format="F2"
+                                               Adornment="Adornment.End"
+                                               AdornmentText="%" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.DiscountAmount"
+                                               Label="@TranslationService.GetTranslation("field.discountAmount", "Importo Sconto Fisso")"
+                                               Format="F2"
+                                               Adornment="Adornment.Start"
+                                               AdornmentText="€" />
+                </MudItem>
+            }
+            @if (_ruleModel.RuleType == "BuyXGetY")
+            {
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="int" @bind-Value="_ruleModel.RequiredQuantity"
+                                      Label="@TranslationService.GetTranslation("field.requiredQuantity", "Quantità Richiesta (X)")"
+                                      Min="1" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="int" @bind-Value="_ruleModel.FreeQuantity"
+                                      Label="@TranslationService.GetTranslation("field.freeQuantity", "Quantità Omaggio (Y)")"
+                                      Min="1" />
+                </MudItem>
+            }
+            @if (_ruleModel.RuleType == "FixedPrice" || _ruleModel.RuleType == "Bundle")
+            {
+                <MudItem xs="12" md="6">
+                    <PrymNullableNumericField T="decimal" @bind-Value="_ruleModel.FixedPrice"
+                                               Label="@TranslationService.GetTranslation("field.fixedPrice", "Prezzo Fisso")"
+                                               Format="F2"
+                                               Adornment="Adornment.Start"
+                                               AdornmentText="€" />
+                </MudItem>
+            }
+            @if (_ruleModel.RuleType == "TimeLimited" || _ruleModel.RuleType == "Exclusive")
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        @TranslationService.GetTranslation("promotion.rules.noExtraParameters", "Questo tipo di regola non richiede parametri aggiuntivi.")
+                    </MudAlert>
+                </MudItem>
+            }
+        </MudGrid>
+    </PrymStep>
+
+    <PrymStep Title="@TranslationService.GetTranslation("promotion.rules.step.targets", "Prodotti Target")" Icon="@Icons.Material.Outlined.FilterAlt" Optional="true">
+        <MudStack Spacing="4" Class="mt-1">
+            @if (_ruleModel.RuleType is "BuyXGetY" or "Discount" or "FixedPrice" or "Bundle")
+            {
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2">
+                        @TranslationService.GetTranslation("promotion.rules.targetProducts", "Prodotti Target (vuoto = tutti)")
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Inventory" OnClick="OpenProductPickerAsync">
+                        @TranslationService.GetTranslation("promotion.rules.selectProducts", "Seleziona Prodotti")
+                    </MudButton>
+                    @if (_selectedProducts.Any())
+                    {
+                        <MudChipSet T="string">
+                            @foreach (var p in _selectedProducts)
+                            {
+                                <MudChip T="string">@p.Name (@p.Code)</MudChip>
+                            }
+                        </MudChipSet>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("promotion.rules.allProducts", "Tutti")</MudText>
+                    }
+                </MudStack>
+            }
+            @if (_ruleModel.RuleType is "CategoryDiscount" or "Discount" or "BuyXGetY")
+            {
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2">
+                        @TranslationService.GetTranslation("promotion.rules.targetCategories", "Categorie Target (vuoto = tutte)")
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Category" OnClick="OpenCategoryPickerAsync">
+                        @TranslationService.GetTranslation("promotion.rules.selectCategories", "Seleziona Categorie")
+                    </MudButton>
+                    @if (_selectedCategories.Any())
+                    {
+                        <MudChipSet T="string">
+                            @foreach (var c in _selectedCategories)
+                            {
+                                <MudChip T="string">@c.Name</MudChip>
+                            }
+                        </MudChipSet>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("promotion.rules.allCategories", "Tutte")</MudText>
+                    }
+                </MudStack>
+            }
+            @if (_ruleModel.RuleType is "CustomerSpecific" or "Discount")
+            {
+                <MudStack Spacing="1">
+                    <MudText Typo="Typo.subtitle2">
+                        @TranslationService.GetTranslation("promotion.rules.targetGroups", "Gruppi Clienti (vuoto = tutti)")
+                    </MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Group" OnClick="OpenGroupPickerAsync">
+                        @TranslationService.GetTranslation("promotion.rules.selectGroups", "Seleziona Gruppi")
+                    </MudButton>
+                    @if (_selectedGroups.Any())
+                    {
+                        <MudChipSet T="string">
+                            @foreach (var g in _selectedGroups)
+                            {
+                                <MudChip T="string">@g.Name</MudChip>
+                            }
+                        </MudChipSet>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("promotion.rules.allGroups", "Tutti")</MudText>
+                    }
+                </MudStack>
+            }
+            @if (_ruleModel.RuleType is not ("BuyXGetY" or "Discount" or "FixedPrice" or "Bundle" or "CategoryDiscount" or "CustomerSpecific"))
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @TranslationService.GetTranslation("promotion.rules.noTargeting", "Questo tipo di regola non supporta un target specifico: si applica secondo i parametri impostati.")
+                </MudAlert>
+            }
+        </MudStack>
+    </PrymStep>
+
+    <PrymStep Title="@TranslationService.GetTranslation("promotion.rules.step.restrictions", "Restrizioni")" Icon="@Icons.Material.Outlined.Schedule" Optional="true">
+        <MudStack Spacing="4" Class="mt-1">
+            @if (_ruleModel.RuleType == "TimeLimited")
+            {
+                <MudStack Spacing="2">
+                    <MudText Typo="Typo.subtitle2">
+                        @TranslationService.GetTranslation("promotion.rules.timeRestrictions", "Restrizioni Orarie")
+                    </MudText>
+                    <MudText Typo="Typo.caption" Class="mb-1">
+                        @TranslationService.GetTranslation("promotion.rules.validDays", "Giorni Validi")
+                    </MudText>
+                    <MudChipSet T="DayOfWeek"
+                                MultiSelection="true"
+                                @bind-SelectedValues="_selectedValidDays"
+                                CheckMark="true">
+                        @foreach (DayOfWeek day in Enum.GetValues<DayOfWeek>())
+                        {
+                            <MudChip T="DayOfWeek" Value="@day">@day.ToString()[..3]</MudChip>
+                        }
+                    </MudChipSet>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12" md="6">
+                            <PrymTimePicker @bind-Time="_ruleStartTime"
+                                            Label="@TranslationService.GetTranslation("promotion.rules.startTime", "Ora Inizio")"
+                                            AmPm="false" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <PrymTimePicker @bind-Time="_ruleEndTime"
+                                            Label="@TranslationService.GetTranslation("promotion.rules.endTime", "Ora Fine")"
+                                            AmPm="false" />
+                        </MudItem>
+                    </MudGrid>
+                </MudStack>
+            }
+
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.subtitle2">
+                    @TranslationService.GetTranslation("promotion.rules.salesChannels", "Canali di Vendita (vuoto = tutti)")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @TranslationService.GetTranslation("promotion.rules.salesChannelsHint", "Digita un canale e premi Invio per aggiungerlo.")
+                </MudText>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudTextField T="string"
+                                  @bind-Value="_channelInput"
+                                  Placeholder="@TranslationService.GetTranslation("promotion.rules.salesChannelsPlaceholder", "es. POS")"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Immediate="true"
+                                  @onkeydown="OnChannelKeyDown"
+                                  Class="flex-1" />
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddChannel">
+                        @TranslationService.GetTranslation("common.add", "Aggiungi")
+                    </MudButton>
+                </MudStack>
+                @if (_salesChannels.Any())
+                {
+                    <MudChipSet T="string" AllClosable="true" OnClose="@(chip => RemoveChannel(chip.Value))">
+                        @foreach (var channel in _salesChannels)
+                        {
+                            <MudChip T="string" Value="@channel">@channel</MudChip>
+                        }
+                    </MudChipSet>
+                }
+            </MudStack>
+        </MudStack>
+    </PrymStep>
+</EFStepperDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid PromotionId { get; set; }
+    /// <summary>
+    /// The rule being edited, or null when creating a new rule.
+    /// </summary>
+    [Parameter] public PromotionRuleDto? Rule { get; set; }
+
+    private bool IsEditMode => Rule != null;
+
+    private int _step = 0;
+    private CreatePromotionRuleDto _ruleModel = new();
+    private List<ProductDto> _selectedProducts = new();
+    private List<ClassificationNodeDto> _selectedCategories = new();
+    private List<BusinessPartyGroupDto> _selectedGroups = new();
+    private IReadOnlyCollection<DayOfWeek> _selectedValidDays = new List<DayOfWeek>();
+    private TimeSpan? _ruleStartTime;
+    private TimeSpan? _ruleEndTime;
+    private List<string> _salesChannels = new();
+    private string? _channelInput;
+
+    private static readonly List<string> _availableRuleTypes = new()
+    {
+        "Discount", "BuyXGetY", "FixedPrice", "Bundle",
+        "CartAmountDiscount", "CategoryDiscount", "CustomerSpecific",
+        "Coupon", "TimeLimited", "Exclusive"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Rule != null)
+        {
+            _ruleModel = new CreatePromotionRuleDto
+            {
+                RuleType = Rule.RuleType,
+                DiscountPercentage = Rule.DiscountPercentage,
+                DiscountAmount = Rule.DiscountAmount,
+                RequiredQuantity = Rule.RequiredQuantity,
+                FreeQuantity = Rule.FreeQuantity,
+                FixedPrice = Rule.FixedPrice,
+                MinOrderAmount = Rule.MinOrderAmount,
+                IsCombinable = Rule.IsCombinable
+            };
+            _ruleStartTime = Rule.StartTime;
+            _ruleEndTime = Rule.EndTime;
+            _selectedValidDays = (Rule.ValidDays ?? new List<DayOfWeek>()).ToList();
+            _salesChannels = (Rule.SalesChannels ?? new List<string>()).ToList();
+            _selectedProducts = Rule.Products
+                .Select(p => new ProductDto { Id = p.ProductId, Name = p.ProductName ?? string.Empty, Code = p.ProductCode ?? string.Empty })
+                .ToList();
+
+            await HydrateCategoriesAsync(Rule.CategoryIds);
+            await HydrateGroupsAsync(Rule.BusinessPartyGroupIds);
+        }
+        else
+        {
+            _ruleModel = new CreatePromotionRuleDto { RuleType = "Discount", IsCombinable = true };
+        }
+    }
+
+    private async Task HydrateCategoriesAsync(List<Guid>? categoryIds)
+    {
+        if (categoryIds == null || !categoryIds.Any()) return;
+        try
+        {
+            var all = (await EntityManagementService.GetClassificationNodesAsync())?.ToList() ?? new();
+            _selectedCategories = all.Where(n => categoryIds.Contains(n.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading classification nodes for rule editor.");
+        }
+    }
+
+    private async Task HydrateGroupsAsync(List<Guid>? groupIds)
+    {
+        if (groupIds == null || !groupIds.Any()) return;
+        try
+        {
+            var result = await BusinessPartyGroupService.GetGroupsAsync(1, 200);
+            var all = result?.Items?.ToList() ?? new();
+            _selectedGroups = all.Where(g => groupIds.Contains(g.Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading business party groups for rule editor.");
+        }
+    }
+
+    private string TranslateRuleType(string ruleType) => ruleType switch
+    {
+        "Discount" => TranslationService.GetTranslation("promotion.ruleTypes.discount", "Sconto"),
+        "BuyXGetY" => TranslationService.GetTranslation("promotion.ruleTypes.buyXGetY", "Compra X Prendi Y"),
+        "FixedPrice" => TranslationService.GetTranslation("promotion.ruleTypes.fixedPrice", "Prezzo Fisso"),
+        "Bundle" => TranslationService.GetTranslation("promotion.ruleTypes.bundle", "Pacchetto"),
+        "CartAmountDiscount" => TranslationService.GetTranslation("promotion.ruleTypes.cartAmountDiscount", "Sconto su Importo Carrello"),
+        "CategoryDiscount" => TranslationService.GetTranslation("promotion.ruleTypes.categoryDiscount", "Sconto su Categoria"),
+        "CustomerSpecific" => TranslationService.GetTranslation("promotion.ruleTypes.customerSpecific", "Sconto Cliente Dedicato"),
+        "Coupon" => TranslationService.GetTranslation("promotion.ruleTypes.coupon", "Coupon"),
+        "TimeLimited" => TranslationService.GetTranslation("promotion.ruleTypes.timeLimited", "A Tempo Limitato"),
+        "Exclusive" => TranslationService.GetTranslation("promotion.ruleTypes.exclusive", "Esclusiva"),
+        _ => ruleType
+    };
+
+    private async Task OpenProductPickerAsync()
+    {
+        var parameters = new DialogParameters<ProductMultiPickerDialog>
+        {
+            { x => x.InitialSelection, _selectedProducts }
+        };
+        var dialog = await DialogService.ShowAsync<ProductMultiPickerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && result.Data is List<ProductDto> selected)
+        {
+            _selectedProducts = selected;
+        }
+    }
+
+    private async Task OpenCategoryPickerAsync()
+    {
+        var parameters = new DialogParameters<CategoryMultiPickerDialog>
+        {
+            { x => x.InitialSelection, _selectedCategories }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryMultiPickerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && result.Data is List<ClassificationNodeDto> selected)
+        {
+            _selectedCategories = selected;
+        }
+    }
+
+    private async Task OpenGroupPickerAsync()
+    {
+        var parameters = new DialogParameters<BusinessPartyGroupMultiPickerDialog>
+        {
+            { x => x.InitialSelection, _selectedGroups }
+        };
+        var dialog = await DialogService.ShowAsync<BusinessPartyGroupMultiPickerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && result.Data is List<BusinessPartyGroupDto> selected)
+        {
+            _selectedGroups = selected;
+        }
+    }
+
+    private void AddChannel()
+    {
+        var value = _channelInput?.Trim();
+        if (!string.IsNullOrWhiteSpace(value) && !_salesChannels.Contains(value, StringComparer.OrdinalIgnoreCase))
+        {
+            _salesChannels.Add(value);
+        }
+        _channelInput = null;
+    }
+
+    private void OnChannelKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter")
+        {
+            AddChannel();
+        }
+    }
+
+    private void RemoveChannel(string? channel)
+    {
+        _salesChannels.RemoveAll(c => string.Equals(c, channel, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool ResolveCanGoNext()
+    {
+        return _step switch
+        {
+            0 => !string.IsNullOrWhiteSpace(_ruleModel.RuleType),
+            1 => IsStep2Valid(),
+            _ => true
+        };
+    }
+
+    private bool IsStep2Valid()
+    {
+        switch (_ruleModel.RuleType)
+        {
+            case "Discount":
+            case "CategoryDiscount":
+            case "CustomerSpecific":
+            case "CartAmountDiscount":
+            case "Coupon":
+                return _ruleModel.DiscountPercentage.GetValueOrDefault() > 0 || _ruleModel.DiscountAmount.GetValueOrDefault() > 0;
+            case "BuyXGetY":
+                return _ruleModel.RequiredQuantity.GetValueOrDefault() > 0 && _ruleModel.FreeQuantity.GetValueOrDefault() > 0;
+            case "FixedPrice":
+            case "Bundle":
+                return _ruleModel.FixedPrice.GetValueOrDefault() > 0;
+            default:
+                return true;
+        }
+    }
+
+    private void Complete()
+    {
+        _ruleModel.ProductIds = _selectedProducts.Select(p => p.Id).ToList();
+        _ruleModel.CategoryIds = _selectedCategories.Select(c => c.Id).ToList();
+        _ruleModel.BusinessPartyGroupIds = _selectedGroups.Select(g => g.Id).ToList();
+        _ruleModel.SalesChannels = _salesChannels.ToList();
+        _ruleModel.ValidDays = _selectedValidDays.ToList();
+        _ruleModel.StartTime = _ruleStartTime;
+        _ruleModel.EndTime = _ruleEndTime;
+
+        MudDialog.Close(DialogResult.Ok(_ruleModel));
+    }
+}

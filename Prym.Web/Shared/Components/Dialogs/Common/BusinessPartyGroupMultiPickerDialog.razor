@@ -102,7 +102,7 @@
         }
     }
 
-    private void RemoveGroup(string idString)
+    private void RemoveGroup(string? idString)
     {
         if (Guid.TryParse(idString, out var id))
             _selected.RemoveAll(g => g.Id == id);

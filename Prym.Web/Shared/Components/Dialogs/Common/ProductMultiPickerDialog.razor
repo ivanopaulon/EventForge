@@ -63,7 +63,7 @@
         _current = null;
     }
 
-    private void RemoveProduct(string idString)
+    private void RemoveProduct(string? idString)
     {
         if (Guid.TryParse(idString, out var id))
             _selected.RemoveAll(p => p.Id == id);
