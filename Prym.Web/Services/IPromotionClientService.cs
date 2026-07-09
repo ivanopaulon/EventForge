@@ -26,4 +26,9 @@ public interface IPromotionClientService
     Task<PromotionDto?> ValidateCouponCodeAsync(string couponCode, CancellationToken ct = default);
     Task<PromotionApplicationResultDto> ApplyPromotionsAsync(ApplyPromotionRulesDto dto, CancellationToken ct = default);
     Task<DuplicatePromotionResultDto> DuplicateAsync(Guid promotionId, DuplicatePromotionDto dto, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all promotions a given product belongs to (explicit targeting or "all products" rules).
+    /// </summary>
+    Task<List<ProductPromotionMembershipDto>> GetPromotionsForProductAsync(Guid productId, CancellationToken ct = default);
 }

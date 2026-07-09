@@ -256,4 +256,19 @@ public class PromotionClientService(
             throw;
         }
     }
+
+    public async Task<List<ProductPromotionMembershipDto>> GetPromotionsForProductAsync(Guid productId, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await httpClientService.GetAsync<List<ProductPromotionMembershipDto>>(
+                $"api/v1/product-management/products/{productId}/promotions", ct);
+            return result ?? new List<ProductPromotionMembershipDto>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error retrieving promotions for product {ProductId}", productId);
+            return new List<ProductPromotionMembershipDto>();
+        }
+    }
 }

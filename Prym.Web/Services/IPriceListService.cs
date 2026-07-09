@@ -228,4 +228,11 @@ public interface IPriceListService
         Guid businessPartyId,
         PriceListType? type = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets all price lists a given product belongs to, with an indication of active status.
+    /// </summary>
+    /// <param name="productId">Product ID</param>
+    /// <param name="ct">Cancellation token</param>
+    Task<List<ProductPriceListMembershipDto>> GetPriceListsForProductAsync(Guid productId, CancellationToken ct = default);
 }

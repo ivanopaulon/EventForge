@@ -583,6 +583,36 @@ public class ProductManagementController(
 
     #endregion
 
+    #region Product - PriceList/Promotion Membership
+
+    /// <summary>
+    /// Ottiene tutti i listini prezzi in cui compare il prodotto.
+    /// </summary>
+    /// <param name="id">ID del prodotto</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("products/{id:guid}/price-lists")]
+    [ProducesResponseType(typeof(IEnumerable<ProductPriceListMembershipDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPriceListsForProduct(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await priceListService.GetPriceListsForProductAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Ottiene tutte le promozioni in cui compare il prodotto (targeting esplicito o regole "tutti i prodotti").
+    /// </summary>
+    /// <param name="id">ID del prodotto</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    [HttpGet("products/{id:guid}/promotions")]
+    [ProducesResponseType(typeof(IEnumerable<ProductPromotionMembershipDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPromotionsForProduct(Guid id, CancellationToken cancellationToken = default)
+    {
+        var result = await promotionService.GetPromotionsForProductAsync(id, cancellationToken);
+        return Ok(result);
+    }
+
+    #endregion
+
     #region Product Codes Management
 
     /// <summary>
