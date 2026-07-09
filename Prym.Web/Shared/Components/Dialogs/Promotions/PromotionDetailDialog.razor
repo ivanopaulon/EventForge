@@ -12,7 +12,7 @@
 @inject ILogger<PromotionDetailDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.LocalOffer"
-          Title="@(_promotion?.Name ?? string.Empty)"
+          Title="@(_isNewEntity && _promotion == null ? TranslationService.GetTranslation("promotion.create", "Nuova Promozione") : (_promotion?.Name ?? string.Empty))"
           IsProcessing="@(_isLoading || _isSaving)"
           OnClose="Cancel"
           MinWidth="@EFDialogDefaults.MinWidthTabbed"
@@ -24,7 +24,7 @@
                 <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             </div>
         }
-        else if (_promotion == null)
+        else if (_promotion == null && !_isNewEntity)
         {
             <MudAlert Severity="Severity.Error">
                 @TranslationService.GetTranslation("promotion.notFound", "Promozione non trovata")
@@ -134,6 +134,14 @@
 
                 <!-- Tab 2: Utilizzi & Info -->
                 <MudTabPanel Text="@TranslationService.GetTranslation("promotion.tab.usages", "Utilizzi & Info")" Icon="@Icons.Material.Outlined.BarChart">
+                    @if (_promotion == null)
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            @TranslationService.GetTranslation("promotion.usages.saveFirst", "Salva prima i dati generali per vedere le informazioni di utilizzo.")
+                        </MudAlert>
+                    }
+                    else
+                    {
                     <MudGrid Spacing="3">
                         <!-- KPI Cards -->
                         <MudItem xs="12" md="4">
@@ -220,10 +228,21 @@
                             </MudPaper>
                         </MudItem>
                     </MudGrid>
+                    }
                 </MudTabPanel>
 
                 <!-- Tab 3: Regole -->
-                <MudTabPanel Text="@TranslationService.GetTranslation("promotion.tab.rules", "Regole")" Icon="@Icons.Material.Outlined.Rule">
+                <MudTabPanel Text="@TranslationService.GetTranslation("promotion.tab.rules", "Regole")"
+                             Icon="@Icons.Material.Outlined.Rule"
+                             Disabled="@(_promotion == null)">
+                    @if (_promotion == null)
+                    {
+                        <MudAlert Severity="Severity.Info">
+                            @TranslationService.GetTranslation("promotion.rules.saveFirst", "Salva prima i dati generali per poter aggiungere le regole.")
+                        </MudAlert>
+                    }
+                    else
+                    {
                     <MudStack Spacing="3">
                         <div class="d-flex justify-space-between align-center">
                             <MudText Typo="Typo.h6">
@@ -518,6 +537,7 @@
                             </MudPaper>
                         }
                     </MudStack>
+                    }
                 </MudTabPanel>
             </MudTabs>
         }
@@ -541,7 +561,7 @@
         <PrymButton Intent="PrymButton.ButtonIntent.Primary"
                     StartIcon="@Icons.Material.Filled.Save"
                     OnClick="SavePromotion"
-                    Disabled="_isSaving || _isLoading || _promotion == null">
+                    Disabled="@(_isSaving || _isLoading || (_promotion == null && !_isNewEntity))">
             @TranslationService.GetTranslation("common.save", "Salva")
         </PrymButton>
     </DialogActions>
@@ -551,7 +571,8 @@
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public Guid? EntityId { get; set; }
 
-    private Guid Id => EntityId!.Value;
+    private bool _isNewEntity => EntityId == null || EntityId == Guid.Empty;
+    private Guid Id => _promotion?.Id ?? EntityId ?? Guid.Empty;
 
     private bool _isLoading = true;
     private bool _isSaving = false;
@@ -576,11 +597,27 @@
                 return;
             }
 
-            await LoadPromotionAsync();
+            if (_isNewEntity)
+            {
+                // Modalità creazione: valori di default sensati (stessi di PromotionNew.razor, che rimuoviamo).
+                _updateModel = new UpdatePromotionDto
+                {
+                    StartDate = DateTime.Today,
+                    EndDate = DateTime.Today.AddMonths(1),
+                    Priority = 0,
+                    IsCombinable = true
+                };
+                _startDate = _updateModel.StartDate;
+                _endDate = _updateModel.EndDate;
+            }
+            else
+            {
+                await LoadPromotionAsync();
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error initializing promotion detail dialog for ID {Id}", Id);
+            Logger.LogError(ex, "Error initializing promotion detail dialog for ID {Id}", EntityId);
             AppNotification.ShowError(TranslationService.GetTranslation("promotion.loadingError", "Errore nel caricamento della promozione."));
         }
         finally
@@ -638,8 +675,6 @@
 
     private async Task SavePromotion()
     {
-        if (_promotion == null) return;
-
         if (_form != null)
         {
             await _form.ValidateAsync();
@@ -659,20 +694,48 @@
             if (_endDate.HasValue)
                 _updateModel.EndDate = _endDate.Value;
 
-            var updated = await PromotionService.UpdateAsync(_promotion.Id, _updateModel);
-            if (updated != null)
+            if (_promotion == null)
             {
-                _promotion = updated;
+                // Prima creazione all'interno di questa sessione di dialog.
+                var createDto = new CreatePromotionDto
+                {
+                    Name = _updateModel.Name,
+                    Description = _updateModel.Description,
+                    StartDate = _updateModel.StartDate,
+                    EndDate = _updateModel.EndDate,
+                    MinOrderAmount = _updateModel.MinOrderAmount,
+                    MaxUses = _updateModel.MaxUses,
+                    CouponCode = _updateModel.CouponCode,
+                    Priority = _updateModel.Priority,
+                    IsCombinable = _updateModel.IsCombinable,
+                    MaxTotalDiscountPercentage = _updateModel.MaxTotalDiscountPercentage,
+                    MaxUsesPerCustomer = _updateModel.MaxUsesPerCustomer
+                };
+
+                var created = await PromotionService.CreateAsync(createDto);
+                _promotion = created;
                 PopulateUpdateModel();
-                AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.saved", "Promozione salvata con successo."));
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.created", "Promozione creata con successo. Ora puoi aggiungere le regole."));
                 _hasChanges = false;
-                MudDialog.Close(DialogResult.Ok(true));
+                // Non chiudere il dialog: l'utente resta per aggiungere subito le regole nella tab ora abilitata.
+            }
+            else
+            {
+                var updated = await PromotionService.UpdateAsync(_promotion.Id, _updateModel);
+                if (updated != null)
+                {
+                    _promotion = updated;
+                    PopulateUpdateModel();
+                    AppNotification.ShowSuccess(TranslationService.GetTranslation("promotion.saved", "Promozione salvata con successo."));
+                    _hasChanges = false;
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
             }
         }
         catch (Exception ex)
         {
-            AppNotification.ShowError(TranslationService.GetTranslation("promotion.saveError", "Errore nel salvataggio della promozione."));
-            Logger.LogError(ex, "Error saving promotion {Id}", Id);
+            Logger.LogError(ex, "Error saving promotion.");
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.saveError", "Errore durante il salvataggio della promozione."));
         }
         finally
         {

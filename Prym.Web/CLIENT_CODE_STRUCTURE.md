@@ -78,8 +78,7 @@ Pages are routable Blazor components (with `@page` directive), organized by feat
 
 #### `/Pages/Management/Promotions`
 - `PromotionManagement.razor` — `/management/promotions`
-- `PromotionNew.razor` — `/management/promotions/new`
-- **Dialog component**: `PromotionDetailDialog.razor`
+- **Dialog component**: `PromotionDetailDialog.razor` (handles both create and edit)
 
 #### `/Pages/Management/Reports`
 - `ReportsList.razor` — `/management/reports`
