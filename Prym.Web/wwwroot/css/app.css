@@ -241,18 +241,19 @@ a, .btn-link {
 }
 
 .ef-splash-wordmark {
-    height: 32px;
+    height: 56px;
     width: auto;
 }
 
 .ef-splash-wordmark-pulse {
-    animation: ef-splash-pulse 1.8s infinite ease-in-out;
+    animation: ef-splash-breathe 2.4s infinite ease-in-out;
+    transform-origin: center;
 }
 
-@keyframes ef-splash-pulse {
-    0%   { opacity: 0.70; }
-    50%  { opacity: 1.00; }
-    100% { opacity: 0.70; }
+@keyframes ef-splash-breathe {
+    0%   { opacity: 0.82; transform: scale(1.00); filter: drop-shadow(0 0 0 rgba(99, 179, 237, 0)); }
+    50%  { opacity: 1.00; transform: scale(1.035); filter: drop-shadow(0 0 14px rgba(99, 179, 237, 0.35)); }
+    100% { opacity: 0.82; transform: scale(1.00); filter: drop-shadow(0 0 0 rgba(99, 179, 237, 0)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -267,7 +268,7 @@ a, .btn-link {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    margin: 24px 0 12px;
+    margin: 28px 0 12px;
     max-width: min(420px, 92vw);
     text-align: center;
 }
@@ -281,7 +282,7 @@ a, .btn-link {
 
 @media (max-width: 480px) {
     .ef-splash-wordmark {
-        height: 24px;
+        height: 40px;
     }
 }
 
