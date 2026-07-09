@@ -24,7 +24,7 @@
                      Color="@((_priceListCount + _promotionCount) > 0 ? Color.Info : Color.Default)"
                      Icon="@Icons.Material.Outlined.Sell"
                      OnClick="OpenMembershipDetailAsync">
-                @_priceListCount @TranslationService.GetTranslation("product.membershipChip.priceLists", "listini"), @_promotionCount @TranslationService.GetTranslation("product.membershipChip.promotions", "promozioni")
+                @TranslationService.GetTranslationFormatted("product.membershipChip.summary", "{0} listini, {1} promozioni", _priceListCount, _promotionCount)
             </MudChip>
         }
     </TitleActions>

@@ -1905,7 +1905,7 @@ public class PromotionService(
                 // sconto generico si applica comunque), a costo di un calcolo leggermente più oneroso.
                 // Il DTO espone AppliesToAllProducts per distinguere in UI il targeting esplicito da quello generico.
                 var matchingRule = promotion.Rules.FirstOrDefault(r =>
-                    r.Products.Any(rp => rp.ProductId == productId) || r.Products.Count == 0);
+                    r.Products.Count == 0 || r.Products.Any(rp => rp.ProductId == productId));
 
                 if (matchingRule is null)
                 {
