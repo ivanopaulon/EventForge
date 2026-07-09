@@ -362,6 +362,20 @@
                     </MudButton>
                 </MudTooltip>
 
+                @* Richiama tavolo — apre Pos26TablePickerDialog in modalità AllowResumeOccupied
+                   (Prompt 6): riprende come sessione corrente la sessione già aperta su un
+                   tavolo occupato, senza dover passare dalle sessioni sospese. *@
+                <MudTooltip Text="Richiama tavolo">
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               Class="pos26-fn-btn-uniform"
+                               StartIcon="@Icons.Material.Outlined.TableRestaurant"
+                               OnClick="OpenTableRecallDialogAsync">
+                        Richiama
+                    </MudButton>
+                </MudTooltip>
+
                 @* Dividi conto *@
                 @if (_canSplit)
                 {
