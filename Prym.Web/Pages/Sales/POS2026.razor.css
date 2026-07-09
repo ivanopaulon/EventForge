@@ -720,6 +720,14 @@
     color: var(--mud-palette-warning);
 }
 
+::deep .pos26-receipt-row-pricelist {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 4px;
+    opacity: 0.6;
+    cursor: help;
+}
+
 ::deep .pos26-receipt-note-icon {
     background: none;
     border: none;
@@ -810,6 +818,11 @@
 
 ::deep .pos26-receipt-total-row--discount {
     color: var(--mud-palette-warning);
+}
+
+::deep .pos26-receipt-discount-label {
+    display: inline-flex;
+    align-items: center;
 }
 
 ::deep .pos26-receipt-total-row--vat {

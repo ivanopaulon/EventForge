@@ -127,4 +127,9 @@ public interface IPromotionService
     /// Removes a product from a promotion rule.
     /// </summary>
     Task<bool> RemoveRuleProductAsync(Guid promotionId, Guid ruleId, Guid productId, string currentUser, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Duplicates an existing promotion, optionally copying its rules.
+    /// </summary>
+    Task<DuplicatePromotionResultDto> DuplicatePromotionAsync(Guid promotionId, DuplicatePromotionDto dto, string currentUser, CancellationToken cancellationToken = default);
 }

@@ -352,6 +352,17 @@ namespace Prym.DTOs.Common
     }
 
     /// <summary>
+    /// Status for the promotion.
+    /// </summary>
+    public enum PromotionStatus
+    {
+        Draft,      // Bozza, non ancora attivabile
+        Active,     // Attiva (soggetta comunque a StartDate/EndDate)
+        Suspended,  // Sospesa manualmente — non si applica mai, indipendentemente dalle date
+        Archived    // Archiviata
+    }
+
+    /// <summary>
     /// Payment method enumeration.
     /// </summary>
     public enum PaymentMethod

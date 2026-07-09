@@ -1,3 +1,4 @@
+using Prym.DTOs.Common;
 using System.ComponentModel.DataAnnotations;
 
 namespace Prym.DTOs.Promotions
@@ -67,6 +68,12 @@ namespace Prym.DTOs.Promotions
         /// Maximum number of times this promotion can be used per individual customer. Null = no per-customer limit.
         /// </summary>
         public int? MaxUsesPerCustomer { get; set; }
+
+        /// <summary>
+        /// Status of the promotion (Draft/Active/Suspended/Archived).
+        /// </summary>
+        [Required]
+        public PromotionStatus Status { get; set; } = PromotionStatus.Active;
 
         /// <summary>
         /// Row version for optimistic concurrency control. Send the value received from the

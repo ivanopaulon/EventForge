@@ -89,4 +89,23 @@ public class Promotion : AuditableEntity
     /// </summary>
     [Display(Name = "Rules", Description = "List of rules associated with this promotion.")]
     public List<PromotionRule> Rules { get; set; } = new();
+
+    /// <summary>
+    /// Status of the promotion. Indipendente dalle date: una promozione Suspended non si applica mai,
+    /// anche se StartDate/EndDate la renderebbero attiva.
+    /// </summary>
+    [Required]
+    [Display(Name = "Status", Description = "Current status of the promotion.")]
+    public PromotionStatus Status { get; set; } = PromotionStatus.Active;
+}
+
+/// <summary>
+/// Status for the promotion.
+/// </summary>
+public enum PromotionStatus
+{
+    Draft,      // Bozza, non ancora attivabile
+    Active,     // Attiva (soggetta comunque a StartDate/EndDate)
+    Suspended,  // Sospesa manualmente — non si applica mai, indipendentemente dalle date
+    Archived    // Archiviata
 }

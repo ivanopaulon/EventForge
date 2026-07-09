@@ -469,7 +469,9 @@ public class POSViewModel : IDisposable
                         ProductId = product.Id,
                         Quantity = 1,
                         UnitPrice = priceResult.Price > 0 ? priceResult.Price : (product.DefaultPrice ?? 0m),
-                        DiscountPercent = 0
+                        DiscountPercent = 0,
+                        PriceListId = priceResult.AppliedPriceListId,
+                        PriceListName = priceResult.PriceListName
                     };
 
                     var updatedSession = await _salesService.AddItemAsync(CurrentSession.Id, addItemDto);
@@ -539,6 +541,9 @@ public class POSViewModel : IDisposable
                 Notes = item.Notes,
                 IsService = item.IsService,
                 PromotionId = item.PromotionId,
+                PriceListId = item.PriceListId,
+                PriceListName = item.PriceListName,
+                AppliedPromotionsJSON = item.AppliedPromotionsJSON,
                 ProductThumbnailUrl = item.ProductThumbnailUrl,
                 ProductImageUrl = item.ProductImageUrl,
                 VatRateName = item.VatRateName,
@@ -1163,12 +1168,42 @@ public class POSViewModel : IDisposable
 
             try
             {
+                // Ri-risolve il prezzo per la quantità corrente, per attivare eventuali fasce
+                // quantità (MinQuantity/MaxQuantity) configurate sul listino — il prezzo risolto
+                // all'aggiunta iniziale (sempre a quantità 1) può non essere più quello corretto.
+                try
+                {
+                    var priceResult = await _priceResolutionService.ResolvePriceAsync(
+                        productId: item.ProductId,
+                        businessPartyId: SelectedCustomer?.Id,
+                        direction: Prym.DTOs.Common.PriceListDirection.Output,
+                        quantity: item.Quantity);
+
+                    if (priceResult.Price > 0 && priceResult.Price != item.UnitPrice)
+                    {
+                        item.UnitPrice = priceResult.Price;
+                        item.PriceListId = priceResult.AppliedPriceListId;
+                        item.PriceListName = priceResult.PriceListName;
+                        item.TotalAmount = item.Quantity * item.UnitPrice * (1m - item.DiscountPercent / 100m);
+                        item.TaxAmount = item.TotalAmount * item.TaxRate / 100m;
+                    }
+                }
+                catch (Exception priceEx)
+                {
+                    // Non bloccante: se la ri-risoluzione fallisce, si procede con il prezzo esistente
+                    // invece di impedire l'aggiornamento della riga.
+                    _logger.LogWarning(priceEx, "Impossibile ri-risolvere il prezzo per il prodotto {ProductId} alla quantità {Quantity}; uso il prezzo esistente.",
+                        item.ProductId, item.Quantity);
+                }
+
                 var updateDto = new UpdateSaleItemDto
                 {
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
                     DiscountPercent = item.DiscountPercent,
-                    Notes = item.Notes
+                    Notes = item.Notes,
+                    PriceListId = item.PriceListId,
+                    PriceListName = item.PriceListName
                 };
 
                 var updatedSession = await _salesService.UpdateItemAsync(CurrentSession.Id, item.Id, updateDto);
@@ -1289,6 +1324,8 @@ public class POSViewModel : IDisposable
             item.TotalAmount = backup.TotalAmount;
             item.TaxAmount = backup.TaxAmount;
             item.Notes = backup.Notes;
+            item.PriceListId = backup.PriceListId;
+            item.PriceListName = backup.PriceListName;
 
             _itemBackups.Remove(item.Id);
             _logger.LogInformation("Rolled back item {ItemId} to original state", item.Id);

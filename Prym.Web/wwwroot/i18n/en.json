@@ -3228,6 +3228,20 @@
     "confirmDeleteMultiple": "Are you sure you want to delete {0} selected promotions? This action cannot be undone.",
     "deleted": "Promotion deleted successfully!",
     "deleteError": "Error deleting the promotion: {0}",
+    "bulkActivate": "Activate",
+    "bulkSuspend": "Suspend",
+    "duplicate": "Duplicate",
+    "sourcePromotion": "Source promotion",
+    "duplicateCouponHint": "Leave empty: coupon codes must be unique.",
+    "copyRules": "Copy rules",
+    "duplicated": "Promotion duplicated successfully ({0} rules copied).",
+    "duplicateError": "Error duplicating the promotion.",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "suspended": "Suspended",
+      "archived": "Archived"
+    },
     "ruleTypes": {
       "discount": "Discount",
       "buyXGetY": "Buy X Get Y",

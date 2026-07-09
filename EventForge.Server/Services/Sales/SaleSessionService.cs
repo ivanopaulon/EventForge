@@ -267,6 +267,8 @@ public class SaleSessionService(
                 TaxAmount = taxAmount,
                 Notes = addItemDto.Notes,
                 IsService = addItemDto.IsService,
+                PriceListId = addItemDto.PriceListId,
+                PriceListName = addItemDto.PriceListName,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedBy = currentUser,
@@ -381,6 +383,8 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             item.UnitPrice = updateItemDto.UnitPrice;
             item.DiscountPercent = updateItemDto.DiscountPercent;
             item.Notes = updateItemDto.Notes;
+            item.PriceListId = updateItemDto.PriceListId;
+            item.PriceListName = updateItemDto.PriceListName;
 
             var subtotal = item.UnitPrice * item.Quantity;
             var discountAmount = subtotal * (item.DiscountPercent / 100);
@@ -694,11 +698,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             // Apply discount to each item
             foreach (var item in session.Items)
             {
-                item.DiscountPercent = discountDto.DiscountPercent;
+                item.ManualDiscountPercent = discountDto.DiscountPercent;
+                item.DiscountPercent = item.ManualDiscountPercent + item.PromotionDiscountPercent;
 
                 // Recalculate item totals
                 var subtotal = item.UnitPrice * item.Quantity;
-                var discountAmount = subtotal * (discountDto.DiscountPercent / 100);
+                var discountAmount = subtotal * (item.DiscountPercent / 100);
                 var subtotalAfterDiscount = subtotal - discountAmount;
                 item.TaxAmount = subtotalAfterDiscount * (item.TaxRate / 100);
                 item.TotalAmount = subtotalAfterDiscount + item.TaxAmount;
@@ -1302,7 +1307,10 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             TaxAmount = item.TaxAmount,
             Notes = item.Notes,
             IsService = item.IsService,
-            PromotionId = item.PromotionId
+            PromotionId = item.PromotionId,
+            PriceListId = item.PriceListId,
+            PriceListName = item.PriceListName,
+            AppliedPromotionsJSON = item.AppliedPromotionsJSON
         };
 
         // Enrich with product details if available
@@ -1872,6 +1880,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                         Notes = item.Notes,
                         IsService = item.IsService,
                         PromotionId = item.PromotionId,
+                        PriceListId = item.PriceListId,
+                        PriceListName = item.PriceListName,
+                        AppliedPromotionsJSON = item.AppliedPromotionsJSON,
                         CreatedBy = currentUser,
                         CreatedAt = DateTime.UtcNow,
                         ModifiedBy = currentUser,
@@ -2090,12 +2101,17 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             UnitPrice = source.UnitPrice,
             Quantity = source.Quantity,
             DiscountPercent = source.DiscountPercent,
+            ManualDiscountPercent = source.ManualDiscountPercent,
+            PromotionDiscountPercent = source.PromotionDiscountPercent,
             TotalAmount = source.TotalAmount,
             TaxRate = source.TaxRate,
             TaxAmount = source.TaxAmount,
             Notes = source.Notes,
             IsService = source.IsService,
             PromotionId = source.PromotionId,
+            PriceListId = source.PriceListId,
+            PriceListName = source.PriceListName,
+            AppliedPromotionsJSON = source.AppliedPromotionsJSON,
             CreatedBy = currentUser,
             CreatedAt = DateTime.UtcNow,
             ModifiedBy = currentUser,
@@ -2174,15 +2190,21 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 var saleItem = activeItems[i];
                 var promoItem = result.CartItems[i];
 
-                if (promoItem.AppliedPromotions.Count == 0)
-                    continue;
+                // Ricalcola SEMPRE il contributo promozionale, anche a zero — non solo quando aumenta.
+                var newPromotionDiscount = promoItem.AppliedPromotions.Count > 0
+                    ? promoItem.EffectiveDiscountPercentage
+                    : 0m;
 
-                // Use the effective discount from the promotion engine if it's greater than existing
-                var promoDiscount = promoItem.EffectiveDiscountPercentage;
-                if (promoDiscount > saleItem.DiscountPercent)
+                if (newPromotionDiscount != saleItem.PromotionDiscountPercent)
                 {
-                    saleItem.DiscountPercent = promoDiscount;
-                    saleItem.PromotionId = promoItem.AppliedPromotions[0].PromotionId;
+                    saleItem.PromotionDiscountPercent = newPromotionDiscount;
+                    saleItem.DiscountPercent = saleItem.ManualDiscountPercent + saleItem.PromotionDiscountPercent;
+                    saleItem.PromotionId = promoItem.AppliedPromotions.Count > 0
+                        ? promoItem.AppliedPromotions[0].PromotionId
+                        : null;
+                    saleItem.AppliedPromotionsJSON = promoItem.AppliedPromotions.Count > 0
+                        ? promotionService.SerializeAppliedPromotionsJson(promoItem.AppliedPromotions)
+                        : null;
 
                     var subtotal = saleItem.UnitPrice * saleItem.Quantity;
                     var discountAmount = subtotal * (saleItem.DiscountPercent / 100m);
