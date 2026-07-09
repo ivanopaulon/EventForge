@@ -335,9 +335,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 }
 
                 // Apply promotions to all items in the session and recalculate totals
-                await ApplyPromotionsToSessionItemsAsync(reloadedSession, currentUser, cancellationToken);
+                var nearMissPromotions = await ApplyPromotionsToSessionItemsAsync(reloadedSession, currentUser, cancellationToken);
 
-                return await MapToDtoAsync(reloadedSession, cancellationToken);
+                return await MapToDtoAsync(reloadedSession, cancellationToken, nearMissPromotions);
             }
             catch
             {
@@ -409,9 +409,9 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             logger.LogInformation("Updated item {ItemId} in sale session {SessionId}", itemId, sessionId);
 
             // Apply promotions to all items in the session after a manual update
-            await ApplyPromotionsToSessionItemsAsync(session, currentUser, cancellationToken);
+            var nearMissPromotions = await ApplyPromotionsToSessionItemsAsync(session, currentUser, cancellationToken);
 
-            return await MapToDtoAsync(session, cancellationToken);
+            return await MapToDtoAsync(session, cancellationToken, nearMissPromotions);
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -1235,7 +1235,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         session.FinalTotal = itemsTotal + session.TaxAmount;
     }
 
-    private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken)
+    private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken, List<PromotionNearMissDto>? nearMissPromotions = null)
     {
         // Get product IDs from items
         var productIds = session.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId).Distinct().ToList();
@@ -1254,10 +1254,10 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             .AsNoTracking()
             .CountAsync(s => s.ParentSessionId == session.Id && !s.IsDeleted, cancellationToken);
 
-        return MapToDtoWithProducts(session, products, childSessionCount);
+        return MapToDtoWithProducts(session, products, childSessionCount, nearMissPromotions);
     }
 
-    private SaleSessionDto MapToDtoWithProducts(SaleSession session, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products, int childSessionCount = 0)
+    private SaleSessionDto MapToDtoWithProducts(SaleSession session, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products, int childSessionCount = 0, List<PromotionNearMissDto>? nearMissPromotions = null)
     {
         var dto = new SaleSessionDto
         {
@@ -1285,7 +1285,8 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             ChildSessionCount = childSessionCount,
             Items = session.Items.Where(i => !i.IsDeleted).Select(i => MapItemToDto(i, products)).ToList(),
             Payments = session.Payments.Where(p => !p.IsDeleted).Select(MapPaymentToDto).ToList(),
-            Notes = session.Notes.Select(MapNoteToDto).ToList()
+            Notes = session.Notes.Select(MapNoteToDto).ToList(),
+            NearMissPromotions = nearMissPromotions
         };
 
         return dto;
@@ -2135,14 +2136,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     /// Any failure (e.g. promotion service unavailable) is logged and silently ignored
     /// so it never prevents the item from being saved.
     /// </summary>
-    private async Task ApplyPromotionsToSessionItemsAsync(
+    private async Task<List<PromotionNearMissDto>> ApplyPromotionsToSessionItemsAsync(
         SaleSession session,
         string currentUser,
         CancellationToken cancellationToken)
     {
         var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
         if (activeItems.Count == 0)
-            return;
+            return new List<PromotionNearMissDto>();
 
         try
         {
@@ -2181,7 +2182,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             var result = await promotionService.ApplyPromotionRulesAsync(applyDto, cancellationToken);
 
             if (!result.Success || result.CartItems.Count == 0)
-                return;
+                return result.NearMissPromotions;
 
             bool anyChanged = false;
 
@@ -2227,12 +2228,15 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     "Promotions applied to session {SessionId}: {PromotionCount} promotion(s), TotalDiscount={TotalDiscount:C2}",
                     session.Id, result.AppliedPromotions.Count, result.TotalDiscountAmount);
             }
+
+            return result.NearMissPromotions;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex,
                 "Failed to apply promotions to session {SessionId}; items saved without promotion discount",
                 session.Id);
+            return new List<PromotionNearMissDto>();
         }
     }
 

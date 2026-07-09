@@ -124,6 +124,42 @@ namespace Prym.DTOs.Promotions
         /// Whether all promotions were successfully applied.
         /// </summary>
         public bool Success { get; set; } = true;
+
+        /// <summary>
+        /// Promozioni non ancora sbloccate ma vicine al raggiungimento (dato calcolato, non persistito).
+        /// </summary>
+        public List<PromotionNearMissDto> NearMissPromotions { get; set; } = new List<PromotionNearMissDto>();
+    }
+
+    /// <summary>
+    /// DTO per una promozione "quasi raggiunta" — utile per guidare il cliente verso lo sblocco.
+    /// </summary>
+    public class PromotionNearMissDto
+    {
+        /// <summary>
+        /// Promotion ID.
+        /// </summary>
+        public Guid PromotionId { get; set; }
+
+        /// <summary>
+        /// Promotion name.
+        /// </summary>
+        public string PromotionName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Current cart total.
+        /// </summary>
+        public decimal CurrentTotal { get; set; }
+
+        /// <summary>
+        /// Required minimum order amount for the promotion.
+        /// </summary>
+        public decimal RequiredAmount { get; set; }
+
+        /// <summary>
+        /// Amount still missing to reach the required minimum.
+        /// </summary>
+        public decimal MissingAmount => Math.Max(0, RequiredAmount - CurrentTotal);
     }
 
     /// <summary>
