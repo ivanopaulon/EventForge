@@ -1295,6 +1295,8 @@ public class ProductManagementController(
     {
         try
         {
+            // Force the route's price list ID to avoid mismatches with the DTO payload.
+            dto.PriceListId = id;
             var currentUser = GetCurrentUser();
             var result = await priceListService.AddPriceListEntryAsync(dto, currentUser, cancellationToken);
             return CreatedAtAction(nameof(GetPriceListEntries), new { id }, result);
