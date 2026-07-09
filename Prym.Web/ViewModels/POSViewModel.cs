@@ -1163,6 +1163,32 @@ public class POSViewModel : IDisposable
 
             try
             {
+                // Ri-risolve il prezzo per la quantità corrente, per attivare eventuali fasce
+                // quantità (MinQuantity/MaxQuantity) configurate sul listino — il prezzo risolto
+                // all'aggiunta iniziale (sempre a quantità 1) può non essere più quello corretto.
+                try
+                {
+                    var priceResult = await _priceResolutionService.ResolvePriceAsync(
+                        productId: item.ProductId,
+                        businessPartyId: SelectedCustomer?.Id,
+                        direction: Prym.DTOs.Common.PriceListDirection.Output,
+                        quantity: item.Quantity);
+
+                    if (priceResult.Price > 0 && priceResult.Price != item.UnitPrice)
+                    {
+                        item.UnitPrice = priceResult.Price;
+                        item.TotalAmount = item.Quantity * item.UnitPrice * (1m - item.DiscountPercent / 100m);
+                        item.TaxAmount = item.TotalAmount * item.TaxRate / 100m;
+                    }
+                }
+                catch (Exception priceEx)
+                {
+                    // Non bloccante: se la ri-risoluzione fallisce, si procede con il prezzo esistente
+                    // invece di impedire l'aggiornamento della riga.
+                    _logger.LogWarning(priceEx, "Impossibile ri-risolvere il prezzo per il prodotto {ProductId} alla quantità {Quantity}; uso il prezzo esistente.",
+                        item.ProductId, item.Quantity);
+                }
+
                 var updateDto = new UpdateSaleItemDto
                 {
                     Quantity = item.Quantity,
