@@ -1,6 +1,7 @@
 @* Pos26Receipt — pannello scontrino scuro (colonna destra POS 2026) *@
 @using Prym.DTOs.Business
 @using Prym.DTOs.Business.Fidelity
+@using System.Linq
 
 <div class="pos26-receipt">
     @* Header *@
@@ -72,6 +73,12 @@
                                 <span class="pos26-receipt-row-discount"> −@item.DiscountPercent.ToString("F1")%</span>
                             }
                         </span>
+                        @if (!string.IsNullOrEmpty(item.PriceListName))
+                        {
+                            <span class="pos26-receipt-row-pricelist" title="Prezzo da listino: @item.PriceListName">
+                                <MudIcon Icon="@Icons.Material.Outlined.Sell" Size="Size.Small" />
+                            </span>
+                        }
                     </div>
                     <div class="pos26-receipt-row-actions">
                         <button class="pos26-receipt-qty-btn" @onclick="() => OnDecrease.InvokeAsync(item)">−</button>
@@ -113,10 +120,34 @@
         </div>
         @if (TotalDiscount > 0)
         {
-            <div class="pos26-receipt-total-row pos26-receipt-total-row--discount">
-                <span>Sconto</span>
-                <span>−€@TotalDiscount.ToString("F2")</span>
-            </div>
+            var promotionBreakdown = GetPromotionBreakdown();
+            var otherDiscount = GetOtherDiscountAmount(promotionBreakdown);
+            @foreach (var promo in promotionBreakdown)
+            {
+                <div class="pos26-receipt-total-row pos26-receipt-total-row--discount">
+                    <span class="pos26-receipt-discount-label">
+                        <MudIcon Icon="@Icons.Material.Outlined.LocalOffer" Size="Size.Small" Class="mr-1" />
+                        @promo.PromotionName
+                    </span>
+                    <span>−€@promo.Amount.ToString("F2")</span>
+                </div>
+            }
+            @if (otherDiscount > 0)
+            {
+                <div class="pos26-receipt-total-row pos26-receipt-total-row--discount">
+                    <span>Altri sconti</span>
+                    <span>−€@otherDiscount.ToString("F2")</span>
+                </div>
+            }
+            @if (!promotionBreakdown.Any() && otherDiscount == 0)
+            {
+                @* Caso limite: TotalDiscount > 0 ma nessuna riga ha AppliedPromotionsJSON valorizzato
+                     (es. dati di sessioni create prima di PROMPT D) — fallback alla riga generica di prima. *@
+                <div class="pos26-receipt-total-row pos26-receipt-total-row--discount">
+                    <span>Sconto</span>
+                    <span>−€@TotalDiscount.ToString("F2")</span>
+                </div>
+            }
         }
         @if (TotalVat > 0)
         {
@@ -159,4 +190,40 @@
 
     private static string TruncateName(string name) =>
         name.Length > MaxReceiptNameLength ? name[..ReceiptTruncateAt] + "…" : name;
+
+    private List<(string PromotionName, decimal Amount)> GetPromotionBreakdown()
+    {
+        if (Items == null || Items.Count == 0)
+            return new();
+
+        var all = new List<Prym.DTOs.Promotions.AppliedPromotionSnapshot>();
+        foreach (var item in Items)
+        {
+            if (string.IsNullOrEmpty(item.AppliedPromotionsJSON))
+                continue;
+            try
+            {
+                var snapshots = System.Text.Json.JsonSerializer.Deserialize<List<Prym.DTOs.Promotions.AppliedPromotionSnapshot>>(item.AppliedPromotionsJSON);
+                if (snapshots != null)
+                    all.AddRange(snapshots);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                // Riga con JSON malformato (non dovrebbe accadere, ma non deve rompere lo scontrino) — ignora.
+            }
+        }
+
+        return all
+            .GroupBy(s => s.PromotionName)
+            .Select(g => (PromotionName: g.Key, Amount: g.Sum(s => s.DiscountAmount)))
+            .OrderByDescending(x => x.Amount)
+            .ToList();
+    }
+
+    private decimal GetOtherDiscountAmount(List<(string PromotionName, decimal Amount)> promotionBreakdown)
+    {
+        var promotionTotal = promotionBreakdown.Sum(p => p.Amount);
+        var other = TotalDiscount - promotionTotal;
+        return other > 0.01m ? other : 0m; // tolleranza di arrotondamento
+    }
 }
