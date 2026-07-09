@@ -41,6 +41,16 @@ namespace Prym.DTOs.Sales
         /// Indicates if this is a service (not a product).
         /// </summary>
         public bool IsService { get; set; }
+
+        /// <summary>
+        /// ID del listino che ha determinato il prezzo (opzionale, calcolato lato client dalla risoluzione prezzo).
+        /// </summary>
+        public Guid? PriceListId { get; set; }
+
+        /// <summary>
+        /// Nome del listino che ha determinato il prezzo (snapshot, opzionale).
+        /// </summary>
+        public string? PriceListName { get; set; }
     }
 
     /// <summary>
@@ -71,6 +81,16 @@ namespace Prym.DTOs.Sales
         /// </summary>
         [MaxLength(500)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// ID del listino che ha determinato il prezzo (opzionale, calcolato lato client dalla risoluzione prezzo).
+        /// </summary>
+        public Guid? PriceListId { get; set; }
+
+        /// <summary>
+        /// Nome del listino che ha determinato il prezzo (snapshot, opzionale).
+        /// </summary>
+        public string? PriceListName { get; set; }
     }
 
     /// <summary>
@@ -142,6 +162,21 @@ namespace Prym.DTOs.Sales
         /// Applied promotion identifier.
         /// </summary>
         public Guid? PromotionId { get; set; }
+
+        /// <summary>
+        /// ID del listino che ha determinato il prezzo di questa riga (null se prezzo default prodotto).
+        /// </summary>
+        public Guid? PriceListId { get; set; }
+
+        /// <summary>
+        /// Nome del listino al momento dell'applicazione (snapshot).
+        /// </summary>
+        public string? PriceListName { get; set; }
+
+        /// <summary>
+        /// Dettaglio JSON di tutte le promozioni applicate a questa riga.
+        /// </summary>
+        public string? AppliedPromotionsJSON { get; set; }
 
         /// <summary>
         /// Thumbnail URL for product display in table.

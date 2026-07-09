@@ -469,7 +469,9 @@ public class POSViewModel : IDisposable
                         ProductId = product.Id,
                         Quantity = 1,
                         UnitPrice = priceResult.Price > 0 ? priceResult.Price : (product.DefaultPrice ?? 0m),
-                        DiscountPercent = 0
+                        DiscountPercent = 0,
+                        PriceListId = priceResult.AppliedPriceListId,
+                        PriceListName = priceResult.PriceListName
                     };
 
                     var updatedSession = await _salesService.AddItemAsync(CurrentSession.Id, addItemDto);
@@ -539,6 +541,9 @@ public class POSViewModel : IDisposable
                 Notes = item.Notes,
                 IsService = item.IsService,
                 PromotionId = item.PromotionId,
+                PriceListId = item.PriceListId,
+                PriceListName = item.PriceListName,
+                AppliedPromotionsJSON = item.AppliedPromotionsJSON,
                 ProductThumbnailUrl = item.ProductThumbnailUrl,
                 ProductImageUrl = item.ProductImageUrl,
                 VatRateName = item.VatRateName,
@@ -1177,6 +1182,8 @@ public class POSViewModel : IDisposable
                     if (priceResult.Price > 0 && priceResult.Price != item.UnitPrice)
                     {
                         item.UnitPrice = priceResult.Price;
+                        item.PriceListId = priceResult.AppliedPriceListId;
+                        item.PriceListName = priceResult.PriceListName;
                         item.TotalAmount = item.Quantity * item.UnitPrice * (1m - item.DiscountPercent / 100m);
                         item.TaxAmount = item.TotalAmount * item.TaxRate / 100m;
                     }
@@ -1194,7 +1201,9 @@ public class POSViewModel : IDisposable
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
                     DiscountPercent = item.DiscountPercent,
-                    Notes = item.Notes
+                    Notes = item.Notes,
+                    PriceListId = item.PriceListId,
+                    PriceListName = item.PriceListName
                 };
 
                 var updatedSession = await _salesService.UpdateItemAsync(CurrentSession.Id, item.Id, updateDto);
@@ -1315,6 +1324,8 @@ public class POSViewModel : IDisposable
             item.TotalAmount = backup.TotalAmount;
             item.TaxAmount = backup.TaxAmount;
             item.Notes = backup.Notes;
+            item.PriceListId = backup.PriceListId;
+            item.PriceListName = backup.PriceListName;
 
             _itemBackups.Remove(item.Id);
             _logger.LogInformation("Rolled back item {ItemId} to original state", item.Id);

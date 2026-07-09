@@ -82,4 +82,22 @@ public class SaleItem : AuditableEntity
     /// Applied promotion identifier (if any).
     /// </summary>
     public Guid? PromotionId { get; set; }
+
+    /// <summary>
+    /// ID del listino che ha determinato il prezzo di questa riga (null se prezzo default prodotto).
+    /// </summary>
+    public Guid? PriceListId { get; set; }
+
+    /// <summary>
+    /// Nome del listino al momento dell'applicazione (snapshot, non FK — sopravvive anche se il
+    /// listino viene rinominato o eliminato successivamente).
+    /// </summary>
+    [MaxLength(100)]
+    public string? PriceListName { get; set; }
+
+    /// <summary>
+    /// Dettaglio JSON di tutte le promozioni applicate a questa riga (stesso formato di
+    /// DocumentRow.AppliedPromotionsJSON — vedi AppliedPromotionSnapshot).
+    /// </summary>
+    public string? AppliedPromotionsJSON { get; set; }
 }
