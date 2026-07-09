@@ -1,7 +1,11 @@
 @* Pos26Receipt — pannello scontrino scuro (colonna destra POS 2026) *@
 @using Prym.DTOs.Business
 @using Prym.DTOs.Business.Fidelity
+@using Prym.DTOs.Promotions
+@using Prym.Web.Shared.Components.Dialogs.Sales.Pos26
 @using System.Linq
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
 
 <div class="pos26-receipt">
     @* Header *@
@@ -122,6 +126,16 @@
         {
             var promotionBreakdown = GetPromotionBreakdown();
             var otherDiscount = GetOtherDiscountAmount(promotionBreakdown);
+            @if (HasAppliedPromotions())
+            {
+                <div class="pos26-receipt-total-row">
+                    <button type="button" class="pos26-receipt-promotions-link" @onclick="OpenPromotionTransparencyDialogAsync"
+                            aria-label="@TranslationService.GetTranslation("pos.promotions.viewDetails", "Dettaglio promozioni")">
+                        <MudIcon Icon="@Icons.Material.Outlined.Sell" Size="Size.Small" Class="mr-1" />
+                        @TranslationService.GetTranslation("pos.promotions.viewDetails", "Dettaglio promozioni")
+                    </button>
+                </div>
+            }
             @foreach (var promo in promotionBreakdown)
             {
                 <div class="pos26-receipt-total-row pos26-receipt-total-row--discount">
@@ -148,6 +162,13 @@
                     <span>−€@TotalDiscount.ToString("F2")</span>
                 </div>
             }
+        }
+        @if (NearestNearMiss != null)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true" Icon="@Icons.Material.Outlined.TrendingUp" Class="my-1">
+                @TranslationService.GetTranslationFormatted("pos.promotions.nearMiss",
+                    "Mancano €{0} per sbloccare \"{1}\"", NearestNearMiss.MissingAmount.ToString("F2"), NearestNearMiss.PromotionName)
+            </MudAlert>
         }
         @if (TotalVat > 0)
         {
@@ -187,6 +208,24 @@
 
     private const int MaxReceiptNameLength = 24;
     private const int ReceiptTruncateAt = 22;
+
+    /// <summary>Promozione con soglia minima non ancora raggiunta più vicina allo sblocco (dato calcolato lato server).</summary>
+    private PromotionNearMissDto? NearestNearMiss =>
+        Session?.NearMissPromotions?.OrderBy(n => n.MissingAmount).FirstOrDefault();
+
+    private bool HasAppliedPromotions() =>
+        Items?.Any(i => !string.IsNullOrEmpty(i.AppliedPromotionsJSON)) == true;
+
+    private async Task OpenPromotionTransparencyDialogAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            { "Items", Items ?? new List<SaleItemDto>() }
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        await DialogService.ShowAsync<PromotionTransparencyDialog>(
+            TranslationService.GetTranslation("pos.promotions.title", "Promozioni Attive"), parameters, options);
+    }
 
     private static string TruncateName(string name) =>
         name.Length > MaxReceiptNameLength ? name[..ReceiptTruncateAt] + "…" : name;

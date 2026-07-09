@@ -1,0 +1,99 @@
+@using Prym.DTOs.Sales
+@using Prym.DTOs.Promotions
+@using System.Text.Json
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.Sell"
+          Title="@TranslationService.GetTranslation("pos.promotions.title", "Promozioni Attive")"
+          OnClose="Close"
+          MinWidth="min(600px, 95vw)">
+    <ChildContent>
+        @if (!_breakdown.Any())
+        {
+            <MudAlert Severity="Severity.Info">
+                @TranslationService.GetTranslation("pos.promotions.none", "Nessuna promozione attiva su questo ordine.")
+            </MudAlert>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                @foreach (var promo in _breakdown)
+                {
+                    <MudPaper Elevation="1" Class="pa-3">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.subtitle1"><b>@promo.PromotionName</b></MudText>
+                                @if (!string.IsNullOrWhiteSpace(promo.Description))
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@promo.Description</MudText>
+                                }
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @string.Join(", ", promo.AffectedItemNames)
+                                </MudText>
+                            </MudStack>
+                            <MudText Typo="Typo.subtitle1" Color="Color.Success">−€@promo.TotalAmount.ToString("F2")</MudText>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Filled" Color="Color.Primary">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public List<SaleItemDto> Items { get; set; } = new();
+
+    private record PromotionBreakdownItem(string PromotionName, string? Description, decimal TotalAmount, List<string> AffectedItemNames);
+
+    private List<PromotionBreakdownItem> _breakdown = new();
+
+    protected override void OnInitialized()
+    {
+        // Stessa logica di deserializzazione di Pos26Receipt.GetPromotionBreakdown(),
+        // estesa per tenere il dettaglio delle righe interessate invece di solo il totale.
+        var grouped = new Dictionary<string, (string? Description, decimal Amount, List<string> Items)>();
+
+        foreach (var item in Items)
+        {
+            if (string.IsNullOrEmpty(item.AppliedPromotionsJSON))
+                continue;
+
+            List<AppliedPromotionSnapshot>? snapshots;
+            try
+            {
+                snapshots = JsonSerializer.Deserialize<List<AppliedPromotionSnapshot>>(item.AppliedPromotionsJSON);
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            if (snapshots == null)
+                continue;
+
+            foreach (var s in snapshots)
+            {
+                if (!grouped.TryGetValue(s.PromotionName, out var existing))
+                {
+                    existing = (s.Description, 0m, new List<string>());
+                }
+                existing.Amount += s.DiscountAmount;
+                existing.Items.Add(item.ProductName);
+                grouped[s.PromotionName] = existing;
+            }
+        }
+
+        _breakdown = grouped
+            .Select(kv => new PromotionBreakdownItem(kv.Key, kv.Value.Description, kv.Value.Amount, kv.Value.Items))
+            .OrderByDescending(b => b.TotalAmount)
+            .ToList();
+    }
+
+    private void Close() => MudDialog.Close();
+}

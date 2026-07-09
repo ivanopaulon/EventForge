@@ -475,10 +475,11 @@ public class PromotionService(
 
             // Step 3: Get applicable promotions with caching
             var applicablePromotions = await GetCachedActivePromotionsAsync(cancellationToken);
-            var (filteredPromotions, exclusionMessages) = FilterApplicablePromotionsWithMessages(applicablePromotions, applyDto);
+            var (filteredPromotions, exclusionMessages, nearMissPromotions) = FilterApplicablePromotionsWithMessages(applicablePromotions, applyDto);
 
             // Add exclusion messages to result
             result.Messages.AddRange(exclusionMessages);
+            result.NearMissPromotions = nearMissPromotions;
 
             // Step 4: Order by priority (desc) then by name
             var orderedPromotions = filteredPromotions
@@ -708,10 +709,11 @@ public class PromotionService(
     /// <summary>
     /// Filters promotions based on the apply context and returns exclusion messages.
     /// </summary>
-    private (List<Promotion>, List<string>) FilterApplicablePromotionsWithMessages(List<Promotion> promotions, ApplyPromotionRulesDto applyDto)
+    private (List<Promotion>, List<string>, List<PromotionNearMissDto>) FilterApplicablePromotionsWithMessages(List<Promotion> promotions, ApplyPromotionRulesDto applyDto)
     {
         var filtered = new List<Promotion>();
         var exclusionMessages = new List<string>();
+        var nearMissPromotions = new List<PromotionNearMissDto>();
         var appliedCoupons = applyDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>();
 
         foreach (var promotion in promotions)
@@ -736,6 +738,13 @@ public class PromotionService(
                     logger.LogDebug("Skipping promotion {PromotionName} - minimum order amount {MinAmount} not met (current: {CurrentTotal})",
                         promotion.Name, promotion.MinOrderAmount.Value, currentTotal);
                     exclusionMessages.Add($"Cart total ${currentTotal:F2} doesn't meet minimum ${promotion.MinOrderAmount.Value:F2} for {promotion.Name}");
+                    nearMissPromotions.Add(new PromotionNearMissDto
+                    {
+                        PromotionId = promotion.Id,
+                        PromotionName = promotion.Name,
+                        CurrentTotal = currentTotal,
+                        RequiredAmount = promotion.MinOrderAmount.Value
+                    });
                     continue;
                 }
             }
@@ -763,7 +772,7 @@ public class PromotionService(
             }
         }
 
-        return (filtered, exclusionMessages);
+        return (filtered, exclusionMessages, nearMissPromotions);
     }
 
     /// <summary>
@@ -771,7 +780,7 @@ public class PromotionService(
     /// </summary>
     private List<Promotion> FilterApplicablePromotions(List<Promotion> promotions, ApplyPromotionRulesDto applyDto)
     {
-        var (filtered, _) = FilterApplicablePromotionsWithMessages(promotions, applyDto);
+        var (filtered, _, _) = FilterApplicablePromotionsWithMessages(promotions, applyDto);
         return filtered;
     }
 
@@ -1484,7 +1493,8 @@ public class PromotionService(
             PromotionName = ap.PromotionName,
             DiscountAmount = ap.DiscountAmount,
             DiscountPercentage = ap.DiscountPercentage,
-            PromotionType = ap.RuleType
+            PromotionType = ap.RuleType,
+            Description = ap.Description
         }).ToList();
 
         return JsonSerializer.Serialize(snapshots, new JsonSerializerOptions

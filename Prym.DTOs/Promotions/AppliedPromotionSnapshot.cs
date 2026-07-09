@@ -33,4 +33,9 @@ public class AppliedPromotionSnapshot
     /// Type of the promotion rule that produced this discount.
     /// </summary>
     public PromotionRuleType PromotionType { get; set; }
+
+    /// <summary>
+    /// Descrizione testuale del motivo per cui la promozione è stata applicata (es. "10% su ordini oltre 50€").
+    /// </summary>
+    public string? Description { get; set; }
 }

@@ -152,6 +152,11 @@ namespace Prym.DTOs.Sales
         public int ChildSessionCount { get; set; }
 
         /// <summary>
+        /// Promozioni non ancora sbloccate ma vicine al raggiungimento (dato calcolato, non persistito).
+        /// </summary>
+        public List<Prym.DTOs.Promotions.PromotionNearMissDto>? NearMissPromotions { get; set; }
+
+        /// <summary>
         /// Amount remaining to be paid.
         /// </summary>
         public decimal RemainingAmount => FinalTotal - Payments.Where(p => p.Status == PaymentStatusDto.Completed).Sum(p => p.Amount);
