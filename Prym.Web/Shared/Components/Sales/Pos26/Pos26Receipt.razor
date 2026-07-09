@@ -129,7 +129,8 @@
             @if (HasAppliedPromotions())
             {
                 <div class="pos26-receipt-total-row">
-                    <button class="pos26-receipt-promotions-link" @onclick="OpenPromotionTransparencyDialogAsync">
+                    <button type="button" class="pos26-receipt-promotions-link" @onclick="OpenPromotionTransparencyDialogAsync"
+                            aria-label="@TranslationService.GetTranslation("pos.promotions.viewDetails", "Dettaglio promozioni")">
                         <MudIcon Icon="@Icons.Material.Outlined.Sell" Size="Size.Small" Class="mr-1" />
                         @TranslationService.GetTranslation("pos.promotions.viewDetails", "Dettaglio promozioni")
                     </button>

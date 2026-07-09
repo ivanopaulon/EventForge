@@ -1,4 +1,6 @@
 @using Prym.DTOs.Sales
+@using Prym.DTOs.Promotions
+@using System.Text.Json
 @inject ITranslationService TranslationService
 
 <EFDialog Icon="@Icons.Material.Outlined.Sell"
@@ -62,12 +64,12 @@
             if (string.IsNullOrEmpty(item.AppliedPromotionsJSON))
                 continue;
 
-            List<Prym.DTOs.Promotions.AppliedPromotionSnapshot>? snapshots;
+            List<AppliedPromotionSnapshot>? snapshots;
             try
             {
-                snapshots = System.Text.Json.JsonSerializer.Deserialize<List<Prym.DTOs.Promotions.AppliedPromotionSnapshot>>(item.AppliedPromotionsJSON);
+                snapshots = JsonSerializer.Deserialize<List<AppliedPromotionSnapshot>>(item.AppliedPromotionsJSON);
             }
-            catch (System.Text.Json.JsonException)
+            catch (JsonException)
             {
                 continue;
             }

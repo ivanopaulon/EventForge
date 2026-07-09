@@ -1254,12 +1254,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             .AsNoTracking()
             .CountAsync(s => s.ParentSessionId == session.Id && !s.IsDeleted, cancellationToken);
 
-        return MapToDtoWithProducts(session, products, childSessionCount, nearMissPromotions ?? new List<PromotionNearMissDto>());
+        return MapToDtoWithProducts(session, products, childSessionCount, nearMissPromotions);
     }
 
     private SaleSessionDto MapToDtoWithProducts(SaleSession session, Dictionary<Guid, EventForge.Server.Data.Entities.Products.Product> products, int childSessionCount = 0, List<PromotionNearMissDto>? nearMissPromotions = null)
     {
-        nearMissPromotions ??= new List<PromotionNearMissDto>();
         var dto = new SaleSessionDto
         {
             Id = session.Id,
@@ -1287,7 +1286,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             Items = session.Items.Where(i => !i.IsDeleted).Select(i => MapItemToDto(i, products)).ToList(),
             Payments = session.Payments.Where(p => !p.IsDeleted).Select(MapPaymentToDto).ToList(),
             Notes = session.Notes.Select(MapNoteToDto).ToList(),
-            NearMissPromotions = nearMissPromotions
+            NearMissPromotions = nearMissPromotions ?? new List<PromotionNearMissDto>()
         };
 
         return dto;
