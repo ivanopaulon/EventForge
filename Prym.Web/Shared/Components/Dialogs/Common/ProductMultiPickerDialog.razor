@@ -1,0 +1,74 @@
+@using Prym.DTOs.Products
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.Inventory"
+          Title="@Title"
+          OnClose="Cancel"
+          MinWidth="min(700px, 95vw)">
+    <ChildContent>
+        <MudStack Spacing="3">
+            <UnifiedProductSelector SelectedProduct="_current"
+                                     SelectedProductChanged="AddProduct"
+                                     Title=""
+                                     Placeholder="@TranslationService.GetTranslation("promotion.rules.picker.searchProduct", "Cerca prodotto da aggiungere...")"
+                                     ShowProductInfo="false"
+                                     AllowClear="false" />
+
+            @if (_selected.Any())
+            {
+                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("promotion.rules.picker.selectedCount", "Selezionati") (@_selected.Count)</MudText>
+                <MudChipSet T="string" AllClosable="true" OnClose="@(chip => RemoveProduct(chip.Value))">
+                    @foreach (var p in _selected)
+                    {
+                        <MudChip T="string" Value="@p.Id.ToString()">@p.Name (@p.Code)</MudChip>
+                    }
+                </MudChipSet>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @TranslationService.GetTranslation("promotion.rules.picker.noProductSelected", "Nessun prodotto selezionato — la regola si applicherà a tutti i prodotti.")
+                </MudAlert>
+            }
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton OnClick="Confirm" Variant="Variant.Filled" Color="Color.Primary">
+            @TranslationService.GetTranslation("common.confirm", "Conferma") (@_selected.Count)
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "Seleziona Prodotti";
+    [Parameter] public List<ProductDto>? InitialSelection { get; set; }
+
+    private List<ProductDto> _selected = new();
+    private ProductDto? _current;
+
+    protected override void OnInitialized()
+    {
+        _selected = InitialSelection?.ToList() ?? new();
+    }
+
+    private void AddProduct(ProductDto? product)
+    {
+        if (product != null && !_selected.Any(p => p.Id == product.Id))
+        {
+            _selected.Add(product);
+        }
+        // Reset the selector so it goes back to search mode for the next pick.
+        _current = null;
+    }
+
+    private void RemoveProduct(string idString)
+    {
+        if (Guid.TryParse(idString, out var id))
+            _selected.RemoveAll(p => p.Id == id);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_selected));
+}

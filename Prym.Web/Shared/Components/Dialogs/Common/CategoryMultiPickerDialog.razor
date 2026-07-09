@@ -1,0 +1,89 @@
+@using Prym.DTOs.Common
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject ILogger<CategoryMultiPickerDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Category"
+          Title="@Title"
+          OnClose="Cancel"
+          MinWidth="min(700px, 95vw)">
+    <ChildContent>
+        <MudStack Spacing="3">
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Outlined.Add"
+                       OnClick="AddCategoryAsync">
+                @TranslationService.GetTranslation("promotion.rules.picker.addCategory", "Aggiungi Categoria")
+            </MudButton>
+
+            @if (_selected.Any())
+            {
+                <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("promotion.rules.picker.selectedCount", "Selezionate") (@_selected.Count)</MudText>
+                <MudChipSet T="string" AllClosable="true" OnClose="@(chip => RemoveCategory(chip.Value))">
+                    @foreach (var c in _selected)
+                    {
+                        <MudChip T="string" Value="@c.Id.ToString()">@c.Name</MudChip>
+                    }
+                </MudChipSet>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Dense="true">
+                    @TranslationService.GetTranslation("promotion.rules.picker.noCategorySelected", "Nessuna categoria selezionata — la regola si applicherà a tutte le categorie.")
+                </MudAlert>
+            }
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">@TranslationService.GetTranslation("common.cancel", "Annulla")</MudButton>
+        <MudButton OnClick="Confirm" Variant="Variant.Filled" Color="Color.Primary">
+            @TranslationService.GetTranslation("common.confirm", "Conferma") (@_selected.Count)
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public string Title { get; set; } = "Seleziona Categorie";
+    [Parameter] public List<ClassificationNodeDto>? InitialSelection { get; set; }
+
+    private List<ClassificationNodeDto> _selected = new();
+
+    protected override void OnInitialized()
+    {
+        _selected = InitialSelection?.ToList() ?? new();
+    }
+
+    private async Task AddCategoryAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                { "Type", ProductClassificationType.Category },
+                { "FilterApplicableTo", ClassificationApplicableTo.Products }
+            };
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<ClassificationNodePicker>(string.Empty, parameters, options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false } && result.Data is ClassificationNodeDto selected
+                && !_selected.Any(c => c.Id == selected.Id))
+            {
+                _selected.Add(selected);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening classification picker for promotion rule categories.");
+        }
+    }
+
+    private void RemoveCategory(string idString)
+    {
+        if (Guid.TryParse(idString, out var id))
+            _selected.RemoveAll(c => c.Id == id);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_selected));
+}
