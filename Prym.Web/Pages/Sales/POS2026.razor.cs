@@ -1047,20 +1047,40 @@ public partial class POS2026 : IAsyncDisposable
 
     private async Task ProcessPaymentResultAsync(RisultatoPagamento risultato)
     {
+        var righeFallite = new List<string>();
         try
         {
-            // Aggiunge ogni riga di pagamento alla sessione
+            // Aggiunge ogni riga di pagamento alla sessione, isolando i fallimenti
+            // di ciascuna riga per evitare che un errore su una riga (es. rifiuto
+            // carta) nasconda le righe già registrate con successo sul server.
             foreach (var riga in risultato.Righe)
             {
-                var paymentDto = new AddSalePaymentDto
+                try
                 {
-                    PaymentMethodId = riga.Metodo.Id,
-                    Amount = riga.Importo
-                };
-                await SalesService.AddPaymentAsync(ViewModel.CurrentSession!.Id, paymentDto);
+                    var paymentDto = new AddSalePaymentDto
+                    {
+                        PaymentMethodId = riga.Metodo.Id,
+                        Amount = riga.Importo
+                    };
+                    await SalesService.AddPaymentAsync(ViewModel.CurrentSession!.Id, paymentDto);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Errore registrando il pagamento {Metodo} da {Importo:C2} sulla sessione {SessionId}.",
+                        riga.Metodo.Name, riga.Importo, ViewModel.CurrentSession?.Id);
+                    righeFallite.Add($"{riga.Metodo.Name} ({riga.Importo:C2})");
+                }
             }
 
             await ViewModel.ReloadSessionAsync();
+
+            if (righeFallite.Any())
+            {
+                AppNotification.ShowError(
+                    $"Pagamento parziale: non è stato possibile registrare {string.Join(", ", righeFallite)}. " +
+                    "Il conto resta aperto per l'importo residuo.");
+                return; // non proseguire con punti fedeltà/chiusura se qualcosa è fallito
+            }
 
             if (risultato.FidelityCardId.HasValue)
             {

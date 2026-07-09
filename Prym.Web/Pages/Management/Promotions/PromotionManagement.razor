@@ -12,7 +12,8 @@
                       @ref="_entityPage"
                       Config="_config"
                       Service="_service"
-                      OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+                      OnEditOverride="@(id => OpenDetailDialogAsync(id))"
+                      OnCreateOverride="@(() => OpenDetailDialogAsync(null))">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -239,11 +240,11 @@
         _ => Color.Info
     };
 
-    private async Task OpenDetailDialogAsync(Guid id)
+    private async Task OpenDetailDialogAsync(Guid? id)
     {
         try
         {
-            var parameters = new DialogParameters { [nameof(PromotionDetailDialog.EntityId)] = (Guid?)id };
+            var parameters = new DialogParameters { [nameof(PromotionDetailDialog.EntityId)] = id };
             var dialog = await DialogService.ShowAsync<PromotionDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
             var result = await dialog.Result;
             if (result is { Canceled: false })

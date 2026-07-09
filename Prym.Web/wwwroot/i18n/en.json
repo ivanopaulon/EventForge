@@ -3227,6 +3227,26 @@
     "confirmDelete": "Are you sure you want to delete the promotion '{0}'? This action cannot be undone.",
     "confirmDeleteMultiple": "Are you sure you want to delete {0} selected promotions? This action cannot be undone.",
     "deleted": "Promotion deleted successfully!",
-    "deleteError": "Error deleting the promotion: {0}"
+    "deleteError": "Error deleting the promotion: {0}",
+    "ruleTypes": {
+      "discount": "Discount",
+      "buyXGetY": "Buy X Get Y",
+      "fixedPrice": "Fixed Price",
+      "bundle": "Bundle",
+      "cartAmountDiscount": "Cart Amount Discount",
+      "categoryDiscount": "Category Discount",
+      "customerSpecific": "Customer-Specific Discount",
+      "coupon": "Coupon",
+      "timeLimited": "Time Limited",
+      "exclusive": "Exclusive"
+    },
+    "rules": {
+      "value": "Value",
+      "validation": {
+        "discountRequired": "Set at least a discount percentage or a fixed discount amount.",
+        "buyXGetYRequired": "Set both the required quantity (X) and the free quantity (Y).",
+        "fixedPriceRequired": "Set the fixed price."
+      }
+    }
   }
 }

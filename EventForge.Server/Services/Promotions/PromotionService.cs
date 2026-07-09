@@ -757,6 +757,7 @@ public class PromotionService(
             bool applied = rule.RuleType switch
             {
                 EventForge.Server.Data.Entities.Promotions.PromotionRuleType.Discount => ApplyDiscountRule(rule, cartItems, promotion, lockedLines, result),
+                EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CustomerSpecific => ApplyDiscountRule(rule, cartItems, promotion, lockedLines, result),
                 EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CategoryDiscount => ApplyCategoryDiscountRule(rule, cartItems, promotion, lockedLines, result),
                 EventForge.Server.Data.Entities.Promotions.PromotionRuleType.CartAmountDiscount => ApplyCartAmountDiscountRule(rule, cartItems, promotion, applyDto, lockedLines, result),
                 EventForge.Server.Data.Entities.Promotions.PromotionRuleType.BuyXGetY => ApplyBuyXGetYRule(rule, cartItems, promotion, lockedLines, result),

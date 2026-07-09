@@ -3281,6 +3281,26 @@
     "confirmDelete": "Sei sicuro di voler eliminare la promozione '{0}'? Questa azione non può essere annullata.",
     "confirmDeleteMultiple": "Sei sicuro di voler eliminare {0} promozioni selezionate? Questa azione non può essere annullata.",
     "deleted": "Promozione eliminata con successo!",
-    "deleteError": "Errore nell'eliminazione della promozione: {0}"
+    "deleteError": "Errore nell'eliminazione della promozione: {0}",
+    "ruleTypes": {
+      "discount": "Sconto",
+      "buyXGetY": "Compra X Prendi Y",
+      "fixedPrice": "Prezzo Fisso",
+      "bundle": "Pacchetto",
+      "cartAmountDiscount": "Sconto su Importo Carrello",
+      "categoryDiscount": "Sconto su Categoria",
+      "customerSpecific": "Sconto Cliente Dedicato",
+      "coupon": "Coupon",
+      "timeLimited": "A Tempo Limitato",
+      "exclusive": "Esclusiva"
+    },
+    "rules": {
+      "value": "Valore",
+      "validation": {
+        "discountRequired": "Imposta almeno una % di sconto o un importo fisso di sconto.",
+        "buyXGetYRequired": "Imposta sia la quantità richiesta (X) sia la quantità omaggio (Y).",
+        "fixedPriceRequired": "Imposta il prezzo fisso."
+      }
+    }
   }
 }
