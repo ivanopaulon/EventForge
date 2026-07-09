@@ -3239,6 +3239,13 @@
       "coupon": "Coupon",
       "timeLimited": "Time Limited",
       "exclusive": "Exclusive"
+    },
+    "rules": {
+      "validation": {
+        "discountRequired": "Set at least a discount percentage or a fixed discount amount.",
+        "buyXGetYRequired": "Set both the required quantity (X) and the free quantity (Y).",
+        "fixedPriceRequired": "Set the fixed price."
+      }
     }
   }
 }

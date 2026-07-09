@@ -3293,6 +3293,13 @@
       "coupon": "Coupon",
       "timeLimited": "A Tempo Limitato",
       "exclusive": "Esclusiva"
+    },
+    "rules": {
+      "validation": {
+        "discountRequired": "Imposta almeno una % di sconto o un importo fisso di sconto.",
+        "buyXGetYRequired": "Imposta sia la quantità richiesta (X) sia la quantità omaggio (Y).",
+        "fixedPriceRequired": "Imposta il prezzo fisso."
+      }
     }
   }
 }

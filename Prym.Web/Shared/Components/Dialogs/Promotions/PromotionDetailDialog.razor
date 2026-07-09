@@ -951,6 +951,14 @@
     private async Task SaveRule()
     {
         if (_promotion == null || string.IsNullOrWhiteSpace(_ruleModel.RuleType)) return;
+
+        var validationError = ValidateRuleModel();
+        if (validationError != null)
+        {
+            AppNotification.ShowError(validationError);
+            return;
+        }
+
         try
         {
             _isSavingRule = true;
@@ -1005,6 +1013,34 @@
         {
             _isSavingRule = false;
         }
+    }
+
+    private string? ValidateRuleModel()
+    {
+        switch (_ruleModel.RuleType)
+        {
+            case "Discount":
+            case "CategoryDiscount":
+            case "CustomerSpecific":
+            case "CartAmountDiscount":
+            case "Coupon":
+                if (_ruleModel.DiscountPercentage.GetValueOrDefault() <= 0 && _ruleModel.DiscountAmount.GetValueOrDefault() <= 0)
+                    return TranslationService.GetTranslation("promotion.rules.validation.discountRequired",
+                        "Imposta almeno una % di sconto o un importo fisso di sconto.");
+                break;
+            case "BuyXGetY":
+                if (_ruleModel.RequiredQuantity.GetValueOrDefault() <= 0 || _ruleModel.FreeQuantity.GetValueOrDefault() <= 0)
+                    return TranslationService.GetTranslation("promotion.rules.validation.buyXGetYRequired",
+                        "Imposta sia la quantità richiesta (X) sia la quantità omaggio (Y).");
+                break;
+            case "FixedPrice":
+            case "Bundle":
+                if (_ruleModel.FixedPrice.GetValueOrDefault() <= 0)
+                    return TranslationService.GetTranslation("promotion.rules.validation.fixedPriceRequired",
+                        "Imposta il prezzo fisso.");
+                break;
+        }
+        return null;
     }
 
     private async Task DeleteRule(PromotionRuleDto rule)
