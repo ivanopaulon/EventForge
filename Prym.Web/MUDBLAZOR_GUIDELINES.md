@@ -208,7 +208,44 @@ The precedence order is:
 
 ---
 
-### 2.7 MudAlert
+### 2.7 Dialog/pagine multistep (PrymStepper / EFStepperDialog)
+
+**Standards:**
+- Non usare mai `MudStepper`/`MudStep` direttamente: usano `CaptureUnmatchedValues` e un `ActionContent` che, se non soppresso esplicitamente, renderizza sempre una propria barra di navigazione nativa (Precedente/Successivo/Completa) in aggiunta a qualunque footer custom — causa doppie barre di comandi (fix ST01).
+- Usare `PrymStepper`/`PrymStep` (in `Prym.UI/Components/`) al posto di `MudStepper`/`MudStep`: whitelisted params, nessun `ActionContent` nativo, un solo stato reale (`ActiveIndex`/`ActiveIndexChanged`).
+- Per il caso standard "dialog multistep con Annulla + Indietro/Avanti/Conferma nel footer", usare `EFStepperDialog` (in `Prym.Web/Shared/Components/Dialogs/`): combina `EFDialog`+`PrymStepper`+`PrymStepperActions` in un solo componente.
+- Non usare `@bind-ActiveStepIndex` (era dead code su `MudStepper`, fix ST02): il binding reale è `ActiveIndex`/`ActiveIndexChanged`, sempre esplicito.
+- `<PrymStep Title="...">` (maiuscolo): il parametro è `Title`, non `title` (fix ST03, tipico refuso da porting rapido).
+- Side-effect legati all'avanzamento di step (validazioni, chiamate API, side-effect asincroni) vanno esposti tramite `BeforeNextAsync="@MyMethodAsync"` (`Func<int, Task<bool>>`, `true` = procedi) — non vanno incorporati in metodi che auto-avanzano l'indice: l'avanzamento dell'indice è responsabilità esclusiva di `PrymStepperActions`/`EFStepperDialog`.
+- Se la navigazione richiede salti non sequenziali (step condizionali), usare `ResolveNextIndex`/`ResolvePreviousIndex` (`Func<int, int>`) — non aggiungere `OnClick` manuali che assegnano `_activeStep` direttamente.
+- **Eccezioni documentate**: quando lo stepper è annidato in una tab di un dialog più grande, o il footer richiede logica non riconducibile al pattern generico (es. testo bottone condizionale, nessuna navigazione step-by-step), usare `PrymStepper`/`PrymStep` diretti (senza `EFStepperDialog`) e documentare l'eccezione con un commento nel file.
+
+**✅ Correct (caso standard):**
+```razor
+<EFStepperDialog Icon="@Icons.Material.Outlined.Save"
+                  Title="Wizard di esempio"
+                  ActiveIndex="@_activeStep"
+                  ActiveIndexChanged="@(i => _activeStep = i)"
+                  StepCount="3"
+                  CanGoNext="@CanAdvance()"
+                  BeforeNextAsync="@HandleBeforeNextAsync"
+                  OnComplete="SaveAsync">
+    <PrymStep Title="Passo 1" Icon="@Icons.Material.Outlined.Info">...</PrymStep>
+    <PrymStep Title="Passo 2" Icon="@Icons.Material.Outlined.Settings">...</PrymStep>
+    <PrymStep Title="Passo 3" Icon="@Icons.Material.Outlined.Check">...</PrymStep>
+</EFStepperDialog>
+```
+
+**❌ Wrong:**
+```razor
+<MudStepper @bind-ActiveStepIndex="_activeStep">  <!-- dead binding, doppia barra nav -->
+    <MudStep title="Passo 1">...</MudStep>         <!-- refuso: title minuscolo -->
+</MudStepper>
+```
+
+---
+
+### 2.8 MudAlert
 
 - Never use inline `Style=` on `<MudAlert`
 - Use `Severity=` to convey meaning (not color)
