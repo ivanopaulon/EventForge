@@ -269,7 +269,11 @@
                         {
                             <MudDataGrid T="PromotionRuleDto" Items="_rules" Hover="true" Striped="true" Dense="true">
                                 <Columns>
-                                    <PropertyColumn Property="x => x.RuleType" Title="@TranslationService.GetTranslation("field.ruleType", "Tipo")" />
+                                    <TemplateColumn Title="@TranslationService.GetTranslation("field.ruleType", "Tipo")">
+                                        <CellTemplate>
+                                            @TranslateRuleType(context.Item.RuleType)
+                                        </CellTemplate>
+                                    </TemplateColumn>
                                     <PropertyColumn Property="x => x.DiscountPercentage" Title="@TranslationService.GetTranslation("field.discountPercentage", "% Sconto")" Format="F2" />
                                     <PropertyColumn Property="x => x.DiscountAmount" Title="@TranslationService.GetTranslation("field.discountAmount", "Importo Sconto")" Format="F2" />
                                     <PropertyColumn Property="x => x.RequiredQuantity" Title="@TranslationService.GetTranslation("field.requiredQuantity", "Qt. Richiesta")" />
@@ -350,7 +354,7 @@
                                                     Required="true">
                                             @foreach (var ruleType in _availableRuleTypes)
                                             {
-                                                <MudSelectItem Value="@ruleType">@ruleType</MudSelectItem>
+                                                <MudSelectItem Value="@ruleType">@TranslateRuleType(ruleType)</MudSelectItem>
                                             }
                                         </PrymSelect>
                                     </MudItem>
@@ -828,6 +832,21 @@
         "Discount", "BuyXGetY", "FixedPrice", "Bundle",
         "CartAmountDiscount", "CategoryDiscount", "CustomerSpecific",
         "Coupon", "TimeLimited", "Exclusive"
+    };
+
+    private string TranslateRuleType(string ruleType) => ruleType switch
+    {
+        "Discount" => TranslationService.GetTranslation("promotion.ruleTypes.discount", "Sconto"),
+        "BuyXGetY" => TranslationService.GetTranslation("promotion.ruleTypes.buyXGetY", "Compra X Prendi Y"),
+        "FixedPrice" => TranslationService.GetTranslation("promotion.ruleTypes.fixedPrice", "Prezzo Fisso"),
+        "Bundle" => TranslationService.GetTranslation("promotion.ruleTypes.bundle", "Pacchetto"),
+        "CartAmountDiscount" => TranslationService.GetTranslation("promotion.ruleTypes.cartAmountDiscount", "Sconto su Importo Carrello"),
+        "CategoryDiscount" => TranslationService.GetTranslation("promotion.ruleTypes.categoryDiscount", "Sconto su Categoria"),
+        "CustomerSpecific" => TranslationService.GetTranslation("promotion.ruleTypes.customerSpecific", "Sconto Cliente Dedicato"),
+        "Coupon" => TranslationService.GetTranslation("promotion.ruleTypes.coupon", "Coupon"),
+        "TimeLimited" => TranslationService.GetTranslation("promotion.ruleTypes.timeLimited", "A Tempo Limitato"),
+        "Exclusive" => TranslationService.GetTranslation("promotion.ruleTypes.exclusive", "Esclusiva"),
+        _ => ruleType
     };
 
     private async Task LoadRulesAsync()
