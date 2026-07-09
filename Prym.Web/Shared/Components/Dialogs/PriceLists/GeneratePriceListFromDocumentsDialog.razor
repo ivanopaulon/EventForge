@@ -16,13 +16,17 @@
             <PageLoadingOverlay Visible="_isLoading" />
 
             <MudForm @ref="_form" @bind-IsValid="@_isFormValid">
-                <MudStepper Class="min-h-0" @ref="_stepper"
- NonLinear="false"
- Color="Color.Primary"
- Variant="Variant.Filled"
- DisableAnimation="false"
->
-                    <MudStep Title="Informazioni di Base" Icon="@Icons.Material.Outlined.Info">
+                @if (_activeIndex < 3)
+                {
+                    <MudStack Row="true" Spacing="2" Class="mb-2">
+                        <PrymStepperActions ActiveIndex="@_activeIndex"
+                                             ActiveIndexChanged="@(i => _activeIndex = i)"
+                                             StepCount="4"
+                                             ShowPrevious="true" />
+                    </MudStack>
+                }
+                <PrymStepper Class="min-h-0" ActiveIndex="@_activeIndex" ActiveIndexChanged="@(i => _activeIndex = i)">
+                    <PrymStep Title="Informazioni di Base" Icon="@Icons.Material.Outlined.Info">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step1", "Passo 1: Informazioni di Base")
@@ -61,8 +65,8 @@
                     Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
-                    </MudStep>
-                    <MudStep Title="Fornitore e Periodo" Icon="@Icons.Material.Outlined.CalendarMonth">
+                    </PrymStep>
+                    <PrymStep Title="Fornitore e Periodo" Icon="@Icons.Material.Outlined.CalendarMonth">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.CalendarMonth" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step2", "Passo 2: Fornitore e Periodo")
@@ -108,8 +112,8 @@
                     Margin="Margin.Dense"/>
                             </MudItem>
                         </MudGrid>
-                    </MudStep>
-                    <MudStep Title="Strategia di Calcolo" Icon="@Icons.Material.Outlined.Calculate">
+                    </PrymStep>
+                    <PrymStep Title="Strategia di Calcolo" Icon="@Icons.Material.Outlined.Calculate">
                         <MudText Typo="Typo.h6" Class="mb-3">
                             <MudIcon Icon="@Icons.Material.Outlined.Calculate" Size="Size.Small" Class="mr-2" />
                             @TranslationService.GetTranslation("pricelist.step3", "Passo 3: Strategia di Calcolo")
@@ -162,8 +166,8 @@
                                 </div>
                             </MudRadio>
                         </MudRadioGroup>
-                    </MudStep>
-                    <MudStep Title="Opzioni Avanzate" Icon="@Icons.Material.Outlined.Tune">
+                    </PrymStep>
+                    <PrymStep Title="Opzioni Avanzate" Icon="@Icons.Material.Outlined.Tune">
                     <MudExpansionPanels>
                         <MudExpansionPanel Text="@TranslationService.GetTranslation("pricelist.advancedOptions", "Opzioni Avanzate")">
                             <MudGrid Spacing="2">
@@ -210,8 +214,8 @@
                             </MudGrid>
                         </MudExpansionPanel>
                     </MudExpansionPanels>
-                    </MudStep>
-                </MudStepper>
+                    </PrymStep>
+                </PrymStepper>
                     @if (_preview != null)
                     {
                         <!-- Preview Results -->
@@ -297,7 +301,7 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    private MudStepper? _stepper;
+    private int _activeIndex = 0;
     private MudForm _form = null!;
     private bool _isFormValid;
     private bool _isLoading = false;
