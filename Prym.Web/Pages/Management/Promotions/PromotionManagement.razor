@@ -287,12 +287,29 @@
         _ => Icons.Material.Filled.Circle
     };
 
+    private static UpdatePromotionDto BuildUpdateDto(PromotionDto p, PromotionStatus status) => new()
+    {
+        Name = p.Name,
+        Description = p.Description,
+        StartDate = p.StartDate,
+        EndDate = p.EndDate,
+        MinOrderAmount = p.MinOrderAmount,
+        MaxUses = p.MaxUses,
+        CouponCode = p.CouponCode,
+        Priority = p.Priority,
+        IsCombinable = p.IsCombinable,
+        MaxTotalDiscountPercentage = p.MaxTotalDiscountPercentage,
+        MaxUsesPerCustomer = p.MaxUsesPerCustomer,
+        Status = status,
+        RowVersion = p.RowVersion
+    };
+
     private async Task BulkActivate()
     {
         var selected = _entityPage?.SelectedItems;
         if (selected == null || selected.Count == 0)
         {
-            AppNotification.ShowInfo("Seleziona almeno una promozione da attivare");
+            AppNotification.ShowInfo(TranslationService.GetTranslation("promotion.bulkActivate.selectFirst", "Seleziona almeno una promozione da attivare"));
             return;
         }
         try
@@ -300,33 +317,18 @@
             var toActivate = selected.Where(p => p.Status != PromotionStatus.Active).ToList();
             if (toActivate.Count == 0)
             {
-                AppNotification.ShowInfo("Tutte le promozioni selezionate sono già attive");
+                AppNotification.ShowInfo(TranslationService.GetTranslation("promotion.bulkActivate.alreadyActive", "Tutte le promozioni selezionate sono già attive"));
                 return;
             }
-            var tasks = toActivate.Select(p => PromotionService.UpdateAsync(p.Id, new UpdatePromotionDto
-            {
-                Name = p.Name,
-                Description = p.Description,
-                StartDate = p.StartDate,
-                EndDate = p.EndDate,
-                MinOrderAmount = p.MinOrderAmount,
-                MaxUses = p.MaxUses,
-                CouponCode = p.CouponCode,
-                Priority = p.Priority,
-                IsCombinable = p.IsCombinable,
-                MaxTotalDiscountPercentage = p.MaxTotalDiscountPercentage,
-                MaxUsesPerCustomer = p.MaxUsesPerCustomer,
-                Status = PromotionStatus.Active,
-                RowVersion = p.RowVersion
-            }, CancellationToken.None));
+            var tasks = toActivate.Select(p => PromotionService.UpdateAsync(p.Id, BuildUpdateDto(p, PromotionStatus.Active), CancellationToken.None));
             await Task.WhenAll(tasks);
             await _entityPage!.RefreshAsync();
-            AppNotification.ShowSuccess($"{toActivate.Count} promozione/i attivata/e");
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("promotion.bulkActivate.success", "{0} promozione/i attivata/e", toActivate.Count));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error bulk-activating promotions.");
-            AppNotification.ShowError("Errore durante l'attivazione massiva.");
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.bulkActivate.error", "Errore durante l'attivazione massiva."));
         }
     }
 
@@ -335,7 +337,7 @@
         var selected = _entityPage?.SelectedItems;
         if (selected == null || selected.Count == 0)
         {
-            AppNotification.ShowInfo("Seleziona almeno una promozione da sospendere");
+            AppNotification.ShowInfo(TranslationService.GetTranslation("promotion.bulkSuspend.selectFirst", "Seleziona almeno una promozione da sospendere"));
             return;
         }
         try
@@ -343,33 +345,18 @@
             var toSuspend = selected.Where(p => p.Status != PromotionStatus.Suspended).ToList();
             if (toSuspend.Count == 0)
             {
-                AppNotification.ShowInfo("Tutte le promozioni selezionate sono già sospese");
+                AppNotification.ShowInfo(TranslationService.GetTranslation("promotion.bulkSuspend.alreadySuspended", "Tutte le promozioni selezionate sono già sospese"));
                 return;
             }
-            var tasks = toSuspend.Select(p => PromotionService.UpdateAsync(p.Id, new UpdatePromotionDto
-            {
-                Name = p.Name,
-                Description = p.Description,
-                StartDate = p.StartDate,
-                EndDate = p.EndDate,
-                MinOrderAmount = p.MinOrderAmount,
-                MaxUses = p.MaxUses,
-                CouponCode = p.CouponCode,
-                Priority = p.Priority,
-                IsCombinable = p.IsCombinable,
-                MaxTotalDiscountPercentage = p.MaxTotalDiscountPercentage,
-                MaxUsesPerCustomer = p.MaxUsesPerCustomer,
-                Status = PromotionStatus.Suspended,
-                RowVersion = p.RowVersion
-            }, CancellationToken.None));
+            var tasks = toSuspend.Select(p => PromotionService.UpdateAsync(p.Id, BuildUpdateDto(p, PromotionStatus.Suspended), CancellationToken.None));
             await Task.WhenAll(tasks);
             await _entityPage!.RefreshAsync();
-            AppNotification.ShowSuccess($"{toSuspend.Count} promozione/i sospesa/e");
+            AppNotification.ShowSuccess(TranslationService.GetTranslationFormatted("promotion.bulkSuspend.success", "{0} promozione/i sospesa/e", toSuspend.Count));
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error bulk-suspending promotions.");
-            AppNotification.ShowError("Errore durante la sospensione massiva.");
+            AppNotification.ShowError(TranslationService.GetTranslation("promotion.bulkSuspend.error", "Errore durante la sospensione massiva."));
         }
     }
 
