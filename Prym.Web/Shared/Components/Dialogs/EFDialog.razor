@@ -152,6 +152,19 @@
         box-sizing: border-box;
     }
 
+    /* Un EFTable completo (con toolbar/filtri/paginazione) dentro una tab di dialog non riceve mai
+     * un'altezza dal proprio antenato flex — .efd-body scrolla l'intero corpo del dialog, non fa da
+     * host a altezza definita per ulteriori figli flex. Diamo a .eftable-wrapper un'altezza minima
+     * generosa e uno scroll proprio, indipendente dal resto del corpo del dialog, invece di affidarci
+     * a una catena flex che qui non si innesca.
+     */
+    .efd-body .eftable-wrapper {
+        min-height: 420px;
+        max-height: 60vh;
+        overflow-y: auto;
+        flex: none;
+    }
+
     /* ═══════════════════════════════════════════════════════════
        VERTICAL TABS — unified style inside EFDialog
        ═══════════════════════════════════════════════════════════ */

@@ -207,12 +207,12 @@
                                                               AdornmentIcon="@Icons.Material.Filled.Euro"
                                                               Min="0" Step="0.01M" Format="N2"
                                                               Disabled="@(_selectedProductToAdd == null)" />
-                                            <MudButton Variant="Variant.Filled" Color="Color.Success"
+                                            <PrymButton Variant="Variant.Filled" Color="Color.Success"
                                                        StartIcon="@Icons.Material.Filled.Add" FullWidth="true"
                                                        OnClick="@AddProductQuick"
                                                        Disabled="@(_selectedProductToAdd == null || _quickAddPrice <= 0)">
                                                 @TranslationService.GetTranslation("pricelist.addToList", "Aggiungi al Listino")
-                                            </MudButton>
+                                            </PrymButton>
                                         </MudStack>
                                     </MudItem>
                                 </MudGrid>
@@ -270,24 +270,24 @@
                                                                    Clearable="true" />
                                     </MudItem>
                                     <MudItem xs="12" md="3">
-                                        <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                                        <PrymButton Variant="Variant.Outlined" Color="Color.Default"
                                                    FullWidth="true"
                                                    OnClick="ClearFilters">
                                             @TranslationService.GetTranslation("pricelist.reset", "Reset")
-                                        </MudButton>
+                                        </PrymButton>
                                     </MudItem>
                                 </MudGrid>
                             </FiltersPanel>
                             <AdditionalToolbarContent>
                                 @if (_selectedEntries.Count > 0)
                                 {
-                                    <MudButton Variant="Variant.Text"
+                                    <PrymButton Variant="Variant.Text"
                                                Color="Color.Error"
                                                StartIcon="@Icons.Material.Outlined.Delete"
                                                OnClick="@BulkDeleteEntries"
                                                Disabled="_isLoadingEntries">
                                         @TranslationService.GetTranslation("common.delete", "Elimina") (@_selectedEntries.Count)
-                                    </MudButton>
+                                    </PrymButton>
                                 }
                                 <PrymButton Intent="PrymButton.ButtonIntent.Secondary"
                                             StartIcon="@Icons.Material.Outlined.Add"
@@ -295,18 +295,18 @@
                                             OnClick="OpenAddProductsDialog">
                                     @TranslationService.GetTranslation("pricelist.addMultiple", "Aggiungi Multipli")
                                 </PrymButton>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                                <PrymButton Variant="Variant.Outlined" Color="Color.Default"
                                            StartIcon="@Icons.Material.Outlined.FileUpload"
                                            Size="Size.Small"
                                            OnClick="OpenImportDialog">
                                     @TranslationService.GetTranslation("pricelist.import", "Importa")
-                                </MudButton>
-                                <MudButton Variant="Variant.Outlined" Color="Color.Default"
+                                </PrymButton>
+                                <PrymButton Variant="Variant.Outlined" Color="Color.Default"
                                            StartIcon="@Icons.Material.Outlined.Update"
                                            Size="Size.Small"
                                            OnClick="OpenBulkUpdatePricesDialog">
                                     @TranslationService.GetTranslation("pricelist.bulkUpdatePrices", "Agg. Massivo")
-                                </MudButton>
+                                </PrymButton>
                             </AdditionalToolbarContent>
                             <HeaderContent Context="columnConfigurations">
                                 @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
@@ -493,11 +493,11 @@
                                     </MudText>
                                     @if (_allEntries.Any())
                                     {
-                                        <MudButton Variant="Variant.Text" Color="Color.Primary"
+                                        <PrymButton Variant="Variant.Text" Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Outlined.Clear"
                                                    OnClick="@ClearFilters">
                                             @TranslationService.GetTranslation("action.clearFilters", "Cancella filtri")
-                                        </MudButton>
+                                        </PrymButton>
                                     }
                                 </div>
                             </NoRecordsContent>
@@ -571,12 +571,12 @@
                                             OnClick="OpenImportDialog">
                                     @TranslationService.GetTranslation("pricelist.import", "Importa da Excel")
                                 </PrymButton>
-                                    <MudButton Variant="Variant.Outlined"
+                                    <PrymButton Variant="Variant.Outlined"
                                                Color="Color.Default"
                                                StartIcon="@Icons.Material.Outlined.FileDownload"
                                                OnClick="ExportToExcel">
                                         @TranslationService.GetTranslation("pricelist.export", "Esporta")
-                                    </MudButton>
+                                    </PrymButton>
                                 </MudStack>
                             </MudStack>
                         </MudPaper>
@@ -606,14 +606,14 @@
     <DialogActions>
         @if (_priceList != null)
         {
-            <MudButton Variant="Variant.Outlined"
+            <PrymButton Variant="Variant.Outlined"
                        Color="Color.Error"
                        StartIcon="@Icons.Material.Outlined.Delete"
                        OnClick="DeletePriceList"
                        Disabled="_isSaving"
                        Size="Size.Small">
                 @TranslationService.GetTranslation("pricelist.delete", "Elimina")
-            </MudButton>
+            </PrymButton>
         }
         <MudSpacer />
         @if (_hasChanges)
