@@ -262,15 +262,14 @@
             }
 
             function startBlazorWithProgress() {
-                const DOWNLOAD_PROGRESS_CAP = 95; // leaves headroom for the final "Avvio interfaccia..." step
-                const DOWNLOAD_PROGRESS_STEP = 3;
                 let resourcesSeen = 0;
 
                 return window.Blazor.start({
                     loadBootResource: function (resourceType, resourceName) {
                         resourcesSeen++;
-                        const progress = Math.min(DOWNLOAD_PROGRESS_CAP, resourcesSeen * DOWNLOAD_PROGRESS_STEP);
-                        setSplashStatus(`Download applicazione (${resourceName})...`, progress);
+                        if (resourcesSeen === 1) {
+                            setSplashStatus("Download applicazione...", 0);
+                        }
                         // Returning null/undefined lets Blazor perform its own default fetch for the resource.
                         return null;
                     }
