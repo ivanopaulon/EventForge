@@ -53,6 +53,20 @@ public class SaleItem : AuditableEntity
     public decimal DiscountPercent { get; set; }
 
     /// <summary>
+    /// Porzione di DiscountPercent attribuibile a uno sconto manuale applicato dall'operatore
+    /// (ApplyGlobalDiscountAsync). Separata da PromotionDiscountPercent per permettere al motore
+    /// promozioni di azzerare/ridurre il proprio contributo senza toccare lo sconto manuale.
+    /// </summary>
+    public decimal ManualDiscountPercent { get; set; } = 0m;
+
+    /// <summary>
+    /// Porzione di DiscountPercent attribuibile alle promozioni attualmente applicabili.
+    /// Ricalcolata interamente (anche a 0) a ogni esecuzione di ApplyPromotionsToSessionItemsAsync —
+    /// mai solo incrementata.
+    /// </summary>
+    public decimal PromotionDiscountPercent { get; set; } = 0m;
+
+    /// <summary>
     /// Total amount for this line (UnitPrice * Quantity - discount).
     /// </summary>
     public decimal TotalAmount { get; set; }

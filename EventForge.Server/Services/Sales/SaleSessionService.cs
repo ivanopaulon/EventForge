@@ -698,11 +698,12 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             // Apply discount to each item
             foreach (var item in session.Items)
             {
-                item.DiscountPercent = discountDto.DiscountPercent;
+                item.ManualDiscountPercent = discountDto.DiscountPercent;
+                item.DiscountPercent = item.ManualDiscountPercent + item.PromotionDiscountPercent;
 
                 // Recalculate item totals
                 var subtotal = item.UnitPrice * item.Quantity;
-                var discountAmount = subtotal * (discountDto.DiscountPercent / 100);
+                var discountAmount = subtotal * (item.DiscountPercent / 100);
                 var subtotalAfterDiscount = subtotal - discountAmount;
                 item.TaxAmount = subtotalAfterDiscount * (item.TaxRate / 100);
                 item.TotalAmount = subtotalAfterDiscount + item.TaxAmount;
@@ -2100,6 +2101,8 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             UnitPrice = source.UnitPrice,
             Quantity = source.Quantity,
             DiscountPercent = source.DiscountPercent,
+            ManualDiscountPercent = source.ManualDiscountPercent,
+            PromotionDiscountPercent = source.PromotionDiscountPercent,
             TotalAmount = source.TotalAmount,
             TaxRate = source.TaxRate,
             TaxAmount = source.TaxAmount,
@@ -2187,16 +2190,21 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 var saleItem = activeItems[i];
                 var promoItem = result.CartItems[i];
 
-                if (promoItem.AppliedPromotions.Count == 0)
-                    continue;
+                // Ricalcola SEMPRE il contributo promozionale, anche a zero — non solo quando aumenta.
+                var newPromotionDiscount = promoItem.AppliedPromotions.Count > 0
+                    ? promoItem.EffectiveDiscountPercentage
+                    : 0m;
 
-                // Use the effective discount from the promotion engine if it's greater than existing
-                var promoDiscount = promoItem.EffectiveDiscountPercentage;
-                if (promoDiscount > saleItem.DiscountPercent)
+                if (newPromotionDiscount != saleItem.PromotionDiscountPercent)
                 {
-                    saleItem.DiscountPercent = promoDiscount;
-                    saleItem.PromotionId = promoItem.AppliedPromotions[0].PromotionId;
-                    saleItem.AppliedPromotionsJSON = promotionService.SerializeAppliedPromotionsJson(promoItem.AppliedPromotions);
+                    saleItem.PromotionDiscountPercent = newPromotionDiscount;
+                    saleItem.DiscountPercent = saleItem.ManualDiscountPercent + saleItem.PromotionDiscountPercent;
+                    saleItem.PromotionId = promoItem.AppliedPromotions.Count > 0
+                        ? promoItem.AppliedPromotions[0].PromotionId
+                        : null;
+                    saleItem.AppliedPromotionsJSON = promoItem.AppliedPromotions.Count > 0
+                        ? promotionService.SerializeAppliedPromotionsJson(promoItem.AppliedPromotions)
+                        : null;
 
                     var subtotal = saleItem.UnitPrice * saleItem.Quantity;
                     var discountAmount = subtotal * (saleItem.DiscountPercent / 100m);
