@@ -115,13 +115,13 @@
             var promotionsTask = PromotionClientService.GetPromotionsForProductAsync(ProductId);
             await Task.WhenAll(priceListsTask, promotionsTask);
 
-            _priceLists = priceListsTask.Result;
-            _promotions = promotionsTask.Result;
+            _priceLists = await priceListsTask;
+            _promotions = await promotionsTask;
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading price list/promotion membership for product {ProductId}.", ProductId);
-            AppNotification.ShowWarning("Si è verificato un errore nel caricamento di listini e promozioni.");
+            AppNotification.ShowWarning(TranslationService.GetTranslation("product.membershipDialog.loadError", "Si è verificato un errore nel caricamento di listini e promozioni."));
         }
         finally
         {

@@ -174,8 +174,8 @@
             var promotionsTask = PromotionClientService.GetPromotionsForProductAsync(productId);
             await Task.WhenAll(priceListsTask, promotionsTask);
 
-            _priceListCount = priceListsTask.Result.Count;
-            _promotionCount = promotionsTask.Result.Count;
+            _priceListCount = (await priceListsTask).Count;
+            _promotionCount = (await promotionsTask).Count;
             _membershipLoaded = true;
         }
         catch (Exception ex)
