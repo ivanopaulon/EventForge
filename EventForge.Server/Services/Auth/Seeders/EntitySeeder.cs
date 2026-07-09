@@ -93,6 +93,16 @@ public class EntitySeeder(
                     // Don't fail entire seeding process if NoteFlags fail
                 }
 
+                try
+                {
+                    await SeedFidelityPointsConfigurationAsync(tenantId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to seed FidelityPoints configuration for tenant {TenantId}", tenantId);
+                    // Don't fail entire seeding process if FidelityPoints defaults fail
+                }
+
                 if (transaction is not null)
                     await transaction.CommitAsync(cancellationToken);
 
@@ -481,6 +491,89 @@ public class EntitySeeder(
         {
             logger.LogError(ex, "Error seeding VAT rates for tenant {TenantId}", tenantId);
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Seeds the default fidelity points base rate and tier multipliers for a tenant
+    /// (category "FidelityPoints" in <see cref="Data.Entities.Configuration.SystemConfiguration"/>).
+    /// Existing keys are left untouched; only missing ones are added.
+    /// </summary>
+    private async Task SeedFidelityPointsConfigurationAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var existingKeys = await dbContext.SystemConfigurations
+            .Where(c => c.TenantId == tenantId && c.Category == "FidelityPoints")
+            .Select(c => c.Key)
+            .ToListAsync(cancellationToken);
+
+        var existingKeysSet = existingKeys.ToHashSet();
+        var now = DateTime.UtcNow;
+
+        var defaults = new[]
+        {
+            new Data.Entities.Configuration.SystemConfiguration
+            {
+                Key = "FidelityPoints.BaseRate",
+                Value = "1",
+                DefaultValue = "1",
+                Category = "FidelityPoints",
+                Description = "Points earned per unit of currency spent.",
+                TenantId = tenantId,
+                CreatedBy = "system",
+                CreatedAt = now
+            },
+            new Data.Entities.Configuration.SystemConfiguration
+            {
+                Key = "FidelityPoints.Multiplier.Bronze",
+                Value = "1.0",
+                DefaultValue = "1.0",
+                Category = "FidelityPoints",
+                Description = "Points multiplier for the Bronze fidelity card tier.",
+                TenantId = tenantId,
+                CreatedBy = "system",
+                CreatedAt = now
+            },
+            new Data.Entities.Configuration.SystemConfiguration
+            {
+                Key = "FidelityPoints.Multiplier.Silver",
+                Value = "1.0",
+                DefaultValue = "1.0",
+                Category = "FidelityPoints",
+                Description = "Points multiplier for the Silver fidelity card tier.",
+                TenantId = tenantId,
+                CreatedBy = "system",
+                CreatedAt = now
+            },
+            new Data.Entities.Configuration.SystemConfiguration
+            {
+                Key = "FidelityPoints.Multiplier.Gold",
+                Value = "1.0",
+                DefaultValue = "1.0",
+                Category = "FidelityPoints",
+                Description = "Points multiplier for the Gold fidelity card tier.",
+                TenantId = tenantId,
+                CreatedBy = "system",
+                CreatedAt = now
+            },
+            new Data.Entities.Configuration.SystemConfiguration
+            {
+                Key = "FidelityPoints.Multiplier.Platinum",
+                Value = "1.0",
+                DefaultValue = "1.0",
+                Category = "FidelityPoints",
+                Description = "Points multiplier for the Platinum fidelity card tier.",
+                TenantId = tenantId,
+                CreatedBy = "system",
+                CreatedAt = now
+            }
+        };
+
+        var toAdd = defaults.Where(d => !existingKeysSet.Contains(d.Key)).ToList();
+
+        if (toAdd.Count > 0)
+        {
+            dbContext.SystemConfigurations.AddRange(toAdd);
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
