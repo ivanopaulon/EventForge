@@ -223,7 +223,7 @@ public class FidelityService(
     {
         try
         {
-            var query = $"api/v1/fidelity-points/base-rates/calculate-preview?orderTotal={orderTotal.ToString(System.Globalization.CultureInfo.InvariantCulture)}&cardType={cardType}";
+            var query = $"api/v1/fidelity-points/base-rates/calculate-preview?orderTotal={Uri.EscapeDataString(orderTotal.ToString(System.Globalization.CultureInfo.InvariantCulture))}&cardType={Uri.EscapeDataString(cardType.ToString())}";
             return await httpClientService.GetAsync<int>(query, ct);
         }
         catch (Exception ex)

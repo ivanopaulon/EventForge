@@ -3,6 +3,7 @@ using EventForge.Server.Services.Business;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Prym.DTOs.Business.Fidelity;
+using FidelityCardType = EventForge.Server.Data.Entities.Business.FidelityCardType;
 
 namespace EventForge.Server.Controllers;
 
@@ -23,7 +24,7 @@ public class FidelityPointsBaseRatesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CalculatePointsPreview(
         [FromQuery] decimal orderTotal,
-        [FromQuery] EventForge.Server.Data.Entities.Business.FidelityCardType cardType,
+        [FromQuery] FidelityCardType cardType,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;

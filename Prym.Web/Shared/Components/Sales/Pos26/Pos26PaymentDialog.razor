@@ -334,21 +334,33 @@
             : (_residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty);
     }
 
+    private decimal _pointsEarnedForTotal = -1m;
+    private Guid? _pointsEarnedForCardId;
+
     /// <summary>
     /// Il tasso punti dipende da entità server-side (tasso base, moltiplicatore di livello,
     /// campagna attiva): non può più essere calcolato lato client in modo sincrono.
-    /// Ricalcolato ogni volta che il totale ordine o la carta fedeltà cambiano.
+    /// Ricalcolato solo quando il totale ordine o la carta fedeltà cambiano davvero, per evitare
+    /// chiamate ripetute ad ogni render del dialog.
     /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        if (FidelityCard != null)
-        {
-            _pointsEarned = await FidelityService.CalculatePreviewAsync(TotaleOrdine, FidelityCard.Type);
-        }
-        else
+        if (FidelityCard == null)
         {
             _pointsEarned = 0;
+            _pointsEarnedForTotal = -1m;
+            _pointsEarnedForCardId = null;
+            return;
         }
+
+        if (_pointsEarnedForTotal == TotaleOrdine && _pointsEarnedForCardId == FidelityCard.Id)
+        {
+            return;
+        }
+
+        _pointsEarned = await FidelityService.CalculatePreviewAsync(TotaleOrdine, FidelityCard.Type);
+        _pointsEarnedForTotal = TotaleOrdine;
+        _pointsEarnedForCardId = FidelityCard.Id;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

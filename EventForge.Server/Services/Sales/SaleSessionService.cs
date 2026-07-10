@@ -1292,6 +1292,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             PosId = session.PosId,
             CustomerId = session.CustomerId,
             FidelityCardId = session.FidelityCardId,
+            SaleType = session.SaleType,
             Status = (SaleSessionStatusDto)session.Status,
             OriginalTotal = session.OriginalTotal,
             DiscountAmount = session.DiscountAmount,
