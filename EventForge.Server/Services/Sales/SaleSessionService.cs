@@ -127,6 +127,7 @@ public class SaleSessionService(
             }
 
             session.CustomerId = updateDto.CustomerId ?? session.CustomerId;
+            session.FidelityCardId = updateDto.FidelityCardId ?? session.FidelityCardId;
             session.SaleType = updateDto.SaleType ?? session.SaleType;
 
             if (updateDto.ClearTable)
@@ -1265,7 +1266,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             OperatorId = session.OperatorId,
             PosId = session.PosId,
             CustomerId = session.CustomerId,
-            SaleType = session.SaleType,
+            FidelityCardId = session.FidelityCardId,
             Status = (SaleSessionStatusDto)session.Status,
             OriginalTotal = session.OriginalTotal,
             DiscountAmount = session.DiscountAmount,
@@ -1745,6 +1746,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                     OperatorId = session.OperatorId,
                     PosId = session.PosId,
                     CustomerId = session.CustomerId,
+                    FidelityCardId = session.FidelityCardId,
                     SaleType = session.SaleType,
                     TableId = session.TableId,
                     Currency = session.Currency,
@@ -1848,6 +1850,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
                 OperatorId = firstSession.OperatorId,
                 PosId = firstSession.PosId,
                 CustomerId = firstSession.CustomerId,
+                FidelityCardId = firstSession.FidelityCardId,
                 SaleType = firstSession.SaleType,
                 TableId = mergeDto.TargetTableId ?? firstSession.TableId,
                 Currency = firstSession.Currency,

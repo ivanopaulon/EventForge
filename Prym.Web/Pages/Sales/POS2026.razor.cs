@@ -389,7 +389,9 @@ public partial class POS2026 : IAsyncDisposable
     }
 
     /// <summary>
-    /// Carica la carta fedeltà attiva con il saldo punti più alto per il cliente selezionato.
+    /// Carica la carta fedeltà attiva con il saldo punti più alto per il cliente selezionato e la
+    /// propaga alla sessione server, se una sessione è già aperta, così lo sconto fidelity potrà
+    /// essere applicato mentre il carrello si costruisce (non solo al momento del pagamento).
     /// </summary>
     private async Task LoadFidelityCardAsync(Guid businessPartyId)
     {
@@ -405,6 +407,11 @@ public partial class POS2026 : IAsyncDisposable
         {
             Logger.LogWarning(ex, "POS2026: impossibile caricare carta fedeltà per cliente {Id}.", businessPartyId);
             _fidelityCard = null;
+        }
+
+        if (ViewModel.CurrentSession != null && ViewModel.CurrentSession.FidelityCardId != _fidelityCard?.Id)
+        {
+            await ViewModel.UpdateFidelityCardAsync(_fidelityCard?.Id);
         }
     }
 
