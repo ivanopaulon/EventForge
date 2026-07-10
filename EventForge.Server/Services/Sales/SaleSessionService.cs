@@ -1226,12 +1226,11 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     /// Shared calculation logic for session totals.
     /// </summary>
     /// <remarks>
-    /// FIDELITY DISCOUNT — ATTENZIONE, DA RIVEDERE FISCALMENTE PRIMA DEL MERGE IN PRODUZIONE.
+    /// FIDELITY DISCOUNT — trattamento IVA confermato dal commercialista del progetto.
     /// Il ricalcolo proporzionale dell'IVA quando si applica lo sconto fidelity aggiuntivo dopo il
-    /// calcolo per-riga può avere trattamenti diversi a seconda della normativa (es. sconto che
-    /// riduce la base imponibile vs sconto fuori campo IVA). La formula qui sotto non è stata
-    /// confermata da chi conosce la normativa fiscale applicata dal progetto: non usarla in
-    /// produzione prima di quella revisione, anche se compila e i test passano.
+    /// calcolo per-riga è corretto per lo sconto fidelity attuale (percentuale uniforme sull'intero
+    /// carrello). Vedi motivazione completa nel commento sulla formula sotto e in
+    /// docs/decision-log/ADR-FIDELITY-DISCOUNT-VAT.md.
     /// </remarks>
     private async Task CalculateTotalsAsync(SaleSession session, CancellationToken cancellationToken)
     {
@@ -1253,8 +1252,15 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
         session.DiscountAmount = session.OriginalTotal - itemsTotal + fidelityDiscountAmount;
 
-        // ATTENZIONE — formula da verificare con chi conosce la logica fiscale del progetto,
-        // non assumere corretta solo perché compila. Vedi remarks sopra.
+        // Sconto fidelity applicato proporzionalmente a imponibile e IVA. Base normativa: art. 26
+        // DPR 633/1972 — gli sconti in denaro incondizionati riducono direttamente il corrispettivo,
+        // e la base imponibile in fattura va calcolata al netto dello sconto concesso (distinto dallo
+        // sconto in natura ex art. 15, non applicabile qui). La formula aggregata sotto è equivalente
+        // matematicamente a ridurre ogni riga (e la sua aliquota IVA specifica) della stessa
+        // percentuale — vale perché lo sconto fidelity è sempre una percentuale uniforme su tutto il
+        // carrello. Se in futuro si introduce uno sconto fidelity a importo fisso, questa equivalenza
+        // non vale più e la formula va rifatta per operare riga per riga.
+        // Confermato dal commercialista del progetto — vedi docs/decision-log/ADR-FIDELITY-DISCOUNT-VAT.md.
         var vatRatio = itemsTotal > 0 ? fidelityDiscountAmount / itemsTotal : 0;
         session.TaxAmount = activeItems.Sum(i => i.TaxAmount) * (1 - vatRatio);
 
