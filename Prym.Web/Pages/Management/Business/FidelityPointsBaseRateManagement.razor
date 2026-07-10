@@ -1,0 +1,179 @@
+@page "/business/fidelity-points/base-rates"
+@using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Shared.Components.Dialogs
+@using Prym.Web.Shared.Components.Fidelity
+@using Prym.Web.Shared.Management.Adapters
+@attribute [Authorize]
+@inject IFidelityPointsBaseRateService BaseRateService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FidelityPointsBaseRateManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("fidelityPoints.baseRates.management", "Gestione Tassi Punti Fedeltà")</PageTitle>
+
+<EntityManagementPage TEntity="FidelityPointsBaseRateDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == nameof(FidelityPointsBaseRateDto.Rate))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsBaseRateDto" PropertyName="@nameof(FidelityPointsBaseRateDto.Rate)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsBaseRateDto, object>(x => x.Rate))">@TranslationService.GetTranslation("fidelityPoints.baseRates.rate", "Tasso")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsBaseRateDto.RoundingMode))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsBaseRateDto" PropertyName="@nameof(FidelityPointsBaseRateDto.RoundingMode)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsBaseRateDto, object>(x => x.RoundingMode.ToString()))">@TranslationService.GetTranslation("fidelityPoints.baseRates.roundingMode", "Arrotondamento")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsBaseRateDto.EffectiveFrom))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsBaseRateDto" PropertyName="@nameof(FidelityPointsBaseRateDto.EffectiveFrom)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsBaseRateDto, object>(x => x.EffectiveFrom))">@TranslationService.GetTranslation("fidelityPoints.baseRates.effectiveFrom", "Valido dal")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsBaseRateDto.EffectiveTo))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsBaseRateDto" PropertyName="@nameof(FidelityPointsBaseRateDto.EffectiveTo)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsBaseRateDto, object>(x => x.EffectiveTo ?? DateTime.MaxValue))">@TranslationService.GetTranslation("fidelityPoints.baseRates.effectiveTo", "Valido fino al")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == nameof(FidelityPointsBaseRateDto.Rate))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.baseRates.rate", "Tasso")">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Rate.ToString("0.##")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsBaseRateDto.RoundingMode))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.baseRates.roundingMode", "Arrotondamento")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@GetRoundingModeLabel(ctx.Item.RoundingMode)</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsBaseRateDto.EffectiveFrom))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.baseRates.effectiveFrom", "Valido dal")">@ctx.Item.EffectiveFrom.ToString("dd/MM/yyyy")</MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsBaseRateDto.EffectiveTo))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.baseRates.effectiveTo", "Valido fino al")">
+                    @if (ctx.Item.EffectiveTo.HasValue)
+                    {
+                        <MudText Typo="Typo.body2">@ctx.Item.EffectiveTo.Value.ToString("dd/MM/yyyy")</MudText>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">@TranslationService.GetTranslation("fidelityPoints.baseRates.current", "Corrente")</MudChip>
+                    }
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<FidelityPointsBaseRateDto>? _entityPage;
+    private IEntityManagementService<FidelityPointsBaseRateDto> _service = null!;
+    private EntityManagementConfig<FidelityPointsBaseRateDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new FidelityPointsBaseRateManagementService(BaseRateService);
+        _config = new EntityManagementConfig<FidelityPointsBaseRateDto>
+        {
+            ComponentKey = "FidelityPointsBaseRateManagement",
+            PageTitleKey = "fidelityPoints.baseRates.management",
+            PageTitleDefault = "Gestione Tassi Punti Fedeltà",
+            EntityIcon = Icons.Material.Outlined.Paid,
+            PageRootCssClass = "fidelity-points-base-rate-page-root",
+            BaseRoute = "/business/fidelity-points/base-rates",
+            ExcelFileName = "TassiPuntiFedelta",
+            SearchPlaceholderKey = "fidelityPoints.baseRates.search",
+            SearchPlaceholderDefault = "Cerca tasso o arrotondamento…",
+            EntityTypeName = "FidelityPointsBaseRate",
+            CreateTooltip = "fidelityPoints.baseRates.createNew",
+            ShowDelete = true,
+            ShowEdit = true,
+            ShowCreate = true,
+            ShowAuditLog = false,
+            GetDisplayName = rate => $"{rate.Rate:0.##}",
+            GetId = rate => rate.Id,
+            DeleteConfirmMessageKey = "fidelityPoints.baseRates.confirmDelete",
+            DeleteSuccessMessageKey = "fidelityPoints.baseRates.deleted",
+            DeleteErrorMessageKey = "fidelityPoints.baseRates.deleteError",
+            BulkDeleteConfirmMessageKey = "fidelityPoints.baseRates.confirmDeleteMultiple",
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.home", "Home"), "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.registries", "Anagrafiche"), null, disabled: true),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.fidelityPointsBaseRates", "Tasso Punti Fedeltà"), null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = nameof(FidelityPointsBaseRateDto.Rate), DisplayName = "Tasso", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityPointsBaseRateDto.RoundingMode), DisplayName = "Arrotondamento", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityPointsBaseRateDto.EffectiveFrom), DisplayName = "Valido dal", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityPointsBaseRateDto.EffectiveTo), DisplayName = "Valido fino al", IsVisible = true, Order = 3, IsSearchable = false }
+            ]
+        };
+    }
+
+    private async Task OpenDialogAsync(Guid? id)
+    {
+        try
+        {
+            IDialogReference dialog;
+
+            if (id.HasValue)
+            {
+                var baseRate = await BaseRateService.GetByIdAsync(id.Value);
+                if (baseRate is null)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.baseRates.notFound", "Tasso punti fedeltà non trovato."));
+                    return;
+                }
+
+                var parameters = new DialogParameters<CreateFidelityPointsBaseRateDialog>
+                {
+                    { x => x.BaseRate, baseRate }
+                };
+                dialog = await DialogService.ShowAsync<CreateFidelityPointsBaseRateDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            }
+            else
+            {
+                dialog = await DialogService.ShowAsync<CreateFidelityPointsBaseRateDialog>(string.Empty, new DialogParameters(), EFDialogDefaults.Options);
+            }
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening fidelity points base rate dialog for ID {Id}.", id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.baseRates.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private string GetRoundingModeLabel(FidelityPointsRoundingMode mode) => mode switch
+    {
+        FidelityPointsRoundingMode.Floor => TranslationService.GetTranslation("fidelityPoints.roundingMode.floor", "Per difetto"),
+        FidelityPointsRoundingMode.Ceiling => TranslationService.GetTranslation("fidelityPoints.roundingMode.ceiling", "Per eccesso"),
+        FidelityPointsRoundingMode.Nearest => TranslationService.GetTranslation("fidelityPoints.roundingMode.nearest", "Al più vicino"),
+        _ => mode.ToString()
+    };
+}

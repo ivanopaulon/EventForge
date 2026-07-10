@@ -1,0 +1,404 @@
+@using System.Text.Json
+@using Prym.DTOs.Business.Fidelity
+@using Prym.DTOs.Common
+@using Prym.DTOs.Products
+@using Prym.Web.Shared.Components.Dialogs
+@using Prym.Web.Shared.Components.Dialogs.Common
+@inject IFidelityPointsCampaignService CampaignService
+@inject IProductService ProductService
+@inject IClassificationNodeService ClassificationNodeService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<CreateFidelityPointsCampaignDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Campaign"
+          Title="@(IsEditMode
+              ? TranslationService.GetTranslation("fidelityPoints.campaigns.editTitle", "Modifica Campagna Punti")
+              : TranslationService.GetTranslation("fidelityPoints.campaigns.createTitle", "Nuova Campagna Punti"))"
+          IsProcessing="@(_isProcessing || _isInitializing)"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        @if (_isInitializing)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else
+        {
+            <MudForm @ref="_form" @bind-IsValid="@_isValid">
+                <MudGrid>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_name"
+                                      Label="@($"{TranslationService.GetTranslation("field.name", "Nome")} *")"
+                                      Variant="Variant.Outlined"
+                                      Required="true"
+                                      MaxLength="200"
+                                      Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_startDate"
+                                       Label="@($"{TranslationService.GetTranslation("fidelityPoints.campaigns.startDate", "Data Inizio")} *")"
+                                       Variant="Variant.Outlined"
+                                       Required="true"
+                                       Editable="true"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudDatePicker @bind-Date="_endDate"
+                                       Label="@($"{TranslationService.GetTranslation("fidelityPoints.campaigns.endDate", "Data Fine")} *")"
+                                       Variant="Variant.Outlined"
+                                       Required="true"
+                                       Editable="true"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudNumericField T="decimal"
+                                         @bind-Value="_multiplier"
+                                         Label="@($"{TranslationService.GetTranslation("fidelityPoints.campaigns.multiplier", "Moltiplicatore")} *")"
+                                         Variant="Variant.Outlined"
+                                         Required="true"
+                                         Min="0.01m"
+                                         Max="100m"
+                                         Immediate="true"
+                                         Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="FidelityPointsRoundingMode"
+                                   @bind-Value="_roundingMode"
+                                   Label="@($"{TranslationService.GetTranslation("fidelityPoints.baseRates.roundingMode", "Arrotondamento")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Margin="Margin.Dense">
+                            @foreach (var roundingMode in Enum.GetValues<FidelityPointsRoundingMode>())
+                            {
+                                <MudSelectItem Value="@roundingMode">@GetRoundingModeLabel(roundingMode)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="_ignoreTierMultiplier"
+                                   Label="@TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier", "Ignora moltiplicatore livello")"
+                                   Color="Color.Primary" />
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-n1">
+                            @TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier.help", "Se attivo, tutti i clienti maturano lo stesso moltiplicatore durante la campagna, indipendentemente dal livello carta.")
+                        </MudText>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudSwitch @bind-Value="_isActive"
+                                   Label="@TranslationService.GetTranslation("fidelityPoints.campaigns.isActive", "Campagna attiva")"
+                                   Color="Color.Primary" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("fidelityPoints.campaigns.products", "Prodotti Target")</MudText>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.Inventory"
+                                       OnClick="OpenProductPickerAsync">
+                                @TranslationService.GetTranslation("fidelityPoints.campaigns.selectProducts", "Seleziona Prodotti")
+                            </MudButton>
+                            @if (_selectedProducts.Any())
+                            {
+                                <MudChipSet T="string" AllClosable="true" OnClose="@(chip => RemoveProduct(chip.Value))">
+                                    @foreach (var product in _selectedProducts)
+                                    {
+                                        <MudChip T="string" Value="@product.Id.ToString()">@product.Name (@product.Code)</MudChip>
+                                    }
+                                </MudChipSet>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("fidelityPoints.campaigns.allProducts", "Tutti i prodotti")</MudText>
+                            }
+                        </MudStack>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudStack Spacing="1">
+                            <MudText Typo="Typo.subtitle2">@TranslationService.GetTranslation("fidelityPoints.campaigns.categories", "Categorie Target")</MudText>
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.Category"
+                                       OnClick="OpenCategoryPickerAsync">
+                                @TranslationService.GetTranslation("fidelityPoints.campaigns.selectCategories", "Seleziona Categorie")
+                            </MudButton>
+                            @if (_selectedCategories.Any())
+                            {
+                                <MudChipSet T="string" AllClosable="true" OnClose="@(chip => RemoveCategory(chip.Value))">
+                                    @foreach (var category in _selectedCategories)
+                                    {
+                                        <MudChip T="string" Value="@category.Id.ToString()">@category.Name</MudChip>
+                                    }
+                                </MudChipSet>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@TranslationService.GetTranslation("fidelityPoints.campaigns.allCategories", "Tutte le categorie")</MudText>
+                            }
+                        </MudStack>
+                    </MudItem>
+                </MudGrid>
+            </MudForm>
+        }
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="@(!_isValid || _isProcessing || _isInitializing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>@(IsEditMode
+                    ? TranslationService.GetTranslation("common.save", "Salva")
+                    : TranslationService.GetTranslation("common.create", "Crea"))</text>
+            }
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public FidelityPointsCampaignDto? Campaign { get; set; }
+
+    private bool IsEditMode => Campaign != null;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    private bool _isInitializing;
+    private string _name = string.Empty;
+    private DateTime? _startDate = DateTime.Today;
+    private DateTime? _endDate = DateTime.Today;
+    private decimal _multiplier = 1m;
+    private FidelityPointsRoundingMode _roundingMode = FidelityPointsRoundingMode.Floor;
+    private bool _ignoreTierMultiplier;
+    private bool _isActive = true;
+    private List<ProductDto> _selectedProducts = new();
+    private List<ClassificationNodeDto> _selectedCategories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!IsEditMode)
+            return;
+
+        _isInitializing = true;
+        try
+        {
+            _name = Campaign!.Name;
+            _startDate = Campaign.StartDate;
+            _endDate = Campaign.EndDate;
+            _multiplier = Campaign.Multiplier;
+            _roundingMode = Campaign.RoundingMode;
+            _ignoreTierMultiplier = Campaign.IgnoreTierMultiplier;
+            _isActive = Campaign.IsActive;
+
+            await Task.WhenAll(
+                HydrateProductsAsync(ParseIds(Campaign.ProductIdsJSON)),
+                HydrateCategoriesAsync(ParseIds(Campaign.CategoryIdsJSON))
+            );
+        }
+        finally
+        {
+            _isInitializing = false;
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_form == null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid || !_startDate.HasValue || !_endDate.HasValue)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
+        if (_endDate.Value.Date < _startDate.Value.Date)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("fidelityPoints.campaigns.invalidDateRange", "La data fine deve essere successiva o uguale alla data inizio."));
+            return;
+        }
+
+        try
+        {
+            _isProcessing = true;
+            var productIdsJson = SerializeIds(_selectedProducts.Select(x => x.Id));
+            var categoryIdsJson = SerializeIds(_selectedCategories.Select(x => x.Id));
+
+            if (IsEditMode)
+            {
+                var dto = new UpdateFidelityPointsCampaignDto
+                {
+                    Name = _name.Trim(),
+                    StartDate = _startDate.Value,
+                    EndDate = _endDate.Value,
+                    Multiplier = _multiplier,
+                    RoundingMode = _roundingMode,
+                    IgnoreTierMultiplier = _ignoreTierMultiplier,
+                    IsActive = _isActive,
+                    ProductIdsJSON = productIdsJson,
+                    CategoryIdsJSON = categoryIdsJson
+                };
+
+                await CampaignService.UpdateAsync(Campaign!.Id, dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.campaigns.updated", "Campagna punti aggiornata con successo."));
+            }
+            else
+            {
+                var dto = new CreateFidelityPointsCampaignDto
+                {
+                    Name = _name.Trim(),
+                    StartDate = _startDate.Value,
+                    EndDate = _endDate.Value,
+                    Multiplier = _multiplier,
+                    RoundingMode = _roundingMode,
+                    IgnoreTierMultiplier = _ignoreTierMultiplier,
+                    IsActive = _isActive,
+                    ProductIdsJSON = productIdsJson,
+                    CategoryIdsJSON = categoryIdsJson
+                };
+
+                await CampaignService.CreateAsync(dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.campaigns.created", "Campagna punti creata con successo."));
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving fidelity points campaign");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private async Task OpenProductPickerAsync()
+    {
+        var parameters = new DialogParameters<ProductMultiPickerDialog>
+        {
+            { x => x.InitialSelection, _selectedProducts }
+        };
+        var dialog = await DialogService.ShowAsync<ProductMultiPickerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && result.Data is List<ProductDto> selected)
+        {
+            _selectedProducts = selected;
+        }
+    }
+
+    private async Task OpenCategoryPickerAsync()
+    {
+        var parameters = new DialogParameters<CategoryMultiPickerDialog>
+        {
+            { x => x.InitialSelection, _selectedCategories }
+        };
+        var dialog = await DialogService.ShowAsync<CategoryMultiPickerDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false } && result.Data is List<ClassificationNodeDto> selected)
+        {
+            _selectedCategories = selected;
+        }
+    }
+
+    private async Task HydrateProductsAsync(List<Guid> productIds)
+    {
+        if (productIds.Count == 0)
+            return;
+
+        try
+        {
+            var products = await Task.WhenAll(productIds.Select(id => ProductService.GetProductByIdAsync(id)));
+            _selectedProducts = products.Where(x => x != null).Select(x => x!).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error hydrating products for fidelity points campaign dialog.");
+        }
+    }
+
+    private async Task HydrateCategoriesAsync(List<Guid> categoryIds)
+    {
+        if (categoryIds.Count == 0)
+            return;
+
+        try
+        {
+            var categories = (await ClassificationNodeService.GetAllAsync(ClassificationApplicableTo.Products))
+                .Where(x => x.Type == ProductClassificationType.Category && categoryIds.Contains(x.Id))
+                .ToList();
+            _selectedCategories = categories;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error hydrating categories for fidelity points campaign dialog.");
+        }
+    }
+
+    private static List<Guid> ParseIds(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<Guid>>(json) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static string? SerializeIds(IEnumerable<Guid> ids)
+    {
+        var values = ids.Distinct().ToList();
+        return values.Count == 0 ? null : JsonSerializer.Serialize(values);
+    }
+
+    private void RemoveProduct(string? idString)
+    {
+        if (Guid.TryParse(idString, out var id))
+            _selectedProducts.RemoveAll(x => x.Id == id);
+    }
+
+    private void RemoveCategory(string? idString)
+    {
+        if (Guid.TryParse(idString, out var id))
+            _selectedCategories.RemoveAll(x => x.Id == id);
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetRoundingModeLabel(FidelityPointsRoundingMode mode) => mode switch
+    {
+        FidelityPointsRoundingMode.Floor => TranslationService.GetTranslation("fidelityPoints.roundingMode.floor", "Per difetto"),
+        FidelityPointsRoundingMode.Ceiling => TranslationService.GetTranslation("fidelityPoints.roundingMode.ceiling", "Per eccesso"),
+        FidelityPointsRoundingMode.Nearest => TranslationService.GetTranslation("fidelityPoints.roundingMode.nearest", "Al più vicino"),
+        _ => mode.ToString()
+    };
+}
