@@ -1,4 +1,3 @@
-using System.Globalization;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -6,47 +5,71 @@ using Microsoft.EntityFrameworkCore;
 namespace EventForge.Server.Services.Business;
 
 /// <summary>
-/// Resolves the effective fidelity points accrual rate for the current tenant, reusing the
-/// existing <c>SystemConfigurations</c> table (category "FidelityPoints").
-/// </summary>
-/// <remarks>
-/// Unlike <see cref="Configuration.IConfigurationService"/>.GetValueAsync (which resolves a single,
-/// tenant-agnostic value per key), this service reads configuration rows scoped to
-/// <see cref="ITenantContext.CurrentTenantId"/> so that base rate and tier multipliers can be
-/// customized per tenant, as required for fidelity points accrual.
+/// Resolves the effective fidelity points accrual rate for the current tenant using
+/// persisted EF entities for base rates, tier multipliers, and optional campaigns.
 /// </remarks>
 public class FidelityPointsRateService(
     EventForgeDbContext context,
     ITenantContext tenantContext) : IFidelityPointsRateService
 {
-    private const string BaseRateKey = "FidelityPoints.BaseRate";
-    private const string DefaultBaseRate = "1";
-    private const string DefaultMultiplier = "1.0";
-
-    public async Task<decimal> GetEffectiveRateAsync(FidelityCardType cardType, CancellationToken cancellationToken = default)
+    public async Task<(decimal Rate, FidelityPointsRoundingMode Rounding)> GetEffectiveRateAsync(
+        FidelityCardType cardType,
+        CancellationToken cancellationToken = default)
     {
-        var tenantId = tenantContext.CurrentTenantId ?? Guid.Empty;
-        var multiplierKey = $"FidelityPoints.Multiplier.{cardType}";
+        var tenantId = GetRequiredTenantId();
+        var now = DateTime.UtcNow;
 
-        var baseRate = await GetDecimalValueAsync(tenantId, BaseRateKey, DefaultBaseRate, cancellationToken);
-        var multiplier = await GetDecimalValueAsync(tenantId, multiplierKey, DefaultMultiplier, cancellationToken);
-
-        return baseRate * multiplier;
-    }
-
-    private async Task<decimal> GetDecimalValueAsync(Guid tenantId, string key, string defaultValue, CancellationToken cancellationToken)
-    {
-        var value = await context.SystemConfigurations
+        var baseRate = await context.FidelityPointsBaseRates
             .AsNoTracking()
-            .Where(c => c.TenantId == tenantId && c.Key == key)
-            .Select(c => c.Value)
+            .WhereActiveTenant(tenantId)
+            .Where(rate => rate.EffectiveFrom <= now && (rate.EffectiveTo == null || rate.EffectiveTo >= now))
+            .OrderByDescending(rate => rate.EffectiveFrom)
+            .ThenByDescending(rate => rate.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? new FidelityPointsBaseRate();
+
+        var tierMultiplier = await context.FidelityTierMultipliers
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Where(multiplier => multiplier.CardType == cardType)
+            .Select(multiplier => (decimal?)multiplier.Multiplier)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? 1.0m;
+
+        var activeCampaign = await context.FidelityPointsCampaigns
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Where(campaign => campaign.StartDate <= now && campaign.EndDate >= now)
+            .OrderByDescending(campaign => campaign.StartDate)
+            .ThenByDescending(campaign => campaign.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+        decimal rate;
+        var rounding = baseRate.RoundingMode;
+
+        if (activeCampaign is not null)
         {
-            return parsed;
+            rate = activeCampaign.IgnoreTierMultiplier
+                ? baseRate.Rate * activeCampaign.Multiplier
+                : baseRate.Rate * tierMultiplier * activeCampaign.Multiplier;
+            rounding = activeCampaign.RoundingMode;
+        }
+        else
+        {
+            rate = baseRate.Rate * tierMultiplier;
         }
 
-        return decimal.Parse(defaultValue, CultureInfo.InvariantCulture);
+        return (rate, rounding);
+    }
+
+    private Guid GetRequiredTenantId()
+    {
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for fidelity points rate operations.");
+        }
+
+        return tenantId.Value;
     }
 }
