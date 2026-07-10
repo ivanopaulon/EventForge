@@ -15,14 +15,14 @@
                               Icon="@Icons.Material.Outlined.NotificationsActive"
                               BreadcrumbItems="_breadcrumbs">
             <ExtraActions>
-                <MudButton StartIcon="@Icons.Material.Outlined.Refresh"
+                <PrymButton StartIcon="@Icons.Material.Outlined.Refresh"
                            Variant="Variant.Outlined"
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="RefreshAsync"
                            Disabled="_isRefreshing">
                     Aggiorna
-                </MudButton>
+                </PrymButton>
             </ExtraActions>
         </ManagementPageHeader>
 
@@ -91,18 +91,18 @@
                 </MudItem>
                 <MudItem xs="12" md="2" Class="d-flex align-center">
                     <MudStack Row Spacing="1">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                        <PrymButton StartIcon="@Icons.Material.Outlined.Search"
                                    Variant="Variant.Filled"
                                    Color="Color.Primary"
                                    OnClick="ApplyFiltersAsync">
                             Filtra
-                        </MudButton>
-                        <MudButton StartIcon="@Icons.Material.Outlined.Clear"
+                        </PrymButton>
+                        <PrymButton StartIcon="@Icons.Material.Outlined.Clear"
                                    Variant="Variant.Text"
                                    Color="Color.Default"
                                    OnClick="ResetFiltersAsync">
                             Reset
-                        </MudButton>
+                        </PrymButton>
                     </MudStack>
                 </MudItem>
             </MudGrid>
