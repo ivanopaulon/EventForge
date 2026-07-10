@@ -55,15 +55,15 @@
 
 /* ─── 4b. Dark-theme outlined input background override ────────────────────
  * The whitesmoke fill from block 4 above is a light colour and, combined with
- * the light text used by carbon-neon-dark (--text-primary: #FFFFFF), makes the
+ * the light text used by prym-dark (--text-primary: #F1F3F5), makes the
  * selected value of outlined MudSelect/PrymSelect controls unreadable
  * (white-on-whitesmoke). Override with the theme's own surface colour so the
  * fill stays visually distinguished from the page background while remaining
  * readable. Higher selector specificity than block 4 ensures this wins
  * regardless of source order.
  */
-[data-theme="carbon-neon-dark"] .mud-input-root-outlined {
-    background-color: var(--surface, #262626) !important;
+[data-theme="prym-dark"] .mud-input-root-outlined {
+    background-color: var(--surface, #202327) !important;
 }
 
 /* ─── 5. Filter-bar uniform 36px height ────────────────────────────────────
@@ -86,24 +86,24 @@
 }
 
 /* ─── 6. Dark-theme nav link active/hover state ─────────────────────────────
- * In carbon-neon-dark, MudThemeProvider non riceve IsDarkMode quindi usa sempre
+ * In prym-dark, MudThemeProvider non riceve IsDarkMode quindi usa sempre
  * la light palette: --mud-palette-primary diventa il navy scuro del drawer
- * (#1F2F46). Il link attivo ha sfondo = testo = stesso colore → invisibile.
- * Forziamo un highlight neon leggibile basato sull'accent del tema scuro.
+ * (#2B2F36). Il link attivo ha sfondo = testo = stesso colore → invisibile.
+ * Forziamo un highlight leggibile basato sull'accent del tema scuro.
  */
-[data-theme="carbon-neon-dark"] .mud-nav-link.active {
-    background-color: rgba(0, 245, 255, 0.15) !important;
-    color: #00F5FF !important;
+[data-theme="prym-dark"] .mud-nav-link.active {
+    background-color: rgba(232, 181, 99, 0.15) !important;
+    color: #E8B563 !important;
     font-weight: 600 !important;
-    border-left: 3px solid #00F5FF;
+    border-left: 3px solid #E8B563;
 }
 
-[data-theme="carbon-neon-dark"] .mud-nav-link.active .mud-icon-root {
-    color: #00F5FF !important;
+[data-theme="prym-dark"] .mud-nav-link.active .mud-icon-root {
+    color: #E8B563 !important;
 }
 
-[data-theme="carbon-neon-dark"] .mud-nav-link:not(.active):hover {
-    background-color: rgba(0, 245, 255, 0.07) !important;
+[data-theme="prym-dark"] .mud-nav-link:not(.active):hover {
+    background-color: rgba(232, 181, 99, 0.07) !important;
 }
 
 /* ─── 7. MudMainContent definite height ─────────────────────────────────────

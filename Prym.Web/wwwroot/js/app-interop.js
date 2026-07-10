@@ -51,20 +51,20 @@ window.EventForge.setSyncfusionTheme = function (isDark) {
 window.EventForge.applyPersistedTheme = function () {
     try {
         const STORAGE_KEY = 'eventforge-theme';
-        const DEFAULT     = 'carbon-neon-light';
-        const VALID       = ['carbon-neon-dark', 'carbon-neon-light'];
+        const DEFAULT     = 'prym-light';
+        const VALID       = ['prym-dark', 'prym-light'];
 
         let stored = localStorage.getItem(STORAGE_KEY);
 
         // Backward compat: old "dark"/"light" strings
-        if (stored === 'dark')  stored = 'carbon-neon-dark';
-        if (stored === 'light') stored = 'carbon-neon-light';
+        if (stored === 'dark' || stored === 'carbon-neon-dark')  stored = 'prym-dark';
+        if (stored === 'light' || stored === 'carbon-neon-light') stored = 'prym-light';
 
         const theme = (stored && VALID.includes(stored)) ? stored : DEFAULT;
         document.documentElement.setAttribute('data-theme', theme);
 
         // Apply Syncfusion theme synchronously so there is no flash.
-        const isDark = theme === 'carbon-neon-dark';
+        const isDark = theme === 'prym-dark';
         window.EventForge.setSyncfusionTheme(isDark);
     } catch (e) {
         // localStorage may be unavailable in some private-browsing contexts.

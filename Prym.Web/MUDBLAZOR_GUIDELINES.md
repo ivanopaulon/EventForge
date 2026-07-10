@@ -340,7 +340,7 @@ Before committing any UI change, verify:
 - [ ] Images/icons use `Color.Inherit` or theme color
 - [ ] Borders use `var(--mud-palette-divider)`
 - [ ] Shadows use `rgba(0,0,0,0.N)` with alpha (not solid colors)
-- [ ] Test page in both light (`carbon-neon-light`) and dark (`carbon-neon-dark`) mode
+- [ ] Test page in both light (`prym-light`) and dark (`prym-dark`) mode
 
 **Key CSS variables for dark-mode-safe code:**
 | Purpose | Variable |

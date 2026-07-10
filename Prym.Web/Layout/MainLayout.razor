@@ -238,8 +238,12 @@
     private string GetLogoSrc()
     {
         var configuredUrl = _branding?.LogoUrl;
-        if (string.IsNullOrEmpty(configuredUrl) || configuredUrl == "/logoWhite.svg")
-            return ThemeService.IsDarkMode ? "/logoWhite.svg" : "/logo.svg";
+        if (string.IsNullOrEmpty(configuredUrl)
+            || configuredUrl == "/logoWhite.svg"
+            || configuredUrl == "/logo.svg"
+            || configuredUrl == "/prym-logo-lockup-dark.svg"
+            || configuredUrl == "/prym-logo-lockup-light.svg")
+            return ThemeService.IsDarkMode ? "/prym-logo-lockup-dark.svg" : "/prym-logo-lockup-light.svg";
         return configuredUrl;
     }
 

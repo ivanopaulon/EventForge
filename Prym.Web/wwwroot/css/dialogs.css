@@ -121,45 +121,45 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    DARK THEME OVERRIDES — EFDialog (.efd-card)
    Corrects the inline <style> which uses a blue-tinted dark (#12121f) that
-   does not match the app's neutral dark palette (#121212 / #262626).
+   does not match the app's neutral dark palette (#16181B / #202327).
    Using !important to guarantee these rules win over the inline <style> tag
    injected later in the DOM by Blazor component rendering.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-[data-theme="carbon-neon-dark"] .efd-card {
+[data-theme="prym-dark"] .efd-card {
     --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
     --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
     --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
-    --mud-palette-background:           #121212;
-    --mud-palette-surface:              #262626;
+    --mud-palette-background:           #16181B;
+    --mud-palette-surface:              #202327;
     --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
     --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
     --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
     --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
     --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
     --mud-palette-divider:              rgba(255, 255, 255, 0.12);
-    --efd-color-primary-light:          #00F5FF;
-    --efd-color-primary-focus:          #00E5FF;
+    --efd-color-primary-light:          #E8B563;
+    --efd-color-primary-focus:          #F0C583;
     color: rgba(255, 255, 255, 0.87) !important;
-    background: rgba(38, 38, 38, 0.95) !important;
+    background: rgba(32, 35, 39, 0.95) !important;
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efd-title {
+[data-theme="prym-dark"] .efd-title {
     border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efd-body {
+[data-theme="prym-dark"] .efd-body {
     color: rgba(255, 255, 255, 0.87) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
-    background-color: #262626 !important;
-    color: #00F5FF !important;
+[data-theme="prym-dark"] .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+    background-color: #202327 !important;
+    color: #E8B563 !important;
 }
 
-[data-theme="carbon-neon-dark"] .efd-actions {
+[data-theme="prym-dark"] .efd-actions {
     border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
 }
 
@@ -167,11 +167,11 @@
    LIGHT THEME OVERRIDES — EFDialog (.efd-card)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-[data-theme="carbon-neon-light"] .efd-card {
-    --mud-palette-text-primary:         rgba(26, 26, 26, 0.87);
-    --mud-palette-text-secondary:       rgba(26, 26, 26, 0.60);
+[data-theme="prym-light"] .efd-card {
+    --mud-palette-text-primary:         rgba(34, 37, 42, 0.87);
+    --mud-palette-text-secondary:       rgba(102, 107, 114, 1);
     --mud-palette-text-disabled:        rgba(26, 26, 26, 0.38);
-    --mud-palette-background:           #F5F5F5;
+    --mud-palette-background:           #F2F1EF;
     --mud-palette-surface:              #FFFFFF;
     --mud-palette-action-default:       rgba(26, 26, 26, 0.78);
     --mud-palette-action-default-hover: rgba(0, 0, 0, 0.04);
@@ -179,163 +179,163 @@
     --mud-palette-lines-default:        rgba(0, 0, 0, 0.12);
     --mud-palette-lines-inputs:         rgba(0, 0, 0, 0.35);
     --mud-palette-divider:              rgba(0, 0, 0, 0.12);
-    --efd-color-primary-light:          #3E97B3;
-    --efd-color-primary-focus:          #2B677A;
-    color: rgba(26, 26, 26, 0.87) !important;
+    --efd-color-primary-light:          #2B2F36;
+    --efd-color-primary-focus:          #3A3F47;
+    color: rgba(34, 37, 42, 0.87) !important;
     background: rgba(255, 255, 255, 0.97) !important;
     border: 1px solid #E0E0E0 !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-title {
+[data-theme="prym-light"] .efd-title {
     border-bottom: 1px solid rgba(0, 0, 0, 0.10) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efd-body {
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-tabs .mud-tab:hover {
+[data-theme="prym-light"] .efd-body .mud-tabs .mud-tab:hover {
     background-color: rgba(0, 0, 0, 0.04) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-tabs .mud-tab.mud-tab-active {
-    background-color: rgba(62, 151, 179, 0.10) !important;
-    color: #3E97B3 !important;
+[data-theme="prym-light"] .efd-body .mud-tabs .mud-tab.mud-tab-active {
+    background-color: rgba(43, 47, 54, 0.10) !important;
+    color: #2B2F36 !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-root input,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-root textarea,
-[data-theme="carbon-neon-light"] .efd-body .mud-input input,
-[data-theme="carbon-neon-light"] .efd-body .mud-input textarea {
-    color: rgba(26, 26, 26, 0.87) !important;
-    caret-color: #1A1A1A !important;
+[data-theme="prym-light"] .efd-body .mud-input-root input,
+[data-theme="prym-light"] .efd-body .mud-input-root textarea,
+[data-theme="prym-light"] .efd-body .mud-input input,
+[data-theme="prym-light"] .efd-body .mud-input textarea {
+    color: rgba(34, 37, 42, 0.87) !important;
+    caret-color: #22252A !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-root,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-root-outlined {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efd-body .mud-input-root,
+[data-theme="prym-light"] .efd-body .mud-input-root-outlined {
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body label.mud-input-label,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-label {
-    color: rgba(26, 26, 26, 0.70) !important;
+[data-theme="prym-light"] .efd-body label.mud-input-label,
+[data-theme="prym-light"] .efd-body .mud-input-label {
+    color: rgba(102, 107, 114, 0.95) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+[data-theme="prym-light"] .efd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
     background-color: #FFFFFF !important;
-    color: #3E97B3 !important;
+    color: #2B2F36 !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efd-body fieldset.mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined fieldset {
+[data-theme="prym-light"] .efd-body .mud-input-outlined-border,
+[data-theme="prym-light"] .efd-body fieldset.mud-input-outlined-border,
+[data-theme="prym-light"] .efd-body .mud-input-outlined fieldset {
     border-color: rgba(0, 0, 0, 0.23) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined:hover .mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined:hover fieldset {
+[data-theme="prym-light"] .efd-body .mud-input-outlined:hover .mud-input-outlined-border,
+[data-theme="prym-light"] .efd-body .mud-input-outlined:hover fieldset {
     border-color: rgba(0, 0, 0, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-outlined:focus-within fieldset {
-    border-color: #3E97B3 !important;
+[data-theme="prym-light"] .efd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+[data-theme="prym-light"] .efd-body .mud-input-outlined:focus-within fieldset {
+    border-color: #2B2F36 !important;
     border-width: 2px !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-input-adornment .mud-icon-root,
-[data-theme="carbon-neon-light"] .efd-body .mud-input-adornment .mud-icon-button {
+[data-theme="prym-light"] .efd-body .mud-input-adornment .mud-icon-root,
+[data-theme="prym-light"] .efd-body .mud-input-adornment .mud-icon-button {
     color: rgba(26, 26, 26, 0.55) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-select .mud-input-root,
-[data-theme="carbon-neon-light"] .efd-body .mud-select-input {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efd-body .mud-select .mud-input-root,
+[data-theme="prym-light"] .efd-body .mud-select-input {
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-checkbox .mud-button-label,
-[data-theme="carbon-neon-light"] .efd-body .mud-checkbox-label,
-[data-theme="carbon-neon-light"] .efd-body span.mud-button-label {
-    color: rgba(26, 26, 26, 0.80) !important;
+[data-theme="prym-light"] .efd-body .mud-checkbox .mud-button-label,
+[data-theme="prym-light"] .efd-body .mud-checkbox-label,
+[data-theme="prym-light"] .efd-body span.mud-button-label {
+    color: rgba(34, 37, 42, 0.8) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-checkbox .mud-svg-icon,
-[data-theme="carbon-neon-light"] .efd-body .mud-checkbox .mud-icon-root {
-    color: rgba(26, 26, 26, 0.65) !important;
+[data-theme="prym-light"] .efd-body .mud-checkbox .mud-svg-icon,
+[data-theme="prym-light"] .efd-body .mud-checkbox .mud-icon-root {
+    color: rgba(34, 37, 42, 0.65) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-body .mud-switch-label {
-    color: rgba(26, 26, 26, 0.80) !important;
+[data-theme="prym-light"] .efd-body .mud-switch-label {
+    color: rgba(34, 37, 42, 0.8) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-actions {
+[data-theme="prym-light"] .efd-actions {
     border-top: 1px solid rgba(0, 0, 0, 0.10) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-actions .mud-button-root.mud-button-text {
-    color: rgba(26, 26, 26, 0.65) !important;
+[data-theme="prym-light"] .efd-actions .mud-button-root.mud-button-text {
+    color: rgba(34, 37, 42, 0.65) !important;
 }
 
-[data-theme="carbon-neon-light"] .efd-actions .mud-button-root.mud-button-text:hover {
+[data-theme="prym-light"] .efd-actions .mud-button-root.mud-button-text:hover {
     background-color: rgba(0, 0, 0, 0.04) !important;
-    color: rgba(26, 26, 26, 0.87) !important;
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    DARK THEME OVERRIDES — EFSystemDialog (.efsd-card)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-[data-theme="carbon-neon-dark"] .efsd-card {
+[data-theme="prym-dark"] .efsd-card {
     --mud-palette-text-primary:         rgba(255, 255, 255, 0.87);
     --mud-palette-text-secondary:       rgba(255, 255, 255, 0.60);
     --mud-palette-text-disabled:        rgba(255, 255, 255, 0.38);
-    --mud-palette-background:           #121212;
-    --mud-palette-surface:              #262626;
+    --mud-palette-background:           #16181B;
+    --mud-palette-surface:              #202327;
     --mud-palette-action-default:       rgba(255, 255, 255, 0.78);
     --mud-palette-action-default-hover: rgba(255, 255, 255, 0.08);
     --mud-palette-action-disabled:      rgba(255, 255, 255, 0.26);
     --mud-palette-lines-default:        rgba(255, 255, 255, 0.12);
     --mud-palette-lines-inputs:         rgba(255, 255, 255, 0.35);
     --mud-palette-divider:              rgba(255, 255, 255, 0.12);
-    --efsd-color-primary-light:         #00F5FF;
-    --efsd-color-primary-focus:         #00E5FF;
+    --efsd-color-primary-light:         #E8B563;
+    --efsd-color-primary-focus:         #F0C583;
     color: rgba(255, 255, 255, 0.87) !important;
-    background: rgba(38, 38, 38, 0.95) !important;
+    background: rgba(32, 35, 39, 0.95) !important;
     border: 1px solid rgba(255, 255, 255, 0.10) !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efsd-title-text {
+[data-theme="prym-dark"] .efsd-title-text {
     color: rgba(255, 255, 255, 0.87) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efsd-hrdiv {
+[data-theme="prym-dark"] .efsd-hrdiv {
     background: rgba(255, 255, 255, 0.12) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efsd-subtitle {
+[data-theme="prym-dark"] .efsd-subtitle {
     color: rgba(255, 255, 255, 0.60) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efsd-body {
+[data-theme="prym-dark"] .efsd-body {
     color: rgba(255, 255, 255, 0.87) !important;
 }
 
-[data-theme="carbon-neon-dark"] .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
-    background-color: #262626 !important;
-    color: #00F5FF !important;
+[data-theme="prym-dark"] .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+    background-color: #202327 !important;
+    color: #E8B563 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LIGHT THEME OVERRIDES — EFSystemDialog (.efsd-card)
    ═══════════════════════════════════════════════════════════════════════════ */
 
-[data-theme="carbon-neon-light"] .efsd-card {
-    --mud-palette-text-primary:         rgba(26, 26, 26, 0.87);
-    --mud-palette-text-secondary:       rgba(26, 26, 26, 0.60);
+[data-theme="prym-light"] .efsd-card {
+    --mud-palette-text-primary:         rgba(34, 37, 42, 0.87);
+    --mud-palette-text-secondary:       rgba(102, 107, 114, 1);
     --mud-palette-text-disabled:        rgba(26, 26, 26, 0.38);
-    --mud-palette-background:           #F5F5F5;
+    --mud-palette-background:           #F2F1EF;
     --mud-palette-surface:              #FFFFFF;
     --mud-palette-action-default:       rgba(26, 26, 26, 0.78);
     --mud-palette-action-default-hover: rgba(0, 0, 0, 0.04);
@@ -343,116 +343,116 @@
     --mud-palette-lines-default:        rgba(0, 0, 0, 0.12);
     --mud-palette-lines-inputs:         rgba(0, 0, 0, 0.35);
     --mud-palette-divider:              rgba(0, 0, 0, 0.12);
-    --efsd-color-primary-light:         #3E97B3;
-    --efsd-color-primary-focus:         #2B677A;
-    color: rgba(26, 26, 26, 0.87) !important;
+    --efsd-color-primary-light:         #2B2F36;
+    --efsd-color-primary-focus:         #3A3F47;
+    color: rgba(34, 37, 42, 0.87) !important;
     background: rgba(255, 255, 255, 0.97) !important;
     border: 1px solid #E0E0E0 !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-title-text {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efsd-title-text {
+    color: rgba(34, 37, 42, 0.87) !important;
     text-shadow: none !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-hrdiv {
+[data-theme="prym-light"] .efsd-hrdiv {
     background: rgba(0, 0, 0, 0.12) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-subtitle {
+[data-theme="prym-light"] .efsd-subtitle {
     color: rgba(26, 26, 26, 0.72) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-tb-default {
+[data-theme="prym-light"] .efsd-tb-default {
     background: rgba(0, 0, 0, 0.12) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-wordmark {
+[data-theme="prym-light"] .efsd-wordmark {
     filter: none;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efsd-body {
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-root input,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-root textarea,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input input,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input textarea {
-    color: rgba(26, 26, 26, 0.87) !important;
-    caret-color: #1A1A1A !important;
+[data-theme="prym-light"] .efsd-body .mud-input-root input,
+[data-theme="prym-light"] .efsd-body .mud-input-root textarea,
+[data-theme="prym-light"] .efsd-body .mud-input input,
+[data-theme="prym-light"] .efsd-body .mud-input textarea {
+    color: rgba(34, 37, 42, 0.87) !important;
+    caret-color: #22252A !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-root,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-root-outlined {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efsd-body .mud-input-root,
+[data-theme="prym-light"] .efsd-body .mud-input-root-outlined {
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body label.mud-input-label,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-label {
-    color: rgba(26, 26, 26, 0.70) !important;
+[data-theme="prym-light"] .efsd-body label.mud-input-label,
+[data-theme="prym-light"] .efsd-body .mud-input-label {
+    color: rgba(102, 107, 114, 0.95) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
+[data-theme="prym-light"] .efsd-body .mud-input-label-animated.mud-input-label-inputcontrol.mud-shrink {
     background-color: #FFFFFF !important;
-    color: #3E97B3 !important;
+    color: #2B2F36 !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efsd-body fieldset.mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined fieldset {
+[data-theme="prym-light"] .efsd-body .mud-input-outlined-border,
+[data-theme="prym-light"] .efsd-body fieldset.mud-input-outlined-border,
+[data-theme="prym-light"] .efsd-body .mud-input-outlined fieldset {
     border-color: rgba(0, 0, 0, 0.23) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined:hover .mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined:hover fieldset {
+[data-theme="prym-light"] .efsd-body .mud-input-outlined:hover .mud-input-outlined-border,
+[data-theme="prym-light"] .efsd-body .mud-input-outlined:hover fieldset {
     border-color: rgba(0, 0, 0, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-outlined:focus-within fieldset {
-    border-color: #3E97B3 !important;
+[data-theme="prym-light"] .efsd-body .mud-input-outlined.mud-input-focused .mud-input-outlined-border,
+[data-theme="prym-light"] .efsd-body .mud-input-outlined:focus-within fieldset {
+    border-color: #2B2F36 !important;
     border-width: 2px !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-adornment .mud-icon-root,
-[data-theme="carbon-neon-light"] .efsd-body .mud-input-adornment .mud-icon-button {
+[data-theme="prym-light"] .efsd-body .mud-input-adornment .mud-icon-root,
+[data-theme="prym-light"] .efsd-body .mud-input-adornment .mud-icon-button {
     color: rgba(26, 26, 26, 0.55) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-select .mud-input-root,
-[data-theme="carbon-neon-light"] .efsd-body .mud-select-input {
-    color: rgba(26, 26, 26, 0.87) !important;
+[data-theme="prym-light"] .efsd-body .mud-select .mud-input-root,
+[data-theme="prym-light"] .efsd-body .mud-select-input {
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox .mud-button-label,
-[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox-label,
-[data-theme="carbon-neon-light"] .efsd-body span.mud-button-label {
-    color: rgba(26, 26, 26, 0.80) !important;
+[data-theme="prym-light"] .efsd-body .mud-checkbox .mud-button-label,
+[data-theme="prym-light"] .efsd-body .mud-checkbox-label,
+[data-theme="prym-light"] .efsd-body span.mud-button-label {
+    color: rgba(34, 37, 42, 0.8) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox .mud-svg-icon,
-[data-theme="carbon-neon-light"] .efsd-body .mud-checkbox .mud-icon-root {
-    color: rgba(26, 26, 26, 0.65) !important;
+[data-theme="prym-light"] .efsd-body .mud-checkbox .mud-svg-icon,
+[data-theme="prym-light"] .efsd-body .mud-checkbox .mud-icon-root {
+    color: rgba(34, 37, 42, 0.65) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-alert {
+[data-theme="prym-light"] .efsd-body .mud-alert {
     background-color: rgba(255, 152, 0, 0.10) !important;
     color: rgba(26, 26, 26, 0.85) !important;
     border: 1px solid rgba(255, 152, 0, 0.4) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-button-root.mud-button-text {
-    color: rgba(26, 26, 26, 0.60) !important;
+[data-theme="prym-light"] .efsd-body .mud-button-root.mud-button-text {
+    color: rgba(102, 107, 114, 1) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-button-root.mud-button-text:hover {
+[data-theme="prym-light"] .efsd-body .mud-button-root.mud-button-text:hover {
     background-color: rgba(0, 0, 0, 0.04) !important;
-    color: rgba(26, 26, 26, 0.87) !important;
+    color: rgba(34, 37, 42, 0.87) !important;
 }
 
-[data-theme="carbon-neon-light"] .efsd-body .mud-button-root.mud-button-outlined {
+[data-theme="prym-light"] .efsd-body .mud-button-root.mud-button-outlined {
     border-color: rgba(0, 0, 0, 0.40) !important;
     color: rgba(26, 26, 26, 0.85) !important;
 }

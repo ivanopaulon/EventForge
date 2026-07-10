@@ -226,12 +226,12 @@ a, .btn-link {
 }
 
 /* Light-theme splash: white background, dark progress text */
-[data-theme="carbon-neon-light"] .ef-splash {
-    background: #f5f5f5;
+[data-theme="prym-light"] .ef-splash {
+    background: #F2F1EF;
 }
 
-[data-theme="carbon-neon-light"] .ef-splash-phase::after {
-    color: #374151;
+[data-theme="prym-light"] .ef-splash-phase::after {
+    color: #22252A;
 }
 
 .ef-splash-brand-row {
