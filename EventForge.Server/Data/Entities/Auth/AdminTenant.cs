@@ -35,10 +35,20 @@ public class AdminTenant : AuditableEntity
     public DateTime GrantedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Date when admin access expires (UTC). Null means no expiration.
+    /// Date when admin access expires (UTC). Null means no expiration (legacy grants only —
+    /// grants created after the introduction of mandatory expiration are never null; see
+    /// TenantService.AddTenantAdminAsync).
     /// </summary>
     [Display(Name = "Expires At", Description = "Date when admin access expires (UTC).")]
     public DateTime? ExpiresAt { get; set; }
+
+    /// <summary>
+    /// Reason for granting this admin access. Mandatory for grants created after this field was
+    /// introduced; older rows may have it null (not retroactive).
+    /// </summary>
+    [MaxLength(500)]
+    [Display(Name = "Reason", Description = "Reason for granting this admin access.")]
+    public string? Reason { get; set; }
 
     /// <summary>
     /// Navigation property: The super administrator user.

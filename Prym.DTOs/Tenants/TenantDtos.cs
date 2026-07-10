@@ -148,6 +148,7 @@ namespace Prym.DTOs.Tenants
         public string AccessLevel { get; set; } = string.Empty;
         public DateTime GrantedAt { get; set; }
         public DateTime? ExpiresAt { get; set; }
+        public string? Reason { get; set; }
         public string GrantedBy { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }

@@ -2,6 +2,7 @@ using EventForge.Server.ModelBinders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using AuthAuditOperationType = Prym.DTOs.Common.AuditOperationType;
 
 namespace EventForge.Server.Controllers;
@@ -298,11 +299,37 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     }
 
     /// <summary>
-    /// Adds an admin to a tenant.
+    /// Gets all admin tenant grants across every tenant (SuperAdmin platform-wide view).
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of all admin tenant grants, across all tenants</returns>
+    [HttpGet("admins")]
+    [ProducesResponseType(typeof(IEnumerable<AdminTenantResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<AdminTenantResponseDto>>> GetAllAdmins(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var admins = await tenantService.GetAllAdminTenantsAsync();
+            return Ok(admins);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return CreateValidationProblemDetails("Access denied: " + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Adds an admin to a tenant. Reason and expiration are mandatory for every new grant:
+    /// this endpoint never creates rows with ExpiresAt = NULL. Existing legacy rows with
+    /// ExpiresAt = NULL are unaffected — they were created before this requirement existed.
     /// </summary>
     /// <param name="id">Tenant ID</param>
     /// <param name="userId">User ID to make admin</param>
     /// <param name="accessLevel">Admin access level</param>
+    /// <param name="reason">Reason for granting admin access (mandatory)</param>
+    /// <param name="expiresAt">Expiration date/time in UTC (mandatory, must be in the future and within the maximum allowed duration)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Admin tenant mapping details</returns>
     [HttpPost("{id}/admins/{userId}")]
@@ -313,12 +340,35 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     public async Task<ActionResult<AdminTenantResponseDto>> AddTenantAdmin(
         Guid id,
         Guid userId,
+        [FromQuery, Required] string reason,
+        [FromQuery, Required] DateTime expiresAt,
         [FromQuery] AdminAccessLevel accessLevel = AdminAccessLevel.TenantAdmin,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return CreateValidationProblemDetails("Reason is required to grant admin access.");
+        }
+
+        if (expiresAt == default)
+        {
+            return CreateValidationProblemDetails("ExpiresAt is required to grant admin access.");
+        }
+
+        if (expiresAt <= DateTime.UtcNow)
+        {
+            return CreateValidationProblemDetails("ExpiresAt must be in the future.");
+        }
+
+        if (expiresAt > DateTime.UtcNow.AddDays(TenantService.MaxAdminGrantDurationDays))
+        {
+            return CreateValidationProblemDetails(
+                $"ExpiresAt cannot exceed {TenantService.MaxAdminGrantDurationDays} days from now.");
+        }
+
         try
         {
-            var result = await tenantService.AddTenantAdminAsync(id, userId, accessLevel);
+            var result = await tenantService.AddTenantAdminAsync(id, userId, accessLevel, reason, expiresAt);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)

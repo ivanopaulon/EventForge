@@ -48,13 +48,16 @@ public interface ITenantService
     Task SetTenantStatusAsync(Guid tenantId, bool isEnabled, string reason);
 
     /// <summary>
-    /// Adds an admin to a tenant.
+    /// Adds an admin to a tenant. Reason and expiration are mandatory for all grants created
+    /// through this method — it is the only supported way to create new AdminTenant rows.
     /// </summary>
     /// <param name="tenantId">Tenant ID</param>
     /// <param name="userId">User ID to make admin</param>
     /// <param name="accessLevel">Admin access level</param>
+    /// <param name="reason">Reason for granting admin access</param>
+    /// <param name="expiresAt">Expiration date/time in UTC</param>
     /// <returns>Admin tenant mapping details</returns>
-    Task<AdminTenantResponseDto> AddTenantAdminAsync(Guid tenantId, Guid userId, AdminAccessLevel accessLevel);
+    Task<AdminTenantResponseDto> AddTenantAdminAsync(Guid tenantId, Guid userId, AdminAccessLevel accessLevel, string reason, DateTime expiresAt);
 
     /// <summary>
     /// Removes an admin from a tenant.
@@ -69,6 +72,12 @@ public interface ITenantService
     /// <param name="tenantId">Tenant ID</param>
     /// <returns>List of tenant admins</returns>
     Task<IEnumerable<AdminTenantResponseDto>> GetTenantAdminsAsync(Guid tenantId);
+
+    /// <summary>
+    /// Gets all admin tenant grants across every tenant (SuperAdmin platform-wide view).
+    /// </summary>
+    /// <returns>List of all admin tenant grants</returns>
+    Task<IEnumerable<AdminTenantResponseDto>> GetAllAdminTenantsAsync();
 
     /// <summary>
     /// Forces a user to change their password on next login.

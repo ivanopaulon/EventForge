@@ -95,6 +95,10 @@
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/dashboard/role", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-shield-fill-check"></i>Ruoli & Permessi
                 </a>
+                <a href="/dashboard/admintenants"
+                   class="sidebar-item @(Context.Request.Path.StartsWithSegments("/dashboard/admintenants", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
+                    <i class="bi bi-person-badge-fill"></i>Admin Cross-Tenant
+                </a>
                 <a href="/dashboard/branding"
                    class="sidebar-item @(Context.Request.Path.StartsWithSegments("/dashboard/branding", StringComparison.OrdinalIgnoreCase) ? "active" : "")">
                     <i class="bi bi-palette2"></i>Branding
