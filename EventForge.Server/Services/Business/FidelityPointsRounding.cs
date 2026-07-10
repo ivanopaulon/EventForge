@@ -1,5 +1,3 @@
-using EventForge.Server.Data.Entities.Business;
-
 namespace EventForge.Server.Services.Business;
 
 /// <summary>
