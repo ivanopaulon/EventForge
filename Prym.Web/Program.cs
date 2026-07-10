@@ -66,6 +66,13 @@ builder.Services.AddHttpClient("StaticClient", client =>
     client.Timeout = TimeSpan.FromSeconds(30);
 });
 
+builder.Services.AddHttpClient("ProductBarcodeLookupClient", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.DefaultRequestHeaders.Add("User-Agent", "Prym-Client/1.0");
+});
+
 // Add MudBlazor services with performance optimizations
 builder.Services.AddMudServices(config =>
 {
@@ -167,6 +174,7 @@ builder.Services.AddScoped<IDevToolsService, DevToolsService>();
 
 // Add External services
 builder.Services.AddScoped<Prym.Web.Services.External.IVatLookupService, Prym.Web.Services.External.VatLookupService>();
+builder.Services.AddScoped<Prym.Web.Services.External.IProductBarcodeLookupService, Prym.Web.Services.External.ProductBarcodeLookupService>();
 
 // Add ViewModels
 builder.Services.AddScoped<Prym.Web.ViewModels.ProductDetailViewModel>();
