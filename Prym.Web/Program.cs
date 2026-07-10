@@ -8,7 +8,6 @@ using Prym.Web;
 using Prym.Web.Services;
 using Prym.Web.Services.Documents;
 using Syncfusion.Blazor;
-using Syncfusion.Licensing;
 using System.Net.Http.Json;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -84,22 +83,7 @@ builder.Services.AddMudServices(config =>
 builder.Services.AddBlazoredLocalStorage();
 
 // Add Syncfusion Blazor services
-// The license key is stored only in the server's appsettings.json ("SyncfusionLicenseKey").
-// We fetch it from the public endpoint GET /api/v1/branding/client-config before building
-// the DI container, so RegisterLicense() is always called before AddSyncfusionBlazor().
-try
-{
-    using var httpClient = new HttpClient { BaseAddress = new Uri(apiBaseUrl) };
-    var clientConfig = await httpClient.GetFromJsonAsync<ClientPublicConfigDto>("api/v1/branding/client-config");
-    if (!string.IsNullOrWhiteSpace(clientConfig?.SyncfusionLicenseKey))
-    {
-        SyncfusionLicenseProvider.RegisterLicense(clientConfig.SyncfusionLicenseKey);
-    }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"[Syncfusion] Could not fetch license key from server: {ex.Message}");
-}
+// License registration via SyncfusionLicenseProvider was removed in Syncfusion v27.1.48+.
 builder.Services.AddSyncfusionBlazor();
 
 // ════════════════════════════════════════════════════════════════
