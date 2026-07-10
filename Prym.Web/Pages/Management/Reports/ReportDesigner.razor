@@ -35,12 +35,12 @@
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" Class="mr-2" />
                 }
-                <MudButton Variant="Variant.Text"
+                <PrymButton Variant="Variant.Text"
                            StartIcon="@Icons.Material.Outlined.ArrowBack"
                            Size="Size.Small"
                            OnClick="@(() => Navigation.NavigateTo("/management/reports"))">
                     @TranslationService.GetTranslation("common.back", "Indietro")
-                </MudButton>
+                </PrymButton>
             </ExtraActions>
         </ManagementPageHeader>
 

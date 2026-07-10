@@ -41,7 +41,7 @@
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudButton Color="Color.Primary"
+                        <PrymButton Color="Color.Primary"
                                    Variant="Variant.Filled"
                                    StartIcon="@Icons.Material.Filled.PlayArrow"
                                    OnClick="AnalyzeDocument"
@@ -53,7 +53,7 @@
                                 <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
                             }
                             @TranslationService.GetTranslation("inventory.diagnostics.analyzeButton", "Analizza")
-                        </MudButton>
+                        </PrymButton>
                     </MudItem>
                 </MudGrid>
             </MudStack>
@@ -179,7 +179,7 @@
                             @TranslationService.GetTranslation("inventory.diagnostics.actions", "Azioni Disponibili")
                         </MudText>
                         <MudStack Row="true" Spacing="2">
-                            <MudButton Color="Color.Primary"
+                            <PrymButton Color="Color.Primary"
                                        Variant="Variant.Filled"
                                        StartIcon="@Icons.Material.Filled.BuildCircle"
                                        OnClick="ShowAutoRepairDialog"
@@ -189,15 +189,15 @@
                                     <MudProgressCircular Class="mr-2" Size="Size.Small" Indeterminate="true" />
                                 }
                                 @TranslationService.GetTranslation("inventory.diagnostics.autoRepair", "Correzione Automatica")
-                            </MudButton>
+                            </PrymButton>
 
-                            <MudButton Color="Color.Error"
+                            <PrymButton Color="Color.Error"
                                        Variant="Variant.Outlined"
                                        StartIcon="@Icons.Material.Filled.DeleteForever"
                                        OnClick="RemoveProblematicRows"
                                        Disabled="@(_isRepairing || !_diagnosticReport.Issues.Any(i => i.Severity == "Critical"))">
                                 @TranslationService.GetTranslation("inventory.diagnostics.removeRows", "Rimuovi Righe Problematiche")
-                            </MudButton>
+                            </PrymButton>
                         </MudStack>
                     }
                 </MudStack>
@@ -264,12 +264,12 @@
                         </MudList>
                     }
 
-                    <MudButton Color="Color.Primary"
+                    <PrymButton Color="Color.Primary"
                                Variant="Variant.Outlined"
                                StartIcon="@Icons.Material.Filled.Refresh"
                                OnClick="ReanalyzeDocument">
                         @TranslationService.GetTranslation("inventory.diagnostics.reanalyze", "Rianalizza")
-                    </MudButton>
+                    </PrymButton>
                 </MudStack>
             </MudPaper>
         }

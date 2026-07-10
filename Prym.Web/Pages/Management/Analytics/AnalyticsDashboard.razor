@@ -25,36 +25,36 @@
                 <MudText Typo="Typo.caption" Color="Color.Secondary" Class="align-self-center mr-2">
                     @TranslationService.GetTranslation("analytics.quickPeriod", "Periodo rapido:")
                 </MudText>
-                <MudButton Variant="@(_activePeriod == "today" ? Variant.Filled : Variant.Outlined)"
+                <PrymButton Variant="@(_activePeriod == "today" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="@(() => SetQuickPeriod("today"))">
                     @TranslationService.GetTranslation("analytics.period.today", "Oggi")
-                </MudButton>
-                <MudButton Variant="@(_activePeriod == "7d" ? Variant.Filled : Variant.Outlined)"
+                </PrymButton>
+                <PrymButton Variant="@(_activePeriod == "7d" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="@(() => SetQuickPeriod("7d"))">
                     @TranslationService.GetTranslation("analytics.period.last7days", "Ultimi 7gg")
-                </MudButton>
-                <MudButton Variant="@(_activePeriod == "30d" ? Variant.Filled : Variant.Outlined)"
+                </PrymButton>
+                <PrymButton Variant="@(_activePeriod == "30d" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="@(() => SetQuickPeriod("30d"))">
                     @TranslationService.GetTranslation("analytics.period.last30days", "Ultimi 30gg")
-                </MudButton>
-                <MudButton Variant="@(_activePeriod == "6m" ? Variant.Filled : Variant.Outlined)"
+                </PrymButton>
+                <PrymButton Variant="@(_activePeriod == "6m" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Primary"
                            Size="Size.Small"
                            OnClick="@(() => SetQuickPeriod("6m"))">
                     @TranslationService.GetTranslation("analytics.period.last6months", "Ultimi 6 mesi")
-                </MudButton>
-                <MudButton Variant="@(_activePeriod == "custom" ? Variant.Filled : Variant.Outlined)"
+                </PrymButton>
+                <PrymButton Variant="@(_activePeriod == "custom" ? Variant.Filled : Variant.Outlined)"
                            Color="Color.Secondary"
                            Size="Size.Small"
                            OnClick="@(() => _activePeriod = "custom")">
                     @TranslationService.GetTranslation("analytics.period.custom", "Personalizzato")
-                </MudButton>
+                </PrymButton>
             </MudStack>
 
             <MudDivider Class="mb-3" />
@@ -99,14 +99,14 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6" md="2">
-                    <MudButton Variant="Variant.Filled"
+                    <PrymButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Refresh"
                                OnClick="@LoadDataAsync"
                                Disabled="_isLoadingData"
                                FullWidth="true">
                         @TranslationService.GetTranslation("common.refresh", "Aggiorna")
-                    </MudButton>
+                    </PrymButton>
                 </MudItem>
             </MudGrid>
         </MudPaper>
