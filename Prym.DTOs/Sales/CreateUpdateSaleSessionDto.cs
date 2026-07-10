@@ -53,6 +53,12 @@ namespace Prym.DTOs.Sales
         public Guid? CustomerId { get; set; }
 
         /// <summary>
+        /// Fidelity card identifier resolved for the current customer.
+        /// When set, propagates the client-side fidelity card resolution to the server session.
+        /// </summary>
+        public Guid? FidelityCardId { get; set; }
+
+        /// <summary>
         /// Sale type (e.g., "RETAIL", "BAR", "RESTAURANT").
         /// </summary>
         [MaxLength(50)]

@@ -26,6 +26,13 @@ public class SaleSession : AuditableEntity
     public Guid? CustomerId { get; set; }
 
     /// <summary>
+    /// Fidelity card identifier resolved for the current customer, propagated by the client as soon
+    /// as it is known (before payment) so that fidelity-based discounts can be applied while the
+    /// cart is being built.
+    /// </summary>
+    public Guid? FidelityCardId { get; set; }
+
+    /// <summary>
     /// Sale type identifier (configurable from backend).
     /// </summary>
     [MaxLength(50)]

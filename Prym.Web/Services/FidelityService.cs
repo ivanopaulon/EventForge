@@ -17,6 +17,13 @@ public interface IFidelityService
     Task<FidelityPointsTransactionDto?> RedeemPointsAsync(Guid cardId, ModifyFidelityPointsDto dto, CancellationToken ct = default);
     Task<IEnumerable<FidelityPointsTransactionDto>> GetTransactionHistoryAsync(Guid cardId, CancellationToken ct = default);
     Task DeleteCardAsync(Guid cardId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Computes a preview of the fidelity points that would be earned for a given order total and
+    /// card type, using the tenant's currently effective rate (base rate * tier multiplier * any
+    /// active campaign). Returns 0 on failure so the POS UI degrades gracefully.
+    /// </summary>
+    Task<int> CalculatePreviewAsync(decimal orderTotal, FidelityCardType cardType, CancellationToken ct = default);
 }
 
 public class FidelityService(
@@ -209,6 +216,20 @@ public class FidelityService(
         {
             logger.LogError(ex, "Error deleting fidelity card {CardId}", cardId);
             throw;
+        }
+    }
+
+    public async Task<int> CalculatePreviewAsync(decimal orderTotal, FidelityCardType cardType, CancellationToken ct = default)
+    {
+        try
+        {
+            var query = $"api/v1/fidelity-points/base-rates/calculate-preview?orderTotal={Uri.EscapeDataString(orderTotal.ToString(System.Globalization.CultureInfo.InvariantCulture))}&cardType={Uri.EscapeDataString(cardType.ToString())}";
+            return await httpClientService.GetAsync<int>(query, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error calculating fidelity points preview for order total {OrderTotal} and card type {CardType}", orderTotal, cardType);
+            return 0;
         }
     }
 }

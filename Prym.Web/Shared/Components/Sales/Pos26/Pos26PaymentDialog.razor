@@ -7,6 +7,7 @@
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject Prym.Web.Services.Store.IFiscalDrawerService FiscalDrawerService
+@inject Prym.Web.Services.IFidelityService FidelityService
 @inject ILogger<Pos26PaymentDialog> Logger
 @implements IDisposable
 
@@ -109,7 +110,7 @@
                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">@FidelityCard.CurrentPoints pt</MudChip>
                         </div>
                         <div class="pos26-pay-fidelity-info d-flex align-center gap-2">
-                            <span>Punti guadagnati: <strong>+@PointsEarned</strong></span>
+                            <span>Punti guadagnati: <strong>+@_pointsEarned</strong></span>
                         </div>
                         @if (!_pointsApplied && MaxRedeemablePoints >= 100)
                         {
@@ -265,6 +266,7 @@
     private bool _isProcessing = false;
     private int _pointsToRedeem = 0;
     private bool _pointsApplied = false;
+    private int _pointsEarned = 0;
 
     private ElementReference _wrapRef;
     private bool _focused = false;
@@ -296,8 +298,6 @@
             System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0m;
 
     private decimal _totalePagato => _pagamentiAggiunti.Sum(p => p.Importo);
-
-    private int PointsEarned => (int)Math.Floor(TotaleOrdine);
 
     private decimal PointsToEuroValue(int points) => Math.Floor(points / 100m) * 1m;
 
@@ -332,6 +332,35 @@
         _numpadInput = _selectedMethod?.AllowsChange == true
             ? string.Empty
             : (_residuo > 0 ? _residuo.ToString("F2", System.Globalization.CultureInfo.InvariantCulture) : string.Empty);
+    }
+
+    private decimal _pointsEarnedForTotal = -1m;
+    private Guid? _pointsEarnedForCardId;
+
+    /// <summary>
+    /// Il tasso punti dipende da entità server-side (tasso base, moltiplicatore di livello,
+    /// campagna attiva): non può più essere calcolato lato client in modo sincrono.
+    /// Ricalcolato solo quando il totale ordine o la carta fedeltà cambiano davvero, per evitare
+    /// chiamate ripetute ad ogni render del dialog.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (FidelityCard == null)
+        {
+            _pointsEarned = 0;
+            _pointsEarnedForTotal = -1m;
+            _pointsEarnedForCardId = null;
+            return;
+        }
+
+        if (_pointsEarnedForTotal == TotaleOrdine && _pointsEarnedForCardId == FidelityCard.Id)
+        {
+            return;
+        }
+
+        _pointsEarned = await FidelityService.CalculatePreviewAsync(TotaleOrdine, FidelityCard.Type);
+        _pointsEarnedForTotal = TotaleOrdine;
+        _pointsEarnedForCardId = FidelityCard.Id;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -550,7 +579,7 @@
                 _resto,
                 righe,
                 FidelityCardId: FidelityCard?.Id,
-                PointsEarned: PointsEarned,
+                PointsEarned: _pointsEarned,
                 PointsRedeemed: _pointsToRedeem
             );
 

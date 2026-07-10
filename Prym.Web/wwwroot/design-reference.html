@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#f0eee9;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 14px/1.2 system-ui,sans-serif;color:#1a1a1a}
+.dv-tsub{font:12px/1.4 system-ui,sans-serif;color:rgba(0,0,0,.5);margin:2px 0 0}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:600 12px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.7)}
+.dv-odesc{font:11px/1.4 system-ui,sans-serif;color:rgba(0,0,0,.5);max-width:300px}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+pre.code{background:#1a1a1a;color:#d4d4d4;padding:14px 16px;border-radius:8px;font:12px/1.6 ui-monospace,Menlo,monospace;overflow-x:auto;margin:0}
+.doc-h{font:700 15px system-ui,sans-serif;color:#1a1a1a;margin:26px 0 8px}
+.doc-p{font:13px/1.6 system-ui,sans-serif;color:#333;max-width:760px;margin:0 0 10px}
+.doc-note{background:#fff7ea;border:1px solid #f0d9a8;border-radius:8px;padding:10px 14px;font:12px/1.6 system-ui,sans-serif;color:#7a5a12;max-width:760px}
+table.mig{border-collapse:collapse;font:12px/1.5 system-ui,sans-serif;max-width:760px}
+table.mig th,table.mig td{border:1px solid #ddd;padding:6px 10px;text-align:left}
+table.mig th{background:#f3f2ee;font-weight:600}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t7">
+<div class="dv-thd"><a class="dv-tid" href="#t7">7</a><div><span class="dv-tname">Logo definitivo — varianti chiaro/scuro</span><p class="dv-tsub"><a class="dv-oid" href="#6a">6a</a> ha bisogno di due versioni: il testo grafite sparisce su sfondo scuro. L'icona (grafite su ambra) resta identica nei due temi. Colori aggiornati alla palette <a class="dv-oid" href="#2b">2b</a> approvata.</p></div></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="7a">
+<div class="dv-olabel"><a class="dv-oid" href="#7a">7a</a> Su tema chiaro</div>
+<div class="dv-odesc">Testo grafite #2B2F36 — file: prym-logo-lockup-light.svg</div>
+<div class="dv-card" style="width:280px;padding:28px;display:flex;align-items:center;justify-content:center;background:#F2F1EF">
+<div style="display:flex;align-items:flex-end;gap:8px">
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;color:#2B2F36">PRYM</div>
+<svg width="18" height="18" viewBox="0 0 100 100" style="margin-bottom:5px">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#D69A3C"/>
+<rect x="24" y="26" width="42" height="36" rx="8" fill="#2B2F36" transform="rotate(-6 45 44)"/>
+<circle cx="70" cy="62" r="21" fill="#2B2F36"/>
+</svg>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="7b">
+<div class="dv-olabel"><a class="dv-oid" href="#7b">7b</a> Su tema scuro</div>
+<div class="dv-odesc">Testo bianco caldo #F1F3F5 (stesso testo primario del tema prym-dark) — file: prym-logo-lockup-dark.svg</div>
+<div class="dv-card" style="width:280px;padding:28px;display:flex;align-items:center;justify-content:center;background:#16181B">
+<div style="display:flex;align-items:flex-end;gap:8px">
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;color:#F1F3F5">PRYM</div>
+<svg width="18" height="18" viewBox="0 0 100 100" style="margin-bottom:5px">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#D69A3C"/>
+<rect x="24" y="26" width="42" height="36" rx="8" fill="#2B2F36" transform="rotate(-6 45 44)"/>
+<circle cx="70" cy="62" r="21" fill="#2B2F36"/>
+</svg>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">File pronti in <code>exports/</code>: <code>prym-logo-lockup-light.svg</code>, <code>prym-logo-lockup-dark.svg</code>, <code>prym-icon.svg</code> (identica per entrambi i temi). Prossimi passi: "aggiorna il piano di migrazione con la regola chiaro/scuro" · "genera anche favicon multi-size da prym-icon.svg"</p>
+</section>
+
+<section class="dv-turn" id="t6">
+<div class="dv-thd"><a class="dv-tid" href="#t6">6</a><div><span class="dv-tname">Lockup finale — <a class="dv-oid" href="#4c">4c</a> con l'icona densa al posto del quadrato</span><p class="dv-tsub">Stessa impaginazione minimale di <a class="dv-oid" href="#4c">4c</a>, il quadratino rame sostituito dall'icona densa di <a class="dv-oid" href="#5b">5b</a> in scala piccola</p></div></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="6a">
+<div class="dv-olabel"><a class="dv-oid" href="#6a">6a</a> Wordmark + icona densa (finale)</div>
+<div class="dv-odesc">Icona alla stessa scala/posizione del vecchio accento quadrato, ma con la forma piena scontrino+tag.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:#fff;height:96px">
+<div style="display:flex;align-items:flex-end;gap:8px">
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;color:#1F2F46">PRYM</div>
+<svg width="18" height="18" viewBox="0 0 100 100" style="margin-bottom:5px">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#C9663B"/>
+<rect x="24" y="26" width="42" height="36" rx="8" fill="#1F2F46" transform="rotate(-6 45 44)"/>
+<circle cx="70" cy="62" r="21" fill="#1F2F46"/>
+</svg>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="6b">
+<div class="dv-olabel"><a class="dv-oid" href="#6b">6b</a> Icona leggermente più grande</div>
+<div class="dv-odesc">Stessa idea, icona a 24px invece di 18px — verifica se a quella scala i dettagli restano leggibili.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:#fff;height:96px">
+<div style="display:flex;align-items:flex-end;gap:9px">
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;color:#1F2F46">PRYM</div>
+<svg width="24" height="24" viewBox="0 0 100 100" style="margin-bottom:3px">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#C9663B"/>
+<rect x="24" y="26" width="42" height="36" rx="8" fill="#1F2F46" transform="rotate(-6 45 44)"/>
+<circle cx="70" cy="62" r="21" fill="#1F2F46"/>
+</svg>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Prossimi passi: "vai con <a class="dv-oid" href="#6a">6a</a> come logo definitivo" · "usa <a class="dv-oid" href="#6b">6b</a> invece" · "applica il logo scelto a tutti i mockup e al piano di migrazione"</p>
+</section>
+
+<section class="dv-turn" id="t5">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><div><span class="dv-tname">Combinazione <a class="dv-oid" href="#4b">4b</a> + <a class="dv-oid" href="#4c">4c</a></span><p class="dv-tsub">Icona di <a class="dv-oid" href="#4b">4b</a> resa più "piena" (le due forme si sovrappongono di più, meno spazio vuoto) al posto del quadratino rame in <a class="dv-oid" href="#4c">4c</a></p></div></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="5a">
+<div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a> Lockup orizzontale</div>
+<div class="dv-odesc">Icona densa + wordmark, per header/appbar e intestazioni documento.</div>
+<div class="dv-card" style="width:280px;padding:28px;display:flex;align-items:center;justify-content:center;gap:12px;background:#fff">
+<svg width="40" height="40" viewBox="0 0 100 100">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#C9663B"/>
+<rect x="24" y="26" width="42" height="36" rx="8" fill="#1F2F46" transform="rotate(-6 45 44)"/>
+<circle cx="70" cy="62" r="21" fill="#1F2F46"/>
+</svg>
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:28px;letter-spacing:0.5px;color:#1F2F46">PRYM</div>
+</div>
+</div>
+
+<div class="dv-opt" id="5b">
+<div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a> Icona sola (favicon / app icon)</div>
+<div class="dv-odesc">Stessa icona densa isolata — per favicon, icona PWA, avatar assistente.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;background:#fff">
+<svg width="96" height="96" viewBox="0 0 100 100">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#C9663B"/>
+<rect x="24" y="26" width="42" height="36" rx="8" fill="#1F2F46" transform="rotate(-6 45 44)"/>
+<circle cx="70" cy="62" r="21" fill="#1F2F46"/>
+</svg>
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;letter-spacing:1px;color:#1F2F46">PRYM</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Prossimi passi: "vai con <a class="dv-oid" href="#5a">5a</a>, applicalo a mockup e piano di migrazione" · "prova l'icona densa con navy e rame invertiti" · "rendi la sovrapposizione ancora più fitta"</p>
+</section>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><div><span class="dv-tname">Logo v2 — flat, minimal, moderno</span><p class="dv-tsub">Il <a class="dv-oid" href="#1a">turno 1</a> era troppo "line-art"/decorativo per un gestionale POS. Qui: forme piatte a tinta unita, nessun contorno decorativo, tipografia con più carattere (Space Grotesk invece del system-ui generico).</p></div></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a> Flag-P (piatto)</div>
+<div class="dv-odesc">Monogramma P geometrico, ridotto a due blocchi piatti. La forma richiama anche una bandierina/gonfalone — pertinente per sagre ed eventi.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;background:#fff">
+<svg width="96" height="96" viewBox="0 0 100 100">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#1F2F46"/>
+<rect x="36" y="24" width="12" height="54" rx="6" fill="#C9663B"/>
+<rect x="48" y="24" width="30" height="24" rx="10" fill="#C9663B"/>
+</svg>
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;letter-spacing:1px;color:#1F2F46">PRYM</div>
+</div>
+</div>
+
+<div class="dv-opt" id="4b">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a> Scontrino + Tag (astratto)</div>
+<div class="dv-odesc">Due forme piatte sovrapposte, non letterali: uno scontrino inclinato e un tag/etichetta — allude a POS e vendita senza essere un monogramma.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;background:#fff">
+<svg width="96" height="96" viewBox="0 0 100 100">
+<rect x="0" y="0" width="100" height="100" rx="24" fill="#C9663B"/>
+<rect x="22" y="30" width="42" height="32" rx="8" fill="#1F2F46" transform="rotate(-8 43 46)"/>
+<circle cx="72" cy="68" r="15" fill="#1F2F46"/>
+</svg>
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:23px;letter-spacing:1px;color:#1F2F46">PRYM</div>
+</div>
+</div>
+
+<div class="dv-opt" id="4c">
+<div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a> Solo wordmark</div>
+<div class="dv-odesc">Nessuna icona: la tipografia fa tutto il lavoro. Un solo accento piatto (quadrato rame) come firma minima — il più "minimal" delle tre opzioni.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:#fff;height:96px">
+<div style="display:flex;align-items:center;gap:8px">
+<div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:30px;letter-spacing:0.5px;color:#1F2F46">PRYM</div>
+<div style="width:10px;height:10px;border-radius:2px;background:#C9663B;align-self:flex-end;margin-bottom:6px"></div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Prossimi passi: "vai con <a class="dv-oid" href="#4a">4a</a>, applicalo ai mockup e al piano di migrazione" · "prova altri due colori su <a class="dv-oid" href="#4b">4b</a>" · "unisci l'icona di <a class="dv-oid" href="#4a">4a</a> con il wordmark di <a class="dv-oid" href="#4c">4c</a>"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><div><span class="dv-tname">Piano di migrazione — da Carbon Neon a PRYM</span><p class="dv-tsub">Basato su codice reale letto dal repo (variables.css, carbon-neon-theme.css, MUDBLAZOR_GUIDELINES.md, theming.md)</p></div></div>
+
+<div class="doc-note">Palette scelta: <a class="dv-oid" href="#2b">2b Grafite &amp; Ambra</a> (confermata). Nota: <code>variables.css</code> ha già dei fallback <code>--primary:#1F2F46</code> (navy) e <code>--accent:#FF6B2C</code> (rame) — probabilmente residui di un design pre-neon diverso dalla direzione scelta; andranno aggiornati ai valori grafite/ambra sotto, non lasciati come fallback obsoleti.</div>
+
+<div class="doc-h">1. Divergenza da correggere prima del rebrand</div>
+<p class="doc-p"><code>theming.md</code> documenta ancora <code>--primary:#00FFFF</code> e path <code>EventForge.Client/...</code>, ma il codice reale (<code>carbon-neon-theme.css</code>) usa <code>#00F5FF</code>/<code>#FF006E</code> e vive in <code>Prym.Web/...</code>. La doc è disallineata dal codice indipendentemente dal rebrand — va aggiornata comunque.</p>
+
+<div class="doc-h">2. Rinomina chiavi tema</div>
+<table class="mig">
+<tr><th>Oggi</th><th>Nuovo</th></tr>
+<tr><td><code>carbon-neon-dark</code> / <code>carbon-neon-light</code></td><td><code>prym-dark</code> / <code>prym-light</code> (con mapping retrocompatibile in <code>ThemeService</code>, stesso pattern già usato per "light"/"dark")</td></tr>
+</table>
+
+<div class="doc-h">3. Nuovi valori — carbon-neon-theme.css → prym-theme.css (palette scelta: <a class="dv-oid" href="#2b">2b Grafite &amp; Ambra</a>)</div>
+<pre class="code">[data-theme="prym-dark"] {
+    --primary: #E8B563;        /* ambra chiara, leggibile su scuro */
+    --secondary: #8A939C;
+    --accent: #E8B563;
+
+    --background: #16181B;
+    --surface: #202327;
+    --surface-2: #292D32;
+    --card-background: #202327;
+    --card-border: rgba(255,255,255,0.08);
+
+    --appbar-background: #101214;
+    --appbar-text: #F1F3F5;
+    --drawer-background: #1A1D20;
+    --drawer-text: #F1F3F5;
+
+    --text-primary: #F1F3F5;
+    --text-secondary: #A7ACB1;
+
+    --button-primary-bg: #E8B563;
+    --button-primary-text: #16181B;
+    --button-primary-hover: #F0C583;
+
+    --border: rgba(255,255,255,0.08);
+    --divider: rgba(255,255,255,0.08);
+    --shadow-neon: none; /* rimuovere il glow: non coerente col nuovo brand */
+}
+
+[data-theme="prym-light"] {
+    --primary: #2B2F36;        /* grafite */
+    --secondary: #5A6068;
+    --accent: #D69A3C;         /* ambra */
+
+    --background: #F2F1EF;
+    --surface: #FFFFFF;
+    --surface-2: #FAFAF8;
+    --card-background: #FFFFFF;
+    --card-border: #E2E1DE;
+
+    --appbar-background: #2B2F36;
+    --appbar-text: #FFFFFF;
+    --drawer-background: #FFFFFF;
+    --drawer-text: #2B2F36;
+
+    --text-primary: #22252A;
+    --text-secondary: #666B72;
+
+    --button-primary-bg: #2B2F36;
+    --button-primary-text: #FFFFFF;
+    --button-primary-hover: #3A3F47;
+
+    --border: #E2E1DE;
+    --divider: #EDECEA;
+    --shadow-neon: none;
+}</pre>
+
+<div class="doc-h">4. MainLayout.razor — GetLightPalette() / GetDarkPalette()</div>
+<pre class="code">"prym-light" => new PaletteLight() {
+    Primary = "#2B2F36",
+    Secondary = "#5A6068",
+    Tertiary = "#D69A3C",
+    Background = "#F2F1EF",
+    Surface = "#FFFFFF",
+    AppbarBackground = "#2B2F36",
+    TextPrimary = "#22252A",
+    TextSecondary = "#666B72",
+},
+"prym-dark" => new PaletteDark() {
+    Primary = "#E8B563",
+    Secondary = "#8A939C",
+    Tertiary = "#E8B563",
+    Background = "#16181B",
+    Surface = "#202327",
+    AppbarBackground = "#101214",
+    TextPrimary = "#F1F3F5",
+    TextSecondary = "#A7ACB1",
+},</pre>
+
+<div class="doc-h">5. ThemeService.cs</div>
+<pre class="code">public static readonly ThemeInfo PrymDark = new() {
+    Key = "prym-dark", Name = "PRYM Scuro",
+    ColorPreview = "#E8B563", IsDark = true
+};
+public static readonly ThemeInfo PrymLight = new() {
+    Key = "prym-light", Name = "PRYM Chiaro",
+    ColorPreview = "#2B2F36", IsDark = false
+};
+// backward-compat, come già fatto per "light"/"dark":
+// "carbon-neon-dark" → "prym-dark", "carbon-neon-light" → "prym-light"</pre>
+
+<div class="doc-h">6. Asset di brand</div>
+<p class="doc-p">Sostituire favicon/logo in <code>Prym.Web/wwwroot/</code> con i file in <code>exports/</code>: <code>prym-icon.svg</code> (favicon, apple-touch-icon, PWA icon — identica su entrambi i temi) e il lockup <code>prym-logo-lockup-light.svg</code> / <code>prym-logo-lockup-dark.svg</code> per l'header AppBar. La AppBar deve scegliere il file giusto in base a <code>ThemeService.IsDarkMode</code> (stesso pattern reattivo già usato per <code>OnThemeChanged</code>): il testo del wordmark passa da grafite #2B2F36 a bianco caldo #F1F3F5, l'icona resta invariata (ambra/grafite) perché è un badge a tinta unita autonomo dal tema. Verificare anche riferimenti hardcoded al vecchio nome/logo in <code>index.html</code> e nello splash screen di caricamento Blazor.</p>
+
+<div class="doc-h">7. Checklist di rollout</div>
+<p class="doc-p">Aggiornare <code>theming.md</code> coi valori reali sopra; rigenerare screenshot in <code>MUDBLAZOR_AUDIT.md</code> se presenti; testare §4 Dark Mode Checklist di <code>MUDBLAZOR_GUIDELINES.md</code> su entrambi i temi; grep di <code>carbon-neon</code> e colori hex hardcoded rimasti in CSS.</p>
+
+<p class="dv-next">Prossimi passi: "genera anche prym-theme.css come file scaricabile" · "applica <a class="dv-oid" href="#2b">2b</a> invece di <a class="dv-oid" href="#2a">2a</a>" · "mostrami anche la sidebar/AppBar completa"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><div><span class="dv-tname">Palette applicate a Gestione Prodotti</span><p class="dv-tsub">Stessa struttura di ProductManagement.razor (EntityManagementPage): header, toolbar, tabella, azioni riga</p></div></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a> Navy &amp; Rame</div>
+<div class="dv-odesc">Coerente coi loghi allegati e coi fallback già presenti in variables.css. Professionale, caldo, ben distinto dal neon attuale.</div>
+<div class="dv-card" style="width:380px;font-family:system-ui,sans-serif">
+<div style="background:#1F2F46;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px">
+<svg width="20" height="20" viewBox="0 0 100 100"><polygon points="50,5 78,25 78,88 22,88 22,25" fill="none" stroke="#fff" stroke-width="4"/><path d="M35,20 L35,82 M35,20 L58,20 C67,20 72,26 72,34 C72,42 67,46 58,46 L44,46 L78,88" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span style="font-weight:800;font-size:13px;letter-spacing:1.5px">PRYM</span>
+</div>
+<div style="padding:14px 16px;background:#F5F4F1">
+<div style="font-size:15px;font-weight:700;color:#1F2A38;margin-bottom:2px">Gestione Prodotti</div>
+<div style="font-size:11px;color:#5C6B7A;margin-bottom:12px">Anagrafica prodotti e classificazioni</div>
+<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+<div style="flex:1;border:1px solid #E3E0D9;border-radius:6px;padding:6px 10px;font-size:11px;color:#5C6B7A;background:#fff">Cerca prodotto...</div>
+<div style="background:#1F2F46;color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap">+ Nuovo</div>
+</div>
+<div style="border:1px solid #E3E0D9;border-radius:8px;overflow:hidden">
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;background:#F5F4F1;padding:6px 10px;font-size:10px;font-weight:700;color:#5C6B7A">
+<div>Codice</div><div>Nome</div><div>Categoria</div><div>Prezzo</div><div>Stato</div><div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#1F2A38;border-top:1px solid #E3E0D9;align-items:center;background:#fff">
+<div>PR-1042</div><div>Vite autofilettante 4x30</div><div style="color:#5C6B7A">Ferramenta</div><div>€ 0,08</div><div><span style="background:#F0E4DC;color:#8C4A28;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Attivo</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#C9663B;font-size:12px">✎</span><span style="color:#5C6B7A;font-size:12px">🗑</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#1F2A38;border-top:1px solid #E3E0D9;align-items:center;background:#fff">
+<div>PR-1088</div><div>Guarnizione EPDM 20mm</div><div style="color:#5C6B7A">Idraulica</div><div>€ 1,45</div><div><span style="background:#F0E4DC;color:#8C4A28;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Attivo</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#C9663B;font-size:12px">✎</span><span style="color:#5C6B7A;font-size:12px">🗑</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#1F2A38;align-items:center;background:#fff;border-top:1px solid #E3E0D9">
+<div>PR-1103</div><div>Interruttore magnetotermico</div><div style="color:#5C6B7A">Elettrico</div><div>€ 12,90</div><div><span style="background:#F0E4DC;color:#8C4A28;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Bozza</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#C9663B;font-size:12px">✎</span><span style="color:#5C6B7A;font-size:12px">🗑</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a> Grafite &amp; Ambra</div>
+<div class="dv-odesc">Più neutro/tech, meno "corporate": grigio grafite freddo con accento ambra. Mantiene un'eco della densità del tema scuro attuale.</div>
+<div class="dv-card" style="width:380px;font-family:system-ui,sans-serif">
+<div style="background:#2B2F36;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px">
+<svg width="20" height="20" viewBox="0 0 100 100"><polygon points="50,5 78,25 78,88 22,88 22,25" fill="none" stroke="#fff" stroke-width="4"/><path d="M35,20 L35,82 M35,20 L58,20 C67,20 72,26 72,34 C72,42 67,46 58,46 L44,46 L78,88" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span style="font-weight:800;font-size:13px;letter-spacing:1.5px">PRYM</span>
+</div>
+<div style="padding:14px 16px;background:#F2F1EF">
+<div style="font-size:15px;font-weight:700;color:#22252A;margin-bottom:2px">Gestione Prodotti</div>
+<div style="font-size:11px;color:#666B72;margin-bottom:12px">Anagrafica prodotti e classificazioni</div>
+<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+<div style="flex:1;border:1px solid #E2E1DE;border-radius:6px;padding:6px 10px;font-size:11px;color:#666B72;background:#fff">Cerca prodotto...</div>
+<div style="background:#2B2F36;color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap">+ Nuovo</div>
+</div>
+<div style="border:1px solid #E2E1DE;border-radius:8px;overflow:hidden">
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;background:#F2F1EF;padding:6px 10px;font-size:10px;font-weight:700;color:#666B72">
+<div>Codice</div><div>Nome</div><div>Categoria</div><div>Prezzo</div><div>Stato</div><div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#22252A;border-top:1px solid #E2E1DE;align-items:center;background:#fff">
+<div>PR-1042</div><div>Vite autofilettante 4x30</div><div style="color:#666B72">Ferramenta</div><div>€ 0,08</div><div><span style="background:#F4E7CB;color:#8A5F14;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Attivo</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#D69A3C;font-size:12px">✎</span><span style="color:#666B72;font-size:12px">🗑</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#22252A;border-top:1px solid #E2E1DE;align-items:center;background:#fff">
+<div>PR-1088</div><div>Guarnizione EPDM 20mm</div><div style="color:#666B72">Idraulica</div><div>€ 1,45</div><div><span style="background:#F4E7CB;color:#8A5F14;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Attivo</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#D69A3C;font-size:12px">✎</span><span style="color:#666B72;font-size:12px">🗑</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#22252A;align-items:center;background:#fff;border-top:1px solid #E2E1DE">
+<div>PR-1103</div><div>Interruttore magnetotermico</div><div style="color:#666B72">Elettrico</div><div>€ 12,90</div><div><span style="background:#F4E7CB;color:#8A5F14;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Bozza</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#D69A3C;font-size:12px">✎</span><span style="color:#666B72;font-size:12px">🗑</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a> Ardesia &amp; Terracotta</div>
+<div class="dv-odesc">Via di mezzo: blu-grigio più freddo del navy, accento terracotta meno acceso del rame. Palette più desaturata/quieta.</div>
+<div class="dv-card" style="width:380px;font-family:system-ui,sans-serif">
+<div style="background:#3A4652;color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px">
+<svg width="20" height="20" viewBox="0 0 100 100"><polygon points="50,5 78,25 78,88 22,88 22,25" fill="none" stroke="#fff" stroke-width="4"/><path d="M35,20 L35,82 M35,20 L58,20 C67,20 72,26 72,34 C72,42 67,46 58,46 L44,46 L78,88" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<span style="font-weight:800;font-size:13px;letter-spacing:1.5px">PRYM</span>
+</div>
+<div style="padding:14px 16px;background:#F3F4F3">
+<div style="font-size:15px;font-weight:700;color:#26303A;margin-bottom:2px">Gestione Prodotti</div>
+<div style="font-size:11px;color:#647079;margin-bottom:12px">Anagrafica prodotti e classificazioni</div>
+<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+<div style="flex:1;border:1px solid #E1E4E3;border-radius:6px;padding:6px 10px;font-size:11px;color:#647079;background:#fff">Cerca prodotto...</div>
+<div style="background:#3A4652;color:#fff;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:600;white-space:nowrap">+ Nuovo</div>
+</div>
+<div style="border:1px solid #E1E4E3;border-radius:8px;overflow:hidden">
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;background:#F3F4F3;padding:6px 10px;font-size:10px;font-weight:700;color:#647079">
+<div>Codice</div><div>Nome</div><div>Categoria</div><div>Prezzo</div><div>Stato</div><div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#26303A;border-top:1px solid #E1E4E3;align-items:center;background:#fff">
+<div>PR-1042</div><div>Vite autofilettante 4x30</div><div style="color:#647079">Ferramenta</div><div>€ 0,08</div><div><span style="background:#F1E0D6;color:#8C4A2E;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Attivo</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#C9714F;font-size:12px">✎</span><span style="color:#647079;font-size:12px">🗑</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#26303A;border-top:1px solid #E1E4E3;align-items:center;background:#fff">
+<div>PR-1088</div><div>Guarnizione EPDM 20mm</div><div style="color:#647079">Idraulica</div><div>€ 1,45</div><div><span style="background:#F1E0D6;color:#8C4A2E;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Attivo</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#C9714F;font-size:12px">✎</span><span style="color:#647079;font-size:12px">🗑</span></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.7fr 0.8fr 0.6fr;padding:8px 10px;font-size:11px;color:#26303A;align-items:center;background:#fff;border-top:1px solid #E1E4E3">
+<div>PR-1103</div><div>Interruttore magnetotermico</div><div style="color:#647079">Elettrico</div><div>€ 12,90</div><div><span style="background:#F1E0D6;color:#8C4A2E;border-radius:10px;padding:2px 8px;font-size:9.5px;font-weight:700">Bozza</span></div><div style="display:flex;gap:6px;justify-content:flex-end"><span style="color:#C9714F;font-size:12px">✎</span><span style="color:#647079;font-size:12px">🗑</span></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Prossimi passi: "usa <a class="dv-oid" href="#2a">2a</a> per il piano di migrazione" · "mostrami anche la modalità scura di <a class="dv-oid" href="#2b">2b</a>" · "prova una quarta palette più chiara/pastello"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><div><span class="dv-tname">Logo — terza via tra i due bozzetti</span><p class="dv-tsub">Silhouette "casa" a 5 lati + monogramma R con gamba diagonale (bozzetto 2), in tre trattamenti — uno reintroduce il bicromia navy/rame del bozzetto 1</p></div></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a> Duotone (navy + rame)</div>
+<div class="dv-odesc">Il ponte fra i due bozzetti: forma pulita del 2° concept, colore a due toni del 1°.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px;background:#fff">
+<svg width="110" height="110" viewBox="0 0 100 100">
+<polygon points="50,5 78,25 78,88 22,88 22,25" fill="none" stroke="#1F2F46" stroke-width="3.5"/>
+<path d="M35,20 L35,82 M35,20 L58,20 C67,20 72,26 72,34 C72,42 67,46 58,46 L44,46" fill="none" stroke="#1F2F46" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M44,46 L78,88" fill="none" stroke="#C9663B" stroke-width="7" stroke-linecap="round"/>
+</svg>
+<div style="font:800 22px system-ui,sans-serif;letter-spacing:2px;color:#1F2F46">PRYM</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a> Monoline (contorno)</div>
+<div class="dv-odesc">Solo linea, un peso, un colore — evoca precisione tecnica senza il bicromia.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px;background:#fff">
+<svg width="110" height="110" viewBox="0 0 100 100">
+<polygon points="50,5 78,25 78,88 22,88 22,25" fill="none" stroke="#2A2F36" stroke-width="3"/>
+<path d="M35,20 L35,82 M35,20 L58,20 C67,20 72,26 72,34 C72,42 67,46 58,46 L44,46 L78,88" fill="none" stroke="#2A2F36" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+<div style="font:800 22px system-ui,sans-serif;letter-spacing:2px;color:#2A2F36">PRYM</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a> Solido monocromo</div>
+<div class="dv-odesc">Massima leggibilità a piccole dimensioni — il candidato per favicon/icona app.</div>
+<div class="dv-card" style="width:220px;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px;background:#fff">
+<svg width="110" height="110" viewBox="0 0 100 100">
+<polygon points="50,5 78,25 78,88 22,88 22,25" fill="#1F2A38"/>
+<path d="M35,20 L35,82 M35,20 L58,20 C67,20 72,26 72,34 C72,42 67,46 58,46 L44,46 L78,88" fill="none" stroke="#F5F4F1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+<div style="font:800 22px system-ui,sans-serif;letter-spacing:2px;color:#1F2A38">PRYM</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Prossimi passi: "scegli <a class="dv-oid" href="#1a">1a</a> come logo definitivo" · "prova varianti con wordmark diverso" · "vettorializza <a class="dv-oid" href="#1c">1c</a> per favicon multi-size"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

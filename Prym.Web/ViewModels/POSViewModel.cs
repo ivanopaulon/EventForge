@@ -855,6 +855,38 @@ public class POSViewModel : IDisposable
     }
 
     /// <summary>
+    /// Propagates the fidelity card resolved for the current customer (client-side, see
+    /// LoadFidelityCardAsync in POS2026.razor.cs) to the current session, so fidelity-based
+    /// discounts can be applied while the cart is being built rather than only at payment time.
+    /// No-op if there is no active session or the session already has the same fidelity card.
+    /// </summary>
+    public async Task UpdateFidelityCardAsync(Guid? fidelityCardId)
+    {
+        if (CurrentSession == null || CurrentSession.FidelityCardId == fidelityCardId)
+        {
+            return;
+        }
+
+        try
+        {
+            var updateDto = new UpdateSaleSessionDto { FidelityCardId = fidelityCardId };
+            var updatedSession = await _salesService.UpdateSessionAsync(CurrentSession.Id, updateDto);
+            if (updatedSession != null)
+            {
+                CurrentSession = updatedSession;
+            }
+            else
+            {
+                _logger.LogWarning("UpdateSessionAsync returned null for session {SessionId}", CurrentSession.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating session with fidelity card");
+        }
+    }
+
+    /// <summary>
     /// Adds a categorized note to the current sale session.
     /// </summary>
     public async Task<SaleSessionDto?> AddSessionNoteAsync(AddSessionNoteDto noteDto)

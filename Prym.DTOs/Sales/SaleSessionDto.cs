@@ -37,6 +37,11 @@ namespace Prym.DTOs.Sales
         public Guid? CustomerId { get; set; }
 
         /// <summary>
+        /// Fidelity card identifier resolved for the current customer.
+        /// </summary>
+        public Guid? FidelityCardId { get; set; }
+
+        /// <summary>
         /// Customer name.
         /// </summary>
         public string? CustomerName { get; set; }
