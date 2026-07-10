@@ -313,7 +313,7 @@ Contents merged into `/Shared/Components/Business/`.
 - `variables.css` — CSS custom properties
 - Feature styles: `sales.css`, `sidepanel.css`, `help-system.css`, `product.css`, `brand.css`, etc.
 - Component styles (`css/components/`): `entity-drawer.css`, `action-button-group.css`, `mud-components.css`, etc.
-- Themes (`css/themes/`): `carbon-neon-theme.css`
+- Themes (`css/themes/`): `prym-theme.css`
 
 #### JavaScript
 - `js/` — helper JS files (component interop)

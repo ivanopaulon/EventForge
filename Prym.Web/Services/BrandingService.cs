@@ -189,10 +189,10 @@ public class BrandingService(
     {
         return new BrandingConfigurationDto
         {
-            LogoUrl = "/logoWhite.svg",
+            LogoUrl = "/prym-logo-lockup-dark.svg",
             LogoHeight = 40,
             ApplicationName = "PRYM",
-            FaviconUrl = "/trace.svg",
+            FaviconUrl = "/prym-icon.svg",
             IsTenantOverride = false,
             TenantId = tenantId
         };

@@ -5,7 +5,7 @@ namespace Prym.Web.Services;
 /// <summary>
 /// Centralizes all MudBlazor theme definitions for EventForge.
 /// Use <see cref="GetMudTheme"/> to get the full theme (light and dark palettes for the
-/// single "Carbon Neon" EventForge theme), or <see cref="GetLightPalette"/> / <see cref="GetDarkPalette"/>
+/// PRYM theme), or <see cref="GetLightPalette"/> / <see cref="GetDarkPalette"/>
 /// if you only need a palette. Light/dark mode selection itself is handled by
 /// MudThemeProvider's IsDarkMode flag, driven by <see cref="IThemeService.IsDarkMode"/>.
 /// </summary>
@@ -38,42 +38,42 @@ public static class EventForgeTheme
         }
     };
 
-    /// <summary>Returns the light-mode palette for the EventForge Carbon Neon theme.</summary>
+    /// <summary>Returns the light-mode palette for the PRYM theme.</summary>
     public static PaletteLight GetLightPalette() => new()
     {
-        Primary = "#0099CC",
-        Secondary = "#00D9FF",
-        Tertiary = "#7B68EE",
-        AppbarBackground = "#FFFFFF",
-        AppbarText = "#1A1A1A",
-        Background = "#F5F5F5",
+        Primary = "#2B2F36",
+        Secondary = "#5A6068",
+        Tertiary = "#D69A3C",
+        AppbarBackground = "#2B2F36",
+        AppbarText = "#FFFFFF",
+        Background = "#F2F1EF",
         Surface = "#FFFFFF",
         DrawerBackground = "#FFFFFF",
-        DrawerText = "#1A1A1A",
-        TextPrimary = "#1A1A1A",
-        TextSecondary = "#6B6B6B",
+        DrawerText = "#2B2F36",
+        TextPrimary = "#22252A",
+        TextSecondary = "#666B72",
         Info = "#0099CC",
         Success = "#00C853",
         Warning = "#FFB300",
         Error = "#FF3D00"
     };
 
-    /// <summary>Returns the dark-mode palette for the EventForge Carbon Neon theme.</summary>
+    /// <summary>Returns the dark-mode palette for the PRYM theme.</summary>
     public static PaletteDark GetDarkPalette() => new()
     {
-        Primary = "#00F5FF",
-        Secondary = "#FF006E",
-        Background = "#121212",
-        Surface = "#262626",
-        DrawerBackground = "#1A1A1A",
-        DrawerText = "#F5F5F5",
-        AppbarBackground = "#000000",
-        AppbarText = "#FFFFFF",
-        TextPrimary = "#FFFFFF",
-        TextSecondary = "#B3B3B3",
-        ActionDefault = "#00E5FF",
-        Divider = "rgba(255,255,255,0.1)",
-        Info = "#00E5FF",
+        Primary = "#E8B563",
+        Secondary = "#8A939C",
+        Background = "#16181B",
+        Surface = "#202327",
+        DrawerBackground = "#1A1D20",
+        DrawerText = "#F1F3F5",
+        AppbarBackground = "#101214",
+        AppbarText = "#F1F3F5",
+        TextPrimary = "#F1F3F5",
+        TextSecondary = "#A7ACB1",
+        ActionDefault = "#E8B563",
+        Divider = "rgba(255,255,255,0.08)",
+        Info = "#E8B563",
         Success = "#10B981",
         Warning = "#F59E0B",
         Error = "#EF4444"

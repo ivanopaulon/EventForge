@@ -12,7 +12,7 @@ public sealed class PageLoadingState
     public enum AnimationType { Blink, Pulse, None }
 
     public string? Message { get; set; }
-    public string IconPath { get; set; } = "trace.svg";
+    public string IconPath { get; set; } = "prym-icon.svg";
     public bool ShowProgressLog { get; set; }
     public IReadOnlyList<string>? ProgressMessages { get; set; }
     public bool ShowElapsedTime { get; set; }

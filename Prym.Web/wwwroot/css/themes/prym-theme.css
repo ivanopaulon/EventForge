@@ -1,0 +1,73 @@
+/* prym-theme.css
+   Conserva SOLO le variabili di tema. Non inserire qui override globali su .mud-*.
+*/
+
+[data-theme="prym-dark"] {
+    --primary: #E8B563;
+    --secondary: #8A939C;
+    --accent: #E8B563;
+
+    --background: #16181B;
+    --surface: #202327;
+    --surface-2: #292D32;
+    --card-background: #202327;
+    --card-border: rgba(255,255,255,0.08);
+
+    --appbar-background: #101214;
+    --appbar-text: #F1F3F5;
+    --drawer-background: #1A1D20;
+    --drawer-text: #F1F3F5;
+
+    --text-primary: #F1F3F5;
+    --text-secondary: #A7ACB1;
+    --text-muted: #A7ACB1;
+
+    --button-primary-bg: #E8B563;
+    --button-primary-text: #16181B;
+    --button-primary-hover: #F0C583;
+
+    --link: #E8B563;
+    --link-hover: #F0C583;
+
+    --border: rgba(255,255,255,0.08);
+    --divider: rgba(255,255,255,0.08);
+
+    --shadow-neon: none;
+}
+
+[data-theme="prym-light"] {
+    --primary: #2B2F36;
+    --secondary: #5A6068;
+    --accent: #D69A3C;
+
+    --background: #F2F1EF;
+    --surface: #FFFFFF;
+    --surface-2: #FAFAF8;
+    --card-background: #FFFFFF;
+    --card-border: #E2E1DE;
+
+    --appbar-background: #2B2F36;
+    --appbar-text: #FFFFFF;
+    --drawer-background: #FFFFFF;
+    --drawer-text: #2B2F36;
+
+    --text-primary: #22252A;
+    --text-secondary: #666B72;
+    --text-muted: #666B72;
+
+    --button-primary-bg: #2B2F36;
+    --button-primary-text: #FFFFFF;
+    --button-primary-hover: #3A3F47;
+
+    --link: #2B2F36;
+    --link-hover: #3A3F47;
+
+    --border: #E2E1DE;
+    --divider: #EDECEA;
+
+    --shadow-neon: none;
+}
+
+/* NOTE: non aggiungere override globali per .mud-* in questo file.
+   Gli override strutturali e comportamentali vanno in mud-components.css
+   e quelli mirati, theme-scoped, in mud-overrides.css. */

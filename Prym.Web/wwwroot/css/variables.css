@@ -4,12 +4,12 @@
  You can redesign these values later as needed. */
 :root {
  /* Brand / semantic colors (prefer MudBlazor palette when available) */
- --primary: var(--mud-palette-primary, #1F2F46);
- --secondary: var(--mud-palette-secondary, #247BFF);
- --accent: var(--mud-palette-tertiary, #FF6B2C);
+ --primary: var(--mud-palette-primary, #2B2F36);
+ --secondary: var(--mud-palette-secondary, #5A6068);
+ --accent: var(--mud-palette-tertiary, #D69A3C);
 
- --background: var(--mud-palette-background, #F5F6FA);
- --background-primary: var(--mud-palette-background, #F5F6FA);
+ --background: var(--mud-palette-background, #F2F1EF);
+ --background-primary: var(--mud-palette-background, #F2F1EF);
  --background-secondary: var(--mud-palette-surface, #FFFFFF);
  --card-background: var(--mud-palette-surface, #FFFFFF);
  --card-border: var(--mud-palette-lines-default, #e0e0e0);
@@ -19,7 +19,7 @@
  --button-primary-text: var(--mud-palette-primary-contrast, #ffffff);
 
  /* AppBar hover / interactive surface */
- --ef-hover-dark: #384048;
+ --ef-hover-dark: #3A3F47;
 
  /* Presence / status dot colors */
  --ef-status-online: #47d16c;
@@ -30,7 +30,7 @@
  --form-focus-border: rgba(36,123,255,0.6);
 
  /* Borders */
- --border-primary: var(--mud-palette-primary, #1F2F46);
+ --border-primary: var(--mud-palette-primary, #2B2F36);
  --border-secondary: rgba(0,0,0,0.08);
 
  /* Shadows (box-shadow values) */
@@ -46,7 +46,7 @@
  /* Neutral palette */
  --neutral-light: #f8f9fa;
  --neutral-light-darker: #f1f3f5;
- --neutral-dark: #1f2f46;
+ --neutral-dark: #2b2f36;
  --neutral-dark-light: #2d2d30;
 
  /* Legacy ef names (compat) */
@@ -58,13 +58,13 @@
  --blazor-load-percentage-text: "Loading";
 
  /* Semantic color aliases — map to MudBlazor palette where available */
- --text-primary:   var(--mud-palette-text-primary,   #1F2F46);
- --text-secondary: var(--mud-palette-text-secondary, #666666);
+ --text-primary:   var(--mud-palette-text-primary,   #22252A);
+ --text-secondary: var(--mud-palette-text-secondary, #666B72);
  --success:        var(--mud-palette-success,  #4CAF50);
  --error:          var(--mud-palette-error,    #F44336);
  --warning:        var(--mud-palette-warning,  #FF9800);
  --info:           var(--mud-palette-info,     #2196F3);
- --link-color:     var(--mud-palette-primary,  #1F2F46);
+ --link-color:     var(--mud-palette-primary,  #2B2F36);
 
  /* Status badge light/dark tints */
  --success-light: var(--mud-palette-success-lighten, #d4edda);
@@ -75,20 +75,20 @@
  --warning-dark:  #856404;
 
  /* Sidebar / Navigation drawer */
- --sidebar-background:  var(--mud-palette-drawer-background, #1A1A1A);
+ --sidebar-background:  var(--mud-palette-drawer-background, #1A1D20);
  --sidebar-hover-bg:    var(--mud-palette-action-default-hover, rgba(0,0,0,0.08));
  --sidebar-text:        var(--mud-palette-drawer-text, #FFFFFF);
- --sidebar-active-bg:   var(--mud-palette-primary, #1F2F46);
+ --sidebar-active-bg:   var(--mud-palette-primary, #2B2F36);
  --sidebar-text-active: #FFFFFF;
 }
 
 /* Dark mode sensible defaults (will be overridden by MudBlazor dark theme variables when used) */
 .mud-theme-dark {
- --primary: var(--mud-palette-primary, #4fc3f7);
- --secondary: var(--mud-palette-secondary, #ffb74d);
- --background: var(--mud-palette-background, #1a1a2e);
- --background-secondary: var(--mud-palette-surface, #2d2d30);
- --card-background: var(--mud-palette-surface, #2d2d30);
- --card-border: rgba(255,255,255,0.06);
- --button-primary-text: #111827;
+ --primary: var(--mud-palette-primary, #E8B563);
+ --secondary: var(--mud-palette-secondary, #8A939C);
+ --background: var(--mud-palette-background, #16181B);
+ --background-secondary: var(--mud-palette-surface, #202327);
+ --card-background: var(--mud-palette-surface, #202327);
+ --card-border: rgba(255,255,255,0.08);
+ --button-primary-text: #16181B;
 }

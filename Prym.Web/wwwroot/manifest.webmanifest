@@ -1,11 +1,11 @@
 {
-  "name": "EventForge",
-  "short_name": "EventForge",
-  "description": "EventForge — gestione eventi, vendite e magazzino",
+  "name": "PRYM",
+  "short_name": "PRYM",
+  "description": "PRYM — gestione eventi, vendite e magazzino",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1F2F46",
-  "theme_color": "#1F2F46",
+  "background_color": "#F2F1EF",
+  "theme_color": "#2B2F36",
   "orientation": "any",
   "scope": "/",
   "icons": [
@@ -28,7 +28,7 @@
       "purpose": "maskable"
     },
     {
-      "src": "trace.svg",
+      "src": "prym-icon.svg",
       "type": "image/svg+xml",
       "sizes": "any",
       "purpose": "any"

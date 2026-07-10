@@ -7,6 +7,8 @@
 
 ---
 
+> **Nota PRYM (2026-07-10):** Il branding/theme Carbon Neon è stato sostituito dal tema `prym-light` / `prym-dark` con nuovi asset logo. Le immagini/screenshot dell'audit precedente vanno rigenerate sulla nuova palette Grafite & Ambra.
+
 ## Executive Summary
 
 | Cat | Category | Count | Severity | Status |
@@ -126,7 +128,7 @@ Components are under `Components/`, `Shared/Components/`, `Shared/BusinessParty/
 | wwwroot/css/dialogs.css | Dialog styles |
 | wwwroot/css/help-system.css | Help overlay styles |
 | wwwroot/css/icon-color-override.css | Icon color overrides |
-| wwwroot/css/themes/carbon-neon-theme.css | Carbon-neon theme overrides |
+| wwwroot/css/themes/prym-theme.css | PRYM Graphite & Amber theme overrides |
 
 ---
 
@@ -182,8 +184,8 @@ Components are under `Components/`, `Shared/Components/`, `Shared/BusinessParty/
 | AppbarText | #e0e0e0 |
 
 **Carbon-Neon Theme:**
-- `"carbon-neon-light"` or `"carbon-neon"` → light palette (Primary: #0099CC)
-- `"carbon-neon-dark"` or `"carbon-neon"` → dark palette (Primary: #00F5FF)
+- `prym-light` → light palette (Primary: #2B2F36)
+- `prym-dark` → dark palette (Primary: #E8B563)
 
 ### Gap Analysis
 | Gap | Recommendation |
@@ -430,7 +432,7 @@ MudBlazor internal CSS class overrides. Risk: breaks on MudBlazor version update
 | `components/entity-drawer.css` | 13 |
 | `document.css` | 10 |
 | `_mudblazor-overrides.css` | 2 |
-| `themes/carbon-neon-theme.css` | 2 |
+| `themes/prym-theme.css` | 2 |
 
 **Reaching ~30 requires full MudTheme migration** — moving component-specific palette, border-radius, and
 elevation overrides from CSS into `EventForgeTheme.GetLightPalette()`/`GetDarkPalette()`.

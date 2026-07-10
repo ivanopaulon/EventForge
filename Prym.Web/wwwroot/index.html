@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Google Fonts — Noto + Roboto in un'unica richiesta HTTP -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Sans+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Mono:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif+Display:ital,wght@0,400;0,600;0,700;1,400&family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400&family=Roboto+Slab:wght@400;600;700&family=Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Noto+Sans+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans+Mono:wght@400;500;600;700&family=Noto+Serif:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Serif+Display:ital,wght@0,400;0,600;0,700;1,400&family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Roboto+Condensed:ital,wght@0,400;0,700;1,400&family=Roboto+Slab:wght@400;600;700&family=Roboto+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     
     <!-- MudBlazor base -->
     <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
@@ -28,8 +28,8 @@
     <!-- Variabili CSS fallback -->
     <link rel="stylesheet" href="css/variables.css" />
     
-    <!-- Tema EventForge (SOLO colori) -->
-    <!--<link rel="stylesheet" href="css/themes/carbon-neon-theme.css" />-->
+    <!-- Tema PRYM (SOLO colori) -->
+    <link rel="stylesheet" href="css/themes/prym-theme.css" />
     
     <!-- MudBlazor structural overrides (AppBar height, drawer clip) -->
     <link rel="stylesheet" href="css/_mudblazor-overrides.css" />
@@ -60,17 +60,19 @@
     <link rel="stylesheet" href="css/document.css" />
     <link rel="stylesheet" href="css/management.css" />
     
-    <!-- Updated to use trace.svg as main favicon and logo asset -->
-    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="trace.svg" />
+    <!-- PRYM favicon and logo assets -->
+    <link id="dynamic-favicon" rel="icon" type="image/svg+xml" href="prym-icon.svg" />
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png" />
 
     <!-- PWA: manifest e meta tag per installabilitÃ  -->
     <link rel="manifest" href="manifest.webmanifest" />
-    <meta name="theme-color" content="#1F2F46" />
+    <meta name="theme-color" content="#2B2F36" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="EventForge" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-title" content="PRYM" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
     <link href="Prym.Web.styles.css" rel="stylesheet" />
     
     <!-- Early theme application — reads localStorage before Blazor boots to prevent a theme flash.
@@ -80,12 +82,12 @@
     <script>
         (function () {
             var STORAGE_KEY = 'eventforge-theme';
-            var DEFAULT = 'carbon-neon-light';
-            var VALID = ['carbon-neon-dark', 'carbon-neon-light'];
+            var DEFAULT = 'prym-light';
+            var VALID = ['prym-dark', 'prym-light'];
             try {
                 var stored = localStorage.getItem(STORAGE_KEY);
-                if (stored === 'dark') stored = 'carbon-neon-dark';
-                if (stored === 'light') stored = 'carbon-neon-light';
+                if (stored === 'dark' || stored === 'carbon-neon-dark') stored = 'prym-dark';
+                if (stored === 'light' || stored === 'carbon-neon-light') stored = 'prym-light';
                 var theme = (stored && VALID.indexOf(stored) >= 0) ? stored : DEFAULT;
                 document.documentElement.setAttribute('data-theme', theme);
             } catch (e) { /* localStorage unavailable */ }
@@ -137,15 +139,15 @@
         <div class="ef-splash">
             <!-- Brand row: text logo (src set by inline script below based on persisted theme) -->
             <div class="ef-splash-brand-row" role="img" aria-label="PRYM">
-                <img id="ef-splash-wordmark" class="ef-splash-wordmark ef-splash-wordmark-pulse" src="logoWhite.svg" alt="" aria-hidden="true" />
+                <img id="ef-splash-wordmark" class="ef-splash-wordmark ef-splash-wordmark-pulse" src="prym-logo-lockup-dark.svg" alt="" aria-hidden="true" />
             </div>
             <!-- Tiny inline script: run immediately after img is parsed so data-theme is already set -->
             <script>
                 (function() {
                     try {
-                        var isDark = document.documentElement.getAttribute('data-theme') !== 'carbon-neon-light';
+                        var isDark = document.documentElement.getAttribute('data-theme') !== 'prym-light';
                         var img = document.getElementById('ef-splash-wordmark');
-                        if (img) img.src = isDark ? 'logoWhite.svg' : 'logo.svg';
+                        if (img) img.src = isDark ? 'prym-logo-lockup-dark.svg' : 'prym-logo-lockup-light.svg';
                     } catch(e) {}
                 })();
             </script>

@@ -1,6 +1,6 @@
 # Icone PWA richieste per l'installabilità completa
 #
-# Creare i seguenti file PNG partendo da trace.svg o dal logo ufficiale:
+# Creare i seguenti file PNG partendo da prym-icon.svg o dal logo ufficiale:
 #
 #   icon-192.png         — 192×192 px  (richiesto da Chrome/Android per installazione)
 #   icon-512.png         — 512×512 px  (splash screen e app store)
@@ -9,4 +9,4 @@
 # Strumenti consigliati:
 #   - https://realfavicongenerator.net
 #   - https://maskable.app/editor (per l'icona maskable)
-#   - Inkscape / Adobe Illustrator per esportare trace.svg in PNG
+#   - Inkscape / Adobe Illustrator per esportare prym-icon.svg in PNG

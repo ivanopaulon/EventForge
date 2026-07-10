@@ -9,7 +9,7 @@
 
    I colori usano esclusivamente var(--mud-palette-*), definiti centralmente in
    Prym.Web/Services/EventForgeTheme.cs e iniettati da MudThemeProvider: seguono
-   quindi sempre il tema scelto dall'utente (carbon-neon-light / carbon-neon-dark),
+   quindi sempre il tema scelto dall'utente (prym-light / prym-dark),
    coerentemente con Prym.Web/MUDBLAZOR_GUIDELINES.md §3-§4. Non esiste più un set
    di colori indipendente dal tema (vedi AUDIT_POS2026_PALETTE.md per lo storico). */
 

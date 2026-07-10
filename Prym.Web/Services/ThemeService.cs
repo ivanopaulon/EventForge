@@ -29,21 +29,21 @@ public class ThemeInfo
     public string? ColorPreview { get; init; }
     public bool IsDark { get; init; }
 
-    public static readonly ThemeInfo CarbonNeonDark = new()
+    public static readonly ThemeInfo PrymDark = new()
     {
-        Key = "carbon-neon-dark",
-        Name = "Carbon Neon Dark",
-        Description = "Modern dark theme with neon accents",
-        ColorPreview = "#00FFFF",
+        Key = "prym-dark",
+        Name = "PRYM Scuro",
+        Description = "Tema grafite e ambra per ambienti scuri",
+        ColorPreview = "#E8B563",
         IsDark = true
     };
 
-    public static readonly ThemeInfo CarbonNeonLight = new()
+    public static readonly ThemeInfo PrymLight = new()
     {
-        Key = "carbon-neon-light",
-        Name = "Carbon Neon Light",
-        Description = "Clean light theme with modern colors",
-        ColorPreview = "#0099CC",
+        Key = "prym-light",
+        Name = "PRYM Chiaro",
+        Description = "Tema grafite e ambra per ambienti chiari",
+        ColorPreview = "#2B2F36",
         IsDark = false
     };
 }
@@ -64,11 +64,11 @@ public class ThemeService(
 
     public static readonly List<ThemeInfo> AvailableThemes =
     [
-        ThemeInfo.CarbonNeonDark,
-        ThemeInfo.CarbonNeonLight
+        ThemeInfo.PrymDark,
+        ThemeInfo.PrymLight
     ];
 
-    private string _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+    private string _currentTheme = ThemeInfo.PrymLight.Key;
 
     public bool IsDarkMode => AvailableThemes.FirstOrDefault(t => t.Key == _currentTheme)?.IsDark ?? false;
     public string CurrentTheme => _currentTheme;
@@ -82,7 +82,7 @@ public class ThemeService(
             if (await authService.IsAuthenticatedAsync())
             {
                 var profile = await profileService.GetProfileAsync(ct);
-                var serverTheme = profile?.DisplayPreferences?.PreferredTheme;
+                var serverTheme = NormalizeThemeKey(profile?.DisplayPreferences?.PreferredTheme);
                 if (!string.IsNullOrWhiteSpace(serverTheme) && AvailableThemes.Any(t => t.Key == serverTheme))
                 {
                     _currentTheme = serverTheme;
@@ -96,14 +96,14 @@ public class ThemeService(
             var stored = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", ThemeKey);
 
             // Backward compatibility with old "light"/"dark" values
-            if (string.Equals(stored, "dark", StringComparison.OrdinalIgnoreCase))
-                _currentTheme = ThemeInfo.CarbonNeonDark.Key;
-            else if (string.Equals(stored, "light", StringComparison.OrdinalIgnoreCase))
-                _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+            if (string.Equals(stored, "dark", StringComparison.OrdinalIgnoreCase) || string.Equals(stored, "carbon-neon-dark", StringComparison.OrdinalIgnoreCase))
+                _currentTheme = ThemeInfo.PrymDark.Key;
+            else if (string.Equals(stored, "light", StringComparison.OrdinalIgnoreCase) || string.Equals(stored, "carbon-neon-light", StringComparison.OrdinalIgnoreCase))
+                _currentTheme = ThemeInfo.PrymLight.Key;
             else if (!string.IsNullOrWhiteSpace(stored) && AvailableThemes.Any(t => t.Key == stored))
                 _currentTheme = stored!;
             else
-                _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+                _currentTheme = ThemeInfo.PrymLight.Key;
 
             await ApplyThemeToDocumentAsync();
             OnThemeChanged?.Invoke();
@@ -111,7 +111,7 @@ public class ThemeService(
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to initialize theme from localStorage, using default");
-            _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+            _currentTheme = ThemeInfo.PrymLight.Key;
         }
     }
 
@@ -119,7 +119,7 @@ public class ThemeService(
     {
         try
         {
-            var serverTheme = profile?.DisplayPreferences?.PreferredTheme;
+            var serverTheme = NormalizeThemeKey(profile?.DisplayPreferences?.PreferredTheme);
             if (!string.IsNullOrWhiteSpace(serverTheme) && AvailableThemes.Any(t => t.Key == serverTheme))
             {
                 _currentTheme = serverTheme;
@@ -138,7 +138,7 @@ public class ThemeService(
     {
         try
         {
-            _currentTheme = ThemeInfo.CarbonNeonLight.Key;
+            _currentTheme = ThemeInfo.PrymLight.Key;
             await jsRuntime.InvokeVoidAsync("localStorage.removeItem", ThemeKey);
             await ApplyThemeToDocumentAsync();
             OnThemeChanged?.Invoke();
@@ -153,9 +153,9 @@ public class ThemeService(
     {
         try
         {
-            var next = _currentTheme == ThemeInfo.CarbonNeonDark.Key
-                ? ThemeInfo.CarbonNeonLight.Key
-                : ThemeInfo.CarbonNeonDark.Key;
+            var next = _currentTheme == ThemeInfo.PrymDark.Key
+                ? ThemeInfo.PrymLight.Key
+                : ThemeInfo.PrymDark.Key;
 
             await SetThemeAsync(next);
         }
@@ -167,12 +167,14 @@ public class ThemeService(
     }
 
     public Task SetThemeAsync(bool isDarkMode, CancellationToken ct = default)
-        => SetThemeAsync(isDarkMode ? ThemeInfo.CarbonNeonDark.Key : ThemeInfo.CarbonNeonLight.Key);
+        => SetThemeAsync(isDarkMode ? ThemeInfo.PrymDark.Key : ThemeInfo.PrymLight.Key);
 
     public async Task SetThemeAsync(string themeKey, CancellationToken ct = default)
     {
+        themeKey = NormalizeThemeKey(themeKey) ?? ThemeInfo.PrymLight.Key;
+
         if (!AvailableThemes.Any(t => t.Key == themeKey))
-            themeKey = ThemeInfo.CarbonNeonLight.Key;
+            themeKey = ThemeInfo.PrymLight.Key;
 
         _currentTheme = themeKey;
 
@@ -223,6 +225,20 @@ public class ThemeService(
         {
             _serverSyncLock.Release();
         }
+    }
+
+
+    private static string? NormalizeThemeKey(string? themeKey)
+    {
+        if (string.IsNullOrWhiteSpace(themeKey))
+            return themeKey;
+
+        return themeKey switch
+        {
+            "dark" or "carbon-neon-dark" => ThemeInfo.PrymDark.Key,
+            "light" or "carbon-neon-light" => ThemeInfo.PrymLight.Key,
+            _ => themeKey
+        };
     }
 
     private async Task ApplyThemeToDocumentAsync()
