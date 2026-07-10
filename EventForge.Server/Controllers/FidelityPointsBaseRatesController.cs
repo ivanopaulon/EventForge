@@ -1,3 +1,4 @@
+using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Services.Business;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,36 @@ namespace EventForge.Server.Controllers;
 [Authorize]
 public class FidelityPointsBaseRatesController(
     IFidelityPointsBaseRateService baseRateService,
+    IFidelityPointsRateService fidelityPointsRateService,
     ITenantContext tenantContext) : BaseApiController
 {
+    /// <summary>
+    /// Computes a preview of the fidelity points that would be earned for a given order total and
+    /// card type, using the tenant's currently effective rate (base rate * tier multiplier * any
+    /// active campaign). Used by the POS to show the operator a realistic points value before payment.
+    /// </summary>
+    [HttpGet("calculate-preview")]
+    [ProducesResponseType(typeof(int), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CalculatePointsPreview(
+        [FromQuery] decimal orderTotal,
+        [FromQuery] EventForge.Server.Data.Entities.Business.FidelityCardType cardType,
+        CancellationToken cancellationToken = default)
+    {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+        try
+        {
+            var (rate, rounding) = await fidelityPointsRateService.GetEffectiveRateAsync(cardType, cancellationToken);
+            var points = FidelityPointsRounding.Apply(orderTotal * rate, rounding);
+            return Ok(points);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while calculating the fidelity points preview.", ex);
+        }
+    }
+
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<FidelityPointsBaseRateDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
