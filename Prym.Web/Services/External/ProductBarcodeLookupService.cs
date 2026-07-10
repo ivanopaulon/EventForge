@@ -103,8 +103,8 @@ public class ProductBarcodeLookupService(
 
         var name = GetFirstString(productElement, "product_name_it", "product_name", "product_name_en");
         var brand = GetFirstString(productElement, "brands", "brand_owner");
-        var shortDescription = GetFirstString(productElement, "generic_name_it", "generic_name", "quantity");
-        var description = GetFirstString(productElement, "generic_name_it", "generic_name", "ingredients_text_it", "ingredients_text", "categories");
+        var shortDescription = GetFirstString(productElement, "quantity", "generic_name_it", "generic_name");
+        var description = GetFirstString(productElement, "generic_name_it", "generic_name", "categories");
         var imageUrl = GetFirstString(productElement, "image_front_url", "image_url", "image_front_small_url");
 
         if (string.IsNullOrWhiteSpace(name) &&
@@ -131,7 +131,7 @@ public class ProductBarcodeLookupService(
 
     private static string NormalizeCode(string code)
     {
-        return new string(code.Where(char.IsLetterOrDigit).ToArray());
+        return string.Concat(code.Where(char.IsLetterOrDigit));
     }
 
     private static string? GetFirstString(JsonElement productElement, params string[] propertyNames)

@@ -253,6 +253,8 @@
 
  // Absolute URL computed for display
  private string? _thumbnailAbsoluteUrl;
+ // Product.ShortDescription input in this tab is constrained to 50 chars (MaxLength in UI field).
+ private const int MaxShortDescriptionLength = 50;
  private bool _isLookingUpProductData;
  private ProductBarcodeLookupResultDto? _productLookupResult;
 
@@ -402,7 +404,7 @@
  Product.Name = result.Name;
 
  if (!string.IsNullOrWhiteSpace(result.ShortDescription))
- Product.ShortDescription = Truncate(result.ShortDescription, 50);
+ Product.ShortDescription = Truncate(result.ShortDescription, MaxShortDescriptionLength);
 
  if (!string.IsNullOrWhiteSpace(result.Description))
  Product.Description = result.Description;
@@ -437,10 +439,12 @@
  return (bytes / (1024.0 *1024.0)).ToString("N2") + " MB";
  }
 
- private static string Truncate(string value, int maxLength)
+ private static string Truncate(string? value, int maxLength)
  {
  if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
- return value;
+ return value ?? string.Empty;
+ if (maxLength <= 3)
  return value[..maxLength];
+ return value[..(maxLength - 3)] + "...";
  }
 }

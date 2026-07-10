@@ -70,7 +70,7 @@ builder.Services.AddHttpClient("ProductBarcodeLookupClient", client =>
 {
     client.Timeout = TimeSpan.FromSeconds(10);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
-    client.DefaultRequestHeaders.Add("User-Agent", "EventForge-ProductLookup/1.0");
+    client.DefaultRequestHeaders.Add("User-Agent", "Prym-Client/1.0");
 });
 
 // Add MudBlazor services with performance optimizations
