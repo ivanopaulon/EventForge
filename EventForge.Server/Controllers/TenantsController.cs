@@ -340,9 +340,9 @@ public class TenantsController(ITenantService tenantService, EventForgeDbContext
     public async Task<ActionResult<AdminTenantResponseDto>> AddTenantAdmin(
         Guid id,
         Guid userId,
+        [FromQuery, Required] string reason,
+        [FromQuery, Required] DateTime expiresAt,
         [FromQuery] AdminAccessLevel accessLevel = AdminAccessLevel.TenantAdmin,
-        [FromQuery, Required] string reason = null!,
-        [FromQuery, Required] DateTime expiresAt = default,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(reason))

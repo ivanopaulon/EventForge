@@ -1,0 +1,197 @@
+@page "/dashboard/admintenants"
+@model EventForge.Server.Pages.Dashboard.AdminTenantsModel
+@{
+    ViewData["Title"] = "Admin Tenant Grants";
+    ViewData["PageSection"] = "Multi-Tenant";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-person-badge-fill"></i> Concessioni Admin Cross-Tenant</h2>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i> @Model.SuccessMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Statistics -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h5>Concessioni Attive</h5>
+                <h2 class="display-4">@Model.TotalActiveGrants</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h5>In Scadenza (7 giorni)</h5>
+                <h2 class="display-4">@Model.ExpiringWithin7Days</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5>Legacy Senza Scadenza</h5>
+                <h2 class="display-4">@Model.LegacyWithoutExpiration</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New grant form -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-plus-circle"></i> Nuova Concessione
+    </div>
+    <div class="card-body">
+        <form method="post" asp-page-handler="Grant">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="Grant.TenantId" class="form-label">Tenant *</label>
+                    <select asp-for="Grant.TenantId" class="form-select">
+                        <option value="">-- Seleziona tenant --</option>
+                        @foreach (var tenant in Model.AvailableTenants)
+                        {
+                            <option value="@tenant.Id">@tenant.DisplayName</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Grant.TenantId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Grant.UserId" class="form-label">Utente *</label>
+                    <select asp-for="Grant.UserId" class="form-select">
+                        <option value="">-- Seleziona utente --</option>
+                        @foreach (var user in Model.AvailableUsers)
+                        {
+                            <option value="@user.Id">@user.Username (@user.Email)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Grant.UserId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Grant.AccessLevel" class="form-label">Livello *</label>
+                    <select asp-for="Grant.AccessLevel" class="form-select">
+                        <option value="ReadOnly">Solo lettura</option>
+                        <option value="TenantAdmin">Tenant Admin</option>
+                        <option value="FullAccess">Accesso completo</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Grant.ExpiresAt" class="form-label">Scadenza *</label>
+                    <input asp-for="Grant.ExpiresAt" type="datetime-local" class="form-control"
+                           max="@DateTime.UtcNow.AddDays(Model.MaxGrantDurationDays).ToString("yyyy-MM-ddTHH:mm")" />
+                    <span asp-validation-for="Grant.ExpiresAt" class="text-danger small"></span>
+                    <small class="text-muted">Massimo @Model.MaxGrantDurationDays giorni da oggi.</small>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-shield-plus"></i> Concedi
+                    </button>
+                </div>
+                <div class="col-md-12">
+                    <label asp-for="Grant.Reason" class="form-label">Motivazione *</label>
+                    <input asp-for="Grant.Reason" class="form-control" placeholder="Motivo della concessione dell'accesso admin" />
+                    <span asp-validation-for="Grant.Reason" class="text-danger small"></span>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Grants table -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-list-ul"></i> Tutte le Concessioni
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Utente</th>
+                        <th>Tenant Gestito</th>
+                        <th>Livello</th>
+                        <th>Motivazione</th>
+                        <th>Concesso Il</th>
+                        <th>Scade Il</th>
+                        <th class="text-end">Azioni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var grant in Model.Grants)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@grant.Username</strong><br/>
+                                <small class="text-muted">@grant.Email</small>
+                            </td>
+                            <td>@grant.TenantName</td>
+                            <td><span class="badge bg-secondary">@grant.AccessLevel</span></td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(grant.Reason))
+                                {
+                                    <small>@grant.Reason</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td><small>@grant.GrantedAt.ToLocalTime().ToString("g")</small></td>
+                            <td>
+                                @if (grant.IsLegacyNoExpiration)
+                                {
+                                    <span class="badge bg-warning text-dark" title="Concessione legacy creata prima dell'introduzione della scadenza obbligatoria">
+                                        <i class="bi bi-exclamation-triangle-fill"></i> Nessuna scadenza (legacy)
+                                    </span>
+                                }
+                                else if (grant.IsExpiringSoon)
+                                {
+                                    <span class="badge bg-danger">
+                                        @grant.ExpiresAt!.Value.ToLocalTime().ToString("g")
+                                    </span>
+                                }
+                                else
+                                {
+                                    <small>@grant.ExpiresAt!.Value.ToLocalTime().ToString("g")</small>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <form method="post" asp-page-handler="Revoke"
+                                      asp-route-tenantId="@grant.TenantId" asp-route-userId="@grant.UserId"
+                                      onsubmit="return confirm('Revocare l\'accesso admin per @grant.Username sul tenant @grant.TenantName?');"
+                                      class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Revoca">
+                                        <i class="bi bi-shield-x"></i> Revoca
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (!Model.Grants.Any())
+        {
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle"></i>
+                Nessuna concessione admin trovata.
+            </div>
+        }
+    </div>
+</div>
