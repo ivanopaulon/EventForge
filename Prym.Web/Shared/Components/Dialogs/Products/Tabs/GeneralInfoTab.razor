@@ -1,6 +1,9 @@
+@using Prym.DTOs.External
 @using Prym.DTOs.Products
+@using Prym.Web.Services.External
 @inject ITranslationService TranslationService
 @inject IProductService ProductService
+@inject IProductBarcodeLookupService ProductBarcodeLookupService
 @inject IAppNotificationService AppNotification
 @inject ILogger<GeneralInfoTab> Logger
 @inject IHttpClientFactory HttpClientFactory
@@ -18,15 +21,68 @@
                 <MudGrid Spacing="3">
                     <!-- Code -->
                     <MudItem xs="12">
-                        <PrymTextField @bind-Value="Product.Code"
-                                       Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
-                                       ReadOnly="@(!IsEditMode)"
-                                       MaxLength="100"
-                                       Adornment="Adornment.Start"
-                                       AdornmentIcon="@Icons.Material.Filled.QrCode"
-                                       @bind-Value:after="NotifyUpdated"
-                                       HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                        <div class="d-flex gap-2">
+                            <PrymTextField Class="flex-grow-1"
+                                           @bind-Value="Product.Code"
+                                           Label="@($"{TranslationService.GetTranslation("field.code", "Codice")} *")"
+                                           ReadOnly="@(!IsEditMode)"
+                                           MaxLength="100"
+                                           Adornment="Adornment.Start"
+                                           AdornmentIcon="@Icons.Material.Filled.QrCode"
+                                           @bind-Value:after="NotifyUpdated"
+                                           HelperText="@TranslationService.GetTranslation("products.codeHelper", "Codice SKU o simile")" />
+                            @if (IsEditMode)
+                            {
+                                <PrymButton Intent="PrymButton.ButtonIntent.Primary"
+                                            StartIcon="@Icons.Material.Filled.Public"
+                                            OnClick="@LookupProductDataAsync"
+                                            Disabled="@(_isLookingUpProductData || string.IsNullOrWhiteSpace(Product.Code))"
+                                            Class="align-self-start mt-1-em">
+                                    @if (_isLookingUpProductData)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                                    }
+                                    @TranslationService.GetTranslation("product.lookupOnline", "Cerca dati online")
+                                </PrymButton>
+                            }
+                        </div>
                     </MudItem>
+                    @if (_productLookupResult != null && _productLookupResult.IsFound)
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Success" Dense="true">
+                                <div class="d-flex justify-space-between align-center">
+                                    <div>
+                                        <MudText Typo="Typo.subtitle2"><strong>@_productLookupResult.Name</strong></MudText>
+                                        @if (!string.IsNullOrWhiteSpace(_productLookupResult.Brand))
+                                        {
+                                            <MudText Typo="Typo.caption">@($"Marca: {_productLookupResult.Brand}")</MudText>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(_productLookupResult.Source))
+                                        {
+                                            <MudText Typo="Typo.caption">@($"Fonte: {_productLookupResult.Source}")</MudText>
+                                        }
+                                    </div>
+                                    <PrymButton Intent="PrymButton.ButtonIntent.Ghost"
+                                                OnClick="@ApplyProductLookupDataAsync">
+                                        @TranslationService.GetTranslation("product.useLookupData", "Usa questi dati")
+                                    </PrymButton>
+                                </div>
+                            </MudAlert>
+                        </MudItem>
+                    }
+                    else if (_productLookupResult != null && !_productLookupResult.IsFound)
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Warning" Dense="true">
+                                @TranslationService.GetTranslation("product.lookupNotFound", "Nessun dato trovato online per questo codice")
+                                @if (!string.IsNullOrWhiteSpace(_productLookupResult.ErrorMessage))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mt-1">@_productLookupResult.ErrorMessage</MudText>
+                                }
+                            </MudAlert>
+                        </MudItem>
+                    }
 
                     <!-- Name -->
                     <MudItem xs="12">
@@ -197,6 +253,8 @@
 
  // Absolute URL computed for display
  private string? _thumbnailAbsoluteUrl;
+ private bool _isLookingUpProductData;
+ private ProductBarcodeLookupResultDto? _productLookupResult;
 
  protected override Task OnParametersSetAsync()
  {
@@ -305,6 +363,60 @@
  await NotifyUpdated();
  }
 
+ private async Task LookupProductDataAsync()
+ {
+ if (string.IsNullOrWhiteSpace(Product.Code))
+ return;
+
+ _isLookingUpProductData = true;
+ _productLookupResult = null;
+
+ try
+ {
+ _productLookupResult = await ProductBarcodeLookupService.LookupAsync(Product.Code);
+ if (_productLookupResult == null)
+ {
+ AppNotification.ShowError(TranslationService.GetTranslation("product.lookupError", "Errore durante la ricerca online del prodotto"));
+ }
+ }
+ catch (Exception ex)
+ {
+ Logger.LogError(ex, "Error during product online lookup for code {ProductCode}", Product.Code);
+ AppNotification.ShowError(TranslationService.GetTranslation("product.lookupError", "Errore durante la ricerca online del prodotto"));
+ }
+ finally
+ {
+ _isLookingUpProductData = false;
+ }
+ }
+
+ private async Task ApplyProductLookupDataAsync()
+ {
+ if (_productLookupResult == null || !_productLookupResult.IsFound)
+ return;
+
+ var result = _productLookupResult;
+ _productLookupResult = null;
+
+ if (!string.IsNullOrWhiteSpace(result.Name))
+ Product.Name = result.Name;
+
+ if (!string.IsNullOrWhiteSpace(result.ShortDescription))
+ Product.ShortDescription = Truncate(result.ShortDescription, 50);
+
+ if (!string.IsNullOrWhiteSpace(result.Description))
+ Product.Description = result.Description;
+
+ if (!string.IsNullOrWhiteSpace(result.ImageUrl))
+ {
+ Product.ThumbnailUrl = result.ImageUrl;
+ _thumbnailAbsoluteUrl = MakeAbsoluteUrl(Product.ThumbnailUrl);
+ }
+
+ AppNotification.ShowSuccess(TranslationService.GetTranslation("product.lookupDataApplied", "Dati online applicati"));
+ await NotifyUpdated();
+ }
+
  private async Task NotifyUpdated()
  {
  try
@@ -323,5 +435,12 @@
  if (bytes <1024) return bytes + " B";
  if (bytes <1024 *1024) return (bytes /1024.0).ToString("N1") + " KB";
  return (bytes / (1024.0 *1024.0)).ToString("N2") + " MB";
+ }
+
+ private static string Truncate(string value, int maxLength)
+ {
+ if (string.IsNullOrEmpty(value) || value.Length <= maxLength)
+ return value;
+ return value[..maxLength];
  }
 }
