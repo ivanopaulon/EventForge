@@ -7,7 +7,7 @@ namespace EventForge.Server.Services.Business;
 /// <summary>
 /// Resolves the effective fidelity points accrual rate for the current tenant using
 /// persisted EF entities for base rates, tier multipliers, and optional campaigns.
-/// </remarks>
+/// </summary>
 public class FidelityPointsRateService(
     EventForgeDbContext context,
     ITenantContext tenantContext) : IFidelityPointsRateService
