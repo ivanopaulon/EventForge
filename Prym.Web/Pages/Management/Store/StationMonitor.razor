@@ -109,23 +109,23 @@
                                     <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="mt-2">
                                         @if (item.Status == StationOrderQueueStatus.Waiting)
                                         {
-                                            <MudButton Variant="Variant.Filled"
+                                            <PrymButton Variant="Variant.Filled"
                                                        Color="Color.Info"
                                                        Size="Size.Large"
                                                        Disabled="@(_busyItemId == item.Id)"
                                                        OnClick="@(() => UpdateStatusAsync(item, StationOrderQueueStatus.InProgress))">
                                                 Inizia
-                                            </MudButton>
+                                            </PrymButton>
                                         }
                                         else if (item.Status == StationOrderQueueStatus.InProgress)
                                         {
-                                            <MudButton Variant="Variant.Filled"
+                                            <PrymButton Variant="Variant.Filled"
                                                        Color="Color.Success"
                                                        Size="Size.Large"
                                                        Disabled="@(_busyItemId == item.Id)"
                                                        OnClick="@(() => UpdateStatusAsync(item, StationOrderQueueStatus.Completed))">
                                                 Completa
-                                            </MudButton>
+                                            </PrymButton>
                                         }
                                     </MudStack>
                                 </MudStack>
