@@ -13,6 +13,11 @@ public class TenantService(
     IPasswordService passwordService,
     ILogger<TenantService> logger) : ITenantService
 {
+    /// <summary>
+    /// Maximum allowed duration, in days, for a new AdminTenant grant's expiration
+    /// (policy cap enforced at grant time; see TenantsController.AddTenantAdmin).
+    /// </summary>
+    public const int MaxAdminGrantDurationDays = 90;
 
     public async Task<TenantResponseDto> CreateTenantAsync(CreateTenantDto createDto)
     {
@@ -528,7 +533,7 @@ public class TenantService(
         }
     }
 
-    public async Task<AdminTenantResponseDto> AddTenantAdminAsync(Guid tenantId, Guid userId, AdminAccessLevel accessLevel)
+    public async Task<AdminTenantResponseDto> AddTenantAdminAsync(Guid tenantId, Guid userId, AdminAccessLevel accessLevel, string reason, DateTime expiresAt)
     {
         try
         {
@@ -536,6 +541,21 @@ public class TenantService(
             {
                 logger.LogWarning("Tentativo di aggiunta admin tenant non autorizzato.");
                 throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
+            }
+
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                throw new ArgumentException("Reason is required to grant admin access.");
+            }
+
+            if (expiresAt <= DateTime.UtcNow)
+            {
+                throw new ArgumentException("ExpiresAt must be in the future.");
+            }
+
+            if (expiresAt > DateTime.UtcNow.AddDays(MaxAdminGrantDurationDays))
+            {
+                throw new ArgumentException($"ExpiresAt cannot exceed {MaxAdminGrantDurationDays} days from now.");
             }
 
             var tenant = await context.Tenants
@@ -569,7 +589,9 @@ public class TenantService(
                 UserId = userId,
                 ManagedTenantId = tenantId,
                 AccessLevel = accessLevel,
-                GrantedAt = DateTime.UtcNow
+                GrantedAt = DateTime.UtcNow,
+                ExpiresAt = expiresAt,
+                Reason = reason
             };
 
             _ = context.AdminTenants.Add(adminTenant);
@@ -586,7 +608,13 @@ public class TenantService(
                     PerformedByUserId = currentUserId.Value,
                     TargetTenantId = tenantId,
                     TargetUserId = userId,
-                    Details = $"Admin access level {accessLevel} granted",
+                    Details = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        AccessLevel = accessLevel.ToString(),
+                        adminTenant.GrantedAt,
+                        adminTenant.ExpiresAt,
+                        adminTenant.Reason
+                    }),
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
@@ -602,6 +630,7 @@ public class TenantService(
                 AccessLevel = accessLevel.ToString(),
                 GrantedAt = adminTenant.GrantedAt,
                 ExpiresAt = adminTenant.ExpiresAt,
+                Reason = adminTenant.Reason,
                 Username = user.Username,
                 Email = user.Email,
                 FullName = user.FullName,
@@ -642,6 +671,7 @@ public class TenantService(
                 AccessLevel = adminTenant.AccessLevel,
                 GrantedAt = adminTenant.GrantedAt,
                 ExpiresAt = adminTenant.ExpiresAt,
+                Reason = adminTenant.Reason,
                 CreatedAt = adminTenant.CreatedAt,
                 CreatedBy = adminTenant.CreatedBy,
                 ModifiedAt = adminTenant.ModifiedAt,
@@ -662,7 +692,14 @@ public class TenantService(
                     PerformedByUserId = currentUserId.Value,
                     TargetTenantId = tenantId,
                     TargetUserId = userId,
-                    Details = $"Admin access revoked for {adminTenant.User.Username}",
+                    Details = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        adminTenant.User.Username,
+                        AccessLevel = originalAdminTenant.AccessLevel.ToString(),
+                        originalAdminTenant.GrantedAt,
+                        originalAdminTenant.ExpiresAt,
+                        originalAdminTenant.Reason
+                    }),
                     WasSuccessful = true,
                     PerformedAt = DateTime.UtcNow
                 };
@@ -702,6 +739,46 @@ public class TenantService(
                 AccessLevel = at.AccessLevel.ToString(),
                 GrantedAt = at.GrantedAt,
                 ExpiresAt = at.ExpiresAt,
+                Reason = at.Reason,
+                Username = at.User.Username,
+                Email = at.User.Email,
+                FullName = at.User.FullName,
+                TenantName = at.ManagedTenant.Name
+            });
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<AdminTenantResponseDto>> GetAllAdminTenantsAsync()
+    {
+        try
+        {
+            if (!tenantContext.IsSuperAdmin)
+            {
+                logger.LogWarning("Tentativo di accesso alla lista admin cross-tenant non autorizzato.");
+                throw new UnauthorizedAccessException("Only super administrators can view all admin tenant grants.");
+            }
+
+            var adminTenants = await context.AdminTenants
+                .AsNoTracking()
+                .Include(at => at.User)
+                .Include(at => at.ManagedTenant)
+                .OrderBy(at => at.ExpiresAt == null ? 0 : 1)
+                .ThenBy(at => at.ExpiresAt)
+                .ToListAsync();
+
+            return adminTenants.Select(at => new AdminTenantResponseDto
+            {
+                Id = at.Id,
+                UserId = at.UserId,
+                ManagedTenantId = at.ManagedTenantId,
+                AccessLevel = at.AccessLevel.ToString(),
+                GrantedAt = at.GrantedAt,
+                ExpiresAt = at.ExpiresAt,
+                Reason = at.Reason,
                 Username = at.User.Username,
                 Email = at.User.Email,
                 FullName = at.User.FullName,
