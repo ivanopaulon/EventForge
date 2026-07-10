@@ -15,12 +15,12 @@
 <ManagementPageHeader Title="@TranslationService.GetTranslation("reservations.title", "Prenotazioni Tavoli")"
                       Icon="@Icons.Material.Outlined.EventSeat">
     <ExtraActions>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+        <PrymButton Variant="Variant.Filled" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Add"
                    Size="Size.Small"
                    OnClick="@(() => OpenDialogAsync(null))">
             Nuova Prenotazione
-        </MudButton>
+        </PrymButton>
     </ExtraActions>
 </ManagementPageHeader>
 
@@ -63,17 +63,17 @@
         </MudItem>
         <MudItem xs="12" md="3">
             <MudStack Row Spacing="2">
-                <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                <PrymButton StartIcon="@Icons.Material.Outlined.Search"
                            Variant="Variant.Filled"
                            Color="Color.Primary"
                            OnClick="ApplyFiltersAsync">
                     Cerca
-                </MudButton>
-                <MudButton StartIcon="@Icons.Material.Outlined.Today"
+                </PrymButton>
+                <PrymButton StartIcon="@Icons.Material.Outlined.Today"
                            Variant="Variant.Outlined"
                            OnClick="GoToTodayAsync">
                     Oggi
-                </MudButton>
+                </PrymButton>
             </MudStack>
         </MudItem>
     </MudGrid>

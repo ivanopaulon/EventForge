@@ -40,12 +40,12 @@
                                     _totalUnfilteredCount)
                             </MudText>
                             <MudSpacer />
-                            <MudButton Size="Size.Small" 
+                            <PrymButton Size="Size.Small" 
                                        Variant="Variant.Text" 
                                        Color="Color.Primary"
                                        OnClick="ClearFiltersAndReload">
                                 @TranslationService.GetTranslation("common.clearFilters", "Cancella filtri")
-                            </MudButton>
+                            </PrymButton>
                         </div>
                     </MudAlert>
                 </div>
@@ -444,12 +444,12 @@
                     </MudText>
                     @if (_stockItems.Any())
                     {
-                        <MudButton Variant="Variant.Text"
+                        <PrymButton Variant="Variant.Text"
                                    Color="Color.Primary"
                                    StartIcon="@Icons.Material.Outlined.Clear"
                                    OnClick="@ClearFiltersAndReload">
                             @TranslationService.GetTranslation("stock.clearFilters", "Cancella filtri")
-                        </MudButton>
+                        </PrymButton>
                     }
                 </div>
             </NoRecordsContent>
@@ -581,16 +581,16 @@
                               Class="mb-3" />
 
                 <div class="d-flex justify-end gap-2">
-                    <MudButton Variant="Variant.Text"
+                    <PrymButton Variant="Variant.Text"
                                OnClick="@CloseFullEditPopover">
                         @TranslationService.GetTranslation("common.cancel", "Annulla")
-                    </MudButton>
-                    <MudButton Variant="Variant.Filled"
+                    </PrymButton>
+                    <PrymButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="@SaveFullEdit"
                                Disabled="@(_editingValidationError != null)">
                         @TranslationService.GetTranslation("common.save", "Salva")
-                    </MudButton>
+                    </PrymButton>
                 </div>
                 
                 @if (_editingValidationError != null)

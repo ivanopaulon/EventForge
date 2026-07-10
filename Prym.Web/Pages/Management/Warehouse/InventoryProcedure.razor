@@ -37,7 +37,7 @@
                           Icon="@Icons.Material.Outlined.Inventory"
                           BreadcrumbItems="_breadcrumbs">
         <ExtraActions>
-            <MudButton StartIcon="@Icons.Material.Outlined.ManageSearch"
+            <PrymButton StartIcon="@Icons.Material.Outlined.ManageSearch"
                        Color="@(_openInventoriesCount > 0 ? Color.Warning : Color.Default)"
                        Variant="Variant.Outlined"
                        OnClick="OpenManageInventoriesDialog"
@@ -52,7 +52,7 @@
                 {
                     <MudText>@TranslationService.GetTranslation("warehouse.manageInventories", "Gestisci Inventari")</MudText>
                 }
-            </MudButton>
+            </PrymButton>
         </ExtraActions>
     </ManagementPageHeader>
 
@@ -75,7 +75,7 @@
                 </div>
                 <MudStack Row="true" Spacing="2">
                     <MudTooltip Text="@TranslationService.GetTranslation("warehouse.simulateInventoryTooltip", "Inserisce automaticamente una riga per ogni prodotto del database")">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Science" 
+                        <PrymButton StartIcon="@Icons.Material.Outlined.Science" 
                                    Color="Color.Warning" 
                                    Variant="Variant.Outlined"
                                    OnClick="@SimulateInventory"
@@ -85,24 +85,24 @@
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
                             }
                             @TranslationService.GetTranslation("warehouse.simulateInventory", "Simula Inventario")
-                        </MudButton>
+                        </PrymButton>
                     </MudTooltip>
                     <MudTooltip Text="@TranslationService.GetTranslation("warehouse.finalizeTooltip", "Applica tutti gli aggiustamenti e chiudi la sessione")">
-                        <MudButton StartIcon="@Icons.Material.Outlined.PlaylistAddCheck" 
+                        <PrymButton StartIcon="@Icons.Material.Outlined.PlaylistAddCheck" 
                                    Color="Color.Success" 
                                    Variant="Variant.Filled"
                                    OnClick="@FinalizeInventory"
                                    Disabled="@(_currentDocument.TotalItems == 0)">
                             @TranslationService.GetTranslation("warehouse.finalizeInventory", "Finalizza")
-                        </MudButton>
+                        </PrymButton>
                     </MudTooltip>
                     <MudTooltip Text="@TranslationService.GetTranslation("warehouse.cancelTooltip", "Annulla sessione senza salvare")">
-                        <MudButton StartIcon="@Icons.Material.Outlined.Cancel" 
+                        <PrymButton StartIcon="@Icons.Material.Outlined.Cancel" 
                                    Color="Color.Default" 
                                    Variant="Variant.Outlined"
                                    OnClick="@CancelInventorySession">
                             @TranslationService.GetTranslation("common.cancel", "Annulla")
-                        </MudButton>
+                        </PrymButton>
                     </MudTooltip>
                 </MudStack>
             </MudStack>
@@ -151,14 +151,14 @@
             <MudItem xs="12" md="4">
                 @if (_currentDocument == null)
                 {
-                    <MudButton StartIcon="@Icons.Material.Outlined.PlayArrow" 
+                    <PrymButton StartIcon="@Icons.Material.Outlined.PlayArrow" 
                                Color="Color.Primary" 
                                Variant="Variant.Filled"
                                FullWidth="true"
                                OnClick="@StartInventorySession"
                                Disabled="@(!_selectedStorageFacilityId.HasValue)">
                         @TranslationService.GetTranslation("warehouse.startSession", "Avvia Sessione")
-                    </MudButton>
+                    </PrymButton>
                 }
                 else
                 {
@@ -192,14 +192,14 @@
                     Margin="Margin.Dense"/>
                 </MudItem>
                 <MudItem xs="12" md="4">
-                    <MudButton StartIcon="@Icons.Material.Outlined.Search"
+                    <PrymButton StartIcon="@Icons.Material.Outlined.Search"
                                Color="Color.Primary"
                                Variant="Variant.Filled"
                                FullWidth="true"
                                OnClick="@SearchBarcode"
                                Disabled="@string.IsNullOrWhiteSpace(_scannedBarcode)">
                         @TranslationService.GetTranslation("common.search", "Cerca")
-                    </MudButton>
+                    </PrymButton>
                 </MudItem>
             </MudGrid>
         </MudPaper>
