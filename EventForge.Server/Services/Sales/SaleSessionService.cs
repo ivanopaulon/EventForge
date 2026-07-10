@@ -397,7 +397,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
             // This prevents concurrency conflicts in the ChangeTracker
-            CalculateTotalsInline(session);
+            await CalculateTotalsInlineAsync(session, cancellationToken);
 
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
@@ -465,7 +465,7 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             // CRITICAL FIX: Calculate totals BEFORE saving to avoid multiple SaveChanges
             // This prevents concurrency conflicts in the ChangeTracker
-            CalculateTotalsInline(session);
+            await CalculateTotalsInlineAsync(session, cancellationToken);
 
             session.ModifiedBy = currentUser;
             session.ModifiedAt = DateTime.UtcNow;
@@ -1210,14 +1210,14 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     /// Calculates session totals inline without calling SaveChanges.
     /// Used by Add/Update/Remove methods to avoid DbUpdateConcurrencyException.
     /// </summary>
-    private void CalculateTotalsInline(SaleSession session)
+    private async Task CalculateTotalsInlineAsync(SaleSession session, CancellationToken cancellationToken)
     {
-        CalculateTotals(session);
+        await CalculateTotalsAsync(session, cancellationToken);
     }
 
     private async Task RecalculateTotalsAsync(SaleSession session, CancellationToken cancellationToken)
     {
-        CalculateTotals(session);
+        await CalculateTotalsAsync(session, cancellationToken);
         session.ModifiedAt = DateTime.UtcNow;
         _ = await context.SaveChangesAsync(cancellationToken);
     }
@@ -1225,15 +1225,40 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     /// <summary>
     /// Shared calculation logic for session totals.
     /// </summary>
-    private void CalculateTotals(SaleSession session)
+    /// <remarks>
+    /// FIDELITY DISCOUNT — ATTENZIONE, DA RIVEDERE FISCALMENTE PRIMA DEL MERGE IN PRODUZIONE.
+    /// Il ricalcolo proporzionale dell'IVA quando si applica lo sconto fidelity aggiuntivo dopo il
+    /// calcolo per-riga può avere trattamenti diversi a seconda della normativa (es. sconto che
+    /// riduce la base imponibile vs sconto fuori campo IVA). La formula qui sotto non è stata
+    /// confermata da chi conosce la normativa fiscale applicata dal progetto: non usarla in
+    /// produzione prima di quella revisione, anche se compila e i test passano.
+    /// </remarks>
+    private async Task CalculateTotalsAsync(SaleSession session, CancellationToken cancellationToken)
     {
         var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
 
         session.OriginalTotal = activeItems.Sum(i => i.UnitPrice * i.Quantity);
         var itemsTotal = activeItems.Sum(i => i.TotalAmount);
-        session.DiscountAmount = session.OriginalTotal - itemsTotal;
-        session.TaxAmount = activeItems.Sum(i => i.TaxAmount);
-        session.FinalTotal = itemsTotal + session.TaxAmount;
+
+        decimal fidelityDiscountAmount = 0m;
+        if (session.FidelityCardId.HasValue)
+        {
+            var card = await context.FidelityCards.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == session.FidelityCardId.Value && c.Status == Data.Entities.Business.FidelityCardStatus.Active, cancellationToken);
+            if (card != null && card.DiscountPercentage > 0)
+            {
+                fidelityDiscountAmount = itemsTotal * (card.DiscountPercentage / 100m);
+            }
+        }
+
+        session.DiscountAmount = session.OriginalTotal - itemsTotal + fidelityDiscountAmount;
+
+        // ATTENZIONE — formula da verificare con chi conosce la logica fiscale del progetto,
+        // non assumere corretta solo perché compila. Vedi remarks sopra.
+        var vatRatio = itemsTotal > 0 ? fidelityDiscountAmount / itemsTotal : 0;
+        session.TaxAmount = activeItems.Sum(i => i.TaxAmount) * (1 - vatRatio);
+
+        session.FinalTotal = itemsTotal - fidelityDiscountAmount + session.TaxAmount;
     }
 
     private async Task<SaleSessionDto> MapToDtoAsync(SaleSession session, CancellationToken cancellationToken, List<PromotionNearMissDto>? nearMissPromotions = null)
