@@ -1,0 +1,165 @@
+@using Prym.DTOs.Business.Fidelity
+@inject IFidelityPointsBaseRateService BaseRateService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<CreateFidelityPointsBaseRateDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Paid"
+          Title="@(IsEditMode
+              ? TranslationService.GetTranslation("fidelityPoints.baseRates.editTitle", "Modifica Tasso Punti Fedeltà")
+              : TranslationService.GetTranslation("fidelityPoints.baseRates.createTitle", "Nuovo Tasso Punti Fedeltà"))"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="@Prym.Web.Shared.Components.Dialogs.EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="_rate"
+                                     Label="@($"{TranslationService.GetTranslation("fidelityPoints.baseRates.rate", "Tasso")} *")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Min="0.01m"
+                                     Max="1000m"
+                                     Immediate="true"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSelect T="FidelityPointsRoundingMode"
+                               @bind-Value="_roundingMode"
+                               Label="@($"{TranslationService.GetTranslation("fidelityPoints.baseRates.roundingMode", "Arrotondamento")} *")"
+                               Variant="Variant.Outlined"
+                               Required="true"
+                               Margin="Margin.Dense">
+                        @foreach (var roundingMode in Enum.GetValues<FidelityPointsRoundingMode>())
+                        {
+                            <MudSelectItem Value="@roundingMode">@GetRoundingModeLabel(roundingMode)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudDatePicker @bind-Date="_effectiveFrom"
+                                   Label="@($"{TranslationService.GetTranslation("fidelityPoints.baseRates.effectiveFrom", "Valido dal")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Editable="true"
+                                   Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="@(!_isValid || _isProcessing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>@(IsEditMode
+                    ? TranslationService.GetTranslation("common.save", "Salva")
+                    : TranslationService.GetTranslation("common.create", "Crea"))</text>
+            }
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public FidelityPointsBaseRateDto? BaseRate { get; set; }
+
+    private bool IsEditMode => BaseRate != null;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    private decimal _rate = 1m;
+    private FidelityPointsRoundingMode _roundingMode = FidelityPointsRoundingMode.Floor;
+    private DateTime? _effectiveFrom = DateTime.Today;
+
+    protected override void OnParametersSet()
+    {
+        if (!IsEditMode)
+            return;
+
+        _rate = BaseRate!.Rate;
+        _roundingMode = BaseRate.RoundingMode;
+        _effectiveFrom = BaseRate.EffectiveFrom;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_form == null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid || !_effectiveFrom.HasValue)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
+        try
+        {
+            _isProcessing = true;
+
+            if (IsEditMode)
+            {
+                var dto = new UpdateFidelityPointsBaseRateDto
+                {
+                    Rate = _rate,
+                    RoundingMode = _roundingMode,
+                    EffectiveFrom = _effectiveFrom.Value
+                };
+
+                await BaseRateService.UpdateAsync(BaseRate!.Id, dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.baseRates.updated", "Tasso punti fedeltà aggiornato con successo."));
+            }
+            else
+            {
+                var dto = new CreateFidelityPointsBaseRateDto
+                {
+                    Rate = _rate,
+                    RoundingMode = _roundingMode,
+                    EffectiveFrom = _effectiveFrom.Value
+                };
+
+                await BaseRateService.CreateAsync(dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.baseRates.created", "Tasso punti fedeltà creato con successo."));
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving fidelity points base rate");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetRoundingModeLabel(FidelityPointsRoundingMode mode) => mode switch
+    {
+        FidelityPointsRoundingMode.Floor => TranslationService.GetTranslation("fidelityPoints.roundingMode.floor", "Per difetto"),
+        FidelityPointsRoundingMode.Ceiling => TranslationService.GetTranslation("fidelityPoints.roundingMode.ceiling", "Per eccesso"),
+        FidelityPointsRoundingMode.Nearest => TranslationService.GetTranslation("fidelityPoints.roundingMode.nearest", "Al più vicino"),
+        _ => mode.ToString()
+    };
+}

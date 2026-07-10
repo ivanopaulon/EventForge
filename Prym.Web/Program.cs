@@ -255,6 +255,9 @@ builder.Services.AddScoped<Prym.Web.Services.Sales.ITableManagementService, Prym
 builder.Services.AddScoped<IFiscalPrintingService, FiscalPrintingService>();
 
 builder.Services.AddScoped<IFidelityService, FidelityService>();
+builder.Services.AddScoped<IFidelityPointsBaseRateService, FidelityPointsBaseRateService>();
+builder.Services.AddScoped<IFidelityTierMultiplierService, FidelityTierMultiplierService>();
+builder.Services.AddScoped<IFidelityPointsCampaignService, FidelityPointsCampaignService>();
 builder.Services.AddScoped<ISupplierPriceAlertService, SupplierPriceAlertService>();
 builder.Services.AddScoped<ISupplierPriceHistoryService, SupplierPriceHistoryService>();
 builder.Services.AddScoped<IRetailCartSessionService, RetailCartSessionService>();

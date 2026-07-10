@@ -1,0 +1,200 @@
+@page "/business/fidelity-points/campaigns"
+@using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Shared.Components.Dialogs
+@using Prym.Web.Shared.Components.Fidelity
+@using Prym.Web.Shared.Management.Adapters
+@attribute [Authorize]
+@inject IFidelityPointsCampaignService CampaignService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FidelityPointsCampaignManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("fidelityPoints.campaigns.management", "Gestione Campagne Punti")</PageTitle>
+
+<EntityManagementPage TEntity="FidelityPointsCampaignDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == nameof(FidelityPointsCampaignDto.Name))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.Name)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.StartDate))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.StartDate)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.StartDate))">@TranslationService.GetTranslation("fidelityPoints.campaigns.startDate", "Data Inizio")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.EndDate))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.EndDate)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.EndDate))">@TranslationService.GetTranslation("fidelityPoints.campaigns.endDate", "Data Fine")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.Multiplier))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.Multiplier)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.Multiplier))">@TranslationService.GetTranslation("fidelityPoints.campaigns.multiplier", "Moltiplicatore")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.IsActive))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.IsActive)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier))
+            {
+                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.IgnoreTierMultiplier))">@TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier", "Ignora Livello")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == nameof(FidelityPointsCampaignDto.Name))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Name</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.StartDate))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.campaigns.startDate", "Data Inizio")">@ctx.Item.StartDate.ToString("dd/MM/yyyy")</MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.EndDate))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.campaigns.endDate", "Data Fine")">@ctx.Item.EndDate.ToString("dd/MM/yyyy")</MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.Multiplier))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.campaigns.multiplier", "Moltiplicatore")">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Multiplier.ToString("0.##")x</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.IsActive))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                    <MudChip T="string" Size="Size.Small" Color="@(ctx.Item.IsActive ? Color.Success : Color.Default)">
+                        @(ctx.Item.IsActive
+                            ? TranslationService.GetTranslation("common.active", "Attiva")
+                            : TranslationService.GetTranslation("common.inactive", "Inattiva"))
+                    </MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier", "Ignora Livello")">
+                    <MudChip T="string"
+                             Size="Size.Small"
+                             Color="@(ctx.Item.IgnoreTierMultiplier ? Color.Warning : Color.Default)"
+                             Variant="@(ctx.Item.IgnoreTierMultiplier ? Variant.Filled : Variant.Outlined)"
+                             Icon="@(ctx.Item.IgnoreTierMultiplier ? Icons.Material.Outlined.PanTool : Icons.Material.Outlined.Star)">
+                        @(ctx.Item.IgnoreTierMultiplier
+                            ? TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier.enabled", "Ignorato")
+                            : TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier.disabled", "Applicato"))
+                    </MudChip>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<FidelityPointsCampaignDto>? _entityPage;
+    private IEntityManagementService<FidelityPointsCampaignDto> _service = null!;
+    private EntityManagementConfig<FidelityPointsCampaignDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new FidelityPointsCampaignManagementService(CampaignService);
+        _config = new EntityManagementConfig<FidelityPointsCampaignDto>
+        {
+            ComponentKey = "FidelityPointsCampaignManagement",
+            PageTitleKey = "fidelityPoints.campaigns.management",
+            PageTitleDefault = "Gestione Campagne Punti",
+            EntityIcon = Icons.Material.Outlined.Campaign,
+            PageRootCssClass = "fidelity-points-campaign-page-root",
+            BaseRoute = "/business/fidelity-points/campaigns",
+            ExcelFileName = "CampagnePunti",
+            SearchPlaceholderKey = "fidelityPoints.campaigns.search",
+            SearchPlaceholderDefault = "Cerca campagna…",
+            EntityTypeName = "FidelityPointsCampaign",
+            CreateTooltip = "fidelityPoints.campaigns.createNew",
+            ShowCreate = true,
+            ShowEdit = true,
+            ShowDelete = true,
+            ShowAuditLog = false,
+            GetDisplayName = campaign => campaign.Name,
+            GetId = campaign => campaign.Id,
+            DeleteConfirmMessageKey = "fidelityPoints.campaigns.confirmDelete",
+            DeleteSuccessMessageKey = "fidelityPoints.campaigns.deleted",
+            DeleteErrorMessageKey = "fidelityPoints.campaigns.deleteError",
+            BulkDeleteConfirmMessageKey = "fidelityPoints.campaigns.confirmDeleteMultiple",
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.home", "Home"), "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.registries", "Anagrafiche"), null, disabled: true),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.fidelityPointsCampaigns", "Campagne Punti"), null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.Name), DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.StartDate), DisplayName = "Data Inizio", IsVisible = true, Order = 1, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.EndDate), DisplayName = "Data Fine", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.Multiplier), DisplayName = "Moltiplicatore", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.IsActive), DisplayName = "Stato", IsVisible = true, Order = 4, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier), DisplayName = "Ignora Livello", IsVisible = true, Order = 5, IsSearchable = false }
+            ]
+        };
+    }
+
+    private async Task OpenDialogAsync(Guid? id)
+    {
+        try
+        {
+            IDialogReference dialog;
+
+            if (id.HasValue)
+            {
+                var campaign = await CampaignService.GetByIdAsync(id.Value);
+                if (campaign is null)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.campaigns.notFound", "Campagna punti non trovata."));
+                    return;
+                }
+
+                var parameters = new DialogParameters<CreateFidelityPointsCampaignDialog>
+                {
+                    { x => x.Campaign, campaign }
+                };
+                dialog = await DialogService.ShowAsync<CreateFidelityPointsCampaignDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            }
+            else
+            {
+                dialog = await DialogService.ShowAsync<CreateFidelityPointsCampaignDialog>(string.Empty, new DialogParameters(), EFDialogDefaults.Options);
+            }
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening fidelity points campaign dialog for ID {Id}.", id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.campaigns.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+}

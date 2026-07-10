@@ -1,0 +1,142 @@
+@page "/business/fidelity-points/tier-multipliers"
+@using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Shared.Components.Dialogs
+@using Prym.Web.Shared.Components.Fidelity
+@using Prym.Web.Shared.Management.Adapters
+@attribute [Authorize]
+@inject IFidelityTierMultiplierService TierMultiplierService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FidelityTierMultiplierManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.management", "Gestione Moltiplicatori Livello")</PageTitle>
+
+<EntityManagementPage TEntity="FidelityTierMultiplierDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnEditOverride="@OpenDialogAsync">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == nameof(FidelityTierMultiplierDto.CardType))
+            {
+                <EFTableColumnHeader TItem="FidelityTierMultiplierDto" PropertyName="@nameof(FidelityTierMultiplierDto.CardType)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierMultiplierDto, object>(x => x.CardType.ToString()))">@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityTierMultiplierDto.Multiplier))
+            {
+                <EFTableColumnHeader TItem="FidelityTierMultiplierDto" PropertyName="@nameof(FidelityTierMultiplierDto.Multiplier)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierMultiplierDto, object>(x => x.Multiplier))">@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.multiplier", "Moltiplicatore")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == nameof(FidelityTierMultiplierDto.CardType))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetCardTypeColor(ctx.Item.CardType)">@GetCardTypeLabel(ctx.Item.CardType)</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityTierMultiplierDto.Multiplier))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.multiplier", "Moltiplicatore")">
+                    <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Multiplier.ToString("0.##")x</MudText>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<FidelityTierMultiplierDto>? _entityPage;
+    private IEntityManagementService<FidelityTierMultiplierDto> _service = null!;
+    private EntityManagementConfig<FidelityTierMultiplierDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new FidelityTierMultiplierManagementService(TierMultiplierService);
+        _config = new EntityManagementConfig<FidelityTierMultiplierDto>
+        {
+            ComponentKey = "FidelityTierMultiplierManagement",
+            PageTitleKey = "fidelityPoints.tierMultipliers.management",
+            PageTitleDefault = "Gestione Moltiplicatori Livello",
+            EntityIcon = Icons.Material.Outlined.Star,
+            PageRootCssClass = "fidelity-tier-multiplier-page-root",
+            BaseRoute = "/business/fidelity-points/tier-multipliers",
+            ExcelFileName = "MoltiplicatoriLivello",
+            SearchPlaceholderKey = "fidelityPoints.tierMultipliers.search",
+            SearchPlaceholderDefault = "Cerca livello carta…",
+            EntityTypeName = "FidelityTierMultiplier",
+            ShowCreate = false,
+            ShowEdit = true,
+            ShowDelete = false,
+            ShowAuditLog = false,
+            GetDisplayName = multiplier => GetCardTypeLabel(multiplier.CardType),
+            GetId = multiplier => multiplier.Id,
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.home", "Home"), "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.registries", "Anagrafiche"), null, disabled: true),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.fidelityTierMultipliers", "Moltiplicatori Livello"), null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = nameof(FidelityTierMultiplierDto.CardType), DisplayName = "Livello Carta", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityTierMultiplierDto.Multiplier), DisplayName = "Moltiplicatore", IsVisible = true, Order = 1, IsSearchable = false }
+            ]
+        };
+    }
+
+    private async Task OpenDialogAsync(Guid id)
+    {
+        try
+        {
+            var multiplier = await TierMultiplierService.GetByIdAsync(id);
+            if (multiplier is null)
+            {
+                AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.notFound", "Moltiplicatore livello non trovato."));
+                return;
+            }
+
+            var parameters = new DialogParameters<EditFidelityTierMultiplierDialog>
+            {
+                { x => x.TierMultiplier, multiplier }
+            };
+            var dialog = await DialogService.ShowAsync<EditFidelityTierMultiplierDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening fidelity tier multiplier dialog for ID {Id}.", id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private string GetCardTypeLabel(FidelityCardType cardType) => cardType switch
+    {
+        FidelityCardType.Bronze => TranslationService.GetTranslation("fidelity.cardType.bronze", "Bronze"),
+        FidelityCardType.Silver => TranslationService.GetTranslation("fidelity.cardType.silver", "Silver"),
+        FidelityCardType.Gold => TranslationService.GetTranslation("fidelity.cardType.gold", "Gold"),
+        FidelityCardType.Platinum => TranslationService.GetTranslation("fidelity.cardType.platinum", "Platinum"),
+        _ => cardType.ToString()
+    };
+
+    private static Color GetCardTypeColor(FidelityCardType cardType) => cardType switch
+    {
+        FidelityCardType.Bronze => Color.Warning,
+        FidelityCardType.Silver => Color.Default,
+        FidelityCardType.Gold => Color.Success,
+        FidelityCardType.Platinum => Color.Info,
+        _ => Color.Default
+    };
+}

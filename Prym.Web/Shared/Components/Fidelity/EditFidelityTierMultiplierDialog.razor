@@ -1,0 +1,124 @@
+@using Prym.DTOs.Business.Fidelity
+@inject IFidelityTierMultiplierService TierMultiplierService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<EditFidelityTierMultiplierDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Star"
+          Title="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.editTitle", "Modifica Moltiplicatore Livello")"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="@Prym.Web.Shared.Components.Dialogs.EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField Value="@GetCardTypeLabel(_cardType)"
+                                  Label="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")"
+                                  Variant="Variant.Outlined"
+                                  ReadOnly="true"
+                                  Disabled="true"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="_multiplier"
+                                     Label="@($"{TranslationService.GetTranslation("fidelityPoints.tierMultipliers.multiplier", "Moltiplicatore")} *")"
+                                     Variant="Variant.Outlined"
+                                     Required="true"
+                                     Min="0.01m"
+                                     Max="100m"
+                                     Immediate="true"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="@(!_isValid || _isProcessing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>@TranslationService.GetTranslation("common.save", "Salva")</text>
+            }
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public FidelityTierMultiplierDto TierMultiplier { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    private FidelityCardType _cardType;
+    private decimal _multiplier;
+
+    protected override void OnParametersSet()
+    {
+        _cardType = TierMultiplier.CardType;
+        _multiplier = TierMultiplier.Multiplier;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_form == null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
+        try
+        {
+            _isProcessing = true;
+
+            var dto = new UpdateFidelityTierMultiplierDto
+            {
+                CardType = _cardType,
+                Multiplier = _multiplier
+            };
+
+            await TierMultiplierService.UpdateAsync(TierMultiplier.Id, dto);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.updated", "Moltiplicatore livello aggiornato con successo."));
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating fidelity tier multiplier {TierMultiplierId}", TierMultiplier.Id);
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private string GetCardTypeLabel(FidelityCardType cardType) => cardType switch
+    {
+        FidelityCardType.Bronze => TranslationService.GetTranslation("fidelity.cardType.bronze", "Bronze"),
+        FidelityCardType.Silver => TranslationService.GetTranslation("fidelity.cardType.silver", "Silver"),
+        FidelityCardType.Gold => TranslationService.GetTranslation("fidelity.cardType.gold", "Gold"),
+        FidelityCardType.Platinum => TranslationService.GetTranslation("fidelity.cardType.platinum", "Platinum"),
+        _ => cardType.ToString()
+    };
+}

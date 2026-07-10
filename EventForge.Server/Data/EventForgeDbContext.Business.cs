@@ -44,5 +44,33 @@ public partial class EventForgeDbContext
         _ = modelBuilder.Entity<FidelityPointsTransaction>()
             .HasIndex(transaction => transaction.TenantId)
             .HasDatabaseName("IX_FidelityPointsTransactions_TenantId");
+
+        _ = modelBuilder.Entity<FidelityPointsBaseRate>()
+            .Property(rate => rate.Rate)
+            .HasPrecision(18, 6);
+
+        _ = modelBuilder.Entity<FidelityPointsBaseRate>()
+            .HasIndex(rate => new { rate.TenantId, rate.EffectiveFrom })
+            .HasDatabaseName("IX_FidelityPointsBaseRates_TenantId_EffectiveFrom")
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = modelBuilder.Entity<FidelityTierMultiplier>()
+            .Property(multiplier => multiplier.Multiplier)
+            .HasPrecision(18, 6);
+
+        _ = modelBuilder.Entity<FidelityTierMultiplier>()
+            .HasIndex(multiplier => new { multiplier.TenantId, multiplier.CardType })
+            .HasDatabaseName("IX_FidelityTierMultipliers_TenantId_CardType")
+            .HasFilter("[IsDeleted] = 0")
+            .IsUnique();
+
+        _ = modelBuilder.Entity<FidelityPointsCampaign>()
+            .Property(campaign => campaign.Multiplier)
+            .HasPrecision(18, 6);
+
+        _ = modelBuilder.Entity<FidelityPointsCampaign>()
+            .HasIndex(campaign => new { campaign.TenantId, campaign.StartDate, campaign.EndDate })
+            .HasDatabaseName("IX_FidelityPointsCampaigns_TenantId_StartDate_EndDate")
+            .HasFilter("[IsDeleted] = 0");
     }
 }

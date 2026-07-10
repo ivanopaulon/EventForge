@@ -13,6 +13,6 @@ public interface IFidelityPointsRateService
     /// </summary>
     /// <param name="cardType">Fidelity card tier.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Effective rate to multiply by the order total.</returns>
-    Task<decimal> GetEffectiveRateAsync(FidelityCardType cardType, CancellationToken cancellationToken = default);
+    /// <returns>Effective rate to multiply by the order total and the rounding mode to apply.</returns>
+    Task<(decimal Rate, FidelityPointsRoundingMode Rounding)> GetEffectiveRateAsync(FidelityCardType cardType, CancellationToken cancellationToken = default);
 }

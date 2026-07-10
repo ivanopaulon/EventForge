@@ -99,6 +99,21 @@
                             Match="NavLinkMatch.All">
                     Carte Fedeltà
                 </MudNavLink>
+                <MudNavLink Href="/business/fidelity-points/base-rates"
+                            Icon="@Icons.Material.Outlined.Paid"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.fidelityPointsBaseRates", "Tasso Punti Fedeltà")
+                </MudNavLink>
+                <MudNavLink Href="/business/fidelity-points/tier-multipliers"
+                            Icon="@Icons.Material.Outlined.Star"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.fidelityTierMultipliers", "Moltiplicatori Livello")
+                </MudNavLink>
+                <MudNavLink Href="/business/fidelity-points/campaigns"
+                            Icon="@Icons.Material.Outlined.Campaign"
+                            Match="NavLinkMatch.All">
+                    @TranslationService.GetTranslation("nav.fidelityPointsCampaigns", "Campagne Punti")
+                </MudNavLink>
             </MudNavGroup>
 
             <!-- Documenti -->
