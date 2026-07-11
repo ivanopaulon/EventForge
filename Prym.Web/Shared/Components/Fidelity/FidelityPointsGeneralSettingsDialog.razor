@@ -1,0 +1,30 @@
+@using Prym.Web.Pages.Management.Business
+@using Prym.Web.Shared.Components.Dialogs
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.Settings"
+          Title="@TranslationService.GetTranslation("fidelityPoints.generalSettings.title", "Impostazioni Generali")"
+          OnClose="Close"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-2">
+            <MudTabPanel Text="@TranslationService.GetTranslation("fidelityPoints.generalSettings.tab.baseRate", "Tasso Base")"
+                         Icon="@Icons.Material.Outlined.Paid">
+                <FidelityPointsBaseRateManagement />
+            </MudTabPanel>
+        </MudTabs>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text" Color="Color.Default">
+            @TranslationService.GetTranslation("common.close", "Chiudi")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}

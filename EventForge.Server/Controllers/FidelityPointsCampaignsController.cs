@@ -68,7 +68,6 @@ public class FidelityPointsCampaignsController(
                 EndDate = dto.EndDate,
                 Multiplier = dto.Multiplier,
                 RoundingMode = (EventForge.Server.Data.Entities.Business.FidelityPointsRoundingMode)dto.RoundingMode,
-                IgnoreTierMultiplier = dto.IgnoreTierMultiplier,
                 IsActive = dto.IsActive,
                 ProductIdsJSON = dto.ProductIdsJSON,
                 CategoryIdsJSON = dto.CategoryIdsJSON
@@ -108,7 +107,6 @@ public class FidelityPointsCampaignsController(
                 EndDate = dto.EndDate,
                 Multiplier = dto.Multiplier,
                 RoundingMode = (EventForge.Server.Data.Entities.Business.FidelityPointsRoundingMode)dto.RoundingMode,
-                IgnoreTierMultiplier = dto.IgnoreTierMultiplier,
                 IsActive = dto.IsActive,
                 ProductIdsJSON = dto.ProductIdsJSON,
                 CategoryIdsJSON = dto.CategoryIdsJSON
@@ -154,7 +152,6 @@ public class FidelityPointsCampaignsController(
             EndDate = campaign.EndDate,
             Multiplier = campaign.Multiplier,
             RoundingMode = (Prym.DTOs.Business.Fidelity.FidelityPointsRoundingMode)campaign.RoundingMode,
-            IgnoreTierMultiplier = campaign.IgnoreTierMultiplier,
             IsActive = campaign.IsActive,
             ProductIdsJSON = campaign.ProductIdsJSON,
             CategoryIdsJSON = campaign.CategoryIdsJSON,

@@ -18,8 +18,6 @@ public class FidelityPointsCampaign : AuditableEntity
 
     public FidelityPointsRoundingMode RoundingMode { get; set; } = FidelityPointsRoundingMode.Floor;
 
-    public bool IgnoreTierMultiplier { get; set; }
-
     public string? ProductIdsJSON { get; set; }
 
     public string? CategoryIdsJSON { get; set; }

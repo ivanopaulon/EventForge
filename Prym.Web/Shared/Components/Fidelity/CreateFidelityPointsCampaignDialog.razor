@@ -4,7 +4,10 @@
 @using Prym.DTOs.Products
 @using Prym.Web.Shared.Components.Dialogs
 @using Prym.Web.Shared.Components.Dialogs.Common
+@using Prym.Web.Shared.Management
+@using Prym.Web.Shared.Management.Adapters
 @inject IFidelityPointsCampaignService CampaignService
+@inject IFidelityTierMultiplierService TierMultiplierService
 @inject IProductService ProductService
 @inject IClassificationNodeService ClassificationNodeService
 @inject IDialogService DialogService
@@ -18,7 +21,8 @@
               : TranslationService.GetTranslation("fidelityPoints.campaigns.createTitle", "Nuova Campagna Punti"))"
           IsProcessing="@(_isProcessing || _isInitializing)"
           OnClose="Cancel"
-          MinWidth="@EFDialogDefaults.MinWidthSimple">
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
     <ChildContent>
         @if (_isInitializing)
         {
@@ -28,6 +32,9 @@
         }
         else
         {
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-2">
+                <MudTabPanel Text="@TranslationService.GetTranslation("fidelityPoints.campaigns.tab.general", "Generale")"
+                             Icon="@Icons.Material.Outlined.Info">
             <MudForm @ref="_form" @bind-IsValid="@_isValid">
                 <MudGrid>
                     <MudItem xs="12">
@@ -81,15 +88,6 @@
                                 <MudSelectItem Value="@roundingMode">@GetRoundingModeLabel(roundingMode)</MudSelectItem>
                             }
                         </MudSelect>
-                    </MudItem>
-
-                    <MudItem xs="12">
-                        <MudSwitch @bind-Value="_ignoreTierMultiplier"
-                                   Label="@TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier", "Ignora moltiplicatore livello")"
-                                   Color="Color.Primary" />
-                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-n1">
-                            @TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier.help", "Se attivo, tutti i clienti maturano lo stesso moltiplicatore durante la campagna, indipendentemente dal livello carta.")
-                        </MudText>
                     </MudItem>
 
                     <MudItem xs="12">
@@ -149,6 +147,60 @@
                     </MudItem>
                 </MudGrid>
             </MudForm>
+                </MudTabPanel>
+
+                <MudTabPanel Text="@TranslationService.GetTranslation("fidelityPoints.campaigns.tab.tierMultipliers", "Moltiplicatori per Livello")"
+                            Icon="@Icons.Material.Outlined.Star"
+                            Disabled="@(!IsEditMode)">
+                    @if (!IsEditMode)
+                    {
+                       <MudAlert Severity="Severity.Info" Class="mt-2">
+                           @TranslationService.GetTranslation("fidelityPoints.campaigns.tierMultipliers.saveFirst", "Salva prima le informazioni generali per configurare i moltiplicatori.")
+                       </MudAlert>
+                    }
+                    else
+                    {
+                       <EntityManagementPage TEntity="FidelityTierMultiplierDto"
+                                             @ref="_tierMultiplierPage"
+                                             Config="_tierMultiplierConfig"
+                                             Service="_tierMultiplierService"
+                                             OnCreateOverride="@(() => OpenTierMultiplierDialogAsync(null))"
+                                             OnEditOverride="@(id => OpenTierMultiplierDialogAsync(id))">
+                           <HeaderContent Context="cols">
+                               @foreach (var col in cols.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                               {
+                                   @if (col.PropertyName == nameof(FidelityTierMultiplierDto.CardType))
+                                   {
+                                       <EFTableColumnHeader TItem="FidelityTierMultiplierDto" PropertyName="@nameof(FidelityTierMultiplierDto.CardType)" OnDragStartCallback="@_tierMultiplierPage!.EFTableRef!.HandleColumnDragStart">
+                                           <MudTableSortLabel SortBy="@(new Func<FidelityTierMultiplierDto, object>(x => x.CardType.ToString()))">@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")</MudTableSortLabel>
+                                       </EFTableColumnHeader>
+                                   }
+                                   else if (col.PropertyName == nameof(FidelityTierMultiplierDto.Multiplier))
+                                   {
+                                       <EFTableColumnHeader TItem="FidelityTierMultiplierDto" PropertyName="@nameof(FidelityTierMultiplierDto.Multiplier)" OnDragStartCallback="@_tierMultiplierPage!.EFTableRef!.HandleColumnDragStart">
+                                           <MudTableSortLabel SortBy="@(new Func<FidelityTierMultiplierDto, object>(x => x.Multiplier))">@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.multiplier", "Moltiplicatore")</MudTableSortLabel>
+                                       </EFTableColumnHeader>
+                                   }
+                               }
+                               <MudTh Class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+                           </HeaderContent>
+                           <RowTemplate Context="ctx">
+                               @foreach (var col in ctx.Cols)
+                               {
+                                   @if (col.PropertyName == nameof(FidelityTierMultiplierDto.CardType))
+                                   {
+                                       <MudTd>@GetCardTypeLabel(ctx.Item.CardType)</MudTd>
+                                   }
+                                   else if (col.PropertyName == nameof(FidelityTierMultiplierDto.Multiplier))
+                                   {
+                                       <MudTd>@ctx.Item.Multiplier.ToString("0.##")x</MudTd>
+                                   }
+                               }
+                           </RowTemplate>
+                       </EntityManagementPage>
+                    }
+                </MudTabPanel>
+            </MudTabs>
         }
     </ChildContent>
     <DialogActions>
@@ -191,10 +243,13 @@
     private DateTime? _endDate = DateTime.Today;
     private decimal _multiplier = 1m;
     private FidelityPointsRoundingMode _roundingMode = FidelityPointsRoundingMode.Floor;
-    private bool _ignoreTierMultiplier;
     private bool _isActive = true;
     private List<ProductDto> _selectedProducts = new();
     private List<ClassificationNodeDto> _selectedCategories = new();
+
+    private EntityManagementPage<FidelityTierMultiplierDto>? _tierMultiplierPage;
+    private IEntityManagementService<FidelityTierMultiplierDto> _tierMultiplierService = null!;
+    private EntityManagementConfig<FidelityTierMultiplierDto> _tierMultiplierConfig = null!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -209,8 +264,9 @@
             _endDate = Campaign.EndDate;
             _multiplier = Campaign.Multiplier;
             _roundingMode = Campaign.RoundingMode;
-            _ignoreTierMultiplier = Campaign.IgnoreTierMultiplier;
             _isActive = Campaign.IsActive;
+
+            InitializeTierMultiplierTab(Campaign.Id);
 
             await Task.WhenAll(
                 HydrateProductsAsync(ParseIds(Campaign.ProductIdsJSON)),
@@ -222,6 +278,84 @@
             _isInitializing = false;
         }
     }
+
+    private void InitializeTierMultiplierTab(Guid campaignId)
+    {
+        _tierMultiplierService = new FidelityTierMultiplierManagementService(TierMultiplierService, campaignId);
+        _tierMultiplierConfig = new EntityManagementConfig<FidelityTierMultiplierDto>
+        {
+            ComponentKey = "CampaignFidelityTierMultipliers",
+            PageTitleKey = "fidelityPoints.campaigns.tab.tierMultipliers",
+            PageTitleDefault = "Moltiplicatori per Livello",
+            EntityIcon = Icons.Material.Outlined.Star,
+            PageRootCssClass = "campaign-tier-multiplier-management",
+            BaseRoute = $"/business/fidelity-points/campaigns/{campaignId}/tier-multipliers",
+            ExcelFileName = "MoltiplicatoriLivelloCampagna",
+            SearchPlaceholderKey = "fidelityPoints.tierMultipliers.search",
+            SearchPlaceholderDefault = "Cerca livello carta…",
+            EntityTypeName = "FidelityTierMultiplier",
+            CreateTooltip = "fidelityPoints.tierMultipliers.createNew",
+            ShowCreate = true,
+            ShowEdit = true,
+            ShowDelete = true,
+            ShowAuditLog = false,
+            GetDisplayName = multiplier => GetCardTypeLabel(multiplier.CardType),
+            GetId = multiplier => multiplier.Id,
+            DeleteConfirmMessageKey = "fidelityPoints.tierMultipliers.confirmDelete",
+            DeleteSuccessMessageKey = "fidelityPoints.tierMultipliers.deleted",
+            DeleteErrorMessageKey = "fidelityPoints.tierMultipliers.deleteError",
+            Columns =
+            [
+                new() { PropertyName = nameof(FidelityTierMultiplierDto.CardType), DisplayName = "Livello Carta", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityTierMultiplierDto.Multiplier), DisplayName = "Moltiplicatore", IsVisible = true, Order = 1, IsSearchable = false }
+            ]
+        };
+    }
+
+    private async Task OpenTierMultiplierDialogAsync(Guid? id)
+    {
+        try
+        {
+            var existing = await TierMultiplierService.GetByCampaignAsync(Campaign!.Id);
+            var existingCardTypes = existing.Select(x => x.CardType).ToList();
+
+            FidelityTierMultiplierDto? multiplier = null;
+            if (id.HasValue)
+            {
+                multiplier = existing.FirstOrDefault(x => x.Id == id.Value);
+                if (multiplier is null)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.notFound", "Moltiplicatore livello non trovato."));
+                    return;
+                }
+            }
+
+            var parameters = new DialogParameters<EditFidelityTierMultiplierDialog>
+            {
+                { x => x.CampaignId, Campaign!.Id },
+                { x => x.TierMultiplier, multiplier },
+                { x => x.ExistingCardTypes, existingCardTypes }
+            };
+            var dialog = await DialogService.ShowAsync<EditFidelityTierMultiplierDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _tierMultiplierPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening fidelity tier multiplier dialog for campaign {CampaignId}.", Campaign?.Id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private string GetCardTypeLabel(FidelityCardType cardType) => cardType switch
+    {
+        FidelityCardType.Bronze => TranslationService.GetTranslation("fidelity.cardType.bronze", "Bronze"),
+        FidelityCardType.Silver => TranslationService.GetTranslation("fidelity.cardType.silver", "Silver"),
+        FidelityCardType.Gold => TranslationService.GetTranslation("fidelity.cardType.gold", "Gold"),
+        FidelityCardType.Platinum => TranslationService.GetTranslation("fidelity.cardType.platinum", "Platinum"),
+        _ => cardType.ToString()
+    };
 
     private async Task SubmitAsync()
     {
@@ -256,7 +390,6 @@
                     EndDate = _endDate.Value,
                     Multiplier = _multiplier,
                     RoundingMode = _roundingMode,
-                    IgnoreTierMultiplier = _ignoreTierMultiplier,
                     IsActive = _isActive,
                     ProductIdsJSON = productIdsJson,
                     CategoryIdsJSON = categoryIdsJson
@@ -274,7 +407,6 @@
                     EndDate = _endDate.Value,
                     Multiplier = _multiplier,
                     RoundingMode = _roundingMode,
-                    IgnoreTierMultiplier = _ignoreTierMultiplier,
                     IsActive = _isActive,
                     ProductIdsJSON = productIdsJson,
                     CategoryIdsJSON = categoryIdsJson

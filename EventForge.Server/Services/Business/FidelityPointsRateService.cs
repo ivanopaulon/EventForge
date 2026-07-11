@@ -26,14 +26,6 @@ public class FidelityPointsRateService(
             .FirstOrDefaultAsync(cancellationToken)
             ?? new FidelityPointsBaseRate();
 
-        var tierMultiplier = await context.FidelityTierMultipliers
-            .AsNoTracking()
-            .WhereActiveTenant(tenantId)
-            .Where(multiplier => multiplier.CardType == cardType)
-            .Select(multiplier => (decimal?)multiplier.Multiplier)
-            .FirstOrDefaultAsync(cancellationToken)
-            ?? 1.0m;
-
         var activeCampaign = await context.FidelityPointsCampaigns
             .AsNoTracking()
             .WhereActiveTenant(tenantId)
@@ -42,20 +34,23 @@ public class FidelityPointsRateService(
             .ThenByDescending(campaign => campaign.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
 
-        decimal rate;
+        var rate = baseRate.Rate;
         var rounding = baseRate.RoundingMode;
 
         if (activeCampaign is not null)
         {
-            rate = activeCampaign.IgnoreTierMultiplier
-                ? baseRate.Rate * activeCampaign.Multiplier
-                : baseRate.Rate * tierMultiplier * activeCampaign.Multiplier;
+            var campaignTierMultiplier = await context.FidelityTierMultipliers
+                .AsNoTracking()
+                .Where(multiplier => multiplier.CampaignId == activeCampaign.Id && multiplier.CardType == cardType)
+                .Select(multiplier => (decimal?)multiplier.Multiplier)
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? 1.0m; // No multiplier configured for this tier in this campaign is not an error, defaults to 1.0.
+
+            rate = baseRate.Rate * campaignTierMultiplier * activeCampaign.Multiplier;
             rounding = activeCampaign.RoundingMode;
         }
-        else
-        {
-            rate = baseRate.Rate * tierMultiplier;
-        }
+        // No active campaign: rate stays at baseRate.Rate with no tier differentiation —
+        // tier-based differentiation only exists during an active campaign, by design.
 
         return (rate, rounding);
     }

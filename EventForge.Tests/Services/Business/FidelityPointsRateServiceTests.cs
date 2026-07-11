@@ -38,7 +38,7 @@ public class FidelityPointsRateServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetEffectiveRateAsync_WithBaseRateAndTierMultiplier_CombinesValues()
+    public async Task GetEffectiveRateAsync_WithBaseRateAndNoActiveCampaign_UsesBaseRateOnly()
     {
         _context.FidelityPointsBaseRates.Add(new FidelityPointsBaseRate
         {
@@ -47,22 +47,17 @@ public class FidelityPointsRateServiceTests : IDisposable
             RoundingMode = FidelityPointsRoundingMode.Ceiling,
             EffectiveFrom = DateTime.UtcNow.AddDays(-5)
         });
-        _context.FidelityTierMultipliers.Add(new FidelityTierMultiplier
-        {
-            TenantId = _tenantId,
-            CardType = FidelityCardType.Gold,
-            Multiplier = 1.5m
-        });
         _ = await _context.SaveChangesAsync();
 
         var result = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
 
-        Assert.Equal(3m, result.Rate);
+        // Without an active campaign there is no tier differentiation, by design.
+        Assert.Equal(2m, result.Rate);
         Assert.Equal(FidelityPointsRoundingMode.Ceiling, result.Rounding);
     }
 
     [Fact]
-    public async Task GetEffectiveRateAsync_WithCampaignIgnoringTierMultiplier_ReturnsSameRateAcrossTiers()
+    public async Task GetEffectiveRateAsync_WithActiveCampaignAndPerCampaignTierMultiplier_CombinesValues()
     {
         var now = DateTime.UtcNow;
 
@@ -74,39 +69,94 @@ public class FidelityPointsRateServiceTests : IDisposable
             EffectiveFrom = now.AddDays(-5)
         });
 
-        _context.FidelityTierMultipliers.AddRange(
-            new FidelityTierMultiplier
-            {
-                TenantId = _tenantId,
-                CardType = FidelityCardType.Bronze,
-                Multiplier = 1.2m
-            },
-            new FidelityTierMultiplier
-            {
-                TenantId = _tenantId,
-                CardType = FidelityCardType.Platinum,
-                Multiplier = 2.5m
-            });
-
-        _context.FidelityPointsCampaigns.Add(new FidelityPointsCampaign
+        var campaign = new FidelityPointsCampaign
         {
             TenantId = _tenantId,
             Name = "Summer Bonus",
             StartDate = now.AddDays(-1),
             EndDate = now.AddDays(1),
             Multiplier = 3m,
-            IgnoreTierMultiplier = true,
             RoundingMode = FidelityPointsRoundingMode.Nearest
+        };
+        _context.FidelityPointsCampaigns.Add(campaign);
+        _ = await _context.SaveChangesAsync();
+
+        _context.FidelityTierMultipliers.AddRange(
+            new FidelityTierMultiplier
+            {
+                TenantId = _tenantId,
+                CampaignId = campaign.Id,
+                CardType = FidelityCardType.Gold,
+                Multiplier = 1.5m
+            },
+            new FidelityTierMultiplier
+            {
+                TenantId = _tenantId,
+                CampaignId = campaign.Id,
+                CardType = FidelityCardType.Platinum,
+                Multiplier = 2.5m
+            });
+        _ = await _context.SaveChangesAsync();
+
+        var goldResult = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
+        var platinumResult = await _service.GetEffectiveRateAsync(FidelityCardType.Platinum);
+        // Bronze has no multiplier configured in this campaign — defaults to 1.0.
+        var bronzeResult = await _service.GetEffectiveRateAsync(FidelityCardType.Bronze);
+
+        Assert.Equal(9m, goldResult.Rate); // 2 * 1.5 * 3
+        Assert.Equal(15m, platinumResult.Rate); // 2 * 2.5 * 3
+        Assert.Equal(6m, bronzeResult.Rate); // 2 * 1.0 * 3
+        Assert.Equal(FidelityPointsRoundingMode.Nearest, goldResult.Rounding);
+    }
+
+    [Fact]
+    public async Task GetEffectiveRateAsync_MultiplierFromDifferentCampaign_IsNotApplied()
+    {
+        var now = DateTime.UtcNow;
+
+        _context.FidelityPointsBaseRates.Add(new FidelityPointsBaseRate
+        {
+            TenantId = _tenantId,
+            Rate = 2m,
+            RoundingMode = FidelityPointsRoundingMode.Floor,
+            EffectiveFrom = now.AddDays(-5)
+        });
+
+        var pastCampaign = new FidelityPointsCampaign
+        {
+            TenantId = _tenantId,
+            Name = "Past Campaign",
+            StartDate = now.AddMonths(-2),
+            EndDate = now.AddMonths(-1),
+            Multiplier = 5m,
+            RoundingMode = FidelityPointsRoundingMode.Ceiling
+        };
+        var activeCampaign = new FidelityPointsCampaign
+        {
+            TenantId = _tenantId,
+            Name = "Active Campaign",
+            StartDate = now.AddDays(-1),
+            EndDate = now.AddDays(1),
+            Multiplier = 3m,
+            RoundingMode = FidelityPointsRoundingMode.Nearest
+        };
+        _context.FidelityPointsCampaigns.AddRange(pastCampaign, activeCampaign);
+        _ = await _context.SaveChangesAsync();
+
+        // Multiplier belongs to the past (inactive) campaign — must not affect the active one.
+        _context.FidelityTierMultipliers.Add(new FidelityTierMultiplier
+        {
+            TenantId = _tenantId,
+            CampaignId = pastCampaign.Id,
+            CardType = FidelityCardType.Gold,
+            Multiplier = 10m
         });
         _ = await _context.SaveChangesAsync();
 
-        var bronzeResult = await _service.GetEffectiveRateAsync(FidelityCardType.Bronze);
-        var platinumResult = await _service.GetEffectiveRateAsync(FidelityCardType.Platinum);
+        var result = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
 
-        Assert.Equal(6m, bronzeResult.Rate);
-        Assert.Equal(6m, platinumResult.Rate);
-        Assert.Equal(FidelityPointsRoundingMode.Nearest, bronzeResult.Rounding);
-        Assert.Equal(FidelityPointsRoundingMode.Nearest, platinumResult.Rounding);
+        Assert.Equal(6m, result.Rate); // 2 * 1.0 (no matching multiplier in active campaign) * 3
+        Assert.Equal(FidelityPointsRoundingMode.Nearest, result.Rounding);
     }
 
     [Fact]
@@ -120,21 +170,24 @@ public class FidelityPointsRateServiceTests : IDisposable
             Rate = 5m,
             EffectiveFrom = DateTime.UtcNow.AddDays(-2)
         });
-        _context.FidelityTierMultipliers.Add(new FidelityTierMultiplier
-        {
-            TenantId = otherTenantId,
-            CardType = FidelityCardType.Bronze,
-            Multiplier = 4m
-        });
-        _context.FidelityPointsCampaigns.Add(new FidelityPointsCampaign
+        var otherCampaign = new FidelityPointsCampaign
         {
             TenantId = otherTenantId,
             Name = "Other Tenant Campaign",
             StartDate = DateTime.UtcNow.AddDays(-1),
             EndDate = DateTime.UtcNow.AddDays(1),
             Multiplier = 10m,
-            IgnoreTierMultiplier = false,
             RoundingMode = FidelityPointsRoundingMode.Ceiling
+        };
+        _context.FidelityPointsCampaigns.Add(otherCampaign);
+        _ = await _context.SaveChangesAsync();
+
+        _context.FidelityTierMultipliers.Add(new FidelityTierMultiplier
+        {
+            TenantId = otherTenantId,
+            CampaignId = otherCampaign.Id,
+            CardType = FidelityCardType.Bronze,
+            Multiplier = 4m
         });
         _ = await _context.SaveChangesAsync();
 

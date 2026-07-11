@@ -8,7 +8,6 @@ public class FidelityPointsCampaignDto
     public DateTime EndDate { get; set; }
     public decimal Multiplier { get; set; }
     public FidelityPointsRoundingMode RoundingMode { get; set; }
-    public bool IgnoreTierMultiplier { get; set; }
     public bool IsActive { get; set; }
     public string? ProductIdsJSON { get; set; }
     public string? CategoryIdsJSON { get; set; }

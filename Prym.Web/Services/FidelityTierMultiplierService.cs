@@ -4,7 +4,7 @@ namespace Prym.Web.Services;
 
 public interface IFidelityTierMultiplierService
 {
-    Task<IEnumerable<FidelityTierMultiplierDto>> GetAllAsync(CancellationToken ct = default);
+    Task<IEnumerable<FidelityTierMultiplierDto>> GetByCampaignAsync(Guid campaignId, CancellationToken ct = default);
     Task<FidelityTierMultiplierDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<FidelityTierMultiplierDto> CreateAsync(CreateFidelityTierMultiplierDto dto, CancellationToken ct = default);
     Task<FidelityTierMultiplierDto?> UpdateAsync(Guid id, UpdateFidelityTierMultiplierDto dto, CancellationToken ct = default);
@@ -17,15 +17,15 @@ public class FidelityTierMultiplierService(
 {
     private const string BaseUrl = "api/v1/fidelity-points/tier-multipliers";
 
-    public async Task<IEnumerable<FidelityTierMultiplierDto>> GetAllAsync(CancellationToken ct = default)
+    public async Task<IEnumerable<FidelityTierMultiplierDto>> GetByCampaignAsync(Guid campaignId, CancellationToken ct = default)
     {
         try
         {
-            return await httpClientService.GetAsync<IEnumerable<FidelityTierMultiplierDto>>(BaseUrl, ct) ?? [];
+            return await httpClientService.GetAsync<IEnumerable<FidelityTierMultiplierDto>>($"{BaseUrl}?campaignId={campaignId}", ct) ?? [];
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error retrieving fidelity tier multipliers");
+            logger.LogError(ex, "Error retrieving fidelity tier multipliers for campaign {CampaignId}", campaignId);
             throw;
         }
     }
