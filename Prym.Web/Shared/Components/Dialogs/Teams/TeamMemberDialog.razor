@@ -1,0 +1,201 @@
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<TeamMemberDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.PersonAdd"
+          Title="@(_isEdit ? TranslationService.GetTranslation("teams.members.edit", "Modifica Membro") : TranslationService.GetTranslation("teams.members.create", "Nuovo Membro"))"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_firstName"
+                                  Label="@TranslationService.GetTranslation("teams.members.firstName", "Nome")"
+                                  Required="true" RequiredError="Il nome è obbligatorio"
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_lastName"
+                                  Label="@TranslationService.GetTranslation("teams.members.lastName", "Cognome")"
+                                  Required="true" RequiredError="Il cognome è obbligatorio"
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_email"
+                                  Label="@TranslationService.GetTranslation("teams.email", "Email")"
+                                  InputType="InputType.Email" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_fiscalCode"
+                                  Label="@TranslationService.GetTranslation("teams.members.fiscalCode", "Codice Fiscale")"
+                                  MaxLength="16" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_dateOfBirth"
+                                   Label="@TranslationService.GetTranslation("teams.members.dateOfBirth", "Data di Nascita")"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_role"
+                                  Label="@TranslationService.GetTranslation("teams.members.role", "Ruolo")"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_position"
+                                  Label="@TranslationService.GetTranslation("teams.members.position", "Posizione")"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int?" @bind-Value="_jerseyNumber"
+                                     Label="@TranslationService.GetTranslation("teams.members.jerseyNumber", "Numero Maglia")"
+                                     Min="0" Max="999" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <PrymSelect T="TeamMemberStatus" @bind-Value="_status"
+                                Label="@TranslationService.GetTranslation("field.status", "Stato")">
+                        @foreach (var s in Enum.GetValues<TeamMemberStatus>())
+                        {
+                            <MudSelectItem T="TeamMemberStatus" Value="@s">@s</MudSelectItem>
+                        }
+                    </PrymSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <PrymSelect T="EligibilityStatus" @bind-Value="_eligibilityStatus"
+                                Label="@TranslationService.GetTranslation("teams.members.eligibility", "Idoneità")">
+                        @foreach (var s in Enum.GetValues<EligibilityStatus>())
+                        {
+                            <MudSelectItem T="EligibilityStatus" Value="@s">@s</MudSelectItem>
+                        }
+                    </PrymSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Variant="Variant.Text" OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public TeamMemberDto? Member { get; set; }
+    [Parameter] public Guid TeamId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isEdit;
+    private bool _isSaving;
+
+    private string _firstName = string.Empty;
+    private string _lastName = string.Empty;
+    private string? _email;
+    private string? _fiscalCode;
+    private DateTime? _dateOfBirth;
+    private string? _role;
+    private string? _position;
+    private int? _jerseyNumber;
+    private TeamMemberStatus _status = TeamMemberStatus.Active;
+    private EligibilityStatus _eligibilityStatus = EligibilityStatus.Eligible;
+
+    protected override void OnInitialized()
+    {
+        if (Member is not null)
+        {
+            _isEdit = true;
+            _firstName = Member.FirstName;
+            _lastName = Member.LastName;
+            _email = Member.Email;
+            _fiscalCode = Member.FiscalCode;
+            _dateOfBirth = Member.DateOfBirth;
+            _role = Member.Role;
+            _position = Member.Position;
+            _jerseyNumber = Member.JerseyNumber;
+            _status = Member.Status;
+            _eligibilityStatus = Member.EligibilityStatus;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isEdit && Member is not null)
+            {
+                var dto = new UpdateTeamMemberDto
+                {
+                    FirstName = _firstName,
+                    LastName = _lastName,
+                    Email = _email,
+                    FiscalCode = _fiscalCode,
+                    DateOfBirth = _dateOfBirth,
+                    Role = _role,
+                    Position = _position,
+                    JerseyNumber = _jerseyNumber,
+                    Status = _status,
+                    EligibilityStatus = _eligibilityStatus
+                };
+                var result = await TeamService.UpdateTeamMemberAsync(Member.Id, dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("teams.members.saveError", "Errore nel salvataggio del membro."));
+                    return;
+                }
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("teams.members.updated", "Membro aggiornato con successo."));
+            }
+            else
+            {
+                var dto = new CreateTeamMemberDto
+                {
+                    FirstName = _firstName,
+                    LastName = _lastName,
+                    Email = _email,
+                    FiscalCode = _fiscalCode,
+                    DateOfBirth = _dateOfBirth,
+                    Role = _role,
+                    Position = _position,
+                    JerseyNumber = _jerseyNumber,
+                    Status = _status,
+                    EligibilityStatus = _eligibilityStatus,
+                    TeamId = TeamId
+                };
+                var result = await TeamService.CreateTeamMemberAsync(dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("teams.members.createError", "Errore nella creazione del membro."));
+                    return;
+                }
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("teams.members.created", "Membro creato con successo."));
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving team member");
+            AppNotification.ShowError(TranslationService.GetTranslation("teams.members.saveError", "Errore nel salvataggio del membro."));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

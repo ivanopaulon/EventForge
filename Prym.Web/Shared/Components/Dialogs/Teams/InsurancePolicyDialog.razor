@@ -1,0 +1,172 @@
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<InsurancePolicyDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.HealthAndSafety"
+          Title="@(_isEdit ? "Modifica Polizza" : "Nuova Polizza")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_provider"
+                                  Label="Provider"
+                                  Required="true" RequiredError="Il provider è obbligatorio"
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_policyNumber"
+                                  Label="Numero Polizza"
+                                  Required="true" RequiredError="Il numero polizza è obbligatorio"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_validFrom"
+                                   Label="Validità Da"
+                                   DateFormat="dd/MM/yyyy"
+                                   Required="true" RequiredError="La data di inizio è obbligatoria" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_validTo"
+                                   Label="Validità A"
+                                   DateFormat="dd/MM/yyyy"
+                                   Required="true" RequiredError="La data di fine è obbligatoria" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_coverageType"
+                                  Label="Tipo Copertura"
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="decimal?" @bind-Value="_coverageAmount"
+                                     Label="Massimale"
+                                     Format="N2" Min="0" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_notes"
+                                  Label="Note"
+                                  Lines="2" MaxLength="500" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Variant="Variant.Text" OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public InsurancePolicyDto? Policy { get; set; }
+    [Parameter] public Guid TeamMemberId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isEdit;
+    private bool _isSaving;
+
+    private string _provider = string.Empty;
+    private string _policyNumber = string.Empty;
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+    private string? _coverageType;
+    private decimal? _coverageAmount;
+    private string? _notes;
+
+    protected override void OnInitialized()
+    {
+        if (Policy is not null)
+        {
+            _isEdit = true;
+            _provider = Policy.Provider;
+            _policyNumber = Policy.PolicyNumber;
+            _validFrom = Policy.ValidFrom;
+            _validTo = Policy.ValidTo;
+            _coverageType = Policy.CoverageType;
+            _coverageAmount = Policy.CoverageAmount;
+            _notes = Policy.Notes;
+        }
+        else
+        {
+            _validFrom = DateTime.UtcNow.Date;
+            _validTo = DateTime.UtcNow.Date.AddYears(1);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || !_validFrom.HasValue || !_validTo.HasValue) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isEdit && Policy is not null)
+            {
+                var dto = new UpdateInsurancePolicyDto
+                {
+                    Provider = _provider,
+                    PolicyNumber = _policyNumber,
+                    ValidFrom = _validFrom.Value,
+                    ValidTo = _validTo.Value,
+                    CoverageType = _coverageType,
+                    CoverageAmount = _coverageAmount,
+                    Notes = _notes
+                };
+                var result = await TeamService.UpdateInsurancePolicyAsync(Policy.Id, dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError("Errore nell'aggiornamento della polizza.");
+                    return;
+                }
+                AppNotification.ShowSuccess("Polizza aggiornata.");
+            }
+            else
+            {
+                var dto = new CreateInsurancePolicyDto
+                {
+                    TeamMemberId = TeamMemberId,
+                    Provider = _provider,
+                    PolicyNumber = _policyNumber,
+                    ValidFrom = _validFrom.Value,
+                    ValidTo = _validTo.Value,
+                    CoverageType = _coverageType,
+                    CoverageAmount = _coverageAmount,
+                    Notes = _notes
+                };
+                var result = await TeamService.CreateInsurancePolicyAsync(dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError("Errore nella creazione della polizza.");
+                    return;
+                }
+                AppNotification.ShowSuccess("Polizza creata.");
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving insurance policy");
+            AppNotification.ShowError("Errore nel salvataggio della polizza.");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

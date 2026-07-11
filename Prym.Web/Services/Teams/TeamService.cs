@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Components.Forms;
 using Prym.DTOs.Common;
 using Prym.DTOs.Teams;
+using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace Prym.Web.Services.Teams;
 
@@ -8,6 +11,8 @@ namespace Prym.Web.Services.Teams;
 /// </summary>
 public class TeamService(
     IHttpClientService httpClientService,
+    IHttpClientFactory httpClientFactory,
+    IAuthService authService,
     ILogger<TeamService> logger) : ITeamService
 {
     private const string TeamsBaseUrl = "api/v1/teams";
@@ -365,6 +370,76 @@ public class TeamService(
         catch (HttpRequestException ex)
         {
             logger.LogError(ex, "Error updating document reference {DocId}", id);
+            return null;
+        }
+    }
+
+    public async Task<DocumentReferenceDto?> UploadDocumentAsync(
+        IBrowserFile file,
+        Guid ownerId,
+        string ownerType,
+        DocumentReferenceType type,
+        DocumentReferenceSubType subType = DocumentReferenceSubType.None,
+        DateTime? expiry = null,
+        string? title = null,
+        string? notes = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            const long maxFileSize = 20 * 1024 * 1024; // 20MB
+
+            var httpClient = httpClientFactory.CreateClient("ApiClient");
+
+            using var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(file.OpenReadStream(maxFileSize));
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
+            content.Add(fileContent, "file", file.Name);
+            content.Add(new StringContent(ownerId.ToString()), "ownerId");
+            content.Add(new StringContent(ownerType), "ownerType");
+            content.Add(new StringContent(((int)type).ToString()), "type");
+            content.Add(new StringContent(((int)subType).ToString()), "subType");
+            if (expiry.HasValue)
+            {
+                content.Add(new StringContent(expiry.Value.ToString("O")), "expiry");
+            }
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                content.Add(new StringContent(title), "title");
+            }
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                content.Add(new StringContent(notes), "notes");
+            }
+
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{DocumentsBaseUrl}/upload")
+            {
+                Content = content
+            };
+
+            var token = await authService.GetAccessTokenAsync();
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await httpClient.SendAsync(request, ct);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync(ct);
+                return JsonSerializer.Deserialize<DocumentReferenceDto>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+
+            logger.LogError("Failed to upload document. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error uploading document for owner {OwnerId}", ownerId);
             return null;
         }
     }

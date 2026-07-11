@@ -1,8 +1,10 @@
 @using Prym.DTOs.Common
 @using Prym.DTOs.Teams
 @using Prym.Web.Services.Teams
+@using Prym.Web.Services
 @attribute [Authorize]
 @inject ITeamService TeamService
+@inject IEventService EventService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
 @inject ILogger<TeamDialog> Logger
@@ -26,6 +28,17 @@
                     <MudTextField T="string" @bind-Value="_email"
                                   Label="@TranslationService.GetTranslation("teams.email", "Email")"
                                   InputType="InputType.Email" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <PrymSelect T="Guid" @bind-Value="_eventId"
+                                Label="@TranslationService.GetTranslation("teams.event", "Evento Collegato")"
+                                Required="true" RequiredError="L'evento è obbligatorio"
+                                Disabled="_isEdit">
+                        @foreach (var e in _events)
+                        {
+                            <MudSelectItem T="Guid" Value="@e.Id">@e.Name</MudSelectItem>
+                        }
+                    </PrymSelect>
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField T="string" @bind-Value="_category"
@@ -91,9 +104,21 @@
     private string? _clubCode;
     private string? _federationCode;
     private string? _category;
+    private Guid _eventId;
+    private List<Prym.DTOs.Events.EventDto> _events = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        try
+        {
+            var events = await EventService.GetEventsAsync(1, 200);
+            _events = events?.Items?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading events for team dialog");
+        }
+
         if (Team is not null)
         {
             _isEdit = true;
@@ -105,6 +130,7 @@
             _clubCode = Team.ClubCode;
             _federationCode = Team.FederationCode;
             _category = Team.Category;
+            _eventId = Team.EventId;
         }
     }
 
@@ -148,7 +174,8 @@
                     Status = _status,
                     ClubCode = _clubCode,
                     FederationCode = _federationCode,
-                    Category = _category
+                    Category = _category,
+                    EventId = _eventId
                 };
                 var result = await TeamService.CreateTeamAsync(dto);
                 if (result is null)

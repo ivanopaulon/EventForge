@@ -44,6 +44,20 @@ public interface ITeamService
     Task<DocumentReferenceDto?> UpdateDocumentReferenceAsync(Guid id, UpdateDocumentReferenceDto dto, CancellationToken ct = default);
     Task DeleteDocumentReferenceAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>
+    /// Uploads a file and creates a DocumentReference for it, for the given owner.
+    /// </summary>
+    Task<DocumentReferenceDto?> UploadDocumentAsync(
+        Microsoft.AspNetCore.Components.Forms.IBrowserFile file,
+        Guid ownerId,
+        string ownerType,
+        Prym.DTOs.Common.DocumentReferenceType type,
+        Prym.DTOs.Common.DocumentReferenceSubType subType = Prym.DTOs.Common.DocumentReferenceSubType.None,
+        DateTime? expiry = null,
+        string? title = null,
+        string? notes = null,
+        CancellationToken ct = default);
+
     // Fiscal Code Conflicts
     Task<List<TeamMemberDto>> GetFiscalCodeConflictsAsync(string fiscalCode, Guid excludeMemberId, CancellationToken ct = default);
 }

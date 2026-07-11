@@ -1,0 +1,459 @@
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@using Prym.Web.Shared.Management.Adapters
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<TeamMemberDetailDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Badge"
+          Title="@TranslationService.GetTranslation("teams.members.detail", "Scheda Atleta")"
+          IsProcessing="@(_isLoading || _isSaving)"
+          OnClose="Close"
+          MinWidth="@EFDialogDefaults.MinWidthTabbed"
+          MinHeight="@EFDialogDefaults.MinHeightTabbed">
+    <ChildContent>
+        @if (_isLoading)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (_member is null)
+        {
+            <MudAlert Severity="Severity.Error">@TranslationService.GetTranslation("teams.members.notFound", "Membro non trovato.")</MudAlert>
+        }
+        else
+        {
+            <div class="d-flex align-center gap-4 flex-wrap mb-3">
+                <MudAvatar Color="Color.Primary" Size="Size.Medium">
+                    <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                </MudAvatar>
+                <div>
+                    <MudText Typo="Typo.body1" Class="fw-semibold">@_member.FullName</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@_member.TeamName</MudText>
+                </div>
+            </div>
+
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-2">
+                <!-- Tab Anagrafica -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("teams.members.tab.personal", "Anagrafica")"
+                             Icon="@Icons.Material.Outlined.Person">
+                    @if (_conflicts.Count > 0)
+                    {
+                        <MudAlert Severity="Severity.Warning" Class="mb-3" Dense="true" Icon="@Icons.Material.Outlined.Warning">
+                            @TranslationService.GetTranslationFormatted("teams.members.conflictWarning",
+                                "Attenzione: questo membro è attivo anche in: {0}",
+                                string.Join(", ", _conflicts.Select(c => c.TeamName)))
+                        </MudAlert>
+                    }
+                    <MudForm @ref="_personalForm">
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string" @bind-Value="_member.FirstName"
+                                              Label="@TranslationService.GetTranslation("teams.members.firstName", "Nome")"
+                                              Required="true" MaxLength="100" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string" @bind-Value="_member.LastName"
+                                              Label="@TranslationService.GetTranslation("teams.members.lastName", "Cognome")"
+                                              Required="true" MaxLength="100" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string" @bind-Value="_member.Email"
+                                              Label="@TranslationService.GetTranslation("teams.email", "Email")"
+                                              InputType="InputType.Email" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string" @bind-Value="_member.FiscalCode"
+                                              Label="@TranslationService.GetTranslation("teams.members.fiscalCode", "Codice Fiscale")"
+                                              MaxLength="16"
+                                              DebounceInterval="500"
+                                              OnDebounceIntervalElapsed="CheckFiscalCodeConflictsAsync" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudDatePicker @bind-Date="_dateOfBirth"
+                                               Label="@TranslationService.GetTranslation("teams.members.dateOfBirth", "Data di Nascita")"
+                                               DateFormat="dd/MM/yyyy" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string" @bind-Value="_member.Role"
+                                              Label="@TranslationService.GetTranslation("teams.members.role", "Ruolo")"
+                                              MaxLength="50" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField T="string" @bind-Value="_member.Position"
+                                              Label="@TranslationService.GetTranslation("teams.members.position", "Posizione")"
+                                              MaxLength="50" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="int?" @bind-Value="_member.JerseyNumber"
+                                                 Label="@TranslationService.GetTranslation("teams.members.jerseyNumber", "Numero Maglia")"
+                                                 Min="0" Max="999" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudForm>
+                    <div class="d-flex justify-end mt-4">
+                        <PrymButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SavePersonalAsync" Disabled="_isSaving">
+                            @TranslationService.GetTranslation("common.save", "Salva")
+                        </PrymButton>
+                    </div>
+                </MudTabPanel>
+
+                <!-- Tab Tesseramento -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("teams.members.tab.membership", "Tesseramento")"
+                             Icon="@Icons.Material.Outlined.CardMembership">
+                    <EntityManagementPage TEntity="MembershipCardDto"
+                                          @ref="_membershipPage"
+                                          Config="_membershipConfig"
+                                          Service="_membershipService"
+                                          OnCreateOverride="@(() => OpenMembershipCardDialogAsync(null))"
+                                          OnEditOverride="@(id => OpenMembershipCardDialogAsync(id))">
+                        <HeaderContent Context="cols">
+                            @foreach (var col in cols.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                            {
+                                @if (col.PropertyName == "CardNumber")
+                                {
+                                    <EFTableColumnHeader TItem="MembershipCardDto" PropertyName="CardNumber" OnDragStartCallback="@_membershipPage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<MembershipCardDto, object>(x => x.CardNumber))">Numero</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                                else if (col.PropertyName == "Federation")
+                                {
+                                    <EFTableColumnHeader TItem="MembershipCardDto" PropertyName="Federation" OnDragStartCallback="@_membershipPage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<MembershipCardDto, object>(x => x.Federation))">Federazione</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                                else if (col.PropertyName == "Category")
+                                {
+                                    <EFTableColumnHeader TItem="MembershipCardDto" PropertyName="Category" OnDragStartCallback="@_membershipPage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<MembershipCardDto, object>(x => x.Category ?? ""))">Categoria</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                                else if (col.PropertyName == "ValidTo")
+                                {
+                                    <EFTableColumnHeader TItem="MembershipCardDto" PropertyName="ValidTo" OnDragStartCallback="@_membershipPage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<MembershipCardDto, object>(x => x.ValidTo))">Scadenza</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                            }
+                            <MudTh Class="text-center">Azioni</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="ctx">
+                            @foreach (var col in ctx.Cols)
+                            {
+                                @if (col.PropertyName == "CardNumber")
+                                {
+                                    <MudTd>@ctx.Item.CardNumber</MudTd>
+                                }
+                                else if (col.PropertyName == "Federation")
+                                {
+                                    <MudTd>@ctx.Item.Federation</MudTd>
+                                }
+                                else if (col.PropertyName == "Category")
+                                {
+                                    <MudTd>@(ctx.Item.Category ?? "—")</MudTd>
+                                }
+                                else if (col.PropertyName == "ValidTo")
+                                {
+                                    <MudTd>
+                                        <MudText Typo="Typo.body2" Color="@(ctx.Item.IsValid ? Color.Default : Color.Error)">
+                                            @ctx.Item.ValidTo.ToString("dd/MM/yyyy")
+                                        </MudText>
+                                    </MudTd>
+                                }
+                            }
+                        </RowTemplate>
+                    </EntityManagementPage>
+                </MudTabPanel>
+
+                <!-- Tab Assicurazione -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("teams.members.tab.insurance", "Assicurazione")"
+                             Icon="@Icons.Material.Outlined.HealthAndSafety">
+                    <EntityManagementPage TEntity="InsurancePolicyDto"
+                                          @ref="_insurancePage"
+                                          Config="_insuranceConfig"
+                                          Service="_insuranceService"
+                                          OnCreateOverride="@(() => OpenInsurancePolicyDialogAsync(null))"
+                                          OnEditOverride="@(id => OpenInsurancePolicyDialogAsync(id))">
+                        <HeaderContent Context="cols">
+                            @foreach (var col in cols.Where(c => c.IsVisible).OrderBy(c => c.Order))
+                            {
+                                @if (col.PropertyName == "Provider")
+                                {
+                                    <EFTableColumnHeader TItem="InsurancePolicyDto" PropertyName="Provider" OnDragStartCallback="@_insurancePage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<InsurancePolicyDto, object>(x => x.Provider))">Provider</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                                else if (col.PropertyName == "PolicyNumber")
+                                {
+                                    <EFTableColumnHeader TItem="InsurancePolicyDto" PropertyName="PolicyNumber" OnDragStartCallback="@_insurancePage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<InsurancePolicyDto, object>(x => x.PolicyNumber))">N. Polizza</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                                else if (col.PropertyName == "CoverageType")
+                                {
+                                    <EFTableColumnHeader TItem="InsurancePolicyDto" PropertyName="CoverageType" OnDragStartCallback="@_insurancePage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<InsurancePolicyDto, object>(x => x.CoverageType ?? ""))">Copertura</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                                else if (col.PropertyName == "ValidTo")
+                                {
+                                    <EFTableColumnHeader TItem="InsurancePolicyDto" PropertyName="ValidTo" OnDragStartCallback="@_insurancePage!.EFTableRef!.HandleColumnDragStart">
+                                        <MudTableSortLabel SortBy="@(new Func<InsurancePolicyDto, object>(x => x.ValidTo))">Scadenza</MudTableSortLabel>
+                                    </EFTableColumnHeader>
+                                }
+                            }
+                            <MudTh Class="text-center">Azioni</MudTh>
+                        </HeaderContent>
+                        <RowTemplate Context="ctx">
+                            @foreach (var col in ctx.Cols)
+                            {
+                                @if (col.PropertyName == "Provider")
+                                {
+                                    <MudTd>@ctx.Item.Provider</MudTd>
+                                }
+                                else if (col.PropertyName == "PolicyNumber")
+                                {
+                                    <MudTd>@ctx.Item.PolicyNumber</MudTd>
+                                }
+                                else if (col.PropertyName == "CoverageType")
+                                {
+                                    <MudTd>@(ctx.Item.CoverageType ?? "—")</MudTd>
+                                }
+                                else if (col.PropertyName == "ValidTo")
+                                {
+                                    <MudTd>
+                                        <MudText Typo="Typo.body2" Color="@(ctx.Item.IsValid ? Color.Default : Color.Error)">
+                                            @ctx.Item.ValidTo.ToString("dd/MM/yyyy")
+                                        </MudText>
+                                    </MudTd>
+                                }
+                            }
+                        </RowTemplate>
+                    </EntityManagementPage>
+                </MudTabPanel>
+
+                <!-- Tab Documenti -->
+                <MudTabPanel Text="@TranslationService.GetTranslation("teams.members.tab.documents", "Documenti")"
+                             Icon="@Icons.Material.Outlined.Description">
+                    <DocumentReferenceManager OwnerId="@MemberId" OwnerType="TeamMember" />
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </ChildContent>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public Guid MemberId { get; set; }
+
+    private TeamMemberDto? _member;
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private DateTime? _dateOfBirth;
+    private List<TeamMemberDto> _conflicts = new();
+    private MudForm _personalForm = null!;
+
+    // Membership card tab
+    private EntityManagementPage<MembershipCardDto>? _membershipPage;
+    private IEntityManagementService<MembershipCardDto> _membershipService = null!;
+    private EntityManagementConfig<MembershipCardDto> _membershipConfig = null!;
+
+    // Insurance tab
+    private EntityManagementPage<InsurancePolicyDto>? _insurancePage;
+    private IEntityManagementService<InsurancePolicyDto> _insuranceService = null!;
+    private EntityManagementConfig<InsurancePolicyDto> _insuranceConfig = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _member = await TeamService.GetTeamMemberByIdAsync(MemberId);
+        if (_member is not null)
+        {
+            _dateOfBirth = _member.DateOfBirth;
+
+            // Initialize sub-services
+            _membershipService = new MembershipCardManagementService(TeamService, MemberId);
+            _membershipConfig = new EntityManagementConfig<MembershipCardDto>
+            {
+                ComponentKey = "MembershipCardManagement",
+                PageTitleKey = "teams.membership.management",
+                PageTitleDefault = "Tesseramenti",
+                EntityIcon = Icons.Material.Outlined.CardMembership,
+                PageRootCssClass = "membership-card-management",
+                BaseRoute = $"/management/teams/members/{MemberId}/membership-cards",
+                EntityTypeName = "MembershipCard",
+                ShowDelete = true,
+                ShowEdit = true,
+                ShowAuditLog = false,
+                ShowToggleStatus = false,
+                GetDisplayName = c => c.CardNumber,
+                GetId = c => c.Id,
+                Columns =
+                [
+                    new() { PropertyName = "CardNumber", DisplayName = "Numero", IsVisible = true, Order = 0, IsSearchable = true },
+                    new() { PropertyName = "Federation", DisplayName = "Federazione", IsVisible = true, Order = 1, IsSearchable = true },
+                    new() { PropertyName = "Category", DisplayName = "Categoria", IsVisible = true, Order = 2, IsSearchable = false },
+                    new() { PropertyName = "ValidTo", DisplayName = "Scadenza", IsVisible = true, Order = 3, IsSearchable = false }
+                ]
+            };
+
+            _insuranceService = new InsurancePolicyManagementService(TeamService, MemberId);
+            _insuranceConfig = new EntityManagementConfig<InsurancePolicyDto>
+            {
+                ComponentKey = "InsurancePolicyManagement",
+                PageTitleKey = "teams.insurance.management",
+                PageTitleDefault = "Polizze Assicurative",
+                EntityIcon = Icons.Material.Outlined.HealthAndSafety,
+                PageRootCssClass = "insurance-policy-management",
+                BaseRoute = $"/management/teams/members/{MemberId}/insurance-policies",
+                EntityTypeName = "InsurancePolicy",
+                ShowDelete = true,
+                ShowEdit = true,
+                ShowAuditLog = false,
+                ShowToggleStatus = false,
+                GetDisplayName = p => p.PolicyNumber,
+                GetId = p => p.Id,
+                Columns =
+                [
+                    new() { PropertyName = "Provider", DisplayName = "Provider", IsVisible = true, Order = 0, IsSearchable = true },
+                    new() { PropertyName = "PolicyNumber", DisplayName = "N. Polizza", IsVisible = true, Order = 1, IsSearchable = true },
+                    new() { PropertyName = "CoverageType", DisplayName = "Copertura", IsVisible = true, Order = 2, IsSearchable = false },
+                    new() { PropertyName = "ValidTo", DisplayName = "Scadenza", IsVisible = true, Order = 3, IsSearchable = false }
+                ]
+            };
+
+            // Check conflicts
+            await CheckFiscalCodeConflictsAsync();
+        }
+        _isLoading = false;
+    }
+
+    private async Task CheckFiscalCodeConflictsAsync()
+    {
+        if (_member is null || string.IsNullOrWhiteSpace(_member.FiscalCode)) 
+        {
+            _conflicts = new();
+            return;
+        }
+
+        try
+        {
+            _conflicts = await TeamService.GetFiscalCodeConflictsAsync(_member.FiscalCode, _member.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error checking fiscal code conflicts");
+            _conflicts = new();
+        }
+    }
+
+    private async Task SavePersonalAsync()
+    {
+        await _personalForm.Validate();
+        if (!_personalForm.IsValid || _member is null) return;
+
+        _isSaving = true;
+        try
+        {
+            var dto = new UpdateTeamMemberDto
+            {
+                FirstName = _member.FirstName,
+                LastName = _member.LastName,
+                Email = _member.Email,
+                FiscalCode = _member.FiscalCode,
+                DateOfBirth = _dateOfBirth,
+                Role = _member.Role,
+                Position = _member.Position,
+                JerseyNumber = _member.JerseyNumber,
+                Status = _member.Status,
+                EligibilityStatus = _member.EligibilityStatus
+            };
+            var result = await TeamService.UpdateTeamMemberAsync(_member.Id, dto);
+            if (result is not null)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("teams.members.updated", "Membro aggiornato con successo."));
+                _member = result;
+                _dateOfBirth = result.DateOfBirth;
+                await CheckFiscalCodeConflictsAsync();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("teams.members.saveError", "Errore nel salvataggio del membro."));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving team member personal info");
+            AppNotification.ShowError(TranslationService.GetTranslation("teams.members.saveError", "Errore nel salvataggio del membro."));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task OpenMembershipCardDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters();
+            if (id.HasValue)
+            {
+                var card = await TeamService.GetMembershipCardByIdAsync(id.Value);
+                if (card is null)
+                {
+                    AppNotification.ShowWarning("Tesseramento non trovato.");
+                    return;
+                }
+                parameters[nameof(MembershipCardDialog.Card)] = card;
+            }
+            parameters[nameof(MembershipCardDialog.TeamMemberId)] = MemberId;
+
+            var dialog = await DialogService.ShowAsync<MembershipCardDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _membershipPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening membership card dialog");
+            AppNotification.ShowWarning("Errore nell'apertura del dialogo.");
+        }
+    }
+
+    private async Task OpenInsurancePolicyDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters();
+            if (id.HasValue)
+            {
+                var policy = await TeamService.GetInsurancePolicyByIdAsync(id.Value);
+                if (policy is null)
+                {
+                    AppNotification.ShowWarning("Polizza non trovata.");
+                    return;
+                }
+                parameters[nameof(InsurancePolicyDialog.Policy)] = policy;
+            }
+            parameters[nameof(InsurancePolicyDialog.TeamMemberId)] = MemberId;
+
+            var dialog = await DialogService.ShowAsync<InsurancePolicyDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _insurancePage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening insurance policy dialog");
+            AppNotification.ShowWarning("Errore nell'apertura del dialogo.");
+        }
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}
