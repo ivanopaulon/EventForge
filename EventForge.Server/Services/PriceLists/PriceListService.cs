@@ -189,6 +189,11 @@ public class PriceListService(
             ArgumentNullException.ThrowIfNull(updatePriceListDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            if (updatePriceListDto.EventId.HasValue && !await EventExistsAsync(updatePriceListDto.EventId.Value, cancellationToken))
+            {
+                throw new ArgumentException($"Event with ID {updatePriceListDto.EventId} does not exist.");
+            }
+
             var originalPriceList = await context.PriceLists
                 .AsNoTracking()
                 .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
@@ -216,6 +221,7 @@ public class PriceListService(
             priceList.Notes = updatePriceListDto.Notes;
             priceList.IsDefault = updatePriceListDto.IsDefault;
             priceList.Priority = updatePriceListDto.Priority;
+            priceList.EventId = updatePriceListDto.EventId;
             priceList.ModifiedBy = currentUser;
             priceList.ModifiedAt = DateTime.UtcNow;
 

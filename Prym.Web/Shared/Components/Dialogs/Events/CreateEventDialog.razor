@@ -1,7 +1,13 @@
 @using Prym.DTOs.Events
+@using Prym.DTOs.Teams
+@using Prym.DTOs.PriceLists
+@using Prym.Web.Services.Teams
 @inject IEventService EventService
+@inject ITeamService TeamService
+@inject IPriceListService PriceListService
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
+@inject NavigationManager NavigationManager
 @inject ILogger<CreateEventDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.EventNote"
@@ -207,6 +213,58 @@
                     }
                 </MudPaper>
 
+                @if (_isEditMode)
+                {
+                    <!-- Squadre collegate (sola lettura) -->
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                            <MudText Typo="Typo.subtitle1">
+                                <MudIcon Icon="@Icons.Material.Outlined.Groups" Size="Size.Small" Class="mr-1" />
+                                @TranslationService.GetTranslation("events.linkedTeams", "Squadre Collegate")
+                                (@_linkedTeams.Count)
+                            </MudText>
+                            <MudButton OnClick="GoToTeamManagement" Variant="Variant.Text" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Outlined.OpenInNew" Size="Size.Small">
+                                @TranslationService.GetTranslation("events.goToTeamManagement", "Vai a Gestione Squadre")
+                            </MudButton>
+                        </MudStack>
+                        @if (_linkedTeams.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                @TranslationService.GetTranslation("events.noLinkedTeams", "Nessuna squadra collegata a questo evento.")
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudStack Spacing="1">
+                                @foreach (var team in _linkedTeams)
+                                {
+                                    <MudChip T="string" Icon="@Icons.Material.Outlined.Groups" Size="Size.Small">@team.Name</MudChip>
+                                }
+                            </MudStack>
+                        }
+                    </MudPaper>
+
+                    <!-- Listino prezzi collegato -->
+                    <MudPaper Elevation="2" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">
+                            <MudIcon Icon="@Icons.Material.Outlined.PriceChange" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("events.linkedPriceList", "Listino Prezzi Collegato")
+                        </MudText>
+                        <PrymSelect T="Guid?"
+                                    Value="@_selectedPriceListId"
+                                    ValueChanged="@OnPriceListSelected"
+                                    Label="@TranslationService.GetTranslation("field.priceList", "Listino")"
+                                    Clearable="true"
+                                    Disabled="@_isLoadingPriceLists">
+                            @foreach (var pl in _availablePriceLists)
+                            {
+                                <MudSelectItem T="Guid?" Value="@((Guid?)pl.Id)">@pl.Name</MudSelectItem>
+                            }
+                        </PrymSelect>
+                    </MudPaper>
+                }
+
             </MudStack>
         </MudForm>
     </ChildContent>
@@ -249,6 +307,12 @@
     private readonly string[] _presetColors = ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#9C27B0", "#FF5722", "#00BCD4", "#607D8B"];
 
     private bool _hasInvalidTimeSlot => _model.TimeSlots.Any(s => s.EndTime <= s.StartTime);
+
+    private List<TeamDto> _linkedTeams = new();
+
+    private List<PriceListDto> _availablePriceLists = new();
+    private Guid? _selectedPriceListId;
+    private bool _isLoadingPriceLists;
 
     // Internal model uses UpdateEventDto for both modes (superset of CreateEventDto fields).
     private UpdateEventDto _model = new()
@@ -307,6 +371,112 @@
             if (PrefilledEndDate?.TimeOfDay != TimeSpan.Zero)
                 _endTime = PrefilledEndDate?.TimeOfDay ?? _endTime;
         }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (_isEditMode)
+        {
+            try
+            {
+                var teams = await TeamService.GetTeamsByEventAsync(ExistingEvent!.Id);
+                _linkedTeams = teams?.OrderBy(t => t.Name).ToList() ?? new();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error loading teams linked to event {EventId}.", ExistingEvent!.Id);
+            }
+
+            await LoadPriceListsAsync();
+        }
+    }
+
+    private async Task LoadPriceListsAsync()
+    {
+        try
+        {
+            _isLoadingPriceLists = true;
+            var paged = await PriceListService.GetPagedAsync(1, 200);
+            _availablePriceLists = paged?.Items?.OrderBy(p => p.Name).ToList() ?? new();
+
+            var linked = await PriceListService.GetByEventAsync(ExistingEvent!.Id, default);
+            _selectedPriceListId = linked?.FirstOrDefault()?.Id;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading price lists for event {EventId}.", ExistingEvent!.Id);
+        }
+        finally
+        {
+            _isLoadingPriceLists = false;
+        }
+    }
+
+    private async Task OnPriceListSelected(Guid? newPriceListId)
+    {
+        if (ExistingEvent is null || newPriceListId == _selectedPriceListId) return;
+
+        var previousId = _selectedPriceListId;
+        _selectedPriceListId = newPriceListId;
+
+        try
+        {
+            _isLoadingPriceLists = true;
+
+            // Unlink the previously selected price list, if any.
+            if (previousId.HasValue)
+            {
+                var previous = _availablePriceLists.FirstOrDefault(p => p.Id == previousId.Value)
+                                ?? await PriceListService.GetByIdAsync(previousId.Value, default);
+                if (previous is not null)
+                {
+                    await PriceListService.UpdateAsync(previousId.Value, BuildUpdatePriceListDto(previous, eventId: null), default);
+                }
+            }
+
+            // Link the newly selected price list.
+            if (newPriceListId.HasValue)
+            {
+                var selected = _availablePriceLists.FirstOrDefault(p => p.Id == newPriceListId.Value)
+                               ?? await PriceListService.GetByIdAsync(newPriceListId.Value, default);
+                if (selected is not null)
+                {
+                    await PriceListService.UpdateAsync(newPriceListId.Value, BuildUpdatePriceListDto(selected, eventId: ExistingEvent.Id), default);
+                }
+            }
+
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("events.priceListLinked", "Listino collegato con successo"));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error linking price list to event {EventId}.", ExistingEvent.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("events.priceListLinkError", "Errore durante il collegamento del listino"));
+            _selectedPriceListId = previousId;
+        }
+        finally
+        {
+            _isLoadingPriceLists = false;
+        }
+    }
+
+    private static UpdatePriceListDto BuildUpdatePriceListDto(PriceListDto source, Guid? eventId) => new()
+    {
+        Name = source.Name,
+        Description = source.Description,
+        ValidFrom = source.ValidFrom,
+        ValidTo = source.ValidTo,
+        Notes = source.Notes,
+        Status = source.Status,
+        IsDefault = source.IsDefault,
+        Priority = source.Priority,
+        EventId = eventId
+    };
+
+    private void GoToTeamManagement()
+    {
+        if (ExistingEvent is null) return;
+        MudDialog.Cancel();
+        NavigationManager.NavigateTo($"/management/teams?eventId={ExistingEvent.Id}");
     }
 
     private void OnColorChanged(ChangeEventArgs e)
