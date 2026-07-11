@@ -1,6 +1,8 @@
 @using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Services
 @inject ILogger<EditFidelityCardDialog> Logger
 @inject IAppNotificationService AppNotification
+@inject IFidelityTierService FidelityTierService
 
 <EFDialog Icon="@Icons.Material.Outlined.CardMembership"
           Title="Modifica Card Fedeltà"
@@ -21,14 +23,14 @@
                 </MudItem>
                 
                 <MudItem xs="12" md="6">
-                    <MudSelect @bind-Value="_type"
-                              Label="Tipo Card *"
+                    <MudSelect T="Guid?" @bind-Value="_tierId"
+                              Label="Livello *"
                               Variant="Variant.Outlined"
                               Required="true">
-                        <MudSelectItem Value="@FidelityCardType.Bronze">Bronze</MudSelectItem>
-                        <MudSelectItem Value="@FidelityCardType.Silver">Silver</MudSelectItem>
-                        <MudSelectItem Value="@FidelityCardType.Gold">Gold</MudSelectItem>
-                        <MudSelectItem Value="@FidelityCardType.Platinum">Platinum</MudSelectItem>
+                        @foreach (var tier in _tiers)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)tier.Id)">@tier.Name</MudSelectItem>
+                        }
                     </MudSelect>
                 </MudItem>
                 
@@ -125,7 +127,8 @@
     private bool _isValid;
     private bool _isProcessing;
     
-    private FidelityCardType _type;
+    private Guid? _tierId;
+    private IReadOnlyList<FidelityTierDto> _tiers = [];
     private FidelityCardStatus _status;
     private DateTime? _validFrom;
     private DateTime? _validTo;
@@ -133,10 +136,25 @@
     private bool _hasPriorityAccess;
     private bool _hasBirthdayBonus;
     private string? _notes;
-    
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tiers = (await FidelityTierService.GetAllAsync())
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.SortOrder)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento dei livelli fedeltà");
+        }
+    }
+
     protected override void OnParametersSet()
     {
-        _type = Card.Type;
+        _tierId = Card.TierId;
         _status = Card.Status;
         _validFrom = Card.ValidFrom;
         _validTo = Card.ValidTo;
@@ -156,7 +174,7 @@
             
             var updateCard = new UpdateFidelityCardDto
             {
-                Type = _type,
+                TierId = _tierId,
                 ValidFrom = _validFrom ?? Card.ValidFrom,
                 ValidTo = _validTo ?? Card.ValidTo,
                 DiscountPercentage = _discountPercentage,

@@ -21,7 +21,7 @@ public class FidelityTierMultiplierManagementService(IFidelityTierMultiplierServ
         CancellationToken ct = default)
     {
         var all = (await tierMultiplierService.GetByCampaignAsync(campaignId, ct))
-            .OrderBy(x => x.CardType)
+            .OrderBy(x => x.TierName)
             .ToList();
 
         var items = all

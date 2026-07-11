@@ -1,0 +1,197 @@
+@page "/business/fidelity-tiers"
+@using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Shared.Components.Dialogs
+@using Prym.Web.Shared.Components.Fidelity
+@using Prym.Web.Shared.Management.Adapters
+@attribute [Authorize]
+@inject IFidelityTierService FidelityTierService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<FidelityTierManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("fidelity.tiers.management", "Gestione Livelli Fedeltà")</PageTitle>
+
+<EntityManagementPage TEntity="FidelityTierDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenDialogAsync(null))"
+                      OnEditOverride="@(id => OpenDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == nameof(FidelityTierDto.SortOrder))
+            {
+                <EFTableColumnHeader TItem="FidelityTierDto" PropertyName="@nameof(FidelityTierDto.SortOrder)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierDto, object>(x => x.SortOrder))">@TranslationService.GetTranslation("fidelity.tiers.sortOrder", "Ordine")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.Name))
+            {
+                <EFTableColumnHeader TItem="FidelityTierDto" PropertyName="@nameof(FidelityTierDto.Name)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierDto, object>(x => x.Name))">@TranslationService.GetTranslation("fidelity.tiers.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.MinimumSpendThreshold))
+            {
+                <EFTableColumnHeader TItem="FidelityTierDto" PropertyName="@nameof(FidelityTierDto.MinimumSpendThreshold)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierDto, object>(x => x.MinimumSpendThreshold ?? decimal.MinValue))">@TranslationService.GetTranslation("fidelity.tiers.minimumSpend", "Soglia di spesa")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.EvaluationPeriodMonths))
+            {
+                <EFTableColumnHeader TItem="FidelityTierDto" PropertyName="@nameof(FidelityTierDto.EvaluationPeriodMonths)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierDto, object>(x => x.EvaluationPeriodMonths))">@TranslationService.GetTranslation("fidelity.tiers.evaluationPeriod", "Periodo (mesi)")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.IsActive))
+            {
+                <EFTableColumnHeader TItem="FidelityTierDto" PropertyName="@nameof(FidelityTierDto.IsActive)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityTierDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("common.active", "Attivo")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == nameof(FidelityTierDto.SortOrder))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.tiers.sortOrder", "Ordine")">@ctx.Item.SortOrder</MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.Name))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.tiers.name", "Nome")">
+                    <div class="d-flex align-center">
+                        @if (!string.IsNullOrWhiteSpace(ctx.Item.Icon))
+                        {
+                            <MudIcon Icon="@ctx.Item.Icon" Class="mr-2" Style="@GetColorStyle(ctx.Item.Color)" />
+                        }
+                        <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Name</MudText>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.MinimumSpendThreshold))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.tiers.minimumSpend", "Soglia di spesa")">
+                    @if (ctx.Item.MinimumSpendThreshold.HasValue)
+                    {
+                        <MudText Typo="Typo.body2">@ctx.Item.MinimumSpendThreshold.Value.ToString("0.##")</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                    }
+                </MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.EvaluationPeriodMonths))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.tiers.evaluationPeriod", "Periodo (mesi)")">@ctx.Item.EvaluationPeriodMonths</MudTd>
+            }
+            else if (column.PropertyName == nameof(FidelityTierDto.IsActive))
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("common.active", "Attivo")">
+                    <MudChip T="string" Size="Size.Small" Color="@(ctx.Item.IsActive ? Color.Success : Color.Default)">
+                        @(ctx.Item.IsActive
+                            ? TranslationService.GetTranslation("common.yes", "Sì")
+                            : TranslationService.GetTranslation("common.no", "No"))
+                    </MudChip>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<FidelityTierDto>? _entityPage;
+    private IEntityManagementService<FidelityTierDto> _service = null!;
+    private EntityManagementConfig<FidelityTierDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new FidelityTierManagementService(FidelityTierService);
+        _config = new EntityManagementConfig<FidelityTierDto>
+        {
+            ComponentKey = "FidelityTierManagement",
+            PageTitleKey = "fidelity.tiers.management",
+            PageTitleDefault = "Gestione Livelli Fedeltà",
+            EntityIcon = Icons.Material.Outlined.WorkspacePremium,
+            PageRootCssClass = "fidelity-tier-page-root",
+            BaseRoute = "/business/fidelity-tiers",
+            ExcelFileName = "LivelliFedelta",
+            SearchPlaceholderKey = "fidelity.tiers.search",
+            SearchPlaceholderDefault = "Cerca livello…",
+            EntityTypeName = "FidelityTier",
+            CreateTooltip = "fidelity.tiers.createNew",
+            ShowDelete = true,
+            ShowEdit = true,
+            ShowCreate = true,
+            ShowAuditLog = false,
+            GetDisplayName = tier => tier.Name,
+            GetId = tier => tier.Id,
+            DeleteConfirmMessageKey = "fidelity.tiers.confirmDelete",
+            DeleteSuccessMessageKey = "fidelity.tiers.deleted",
+            DeleteErrorMessageKey = "fidelity.tiers.deleteError",
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.home", "Home"), "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem(TranslationService.GetTranslation("nav.registries", "Anagrafiche"), null, disabled: true),
+                new BreadcrumbItem(TranslationService.GetTranslation("fidelity.tiers.management", "Gestione Livelli Fedeltà"), null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = nameof(FidelityTierDto.SortOrder), DisplayName = "Ordine", IsVisible = true, Order = 0, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityTierDto.Name), DisplayName = "Nome", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityTierDto.MinimumSpendThreshold), DisplayName = "Soglia di spesa", IsVisible = true, Order = 2, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityTierDto.EvaluationPeriodMonths), DisplayName = "Periodo (mesi)", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = nameof(FidelityTierDto.IsActive), DisplayName = "Attivo", IsVisible = true, Order = 4, IsSearchable = false }
+            ]
+        };
+    }
+
+    private async Task OpenDialogAsync(Guid? id)
+    {
+        try
+        {
+            IDialogReference dialog;
+
+            if (id.HasValue)
+            {
+                var tier = await FidelityTierService.GetByIdAsync(id.Value);
+                if (tier is null)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("fidelity.tiers.notFound", "Livello fedeltà non trovato."));
+                    return;
+                }
+
+                var parameters = new DialogParameters<CreateFidelityTierDialog>
+                {
+                    { x => x.Tier, tier }
+                };
+                dialog = await DialogService.ShowAsync<CreateFidelityTierDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            }
+            else
+            {
+                dialog = await DialogService.ShowAsync<CreateFidelityTierDialog>(string.Empty, new DialogParameters(), EFDialogDefaults.Options);
+            }
+
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening fidelity tier dialog for ID {Id}.", id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelity.tiers.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private static string GetColorStyle(string? color)
+    {
+        var safeColor = Prym.Web.Shared.Utils.CssColorSanitizer.SanitizeOrNull(color);
+        return safeColor is null ? string.Empty : $"color: {safeColor};";
+    }
+}

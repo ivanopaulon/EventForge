@@ -66,7 +66,7 @@ public class FidelityTierMultipliersController(
             var created = await tierMultiplierService.CreateAsync(new FidelityTierMultiplier
             {
                 CampaignId = dto.CampaignId,
-                CardType = (EventForge.Server.Data.Entities.Business.FidelityCardType)dto.CardType,
+                TierId = dto.TierId,
                 Multiplier = dto.Multiplier
             }, GetCurrentUser(), cancellationToken);
 
@@ -99,7 +99,7 @@ public class FidelityTierMultipliersController(
         {
             var updated = await tierMultiplierService.UpdateAsync(id, new FidelityTierMultiplier
             {
-                CardType = (EventForge.Server.Data.Entities.Business.FidelityCardType)dto.CardType,
+                TierId = dto.TierId,
                 Multiplier = dto.Multiplier
             }, GetCurrentUser(), cancellationToken);
 
@@ -139,7 +139,8 @@ public class FidelityTierMultipliersController(
         {
             Id = multiplier.Id,
             CampaignId = multiplier.CampaignId,
-            CardType = (Prym.DTOs.Business.Fidelity.FidelityCardType)multiplier.CardType,
+            TierId = multiplier.TierId,
+            TierName = multiplier.Tier?.Name,
             Multiplier = multiplier.Multiplier,
             CreatedAt = multiplier.CreatedAt
         };

@@ -169,10 +169,10 @@
                            <HeaderContent Context="cols">
                                @foreach (var col in cols.Where(c => c.IsVisible).OrderBy(c => c.Order))
                                {
-                                   @if (col.PropertyName == nameof(FidelityTierMultiplierDto.CardType))
+                                   @if (col.PropertyName == nameof(FidelityTierMultiplierDto.TierName))
                                    {
-                                       <EFTableColumnHeader TItem="FidelityTierMultiplierDto" PropertyName="@nameof(FidelityTierMultiplierDto.CardType)" OnDragStartCallback="@_tierMultiplierPage!.EFTableRef!.HandleColumnDragStart">
-                                           <MudTableSortLabel SortBy="@(new Func<FidelityTierMultiplierDto, object>(x => x.CardType.ToString()))">@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")</MudTableSortLabel>
+                                       <EFTableColumnHeader TItem="FidelityTierMultiplierDto" PropertyName="@nameof(FidelityTierMultiplierDto.TierName)" OnDragStartCallback="@_tierMultiplierPage!.EFTableRef!.HandleColumnDragStart">
+                                           <MudTableSortLabel SortBy="@(new Func<FidelityTierMultiplierDto, object>(x => x.TierName ?? string.Empty))">@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")</MudTableSortLabel>
                                        </EFTableColumnHeader>
                                    }
                                    else if (col.PropertyName == nameof(FidelityTierMultiplierDto.Multiplier))
@@ -187,9 +187,9 @@
                            <RowTemplate Context="ctx">
                                @foreach (var col in ctx.Cols)
                                {
-                                   @if (col.PropertyName == nameof(FidelityTierMultiplierDto.CardType))
+                                   @if (col.PropertyName == nameof(FidelityTierMultiplierDto.TierName))
                                    {
-                                       <MudTd>@GetCardTypeLabel(ctx.Item.CardType)</MudTd>
+                                       <MudTd>@(ctx.Item.TierName ?? "—")</MudTd>
                                    }
                                    else if (col.PropertyName == nameof(FidelityTierMultiplierDto.Multiplier))
                                    {
@@ -299,14 +299,14 @@
             ShowEdit = true,
             ShowDelete = true,
             ShowAuditLog = false,
-            GetDisplayName = multiplier => GetCardTypeLabel(multiplier.CardType),
+            GetDisplayName = multiplier => multiplier.TierName ?? string.Empty,
             GetId = multiplier => multiplier.Id,
             DeleteConfirmMessageKey = "fidelityPoints.tierMultipliers.confirmDelete",
             DeleteSuccessMessageKey = "fidelityPoints.tierMultipliers.deleted",
             DeleteErrorMessageKey = "fidelityPoints.tierMultipliers.deleteError",
             Columns =
             [
-                new() { PropertyName = nameof(FidelityTierMultiplierDto.CardType), DisplayName = "Livello Carta", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = nameof(FidelityTierMultiplierDto.TierName), DisplayName = "Livello Carta", IsVisible = true, Order = 0, IsSearchable = true },
                 new() { PropertyName = nameof(FidelityTierMultiplierDto.Multiplier), DisplayName = "Moltiplicatore", IsVisible = true, Order = 1, IsSearchable = false }
             ]
         };
@@ -317,7 +317,7 @@
         try
         {
             var existing = await TierMultiplierService.GetByCampaignAsync(Campaign!.Id);
-            var existingCardTypes = existing.Select(x => x.CardType).ToList();
+            var existingTierIds = existing.Select(x => x.TierId).ToList();
 
             FidelityTierMultiplierDto? multiplier = null;
             if (id.HasValue)
@@ -334,7 +334,7 @@
             {
                 { x => x.CampaignId, Campaign!.Id },
                 { x => x.TierMultiplier, multiplier },
-                { x => x.ExistingCardTypes, existingCardTypes }
+                { x => x.ExistingTierIds, existingTierIds }
             };
             var dialog = await DialogService.ShowAsync<EditFidelityTierMultiplierDialog>(string.Empty, parameters, EFDialogDefaults.Options);
             var result = await dialog.Result;
@@ -347,15 +347,6 @@
             AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
         }
     }
-
-    private string GetCardTypeLabel(FidelityCardType cardType) => cardType switch
-    {
-        FidelityCardType.Bronze => TranslationService.GetTranslation("fidelity.cardType.bronze", "Bronze"),
-        FidelityCardType.Silver => TranslationService.GetTranslation("fidelity.cardType.silver", "Silver"),
-        FidelityCardType.Gold => TranslationService.GetTranslation("fidelity.cardType.gold", "Gold"),
-        FidelityCardType.Platinum => TranslationService.GetTranslation("fidelity.cardType.platinum", "Platinum"),
-        _ => cardType.ToString()
-    };
 
     private async Task SubmitAsync()
     {

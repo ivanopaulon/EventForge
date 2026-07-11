@@ -1,6 +1,8 @@
 @using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Services
 @inject ILogger<CreateFidelityCardDialog> Logger
 @inject IAppNotificationService AppNotification
+@inject IFidelityTierService FidelityTierService
 
 <EFDialog Icon="@Icons.Material.Outlined.CardMembership"
           Title="Nuova Card Fedeltà"
@@ -21,14 +23,14 @@
                 </MudItem>
 
                 <MudItem xs="12" md="6">
-                    <MudSelect @bind-Value="_type"
-                              Label="Tipo Card *"
+                    <MudSelect T="Guid?" @bind-Value="_tierId"
+                              Label="Livello *"
                               Variant="Variant.Outlined"
                               Required="true">
-                        <MudSelectItem Value="@FidelityCardType.Bronze">Bronze</MudSelectItem>
-                        <MudSelectItem Value="@FidelityCardType.Silver">Silver</MudSelectItem>
-                        <MudSelectItem Value="@FidelityCardType.Gold">Gold</MudSelectItem>
-                        <MudSelectItem Value="@FidelityCardType.Platinum">Platinum</MudSelectItem>
+                        @foreach (var tier in _tiers)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)tier.Id)">@tier.Name</MudSelectItem>
+                        }
                     </MudSelect>
                 </MudItem>
                 
@@ -110,13 +112,30 @@
     private bool _isProcessing;
     
     private string _cardNumber = string.Empty;
-    private FidelityCardType _type = FidelityCardType.Bronze;
+    private Guid? _tierId;
+    private IReadOnlyList<FidelityTierDto> _tiers = [];
     private DateTime? _validFrom = DateTime.Now;
     private DateTime? _validTo = DateTime.Now.AddYears(1);
     private decimal _discountPercentage = 0;
     private bool _hasPriorityAccess = false;
     private bool _hasBirthdayBonus = false;
     private string? _notes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tiers = (await FidelityTierService.GetAllAsync())
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.SortOrder)
+                .ToList();
+            _tierId = _tiers.FirstOrDefault()?.Id;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Errore durante il caricamento dei livelli fedeltà");
+        }
+    }
     
     private async Task Submit()
     {
@@ -129,7 +148,7 @@
             var newCard = new CreateFidelityCardDto
             {
                 CardNumber = _cardNumber,
-                Type = _type,
+                TierId = _tierId,
                 ValidFrom = _validFrom ?? DateTime.Now,
                 ValidTo = _validTo ?? DateTime.Now.AddYears(1),
                 DiscountPercentage = _discountPercentage,

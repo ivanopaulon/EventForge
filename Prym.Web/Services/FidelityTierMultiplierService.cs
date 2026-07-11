@@ -52,7 +52,7 @@ public class FidelityTierMultiplierService(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error creating fidelity tier multiplier for card type {CardType}", dto.CardType);
+            logger.LogError(ex, "Error creating fidelity tier multiplier for tier {TierId}", dto.TierId);
             throw;
         }
     }

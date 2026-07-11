@@ -1,5 +1,7 @@
 @using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Services
 @inject IFidelityTierMultiplierService TierMultiplierService
+@inject IFidelityTierService FidelityTierService
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject ILogger<EditFidelityTierMultiplierDialog> Logger
@@ -17,7 +19,7 @@
                 <MudItem xs="12" md="6">
                     @if (IsEditMode)
                     {
-                        <MudTextField Value="@GetCardTypeLabel(_cardType)"
+                        <MudTextField Value="@GetTierLabel(_tierId)"
                                       Label="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")"
                                       Variant="Variant.Outlined"
                                       ReadOnly="true"
@@ -26,15 +28,15 @@
                     }
                     else
                     {
-                        <MudSelect T="FidelityCardType"
-                                   @bind-Value="_cardType"
+                        <MudSelect T="Guid"
+                                   @bind-Value="_tierId"
                                    Label="@($"{TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")} *")"
                                    Variant="Variant.Outlined"
                                    Required="true"
                                    Margin="Margin.Dense">
-                            @foreach (var cardType in AvailableCardTypes)
+                            @foreach (var tier in AvailableTiers)
                             {
-                                <MudSelectItem Value="@cardType">@GetCardTypeLabel(cardType)</MudSelectItem>
+                                <MudSelectItem Value="@tier.Id">@tier.Name</MudSelectItem>
                             }
                         </MudSelect>
                     }
@@ -86,31 +88,47 @@
     [Parameter]
     public FidelityTierMultiplierDto? TierMultiplier { get; set; }
 
-    /// <summary>Card types already configured for this campaign, excluded from the create picker.</summary>
+    /// <summary>Tier ids already configured for this campaign, excluded from the create picker.</summary>
     [Parameter]
-    public IReadOnlyCollection<FidelityCardType> ExistingCardTypes { get; set; } = [];
+    public IReadOnlyCollection<Guid> ExistingTierIds { get; set; } = [];
 
     private bool IsEditMode => TierMultiplier is not null;
 
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isProcessing;
-    private FidelityCardType _cardType;
+    private Guid _tierId;
     private decimal _multiplier = 1.0m;
+    private IReadOnlyList<FidelityTierDto> _tiers = [];
 
-    private IEnumerable<FidelityCardType> AvailableCardTypes =>
-        Enum.GetValues<FidelityCardType>().Except(ExistingCardTypes);
+    private IEnumerable<FidelityTierDto> AvailableTiers =>
+        _tiers.Where(t => !ExistingTierIds.Contains(t.Id));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _tiers = (await FidelityTierService.GetAllAsync())
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.SortOrder)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading fidelity tiers");
+        }
+    }
 
     protected override void OnParametersSet()
     {
         if (IsEditMode)
         {
-            _cardType = TierMultiplier!.CardType;
+            _tierId = TierMultiplier!.TierId;
             _multiplier = TierMultiplier.Multiplier;
         }
-        else if (_cardType == default && AvailableCardTypes.Any())
+        else if (_tierId == default && AvailableTiers.Any())
         {
-            _cardType = AvailableCardTypes.First();
+            _tierId = AvailableTiers.First().Id;
         }
     }
 
@@ -134,7 +152,7 @@
             {
                 var dto = new UpdateFidelityTierMultiplierDto
                 {
-                    CardType = _cardType,
+                    TierId = _tierId,
                     Multiplier = _multiplier
                 };
 
@@ -146,7 +164,7 @@
                 var dto = new CreateFidelityTierMultiplierDto
                 {
                     CampaignId = CampaignId,
-                    CardType = _cardType,
+                    TierId = _tierId,
                     Multiplier = _multiplier
                 };
 
@@ -169,12 +187,8 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private string GetCardTypeLabel(FidelityCardType cardType) => cardType switch
-    {
-        FidelityCardType.Bronze => TranslationService.GetTranslation("fidelity.cardType.bronze", "Bronze"),
-        FidelityCardType.Silver => TranslationService.GetTranslation("fidelity.cardType.silver", "Silver"),
-        FidelityCardType.Gold => TranslationService.GetTranslation("fidelity.cardType.gold", "Gold"),
-        FidelityCardType.Platinum => TranslationService.GetTranslation("fidelity.cardType.platinum", "Platinum"),
-        _ => cardType.ToString()
-    };
+    private string GetTierLabel(Guid tierId)
+        => _tiers.FirstOrDefault(t => t.Id == tierId)?.Name
+           ?? TierMultiplier?.TierName
+           ?? tierId.ToString();
 }

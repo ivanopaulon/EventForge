@@ -4,7 +4,8 @@ namespace Prym.DTOs.Business.Fidelity;
 
 public class UpdateFidelityCardDto
 {
-    public FidelityCardType Type { get; set; }
+    /// <summary>Fidelity tier (level) to assign.</summary>
+    public Guid? TierId { get; set; }
     public DateTime ValidFrom { get; set; }
     public DateTime ValidTo { get; set; }
 

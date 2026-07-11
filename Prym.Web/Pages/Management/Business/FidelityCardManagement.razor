@@ -26,10 +26,10 @@
                     <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.CardNumber))">@TranslationService.GetTranslation("fidelity.cardNumber", "Numero Carta")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
-            else if (column.PropertyName == "Type")
+            else if (column.PropertyName == "TierName")
             {
-                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="Type" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.Type.ToString()))">@TranslationService.GetTranslation("field.type", "Tipo")</MudTableSortLabel>
+                <EFTableColumnHeader TItem="FidelityCardDto" PropertyName="TierName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<FidelityCardDto, object>(x => x.TierName ?? string.Empty))">@TranslationService.GetTranslation("fidelity.tier", "Livello")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
             else if (column.PropertyName == "Status")
@@ -67,7 +67,7 @@
             {
                 <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.cardNumber", "Numero Carta")">
                     <div class="d-flex align-center">
-                        <MudAvatar Color="@GetTypeColor(ctx.Item.Type)" Size="Size.Small" Class="mr-2">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2" Style="@GetTierAvatarStyle(ctx.Item.TierColor)">
                             <MudIcon Icon="@Icons.Material.Outlined.CardMembership" />
                         </MudAvatar>
                         <div>
@@ -80,10 +80,10 @@
                     </div>
                 </MudTd>
             }
-            else if (column.PropertyName == "Type")
+            else if (column.PropertyName == "TierName")
             {
-                <MudTd DataLabel="@TranslationService.GetTranslation("field.type", "Tipo")">
-                    <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(ctx.Item.Type)">@ctx.Item.Type</MudChip>
+                <MudTd DataLabel="@TranslationService.GetTranslation("fidelity.tier", "Livello")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Style="@GetTierChipStyle(ctx.Item.TierColor)">@(ctx.Item.TierName ?? "—")</MudChip>
                 </MudTd>
             }
             else if (column.PropertyName == "Status")
@@ -214,7 +214,7 @@
             Columns =
             [
                 new() { PropertyName = "CardNumber", DisplayName = "Numero Carta", IsVisible = true, Order = 0, IsSearchable = true },
-                new() { PropertyName = "Type", DisplayName = "Tipo", IsVisible = true, Order = 1, IsSearchable = false },
+                new() { PropertyName = "TierName", DisplayName = "Livello", IsVisible = true, Order = 1, IsSearchable = false },
                 new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 2, IsSearchable = false },
                 new() { PropertyName = "CurrentPoints", DisplayName = "Punti", IsVisible = true, Order = 3, IsSearchable = false },
                 new() { PropertyName = "DiscountPercentage", DisplayName = "Sconto %", IsVisible = true, Order = 4, IsSearchable = false },
@@ -356,14 +356,17 @@
         }
     }
 
-    private static Color GetTypeColor(FidelityCardType type) => type switch
+    private static string GetTierAvatarStyle(string? tierColor)
     {
-        FidelityCardType.Bronze   => Color.Warning,
-        FidelityCardType.Silver   => Color.Default,
-        FidelityCardType.Gold     => Color.Warning,
-        FidelityCardType.Platinum => Color.Info,
-        _                         => Color.Default
-    };
+        var safeColor = Prym.Web.Shared.Utils.CssColorSanitizer.SanitizeOrNull(tierColor);
+        return safeColor is null ? string.Empty : $"background-color: {safeColor};";
+    }
+
+    private static string GetTierChipStyle(string? tierColor)
+    {
+        var safeColor = Prym.Web.Shared.Utils.CssColorSanitizer.SanitizeOrNull(tierColor);
+        return safeColor is null ? string.Empty : $"background-color: {safeColor}; color: #fff;";
+    }
 
     private static Color GetStatusColor(FidelityCardStatus status) => status switch
     {

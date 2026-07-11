@@ -1,13 +1,5 @@
 namespace Prym.DTOs.Business.Fidelity;
 
-public enum FidelityCardType
-{
-    Bronze = 0,
-    Silver = 1,
-    Gold = 2,
-    Platinum = 3
-}
-
 public enum FidelityCardStatus
 {
     Active = 0,
@@ -20,7 +12,19 @@ public class FidelityCardDto
 {
     public Guid Id { get; set; }
     public string CardNumber { get; set; } = string.Empty;
-    public FidelityCardType Type { get; set; }
+
+    /// <summary>Current fidelity tier (level) identifier. Replaces the old FidelityCardType enum.</summary>
+    public Guid? TierId { get; set; }
+
+    /// <summary>Display name of the current tier, resolved from the tier lookup.</summary>
+    public string? TierName { get; set; }
+
+    /// <summary>Optional tier colour for display.</summary>
+    public string? TierColor { get; set; }
+
+    /// <summary>Optional tier icon for display.</summary>
+    public string? TierIcon { get; set; }
+
     public FidelityCardStatus Status { get; set; }
     public DateTime ValidFrom { get; set; }
     public DateTime ValidTo { get; set; }

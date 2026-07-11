@@ -6,7 +6,8 @@ namespace EventForge.Server.Services.Business;
 public class FidelityCardService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
-    ITenantContext tenantContext) : IFidelityCardService
+    ITenantContext tenantContext,
+    IFidelityTierEvaluationService tierEvaluationService) : IFidelityCardService
 {
     public async Task<IEnumerable<FidelityCardDto>> GetAllCardsAsync(CancellationToken ct = default)
     {
@@ -14,6 +15,7 @@ public class FidelityCardService(
 
         var cards = await context.FidelityCards
             .AsNoTracking()
+            .Include(card => card.Tier)
             .WhereActiveTenant(tenantId)
             .OrderByDescending(card => card.CreatedAt)
             .ToListAsync(ct);
@@ -27,6 +29,7 @@ public class FidelityCardService(
 
         var cards = await context.FidelityCards
             .AsNoTracking()
+            .Include(card => card.Tier)
             .WhereActiveTenant(tenantId)
             .Where(card => card.BusinessPartyId == businessPartyId)
             .OrderByDescending(card => card.CreatedAt)
@@ -41,6 +44,7 @@ public class FidelityCardService(
 
         var card = await context.FidelityCards
             .AsNoTracking()
+            .Include(card => card.Tier)
             .WhereActiveTenant(tenantId)
             .FirstOrDefaultAsync(card => card.Id == id, ct);
 
@@ -53,6 +57,7 @@ public class FidelityCardService(
 
         var card = await context.FidelityCards
             .AsNoTracking()
+            .Include(card => card.Tier)
             .WhereActiveTenant(tenantId)
             .Where(c => c.CardNumber == cardNumber)
             .FirstOrDefaultAsync(ct);
@@ -76,11 +81,14 @@ public class FidelityCardService(
             throw new InvalidOperationException("A fidelity card with the same number already exists.");
         }
 
+        var tierId = await ResolveTierIdAsync(dto.TierId, tenantId, ct);
+
         var card = new FidelityCard
         {
             TenantId = tenantId,
             CardNumber = dto.CardNumber,
-            Type = (EventForge.Server.Data.Entities.Business.FidelityCardType)dto.Type,
+            TierId = tierId,
+            TierEnteredAt = tierId.HasValue ? DateTime.UtcNow : null,
             Status = EventForge.Server.Data.Entities.Business.FidelityCardStatus.Active,
             ValidFrom = dto.ValidFrom,
             ValidTo = dto.ValidTo,
@@ -96,6 +104,10 @@ public class FidelityCardService(
         _ = context.FidelityCards.Add(card);
         _ = await context.SaveChangesAsync(ct);
         _ = await auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, ct);
+
+        card.Tier = tierId.HasValue
+            ? await context.FidelityTiers.AsNoTracking().FirstOrDefaultAsync(t => t.Id == tierId.Value, ct)
+            : null;
 
         return MapCard(card);
     }
@@ -123,7 +135,11 @@ public class FidelityCardService(
             return null;
         }
 
-        card.Type = (EventForge.Server.Data.Entities.Business.FidelityCardType)dto.Type;
+        card.TierId = await ResolveTierIdAsync(dto.TierId, tenantId, ct);
+        if (card.TierId.HasValue && card.TierId != originalCard.TierId)
+        {
+            card.TierEnteredAt = DateTime.UtcNow;
+        }
         card.ValidFrom = dto.ValidFrom;
         card.ValidTo = dto.ValidTo;
         card.DiscountPercentage = dto.DiscountPercentage;
@@ -135,6 +151,10 @@ public class FidelityCardService(
 
         _ = await context.SaveChangesAsync(ct);
         _ = await auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, ct);
+
+        card.Tier = card.TierId.HasValue
+            ? await context.FidelityTiers.AsNoTracking().FirstOrDefaultAsync(t => t.Id == card.TierId.Value, ct)
+            : null;
 
         return MapCard(card);
     }
@@ -194,6 +214,10 @@ public class FidelityCardService(
 
         _ = await auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, ct);
         _ = await auditLogService.TrackEntityChangesAsync(transaction, "Insert", currentUser, null, ct);
+
+        // Automatic tier promotion: after points/spend are persisted, re-evaluate whether the card
+        // now qualifies for a higher tier. Runs in the same request/tenant scope.
+        _ = await tierEvaluationService.EvaluateUpgradeAsync(id, ct);
 
         return MapTransaction(transaction);
     }
@@ -374,7 +398,10 @@ public class FidelityCardService(
         {
             Id = card.Id,
             CardNumber = card.CardNumber,
-            Type = (Prym.DTOs.Business.Fidelity.FidelityCardType)card.Type,
+            TierId = card.TierId,
+            TierName = card.Tier?.Name,
+            TierColor = card.Tier?.Color,
+            TierIcon = card.Tier?.Icon,
             Status = (Prym.DTOs.Business.Fidelity.FidelityCardStatus)card.Status,
             ValidFrom = card.ValidFrom,
             ValidTo = card.ValidTo,
@@ -388,6 +415,36 @@ public class FidelityCardService(
             BusinessPartyId = card.BusinessPartyId,
             CreatedAt = card.CreatedAt
         };
+
+    /// <summary>
+    /// Resolves the tier to assign. When no tier is requested, defaults to the tenant's base tier
+    /// (the active tier with the lowest SortOrder), if any exists.
+    /// </summary>
+    private async Task<Guid?> ResolveTierIdAsync(Guid? requestedTierId, Guid tenantId, CancellationToken ct)
+    {
+        if (requestedTierId.HasValue)
+        {
+            var exists = await context.FidelityTiers
+                .AsNoTracking()
+                .WhereActiveTenant(tenantId)
+                .AnyAsync(tier => tier.Id == requestedTierId.Value, ct);
+
+            if (!exists)
+            {
+                throw new InvalidOperationException("The selected fidelity tier does not exist.");
+            }
+
+            return requestedTierId.Value;
+        }
+
+        var baseTier = await context.FidelityTiers
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .OrderBy(tier => tier.SortOrder)
+            .FirstOrDefaultAsync(ct);
+
+        return baseTier?.Id;
+    }
 
     private static FidelityPointsTransactionDto MapTransaction(FidelityPointsTransaction transaction) =>
         new()

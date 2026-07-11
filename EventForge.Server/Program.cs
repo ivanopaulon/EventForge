@@ -160,6 +160,7 @@ builder.Services.AddScoped<EventForge.Server.Services.Monitoring.IMonitoringServ
 builder.Services.AddHostedService<EventForge.Server.HostedServices.LogCleanupService>();
 builder.Services.AddHostedService<EventForge.Server.HostedServices.PerformanceCollectorService>();
 builder.Services.AddHostedService<EventForge.Server.HostedServices.DocumentLockCleanupWorker>();
+builder.Services.AddHostedService<EventForge.Server.HostedServices.FidelityTierReevaluationBackgroundService>();
 
 // Add SignalR for real-time communication
 builder.Services.AddSignalR(options =>
