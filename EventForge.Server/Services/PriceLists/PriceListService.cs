@@ -191,7 +191,7 @@ public class PriceListService(
 
             if (updatePriceListDto.EventId.HasValue && !await EventExistsAsync(updatePriceListDto.EventId.Value, cancellationToken))
             {
-                throw new ArgumentException($"Event with ID {updatePriceListDto.EventId} does not exist.");
+                throw new ArgumentException($"Event with ID {updatePriceListDto.EventId.Value} does not exist.");
             }
 
             var originalPriceList = await context.PriceLists

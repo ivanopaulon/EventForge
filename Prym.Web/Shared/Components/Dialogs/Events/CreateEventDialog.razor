@@ -393,18 +393,20 @@
 
     private async Task LoadPriceListsAsync()
     {
+        if (ExistingEvent is null) return;
+
         try
         {
             _isLoadingPriceLists = true;
             var paged = await PriceListService.GetPagedAsync(1, 200);
             _availablePriceLists = paged?.Items?.OrderBy(p => p.Name).ToList() ?? new();
 
-            var linked = await PriceListService.GetByEventAsync(ExistingEvent!.Id, default);
+            var linked = await PriceListService.GetByEventAsync(ExistingEvent.Id, default);
             _selectedPriceListId = linked?.FirstOrDefault()?.Id;
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading price lists for event {EventId}.", ExistingEvent!.Id);
+            Logger.LogError(ex, "Error loading price lists for event {EventId}.", ExistingEvent.Id);
         }
         finally
         {
