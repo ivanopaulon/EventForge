@@ -1,0 +1,163 @@
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<MembershipCardDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.CardMembership"
+          Title="@(_isEdit ? "Modifica Tesseramento" : "Nuovo Tesseramento")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_cardNumber"
+                                  Label="Numero Tessera"
+                                  Required="true" RequiredError="Il numero tessera è obbligatorio"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_federation"
+                                  Label="Federazione"
+                                  Required="true" RequiredError="La federazione è obbligatoria"
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_category"
+                                  Label="Categoria"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_validFrom"
+                                   Label="Validità Da"
+                                   DateFormat="dd/MM/yyyy"
+                                   Required="true" RequiredError="La data di inizio è obbligatoria" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_validTo"
+                                   Label="Validità A"
+                                   DateFormat="dd/MM/yyyy"
+                                   Required="true" RequiredError="La data di fine è obbligatoria" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_notes"
+                                  Label="Note"
+                                  Lines="2" MaxLength="500" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Variant="Variant.Text" OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public MembershipCardDto? Card { get; set; }
+    [Parameter] public Guid TeamMemberId { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isEdit;
+    private bool _isSaving;
+
+    private string _cardNumber = string.Empty;
+    private string _federation = string.Empty;
+    private string? _category;
+    private DateTime? _validFrom;
+    private DateTime? _validTo;
+    private string? _notes;
+
+    protected override void OnInitialized()
+    {
+        if (Card is not null)
+        {
+            _isEdit = true;
+            _cardNumber = Card.CardNumber;
+            _federation = Card.Federation;
+            _category = Card.Category;
+            _validFrom = Card.ValidFrom;
+            _validTo = Card.ValidTo;
+            _notes = Card.Notes;
+        }
+        else
+        {
+            _validFrom = DateTime.UtcNow.Date;
+            _validTo = DateTime.UtcNow.Date.AddYears(1);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid || !_validFrom.HasValue || !_validTo.HasValue) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isEdit && Card is not null)
+            {
+                var dto = new UpdateMembershipCardDto
+                {
+                    CardNumber = _cardNumber,
+                    Federation = _federation,
+                    Category = _category,
+                    ValidFrom = _validFrom.Value,
+                    ValidTo = _validTo.Value,
+                    Notes = _notes
+                };
+                var result = await TeamService.UpdateMembershipCardAsync(Card.Id, dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError("Errore nell'aggiornamento del tesseramento.");
+                    return;
+                }
+                AppNotification.ShowSuccess("Tesseramento aggiornato.");
+            }
+            else
+            {
+                var dto = new CreateMembershipCardDto
+                {
+                    TeamMemberId = TeamMemberId,
+                    CardNumber = _cardNumber,
+                    Federation = _federation,
+                    Category = _category,
+                    ValidFrom = _validFrom.Value,
+                    ValidTo = _validTo.Value,
+                    Notes = _notes
+                };
+                var result = await TeamService.CreateMembershipCardAsync(dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError("Errore nella creazione del tesseramento.");
+                    return;
+                }
+                AppNotification.ShowSuccess("Tesseramento creato.");
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving membership card");
+            AppNotification.ShowError("Errore nel salvataggio del tesseramento.");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

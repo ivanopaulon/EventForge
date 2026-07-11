@@ -36,6 +36,13 @@
                 </MudNavLink>
             </MudNavGroup>
 
+            <!-- Squadre -->
+            <MudNavLink Href="/management/teams"
+                        Icon="@Icons.Material.Outlined.Groups"
+                        Match="NavLinkMatch.All">
+                @TranslationService.GetTranslation("nav.teamManagement", "Gestione Squadre")
+            </MudNavLink>
+
             <!-- Catalogo -->
             <MudNavGroup title="@TranslationService.GetTranslation("nav.catalog", "Catalogo")"
                          Icon="@Icons.Material.Outlined.Inventory"

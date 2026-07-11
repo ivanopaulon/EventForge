@@ -359,7 +359,16 @@ public class TeamService(
                 Email = createTeamMemberDto.Email,
                 Role = createTeamMemberDto.Role,
                 DateOfBirth = createTeamMemberDto.DateOfBirth,
+                FiscalCode = createTeamMemberDto.FiscalCode,
+                Status = ToEntityTeamMemberStatus(createTeamMemberDto.Status),
+                Position = createTeamMemberDto.Position,
+                JerseyNumber = createTeamMemberDto.JerseyNumber,
+                EligibilityStatus = createTeamMemberDto.EligibilityStatus,
+                PhotoDocumentId = createTeamMemberDto.PhotoDocumentId,
+                PhotoConsent = createTeamMemberDto.PhotoConsent,
+                PhotoConsentAt = createTeamMemberDto.PhotoConsentAt,
                 TeamId = createTeamMemberDto.TeamId,
+                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("TenantId is required but was not found in the current tenant context."),
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
@@ -410,6 +419,14 @@ public class TeamService(
             member.Email = updateTeamMemberDto.Email;
             member.Role = updateTeamMemberDto.Role;
             member.DateOfBirth = updateTeamMemberDto.DateOfBirth;
+            member.FiscalCode = updateTeamMemberDto.FiscalCode;
+            member.Status = ToEntityTeamMemberStatus(updateTeamMemberDto.Status);
+            member.Position = updateTeamMemberDto.Position;
+            member.JerseyNumber = updateTeamMemberDto.JerseyNumber;
+            member.EligibilityStatus = updateTeamMemberDto.EligibilityStatus;
+            member.PhotoDocumentId = updateTeamMemberDto.PhotoDocumentId;
+            member.PhotoConsent = updateTeamMemberDto.PhotoConsent;
+            member.PhotoConsentAt = updateTeamMemberDto.PhotoConsentAt;
             member.ModifiedBy = currentUser;
             member.ModifiedAt = DateTime.UtcNow;
 
@@ -1053,6 +1070,54 @@ public class TeamService(
         }
     }
 
+    public async Task<List<TeamMemberDto>> GetOtherActiveTeamsForFiscalCodeAsync(string fiscalCode, Guid excludeTeamMemberId, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(fiscalCode);
+
+            // Non-blocking check: looks for other TeamMembers sharing the same fiscal code,
+            // active, and belonging to a different team than the excluded member's own team.
+            // This never prevents saving — the caller (client) is responsible for surfacing the warning.
+            var currentTenantId = tenantContext.CurrentTenantId;
+
+            var excludedMemberTeamId = await context.TeamMembers
+                .AsNoTracking()
+                .Where(m => m.Id == excludeTeamMemberId && !m.IsDeleted)
+                .Select(m => (Guid?)m.TeamId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var query = context.TeamMembers
+                .AsNoTracking()
+                .Where(m => !m.IsDeleted
+                    && m.FiscalCode == fiscalCode
+                    && m.Status == EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Active
+                    && m.Id != excludeTeamMemberId);
+
+            if (currentTenantId.HasValue)
+            {
+                query = query.Where(m => m.TenantId == currentTenantId.Value);
+            }
+
+            if (excludedMemberTeamId.HasValue)
+            {
+                query = query.Where(m => m.TeamId != excludedMemberTeamId.Value);
+            }
+
+            var conflicts = await query
+                .Include(m => m.Team)
+                .OrderBy(m => m.LastName)
+                .ThenBy(m => m.FirstName)
+                .ToListAsync(cancellationToken);
+
+            return conflicts.Select(MapToTeamMemberDto).ToList();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<TeamMemberDto>> GetMembersWithExpiringDocumentsAsync(int daysBeforeExpiry = 30, CancellationToken cancellationToken = default)
     {
         try
@@ -1205,6 +1270,30 @@ public class TeamService(
         };
     }
 
+    /// <summary>
+    /// Converts the entity-side TeamMemberStatus (Active/Suspended/Retired/Excluded) to the
+    /// DTO-side TeamMemberStatus (Active/Suspended/Inactive). Retired/Excluded map to Inactive
+    /// since the DTO enum has no equivalent distinct values.
+    /// </summary>
+    private static Prym.DTOs.Common.TeamMemberStatus ToDtoTeamMemberStatus(EventForge.Server.Data.Entities.Teams.TeamMemberStatus status) => status switch
+    {
+        EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Active => Prym.DTOs.Common.TeamMemberStatus.Active,
+        EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Suspended => Prym.DTOs.Common.TeamMemberStatus.Suspended,
+        _ => Prym.DTOs.Common.TeamMemberStatus.Inactive
+    };
+
+    /// <summary>
+    /// Converts the DTO-side TeamMemberStatus (Active/Suspended/Inactive) to the entity-side
+    /// TeamMemberStatus (Active/Suspended/Retired/Excluded). Inactive maps to Retired since that
+    /// is the closest analog on the entity side.
+    /// </summary>
+    private static EventForge.Server.Data.Entities.Teams.TeamMemberStatus ToEntityTeamMemberStatus(Prym.DTOs.Common.TeamMemberStatus status) => status switch
+    {
+        Prym.DTOs.Common.TeamMemberStatus.Active => EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Active,
+        Prym.DTOs.Common.TeamMemberStatus.Suspended => EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Suspended,
+        _ => EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Retired
+    };
+
     private static TeamMemberDto MapToTeamMemberDto(TeamMember member)
     {
         return new TeamMemberDto
@@ -1215,8 +1304,19 @@ public class TeamService(
             Email = member.Email,
             Role = member.Role,
             DateOfBirth = member.DateOfBirth,
+            Status = ToDtoTeamMemberStatus(member.Status),
+            FiscalCode = member.FiscalCode,
             TeamId = member.TeamId,
             TeamName = member.Team?.Name,
+            Position = member.Position,
+            JerseyNumber = member.JerseyNumber,
+            EligibilityStatus = member.EligibilityStatus,
+            PhotoDocumentId = member.PhotoDocumentId,
+            PhotoUrl = member.PhotoDocument?.Url,
+            PhotoConsent = member.PhotoConsent,
+            PhotoConsentAt = member.PhotoConsentAt,
+            Age = member.Age,
+            IsMinor = member.IsMinor,
             CreatedAt = member.CreatedAt,
             CreatedBy = member.CreatedBy,
             ModifiedAt = member.ModifiedAt,

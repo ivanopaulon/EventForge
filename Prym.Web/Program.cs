@@ -237,6 +237,9 @@ builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<ICalendarReminderService, CalendarReminderService>();
 
+// Add Teams management services
+builder.Services.AddScoped<Prym.Web.Services.Teams.ITeamService, Prym.Web.Services.Teams.TeamService>();
+
 // Add Sales management services
 builder.Services.AddScoped<Prym.Web.Services.Sales.ISalesService, Prym.Web.Services.Sales.SalesService>();
 builder.Services.AddScoped<Prym.Web.Services.Sales.IPaymentMethodService, Prym.Web.Services.Sales.PaymentMethodService>();

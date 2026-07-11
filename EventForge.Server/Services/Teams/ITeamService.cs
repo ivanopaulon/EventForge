@@ -290,6 +290,17 @@ public interface ITeamService
     Task<bool> ValidateJerseyNumberAsync(Guid teamId, int jerseyNumber, Guid? excludeTeamMemberId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Looks for other active team members sharing the same fiscal code, in a team different from
+    /// the excluded member's own team. This is a non-blocking, informational check: an empty result
+    /// means no conflict, a non-empty result means the caller should surface a warning (never a block).
+    /// </summary>
+    /// <param name="fiscalCode">Fiscal code to search for</param>
+    /// <param name="excludeTeamMemberId">Team member ID to exclude from the search (and whose team is excluded)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of other active team members sharing the fiscal code (empty if no conflict)</returns>
+    Task<List<TeamMemberDto>> GetOtherActiveTeamsForFiscalCodeAsync(string fiscalCode, Guid excludeTeamMemberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets team members with expiring documents (certificates, etc.).
     /// </summary>
     /// <param name="daysBeforeExpiry">Number of days before expiry to consider</param>

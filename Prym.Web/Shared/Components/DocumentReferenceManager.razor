@@ -1,0 +1,187 @@
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@using Prym.Web.Shared.Components.Dialogs.Teams
+@inject ITeamService TeamService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentReferenceManager> Logger
+
+<div class="document-reference-manager">
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-center pa-4">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-space-between align-center mb-3">
+            <MudText Typo="Typo.subtitle1">
+                @TranslationService.GetTranslation("documents.title", "Documenti")
+                @if (_documents.Count > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="ml-2">@_documents.Count</MudChip>
+                }
+            </MudText>
+            <PrymButton Variant="Variant.Filled"
+                        Color="Color.Primary"
+                        Size="Size.Small"
+                        StartIcon="@Icons.Material.Outlined.Add"
+                        OnClick="OpenCreateDocumentDialogAsync">
+                @TranslationService.GetTranslation("documents.add", "Aggiungi Documento")
+            </PrymButton>
+        </div>
+
+        @if (_documents.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Dense="true">
+                @TranslationService.GetTranslation("documents.none", "Nessun documento presente.")
+            </MudAlert>
+        }
+        else
+        {
+            <MudSimpleTable Elevation="0" Dense="true" Hover="true" Striped="true">
+                <thead>
+                    <tr>
+                        <th>@TranslationService.GetTranslation("documents.type", "Tipo")</th>
+                        <th>@TranslationService.GetTranslation("documents.subtype", "Sottotipo")</th>
+                        <th>@TranslationService.GetTranslation("documents.filename", "File")</th>
+                        <th>@TranslationService.GetTranslation("documents.expiry", "Scadenza")</th>
+                        <th class="text-center">@TranslationService.GetTranslation("common.actions", "Azioni")</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var doc in _documents)
+                    {
+                        <tr>
+                            <td>
+                                <MudChip T="string" Size="Size.Small" Color="@GetTypeColor(doc.Type)">@doc.Type</MudChip>
+                            </td>
+                            <td>@(doc.SubType != DocumentReferenceSubType.None ? doc.SubType.ToString() : "—")</td>
+                            <td>
+                                <MudText Typo="Typo.body2">@doc.FileName</MudText>
+                                @if (!string.IsNullOrEmpty(doc.Title))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">@doc.Title</MudText>
+                                }
+                            </td>
+                            <td>
+                                @if (doc.Expiry.HasValue)
+                                {
+                                    <MudText Typo="Typo.body2" Color="@(doc.IsExpired ? Color.Error : Color.Default)">
+                                        @doc.Expiry.Value.ToString("dd/MM/yyyy")
+                                    </MudText>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">—</MudText>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
+                                    <PrymIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                    Size="Size.Small"
+                                                    Color="Color.Error"
+                                                    OnClick="@(() => DeleteDocumentAsync(doc))" />
+                                </MudTooltip>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Guid OwnerId { get; set; }
+    [Parameter, EditorRequired] public string OwnerType { get; set; } = string.Empty;
+
+    private List<DocumentReferenceDto> _documents = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDocumentsAsync();
+    }
+
+    private async Task LoadDocumentsAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await TeamService.GetDocumentsByOwnerAsync(OwnerId, OwnerType);
+            _documents = result?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading documents for {OwnerType}/{OwnerId}", OwnerType, OwnerId);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OpenCreateDocumentDialogAsync()
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(CreateDocumentReferenceDialog.OwnerId)] = OwnerId,
+                [nameof(CreateDocumentReferenceDialog.OwnerType)] = OwnerType
+            };
+            var dialog = await DialogService.ShowAsync<CreateDocumentReferenceDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadDocumentsAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening create document dialog");
+            AppNotification.ShowWarning("Errore nell'apertura del dialogo documento.");
+        }
+    }
+
+    private async Task DeleteDocumentAsync(DocumentReferenceDto doc)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("documents.confirmDeleteTitle", "Conferma Eliminazione"),
+            TranslationService.GetTranslationFormatted("documents.confirmDelete", "Eliminare il documento '{0}'?", doc.FileName),
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+
+        if (confirm != true) return;
+
+        try
+        {
+            await TeamService.DeleteDocumentReferenceAsync(doc.Id);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.deleted", "Documento eliminato."));
+            await LoadDocumentsAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting document {DocId}", doc.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.deleteError", "Errore nell'eliminazione del documento."));
+        }
+    }
+
+    private static Color GetTypeColor(DocumentReferenceType type) => type switch
+    {
+        DocumentReferenceType.MedicalCertificate => Color.Success,
+        DocumentReferenceType.InsurancePolicy => Color.Info,
+        DocumentReferenceType.ProfilePhoto => Color.Primary,
+        DocumentReferenceType.TeamLogo => Color.Primary,
+        DocumentReferenceType.IdentityDocument => Color.Warning,
+        DocumentReferenceType.ParentalConsent => Color.Warning,
+        DocumentReferenceType.PrivacyConsent => Color.Default,
+        _ => Color.Default
+    };
+}

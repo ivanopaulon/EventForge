@@ -55,6 +55,14 @@ public class TeamMember : AuditableEntity
     public TeamMemberStatus Status { get; set; } = TeamMemberStatus.Active;
 
     /// <summary>
+    /// Fiscal code of the team member (e.g. Italian "Codice Fiscale"). Optional, not all historical
+    /// members have one. Used only to surface a non-blocking multi-team warning, never to block saving.
+    /// </summary>
+    [MaxLength(16, ErrorMessage = "The fiscal code cannot exceed 16 characters.")]
+    [Display(Name = "Fiscal Code", Description = "Fiscal code of the team member.")]
+    public string? FiscalCode { get; set; }
+
+    /// <summary>
     /// Foreign key to the owning team.
     /// </summary>
     [Required]
