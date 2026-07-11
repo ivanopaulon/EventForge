@@ -157,6 +157,8 @@ else
     private EntityManagementConfig<TeamMemberDto> _config = null!;
     private TeamDto? _team;
     private bool _isLoading = true;
+    private const int MaxConcurrentConflictChecks = 5;
+
     private Dictionary<Guid, List<TeamMemberDto>> _conflictCache = new();
 
     protected override async Task OnInitializedAsync()
@@ -232,8 +234,8 @@ else
 
             var membersWithFiscalCode = members.Where(m => !string.IsNullOrWhiteSpace(m.FiscalCode)).ToList();
 
-            // Bounded parallelism: check up to 5 at a time
-            var semaphore = new SemaphoreSlim(5);
+            // Bounded parallelism: check up to MaxConcurrentConflictChecks at a time
+            var semaphore = new SemaphoreSlim(MaxConcurrentConflictChecks);
             var tasks = membersWithFiscalCode.Select(async member =>
             {
                 await semaphore.WaitAsync();

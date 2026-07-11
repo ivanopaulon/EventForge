@@ -368,7 +368,7 @@ public class TeamService(
                 PhotoConsent = createTeamMemberDto.PhotoConsent,
                 PhotoConsentAt = createTeamMemberDto.PhotoConsentAt,
                 TeamId = createTeamMemberDto.TeamId,
-                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required"),
+                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("TenantId is required but was not found in the current tenant context."),
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow
             };
