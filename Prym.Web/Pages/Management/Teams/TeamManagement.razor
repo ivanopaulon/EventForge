@@ -19,7 +19,8 @@
                       Config="_config"
                       Service="_service"
                       OnCreateOverride="@(() => OpenTeamDialogAsync(null))"
-                      OnEditOverride="@(id => OpenTeamDialogAsync(id))">
+                      OnEditOverride="@(id => OpenTeamDialogAsync(id))"
+                      AdditionalFilter="@(EventId.HasValue ? (t => t.EventId == EventId.Value) : null)">
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -120,6 +121,8 @@
 </EntityManagementPage>
 
 @code {
+    [SupplyParameterFromQuery(Name = "eventId")][Parameter] public Guid? EventId { get; set; }
+
     private EntityManagementPage<TeamDto>? _entityPage;
     private IEntityManagementService<TeamDto> _service = null!;
     private EntityManagementConfig<TeamDto> _config = null!;

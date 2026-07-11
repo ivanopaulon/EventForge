@@ -133,6 +133,8 @@ public class EventsController(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
         try
         {
             var eventEntity = await eventService.GetEventByIdAsync(id, cancellationToken);
@@ -164,6 +166,8 @@ public class EventsController(
         Guid id,
         CancellationToken cancellationToken = default)
     {
+        if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
         try
         {
             var eventDetail = await eventService.GetEventDetailAsync(id, cancellationToken);
@@ -278,6 +282,7 @@ public class EventsController(
     /// Deletes an event.
     /// </summary>
     /// <param name="id">Event ID</param>
+    /// <param name="rowVersion">Optional row version for optimistic concurrency control</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>No content</returns>
     /// <response code="204">If the event was successfully deleted</response>
@@ -287,12 +292,13 @@ public class EventsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEvent(
         Guid id,
+        [FromQuery] byte[]? rowVersion = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var currentUser = GetCurrentUser();
-            var result = await eventService.DeleteEventAsync(id, currentUser, [], cancellationToken);
+            var result = await eventService.DeleteEventAsync(id, currentUser, rowVersion ?? [], cancellationToken);
 
             if (!result)
                 return CreateNotFoundProblem($"Event with ID {id} not found.");

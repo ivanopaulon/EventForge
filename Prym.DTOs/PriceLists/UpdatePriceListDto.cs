@@ -61,5 +61,11 @@ namespace Prym.DTOs.PriceLists
         [Range(0, 100, ErrorMessage = "Priority must be between 0 and 100.")]
         [Display(Name = "Priority", Description = "Priority of the price list (0 = highest priority).")]
         public int Priority { get; set; }
+
+        /// <summary>
+        /// Event associated with the price list. Null means no event association.
+        /// </summary>
+        [Display(Name = "Event", Description = "Event this price list applies to (optional).")]
+        public Guid? EventId { get; set; }
     }
 }
