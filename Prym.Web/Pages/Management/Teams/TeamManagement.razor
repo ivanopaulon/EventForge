@@ -1,0 +1,226 @@
+@page "/management/teams"
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@using Prym.Web.Shared.Management.Adapters
+@using Prym.Web.Shared.Components.Dialogs.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager NavigationManager
+@inject ILogger<TeamManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("teams.management", "Gestione Squadre")</PageTitle>
+
+<EntityManagementPage TEntity="TeamDto"
+                      @ref="_entityPage"
+                      Config="_config"
+                      Service="_service"
+                      OnCreateOverride="@(() => OpenTeamDialogAsync(null))"
+                      OnEditOverride="@(id => OpenTeamDialogAsync(id))">
+    <HeaderContent Context="columnConfigurations">
+        @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <EFTableColumnHeader TItem="TeamDto" PropertyName="Name" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<TeamDto, object>(x => x.Name))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Category")
+            {
+                <EFTableColumnHeader TItem="TeamDto" PropertyName="Category" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<TeamDto, object>(x => x.Category ?? ""))">@TranslationService.GetTranslation("teams.category", "Categoria")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "FederationCode")
+            {
+                <EFTableColumnHeader TItem="TeamDto" PropertyName="FederationCode" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<TeamDto, object>(x => x.FederationCode ?? ""))">@TranslationService.GetTranslation("teams.federation", "Federazione/Club")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "MemberCount")
+            {
+                <EFTableColumnHeader TItem="TeamDto" PropertyName="MemberCount" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<TeamDto, object>(x => x.MemberCount))">@TranslationService.GetTranslation("teams.memberCount", "N. Membri")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <EFTableColumnHeader TItem="TeamDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                    <MudTableSortLabel SortBy="@(new Func<TeamDto, object>(x => x.Status.ToString()))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                </EFTableColumnHeader>
+            }
+        }
+        <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+    </HeaderContent>
+
+    <RowTemplate Context="ctx">
+        @foreach (var column in ctx.Cols)
+        {
+            @if (column.PropertyName == "Name")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                    <div class="d-flex align-center">
+                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                            <MudIcon Icon="@Icons.Material.Outlined.Groups" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.Name</MudText>
+                            @if (!string.IsNullOrEmpty(ctx.Item.EventName))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@ctx.Item.EventName</MudText>
+                            }
+                        </div>
+                    </div>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Category")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("teams.category", "Categoria")">
+                    <MudText Typo="Typo.body2">@(ctx.Item.Category ?? "—")</MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "FederationCode")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("teams.federation", "Federazione/Club")">
+                    <MudText Typo="Typo.body2">
+                        @(string.Join(" / ", new[] { ctx.Item.FederationCode, ctx.Item.ClubCode }.Where(s => !string.IsNullOrEmpty(s))))
+                    </MudText>
+                </MudTd>
+            }
+            else if (column.PropertyName == "MemberCount")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("teams.memberCount", "N. Membri")">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info">@ctx.Item.MemberCount</MudChip>
+                </MudTd>
+            }
+            else if (column.PropertyName == "Status")
+            {
+                <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(ctx.Item.Status)" Variant="Variant.Filled">
+                        @GetStatusLabel(ctx.Item.Status)
+                    </MudChip>
+                </MudTd>
+            }
+        }
+    </RowTemplate>
+
+    <AdditionalRowActions Context="team">
+        <MudTooltip Text="@TranslationService.GetTranslation("teams.manageMembers", "Gestisci Membri")">
+            <PrymIconButton Icon="@Icons.Material.Outlined.People"
+                            Size="Size.Small"
+                            Color="Color.Primary"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => NavigateToMembers(team))" />
+        </MudTooltip>
+    </AdditionalRowActions>
+</EntityManagementPage>
+
+@code {
+    private EntityManagementPage<TeamDto>? _entityPage;
+    private IEntityManagementService<TeamDto> _service = null!;
+    private EntityManagementConfig<TeamDto> _config = null!;
+
+    protected override void OnInitialized()
+    {
+        _service = new TeamManagementService(TeamService);
+        _config = new EntityManagementConfig<TeamDto>
+        {
+            ComponentKey = "TeamManagement",
+            PageTitleKey = "teams.management",
+            PageTitleDefault = "Gestione Squadre",
+            EntityIcon = Icons.Material.Outlined.Groups,
+            PageRootCssClass = "team-management-page-root",
+            BaseRoute = "/management/teams",
+            ExcelFileName = "Squadre",
+            SearchPlaceholderKey = "teams.search",
+            SearchPlaceholderDefault = "Cerca squadre (nome, categoria, codice...)",
+            EntityTypeName = "Team",
+            CreateTooltip = "teams.createNew",
+            ShowDelete = true,
+            ShowEdit = true,
+            ShowAuditLog = false,
+            ShowToggleStatus = false,
+            GetDisplayName = t => t.Name,
+            GetId = t => t.Id,
+            CanDelete = t => t.Status == TeamStatus.Deleted || t.MemberCount == 0,
+            DeleteConfirmMessageKey = "teams.confirmDelete",
+            DeleteSuccessMessageKey = "teams.deleted",
+            DeleteErrorMessageKey = "teams.deleteError",
+            BreadcrumbItems =
+            [
+                new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                new BreadcrumbItem("Squadre", null, disabled: true)
+            ],
+            Columns =
+            [
+                new() { PropertyName = "Name", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                new() { PropertyName = "Category", DisplayName = "Categoria", IsVisible = true, Order = 1, IsSearchable = true },
+                new() { PropertyName = "FederationCode", DisplayName = "Federazione/Club", IsVisible = true, Order = 2, IsSearchable = true },
+                new() { PropertyName = "MemberCount", DisplayName = "N. Membri", IsVisible = true, Order = 3, IsSearchable = false },
+                new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 4, IsSearchable = false }
+            ],
+            QuickFilters =
+            [
+                new() { Id = "all",       Label = "Tutte",     Predicate = _ => true,                              Description = "Mostra tutte le squadre" },
+                new() { Id = "active",    Label = "Attive",    Predicate = t => t.Status == TeamStatus.Active,     Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Squadre attive" },
+                new() { Id = "suspended", Label = "Sospese",   Predicate = t => t.Status == TeamStatus.Suspended,  Color = Color.Warning, Icon = Icons.Material.Outlined.PauseCircle, Description = "Squadre sospese" },
+                new() { Id = "retired",   Label = "Ritirate",  Predicate = t => t.Status == TeamStatus.Retired,    Color = Color.Default, Icon = Icons.Material.Outlined.ExitToApp,   Description = "Squadre ritirate" }
+            ]
+        };
+    }
+
+    private void NavigateToMembers(TeamDto team)
+    {
+        NavigationManager.NavigateTo($"/management/teams/{team.Id}/members");
+    }
+
+    private async Task OpenTeamDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters();
+            if (id.HasValue)
+            {
+                var team = await TeamService.GetTeamByIdAsync(id.Value);
+                if (team is null)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("teams.notFound", "Squadra non trovata."));
+                    return;
+                }
+                parameters[nameof(TeamDialog.Team)] = team;
+            }
+
+            var dialog = await DialogService.ShowAsync<TeamDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+                await _entityPage!.RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening team dialog for ID {Id}.", id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("teams.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private static Color GetStatusColor(TeamStatus status) => status switch
+    {
+        TeamStatus.Active => Color.Success,
+        TeamStatus.Suspended => Color.Warning,
+        TeamStatus.Retired => Color.Default,
+        TeamStatus.Deleted => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetStatusLabel(TeamStatus status) => status switch
+    {
+        TeamStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        TeamStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        TeamStatus.Retired => TranslationService.GetTranslation("teams.status.retired", "Ritirato"),
+        TeamStatus.Deleted => TranslationService.GetTranslation("status.deleted", "Eliminato"),
+        _ => status.ToString()
+    };
+}

@@ -1,0 +1,176 @@
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<TeamDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Groups"
+          Title="@(_isEdit ? TranslationService.GetTranslation("teams.editTeam", "Modifica Squadra") : TranslationService.GetTranslation("teams.createTeam", "Nuova Squadra"))"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_name"
+                                  Label="@TranslationService.GetTranslation("field.name", "Nome")"
+                                  Required="true" RequiredError="Il nome è obbligatorio"
+                                  MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_email"
+                                  Label="@TranslationService.GetTranslation("teams.email", "Email")"
+                                  InputType="InputType.Email" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_category"
+                                  Label="@TranslationService.GetTranslation("teams.category", "Categoria")"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <PrymSelect T="TeamStatus" @bind-Value="_status"
+                                Label="@TranslationService.GetTranslation("field.status", "Stato")">
+                        @foreach (var s in Enum.GetValues<TeamStatus>())
+                        {
+                            <MudSelectItem T="TeamStatus" Value="@s">@s</MudSelectItem>
+                        }
+                    </PrymSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_clubCode"
+                                  Label="@TranslationService.GetTranslation("teams.clubCode", "Codice Club")"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_federationCode"
+                                  Label="@TranslationService.GetTranslation("teams.federationCode", "Codice Federazione")"
+                                  MaxLength="50" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_shortDescription"
+                                  Label="@TranslationService.GetTranslation("field.shortDescription", "Descrizione Breve")"
+                                  MaxLength="200" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_longDescription"
+                                  Label="@TranslationService.GetTranslation("field.description", "Descrizione")"
+                                  Lines="3" MaxLength="2000" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Variant="Variant.Text" OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isSaving">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public TeamDto? Team { get; set; }
+
+    private MudForm _form = null!;
+    private bool _isEdit;
+    private bool _isSaving;
+
+    private string _name = string.Empty;
+    private string _shortDescription = string.Empty;
+    private string _longDescription = string.Empty;
+    private string? _email;
+    private TeamStatus _status = TeamStatus.Active;
+    private string? _clubCode;
+    private string? _federationCode;
+    private string? _category;
+
+    protected override void OnInitialized()
+    {
+        if (Team is not null)
+        {
+            _isEdit = true;
+            _name = Team.Name;
+            _shortDescription = Team.ShortDescription;
+            _longDescription = Team.LongDescription;
+            _email = Team.Email;
+            _status = Team.Status;
+            _clubCode = Team.ClubCode;
+            _federationCode = Team.FederationCode;
+            _category = Team.Category;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _isSaving = true;
+        try
+        {
+            if (_isEdit && Team is not null)
+            {
+                var dto = new UpdateTeamDto
+                {
+                    Name = _name,
+                    ShortDescription = _shortDescription,
+                    LongDescription = _longDescription,
+                    Email = _email,
+                    Status = _status,
+                    ClubCode = _clubCode,
+                    FederationCode = _federationCode,
+                    Category = _category
+                };
+                var result = await TeamService.UpdateTeamAsync(Team.Id, dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("teams.saveError", "Errore nel salvataggio della squadra."));
+                    return;
+                }
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("teams.updated", "Squadra aggiornata con successo."));
+            }
+            else
+            {
+                var dto = new CreateTeamDto
+                {
+                    Name = _name,
+                    ShortDescription = _shortDescription,
+                    LongDescription = _longDescription,
+                    Email = _email,
+                    Status = _status,
+                    ClubCode = _clubCode,
+                    FederationCode = _federationCode,
+                    Category = _category
+                };
+                var result = await TeamService.CreateTeamAsync(dto);
+                if (result is null)
+                {
+                    AppNotification.ShowError(TranslationService.GetTranslation("teams.createError", "Errore nella creazione della squadra."));
+                    return;
+                }
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("teams.created", "Squadra creata con successo."));
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving team");
+            AppNotification.ShowError(TranslationService.GetTranslation("teams.saveError", "Errore nel salvataggio della squadra."));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

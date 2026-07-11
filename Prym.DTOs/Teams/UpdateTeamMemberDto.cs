@@ -53,6 +53,13 @@ namespace Prym.DTOs.Teams
         public TeamMemberStatus Status { get; set; }
 
         /// <summary>
+        /// Fiscal code of the team member (e.g. Italian "Codice Fiscale"). Optional.
+        /// </summary>
+        [MaxLength(16, ErrorMessage = "The fiscal code cannot exceed 16 characters.")]
+        [Display(Name = "Fiscal Code", Description = "Fiscal code of the team member.")]
+        public string? FiscalCode { get; set; }
+
+        /// <summary>
         /// Position or playing position of the team member.
         /// </summary>
         [MaxLength(50, ErrorMessage = "The position cannot exceed 50 characters.")]

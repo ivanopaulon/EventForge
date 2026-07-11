@@ -460,6 +460,406 @@ public class TeamsController(
         }
     }
 
+    /// <summary>
+    /// Gets other active team members sharing the given fiscal code, in a team different from the
+    /// excluded member's own team. This is an informational, non-blocking check: the client decides
+    /// how to surface the warning (e.g. badge on the athlete card, indicator in the members list);
+    /// the server never blocks saving based on this result.
+    /// </summary>
+    /// <param name="fiscalCode">Fiscal code to search for</param>
+    /// <param name="excludeMemberId">Team member ID to exclude from the search (and whose team is excluded)</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of other active team members sharing the fiscal code (empty if no conflict)</returns>
+    /// <response code="200">Returns the list of conflicting team members (possibly empty)</response>
+    /// <response code="400">If the fiscal code is missing</response>
+    [HttpGet("members/by-fiscal-code/{fiscalCode}/conflicts")]
+    [ProducesResponseType(typeof(List<TeamMemberDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<List<TeamMemberDto>>> GetFiscalCodeConflicts(
+        string fiscalCode,
+        [FromQuery] Guid excludeMemberId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(fiscalCode))
+        {
+            return CreateValidationProblemDetails("The fiscal code is required.");
+        }
+
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var conflicts = await teamService.GetOtherActiveTeamsForFiscalCodeAsync(fiscalCode, excludeMemberId, cancellationToken);
+            return Ok(conflicts);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while checking fiscal code conflicts.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Membership Card Operations
+
+    /// <summary>
+    /// Gets all membership cards for a specific team member.
+    /// </summary>
+    /// <param name="memberId">Team member ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of membership cards</returns>
+    /// <response code="200">Returns the list of membership cards</response>
+    [HttpGet("members/{memberId:guid}/membership-cards")]
+    [ProducesResponseType(typeof(IEnumerable<MembershipCardDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<MembershipCardDto>>> GetMembershipCards(
+        Guid memberId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var cards = await teamService.GetMembershipCardsByMemberAsync(memberId, cancellationToken);
+            return Ok(cards);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving membership cards.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific membership card by ID.
+    /// </summary>
+    /// <param name="id">Membership card ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Membership card details</returns>
+    /// <response code="200">Returns the membership card</response>
+    /// <response code="404">If the membership card is not found</response>
+    [HttpGet("membership-cards/{id:guid}")]
+    [ProducesResponseType(typeof(MembershipCardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MembershipCardDto>> GetMembershipCard(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var card = await teamService.GetMembershipCardByIdAsync(id, cancellationToken);
+
+            if (card is null)
+            {
+                return CreateNotFoundProblem($"Membership card {id} not found");
+            }
+
+            return Ok(card);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the membership card.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new membership card.
+    /// </summary>
+    /// <param name="createCardDto">Membership card creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created membership card</returns>
+    /// <response code="201">Returns the created membership card</response>
+    /// <response code="400">If the request data is invalid</response>
+    [HttpPost("membership-cards")]
+    [ProducesResponseType(typeof(MembershipCardDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<MembershipCardDto>> CreateMembershipCard(
+        [FromBody] CreateMembershipCardDto createCardDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var currentUser = GetCurrentUser();
+            var card = await teamService.CreateMembershipCardAsync(createCardDto, currentUser, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetMembershipCard),
+                new { id = card.Id },
+                card);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the membership card.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing membership card.
+    /// </summary>
+    /// <param name="id">Membership card ID</param>
+    /// <param name="updateCardDto">Membership card update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated membership card</returns>
+    /// <response code="200">Returns the updated membership card</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="404">If the membership card is not found</response>
+    [HttpPut("membership-cards/{id:guid}")]
+    [ProducesResponseType(typeof(MembershipCardDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MembershipCardDto>> UpdateMembershipCard(
+        Guid id,
+        [FromBody] UpdateMembershipCardDto updateCardDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var currentUser = GetCurrentUser();
+            var card = await teamService.UpdateMembershipCardAsync(id, updateCardDto, currentUser, cancellationToken);
+
+            if (card is null)
+            {
+                return CreateNotFoundProblem($"Membership card {id} not found");
+            }
+
+            return Ok(card);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the membership card.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes a membership card (soft delete).
+    /// </summary>
+    /// <param name="id">Membership card ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content if successful</returns>
+    /// <response code="204">If the membership card was deleted successfully</response>
+    /// <response code="404">If the membership card is not found</response>
+    [HttpDelete("membership-cards/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteMembershipCard(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var currentUser = GetCurrentUser();
+            var deleted = await teamService.DeleteMembershipCardAsync(id, currentUser, cancellationToken);
+
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Membership card {id} not found");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the membership card.", ex);
+        }
+    }
+
+    #endregion
+
+    #region Insurance Policy Operations
+
+    /// <summary>
+    /// Gets all insurance policies for a specific team member.
+    /// </summary>
+    /// <param name="memberId">Team member ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of insurance policies</returns>
+    /// <response code="200">Returns the list of insurance policies</response>
+    [HttpGet("members/{memberId:guid}/insurance-policies")]
+    [ProducesResponseType(typeof(IEnumerable<InsurancePolicyDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<InsurancePolicyDto>>> GetInsurancePolicies(
+        Guid memberId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var policies = await teamService.GetInsurancePoliciesByMemberAsync(memberId, cancellationToken);
+            return Ok(policies);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving insurance policies.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Gets a specific insurance policy by ID.
+    /// </summary>
+    /// <param name="id">Insurance policy ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Insurance policy details</returns>
+    /// <response code="200">Returns the insurance policy</response>
+    /// <response code="404">If the insurance policy is not found</response>
+    [HttpGet("insurance-policies/{id:guid}")]
+    [ProducesResponseType(typeof(InsurancePolicyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InsurancePolicyDto>> GetInsurancePolicy(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var policy = await teamService.GetInsurancePolicyByIdAsync(id, cancellationToken);
+
+            if (policy is null)
+            {
+                return CreateNotFoundProblem($"Insurance policy {id} not found");
+            }
+
+            return Ok(policy);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while retrieving the insurance policy.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Creates a new insurance policy.
+    /// </summary>
+    /// <param name="createPolicyDto">Insurance policy creation data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Created insurance policy</returns>
+    /// <response code="201">Returns the created insurance policy</response>
+    /// <response code="400">If the request data is invalid</response>
+    [HttpPost("insurance-policies")]
+    [ProducesResponseType(typeof(InsurancePolicyDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<InsurancePolicyDto>> CreateInsurancePolicy(
+        [FromBody] CreateInsurancePolicyDto createPolicyDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var currentUser = GetCurrentUser();
+            var policy = await teamService.CreateInsurancePolicyAsync(createPolicyDto, currentUser, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetInsurancePolicy),
+                new { id = policy.Id },
+                policy);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while creating the insurance policy.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing insurance policy.
+    /// </summary>
+    /// <param name="id">Insurance policy ID</param>
+    /// <param name="updatePolicyDto">Insurance policy update data</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Updated insurance policy</returns>
+    /// <response code="200">Returns the updated insurance policy</response>
+    /// <response code="400">If the request data is invalid</response>
+    /// <response code="404">If the insurance policy is not found</response>
+    [HttpPut("insurance-policies/{id:guid}")]
+    [ProducesResponseType(typeof(InsurancePolicyDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<InsurancePolicyDto>> UpdateInsurancePolicy(
+        Guid id,
+        [FromBody] UpdateInsurancePolicyDto updatePolicyDto,
+        CancellationToken cancellationToken = default)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var currentUser = GetCurrentUser();
+            var policy = await teamService.UpdateInsurancePolicyAsync(id, updatePolicyDto, currentUser, cancellationToken);
+
+            if (policy is null)
+            {
+                return CreateNotFoundProblem($"Insurance policy {id} not found");
+            }
+
+            return Ok(policy);
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while updating the insurance policy.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Deletes an insurance policy (soft delete).
+    /// </summary>
+    /// <param name="id">Insurance policy ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>No content if successful</returns>
+    /// <response code="204">If the insurance policy was deleted successfully</response>
+    /// <response code="404">If the insurance policy is not found</response>
+    [HttpDelete("insurance-policies/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DeleteInsurancePolicy(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
+
+            var currentUser = GetCurrentUser();
+            var deleted = await teamService.DeleteInsurancePolicyAsync(id, currentUser, cancellationToken);
+
+            if (!deleted)
+            {
+                return CreateNotFoundProblem($"Insurance policy {id} not found");
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return CreateInternalServerErrorProblem("An error occurred while deleting the insurance policy.", ex);
+        }
+    }
+
     #endregion
 
 }

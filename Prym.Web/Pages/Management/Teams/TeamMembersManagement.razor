@@ -1,0 +1,346 @@
+@page "/management/teams/{TeamId:guid}/members"
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@using Prym.Web.Shared.Management.Adapters
+@using Prym.Web.Shared.Components.Dialogs.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IDialogService DialogService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject NavigationManager NavigationManager
+@inject ILogger<TeamMembersManagement> Logger
+
+<PageTitle>@TranslationService.GetTranslation("teams.members.management", "Gestione Membri Squadra")</PageTitle>
+
+@if (_team is not null)
+{
+    <EntityManagementPage TEntity="TeamMemberDto"
+                          @ref="_entityPage"
+                          Config="_config"
+                          Service="_service"
+                          OnCreateOverride="@(() => OpenMemberDialogAsync(null))"
+                          OnEditOverride="@(id => OpenMemberDialogAsync(id))">
+        <HeaderContent Context="columnConfigurations">
+            @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
+            {
+                @if (column.PropertyName == "FullName")
+                {
+                    <EFTableColumnHeader TItem="TeamMemberDto" PropertyName="FullName" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                        <MudTableSortLabel SortBy="@(new Func<TeamMemberDto, object>(x => x.FullName))">@TranslationService.GetTranslation("field.name", "Nome")</MudTableSortLabel>
+                    </EFTableColumnHeader>
+                }
+                else if (column.PropertyName == "Role")
+                {
+                    <EFTableColumnHeader TItem="TeamMemberDto" PropertyName="Role" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                        <MudTableSortLabel SortBy="@(new Func<TeamMemberDto, object>(x => x.Role ?? ""))">@TranslationService.GetTranslation("teams.members.role", "Ruolo/Posizione")</MudTableSortLabel>
+                    </EFTableColumnHeader>
+                }
+                else if (column.PropertyName == "Age")
+                {
+                    <EFTableColumnHeader TItem="TeamMemberDto" PropertyName="Age" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                        <MudTableSortLabel SortBy="@(new Func<TeamMemberDto, object>(x => x.Age ?? 0))">@TranslationService.GetTranslation("teams.members.age", "Età")</MudTableSortLabel>
+                    </EFTableColumnHeader>
+                }
+                else if (column.PropertyName == "Status")
+                {
+                    <EFTableColumnHeader TItem="TeamMemberDto" PropertyName="Status" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                        <MudTableSortLabel SortBy="@(new Func<TeamMemberDto, object>(x => x.Status.ToString()))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
+                    </EFTableColumnHeader>
+                }
+                else if (column.PropertyName == "EligibilityStatus")
+                {
+                    <EFTableColumnHeader TItem="TeamMemberDto" PropertyName="EligibilityStatus" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                        <MudTableSortLabel SortBy="@(new Func<TeamMemberDto, object>(x => x.EligibilityStatus.ToString()))">@TranslationService.GetTranslation("teams.members.eligibility", "Idoneità")</MudTableSortLabel>
+                    </EFTableColumnHeader>
+                }
+                else if (column.PropertyName == "Conflict")
+                {
+                    <EFTableColumnHeader TItem="TeamMemberDto" PropertyName="Conflict" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
+                        <MudTableSortLabel T="TeamMemberDto">@TranslationService.GetTranslation("teams.members.conflict", "Multi-Team")</MudTableSortLabel>
+                    </EFTableColumnHeader>
+                }
+            }
+            <MudTh Class="text-center ef-min-120">@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
+        </HeaderContent>
+
+        <RowTemplate Context="ctx">
+            @foreach (var column in ctx.Cols)
+            {
+                @if (column.PropertyName == "FullName")
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.name", "Nome")">
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+                                <MudIcon Icon="@Icons.Material.Outlined.Person" />
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.body2" Class="fw-semibold">@ctx.Item.FullName</MudText>
+                                @if (ctx.Item.JerseyNumber.HasValue)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">#@ctx.Item.JerseyNumber</MudText>
+                                }
+                            </div>
+                        </div>
+                    </MudTd>
+                }
+                else if (column.PropertyName == "Role")
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("teams.members.role", "Ruolo/Posizione")">
+                        <MudText Typo="Typo.body2">@(string.Join(" / ", new[] { ctx.Item.Role, ctx.Item.Position }.Where(s => !string.IsNullOrEmpty(s))))</MudText>
+                    </MudTd>
+                }
+                else if (column.PropertyName == "Age")
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("teams.members.age", "Età")">
+                        <MudText Typo="Typo.body2">@(ctx.Item.Age?.ToString() ?? "—")</MudText>
+                    </MudTd>
+                }
+                else if (column.PropertyName == "Status")
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("field.status", "Stato")">
+                        <MudChip T="string" Size="Size.Small" Color="@GetMemberStatusColor(ctx.Item.Status)" Variant="Variant.Filled">
+                            @GetMemberStatusLabel(ctx.Item.Status)
+                        </MudChip>
+                    </MudTd>
+                }
+                else if (column.PropertyName == "EligibilityStatus")
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("teams.members.eligibility", "Idoneità")">
+                        <MudChip T="string" Size="Size.Small" Color="@GetEligibilityColor(ctx.Item.EligibilityStatus)">
+                            @ctx.Item.EligibilityStatus
+                        </MudChip>
+                    </MudTd>
+                }
+                else if (column.PropertyName == "Conflict")
+                {
+                    <MudTd DataLabel="@TranslationService.GetTranslation("teams.members.conflict", "Multi-Team")">
+                        @if (_conflictCache.TryGetValue(ctx.Item.Id, out var conflicts) && conflicts.Count > 0)
+                        {
+                            <MudTooltip Text="@($"Presente anche in: {string.Join(", ", conflicts.Select(c => c.TeamName))}")">
+                                <MudIcon Icon="@Icons.Material.Outlined.Warning" Color="Color.Warning" Size="Size.Small" />
+                            </MudTooltip>
+                        }
+                    </MudTd>
+                }
+            }
+        </RowTemplate>
+
+        <AdditionalRowActions Context="member">
+            <MudTooltip Text="@TranslationService.GetTranslation("teams.members.detail", "Scheda Atleta")">
+                <PrymIconButton Icon="@Icons.Material.Outlined.Badge"
+                                Size="Size.Small"
+                                Color="Color.Info"
+                                Class="ef-row-actionbutton"
+                                OnClick="@(() => OpenMemberDetailDialogAsync(member))" />
+            </MudTooltip>
+        </AdditionalRowActions>
+    </EntityManagementPage>
+}
+else if (_isLoading)
+{
+    <div class="d-flex justify-center pa-8">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else
+{
+    <MudAlert Severity="Severity.Error">@TranslationService.GetTranslation("teams.notFound", "Squadra non trovata.")</MudAlert>
+}
+
+@code {
+    [Parameter] public Guid TeamId { get; set; }
+
+    private EntityManagementPage<TeamMemberDto>? _entityPage;
+    private IEntityManagementService<TeamMemberDto> _service = null!;
+    private EntityManagementConfig<TeamMemberDto> _config = null!;
+    private TeamDto? _team;
+    private bool _isLoading = true;
+    private Dictionary<Guid, List<TeamMemberDto>> _conflictCache = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _team = await TeamService.GetTeamByIdAsync(TeamId);
+        if (_team is not null)
+        {
+            _service = new TeamMemberManagementService(TeamService, TeamId);
+            _config = new EntityManagementConfig<TeamMemberDto>
+            {
+                ComponentKey = "TeamMemberManagement",
+                PageTitleKey = "teams.members.management",
+                PageTitleDefault = $"Membri - {_team.Name}",
+                EntityIcon = Icons.Material.Outlined.Person,
+                PageRootCssClass = "team-member-management-page-root",
+                BaseRoute = $"/management/teams/{TeamId}/members",
+                ExcelFileName = $"Membri_{_team.Name}",
+                SearchPlaceholderKey = "teams.members.search",
+                SearchPlaceholderDefault = "Cerca membri (nome, ruolo, codice fiscale...)",
+                EntityTypeName = "TeamMember",
+                CreateTooltip = "teams.members.createNew",
+                ShowDelete = true,
+                ShowEdit = true,
+                ShowAuditLog = false,
+                ShowToggleStatus = false,
+                GetDisplayName = m => m.FullName,
+                GetId = m => m.Id,
+                DeleteConfirmMessageKey = "teams.members.confirmDelete",
+                DeleteSuccessMessageKey = "teams.members.deleted",
+                DeleteErrorMessageKey = "teams.members.deleteError",
+                BreadcrumbItems =
+                [
+                    new BreadcrumbItem("Home", "/", icon: Icons.Material.Outlined.Home),
+                    new BreadcrumbItem("Squadre", "/management/teams"),
+                    new BreadcrumbItem(_team.Name, null, disabled: true),
+                    new BreadcrumbItem("Membri", null, disabled: true)
+                ],
+                Columns =
+                [
+                    new() { PropertyName = "FullName", DisplayName = "Nome", IsVisible = true, Order = 0, IsSearchable = true },
+                    new() { PropertyName = "Role", DisplayName = "Ruolo/Posizione", IsVisible = true, Order = 1, IsSearchable = true },
+                    new() { PropertyName = "Age", DisplayName = "Età", IsVisible = true, Order = 2, IsSearchable = false },
+                    new() { PropertyName = "Status", DisplayName = "Stato", IsVisible = true, Order = 3, IsSearchable = false },
+                    new() { PropertyName = "EligibilityStatus", DisplayName = "Idoneità", IsVisible = true, Order = 4, IsSearchable = false },
+                    new() { PropertyName = "Conflict", DisplayName = "Multi-Team", IsVisible = true, Order = 5, IsSearchable = false }
+                ],
+                QuickFilters =
+                [
+                    new() { Id = "all",      Label = "Tutti",    Predicate = _ => true,                                        Description = "Mostra tutti i membri" },
+                    new() { Id = "active",   Label = "Attivi",   Predicate = m => m.Status == TeamMemberStatus.Active,    Color = Color.Success, Icon = Icons.Material.Outlined.CheckCircle, Description = "Membri attivi" },
+                    new() { Id = "inactive", Label = "Inattivi", Predicate = m => m.Status == TeamMemberStatus.Inactive,  Color = Color.Default, Icon = Icons.Material.Outlined.PersonOff,   Description = "Membri inattivi" }
+                ]
+            };
+        }
+        _isLoading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _team is not null)
+        {
+            await LoadConflictsAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadConflictsAsync()
+    {
+        try
+        {
+            var members = await TeamService.GetTeamMembersAsync(TeamId);
+            if (members is null) return;
+
+            var membersWithFiscalCode = members.Where(m => !string.IsNullOrWhiteSpace(m.FiscalCode)).ToList();
+
+            // Bounded parallelism: check up to 5 at a time
+            var semaphore = new SemaphoreSlim(5);
+            var tasks = membersWithFiscalCode.Select(async member =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    var conflicts = await TeamService.GetFiscalCodeConflictsAsync(member.FiscalCode!, member.Id);
+                    if (conflicts.Count > 0)
+                    {
+                        lock (_conflictCache)
+                        {
+                            _conflictCache[member.Id] = conflicts;
+                        }
+                    }
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
+
+            await Task.WhenAll(tasks);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error loading fiscal code conflicts");
+        }
+    }
+
+    private async Task OpenMemberDialogAsync(Guid? id)
+    {
+        try
+        {
+            var parameters = new DialogParameters();
+            if (id.HasValue)
+            {
+                var member = await TeamService.GetTeamMemberByIdAsync(id.Value);
+                if (member is null)
+                {
+                    AppNotification.ShowWarning(TranslationService.GetTranslation("teams.members.notFound", "Membro non trovato."));
+                    return;
+                }
+                parameters[nameof(TeamMemberDialog.Member)] = member;
+            }
+            parameters[nameof(TeamMemberDialog.TeamId)] = TeamId;
+
+            var dialog = await DialogService.ShowAsync<TeamMemberDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _entityPage!.RefreshAsync();
+                await LoadConflictsAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening team member dialog for ID {Id}.", id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("teams.members.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private async Task OpenMemberDetailDialogAsync(TeamMemberDto member)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(TeamMemberDetailDialog.MemberId)] = member.Id
+            };
+            var dialog = await DialogService.ShowAsync<TeamMemberDetailDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await _entityPage!.RefreshAsync();
+                await LoadConflictsAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening member detail dialog for {MemberId}", member.Id);
+            AppNotification.ShowWarning(TranslationService.GetTranslation("teams.members.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private static Color GetMemberStatusColor(TeamMemberStatus status) => status switch
+    {
+        TeamMemberStatus.Active => Color.Success,
+        TeamMemberStatus.Suspended => Color.Warning,
+        TeamMemberStatus.Inactive => Color.Default,
+        _ => Color.Default
+    };
+
+    private string GetMemberStatusLabel(TeamMemberStatus status) => status switch
+    {
+        TeamMemberStatus.Active => TranslationService.GetTranslation("status.active", "Attivo"),
+        TeamMemberStatus.Suspended => TranslationService.GetTranslation("status.suspended", "Sospeso"),
+        TeamMemberStatus.Inactive => TranslationService.GetTranslation("common.inactive", "Inattivo"),
+        _ => status.ToString()
+    };
+
+    private static Color GetEligibilityColor(EligibilityStatus status) => status switch
+    {
+        EligibilityStatus.Eligible => Color.Success,
+        EligibilityStatus.NotEligible => Color.Error,
+        EligibilityStatus.Suspended => Color.Warning,
+        EligibilityStatus.UnderReview => Color.Info,
+        _ => Color.Default
+    };
+}

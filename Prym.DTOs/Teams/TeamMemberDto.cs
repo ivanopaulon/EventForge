@@ -48,6 +48,11 @@ namespace Prym.DTOs.Teams
         public TeamMemberStatus Status { get; set; }
 
         /// <summary>
+        /// Fiscal code of the team member (e.g. Italian "Codice Fiscale"). Optional.
+        /// </summary>
+        public string? FiscalCode { get; set; }
+
+        /// <summary>
         /// Owning team ID.
         /// </summary>
         public Guid TeamId { get; set; }
