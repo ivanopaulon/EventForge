@@ -4,9 +4,15 @@ using Prym.Web.Services;
 
 namespace Prym.Web.Shared.Management.Adapters;
 
-public class FidelityTierMultiplierManagementService(IFidelityTierMultiplierService tierMultiplierService)
+/// <summary>
+/// Adapter scoped to a single campaign — tier multipliers are configured per campaign,
+/// not tenant-wide, so every instance targets exactly one <see cref="CampaignId"/>.
+/// </summary>
+public class FidelityTierMultiplierManagementService(IFidelityTierMultiplierService tierMultiplierService, Guid campaignId)
     : IEntityManagementService<FidelityTierMultiplierDto>
 {
+    public Guid CampaignId => campaignId;
+
     public async Task<PagedResult<FidelityTierMultiplierDto>> GetPagedAsync(
         int page,
         int pageSize,
@@ -14,7 +20,7 @@ public class FidelityTierMultiplierManagementService(IFidelityTierMultiplierServ
         Dictionary<string, object?>? filters = null,
         CancellationToken ct = default)
     {
-        var all = (await tierMultiplierService.GetAllAsync(ct))
+        var all = (await tierMultiplierService.GetByCampaignAsync(campaignId, ct))
             .OrderBy(x => x.CardType)
             .ToList();
 
@@ -33,5 +39,5 @@ public class FidelityTierMultiplierManagementService(IFidelityTierMultiplierServ
     }
 
     public Task DeleteAsync(Guid id, CancellationToken ct = default)
-        => throw new NotSupportedException();
+        => tierMultiplierService.DeleteAsync(id, ct);
 }

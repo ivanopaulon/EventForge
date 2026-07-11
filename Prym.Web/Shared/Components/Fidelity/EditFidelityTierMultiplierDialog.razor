@@ -5,7 +5,9 @@
 @inject ILogger<EditFidelityTierMultiplierDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Star"
-          Title="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.editTitle", "Modifica Moltiplicatore Livello")"
+          Title="@(IsEditMode
+              ? TranslationService.GetTranslation("fidelityPoints.tierMultipliers.editTitle", "Modifica Moltiplicatore Livello")
+              : TranslationService.GetTranslation("fidelityPoints.tierMultipliers.createTitle", "Nuovo Moltiplicatore Livello"))"
           IsProcessing="@_isProcessing"
           OnClose="Cancel"
           MinWidth="@Prym.Web.Shared.Components.Dialogs.EFDialogDefaults.MinWidthSimple">
@@ -13,12 +15,29 @@
         <MudForm @ref="_form" @bind-IsValid="@_isValid">
             <MudGrid>
                 <MudItem xs="12" md="6">
-                    <MudTextField Value="@GetCardTypeLabel(_cardType)"
-                                  Label="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")"
-                                  Variant="Variant.Outlined"
-                                  ReadOnly="true"
-                                  Disabled="true"
-                                  Margin="Margin.Dense" />
+                    @if (IsEditMode)
+                    {
+                        <MudTextField Value="@GetCardTypeLabel(_cardType)"
+                                      Label="@TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")"
+                                      Variant="Variant.Outlined"
+                                      ReadOnly="true"
+                                      Disabled="true"
+                                      Margin="Margin.Dense" />
+                    }
+                    else
+                    {
+                        <MudSelect T="FidelityCardType"
+                                   @bind-Value="_cardType"
+                                   Label="@($"{TranslationService.GetTranslation("fidelityPoints.tierMultipliers.cardType", "Livello Carta")} *")"
+                                   Variant="Variant.Outlined"
+                                   Required="true"
+                                   Margin="Margin.Dense">
+                            @foreach (var cardType in AvailableCardTypes)
+                            {
+                                <MudSelectItem Value="@cardType">@GetCardTypeLabel(cardType)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
                 </MudItem>
 
                 <MudItem xs="12" md="6">
@@ -59,19 +78,40 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = null!;
 
+    /// <summary>Campaign this multiplier belongs to — required, tier multipliers are always per-campaign.</summary>
     [Parameter, EditorRequired]
-    public FidelityTierMultiplierDto TierMultiplier { get; set; } = null!;
+    public Guid CampaignId { get; set; }
+
+    /// <summary>Existing multiplier to edit; null when creating a new one.</summary>
+    [Parameter]
+    public FidelityTierMultiplierDto? TierMultiplier { get; set; }
+
+    /// <summary>Card types already configured for this campaign, excluded from the create picker.</summary>
+    [Parameter]
+    public IReadOnlyCollection<FidelityCardType> ExistingCardTypes { get; set; } = [];
+
+    private bool IsEditMode => TierMultiplier is not null;
 
     private MudForm _form = null!;
     private bool _isValid;
     private bool _isProcessing;
     private FidelityCardType _cardType;
-    private decimal _multiplier;
+    private decimal _multiplier = 1.0m;
+
+    private IEnumerable<FidelityCardType> AvailableCardTypes =>
+        Enum.GetValues<FidelityCardType>().Except(ExistingCardTypes);
 
     protected override void OnParametersSet()
     {
-        _cardType = TierMultiplier.CardType;
-        _multiplier = TierMultiplier.Multiplier;
+        if (IsEditMode)
+        {
+            _cardType = TierMultiplier!.CardType;
+            _multiplier = TierMultiplier.Multiplier;
+        }
+        else if (_cardType == default && AvailableCardTypes.Any())
+        {
+            _cardType = AvailableCardTypes.First();
+        }
     }
 
     private async Task SubmitAsync()
@@ -90,19 +130,35 @@
         {
             _isProcessing = true;
 
-            var dto = new UpdateFidelityTierMultiplierDto
+            if (IsEditMode)
             {
-                CardType = _cardType,
-                Multiplier = _multiplier
-            };
+                var dto = new UpdateFidelityTierMultiplierDto
+                {
+                    CardType = _cardType,
+                    Multiplier = _multiplier
+                };
 
-            await TierMultiplierService.UpdateAsync(TierMultiplier.Id, dto);
-            AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.updated", "Moltiplicatore livello aggiornato con successo."));
+                await TierMultiplierService.UpdateAsync(TierMultiplier!.Id, dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.updated", "Moltiplicatore livello aggiornato con successo."));
+            }
+            else
+            {
+                var dto = new CreateFidelityTierMultiplierDto
+                {
+                    CampaignId = CampaignId,
+                    CardType = _cardType,
+                    Multiplier = _multiplier
+                };
+
+                await TierMultiplierService.CreateAsync(dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelityPoints.tierMultipliers.created", "Moltiplicatore livello creato con successo."));
+            }
+
             MudDialog.Close(DialogResult.Ok(true));
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error updating fidelity tier multiplier {TierMultiplierId}", TierMultiplier.Id);
+            Logger.LogError(ex, "Error saving fidelity tier multiplier for campaign {CampaignId}", CampaignId);
             AppNotification.ShowError(ex.Message);
         }
         finally

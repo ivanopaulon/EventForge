@@ -18,6 +18,15 @@
                       Service="_service"
                       OnCreateOverride="@(() => OpenDialogAsync(null))"
                       OnEditOverride="@(id => OpenDialogAsync(id))">
+    <AdditionalToolbarContent>
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Outlined.Settings"
+                   Class="ml-2"
+                   OnClick="OpenGeneralSettingsAsync">
+            @TranslationService.GetTranslation("fidelityPoints.generalSettings.title", "Impostazioni Generali")
+        </MudButton>
+    </AdditionalToolbarContent>
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -49,12 +58,6 @@
             {
                 <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.IsActive)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
                     <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.IsActive))">@TranslationService.GetTranslation("field.status", "Stato")</MudTableSortLabel>
-                </EFTableColumnHeader>
-            }
-            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier))
-            {
-                <EFTableColumnHeader TItem="FidelityPointsCampaignDto" PropertyName="@nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier)" OnDragStartCallback="@_entityPage!.EFTableRef!.HandleColumnDragStart">
-                    <MudTableSortLabel SortBy="@(new Func<FidelityPointsCampaignDto, object>(x => x.IgnoreTierMultiplier))">@TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier", "Ignora Livello")</MudTableSortLabel>
                 </EFTableColumnHeader>
             }
         }
@@ -91,20 +94,6 @@
                         @(ctx.Item.IsActive
                             ? TranslationService.GetTranslation("common.active", "Attiva")
                             : TranslationService.GetTranslation("common.inactive", "Inattiva"))
-                    </MudChip>
-                </MudTd>
-            }
-            else if (column.PropertyName == nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier))
-            {
-                <MudTd DataLabel="@TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier", "Ignora Livello")">
-                    <MudChip T="string"
-                             Size="Size.Small"
-                             Color="@(ctx.Item.IgnoreTierMultiplier ? Color.Warning : Color.Default)"
-                             Variant="@(ctx.Item.IgnoreTierMultiplier ? Variant.Filled : Variant.Outlined)"
-                             Icon="@(ctx.Item.IgnoreTierMultiplier ? Icons.Material.Outlined.PanTool : Icons.Material.Outlined.Star)">
-                        @(ctx.Item.IgnoreTierMultiplier
-                            ? TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier.enabled", "Ignorato")
-                            : TranslationService.GetTranslation("fidelityPoints.campaigns.ignoreTierMultiplier.disabled", "Applicato"))
                     </MudChip>
                 </MudTd>
             }
@@ -155,8 +144,7 @@
                 new() { PropertyName = nameof(FidelityPointsCampaignDto.StartDate), DisplayName = "Data Inizio", IsVisible = true, Order = 1, IsSearchable = false },
                 new() { PropertyName = nameof(FidelityPointsCampaignDto.EndDate), DisplayName = "Data Fine", IsVisible = true, Order = 2, IsSearchable = false },
                 new() { PropertyName = nameof(FidelityPointsCampaignDto.Multiplier), DisplayName = "Moltiplicatore", IsVisible = true, Order = 3, IsSearchable = false },
-                new() { PropertyName = nameof(FidelityPointsCampaignDto.IsActive), DisplayName = "Stato", IsVisible = true, Order = 4, IsSearchable = false },
-                new() { PropertyName = nameof(FidelityPointsCampaignDto.IgnoreTierMultiplier), DisplayName = "Ignora Livello", IsVisible = true, Order = 5, IsSearchable = false }
+                new() { PropertyName = nameof(FidelityPointsCampaignDto.IsActive), DisplayName = "Stato", IsVisible = true, Order = 4, IsSearchable = false }
             ]
         };
     }
@@ -195,6 +183,20 @@
         {
             Logger.LogError(ex, "Error opening fidelity points campaign dialog for ID {Id}.", id);
             AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.campaigns.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
+        }
+    }
+
+    private async Task OpenGeneralSettingsAsync()
+    {
+        try
+        {
+            var dialog = await DialogService.ShowAsync<FidelityPointsGeneralSettingsDialog>(string.Empty, new DialogParameters(), EFDialogDefaults.Options);
+            _ = await dialog.Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening fidelity points general settings dialog.");
+            AppNotification.ShowWarning(TranslationService.GetTranslation("fidelityPoints.generalSettings.dialogOpenError", "Si è verificato un errore nell'apertura del dialogo."));
         }
     }
 }

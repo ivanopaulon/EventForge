@@ -2,11 +2,13 @@
 @using Prym.DTOs.Teams
 @using Prym.Web.Services.Teams
 @using Prym.Web.Services
+@using Prym.Web.Shared.Components.Dialogs.Events
 @attribute [Authorize]
 @inject ITeamService TeamService
 @inject IEventService EventService
 @inject IAppNotificationService AppNotification
 @inject ITranslationService TranslationService
+@inject IDialogService DialogService
 @inject ILogger<TeamDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.Groups"
@@ -16,6 +18,12 @@
           MinWidth="@EFDialogDefaults.MinWidthSimple"
           MinHeight="@EFDialogDefaults.MinHeightSimple">
     <ChildContent>
+        @if (!_isEdit && _events.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3">
+                @TranslationService.GetTranslation("teams.noEventsAvailable", "Nessun evento disponibile. Crea prima un evento per poter associare una squadra.")
+            </MudAlert>
+        }
         <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12" sm="6">
@@ -30,15 +38,26 @@
                                   InputType="InputType.Email" />
                 </MudItem>
                 <MudItem xs="12" sm="6">
-                    <PrymSelect T="Guid" @bind-Value="_eventId"
-                                Label="@TranslationService.GetTranslation("teams.event", "Evento Collegato")"
-                                Required="true" RequiredError="L'evento è obbligatorio"
-                                Disabled="_isEdit">
-                        @foreach (var e in _events)
+                    <div class="d-flex align-center gap-2">
+                        <PrymSelect T="Guid" @bind-Value="_eventId"
+                                    Label="@TranslationService.GetTranslation("teams.event", "Evento Collegato")"
+                                    Placeholder="@TranslationService.GetTranslation("teams.selectEvent", "Seleziona un evento...")"
+                                    Required="true" RequiredError="L'evento è obbligatorio"
+                                    Disabled="_isEdit"
+                                    Class="flex-grow-1">
+                            @foreach (var e in _events)
+                            {
+                                <MudSelectItem T="Guid" Value="@e.Id">@e.Name</MudSelectItem>
+                            }
+                        </PrymSelect>
+                        @if (!_isEdit)
                         {
-                            <MudSelectItem T="Guid" Value="@e.Id">@e.Name</MudSelectItem>
+                            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                                           Color="Color.Primary"
+                                           Title="@TranslationService.GetTranslation("teams.createEvent", "Crea nuovo evento")"
+                                           OnClick="OpenCreateEventDialogAsync" />
                         }
-                    </PrymSelect>
+                    </div>
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField T="string" @bind-Value="_category"
@@ -109,15 +128,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            var events = await EventService.GetEventsAsync(1, 200);
-            _events = events?.Items?.ToList() ?? new();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading events for team dialog");
-        }
+        await LoadEventsAsync();
 
         if (Team is not null)
         {
@@ -200,4 +211,38 @@
     }
 
     private void Cancel() => MudDialog.Cancel();
+
+    private async Task LoadEventsAsync()
+    {
+        try
+        {
+            var events = await EventService.GetEventsAsync(1, 200);
+            _events = events?.Items?.ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading events for team dialog");
+        }
+    }
+
+    private async Task OpenCreateEventDialogAsync()
+    {
+        try
+        {
+            var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+            var dialog = await DialogService.ShowAsync<CreateEventDialog>("", new DialogParameters(), options);
+            var result = await dialog.Result;
+
+            if (result is { Canceled: false } && result.Data is Prym.DTOs.Events.EventDto created)
+            {
+                await LoadEventsAsync();
+                _eventId = created.Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating event from team dialog");
+            AppNotification.ShowError(TranslationService.GetTranslation("teams.createEventError", "Errore nella creazione dell'evento."));
+        }
+    }
 }

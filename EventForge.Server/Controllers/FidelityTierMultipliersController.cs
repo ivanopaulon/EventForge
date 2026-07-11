@@ -14,13 +14,15 @@ public class FidelityTierMultipliersController(
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<FidelityTierMultiplierDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IEnumerable<FidelityTierMultiplierDto>>> GetTierMultipliers(CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<FidelityTierMultiplierDto>>> GetTierMultipliers(
+        [FromQuery] Guid campaignId,
+        CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var multipliers = await tierMultiplierService.GetAllAsync(cancellationToken);
+            var multipliers = await tierMultiplierService.GetByCampaignAsync(campaignId, cancellationToken);
             return Ok(multipliers.Select(MapTierMultiplier));
         }
         catch (Exception ex)
@@ -63,6 +65,7 @@ public class FidelityTierMultipliersController(
         {
             var created = await tierMultiplierService.CreateAsync(new FidelityTierMultiplier
             {
+                CampaignId = dto.CampaignId,
                 CardType = (EventForge.Server.Data.Entities.Business.FidelityCardType)dto.CardType,
                 Multiplier = dto.Multiplier
             }, GetCurrentUser(), cancellationToken);
@@ -135,6 +138,7 @@ public class FidelityTierMultipliersController(
         new()
         {
             Id = multiplier.Id,
+            CampaignId = multiplier.CampaignId,
             CardType = (Prym.DTOs.Business.Fidelity.FidelityCardType)multiplier.CardType,
             Multiplier = multiplier.Multiplier,
             CreatedAt = multiplier.CreatedAt

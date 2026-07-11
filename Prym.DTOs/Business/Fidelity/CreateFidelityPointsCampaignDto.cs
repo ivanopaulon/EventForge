@@ -18,8 +18,6 @@ public class CreateFidelityPointsCampaignDto
 
     public FidelityPointsRoundingMode RoundingMode { get; set; } = FidelityPointsRoundingMode.Floor;
 
-    public bool IgnoreTierMultiplier { get; set; }
-
     public bool IsActive { get; set; } = true;
 
     public string? ProductIdsJSON { get; set; }

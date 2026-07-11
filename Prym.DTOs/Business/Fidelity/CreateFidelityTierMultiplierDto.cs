@@ -4,6 +4,9 @@ namespace Prym.DTOs.Business.Fidelity;
 
 public class CreateFidelityTierMultiplierDto
 {
+    [Required]
+    public Guid CampaignId { get; set; }
+
     public FidelityCardType CardType { get; set; }
 
     [Range(0.01, 100)]

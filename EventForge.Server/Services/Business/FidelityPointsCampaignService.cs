@@ -58,7 +58,6 @@ public class FidelityPointsCampaignService(
             EndDate = campaign.EndDate,
             Multiplier = campaign.Multiplier,
             RoundingMode = campaign.RoundingMode,
-            IgnoreTierMultiplier = campaign.IgnoreTierMultiplier,
             IsActive = campaign.IsActive,
             ProductIdsJSON = campaign.ProductIdsJSON,
             CategoryIdsJSON = campaign.CategoryIdsJSON,
@@ -118,7 +117,6 @@ public class FidelityPointsCampaignService(
         existingCampaign.EndDate = campaign.EndDate;
         existingCampaign.Multiplier = campaign.Multiplier;
         existingCampaign.RoundingMode = campaign.RoundingMode;
-        existingCampaign.IgnoreTierMultiplier = campaign.IgnoreTierMultiplier;
         existingCampaign.IsActive = campaign.IsActive;
         existingCampaign.ProductIdsJSON = campaign.ProductIdsJSON;
         existingCampaign.CategoryIdsJSON = campaign.CategoryIdsJSON;
