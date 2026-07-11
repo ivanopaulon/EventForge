@@ -27,18 +27,35 @@ public class TeamService(
 
             var query = context.Teams
                 .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Include(t => t.Event)
-                .Include(t => t.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value));
+                .WhereActiveTenant(currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
-            var teams = await query
+            var teamDtos = await query
                 .OrderBy(t => t.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(t => new TeamDto
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    ShortDescription = t.ShortDescription,
+                    LongDescription = t.LongDescription,
+                    Email = t.Email,
+                    Status = (Prym.DTOs.Common.TeamStatus)t.Status,
+                    EventId = t.EventId,
+                    EventName = t.Event != null ? t.Event.Name : null,
+                    ClubCode = t.ClubCode,
+                    FederationCode = t.FederationCode,
+                    Category = t.Category,
+                    CoachContactId = t.CoachContactId,
+                    TeamLogoDocumentId = t.TeamLogoDocumentId,
+                    MemberCount = t.Members.Count(m => !m.IsDeleted && m.TenantId == currentTenantId.Value),
+                    CreatedAt = t.CreatedAt,
+                    CreatedBy = t.CreatedBy,
+                    ModifiedAt = t.ModifiedAt,
+                    ModifiedBy = t.ModifiedBy
+                })
                 .ToListAsync(cancellationToken);
-
-            var teamDtos = teams.Select(MapToTeamDto);
 
             return new PagedResult<TeamDto>
             {
