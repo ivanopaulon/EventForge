@@ -151,6 +151,62 @@
                     </MudGrid>
                 </MudPaper>
 
+                <!-- Scaletta oraria -->
+                <MudPaper Elevation="2" Class="pa-4">
+                    <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.subtitle1">
+                            <MudIcon Icon="@Icons.Material.Outlined.Schedule" Size="Size.Small" Class="mr-1" />
+                            @TranslationService.GetTranslation("events.timeSlots", "Scaletta Oraria")
+                        </MudText>
+                        <MudButton OnClick="AddTimeSlot" Variant="Variant.Text" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Outlined.Add" Size="Size.Small">
+                            @TranslationService.GetTranslation("events.addTimeSlot", "Aggiungi fascia oraria")
+                        </MudButton>
+                    </MudStack>
+
+                    @if (_model.TimeSlots.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @TranslationService.GetTranslation("events.noTimeSlots", "Nessuna fascia oraria definita.")
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @for (var i = 0; i < _model.TimeSlots.Count; i++)
+                            {
+                                var slot = _model.TimeSlots[i];
+                                var index = i;
+                                <MudStack Row Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudTextField T="string" Value="@slot.Label" ValueChanged="@((string v) => slot.Label = v)"
+                                                  Label="@TranslationService.GetTranslation("field.label", "Etichetta")"
+                                                  Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+                                    <MudTimePicker T="TimeSpan?" Time="@slot.StartTime" TimeChanged="@((TimeSpan? v) => slot.StartTime = v ?? slot.StartTime)"
+                                                   Label="@TranslationService.GetTranslation("field.startTime", "Ora inizio")"
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" AmPm="false" />
+                                    <MudTimePicker T="TimeSpan?" Time="@slot.EndTime" TimeChanged="@((TimeSpan? v) => slot.EndTime = v ?? slot.EndTime)"
+                                                   Label="@TranslationService.GetTranslation("field.endTime", "Ora fine")"
+                                                   Variant="Variant.Outlined" Margin="Margin.Dense" AmPm="false"
+                                                   Error="@(slot.EndTime <= slot.StartTime)"
+                                                   ErrorText="@TranslationService.GetTranslation("events.timeSlotEndAfterStart", "L'ora fine deve essere dopo l'ora inizio")" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowUpward" Size="Size.Small"
+                                                   Disabled="@(index == 0)" OnClick="@(() => MoveTimeSlotUp(index))" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.ArrowDownward" Size="Size.Small"
+                                                   Disabled="@(index == _model.TimeSlots.Count - 1)" OnClick="@(() => MoveTimeSlotDown(index))" />
+                                    <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => RemoveTimeSlot(index))" />
+                                </MudStack>
+                            }
+                        </MudStack>
+                        @if (_hasInvalidTimeSlot)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Error" Class="mt-2">
+                                @TranslationService.GetTranslation("events.timeSlotValidationError", "Correggi le fasce orarie: l'ora fine deve essere dopo l'ora inizio.")
+                            </MudText>
+                        }
+                    }
+                </MudPaper>
+
             </MudStack>
         </MudForm>
     </ChildContent>
@@ -159,7 +215,7 @@
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
         <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
-                   Disabled="@(!_isFormValid || _isLoading || _dateRange?.Start == null)"
+                   Disabled="@(!_isFormValid || _isLoading || _dateRange?.Start == null || _hasInvalidTimeSlot)"
                    StartIcon="@Icons.Material.Outlined.Save">
             @(_isEditMode
                 ? TranslationService.GetTranslation("common.save", "Salva")
@@ -192,6 +248,8 @@
 
     private readonly string[] _presetColors = ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#9C27B0", "#FF5722", "#00BCD4", "#607D8B"];
 
+    private bool _hasInvalidTimeSlot => _model.TimeSlots.Any(s => s.EndTime <= s.StartTime);
+
     // Internal model uses UpdateEventDto for both modes (superset of CreateEventDto fields).
     private UpdateEventDto _model = new()
     {
@@ -220,7 +278,14 @@
                 Color            = ev.Color,
                 AssignedToUserId = ev.AssignedToUserId,
                 Visibility       = ev.Visibility,
-                RowVersion       = ev.RowVersion
+                RowVersion       = ev.RowVersion,
+                TimeSlots        = ev.TimeSlots?.Select(s => new CreateEventTimeSlotDto
+                {
+                    StartTime = s.StartTime,
+                    EndTime   = s.EndTime,
+                    Label     = s.Label,
+                    SortOrder = s.SortOrder
+                }).ToList() ?? new()
             };
 
             var startLocal = ev.StartDate.ToLocalTime();
@@ -249,13 +314,51 @@
 
     private void Cancel() => MudDialog.Cancel();
 
+    private void AddTimeSlot()
+    {
+        _model.TimeSlots.Add(new CreateEventTimeSlotDto
+        {
+            StartTime = new TimeSpan(9, 0, 0),
+            EndTime   = new TimeSpan(12, 0, 0),
+            SortOrder = _model.TimeSlots.Count
+        });
+    }
+
+    private void RemoveTimeSlot(int index)
+    {
+        _model.TimeSlots.RemoveAt(index);
+        ReassignSortOrders();
+    }
+
+    private void MoveTimeSlotUp(int index)
+    {
+        if (index <= 0) return;
+        (_model.TimeSlots[index - 1], _model.TimeSlots[index]) = (_model.TimeSlots[index], _model.TimeSlots[index - 1]);
+        ReassignSortOrders();
+    }
+
+    private void MoveTimeSlotDown(int index)
+    {
+        if (index >= _model.TimeSlots.Count - 1) return;
+        (_model.TimeSlots[index + 1], _model.TimeSlots[index]) = (_model.TimeSlots[index], _model.TimeSlots[index + 1]);
+        ReassignSortOrders();
+    }
+
+    private void ReassignSortOrders()
+    {
+        for (var i = 0; i < _model.TimeSlots.Count; i++)
+            _model.TimeSlots[i].SortOrder = i;
+    }
+
     private async Task SaveAsync()
     {
         await _form.ValidateAsync();
-        if (!_isFormValid || _dateRange?.Start == null)
+        if (!_isFormValid || _dateRange?.Start == null || _hasInvalidTimeSlot)
         {
             if (!_isFormValid)
                 AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            else if (_hasInvalidTimeSlot)
+                AppNotification.ShowError(TranslationService.GetTranslation("events.timeSlotValidationError", "Correggi le fasce orarie: l'ora fine deve essere dopo l'ora inizio."));
             return;
         }
 
@@ -286,7 +389,8 @@
                     Status           = _model.Status,
                     Color            = _model.Color,
                     AssignedToUserId = _model.AssignedToUserId,
-                    Visibility       = _model.Visibility
+                    Visibility       = _model.Visibility,
+                    TimeSlots        = _model.TimeSlots
                 };
                 result = await EventService.CreateEventAsync(createDto);
                 AppNotification.ShowSuccess(TranslationService.GetTranslation("events.created", "Evento creato con successo"));
