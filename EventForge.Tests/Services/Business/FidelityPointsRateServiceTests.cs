@@ -103,9 +103,9 @@ public class FidelityPointsRateServiceTests : IDisposable
         // Bronze has no multiplier configured in this campaign — defaults to 1.0.
         var bronzeResult = await _service.GetEffectiveRateAsync(FidelityCardType.Bronze);
 
-        Assert.Equal(9m, goldResult.Rate); // 2 * 1.5 * 3
-        Assert.Equal(15m, platinumResult.Rate); // 2 * 2.5 * 3
-        Assert.Equal(6m, bronzeResult.Rate); // 2 * 1.0 * 3
+        Assert.Equal(9m, goldResult.Rate); // baseRate (2) * campaign tier multiplier for Gold (1.5) * campaign multiplier (3) = 9
+        Assert.Equal(15m, platinumResult.Rate); // baseRate (2) * campaign tier multiplier for Platinum (2.5) * campaign multiplier (3) = 15
+        Assert.Equal(6m, bronzeResult.Rate); // baseRate (2) * default tier multiplier (1.0, none configured for Bronze) * campaign multiplier (3) = 6
         Assert.Equal(FidelityPointsRoundingMode.Nearest, goldResult.Rounding);
     }
 
@@ -155,7 +155,7 @@ public class FidelityPointsRateServiceTests : IDisposable
 
         var result = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
 
-        Assert.Equal(6m, result.Rate); // 2 * 1.0 (no matching multiplier in active campaign) * 3
+        Assert.Equal(6m, result.Rate); // baseRate (2) * default tier multiplier (1.0, past campaign's multiplier does not apply) * active campaign multiplier (3) = 6
         Assert.Equal(FidelityPointsRoundingMode.Nearest, result.Rounding);
     }
 
