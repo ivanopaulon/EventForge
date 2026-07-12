@@ -448,6 +448,8 @@ public static class ServiceCollectionExtensions
         _ = services.AddScoped<IBusinessPartyService, BusinessPartyService>();
         _ = services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
         _ = services.AddScoped<IFidelityCardService, FidelityCardService>();
+        _ = services.AddScoped<IFidelityTierService, FidelityTierService>();
+        _ = services.AddScoped<IFidelityTierEvaluationService, FidelityTierEvaluationService>();
         _ = services.AddScoped<IFidelityPointsBaseRateService, FidelityPointsBaseRateService>();
         _ = services.AddScoped<IFidelityTierMultiplierService, FidelityTierMultiplierService>();
         _ = services.AddScoped<IFidelityPointsCampaignService, FidelityPointsCampaignService>();

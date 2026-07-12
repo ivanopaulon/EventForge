@@ -23,8 +23,21 @@ public class FidelityCard : AuditableEntity
     [Required, MaxLength(50)]
     public string CardNumber { get; set; } = string.Empty;
 
+    [Obsolete("Deprecated: replaced by TierId. Retained indefinitely (no removal date planned) as a read-only historical/compatibility column for the FidelityCardType -> FidelityTier migration; do not use in new code.")]
     public FidelityCardType Type { get; set; } = FidelityCardType.Bronze;
     public FidelityCardStatus Status { get; set; } = FidelityCardStatus.Active;
+
+    /// <summary>
+    /// Current fidelity tier (level) of the card. Replaces the deprecated <see cref="Type"/> enum.
+    /// </summary>
+    public Guid? TierId { get; set; }
+    public FidelityTier? Tier { get; set; }
+
+    /// <summary>
+    /// Timestamp when the card entered its current tier. Used by the periodic reevaluation to
+    /// decide when a tier's evaluation window has elapsed.
+    /// </summary>
+    public DateTime? TierEnteredAt { get; set; }
 
     public DateTime ValidFrom { get; set; } = DateTime.UtcNow;
     public DateTime ValidTo { get; set; } = DateTime.UtcNow.AddYears(1);

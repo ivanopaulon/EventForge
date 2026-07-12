@@ -13,8 +13,9 @@ public class FidelityTierMultiplierService(
 
         return await context.FidelityTierMultipliers
             .AsNoTracking()
+            .Include(multiplier => multiplier.Tier)
             .Where(multiplier => multiplier.TenantId == tenantId && !multiplier.IsDeleted && multiplier.CampaignId == campaignId)
-            .OrderBy(multiplier => multiplier.CardType)
+            .OrderBy(multiplier => multiplier.TierId)
             .ToListAsync(ct);
     }
 
@@ -24,6 +25,7 @@ public class FidelityTierMultiplierService(
 
         return await context.FidelityTierMultipliers
             .AsNoTracking()
+            .Include(multiplier => multiplier.Tier)
             .Where(multiplier => multiplier.TenantId == tenantId && !multiplier.IsDeleted)
             .FirstOrDefaultAsync(multiplier => multiplier.Id == id, ct);
     }
@@ -37,18 +39,18 @@ public class FidelityTierMultiplierService(
         var alreadyExists = await context.FidelityTierMultipliers
             .AsNoTracking()
             .Where(multiplier => multiplier.TenantId == tenantId && !multiplier.IsDeleted && multiplier.CampaignId == tierMultiplier.CampaignId)
-            .AnyAsync(multiplier => multiplier.CardType == tierMultiplier.CardType, ct);
+            .AnyAsync(multiplier => multiplier.TierId == tierMultiplier.TierId, ct);
 
         if (alreadyExists)
         {
-            throw new InvalidOperationException($"Esiste già un moltiplicatore per il livello {tierMultiplier.CardType} in questa campagna.");
+            throw new InvalidOperationException($"Esiste già un moltiplicatore per il livello selezionato in questa campagna.");
         }
 
         var entity = new FidelityTierMultiplier
         {
             TenantId = tenantId,
             CampaignId = tierMultiplier.CampaignId,
-            CardType = tierMultiplier.CardType,
+            TierId = tierMultiplier.TierId,
             Multiplier = tierMultiplier.Multiplier,
             CreatedBy = currentUser,
             ModifiedBy = currentUser
@@ -77,11 +79,11 @@ public class FidelityTierMultiplierService(
         var duplicateExists = await context.FidelityTierMultipliers
             .AsNoTracking()
             .Where(multiplier => multiplier.TenantId == tenantId && !multiplier.IsDeleted && multiplier.CampaignId == originalMultiplier.CampaignId)
-            .AnyAsync(multiplier => multiplier.Id != id && multiplier.CardType == tierMultiplier.CardType, ct);
+            .AnyAsync(multiplier => multiplier.Id != id && multiplier.TierId == tierMultiplier.TierId, ct);
 
         if (duplicateExists)
         {
-            throw new InvalidOperationException($"Esiste già un moltiplicatore per il livello {tierMultiplier.CardType} in questa campagna.");
+            throw new InvalidOperationException($"Esiste già un moltiplicatore per il livello selezionato in questa campagna.");
         }
 
         var existingMultiplier = await context.FidelityTierMultipliers
@@ -93,7 +95,7 @@ public class FidelityTierMultiplierService(
             return null;
         }
 
-        existingMultiplier.CardType = tierMultiplier.CardType;
+        existingMultiplier.TierId = tierMultiplier.TierId;
         existingMultiplier.Multiplier = tierMultiplier.Multiplier;
         existingMultiplier.ModifiedAt = DateTime.UtcNow;
         existingMultiplier.ModifiedBy = currentUser;

@@ -68,6 +68,8 @@ public partial class EventForgeDbContext : DbContext
     public DbSet<BusinessPartyGroup> BusinessPartyGroups { get; set; }
     public DbSet<BusinessPartyGroupMember> BusinessPartyGroupMembers { get; set; }
     public DbSet<FidelityCard> FidelityCards { get; set; }
+    public DbSet<FidelityTier> FidelityTiers { get; set; }
+    public DbSet<FidelityTierRule> FidelityTierRules { get; set; }
     public DbSet<FidelityPointsTransaction> FidelityPointsTransactions { get; set; }
     public DbSet<FidelityPointsBaseRate> FidelityPointsBaseRates { get; set; }
     public DbSet<FidelityTierMultiplier> FidelityTierMultipliers { get; set; }

@@ -11,7 +11,7 @@ public class FidelityPointsRateService(
     ITenantContext tenantContext) : IFidelityPointsRateService
 {
     public async Task<(decimal Rate, FidelityPointsRoundingMode Rounding)> GetEffectiveRateAsync(
-        FidelityCardType cardType,
+        Guid tierId,
         CancellationToken cancellationToken = default)
     {
         var tenantId = GetRequiredTenantId();
@@ -41,7 +41,7 @@ public class FidelityPointsRateService(
         {
             var campaignTierMultiplier = await context.FidelityTierMultipliers
                 .AsNoTracking()
-                .Where(multiplier => multiplier.CampaignId == activeCampaign.Id && multiplier.CardType == cardType)
+                .Where(multiplier => multiplier.CampaignId == activeCampaign.Id && multiplier.TierId == tierId)
                 .Select(multiplier => (decimal?)multiplier.Multiplier)
                 .FirstOrDefaultAsync(cancellationToken)
                 ?? 1.0m; // No multiplier configured for this tier in this campaign is not an error, defaults to 1.0.

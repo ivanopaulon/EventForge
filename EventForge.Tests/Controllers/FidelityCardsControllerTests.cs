@@ -128,8 +128,8 @@ public class FidelityCardsControllerTests
     public async Task UpdateCard_WithValidId_ReturnsOk()
     {
         var cardId = Guid.NewGuid();
-        var dto = new UpdateFidelityCardDto { Type = FidelityCardType.Gold, DiscountPercentage = 15 };
-        var updated = new FidelityCardDto { Id = cardId, Type = dto.Type, DiscountPercentage = dto.DiscountPercentage };
+        var dto = new UpdateFidelityCardDto { TierId = Guid.NewGuid(), DiscountPercentage = 15 };
+        var updated = new FidelityCardDto { Id = cardId, TierId = dto.TierId, DiscountPercentage = dto.DiscountPercentage };
         _mockService.Setup(s => s.UpdateCardAsync(cardId, dto, "test-user", It.IsAny<CancellationToken>()))
             .ReturnsAsync(updated);
 

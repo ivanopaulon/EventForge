@@ -3,7 +3,7 @@
 @inject IAppNotificationService AppNotification
 
 <EFDialog Icon="@Icons.Material.Outlined.Stars"
-          Title="@($"Gestisci Punti - Card {Card.Type}")"
+          Title="@($"Gestisci Punti - Card {Card.TierName}")"
           IsProcessing="@_isProcessing"
           OnClose="Cancel">
     <ChildContent>
@@ -12,7 +12,7 @@
         <MudPaper Outlined="true" Class="pa-3 mb-4">
             <MudStack Spacing="2">
                 <MudText Typo="Typo.subtitle1" Class="fw-semibold">
-                    Card @Card.Type - @Card.CardNumber
+                    Card @Card.TierName - @Card.CardNumber
                 </MudText>
                 <MudText Typo="Typo.h5" Color="Color.Primary">
                     Punti Attuali: @Card.CurrentPoints

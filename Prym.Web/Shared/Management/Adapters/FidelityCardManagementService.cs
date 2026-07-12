@@ -23,11 +23,10 @@ public class FidelityCardManagementService(IFidelityService fidelityService)
             all = all.Where(c => c.Status == status).ToList();
         }
 
-        // Apply type filter
-        if (filters != null && filters.TryGetValue("Type", out var rawType) && rawType is int typeInt)
+        // Apply tier filter
+        if (filters != null && filters.TryGetValue("TierId", out var rawTier) && rawTier is Guid tierId)
         {
-            var type = (FidelityCardType)typeInt;
-            all = all.Where(c => c.Type == type).ToList();
+            all = all.Where(c => c.TierId == tierId).ToList();
         }
 
         // Apply text search

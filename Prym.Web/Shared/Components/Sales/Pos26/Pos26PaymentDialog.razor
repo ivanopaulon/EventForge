@@ -358,7 +358,15 @@
             return;
         }
 
-        _pointsEarned = await FidelityService.CalculatePreviewAsync(TotaleOrdine, FidelityCard.Type);
+        if (FidelityCard.TierId is not { } tierId)
+        {
+            _pointsEarned = 0;
+            _pointsEarnedForTotal = TotaleOrdine;
+            _pointsEarnedForCardId = FidelityCard.Id;
+            return;
+        }
+
+        _pointsEarned = await FidelityService.CalculatePreviewAsync(TotaleOrdine, tierId);
         _pointsEarnedForTotal = TotaleOrdine;
         _pointsEarnedForCardId = FidelityCard.Id;
     }

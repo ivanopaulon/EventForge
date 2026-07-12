@@ -18,6 +18,37 @@ public partial class EventForgeDbContext
             .IsRequired(false);
 
         _ = modelBuilder.Entity<FidelityCard>()
+            .HasOne(card => card.Tier)
+            .WithMany()
+            .HasForeignKey(card => card.TierId)
+            .OnDelete(DeleteBehavior.SetNull)
+            .IsRequired(false);
+
+        _ = modelBuilder.Entity<FidelityCard>()
+            .HasIndex(card => card.TierId)
+            .HasDatabaseName("IX_FidelityCards_TierId");
+
+        _ = modelBuilder.Entity<FidelityTier>()
+            .HasIndex(tier => new { tier.TenantId, tier.SortOrder })
+            .HasDatabaseName("IX_FidelityTiers_TenantId_SortOrder")
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = modelBuilder.Entity<FidelityTierRule>()
+            .HasOne(rule => rule.Tier)
+            .WithOne(tier => tier.Rule)
+            .HasForeignKey<FidelityTierRule>(rule => rule.TierId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        _ = modelBuilder.Entity<FidelityTierRule>()
+            .Property(rule => rule.MinimumSpendThreshold)
+            .HasPrecision(18, 2);
+
+        _ = modelBuilder.Entity<FidelityTierRule>()
+            .HasIndex(rule => new { rule.TenantId, rule.TierId })
+            .HasDatabaseName("IX_FidelityTierRules_TenantId_TierId")
+            .HasFilter("[IsDeleted] = 0");
+
+        _ = modelBuilder.Entity<FidelityCard>()
             .HasIndex(card => new { card.TenantId, card.CardNumber })
             .HasDatabaseName("IX_FidelityCards_TenantId_CardNumber")
             .HasFilter("[IsDeleted] = 0")
@@ -59,9 +90,15 @@ public partial class EventForgeDbContext
             .HasPrecision(18, 6);
 
         _ = modelBuilder.Entity<FidelityTierMultiplier>()
-            .HasIndex(multiplier => new { multiplier.TenantId, multiplier.CardType })
-            .HasDatabaseName("IX_FidelityTierMultipliers_TenantId_CardType")
-            .HasFilter("[IsDeleted] = 0")
+            .HasOne(multiplier => multiplier.Tier)
+            .WithMany()
+            .HasForeignKey(multiplier => multiplier.TierId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        _ = modelBuilder.Entity<FidelityTierMultiplier>()
+            .HasIndex(multiplier => new { multiplier.CampaignId, multiplier.TierId })
+            .HasDatabaseName("IX_FidelityTierMultipliers_CampaignId_TierId")
+            .HasFilter("[IsDeleted] = 0 AND [CampaignId] IS NOT NULL")
             .IsUnique();
 
         _ = modelBuilder.Entity<FidelityPointsCampaign>()

@@ -6,7 +6,9 @@ public class CreateFidelityCardDto
 {
     [Required, MaxLength(50)]
     public string CardNumber { get; set; } = string.Empty;
-    public FidelityCardType Type { get; set; } = FidelityCardType.Bronze;
+
+    /// <summary>Fidelity tier (level) to assign. Optional; defaults to the base tier when omitted.</summary>
+    public Guid? TierId { get; set; }
     public DateTime ValidFrom { get; set; } = DateTime.UtcNow;
     public DateTime ValidTo { get; set; } = DateTime.UtcNow.AddYears(1);
 

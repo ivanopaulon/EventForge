@@ -65,11 +65,13 @@ public class FidelityServiceTests
     public async Task GetCardByIdAsync_WithValidId_ReturnsCard()
     {
         var cardId = Guid.NewGuid();
+        var tierId = Guid.NewGuid();
         var expected = new FidelityCardDto
         {
             Id = cardId,
             CardNumber = "CARD-200",
-            Type = FidelityCardType.Gold,
+            TierId = tierId,
+            TierName = "Gold",
             Status = FidelityCardStatus.Active
         };
 
@@ -82,7 +84,8 @@ public class FidelityServiceTests
 
         Assert.NotNull(result);
         Assert.Equal(cardId, result!.Id);
-        Assert.Equal(FidelityCardType.Gold, result.Type);
+        Assert.Equal(tierId, result.TierId);
+        Assert.Equal("Gold", result.TierName);
     }
 
     [Fact]
@@ -106,7 +109,7 @@ public class FidelityServiceTests
         var dto = new CreateFidelityCardDto
         {
             CardNumber = "CARD-300",
-            Type = FidelityCardType.Silver,
+            TierId = Guid.NewGuid(),
             DiscountPercentage = 10,
             BusinessPartyId = Guid.NewGuid()
         };
@@ -114,7 +117,7 @@ public class FidelityServiceTests
         {
             Id = Guid.NewGuid(),
             CardNumber = dto.CardNumber,
-            Type = dto.Type,
+            TierId = dto.TierId,
             DiscountPercentage = dto.DiscountPercentage
         };
 
@@ -137,14 +140,14 @@ public class FidelityServiceTests
         var cardId = Guid.NewGuid();
         var dto = new UpdateFidelityCardDto
         {
-            Type = FidelityCardType.Platinum,
+            TierId = Guid.NewGuid(),
             DiscountPercentage = 20,
             Notes = "Updated"
         };
         var expected = new FidelityCardDto
         {
             Id = cardId,
-            Type = dto.Type,
+            TierId = dto.TierId,
             DiscountPercentage = dto.DiscountPercentage,
             Notes = dto.Notes
         };

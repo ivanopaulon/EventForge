@@ -1,0 +1,199 @@
+@using Prym.DTOs.Business.Fidelity
+@using Prym.Web.Services
+@inject IFidelityTierService FidelityTierService
+@inject ITranslationService TranslationService
+@inject IAppNotificationService AppNotification
+@inject ILogger<CreateFidelityTierDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.WorkspacePremium"
+          Title="@(IsEditMode
+              ? TranslationService.GetTranslation("fidelity.tiers.editTitle", "Modifica Livello Fedeltà")
+              : TranslationService.GetTranslation("fidelity.tiers.createTitle", "Nuovo Livello Fedeltà"))"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="@Prym.Web.Shared.Components.Dialogs.EFDialogDefaults.MinWidthSimple">
+    <ChildContent>
+        <MudForm @ref="_form" @bind-IsValid="@_isValid">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_name"
+                                  Label="@($"{TranslationService.GetTranslation("fidelity.tiers.name", "Nome")} *")"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  MaxLength="50"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int"
+                                     @bind-Value="_sortOrder"
+                                     Label="@($"{TranslationService.GetTranslation("fidelity.tiers.sortOrder", "Ordine (0 = base)")} *")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_color"
+                                  Label="@TranslationService.GetTranslation("fidelity.tiers.color", "Colore (hex)")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="50"
+                                  Placeholder="#CD7F32"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_icon"
+                                  Label="@TranslationService.GetTranslation("fidelity.tiers.icon", "Icona")"
+                                  Variant="Variant.Outlined"
+                                  MaxLength="100"
+                                  Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal?"
+                                     @bind-Value="_minimumSpendThreshold"
+                                     Label="@TranslationService.GetTranslation("fidelity.tiers.minimumSpend", "Soglia di spesa minima")"
+                                     Variant="Variant.Outlined"
+                                     Min="0"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int"
+                                     @bind-Value="_evaluationPeriodMonths"
+                                     Label="@($"{TranslationService.GetTranslation("fidelity.tiers.evaluationPeriod", "Periodo di valutazione (mesi)")} *")"
+                                     Variant="Variant.Outlined"
+                                     Min="1"
+                                     Max="120"
+                                     Margin="Margin.Dense" />
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudSwitch @bind-Value="_isActive"
+                               Label="@TranslationService.GetTranslation("common.active", "Attivo")"
+                               Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="@(!_isValid || _isProcessing)">
+            @if (_isProcessing)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>@(IsEditMode
+                    ? TranslationService.GetTranslation("common.save", "Salva")
+                    : TranslationService.GetTranslation("common.create", "Crea"))</text>
+            }
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter]
+    public FidelityTierDto? Tier { get; set; }
+
+    private bool IsEditMode => Tier != null;
+
+    private MudForm _form = null!;
+    private bool _isValid;
+    private bool _isProcessing;
+    private string _name = string.Empty;
+    private int _sortOrder;
+    private string? _color;
+    private string? _icon;
+    private bool _isActive = true;
+    private decimal? _minimumSpendThreshold;
+    private int _evaluationPeriodMonths = 12;
+
+    protected override void OnParametersSet()
+    {
+        if (!IsEditMode)
+            return;
+
+        _name = Tier!.Name;
+        _sortOrder = Tier.SortOrder;
+        _color = Tier.Color;
+        _icon = Tier.Icon;
+        _isActive = Tier.IsActive;
+        _minimumSpendThreshold = Tier.MinimumSpendThreshold;
+        _evaluationPeriodMonths = Tier.EvaluationPeriodMonths;
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_form == null)
+            return;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            AppNotification.ShowError(TranslationService.GetTranslation("validation.fixErrors", "Correggi gli errori prima di salvare"));
+            return;
+        }
+
+        try
+        {
+            _isProcessing = true;
+
+            if (IsEditMode)
+            {
+                var dto = new UpdateFidelityTierDto
+                {
+                    Name = _name,
+                    SortOrder = _sortOrder,
+                    Color = _color,
+                    Icon = _icon,
+                    IsActive = _isActive,
+                    MinimumSpendThreshold = _minimumSpendThreshold,
+                    EvaluationPeriodMonths = _evaluationPeriodMonths
+                };
+
+                await FidelityTierService.UpdateAsync(Tier!.Id, dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelity.tiers.updated", "Livello fedeltà aggiornato con successo."));
+            }
+            else
+            {
+                var dto = new CreateFidelityTierDto
+                {
+                    Name = _name,
+                    SortOrder = _sortOrder,
+                    Color = _color,
+                    Icon = _icon,
+                    IsActive = _isActive,
+                    MinimumSpendThreshold = _minimumSpendThreshold,
+                    EvaluationPeriodMonths = _evaluationPeriodMonths
+                };
+
+                await FidelityTierService.CreateAsync(dto);
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("fidelity.tiers.created", "Livello fedeltà creato con successo."));
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving fidelity tier");
+            AppNotification.ShowError(ex.Message);
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

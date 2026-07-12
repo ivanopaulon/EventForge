@@ -2,7 +2,6 @@ using EventForge.Server.Services.Business;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Prym.DTOs.Business.Fidelity;
-using FidelityCardType = EventForge.Server.Data.Entities.Business.FidelityCardType;
 
 namespace EventForge.Server.Controllers;
 
@@ -15,7 +14,7 @@ public class FidelityPointsBaseRatesController(
 {
     /// <summary>
     /// Computes a preview of the fidelity points that would be earned for a given order total and
-    /// card type, using the tenant's currently effective rate (base rate * tier multiplier * any
+    /// fidelity tier, using the tenant's currently effective rate (base rate * tier multiplier * any
     /// active campaign). Used by the POS to show the operator a realistic points value before payment.
     /// </summary>
     [HttpGet("calculate-preview")]
@@ -23,14 +22,14 @@ public class FidelityPointsBaseRatesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> CalculatePointsPreview(
         [FromQuery] decimal orderTotal,
-        [FromQuery] FidelityCardType cardType,
+        [FromQuery] Guid tierId,
         CancellationToken cancellationToken = default)
     {
         if (await ValidateTenantAccessAsync(tenantContext) is { } tenantError) return tenantError;
 
         try
         {
-            var (rate, rounding) = await fidelityPointsRateService.GetEffectiveRateAsync(cardType, cancellationToken);
+            var (rate, rounding) = await fidelityPointsRateService.GetEffectiveRateAsync(tierId, cancellationToken);
             var points = FidelityPointsRounding.Apply(orderTotal * rate, rounding);
             return Ok(points);
         }

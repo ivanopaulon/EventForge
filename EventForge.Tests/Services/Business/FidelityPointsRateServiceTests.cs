@@ -14,6 +14,9 @@ public class FidelityPointsRateServiceTests : IDisposable
     private readonly Mock<ITenantContext> _mockTenantContext;
     private readonly FidelityPointsRateService _service;
     private readonly Guid _tenantId = Guid.NewGuid();
+    private readonly Guid _bronzeTierId = Guid.NewGuid();
+    private readonly Guid _goldTierId = Guid.NewGuid();
+    private readonly Guid _platinumTierId = Guid.NewGuid();
 
     public FidelityPointsRateServiceTests()
     {
@@ -25,13 +28,19 @@ public class FidelityPointsRateServiceTests : IDisposable
         _mockTenantContext = new Mock<ITenantContext>();
         _ = _mockTenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
 
+        _context.FidelityTiers.AddRange(
+            new FidelityTier { Id = _bronzeTierId, TenantId = _tenantId, Name = "Bronze", SortOrder = 0 },
+            new FidelityTier { Id = _goldTierId, TenantId = _tenantId, Name = "Gold", SortOrder = 2 },
+            new FidelityTier { Id = _platinumTierId, TenantId = _tenantId, Name = "Platinum", SortOrder = 3 });
+        _ = _context.SaveChanges();
+
         _service = new FidelityPointsRateService(_context, _mockTenantContext.Object);
     }
 
     [Fact]
     public async Task GetEffectiveRateAsync_NoEntities_ReturnsDefaultRateAndFloorRounding()
     {
-        var result = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
+        var result = await _service.GetEffectiveRateAsync(_goldTierId);
 
         Assert.Equal(1m, result.Rate);
         Assert.Equal(FidelityPointsRoundingMode.Floor, result.Rounding);
@@ -49,7 +58,7 @@ public class FidelityPointsRateServiceTests : IDisposable
         });
         _ = await _context.SaveChangesAsync();
 
-        var result = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
+        var result = await _service.GetEffectiveRateAsync(_goldTierId);
 
         // Without an active campaign there is no tier differentiation, by design.
         Assert.Equal(2m, result.Rate);
@@ -86,22 +95,22 @@ public class FidelityPointsRateServiceTests : IDisposable
             {
                 TenantId = _tenantId,
                 CampaignId = campaign.Id,
-                CardType = FidelityCardType.Gold,
+                TierId = _goldTierId,
                 Multiplier = 1.5m
             },
             new FidelityTierMultiplier
             {
                 TenantId = _tenantId,
                 CampaignId = campaign.Id,
-                CardType = FidelityCardType.Platinum,
+                TierId = _platinumTierId,
                 Multiplier = 2.5m
             });
         _ = await _context.SaveChangesAsync();
 
-        var goldResult = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
-        var platinumResult = await _service.GetEffectiveRateAsync(FidelityCardType.Platinum);
+        var goldResult = await _service.GetEffectiveRateAsync(_goldTierId);
+        var platinumResult = await _service.GetEffectiveRateAsync(_platinumTierId);
         // Bronze has no multiplier configured in this campaign — defaults to 1.0.
-        var bronzeResult = await _service.GetEffectiveRateAsync(FidelityCardType.Bronze);
+        var bronzeResult = await _service.GetEffectiveRateAsync(_bronzeTierId);
 
         Assert.Equal(9m, goldResult.Rate); // baseRate (2) * campaign tier multiplier for Gold (1.5) * campaign multiplier (3) = 9
         Assert.Equal(15m, platinumResult.Rate); // baseRate (2) * campaign tier multiplier for Platinum (2.5) * campaign multiplier (3) = 15
@@ -148,12 +157,12 @@ public class FidelityPointsRateServiceTests : IDisposable
         {
             TenantId = _tenantId,
             CampaignId = pastCampaign.Id,
-            CardType = FidelityCardType.Gold,
+            TierId = _goldTierId,
             Multiplier = 10m
         });
         _ = await _context.SaveChangesAsync();
 
-        var result = await _service.GetEffectiveRateAsync(FidelityCardType.Gold);
+        var result = await _service.GetEffectiveRateAsync(_goldTierId);
 
         Assert.Equal(6m, result.Rate); // baseRate (2) * default tier multiplier (1.0, past campaign's multiplier does not apply) * active campaign multiplier (3) = 6
         Assert.Equal(FidelityPointsRoundingMode.Nearest, result.Rounding);
@@ -186,12 +195,12 @@ public class FidelityPointsRateServiceTests : IDisposable
         {
             TenantId = otherTenantId,
             CampaignId = otherCampaign.Id,
-            CardType = FidelityCardType.Bronze,
+            TierId = _bronzeTierId,
             Multiplier = 4m
         });
         _ = await _context.SaveChangesAsync();
 
-        var result = await _service.GetEffectiveRateAsync(FidelityCardType.Bronze);
+        var result = await _service.GetEffectiveRateAsync(_bronzeTierId);
 
         Assert.Equal(1m, result.Rate);
         Assert.Equal(FidelityPointsRoundingMode.Floor, result.Rounding);

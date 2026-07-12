@@ -1,17 +1,6 @@
 namespace Prym.Web.Models.Fidelity;
 
 /// <summary>
-/// Tipo di carta fedeltà
-/// </summary>
-public enum FidelityCardType
-{
-    Bronze,
-    Silver,
-    Gold,
-    Platinum
-}
-
-/// <summary>
 /// Stato della carta fedeltà
 /// </summary>
 public enum FidelityCardStatus
@@ -31,7 +20,11 @@ public class FidelityCardViewModel
 
     public string CardNumber { get; set; } = string.Empty;
 
-    public FidelityCardType Type { get; set; } = FidelityCardType.Bronze;
+    /// <summary>Identificativo del livello fedeltà assegnato (sostituisce il vecchio enum).</summary>
+    public Guid? TierId { get; set; }
+
+    /// <summary>Nome del livello fedeltà, per visualizzazione.</summary>
+    public string? TierName { get; set; }
 
     public FidelityCardStatus Status { get; set; } = FidelityCardStatus.Active;
 

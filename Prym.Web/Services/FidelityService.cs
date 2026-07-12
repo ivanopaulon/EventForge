@@ -20,10 +20,10 @@ public interface IFidelityService
 
     /// <summary>
     /// Computes a preview of the fidelity points that would be earned for a given order total and
-    /// card type, using the tenant's currently effective rate (base rate * tier multiplier * any
+    /// fidelity tier, using the tenant's currently effective rate (base rate * tier multiplier * any
     /// active campaign). Returns 0 on failure so the POS UI degrades gracefully.
     /// </summary>
-    Task<int> CalculatePreviewAsync(decimal orderTotal, FidelityCardType cardType, CancellationToken ct = default);
+    Task<int> CalculatePreviewAsync(decimal orderTotal, Guid tierId, CancellationToken ct = default);
 }
 
 public class FidelityService(
@@ -219,16 +219,16 @@ public class FidelityService(
         }
     }
 
-    public async Task<int> CalculatePreviewAsync(decimal orderTotal, FidelityCardType cardType, CancellationToken ct = default)
+    public async Task<int> CalculatePreviewAsync(decimal orderTotal, Guid tierId, CancellationToken ct = default)
     {
         try
         {
-            var query = $"api/v1/fidelity-points/base-rates/calculate-preview?orderTotal={Uri.EscapeDataString(orderTotal.ToString(System.Globalization.CultureInfo.InvariantCulture))}&cardType={Uri.EscapeDataString(cardType.ToString())}";
+            var query = $"api/v1/fidelity-points/base-rates/calculate-preview?orderTotal={Uri.EscapeDataString(orderTotal.ToString(System.Globalization.CultureInfo.InvariantCulture))}&tierId={tierId}";
             return await httpClientService.GetAsync<int>(query, ct);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error calculating fidelity points preview for order total {OrderTotal} and card type {CardType}", orderTotal, cardType);
+            logger.LogError(ex, "Error calculating fidelity points preview for order total {OrderTotal} and tier {TierId}", orderTotal, tierId);
             return 0;
         }
     }
