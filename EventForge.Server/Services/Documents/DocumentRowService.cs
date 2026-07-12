@@ -129,8 +129,11 @@ public class DocumentRowService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
         var row = await context.DocumentRows
-            .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
         if (row is null)
             return null;
@@ -184,8 +187,11 @@ public class DocumentRowService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
         var row = await context.DocumentRows
-            .FirstOrDefaultAsync(r => r.Id == id && !r.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
         if (row is null)
             return false;

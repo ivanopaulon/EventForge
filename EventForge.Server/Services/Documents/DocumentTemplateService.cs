@@ -10,6 +10,7 @@ namespace EventForge.Server.Services.Documents;
 public class DocumentTemplateService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<DocumentTemplateService> logger) : IDocumentTemplateService
 {
 
@@ -38,10 +39,13 @@ public class DocumentTemplateService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentTemplates
                 .AsNoTracking()
                 .Include(dt => dt.DocumentType)
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
 
             return entity is null ? null : DocumentTemplateMapper.ToDto(entity);
         }
@@ -56,10 +60,13 @@ public class DocumentTemplateService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entities = await context.DocumentTemplates
                 .AsNoTracking()
                 .Include(dt => dt.DocumentType)
-                .Where(dt => dt.DocumentTypeId == documentTypeId && dt.IsActive)
+                .Where(dt => dt.DocumentTypeId == documentTypeId && dt.TenantId == currentTenantId && dt.IsActive)
                 .OrderBy(dt => dt.Name)
                 .ToListAsync(cancellationToken);
 
@@ -143,8 +150,12 @@ public class DocumentTemplateService(
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = DocumentTemplateMapper.ToEntity(createDto);
             entity.Id = Guid.NewGuid();
+            entity.TenantId = currentTenantId;
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
@@ -176,9 +187,12 @@ public class DocumentTemplateService(
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentTemplates
                 .Include(dt => dt.DocumentType)
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
 
             if (entity is null)
             {
@@ -213,8 +227,11 @@ public class DocumentTemplateService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentTemplates
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
 
             if (entity is null)
             {
@@ -248,8 +265,11 @@ public class DocumentTemplateService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentTemplates
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
 
             if (entity is null)
             {

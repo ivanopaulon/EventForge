@@ -97,8 +97,11 @@ public class DocumentSummaryLinkService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
         var link = await context.DocumentSummaryLinks
-            .FirstOrDefaultAsync(l => l.Id == id && !l.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId && !l.IsDeleted, cancellationToken);
 
         if (link is null)
             return false;

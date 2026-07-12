@@ -10,6 +10,7 @@ namespace EventForge.Server.Services.Documents;
 public class DocumentWorkflowService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<DocumentWorkflowService> logger) : IDocumentWorkflowService
 {
 
@@ -40,12 +41,15 @@ public class DocumentWorkflowService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentWorkflows
                 .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
-                .FirstOrDefaultAsync(dw => dw.Id == id && dw.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dw => dw.Id == id && dw.TenantId == currentTenantId && dw.IsActive, cancellationToken);
 
             return entity is null ? null : DocumentWorkflowMapper.ToDto(entity);
         }
@@ -60,12 +64,15 @@ public class DocumentWorkflowService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entities = await context.DocumentWorkflows
                 .AsNoTracking()
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
-                .Where(dw => dw.DocumentTypeId == documentTypeId && dw.IsActive)
+                .Where(dw => dw.DocumentTypeId == documentTypeId && dw.TenantId == currentTenantId && dw.IsActive)
                 .OrderBy(dw => dw.Name)
                 .ToListAsync(cancellationToken);
 
@@ -131,8 +138,12 @@ public class DocumentWorkflowService(
             ArgumentNullException.ThrowIfNull(createDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = DocumentWorkflowMapper.ToEntity(createDto);
             entity.Id = Guid.NewGuid();
+            entity.TenantId = currentTenantId;
             entity.CreatedAt = DateTime.UtcNow;
             entity.CreatedBy = currentUser;
 
@@ -164,11 +175,14 @@ public class DocumentWorkflowService(
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentWorkflows
                 .Include(dw => dw.DocumentType)
                 .Include(dw => dw.StepDefinitions)
                 .Include(dw => dw.WorkflowExecutions)
-                .FirstOrDefaultAsync(dw => dw.Id == id && dw.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dw => dw.Id == id && dw.TenantId == currentTenantId && dw.IsActive, cancellationToken);
 
             if (entity is null)
             {
@@ -203,8 +217,11 @@ public class DocumentWorkflowService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentWorkflows
-                .FirstOrDefaultAsync(dw => dw.Id == id && dw.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dw => dw.Id == id && dw.TenantId == currentTenantId && dw.IsActive, cancellationToken);
 
             if (entity is null)
             {
