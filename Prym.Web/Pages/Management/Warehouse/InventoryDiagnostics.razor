@@ -152,6 +152,7 @@
                                 <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.issueType", "Tipo")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.description", "Descrizione")</MudTh>
                                 <MudTh>@TranslationService.GetTranslation("inventory.diagnostics.canAutoFix", "Auto-Fix")</MudTh>
+                                <MudTh>@TranslationService.GetTranslation("common.actions", "Azioni")</MudTh>
                             </HeaderContent>
                             <RowTemplate>
                                 <MudTd>
@@ -170,6 +171,14 @@
                                     {
                                         <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Default" Size="Size.Small" />
                                     }
+                                </MudTd>
+                                <MudTd>
+                                    <MudTooltip Text="@TranslationService.GetTranslation("inventory.diagnostics.repairRow", "Correggi riga")">
+                                        <PrymIconButton Icon="@Icons.Material.Outlined.Build"
+                                                        Size="Size.Small"
+                                                        Disabled="@_isRepairing"
+                                                        OnClick="@(() => OpenRepairRowDialogAsync(context))" />
+                                    </MudTooltip>
                                 </MudTd>
                             </RowTemplate>
                         </MudTable>
@@ -376,6 +385,60 @@
         finally
         {
             _isAnalyzing = false;
+        }
+    }
+
+    private async Task OpenRepairRowDialogAsync(InventoryDiagnosticIssue issue)
+    {
+        if (_selectedDocumentId == null)
+        {
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            [nameof(RepairInventoryRowDialog.Issue)] = issue
+        };
+        var dialog = await DialogService.ShowAsync<RepairInventoryRowDialog>(
+            TranslationService.GetTranslation("inventory.diagnostics.repairRow", "Correggi riga"),
+            parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false } && result.Data is InventoryRowRepairDto repairData)
+        {
+            await ExecuteRepairRowAsync(issue.RowId, repairData);
+        }
+    }
+
+    private async Task ExecuteRepairRowAsync(Guid rowId, InventoryRowRepairDto repairData)
+    {
+        if (_selectedDocumentId == null)
+        {
+            return;
+        }
+
+        _isRepairing = true;
+        try
+        {
+            var success = await InventoryService.RepairInventoryRowAsync(_selectedDocumentId.Value, rowId, repairData);
+            if (success)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("inventory.diagnostics.rowRepaired", "Riga corretta con successo"));
+                await AnalyzeDocument();
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error repairing inventory row {RowId}", rowId);
+            AppNotification.ShowError(TranslationService.GetTranslation("messages.errorRepairing", "Errore durante la correzione"));
+        }
+        finally
+        {
+            _isRepairing = false;
         }
     }
 
