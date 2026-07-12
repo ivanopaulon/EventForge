@@ -8,6 +8,7 @@ namespace EventForge.Server.Services.PriceLists;
 public class PriceListBusinessPartyService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<PriceListBusinessPartyService> logger) : IPriceListBusinessPartyService
 {
 
@@ -99,11 +100,14 @@ public class PriceListBusinessPartyService(
         {
             logger.LogInformation("Removing BusinessParty {BusinessPartyId} from PriceList {PriceListId}", businessPartyId, priceListId);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             // Find existing assignment
             var assignment = await context.PriceListBusinessParties
                 .Include(plbp => plbp.BusinessParty)
                 .Include(plbp => plbp.PriceList)
-                .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(plbp => plbp.PriceListId == priceListId && plbp.BusinessPartyId == businessPartyId && plbp.TenantId == currentTenantId && !plbp.IsDeleted, cancellationToken);
 
             if (assignment is null)
             {

@@ -184,9 +184,10 @@ public class EnhancedPriceListServiceTests
         var bulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(
             context,
             auditLogService,
+            new NoOpTenantContext(),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>.Instance);
 
-        _priceListService = new PriceListService(context, auditLogService, logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, bulkOperationsService);
+        _priceListService = new PriceListService(context, auditLogService, new NoOpTenantContext(), logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, bulkOperationsService);
     }
 
     [Fact]

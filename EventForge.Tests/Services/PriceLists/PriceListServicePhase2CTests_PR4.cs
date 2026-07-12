@@ -933,7 +933,7 @@ public class PriceListServicePhase2CTests_PR4
         var mockCalculationService = new PriceCalculationService(context, mockUnitConversion, NullLogger<PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, generationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        return new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, mockUnitConversion, generationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
     }
 
     private Tenant CreateTenant()

@@ -166,7 +166,7 @@ public class PriceListBusinessPartyServiceTests
     {
         // Arrange
         using var context = CreateInMemoryContext();
-        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
+        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), new NoOpTenantContext(), NullLogger<PriceListBusinessPartyService>.Instance);
         var priceListId = Guid.NewGuid();
 
         // Act
@@ -182,7 +182,7 @@ public class PriceListBusinessPartyServiceTests
     {
         // Arrange
         using var context = CreateInMemoryContext();
-        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
+        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), new NoOpTenantContext(), NullLogger<PriceListBusinessPartyService>.Instance);
 
         var priceListId = Guid.NewGuid();
         var businessPartyId = Guid.NewGuid();
@@ -228,7 +228,7 @@ public class PriceListBusinessPartyServiceTests
     {
         // Arrange
         using var context = CreateInMemoryContext();
-        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
+        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), new NoOpTenantContext(), NullLogger<PriceListBusinessPartyService>.Instance);
 
         var dto = new AssignBusinessPartyToPriceListDto
         {
@@ -245,7 +245,7 @@ public class PriceListBusinessPartyServiceTests
     {
         // Arrange
         using var context = CreateInMemoryContext();
-        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
+        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), new NoOpTenantContext(), NullLogger<PriceListBusinessPartyService>.Instance);
 
         // Act
         var result = await service.RemoveBusinessPartyAsync(Guid.NewGuid(), Guid.NewGuid(), "test");
@@ -259,7 +259,7 @@ public class PriceListBusinessPartyServiceTests
     {
         // Arrange
         using var context = CreateInMemoryContext();
-        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), NullLogger<PriceListBusinessPartyService>.Instance);
+        var service = new PriceListBusinessPartyService(context, new MockAuditLogService(), new NoOpTenantContext(), NullLogger<PriceListBusinessPartyService>.Instance);
 
         // Act
         var result = await service.GetPriceListsByBusinessPartyAsync(Guid.NewGuid(), null);
