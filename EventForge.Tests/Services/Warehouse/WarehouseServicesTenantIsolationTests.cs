@@ -1,0 +1,322 @@
+using EventForge.Server.Data;
+using EventForge.Server.Data.Entities.Documents;
+using EventForge.Server.Data.Entities.Warehouse;
+using EventForge.Server.Services.Audit;
+using EventForge.Server.Services.Caching;
+using EventForge.Server.Services.Documents;
+using EventForge.Server.Services.Export;
+using EventForge.Server.Services.Products;
+using EventForge.Server.Services.Tenants;
+using EventForge.Server.Services.Warehouse;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
+using Prym.DTOs.Warehouse;
+
+namespace EventForge.Tests.Services.Warehouse;
+
+/// <summary>
+/// Cross-tenant isolation tests for the last batch of Level 2 warehouse-related services:
+/// <see cref="DocumentAnalyticsService"/>, <see cref="StorageFacilityService"/>,
+/// <see cref="StorageLocationService"/> and <see cref="WarehouseFacade"/>.
+/// Verifies that single-record update/delete operations cannot mutate resources
+/// belonging to a different tenant, closing the gaps described in
+/// PROMPT_21_TENANT_ISOLATION_SECURITY_FIX.md (Level 2).
+/// </summary>
+public class WarehouseServicesTenantIsolationTests : IDisposable
+{
+    private readonly EventForgeDbContext _context;
+    private readonly Guid _tenantAId = Guid.NewGuid();
+    private readonly Guid _tenantBId = Guid.NewGuid();
+    private readonly Guid _facilityAId;
+    private readonly Guid _locationAId;
+    private readonly Guid _documentHeaderAId;
+    private readonly Guid _documentRowAId;
+    private readonly Guid _analyticsDocumentHeaderAId;
+
+    public WarehouseServicesTenantIsolationTests()
+    {
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+
+        _context = new EventForgeDbContext(options);
+
+        _facilityAId = Guid.NewGuid();
+        _locationAId = Guid.NewGuid();
+        _documentHeaderAId = Guid.NewGuid();
+        _documentRowAId = Guid.NewGuid();
+        _analyticsDocumentHeaderAId = Guid.NewGuid();
+
+        SeedTenantAData();
+    }
+
+    private void SeedTenantAData()
+    {
+        _context.StorageFacilities.Add(new StorageFacility
+        {
+            Id = _facilityAId,
+            TenantId = _tenantAId,
+            Name = "Facility A",
+            Code = "FAC-A"
+        });
+
+        _context.StorageLocations.Add(new StorageLocation
+        {
+            Id = _locationAId,
+            TenantId = _tenantAId,
+            WarehouseId = _facilityAId,
+            Code = "LOC-A",
+            Occupancy = 0
+        });
+
+        _context.DocumentHeaders.Add(new DocumentHeader
+        {
+            Id = _documentHeaderAId,
+            TenantId = _tenantAId,
+            DocumentTypeId = Guid.NewGuid(),
+            Number = "A-0001",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = Guid.NewGuid(),
+            Currency = "EUR"
+        });
+
+        _context.DocumentRows.Add(new DocumentRow
+        {
+            Id = _documentRowAId,
+            TenantId = _tenantAId,
+            DocumentHeaderId = _documentHeaderAId,
+            Description = "Row A",
+            UnitPrice = 10m,
+            Quantity = 1m
+        });
+
+        _context.DocumentHeaders.Add(new DocumentHeader
+        {
+            Id = _analyticsDocumentHeaderAId,
+            TenantId = _tenantAId,
+            DocumentTypeId = Guid.NewGuid(),
+            Number = "A-0002",
+            Date = DateTime.UtcNow,
+            BusinessPartyId = Guid.NewGuid(),
+            Currency = "EUR"
+        });
+
+        _context.SaveChanges();
+    }
+
+    private Mock<ITenantContext> CreateTenantContext(Guid? currentTenantId)
+    {
+        var mock = new Mock<ITenantContext>();
+        mock.Setup(x => x.CurrentTenantId).Returns(currentTenantId);
+        return mock;
+    }
+
+    private StorageFacilityService CreateFacilityService(Guid? currentTenantId)
+    {
+        return new StorageFacilityService(
+            _context,
+            new Mock<IAuditLogService>().Object,
+            CreateTenantContext(currentTenantId).Object,
+            new Mock<ILogger<StorageFacilityService>>().Object,
+            new Mock<ICacheService>().Object);
+    }
+
+    private StorageLocationService CreateLocationService(Guid? currentTenantId)
+    {
+        return new StorageLocationService(
+            _context,
+            new Mock<IAuditLogService>().Object,
+            CreateTenantContext(currentTenantId).Object,
+            new Mock<ILogger<StorageLocationService>>().Object);
+    }
+
+    private DocumentAnalyticsService CreateAnalyticsService(Guid? currentTenantId)
+    {
+        return new DocumentAnalyticsService(
+            _context,
+            new Mock<IAuditLogService>().Object,
+            CreateTenantContext(currentTenantId).Object,
+            new Mock<ILogger<DocumentAnalyticsService>>().Object);
+    }
+
+    private WarehouseFacade CreateWarehouseFacade(Guid? currentTenantId)
+    {
+        return new WarehouseFacade(
+            new Mock<IStorageFacilityService>().Object,
+            new Mock<IStorageLocationService>().Object,
+            new Mock<ILotService>().Object,
+            new Mock<IStockService>().Object,
+            new Mock<ISerialService>().Object,
+            new Mock<IStockMovementService>().Object,
+            new Mock<IDocumentHeaderService>().Object,
+            new Mock<IProductService>().Object,
+            new Mock<IInventoryBulkSeedService>().Object,
+            new Mock<IInventoryDiagnosticService>().Object,
+            new Mock<IStockReconciliationService>().Object,
+            new Mock<IExportService>().Object,
+            _context,
+            CreateTenantContext(currentTenantId).Object,
+            new Mock<ILogger<WarehouseFacade>>().Object);
+    }
+
+    // ---- StorageFacilityService ----
+
+    [Fact]
+    public async Task UpdateStorageFacilityAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateFacilityService(_tenantBId);
+        var dto = new UpdateStorageFacilityDto { Name = "Hacked" };
+
+        var result = await service.UpdateStorageFacilityAsync(_facilityAId, dto, "attacker");
+
+        Assert.Null(result);
+        var unchanged = await _context.StorageFacilities.AsNoTracking().FirstAsync(f => f.Id == _facilityAId);
+        Assert.Equal("Facility A", unchanged.Name);
+    }
+
+    [Fact]
+    public async Task DeleteStorageFacilityAsync_CrossTenant_ReturnsFalse()
+    {
+        var service = CreateFacilityService(_tenantBId);
+
+        var result = await service.DeleteStorageFacilityAsync(_facilityAId, "attacker");
+
+        Assert.False(result);
+        var unchanged = await _context.StorageFacilities.AsNoTracking().FirstAsync(f => f.Id == _facilityAId);
+        Assert.False(unchanged.IsDeleted);
+    }
+
+    [Fact]
+    public async Task UpdateStorageFacilityAsync_MissingTenant_Throws()
+    {
+        var service = CreateFacilityService(null);
+        var dto = new UpdateStorageFacilityDto { Name = "X" };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.UpdateStorageFacilityAsync(_facilityAId, dto, "user"));
+    }
+
+    // ---- StorageLocationService ----
+
+    [Fact]
+    public async Task UpdateStorageLocationAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateLocationService(_tenantBId);
+        var dto = new UpdateStorageLocationDto { Code = "HACKED" };
+
+        var result = await service.UpdateStorageLocationAsync(_locationAId, dto, "attacker");
+
+        Assert.Null(result);
+        var unchanged = await _context.StorageLocations.AsNoTracking().FirstAsync(l => l.Id == _locationAId);
+        Assert.Equal("LOC-A", unchanged.Code);
+    }
+
+    [Fact]
+    public async Task DeleteStorageLocationAsync_CrossTenant_ReturnsFalse()
+    {
+        var service = CreateLocationService(_tenantBId);
+
+        var result = await service.DeleteStorageLocationAsync(_locationAId, "attacker", Array.Empty<byte>());
+
+        Assert.False(result);
+        var unchanged = await _context.StorageLocations.AsNoTracking().FirstAsync(l => l.Id == _locationAId);
+        Assert.False(unchanged.IsDeleted);
+    }
+
+    [Fact]
+    public async Task UpdateOccupancyAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateLocationService(_tenantBId);
+
+        var result = await service.UpdateOccupancyAsync(_locationAId, 5, "attacker");
+
+        Assert.Null(result);
+        var unchanged = await _context.StorageLocations.AsNoTracking().FirstAsync(l => l.Id == _locationAId);
+        Assert.Equal(0, unchanged.Occupancy);
+    }
+
+    // ---- DocumentAnalyticsService ----
+
+    [Fact]
+    public async Task GetDocumentAnalyticsAsync_MissingTenant_Throws()
+    {
+        var service = CreateAnalyticsService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetDocumentAnalyticsAsync(_analyticsDocumentHeaderAId));
+    }
+
+    [Fact]
+    public async Task GetDocumentAnalyticsAsync_CrossTenant_ReturnsNull()
+    {
+        var tenantAService = CreateAnalyticsService(_tenantAId);
+        _ = await tenantAService.CreateOrUpdateAnalyticsAsync(_analyticsDocumentHeaderAId, "userA");
+
+        var tenantBService = CreateAnalyticsService(_tenantBId);
+        var result = await tenantBService.GetDocumentAnalyticsAsync(_analyticsDocumentHeaderAId);
+
+        Assert.Null(result);
+    }
+
+    // ---- WarehouseFacade ----
+
+    [Fact]
+    public async Task DeleteInventoryRowAsync_CrossTenant_ReturnsFalse()
+    {
+        var facade = CreateWarehouseFacade(_tenantBId);
+
+        var result = await facade.DeleteInventoryRowAsync(_documentRowAId, "attacker");
+
+        Assert.False(result);
+        var unchanged = await _context.DocumentRows.AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
+        Assert.False(unchanged.IsDeleted);
+    }
+
+    [Fact]
+    public async Task CancelInventoryDocumentAsync_CrossTenant_ReturnsFalse()
+    {
+        var facade = CreateWarehouseFacade(_tenantBId);
+
+        var result = await facade.CancelInventoryDocumentAsync(_documentHeaderAId, "attacker");
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task UpdateInventoryRowAsync_CrossTenant_ReturnsFalse()
+    {
+        var facade = CreateWarehouseFacade(_tenantBId);
+
+        var result = await facade.UpdateInventoryRowAsync(_documentRowAId, null, 99m, null, "hacked", "attacker");
+
+        Assert.False(result);
+        var unchanged = await _context.DocumentRows.AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
+        Assert.Equal(1m, unchanged.Quantity);
+    }
+
+    [Fact]
+    public async Task UpdateOrMergeInventoryRowAsync_CrossTenant_Throws()
+    {
+        var facade = CreateWarehouseFacade(_tenantBId);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => facade.UpdateOrMergeInventoryRowAsync(_documentHeaderAId, _documentRowAId, 5m, null, "attacker"));
+    }
+
+    [Fact]
+    public async Task UpdateDocumentHeaderFieldsAsync_CrossTenant_ReturnsFalse()
+    {
+        var facade = CreateWarehouseFacade(_tenantBId);
+
+        var result = await facade.UpdateDocumentHeaderFieldsAsync(_documentHeaderAId, DateTime.UtcNow, null, "hacked", "attacker");
+
+        Assert.False(result);
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+    }
+}
