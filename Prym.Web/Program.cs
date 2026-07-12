@@ -231,7 +231,6 @@ builder.Services.AddScoped<IFinancialService, FinancialService>();
 builder.Services.AddScoped<IBusinessPartyService, BusinessPartyService>();
 builder.Services.AddScoped<IClassificationNodeService, ClassificationNodeService>();
 builder.Services.AddScoped<IBusinessPartyGroupService, BusinessPartyGroupService>();
-builder.Services.AddScoped<ILicenseService, LicenseService>();
 
 // Add Event management services
 builder.Services.AddScoped<IEventService, EventService>();
