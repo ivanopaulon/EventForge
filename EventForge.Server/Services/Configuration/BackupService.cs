@@ -177,8 +177,11 @@ public class BackupService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var backup = await context.BackupOperations
-                .FirstOrDefaultAsync(b => b.Id == backupId, ct);
+                .FirstOrDefaultAsync(b => b.Id == backupId && b.TenantId == currentTenantId, ct);
 
             if (backup is null)
             {
