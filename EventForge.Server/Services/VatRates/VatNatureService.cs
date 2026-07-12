@@ -70,9 +70,12 @@ public class VatNatureService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
+
             var vatNature = await context.VatNatures
                 .AsNoTracking()
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return vatNature is not null ? MapToVatNatureDto(vatNature) : null;
@@ -132,15 +135,18 @@ public class VatNatureService(
             ArgumentNullException.ThrowIfNull(updateVatNatureDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
+
             var originalVatNature = await context.VatNatures
                 .AsNoTracking()
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalVatNature is null) return null;
 
             var vatNature = await context.VatNatures
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vatNature is null) return null;
@@ -186,15 +192,18 @@ public class VatNatureService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
+
             var originalVatNature = await context.VatNatures
                 .AsNoTracking()
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalVatNature is null) return false;
 
             var vatNature = await context.VatNatures
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vatNature is null) return false;

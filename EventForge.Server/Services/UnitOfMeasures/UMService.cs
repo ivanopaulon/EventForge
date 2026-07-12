@@ -121,15 +121,18 @@ public class UMService(
             ArgumentNullException.ThrowIfNull(updateUMDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+
             var originalUM = await context.UMs
                 .AsNoTracking()
-                .Where(u => u.Id == id && !u.IsDeleted)
+                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalUM is null) return null;
 
             var um = await context.UMs
-                .Where(u => u.Id == id && !u.IsDeleted)
+                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (um is null) return null;
@@ -173,15 +176,18 @@ public class UMService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+
             var originalUM = await context.UMs
                 .AsNoTracking()
-                .Where(u => u.Id == id && !u.IsDeleted)
+                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalUM is null) return false;
 
             var um = await context.UMs
-                .Where(u => u.Id == id && !u.IsDeleted)
+                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (um is null) return false;
