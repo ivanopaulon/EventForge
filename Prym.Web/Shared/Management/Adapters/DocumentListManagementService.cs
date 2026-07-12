@@ -13,22 +13,9 @@ namespace Prym.Web.Shared.Management.Adapters;
 public class DocumentListManagementService : IEntityManagementService<DocumentHeaderDto>
 {
     private readonly IDocumentHeaderService _service;
+    private readonly IDocumentStatusService _statusService;
     // Component-scoped service state; accessed on Blazor UI flow (not thread-safe by design).
     private readonly Dictionary<Guid, IReadOnlyList<DocumentStatus>> _availableTransitionsByDocumentId = new();
-
-    /// <summary>
-    /// Allowed document status transitions, mirroring the server-side
-    /// <c>EventForge.Server.Services.Documents.DocumentStateMachine.AllowedTransitions</c>.
-    /// Computed locally from the Status already present in <see cref="DocumentHeaderDto"/> — no HTTP call needed.
-    /// <para>
-    /// ⚠️ Keep in sync with the server-side <c>DocumentStateMachine</c> whenever the state model changes.
-    /// </para>
-    /// </summary>
-    private static readonly Dictionary<DocumentStatus, IReadOnlyList<DocumentStatus>> Transitions = new()
-    {
-        { DocumentStatus.Active,   [DocumentStatus.Archived] },
-        { DocumentStatus.Archived, [DocumentStatus.Active]   },
-    };
 
     /// <summary>
     /// Optional filter by document type ID. Set by the hosting page before triggering a refresh.
@@ -40,9 +27,10 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
     /// </summary>
     public DocumentStatus? Status { get; set; }
 
-    public DocumentListManagementService(IDocumentHeaderService service)
+    public DocumentListManagementService(IDocumentHeaderService service, IDocumentStatusService statusService)
     {
         _service = service;
+        _statusService = statusService;
     }
 
     public IReadOnlyList<DocumentStatus> GetAvailableTransitions(Guid documentId)
@@ -77,14 +65,15 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
             PageSize = queryParams.PageSize
         };
 
-        // Compute available transitions locally from the Status already in each DocumentHeaderDto.
-        // The state machine is purely status-driven; no extra server round-trip is needed.
+        // Available transitions are authoritative from the server-side state machine
+        // (IDocumentStatusService.GetAvailableTransitionsAsync), avoiding a client-side
+        // mirror of DocumentStateMachine that could drift out of sync.
         _availableTransitionsByDocumentId.Clear();
-        foreach (var item in pagedResult.Items)
+        await Task.WhenAll(pagedResult.Items.Select(async item =>
         {
-            _availableTransitionsByDocumentId[item.Id] =
-                Transitions.TryGetValue(item.Status, out var t) ? t : [];
-        }
+            var transitions = await _statusService.GetAvailableTransitionsAsync(item.Id, ct);
+            _availableTransitionsByDocumentId[item.Id] = transitions ?? [];
+        }));
 
         return pagedResult;
     }

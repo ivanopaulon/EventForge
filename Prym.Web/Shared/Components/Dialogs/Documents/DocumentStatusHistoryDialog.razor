@@ -1,0 +1,75 @@
+@using Prym.DTOs.Documents
+@inject IDocumentStatusService DocumentStatusService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<DocumentStatusHistoryDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.History"
+          Title="@($"Cronologia stati — {DocumentNumber}")"
+          IsProcessing="@_isLoading"
+          OnClose="Close"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <div class="pa-2">
+            @if (!_history.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun cambio di stato registrato per questo documento.</MudText>
+            }
+            else
+            {
+                <MudTimeline TimelinePosition="TimelinePosition.Left">
+                    @foreach (var entry in _history)
+                    {
+                        <MudTimelineItem Color="Color.Primary" Size="Size.Small">
+                            <MudText Typo="Typo.body2">
+                                <strong>@entry.FromStatus</strong> → <strong>@entry.ToStatus</strong>
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @entry.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") — @entry.ChangedBy
+                            </MudText>
+                            @if (!string.IsNullOrWhiteSpace(entry.Reason))
+                            {
+                                <MudText Typo="Typo.body2">@entry.Reason</MudText>
+                            }
+                        </MudTimelineItem>
+                    }
+                </MudTimeline>
+            }
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Close" Variant="Variant.Text">Chiudi</MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid DocumentId { get; set; }
+    [Parameter] public string DocumentNumber { get; set; } = string.Empty;
+
+    private bool _isLoading;
+    private List<DocumentStatusHistoryDto> _history = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            _history = (await DocumentStatusService.GetStatusHistoryAsync(DocumentId))
+                ?.OrderByDescending(h => h.ChangedAt).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading status history for document {DocumentId}.", DocumentId);
+            AppNotification.ShowWarning("Si è verificato un errore nel caricamento della cronologia stati.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}
