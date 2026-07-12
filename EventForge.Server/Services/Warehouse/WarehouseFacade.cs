@@ -884,9 +884,12 @@ public class WarehouseFacade(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var documentIds = updates.Select(u => u.DocumentId).ToList();
             var documents = await context.DocumentHeaders
-                .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+                .Where(d => documentIds.Contains(d.Id) && d.TenantId == currentTenantId && !d.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             var now = DateTime.UtcNow;
