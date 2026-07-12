@@ -79,9 +79,12 @@ public class AddressService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for address operations.");
+
             var address = await context.Addresses
                 .AsNoTracking()
-                .Where(a => a.Id == id && !a.IsDeleted)
+                .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return address is null ? null : MapToAddressDto(address);
@@ -145,9 +148,12 @@ public class AddressService(
             ArgumentNullException.ThrowIfNull(updateAddressDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for address operations.");
+
             var address = await context.Addresses
                 .AsNoTracking()
-                .Where(a => a.Id == id && !a.IsDeleted)
+                .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (address is null) return null;
@@ -198,9 +204,12 @@ public class AddressService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for address operations.");
+
             var address = await context.Addresses
                 .AsNoTracking()
-                .Where(a => a.Id == id && !a.IsDeleted)
+                .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (address is null) return false;

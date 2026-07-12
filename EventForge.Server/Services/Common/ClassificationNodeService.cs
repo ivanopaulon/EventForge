@@ -26,7 +26,7 @@ public class ClassificationNodeService(
 
             var query = context.ClassificationNodes
                 .AsNoTracking()
-                .AsQueryable();
+                .Where(cn => cn.TenantId == currentTenantId.Value);
 
             if (parentId.HasValue)
             {
@@ -78,9 +78,12 @@ public class ClassificationNodeService(
         {
             logger.LogDebug("Getting classification node by ID: {Id}", id);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for classification node operations.");
+
             var node = await context.ClassificationNodes
                 .AsNoTracking()
-                .Where(cn => cn.Id == id)
+                .Where(cn => cn.Id == id && cn.TenantId == currentTenantId)
                 .Select(cn => new ClassificationNodeDto
                 {
                     Id = cn.Id,
@@ -115,9 +118,12 @@ public class ClassificationNodeService(
         {
             logger.LogDebug("Getting root classification nodes");
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for classification node operations.");
+
             var nodes = await context.ClassificationNodes
                 .AsNoTracking()
-                .Where(cn => cn.ParentId == null)
+                .Where(cn => cn.ParentId == null && cn.TenantId == currentTenantId)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
                 .Select(cn => new ClassificationNodeDto
@@ -154,9 +160,12 @@ public class ClassificationNodeService(
         {
             logger.LogDebug("Getting children for classification node: {ParentId}", parentId);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for classification node operations.");
+
             var children = await context.ClassificationNodes
                 .AsNoTracking()
-                .Where(cn => cn.ParentId == parentId)
+                .Where(cn => cn.ParentId == parentId && cn.TenantId == currentTenantId)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
                 .Select(cn => new ClassificationNodeDto
@@ -193,12 +202,15 @@ public class ClassificationNodeService(
         {
             logger.LogDebug("Creating classification node: {Name}", createDto.Name);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for classification node operations.");
+
             // Validate parent exists if specified
             if (createDto.ParentId.HasValue)
             {
                 var parentExists = await context.ClassificationNodes
                     .AsNoTracking()
-                    .AnyAsync(cn => cn.Id == createDto.ParentId.Value, cancellationToken);
+                    .AnyAsync(cn => cn.Id == createDto.ParentId.Value && cn.TenantId == currentTenantId, cancellationToken);
 
                 if (!parentExists)
                 {
@@ -212,7 +224,7 @@ public class ClassificationNodeService(
             {
                 var codeExists = await context.ClassificationNodes
                     .AsNoTracking()
-                    .AnyAsync(cn => cn.Code == createDto.Code, cancellationToken);
+                    .AnyAsync(cn => cn.Code == createDto.Code && cn.TenantId == currentTenantId, cancellationToken);
 
                 if (codeExists)
                 {
@@ -224,6 +236,7 @@ public class ClassificationNodeService(
             var node = new ClassificationNode
             {
                 Id = Guid.NewGuid(),
+                TenantId = currentTenantId,
                 Code = createDto.Code,
                 Name = createDto.Name,
                 Description = createDto.Description,
@@ -276,9 +289,12 @@ public class ClassificationNodeService(
         {
             logger.LogDebug("Updating classification node: {Id}", id);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for classification node operations.");
+
             var originalNode = await context.ClassificationNodes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(cn => cn.Id == id && cn.TenantId == currentTenantId, cancellationToken);
 
             if (originalNode is null)
             {
@@ -287,7 +303,7 @@ public class ClassificationNodeService(
             }
 
             var node = await context.ClassificationNodes
-                .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(cn => cn.Id == id && cn.TenantId == currentTenantId, cancellationToken);
 
             if (node is null)
             {
@@ -306,7 +322,7 @@ public class ClassificationNodeService(
 
                 var parentExists = await context.ClassificationNodes
                     .AsNoTracking()
-                    .AnyAsync(cn => cn.Id == updateDto.ParentId.Value, cancellationToken);
+                    .AnyAsync(cn => cn.Id == updateDto.ParentId.Value && cn.TenantId == currentTenantId, cancellationToken);
 
                 if (!parentExists)
                 {
@@ -320,7 +336,7 @@ public class ClassificationNodeService(
             {
                 var codeExists = await context.ClassificationNodes
                     .AsNoTracking()
-                    .AnyAsync(cn => cn.Code == updateDto.Code && cn.Id != id, cancellationToken);
+                    .AnyAsync(cn => cn.Code == updateDto.Code && cn.Id != id && cn.TenantId == currentTenantId, cancellationToken);
 
                 if (codeExists)
                 {
@@ -395,7 +411,7 @@ public class ClassificationNodeService(
             // Load ALL non-deleted nodes in a single query
             var allNodes = await context.ClassificationNodes
                 .AsNoTracking()
-                .Where(cn => !cn.IsDeleted)
+                .Where(cn => cn.TenantId == currentTenantId.Value)
                 .OrderBy(cn => cn.Order)
                 .ThenBy(cn => cn.Name)
                 .Select(cn => new ClassificationNodeDto
@@ -448,9 +464,12 @@ public class ClassificationNodeService(
         {
             logger.LogDebug("Deleting classification node: {Id}", id);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for classification node operations.");
+
             var originalNode = await context.ClassificationNodes
                 .AsNoTracking()
-                .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(cn => cn.Id == id && cn.TenantId == currentTenantId, cancellationToken);
 
             if (originalNode is null)
             {
@@ -459,7 +478,7 @@ public class ClassificationNodeService(
             }
 
             var node = await context.ClassificationNodes
-                .FirstOrDefaultAsync(cn => cn.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(cn => cn.Id == id && cn.TenantId == currentTenantId, cancellationToken);
 
             if (node is null)
             {
@@ -470,7 +489,7 @@ public class ClassificationNodeService(
             // Check if it has children
             var hasChildren = await context.ClassificationNodes
                 .AsNoTracking()
-                .AnyAsync(cn => cn.ParentId == id, cancellationToken);
+                .AnyAsync(cn => cn.ParentId == id && cn.TenantId == currentTenantId, cancellationToken);
 
             if (hasChildren)
             {
