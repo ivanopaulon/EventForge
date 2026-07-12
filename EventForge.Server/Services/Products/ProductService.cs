@@ -534,8 +534,11 @@ public class ProductService(
             ArgumentNullException.ThrowIfNull(updateProductDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
             var product = await context.Products
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
@@ -645,8 +648,11 @@ public class ProductService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
             var product = await context.Products
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
                 .Include(p => p.Codes.Where(c => !c.IsDeleted))
                 .Include(p => p.Units.Where(u => !u.IsDeleted))
                 .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
@@ -902,8 +908,11 @@ public class ProductService(
             ArgumentNullException.ThrowIfNull(updateProductCodeDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
             var productCode = await context.ProductCodes
-                .Where(pc => pc.Id == id && !pc.IsDeleted)
+                .Where(pc => pc.Id == id && pc.TenantId == currentTenantId && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productCode is null)
@@ -956,8 +965,11 @@ public class ProductService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
             var productCode = await context.ProductCodes
-                .Where(pc => pc.Id == id && !pc.IsDeleted)
+                .Where(pc => pc.Id == id && pc.TenantId == currentTenantId && !pc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productCode is null)
@@ -1098,8 +1110,11 @@ public class ProductService(
             ArgumentNullException.ThrowIfNull(updateProductUnitDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
             var productUnit = await context.ProductUnits
-                .Where(pu => pu.Id == id && !pu.IsDeleted)
+                .Where(pu => pu.Id == id && pu.TenantId == currentTenantId && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productUnit is null)
@@ -1153,8 +1168,11 @@ public class ProductService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
             var productUnit = await context.ProductUnits
-                .Where(pu => pu.Id == id && !pu.IsDeleted)
+                .Where(pu => pu.Id == id && pu.TenantId == currentTenantId && !pu.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (productUnit is null)
