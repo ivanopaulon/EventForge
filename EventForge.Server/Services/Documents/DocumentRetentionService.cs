@@ -10,6 +10,7 @@ namespace EventForge.Server.Services.Documents;
 /// </summary>
 public class DocumentRetentionService(
     EventForgeDbContext context,
+    ITenantContext tenantContext,
     ILogger<DocumentRetentionService> logger) : IDocumentRetentionService
 {
 
@@ -130,9 +131,12 @@ public class DocumentRetentionService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var policy = await context.Set<DocumentRetentionPolicy>()
                 .Include(p => p.DocumentType)
-                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == currentTenantId, cancellationToken);
 
             if (policy is null)
             {
@@ -182,8 +186,11 @@ public class DocumentRetentionService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var policy = await context.Set<DocumentRetentionPolicy>()
-                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == currentTenantId, cancellationToken);
 
             if (policy is null)
             {

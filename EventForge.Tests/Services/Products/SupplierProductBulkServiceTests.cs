@@ -2,6 +2,7 @@ using EventForge.Server.Data;
 using EventForge.Server.Data.Entities.Business;
 using EventForge.Server.Data.Entities.Products;
 using EventForge.Server.Services.Products;
+using EventForge.Server.Services.Tenants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -28,7 +29,9 @@ public class SupplierProductBulkServiceTests : IDisposable
 
         _context = new EventForgeDbContext(options);
         var logger = new Mock<ILogger<SupplierProductBulkService>>();
-        _service = new SupplierProductBulkService(_context, logger.Object);
+        var tenantContext = new Mock<Server.Services.Tenants.ITenantContext>();
+        tenantContext.Setup(x => x.CurrentTenantId).Returns(_tenantId);
+        _service = new SupplierProductBulkService(_context, tenantContext.Object, logger.Object);
 
         // Seed initial data
         SeedTestData();
@@ -408,6 +411,113 @@ public class SupplierProductBulkServiceTests : IDisposable
         var unchangedProduct = await _context.ProductSuppliers
             .FirstAsync(ps => ps.ProductId == productSupplier.ProductId);
         Assert.Equal(originalPrice, unchangedProduct.UnitCost);
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+    }
+}
+
+/// <summary>
+/// Cross-tenant isolation tests for <see cref="SupplierProductBulkService"/>.
+/// Closes the security gap described in PROMPT_21_TENANT_ISOLATION_SECURITY_FIX.md (Level 1).
+/// </summary>
+public class SupplierProductBulkServiceTenantIsolationTests : IDisposable
+{
+    private readonly EventForgeDbContext _context;
+    private readonly Guid _tenantAId = Guid.NewGuid();
+    private readonly Guid _tenantBId = Guid.NewGuid();
+    private readonly Guid _supplierAId = Guid.NewGuid();
+    private readonly Guid _productAId = Guid.NewGuid();
+
+    public SupplierProductBulkServiceTenantIsolationTests()
+    {
+        var options = new DbContextOptionsBuilder<EventForgeDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+
+        _context = new EventForgeDbContext(options);
+
+        _context.BusinessParties.Add(new BusinessParty
+        {
+            Id = _supplierAId,
+            TenantId = _tenantAId,
+            Name = "Supplier A",
+            PartyType = BusinessPartyType.Fornitore
+        });
+
+        _context.Products.Add(new Product
+        {
+            Id = _productAId,
+            TenantId = _tenantAId,
+            Name = "Product A",
+            Code = "PA001"
+        });
+
+        _context.ProductSuppliers.Add(new ProductSupplier
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantAId,
+            ProductId = _productAId,
+            SupplierId = _supplierAId,
+            UnitCost = 100.00m,
+            Currency = "EUR",
+            LeadTimeDays = 5,
+            MinOrderQty = 10
+        });
+
+        _context.SaveChanges();
+    }
+
+    private SupplierProductBulkService CreateService(Guid? currentTenantId)
+    {
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(x => x.CurrentTenantId).Returns(currentTenantId);
+
+        return new SupplierProductBulkService(
+            _context,
+            mockTenantContext.Object,
+            new Mock<ILogger<SupplierProductBulkService>>().Object);
+    }
+
+    [Fact]
+    public async Task BulkUpdateSupplierProductsAsync_FromOtherTenant_NoRowsAffected()
+    {
+        var service = CreateService(_tenantBId);
+
+        var request = new BulkUpdateSupplierProductsRequest
+        {
+            ProductIds = new List<Guid> { _productAId },
+            UpdateMode = UpdateMode.Set,
+            UnitCostValue = 999m
+        };
+
+        var result = await service.BulkUpdateSupplierProductsAsync(_supplierAId, request, "attacker");
+
+        Assert.Equal(0, result.SuccessCount);
+        Assert.Equal(1, result.FailureCount);
+
+        var unchanged = await _context.ProductSuppliers.AsNoTracking().FirstAsync(ps => ps.ProductId == _productAId);
+        Assert.Equal(100.00m, unchanged.UnitCost);
+    }
+
+    [Fact]
+    public async Task PreviewBulkUpdateAsync_FromOtherTenant_ReturnsEmpty()
+    {
+        var service = CreateService(_tenantBId);
+
+        var request = new BulkUpdateSupplierProductsRequest
+        {
+            ProductIds = new List<Guid> { _productAId },
+            UpdateMode = UpdateMode.Set,
+            UnitCostValue = 999m
+        };
+
+        var previews = await service.PreviewBulkUpdateAsync(_supplierAId, request);
+
+        Assert.Empty(previews);
     }
 
     public void Dispose()

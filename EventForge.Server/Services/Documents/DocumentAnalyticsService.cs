@@ -10,6 +10,7 @@ namespace EventForge.Server.Services.Documents;
 public class DocumentAnalyticsService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<DocumentAnalyticsService> logger) : IDocumentAnalyticsService
 {
 
@@ -20,9 +21,12 @@ public class DocumentAnalyticsService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             // Get or create analytics record
             var analytics = await context.DocumentAnalytics
-                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
+                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId && a.TenantId == currentTenantId, cancellationToken);
 
             if (analytics is null)
             {
@@ -30,6 +34,7 @@ public class DocumentAnalyticsService(
                 analytics = new DocumentAnalytics
                 {
                     DocumentHeaderId = documentHeaderId,
+                    TenantId = currentTenantId,
                     AnalyticsDate = DateTime.UtcNow.Date,
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow
@@ -74,11 +79,14 @@ public class DocumentAnalyticsService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var analytics = await context.DocumentAnalytics
                 .AsNoTracking()
                 .Include(a => a.DocumentHeader)
                 .Include(a => a.DocumentType)
-                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
+                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId && a.TenantId == currentTenantId, cancellationToken);
 
             return analytics is not null ? DocumentAnalyticsMapper.ToDto(analytics) : null;
         }

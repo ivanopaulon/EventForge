@@ -157,9 +157,12 @@ public class PromotionService(
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for promotion operations.");
+
             var originalPromotion = await context.Promotions
                 .AsNoTracking()
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPromotion is null)
@@ -169,7 +172,7 @@ public class PromotionService(
             }
 
             var promotion = await context.Promotions
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (promotion is null)
@@ -229,9 +232,12 @@ public class PromotionService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for promotion operations.");
+
             var originalPromotion = await context.Promotions
                 .AsNoTracking()
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPromotion is null)
@@ -241,7 +247,7 @@ public class PromotionService(
             }
 
             var promotion = await context.Promotions
-                .Where(p => p.Id == id && !p.IsDeleted)
+                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (promotion is null)
@@ -1608,8 +1614,11 @@ public class PromotionService(
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for promotion operations.");
+
             var rule = await context.PromotionRules
-                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
+                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && r.TenantId == currentTenantId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (rule is null)
@@ -1686,8 +1695,11 @@ public class PromotionService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for promotion operations.");
+
             var rule = await context.PromotionRules
-                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted)
+                .Where(r => r.Id == ruleId && r.PromotionId == promotionId && r.TenantId == currentTenantId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (rule is null)
@@ -1855,9 +1867,12 @@ public class PromotionService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for promotion operations.");
+
             var ruleProduct = await context.PromotionRuleProducts
-                .Where(rp => rp.PromotionRuleId == ruleId && rp.ProductId == productId && !rp.IsDeleted &&
-                             context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && !r.IsDeleted))
+                .Where(rp => rp.PromotionRuleId == ruleId && rp.ProductId == productId && rp.TenantId == currentTenantId && !rp.IsDeleted &&
+                             context.PromotionRules.Any(r => r.Id == ruleId && r.PromotionId == promotionId && r.TenantId == currentTenantId && !r.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (ruleProduct is null)

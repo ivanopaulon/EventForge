@@ -532,12 +532,13 @@ public class ChatService(
         Guid chatId,
         UpdateChatDto updateDto,
         Guid userId,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var thread = await context.ChatThreads
-                .Where(ct => ct.Id == chatId && !ct.IsDeleted)
+                .Where(ct => ct.Id == chatId && (tenantId == null || ct.TenantId == tenantId.Value) && !ct.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new InvalidOperationException($"Chat {chatId} not found.");
 
@@ -591,12 +592,13 @@ public class ChatService(
         Guid userId,
         string? reason = null,
         bool softDelete = true,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var thread = await context.ChatThreads
-                .Where(ct => ct.Id == chatId && !ct.IsDeleted)
+                .Where(ct => ct.Id == chatId && (tenantId == null || ct.TenantId == tenantId.Value) && !ct.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new InvalidOperationException($"Chat {chatId} not found.");
 
@@ -1233,6 +1235,7 @@ public class ChatService(
         Guid userId,
         string? reason = null,
         bool softDelete = true,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -1241,7 +1244,7 @@ public class ChatService(
             var message = await context.ChatMessages
                 .Include(m => m.ChatThread)
                     .ThenInclude(ct => ct.Members)
-                .FirstOrDefaultAsync(m => m.Id == messageId, cancellationToken);
+                .FirstOrDefaultAsync(m => m.Id == messageId && (tenantId == null || m.TenantId == tenantId.Value), cancellationToken);
 
             if (message is null)
             {
@@ -1346,12 +1349,13 @@ public class ChatService(
         MessageStatus status,
         Guid userId,
         Dictionary<string, object>? metadata = null,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var message = await context.ChatMessages
-                .Where(m => m.Id == messageId && !m.IsDeleted)
+                .Where(m => m.Id == messageId && (tenantId == null || m.TenantId == tenantId.Value) && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new InvalidOperationException($"Message {messageId} not found.");
 
@@ -1755,12 +1759,13 @@ public class ChatService(
         Guid attachmentId,
         Guid userId,
         string? reason = null,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var attachment = await context.MessageAttachments
-                .FirstOrDefaultAsync(a => a.Id == attachmentId && !a.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(a => a.Id == attachmentId && (tenantId == null || a.TenantId == tenantId.Value) && !a.IsDeleted, cancellationToken);
 
             if (attachment is not null)
             {
@@ -1909,12 +1914,13 @@ public class ChatService(
         List<Guid> userIds,
         Guid removedBy,
         string? reason = null,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var members = await context.ChatMembers
-                .Where(cm => cm.ChatThreadId == chatId && userIds.Contains(cm.UserId) && !cm.IsDeleted)
+                .Where(cm => cm.ChatThreadId == chatId && userIds.Contains(cm.UserId) && (tenantId == null || cm.TenantId == tenantId.Value) && !cm.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             var now = DateTime.UtcNow;
@@ -1978,13 +1984,14 @@ public class ChatService(
         Guid chatId,
         Dictionary<Guid, ChatMemberRole> roleUpdates,
         Guid updatedBy,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             var userIds = roleUpdates.Keys.ToList();
             var members = await context.ChatMembers
-                .Where(cm => cm.ChatThreadId == chatId && userIds.Contains(cm.UserId) && !cm.IsDeleted)
+                .Where(cm => cm.ChatThreadId == chatId && userIds.Contains(cm.UserId) && (tenantId == null || cm.TenantId == tenantId.Value) && !cm.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             var now = DateTime.UtcNow;
@@ -2532,13 +2539,14 @@ public class ChatService(
     public async Task<ChatLocalizationPreferencesDto> UpdateChatLocalizationAsync(
         Guid userId,
         ChatLocalizationPreferencesDto preferences,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
             // 1. Find user
             var user = await context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Id == userId && (tenantId == null || u.TenantId == tenantId.Value), cancellationToken);
 
             if (user is null)
             {

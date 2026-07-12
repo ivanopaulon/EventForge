@@ -10,6 +10,7 @@ namespace EventForge.Server.Services.PriceLists;
 public class PriceListService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<PriceListService> logger,
     IUnitConversionService unitConversionService,
     IPriceListGenerationService generationService,
@@ -108,9 +109,12 @@ public class PriceListService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             var priceList = await context.PriceLists
                 .AsNoTracking()
-                .Where(pl => pl.Id == id && !pl.IsDeleted)
+                .Where(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -126,9 +130,12 @@ public class PriceListService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             var priceList = await context.PriceLists
                 .AsNoTracking()
-                .Where(pl => pl.Id == id && !pl.IsDeleted)
+                .Where(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted)
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -189,6 +196,9 @@ public class PriceListService(
             ArgumentNullException.ThrowIfNull(updatePriceListDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             if (updatePriceListDto.EventId.HasValue && !await EventExistsAsync(updatePriceListDto.EventId.Value, cancellationToken))
             {
                 throw new ArgumentException($"Event with ID {updatePriceListDto.EventId.Value} does not exist.");
@@ -196,7 +206,7 @@ public class PriceListService(
 
             var originalPriceList = await context.PriceLists
                 .AsNoTracking()
-                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
 
             if (originalPriceList is null)
             {
@@ -206,7 +216,7 @@ public class PriceListService(
 
             var priceList = await context.PriceLists
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
 
             if (priceList is null)
             {
@@ -257,10 +267,13 @@ public class PriceListService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             var originalPriceList = await context.PriceLists
                 .AsNoTracking()
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
 
             if (originalPriceList is null)
             {
@@ -270,7 +283,7 @@ public class PriceListService(
 
             var priceList = await context.PriceLists
                 .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(pl => pl.Id == id && !pl.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
 
             if (priceList is null)
             {
@@ -363,10 +376,13 @@ public class PriceListService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             var entry = await context.PriceListEntries
                 .AsNoTracking()
                 .Include(ple => ple.UnitOfMeasure)
-                .Where(ple => ple.Id == id && !ple.IsDeleted)
+                .Where(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return entry is not null ? MapToPriceListEntryDto(entry) : null;
@@ -434,9 +450,12 @@ public class PriceListService(
             ArgumentNullException.ThrowIfNull(updatePriceListEntryDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             var originalEntry = await context.PriceListEntries
                 .AsNoTracking()
-                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
 
             if (originalEntry is null)
             {
@@ -446,7 +465,7 @@ public class PriceListService(
 
             var entry = await context.PriceListEntries
                 .Include(ple => ple.UnitOfMeasure)
-                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
 
             if (entry is null)
             {
@@ -498,9 +517,12 @@ public class PriceListService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             var originalEntry = await context.PriceListEntries
                 .AsNoTracking()
-                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
 
             if (originalEntry is null)
             {
@@ -509,7 +531,7 @@ public class PriceListService(
             }
 
             var entry = await context.PriceListEntries
-                .FirstOrDefaultAsync(ple => ple.Id == id && !ple.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
 
             if (entry is null)
             {

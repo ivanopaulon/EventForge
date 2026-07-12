@@ -10,6 +10,7 @@ namespace EventForge.Server.Services.Documents;
 public class DocumentRecurrenceService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<DocumentRecurrenceService> logger) : IDocumentRecurrenceService
 {
 
@@ -38,10 +39,13 @@ public class DocumentRecurrenceService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentRecurrences
                 .AsNoTracking()
                 .Include(dr => dr.Template)
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
 
             return entity is null ? null : DocumentRecurrenceMapper.ToDto(entity);
         }
@@ -56,10 +60,13 @@ public class DocumentRecurrenceService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entities = await context.DocumentRecurrences
                 .AsNoTracking()
                 .Include(dr => dr.Template)
-                .Where(dr => dr.TemplateId == templateId && dr.IsActive)
+                .Where(dr => dr.TemplateId == templateId && dr.TenantId == currentTenantId && dr.IsActive)
                 .OrderBy(dr => dr.Name)
                 .ToListAsync(cancellationToken);
 
@@ -179,9 +186,12 @@ public class DocumentRecurrenceService(
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentRecurrences
                 .Include(dr => dr.Template)
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
 
             if (entity is null)
             {
@@ -222,8 +232,11 @@ public class DocumentRecurrenceService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentRecurrences
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
 
             if (entity is null)
             {
@@ -289,8 +302,11 @@ public class DocumentRecurrenceService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var entity = await context.DocumentRecurrences
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
+                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
 
             if (entity is null)
             {

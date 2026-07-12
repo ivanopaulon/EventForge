@@ -726,7 +726,7 @@ public class PriceListServicePhase2CTests
         var mockCalculationService = new Server.Services.PriceLists.PriceCalculationService(context, mockUnitConversion, NullLogger<Server.Services.PriceLists.PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        return new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
     }
 
     private static Tenant CreateTenant() => new()

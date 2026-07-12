@@ -176,7 +176,7 @@ public class PriceListServicePhase2BTests
         var realCalculationService = new PriceCalculationService(context, unitConversionService, NullLogger<PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, realCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, realCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var eventEntity = CreateEvent(tenant.Id);
@@ -239,7 +239,7 @@ public class PriceListServicePhase2BTests
         var realCalculationService = new PriceCalculationService(context, unitConversionService, NullLogger<PriceCalculationService>.Instance);
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, realCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, unitConversionService, mockGenerationService, realCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var product = CreateProduct(tenant.Id);

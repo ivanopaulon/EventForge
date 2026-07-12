@@ -199,9 +199,12 @@ public class DocumentHeaderService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalHeader = await context.DocumentHeaders
                 .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
 
             if (originalHeader is null)
             {
@@ -210,7 +213,7 @@ public class DocumentHeaderService(
             }
 
             var documentHeader = await context.DocumentHeaders
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader is null)
             {
@@ -280,10 +283,13 @@ public class DocumentHeaderService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalHeader = await context.DocumentHeaders
                 .AsNoTracking()
                 .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
 
             if (originalHeader is null)
             {
@@ -294,7 +300,7 @@ public class DocumentHeaderService(
             var documentHeader = await context.DocumentHeaders
                 .Include(dh => dh.Rows)
                 .Include(dh => dh.DocumentType)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader is null)
             {
@@ -1165,10 +1171,13 @@ public class DocumentHeaderService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var row = await context.DocumentRows
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(dh => dh!.DocumentType)
-                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (row is null)
             {
@@ -1445,10 +1454,13 @@ public class DocumentHeaderService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var row = await context.DocumentRows
                 .Include(r => r.DocumentHeader)
                     .ThenInclude(dh => dh!.DocumentType)
-                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (row is null)
             {

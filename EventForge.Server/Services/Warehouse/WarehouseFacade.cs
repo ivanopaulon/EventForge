@@ -29,6 +29,7 @@ public class WarehouseFacade(
     IStockReconciliationService stockReconciliationService,
     IExportService exportService,
     EventForgeDbContext context,
+    ITenantContext tenantContext,
     ILogger<WarehouseFacade> logger) : IWarehouseFacade
 {
 
@@ -567,8 +568,11 @@ public class WarehouseFacade(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var rowEntity = await context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == existingRowId && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == existingRowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (rowEntity is null)
                 throw new InvalidOperationException($"Row {existingRowId} not found");
@@ -611,9 +615,12 @@ public class WarehouseFacade(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var documentHeader = await context.DocumentHeaders
                 .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == documentId && !dh.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dh => dh.Id == documentId && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
 
             if (documentHeader is null)
                 return false;
@@ -637,8 +644,11 @@ public class WarehouseFacade(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var rowEntity = await context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (rowEntity is null)
                 return false;
@@ -682,8 +692,11 @@ public class WarehouseFacade(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var rowEntity = await context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == rowId && !r.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (rowEntity is null)
                 return false;
@@ -741,8 +754,11 @@ public class WarehouseFacade(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var documentEntity = await context.DocumentHeaders
-                .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == currentTenantId && !d.IsDeleted, cancellationToken);
 
             if (documentEntity is null)
                 return false;

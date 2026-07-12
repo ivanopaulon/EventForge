@@ -51,7 +51,7 @@ public class PriceListFilteringTests : IDisposable
         _service = new PriceListService(
             _context,
             auditLogService,
-            logger,
+            new NoOpTenantContext(), logger,
             unitConversionService,
             generationService,
             calculationService,

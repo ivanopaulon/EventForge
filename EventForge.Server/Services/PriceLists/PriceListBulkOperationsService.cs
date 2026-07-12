@@ -8,6 +8,7 @@ namespace EventForge.Server.Services.PriceLists;
 public class PriceListBulkOperationsService(
     EventForgeDbContext context,
     IAuditLogService auditLogService,
+    ITenantContext tenantContext,
     ILogger<PriceListBulkOperationsService> logger) : IPriceListBulkOperationsService
 {
 
@@ -453,10 +454,13 @@ public class PriceListBulkOperationsService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             // Verifica esistenza listino
             var priceListExists = await context.PriceLists
                 .AsNoTracking()
-                .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+                .AnyAsync(pl => pl.Id == priceListId && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
 
             if (!priceListExists)
             {
@@ -466,7 +470,7 @@ public class PriceListBulkOperationsService(
             // Query base per gli items del listino
             IQueryable<PriceListEntry> query = context.PriceListEntries
                 .AsNoTracking()
-                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+                .Where(ple => ple.PriceListId == priceListId && ple.TenantId == currentTenantId && !ple.IsDeleted)
                 .Include(ple => ple.Product);
 
             // Applica filtri
@@ -539,10 +543,13 @@ public class PriceListBulkOperationsService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
             // Verifica esistenza listino
             var priceListExists = await context.PriceLists
                 .AsNoTracking()
-                .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
+                .AnyAsync(pl => pl.Id == priceListId && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
 
             if (!priceListExists)
             {
@@ -551,7 +558,7 @@ public class PriceListBulkOperationsService(
 
             // Query base per gli items del listino
             IQueryable<PriceListEntry> query = context.PriceListEntries
-                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+                .Where(ple => ple.PriceListId == priceListId && ple.TenantId == currentTenantId && !ple.IsDeleted)
                 .Include(ple => ple.Product);
 
             // Applica filtri

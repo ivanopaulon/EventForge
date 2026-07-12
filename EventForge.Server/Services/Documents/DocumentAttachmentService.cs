@@ -157,8 +157,11 @@ public class DocumentAttachmentService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var attachment = await context.DocumentAttachments
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted, cancellationToken);
 
             if (attachment is null)
                 return null;
@@ -272,8 +275,11 @@ public class DocumentAttachmentService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var attachment = await context.DocumentAttachments
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted, cancellationToken);
 
             if (attachment is null)
                 return false;

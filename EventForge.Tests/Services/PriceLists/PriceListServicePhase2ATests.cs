@@ -173,9 +173,9 @@ public class PriceListServicePhase2ATests
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
-        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
+        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, new NoOpTenantContext(), NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var priceList = CreatePriceList(tenant.Id);
@@ -221,9 +221,9 @@ public class PriceListServicePhase2ATests
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
-        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
+        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, new NoOpTenantContext(), NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var priceList = CreatePriceList(tenant.Id);
@@ -269,9 +269,9 @@ public class PriceListServicePhase2ATests
         var mockUnitConversion = new Server.Services.UnitOfMeasures.UnitConversionService();
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
-        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
+        var mockBusinessPartyService = new Server.Services.PriceLists.PriceListBusinessPartyService(context, mockAudit, new NoOpTenantContext(), NullLogger<Server.Services.PriceLists.PriceListBusinessPartyService>.Instance);
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        var service = new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var service = new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, mockUnitConversion, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var tenant = CreateTenant();
         var salesList = CreatePriceList(tenant.Id, "Sales List", PriceListType.Sales);

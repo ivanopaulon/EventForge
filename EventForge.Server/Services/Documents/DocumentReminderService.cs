@@ -87,8 +87,11 @@ public class DocumentReminderService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
         var reminder = await context.DocumentReminders
-            .FirstOrDefaultAsync(r => r.Id == reminderId && !r.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == reminderId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
         if (reminder is null)
             return null;
@@ -130,8 +133,11 @@ public class DocumentReminderService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
         var reminder = await context.DocumentReminders
-            .FirstOrDefaultAsync(r => r.Id == reminderId && !r.IsDeleted, cancellationToken);
+            .FirstOrDefaultAsync(r => r.Id == reminderId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
         if (reminder is null)
             return false;

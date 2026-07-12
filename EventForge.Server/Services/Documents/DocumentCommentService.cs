@@ -163,8 +163,11 @@ public class DocumentCommentService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var comment = await context.DocumentComments
-                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted, cancellationToken);
 
             if (comment is null)
                 return null;
@@ -221,8 +224,11 @@ public class DocumentCommentService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var comment = await context.DocumentComments
-                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted, cancellationToken);
 
             if (comment is null)
                 return false;

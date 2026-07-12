@@ -87,9 +87,12 @@ public class ReferenceService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
+
             var entity = await context.References
                 .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             return entity is null ? null : ReferenceMapper.ToDto(entity);
         }
@@ -142,8 +145,11 @@ public class ReferenceService(
             ArgumentNullException.ThrowIfNull(updateReferenceDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
+
             var entity = await context.References
-                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (entity is null)
             {
@@ -192,8 +198,11 @@ public class ReferenceService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
+
             var entity = await context.References
-                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
             if (entity is null)
             {

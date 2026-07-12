@@ -145,15 +145,18 @@ public class StorageFacilityService(
             ArgumentNullException.ThrowIfNull(updateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+
             var originalFacility = await context.StorageFacilities
                 .AsNoTracking()
-                .Where(sf => sf.Id == id && !sf.IsDeleted)
+                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalFacility is null) return null;
 
             var facility = await context.StorageFacilities
-                .Where(sf => sf.Id == id && !sf.IsDeleted)
+                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (facility is null) return null;
@@ -206,15 +209,18 @@ public class StorageFacilityService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+
             var originalFacility = await context.StorageFacilities
                 .AsNoTracking()
-                .Where(sf => sf.Id == id && !sf.IsDeleted)
+                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalFacility is null) return false;
 
             var facility = await context.StorageFacilities
-                .Where(sf => sf.Id == id && !sf.IsDeleted)
+                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (facility is null) return false;

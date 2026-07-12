@@ -421,11 +421,14 @@ public class BusinessPartyService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
+
             var query = context.BusinessPartyAccountings
                 .AsNoTracking()
                 .Include(bpa => bpa.Bank)
                 .Include(bpa => bpa.PaymentTerm)
-                .Where(bpa => !bpa.IsDeleted);
+                .Where(bpa => bpa.TenantId == currentTenantId && !bpa.IsDeleted);
 
             var totalCount = await query.CountAsync(cancellationToken);
             var businessPartyAccountings = await query
@@ -572,9 +575,12 @@ public class BusinessPartyService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
+
             var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
                 .AsNoTracking()
-                .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
+                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalBusinessPartyAccounting is null)
@@ -582,7 +588,7 @@ public class BusinessPartyService(
 
             var businessPartyAccounting = await context.BusinessPartyAccountings
                 .AsNoTracking()
-                .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
+                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (businessPartyAccounting is null)
@@ -640,9 +646,12 @@ public class BusinessPartyService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
+
             var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
                 .AsNoTracking()
-                .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
+                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalBusinessPartyAccounting is null)
@@ -650,7 +659,7 @@ public class BusinessPartyService(
 
             var businessPartyAccounting = await context.BusinessPartyAccountings
                 .AsNoTracking()
-                .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
+                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (businessPartyAccounting is null)

@@ -9,6 +9,7 @@ namespace EventForge.Server.Services.Products;
 /// </summary>
 public class SupplierProductBulkService(
     EventForgeDbContext context,
+    ITenantContext tenantContext,
     ILogger<SupplierProductBulkService> logger) : ISupplierProductBulkService
 {
 
@@ -30,6 +31,9 @@ public class SupplierProductBulkService(
             return result;
         }
 
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for supplier product operations.");
+
         IDbContextTransaction? transaction = null;
 
         try
@@ -46,7 +50,7 @@ public class SupplierProductBulkService(
             // Load all product suppliers in one query
             var productSuppliers = await context.ProductSuppliers
                 .Include(ps => ps.Product)
-                .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
+                .Where(ps => ps.SupplierId == supplierId && ps.TenantId == currentTenantId && request.ProductIds.Contains(ps.ProductId))
                 .ToListAsync(cancellationToken);
 
             foreach (var productId in request.ProductIds)
@@ -144,6 +148,9 @@ public class SupplierProductBulkService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for supplier product operations.");
+
             var previews = new List<SupplierProductPreview>();
 
             if (request.ProductIds.Count == 0)
@@ -155,7 +162,7 @@ public class SupplierProductBulkService(
             var productSuppliers = await context.ProductSuppliers
                 .AsNoTracking()
                 .Include(ps => ps.Product)
-                .Where(ps => ps.SupplierId == supplierId && request.ProductIds.Contains(ps.ProductId))
+                .Where(ps => ps.SupplierId == supplierId && ps.TenantId == currentTenantId && request.ProductIds.Contains(ps.ProductId))
                 .ToListAsync(cancellationToken);
 
             foreach (var ps in productSuppliers)

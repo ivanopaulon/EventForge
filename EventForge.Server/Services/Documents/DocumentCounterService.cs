@@ -38,10 +38,13 @@ public class DocumentCounterService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var counters = await context.DocumentCounters
                 .AsNoTracking()
                 .Include(dc => dc.DocumentType)
-                .Where(dc => dc.DocumentTypeId == documentTypeId && !dc.IsDeleted)
+                .Where(dc => dc.DocumentTypeId == documentTypeId && dc.TenantId == currentTenantId && !dc.IsDeleted)
                 .OrderBy(dc => dc.Series)
                 .ToListAsync(cancellationToken);
 
@@ -57,10 +60,13 @@ public class DocumentCounterService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var counter = await context.DocumentCounters
                 .AsNoTracking()
                 .Include(dc => dc.DocumentType)
-                .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
 
             return counter?.ToDto();
         }
@@ -78,6 +84,9 @@ public class DocumentCounterService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var counter = await context.DocumentCounters
                 .AsNoTracking()
                 .Include(dc => dc.DocumentType)
@@ -85,6 +94,7 @@ public class DocumentCounterService(
                     dc.DocumentTypeId == documentTypeId &&
                     dc.Series == series &&
                     dc.Year == year &&
+                    dc.TenantId == currentTenantId &&
                     !dc.IsDeleted,
                     cancellationToken);
 
@@ -146,9 +156,12 @@ public class DocumentCounterService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalCounter = await context.DocumentCounters
                 .AsNoTracking()
-                .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
 
             if (originalCounter is null)
             {
@@ -157,7 +170,7 @@ public class DocumentCounterService(
             }
 
             var counter = await context.DocumentCounters
-                .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
 
             if (counter is null)
             {
@@ -187,9 +200,12 @@ public class DocumentCounterService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalCounter = await context.DocumentCounters
                 .AsNoTracking()
-                .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
 
             if (originalCounter is null)
             {
@@ -198,7 +214,7 @@ public class DocumentCounterService(
             }
 
             var counter = await context.DocumentCounters
-                .FirstOrDefaultAsync(dc => dc.Id == id && !dc.IsDeleted, cancellationToken);
+                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
 
             if (counter is null)
             {

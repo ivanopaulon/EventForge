@@ -95,9 +95,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var team = await context.Teams
                 .AsNoTracking()
-                .Where(t => t.Id == id && !t.IsDeleted)
+                .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -120,9 +123,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var team = await context.Teams
                 .AsNoTracking()
-                .Where(t => t.Id == id && !t.IsDeleted)
+                .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -189,8 +195,11 @@ public class TeamService(
             ArgumentNullException.ThrowIfNull(updateTeamDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var team = await context.Teams
-                .Where(t => t.Id == id && !t.IsDeleted)
+                .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
                 .Include(t => t.Event)
                 .Include(t => t.Members.Where(m => !m.IsDeleted))
                 .FirstOrDefaultAsync(cancellationToken);
@@ -243,8 +252,11 @@ public class TeamService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var team = await context.Teams
-                .Where(t => t.Id == id && !t.IsDeleted)
+                .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (team is null)
@@ -338,9 +350,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var member = await context.TeamMembers
                 .AsNoTracking()
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
                 .Include(m => m.Team)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -415,8 +430,11 @@ public class TeamService(
             ArgumentNullException.ThrowIfNull(updateTeamMemberDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var member = await context.TeamMembers
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
                 .Include(m => m.Team)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -428,7 +446,7 @@ public class TeamService(
 
             var originalMember = await context.TeamMembers
                 .AsNoTracking()
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             member.FirstName = updateTeamMemberDto.FirstName;
@@ -478,8 +496,11 @@ public class TeamService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var member = await context.TeamMembers
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (member is null)
@@ -490,7 +511,7 @@ public class TeamService(
 
             var originalMember = await context.TeamMembers
                 .AsNoTracking()
-                .Where(m => m.Id == id && !m.IsDeleted)
+                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             member.IsDeleted = true;
@@ -598,9 +619,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var document = await context.DocumentReferences
                 .AsNoTracking()
-                .Where(d => d.Id == id && !d.IsDeleted)
+                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return document is not null ? MapToDocumentReferenceDto(document) : null;
@@ -658,8 +682,11 @@ public class TeamService(
             ArgumentNullException.ThrowIfNull(updateDocumentDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var document = await context.DocumentReferences
-                .Where(d => d.Id == id && !d.IsDeleted)
+                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (document is null)
@@ -670,7 +697,7 @@ public class TeamService(
 
             var originalDocument = await context.DocumentReferences
                 .AsNoTracking()
-                .Where(d => d.Id == id && !d.IsDeleted)
+                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             document.FileName = updateDocumentDto.FileName ?? document.FileName;
@@ -702,8 +729,11 @@ public class TeamService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var document = await context.DocumentReferences
-                .Where(d => d.Id == id && !d.IsDeleted)
+                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (document is null)
@@ -714,7 +744,7 @@ public class TeamService(
 
             var originalDocument = await context.DocumentReferences
                 .AsNoTracking()
-                .Where(d => d.Id == id && !d.IsDeleted)
+                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             document.IsDeleted = true;
@@ -739,9 +769,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var cards = await context.MembershipCards
                 .AsNoTracking()
-                .Where(mc => mc.TeamMemberId == teamMemberId && !mc.IsDeleted)
+                .Where(mc => mc.TeamMemberId == teamMemberId && mc.TenantId == currentTenantId && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .OrderBy(mc => mc.ValidFrom)
                 .ToListAsync(cancellationToken);
@@ -758,9 +791,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var card = await context.MembershipCards
                 .AsNoTracking()
-                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .Include(mc => mc.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -820,8 +856,11 @@ public class TeamService(
             ArgumentNullException.ThrowIfNull(updateMembershipCardDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var card = await context.MembershipCards
-                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
                 .Include(mc => mc.DocumentReference)
                 .Include(mc => mc.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -834,7 +873,7 @@ public class TeamService(
 
             var originalCard = await context.MembershipCards
                 .AsNoTracking()
-                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             card.CardNumber = updateMembershipCardDto.CardNumber ?? card.CardNumber;
@@ -865,8 +904,11 @@ public class TeamService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var card = await context.MembershipCards
-                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (card is null)
@@ -877,7 +919,7 @@ public class TeamService(
 
             var originalCard = await context.MembershipCards
                 .AsNoTracking()
-                .Where(mc => mc.Id == id && !mc.IsDeleted)
+                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             card.IsDeleted = true;
@@ -902,9 +944,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var policies = await context.InsurancePolicies
                 .AsNoTracking()
-                .Where(ip => ip.TeamMemberId == teamMemberId && !ip.IsDeleted)
+                .Where(ip => ip.TeamMemberId == teamMemberId && ip.TenantId == currentTenantId && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .OrderBy(ip => ip.ValidFrom)
                 .ToListAsync(cancellationToken);
@@ -921,9 +966,12 @@ public class TeamService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var policy = await context.InsurancePolicies
                 .AsNoTracking()
-                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .Include(ip => ip.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -985,8 +1033,11 @@ public class TeamService(
             ArgumentNullException.ThrowIfNull(updateInsurancePolicyDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var policy = await context.InsurancePolicies
-                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
                 .Include(ip => ip.DocumentReference)
                 .Include(ip => ip.TeamMember)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -999,7 +1050,7 @@ public class TeamService(
 
             var originalPolicy = await context.InsurancePolicies
                 .AsNoTracking()
-                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             policy.Provider = updateInsurancePolicyDto.Provider ?? policy.Provider;
@@ -1032,8 +1083,11 @@ public class TeamService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
             var policy = await context.InsurancePolicies
-                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (policy is null)
@@ -1044,7 +1098,7 @@ public class TeamService(
 
             var originalPolicy = await context.InsurancePolicies
                 .AsNoTracking()
-                .Where(ip => ip.Id == id && !ip.IsDeleted)
+                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             policy.IsDeleted = true;
@@ -1096,11 +1150,12 @@ public class TeamService(
             // Non-blocking check: looks for other TeamMembers sharing the same fiscal code,
             // active, and belonging to a different team than the excluded member's own team.
             // This never prevents saving — the caller (client) is responsible for surfacing the warning.
-            var currentTenantId = tenantContext.CurrentTenantId;
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
 
             var excludedMemberTeamId = await context.TeamMembers
                 .AsNoTracking()
-                .Where(m => m.Id == excludeTeamMemberId && !m.IsDeleted)
+                .Where(m => m.Id == excludeTeamMemberId && m.TenantId == currentTenantId && !m.IsDeleted)
                 .Select(m => (Guid?)m.TeamId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1109,12 +1164,8 @@ public class TeamService(
                 .Where(m => !m.IsDeleted
                     && m.FiscalCode == fiscalCode
                     && m.Status == EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Active
-                    && m.Id != excludeTeamMemberId);
-
-            if (currentTenantId.HasValue)
-            {
-                query = query.Where(m => m.TenantId == currentTenantId.Value);
-            }
+                    && m.Id != excludeTeamMemberId
+                    && m.TenantId == currentTenantId);
 
             if (excludedMemberTeamId.HasValue)
             {

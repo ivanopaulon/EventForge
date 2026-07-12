@@ -46,7 +46,7 @@ public class PriceListService_DuplicationTests
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
         var mockBulkOperationsService = new MockPriceListBulkOperationsService();
-        return new PriceListService(context, mockAudit, NullLogger<PriceListService>.Instance, mockUnitConversion, realGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        return new PriceListService(context, mockAudit, new NoOpTenantContext(), NullLogger<PriceListService>.Instance, mockUnitConversion, realGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
     }
 
     private static Tenant CreateTenant() => new()

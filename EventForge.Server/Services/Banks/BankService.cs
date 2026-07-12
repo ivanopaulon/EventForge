@@ -57,9 +57,12 @@ public class BankService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
+
             var bank = await context.Banks
                 .AsNoTracking()
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return bank is not null ? MapToBankDto(bank) : null;
@@ -115,8 +118,11 @@ public class BankService(
             ArgumentNullException.ThrowIfNull(updateBankDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
+
             var bank = await context.Banks
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (bank is null) return null;
@@ -168,8 +174,11 @@ public class BankService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
+
             var bank = await context.Banks
-                .Where(b => b.Id == id && !b.IsDeleted)
+                .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (bank is null) return false;

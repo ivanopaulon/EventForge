@@ -303,11 +303,15 @@ public class StorageLocationService(
         {
             logger.LogDebug("Updating storage location: {Id}", id);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalLocation = await context.StorageLocations
                 .AsNoTracking()
-                .FirstOrDefaultAsync(sl => sl.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
 
-            var location = await context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
+            var location = await context.StorageLocations
+                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
             if (location is null)
             {
                 logger.LogWarning("Storage location {Id} not found for update.", id);
@@ -412,11 +416,15 @@ public class StorageLocationService(
         {
             logger.LogDebug("Deleting storage location: {Id}", id);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalLocation = await context.StorageLocations
                 .AsNoTracking()
-                .FirstOrDefaultAsync(sl => sl.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
 
-            var location = await context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
+            var location = await context.StorageLocations
+                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
             if (location is null)
             {
                 logger.LogWarning("Storage location {Id} not found for delete.", id);
@@ -468,11 +476,15 @@ public class StorageLocationService(
         {
             logger.LogDebug("Updating occupancy for storage location: {Id} to {Occupancy}", id, newOccupancy);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var originalLocation = await context.StorageLocations
                 .AsNoTracking()
-                .FirstOrDefaultAsync(sl => sl.Id == id, cancellationToken);
+                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
 
-            var location = await context.StorageLocations.FindAsync(new object[] { id }, cancellationToken);
+            var location = await context.StorageLocations
+                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
             if (location is null)
             {
                 logger.LogWarning("Storage location {Id} not found for occupancy update.", id);

@@ -143,8 +143,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -177,8 +177,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -205,8 +205,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -233,8 +233,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -261,8 +261,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -289,8 +289,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -321,8 +321,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         // Add entry with odd price
         var product = new Product
@@ -370,8 +370,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var product = new Product
         {
@@ -418,8 +418,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var product = new Product
         {
@@ -470,8 +470,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var targetCategoryId = entries[0].Product!.CategoryNodeId!.Value;
 
@@ -498,8 +498,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var targetBrandId = entries[1].Product!.BrandId!.Value;
 
@@ -526,8 +526,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -561,8 +561,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var targetCategoryId = entries[0].Product!.CategoryNodeId!.Value;
 
@@ -594,8 +594,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -636,8 +636,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -667,8 +667,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(priceList.TenantId), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {
@@ -698,8 +698,8 @@ public class PriceListServiceBulkUpdateTests
         var mockGenerationService = new MockPriceListGenerationService();
         var mockCalculationService = new MockPriceCalculationService();
         var mockBusinessPartyService = new MockPriceListBusinessPartyService();
-        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
-        var service = new PriceListService(context, _auditLogService, _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
+        var mockBulkOperationsService = new EventForge.Server.Services.PriceLists.PriceListBulkOperationsService(context, _auditLogService, new NoOpTenantContext(), new LoggerFactory().CreateLogger<EventForge.Server.Services.PriceLists.PriceListBulkOperationsService>());
+        var service = new PriceListService(context, _auditLogService, new NoOpTenantContext(), _logger, _unitConversionService, mockGenerationService, mockCalculationService, mockBusinessPartyService, mockBulkOperationsService);
 
         var dto = new BulkPriceUpdateDto
         {

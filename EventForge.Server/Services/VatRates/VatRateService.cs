@@ -56,10 +56,13 @@ public class VatRateService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+
             var vatRate = await context.VatRates
                 .AsNoTracking()
                 .Include(v => v.VatNature)
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return vatRate is not null ? MapToVatRateDto(vatRate) : null;
@@ -120,8 +123,11 @@ public class VatRateService(
             ArgumentNullException.ThrowIfNull(updateVatRateDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+
             var vatRate = await context.VatRates
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vatRate is null) return null;
@@ -172,8 +178,11 @@ public class VatRateService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+
             var vatRate = await context.VatRates
-                .Where(v => v.Id == id && !v.IsDeleted)
+                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vatRate is null) return false;

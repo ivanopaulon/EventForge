@@ -81,9 +81,12 @@ public class ContactService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
+
             var contact = await context.Contacts
                 .AsNoTracking()
-                .Where(c => c.Id == id && !c.IsDeleted)
+                .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return contact is null ? null : MapToContactDto(contact);
@@ -143,8 +146,11 @@ public class ContactService(
             ArgumentNullException.ThrowIfNull(updateContactDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
+
             var contact = await context.Contacts
-                .Where(c => c.Id == id && !c.IsDeleted)
+                .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (contact is null) return null;
@@ -191,8 +197,11 @@ public class ContactService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
+
             var contact = await context.Contacts
-                .Where(c => c.Id == id && !c.IsDeleted)
+                .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (contact is null) return false;
