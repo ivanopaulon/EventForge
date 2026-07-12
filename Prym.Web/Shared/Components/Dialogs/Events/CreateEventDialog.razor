@@ -503,7 +503,7 @@
 
         var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("common.confirmDelete", "Conferma eliminazione"),
-            TranslationService.GetTranslation("event.confirmDelete", "Eliminare l'evento '{0}'? L'operazione non può essere annullata.", ExistingEvent.Name),
+            TranslationService.GetTranslationFormatted("event.confirmDelete", "Eliminare l'evento '{0}'? L'operazione non può essere annullata.", ExistingEvent.Name),
             yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
             cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
         if (confirmed != true) return;

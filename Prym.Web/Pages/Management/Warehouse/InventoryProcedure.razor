@@ -1650,7 +1650,7 @@
             var issuesText = string.Join("\n", validation.Issues
                 .Where(i => i.Severity is "Critical" or "Error")
                 .Select(i => $"- {i.Message}"));
-            AppNotification.ShowError(TranslationService.GetTranslation(
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted(
                 "warehouse.validationFailed",
                 "Impossibile finalizzare: sono presenti problemi bloccanti nel documento.\n{0}", issuesText));
             AddOperationLog(

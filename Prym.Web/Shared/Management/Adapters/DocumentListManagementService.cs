@@ -68,12 +68,17 @@ public class DocumentListManagementService : IEntityManagementService<DocumentHe
         // Available transitions are authoritative from the server-side state machine
         // (IDocumentStatusService.GetAvailableTransitionsAsync), avoiding a client-side
         // mirror of DocumentStateMachine that could drift out of sync.
-        _availableTransitionsByDocumentId.Clear();
-        await Task.WhenAll(pagedResult.Items.Select(async item =>
+        var transitionResults = await Task.WhenAll(pagedResult.Items.Select(async item =>
         {
             var transitions = await _statusService.GetAvailableTransitionsAsync(item.Id, ct);
-            _availableTransitionsByDocumentId[item.Id] = transitions ?? [];
+            return (item.Id, transitions ?? (IReadOnlyList<DocumentStatus>)[]);
         }));
+
+        _availableTransitionsByDocumentId.Clear();
+        foreach (var (documentId, transitions) in transitionResults)
+        {
+            _availableTransitionsByDocumentId[documentId] = transitions;
+        }
 
         return pagedResult;
     }
