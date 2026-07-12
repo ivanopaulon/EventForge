@@ -11,6 +11,7 @@ using EventForge.Server.Services.Warehouse;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Prym.DTOs.Common;
 using Prym.DTOs.Warehouse;
 
 namespace EventForge.Tests.Services.Warehouse;
@@ -159,6 +160,14 @@ public class WarehouseServicesTenantIsolationTests : IDisposable
             _context,
             CreateTenantContext(currentTenantId).Object,
             new Mock<ILogger<WarehouseFacade>>().Object);
+    }
+
+    private InventoryDiagnosticService CreateInventoryDiagnosticService(Guid? currentTenantId)
+    {
+        return new InventoryDiagnosticService(
+            _context,
+            CreateTenantContext(currentTenantId).Object,
+            new Mock<ILogger<InventoryDiagnosticService>>().Object);
     }
 
     // ---- StorageFacilityService ----
@@ -313,6 +322,86 @@ public class WarehouseServicesTenantIsolationTests : IDisposable
         var result = await facade.UpdateDocumentHeaderFieldsAsync(_documentHeaderAId, DateTime.UtcNow, null, "hacked", "attacker");
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentStatusesBatchAsync_CrossTenant_DoesNotUpdate()
+    {
+        var facade = CreateWarehouseFacade(_tenantBId);
+        var updates = new List<(Guid DocumentId, DocumentStatus Status, string Notes)>
+        {
+            (_documentHeaderAId, DocumentStatus.Archived, "hacked")
+        };
+
+        await facade.UpdateDocumentStatusesBatchAsync(updates, "attacker");
+
+        var unchanged = await _context.DocumentHeaders.AsNoTracking().FirstAsync(d => d.Id == _documentHeaderAId);
+        Assert.Equal(DocumentStatus.Active, unchanged.Status);
+    }
+
+    [Fact]
+    public async Task UpdateDocumentStatusesBatchAsync_MissingTenant_Throws()
+    {
+        var facade = CreateWarehouseFacade(null);
+        var updates = new List<(Guid DocumentId, DocumentStatus Status, string Notes)>
+        {
+            (_documentHeaderAId, DocumentStatus.Archived, "notes")
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => facade.UpdateDocumentStatusesBatchAsync(updates, "user"));
+    }
+
+    [Fact]
+    public async Task UpdateDocumentStatusesBatchAsync_SameTenant_Updates()
+    {
+        var facade = CreateWarehouseFacade(_tenantAId);
+        var updates = new List<(Guid DocumentId, DocumentStatus Status, string Notes)>
+        {
+            (_documentHeaderAId, DocumentStatus.Archived, "closed")
+        };
+
+        await facade.UpdateDocumentStatusesBatchAsync(updates, "user");
+
+        var updated = await _context.DocumentHeaders.AsNoTracking().FirstAsync(d => d.Id == _documentHeaderAId);
+        Assert.Equal(DocumentStatus.Archived, updated.Status);
+    }
+
+    // ---- InventoryDiagnosticService ----
+
+    [Fact]
+    public async Task RemoveProblematicRowsAsync_CrossTenant_RemovesNothing()
+    {
+        var service = CreateInventoryDiagnosticService(_tenantBId);
+
+        var removedCount = await service.RemoveProblematicRowsAsync(
+            _documentHeaderAId, new List<Guid> { _documentRowAId }, "attacker");
+
+        Assert.Equal(0, removedCount);
+        var unchanged = await _context.DocumentRows.AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
+        Assert.False(unchanged.IsDeleted);
+    }
+
+    [Fact]
+    public async Task RemoveProblematicRowsAsync_MissingTenant_Throws()
+    {
+        var service = CreateInventoryDiagnosticService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.RemoveProblematicRowsAsync(_documentHeaderAId, new List<Guid> { _documentRowAId }, "user"));
+    }
+
+    [Fact]
+    public async Task RemoveProblematicRowsAsync_SameTenant_Removes()
+    {
+        var service = CreateInventoryDiagnosticService(_tenantAId);
+
+        var removedCount = await service.RemoveProblematicRowsAsync(
+            _documentHeaderAId, new List<Guid> { _documentRowAId }, "user");
+
+        Assert.Equal(1, removedCount);
+        var updated = await _context.DocumentRows.IgnoreQueryFilters().AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
+        Assert.True(updated.IsDeleted);
     }
 
     public void Dispose()
