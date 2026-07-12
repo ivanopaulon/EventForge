@@ -8,6 +8,7 @@ namespace EventForge.Server.Services.Warehouse;
 /// </summary>
 public class InventoryDiagnosticService(
     EventForgeDbContext context,
+    ITenantContext tenantContext,
     ILogger<InventoryDiagnosticService> logger) : IInventoryDiagnosticService
 {
 
@@ -385,9 +386,11 @@ public class InventoryDiagnosticService(
     {
         try
         {
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
             var rows = await context.DocumentRows
-                .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             foreach (var row in rows)
