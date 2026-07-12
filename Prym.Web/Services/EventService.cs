@@ -15,7 +15,7 @@ namespace Prym.Web.Services
         Task<EventDetailDto?> GetEventDetailAsync(Guid id, CancellationToken ct = default);
         Task<EventDto> CreateEventAsync(CreateEventDto createDto, CancellationToken ct = default);
         Task<EventDto> UpdateEventAsync(Guid id, UpdateEventDto updateDto, CancellationToken ct = default);
-        Task DeleteEventAsync(Guid id, CancellationToken ct = default);
+        Task DeleteEventAsync(Guid id, byte[]? rowVersion = null, CancellationToken ct = default);
     }
 
     public class EventService(
@@ -107,11 +107,14 @@ namespace Prym.Web.Services
             }
         }
 
-        public async Task DeleteEventAsync(Guid id, CancellationToken ct = default)
+        public async Task DeleteEventAsync(Guid id, byte[]? rowVersion = null, CancellationToken ct = default)
         {
             try
             {
-                await httpClientService.DeleteAsync($"api/v1/events/{id}", ct);
+                var url = $"api/v1/events/{id}";
+                if (rowVersion is { Length: > 0 })
+                    url += $"?rowVersion={Uri.EscapeDataString(Convert.ToBase64String(rowVersion))}";
+                await httpClientService.DeleteAsync(url, ct);
             }
             catch (Exception ex)
             {

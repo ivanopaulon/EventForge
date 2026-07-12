@@ -629,6 +629,12 @@
                 else _allItems.Add(item);
                 UpdateCount("events"); await RefreshSchedulerAsync();
             }
+            else if (res is { Canceled: false, Data: CreateEventDialog.EventDeletedResult deleted })
+            {
+                _eventsMap.Remove(deleted.EventId);
+                _allItems.RemoveAll(i => i.EntityId == $"ev_{deleted.EventId}");
+                UpdateCount("events"); await RefreshSchedulerAsync();
+            }
         }
         catch (Exception ex)
         {
