@@ -2,6 +2,7 @@
 @using Prym.DTOs.Sales
 @using Prym.Web.Services.Sales
 @using Prym.Web.Shared.Management
+@using Prym.Web.Shared.Components.Dialogs.Sales
 @attribute [Authorize(Roles = "SuperAdmin,Admin,Manager,StoreManager")]
 @inject ISalesService SalesService
 @inject IDialogService DialogService
@@ -108,6 +109,26 @@
                                     OnClick="@(() => VoidSessionAsync(session))" />
                 </MudTooltip>
             }
+            @if (session.Payments.Any())
+            {
+                <MudTooltip Text="Gestisci pagamenti">
+                    <PrymIconButton Icon="@Icons.Material.Outlined.Payments"
+                                    Color="Color.Default"
+                                    Size="Size.Small"
+                                    Class="ef-row-actionbutton"
+                                    OnClick="@(() => ManagePaymentsAsync(session))" />
+                </MudTooltip>
+            }
+            @if (session.Status is SaleSessionStatusDto.Open or SaleSessionStatusDto.Suspended)
+            {
+                <MudTooltip Text="Elimina sessione">
+                    <PrymIconButton Icon="@Icons.Material.Outlined.DeleteForever"
+                                    Color="Color.Error"
+                                    Size="Size.Small"
+                                    Class="ef-row-actionbutton"
+                                    OnClick="@(() => DeleteSessionAsync(session))" />
+                </MudTooltip>
+            }
         </MudTd>
     </RowTemplate>
 </EFTable>
@@ -190,6 +211,49 @@
             Logger.LogError(ex, "Error voiding session {SessionId}.", session.Id);
             AppNotification.ShowError("Si è verificato un errore durante l'annullamento della vendita.");
         }
+    }
+
+    private async Task DeleteSessionAsync(SaleSessionDto session)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Elimina sessione",
+            $"Eliminare definitivamente la sessione di vendita del {session.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm} " +
+            $"({(session.OperatorName ?? "-")}, {(session.PosName ?? "-")})? " +
+            "La sessione non è mai stata chiusa: verrà rimossa senza generare movimenti di magazzino. L'operazione non è reversibile.",
+            yesText: "Elimina",
+            cancelText: "Annulla");
+
+        if (confirmed != true) return;
+
+        try
+        {
+            var deleted = await SalesService.DeleteSessionAsync(session.Id);
+            if (!deleted)
+            {
+                AppNotification.ShowError("Impossibile eliminare la sessione selezionata.");
+                return;
+            }
+
+            AppNotification.ShowSuccess("Sessione eliminata correttamente.");
+            await ApplyFiltersAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting session {SessionId}.", session.Id);
+            AppNotification.ShowError("Si è verificato un errore durante l'eliminazione della sessione.");
+        }
+    }
+
+    private async Task ManagePaymentsAsync(SaleSessionDto session)
+    {
+        var parameters = new DialogParameters
+        {
+            [nameof(SessionPaymentsDialog.Session)] = session
+        };
+        var dialog = await DialogService.ShowAsync<SessionPaymentsDialog>("Gestione pagamenti", parameters);
+        var result = await dialog.Result;
+        if (result is { Canceled: false })
+            await ApplyFiltersAsync();
     }
 
     private static Color GetStatusColor(SaleSessionStatusDto status) => status switch

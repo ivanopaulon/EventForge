@@ -346,20 +346,6 @@ public class TeamService(
         }
     }
 
-    public async Task<DocumentReferenceDto?> CreateDocumentReferenceAsync(CreateDocumentReferenceDto dto, CancellationToken ct = default)
-    {
-        try
-        {
-            return await httpClientService.PostAsync<CreateDocumentReferenceDto, DocumentReferenceDto>(
-                DocumentsBaseUrl, dto, ct);
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogError(ex, "Error creating document reference");
-            return null;
-        }
-    }
-
     public async Task<DocumentReferenceDto?> UpdateDocumentReferenceAsync(Guid id, UpdateDocumentReferenceDto dto, CancellationToken ct = default)
     {
         try

@@ -185,6 +185,12 @@
                 }
             </MudMenu>
         }
+        <MudTooltip Text="@TranslationService.GetTranslation("documents.statusHistory", "Cronologia stati")">
+            <PrymIconButton Icon="@Icons.Material.Outlined.History"
+                            Size="Size.Small"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => OpenStatusHistoryDialogAsync(doc))" />
+        </MudTooltip>
     </AdditionalRowActions>
 </EntityManagementPage>
 
@@ -204,7 +210,7 @@
 
     protected override void OnInitialized()
     {
-        _service = new DocumentListManagementService(DocumentHeaderService);
+        _service = new DocumentListManagementService(DocumentHeaderService, DocumentStatusService);
         _config = new EntityManagementConfig<DocumentHeaderDto>
         {
             ComponentKey = "DocumentManagement",
@@ -308,6 +314,25 @@
         DocumentStatus.Archived => Color.Secondary,
         _ => Color.Default
     };
+
+    private async Task OpenStatusHistoryDialogAsync(DocumentHeaderDto doc)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(DocumentStatusHistoryDialog.DocumentId)] = doc.Id,
+                [nameof(DocumentStatusHistoryDialog.DocumentNumber)] = doc.Number
+            };
+            var dialog = await DialogService.ShowAsync<DocumentStatusHistoryDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            await dialog.Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening status history for document {Id}.", doc.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura della cronologia stati.");
+        }
+    }
 
     private async Task ChangeDocumentStatusAsync(Guid documentId, DocumentStatus currentStatus, DocumentStatus newStatus)
     {

@@ -1,0 +1,110 @@
+@using Prym.DTOs.Sales
+@using Prym.Web.Services.Sales
+@inject ISalesService SalesService
+@inject IDialogService DialogService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<SessionPaymentsDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Payments"
+          Title="Gestione pagamenti sessione"
+          IsProcessing="@_isProcessing"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <div class="pa-4">
+            @if (!_payments.Any())
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Nessun pagamento registrato per questa sessione.</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var payment in _payments)
+                    {
+                        <MudListItem T="string">
+                            <div class="d-flex align-center justify-space-between w-full">
+                                <div>
+                                    <MudText Typo="Typo.body1">@(payment.PaymentMethodName ?? payment.PaymentMethodCode)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @payment.Amount.ToString("C2", new System.Globalization.CultureInfo("it-IT"))
+                                    </MudText>
+                                </div>
+                                <MudTooltip Text="Rimuovi pagamento">
+                                    <PrymIconButton Icon="@Icons.Material.Outlined.Delete"
+                                                    Color="Color.Error"
+                                                    Size="Size.Small"
+                                                    Disabled="@_isProcessing"
+                                                    OnClick="@(() => RemovePaymentAsync(payment))" />
+                                </MudTooltip>
+                            </div>
+                        </MudListItem>
+                        <MudDivider />
+                    }
+                </MudList>
+            }
+        </div>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">Chiudi</MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public SaleSessionDto Session { get; set; } = null!;
+
+    private List<SalePaymentDto> _payments = new();
+    private bool _isProcessing;
+    private bool _anyRemoved;
+
+    protected override void OnInitialized()
+    {
+        _payments = Session.Payments.ToList();
+    }
+
+    private async Task RemovePaymentAsync(SalePaymentDto payment)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            "Rimuovi pagamento",
+            $"Rimuovere il pagamento di {payment.Amount.ToString("C2", new System.Globalization.CultureInfo("it-IT"))} " +
+            $"({payment.PaymentMethodName ?? payment.PaymentMethodCode})? L'operazione non è reversibile.",
+            yesText: "Rimuovi",
+            cancelText: "Annulla");
+        if (confirmed != true) return;
+
+        _isProcessing = true;
+        try
+        {
+            var updated = await SalesService.RemovePaymentAsync(Session.Id, payment.Id);
+            if (updated is null)
+            {
+                AppNotification.ShowError("Impossibile rimuovere il pagamento selezionato.");
+                return;
+            }
+
+            _payments = updated.Payments.ToList();
+            _anyRemoved = true;
+            AppNotification.ShowSuccess("Pagamento rimosso correttamente.");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing payment {PaymentId} from session {SessionId}.", payment.Id, Session.Id);
+            AppNotification.ShowError("Si è verificato un errore durante la rimozione del pagamento.");
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        if (_anyRemoved)
+            MudDialog.Close(DialogResult.Ok(true));
+        else
+            MudDialog.Cancel();
+    }
+}

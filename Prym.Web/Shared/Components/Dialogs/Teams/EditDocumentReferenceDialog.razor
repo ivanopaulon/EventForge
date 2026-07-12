@@ -1,0 +1,125 @@
+@using Prym.DTOs.Common
+@using Prym.DTOs.Teams
+@using Prym.Web.Services.Teams
+@attribute [Authorize]
+@inject ITeamService TeamService
+@inject IAppNotificationService AppNotification
+@inject ITranslationService TranslationService
+@inject ILogger<EditDocumentReferenceDialog> Logger
+
+<EFDialog Icon="@Icons.Material.Outlined.Edit"
+          Title="@TranslationService.GetTranslation("documents.edit", "Modifica Documento")"
+          IsProcessing="@_isSaving"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <PrymSelect T="DocumentReferenceType" @bind-Value="_type"
+                                Label="@TranslationService.GetTranslation("documents.type", "Tipo")">
+                        @foreach (var t in Enum.GetValues<DocumentReferenceType>())
+                        {
+                            <MudSelectItem T="DocumentReferenceType" Value="@t">@t</MudSelectItem>
+                        }
+                    </PrymSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <PrymSelect T="DocumentReferenceSubType" @bind-Value="_subType"
+                                Label="@TranslationService.GetTranslation("documents.subtype", "Sottotipo")">
+                        @foreach (var st in Enum.GetValues<DocumentReferenceSubType>())
+                        {
+                            <MudSelectItem T="DocumentReferenceSubType" Value="@st">@st</MudSelectItem>
+                        }
+                    </PrymSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" @bind-Value="_title"
+                                  Label="@TranslationService.GetTranslation("documents.docTitle", "Titolo")"
+                                  MaxLength="200" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="_expiry"
+                                   Label="@TranslationService.GetTranslation("documents.expiry", "Scadenza")"
+                                   DateFormat="dd/MM/yyyy" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" @bind-Value="_notes"
+                                  Label="@TranslationService.GetTranslation("documents.notes", "Note")"
+                                  Lines="2" MaxLength="500" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </ChildContent>
+    <DialogActions>
+        <PrymButton Variant="Variant.Text" OnClick="Cancel">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </PrymButton>
+        <PrymButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@_isSaving">
+            @TranslationService.GetTranslation("common.save", "Salva")
+        </PrymButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter, EditorRequired] public DocumentReferenceDto Document { get; set; } = null!;
+
+    private MudForm _form = null!;
+    private bool _isSaving;
+
+    private DocumentReferenceType _type;
+    private DocumentReferenceSubType _subType;
+    private string? _title;
+    private string? _notes;
+    private DateTime? _expiry;
+
+    protected override void OnInitialized()
+    {
+        _type = Document.Type;
+        _subType = Document.SubType;
+        _title = Document.Title;
+        _notes = Document.Notes;
+        _expiry = Document.Expiry;
+    }
+
+    private async Task SaveAsync()
+    {
+        _isSaving = true;
+        try
+        {
+            var dto = new UpdateDocumentReferenceDto
+            {
+                Type = _type,
+                SubType = _subType,
+                Title = _title,
+                Notes = _notes,
+                Expiry = _expiry
+            };
+
+            var result = await TeamService.UpdateDocumentReferenceAsync(Document.Id, dto);
+            if (result is not null)
+            {
+                AppNotification.ShowSuccess(TranslationService.GetTranslation("documents.updated", "Documento aggiornato"));
+                MudDialog.Close(DialogResult.Ok(result));
+            }
+            else
+            {
+                AppNotification.ShowError(TranslationService.GetTranslation("documents.updateError", "Impossibile aggiornare il documento"));
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating document reference {Id}.", Document.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("documents.updateError", "Impossibile aggiornare il documento"));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

@@ -1,0 +1,72 @@
+@using Prym.DTOs.Warehouse
+@inject ITranslationService TranslationService
+
+<EFDialog Icon="@Icons.Material.Outlined.Build"
+          Title="@TranslationService.GetTranslation("inventory.diagnostics.repairRow", "Correggi riga")"
+          IsProcessing="false"
+          OnClose="Cancel"
+          MinWidth="@EFDialogDefaults.MinWidthSimple"
+          MinHeight="@EFDialogDefaults.MinHeightSimple">
+    <ChildContent>
+        <MudStack Spacing="3" Class="pa-2">
+            <MudAlert Severity="Severity.Info" Dense="true">
+                @Issue?.Description
+            </MudAlert>
+
+            <MudSwitch @bind-Value="_repairQuantity" Color="Color.Primary"
+                       Label="@TranslationService.GetTranslation("inventory.diagnostics.fixQuantity", "Correggi quantità")" />
+            @if (_repairQuantity)
+            {
+                <MudNumericField @bind-Value="_dto.NewQuantity"
+                                 Label="@TranslationService.GetTranslation("inventory.diagnostics.newQuantity", "Nuova quantità")"
+                                 Variant="Variant.Outlined"
+                                 Class="ef-input"
+                                 Min="0"
+                                 Margin="Margin.Dense" />
+            }
+
+            <MudSwitch @bind-Value="_repairNotes" Color="Color.Primary"
+                       Label="@TranslationService.GetTranslation("inventory.diagnostics.fixNotes", "Aggiungi nota di correzione")" />
+            @if (_repairNotes)
+            {
+                <MudTextField @bind-Value="_dto.NewNotes"
+                              Label="@TranslationService.GetTranslation("inventory.diagnostics.newNotes", "Note")"
+                              Variant="Variant.Outlined"
+                              Class="ef-input"
+                              Lines="2"
+                              Margin="Margin.Dense" />
+            }
+        </MudStack>
+    </ChildContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Text">
+            @TranslationService.GetTranslation("common.cancel", "Annulla")
+        </MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Outlined.Save"
+                   Disabled="@(!_repairQuantity && !_repairNotes)"
+                   OnClick="Apply">
+            @TranslationService.GetTranslation("common.apply", "Applica")
+        </MudButton>
+    </DialogActions>
+</EFDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public InventoryDiagnosticIssue? Issue { get; set; }
+
+    private readonly InventoryRowRepairDto _dto = new();
+    private bool _repairQuantity;
+    private bool _repairNotes;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Apply()
+    {
+        if (!_repairQuantity) _dto.NewQuantity = null;
+        if (!_repairNotes) _dto.NewNotes = null;
+        MudDialog.Close(DialogResult.Ok(_dto));
+    }
+}

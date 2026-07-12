@@ -16,6 +16,14 @@
                       Service="_service"
                       OnCreateOverride="@(() => OpenDetailDialogAsync(null))"
                       OnEditOverride="@(id => OpenDetailDialogAsync(id))">
+    <AdditionalRowActions Context="drawer">
+        <MudTooltip Text="Storico cassetto">
+            <PrymIconButton Icon="@Icons.Material.Outlined.History"
+                            Size="Size.Small"
+                            Class="ef-row-actionbutton"
+                            OnClick="@(() => OpenHistoryDialogAsync(drawer))" />
+        </MudTooltip>
+    </AdditionalRowActions>
     <HeaderContent Context="columnConfigurations">
         @foreach (var column in columnConfigurations.Where(c => c.IsVisible).OrderBy(c => c.Order))
         {
@@ -226,6 +234,25 @@
     {
         var symbol = currencyCode switch { "EUR" => "€", "USD" => "$", "GBP" => "£", "JPY" => "¥", "CNY" => "¥", _ => currencyCode };
         return $"{symbol} {amount:N2}";
+    }
+
+    private async Task OpenHistoryDialogAsync(FiscalDrawerDto drawer)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(FiscalDrawerHistoryDialog.FiscalDrawerId)] = drawer.Id,
+                [nameof(FiscalDrawerHistoryDialog.DrawerName)] = drawer.Name
+            };
+            var dialog = await DialogService.ShowAsync<FiscalDrawerHistoryDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            await dialog.Result;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening FiscalDrawerHistoryDialog for drawer {Id}.", drawer.Id);
+            AppNotification.ShowWarning("Si è verificato un errore nell'apertura dello storico cassetto.");
+        }
     }
 
     private async Task OpenDetailDialogAsync(Guid? id)

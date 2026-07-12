@@ -1635,6 +1635,31 @@
         if (_currentDocument == null)
             return;
 
+        InventoryValidationResultDto? validation = null;
+        try
+        {
+            validation = await InventoryService.ValidateInventoryDocumentAsync(_currentDocument.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error validating inventory document {DocumentId} before finalization.", _currentDocument.Id);
+        }
+
+        if (validation is { IsValid: false })
+        {
+            var issuesText = string.Join("\n", validation.Issues
+                .Where(i => i.Severity is "Critical" or "Error")
+                .Select(i => $"- {i.Message}"));
+            AppNotification.ShowError(TranslationService.GetTranslationFormatted(
+                "warehouse.validationFailed",
+                "Impossibile finalizzare: sono presenti problemi bloccanti nel documento.\n{0}", issuesText));
+            AddOperationLog(
+                TranslationService.GetTranslation("warehouse.validationFailed", "Validazione fallita"),
+                issuesText,
+                "Error");
+            return;
+        }
+
         var confirmed = await DialogService.ShowMessageBoxAsync(
             TranslationService.GetTranslation("warehouse.confirmFinalize", "Conferma Finalizzazione"),
             TranslationService.GetTranslation("warehouse.finalizeMessage", 

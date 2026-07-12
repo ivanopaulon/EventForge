@@ -8,6 +8,7 @@
 @inject ITranslationService TranslationService
 @inject IAppNotificationService AppNotification
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 @inject ILogger<CreateEventDialog> Logger
 
 <EFDialog Icon="@Icons.Material.Outlined.EventNote"
@@ -269,6 +270,13 @@
         </MudForm>
     </ChildContent>
     <DialogActions>
+        @if (_isEditMode)
+        {
+            <MudButton OnClick="DeleteEventAsync" Variant="Variant.Text" Color="Color.Error" Disabled="_isLoading"
+                       StartIcon="@Icons.Material.Outlined.Delete" Class="mr-auto">
+                @TranslationService.GetTranslation("common.delete", "Elimina")
+            </MudButton>
+        }
         <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default" Disabled="_isLoading">
             @TranslationService.GetTranslation("common.cancel", "Annulla")
         </MudButton>
@@ -485,6 +493,38 @@
         => _model.Color = e.Value?.ToString() ?? "#4285F4";
 
     private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Marker result used to signal to the caller that the event was deleted (instead of created/updated).</summary>
+    public sealed record EventDeletedResult(Guid EventId);
+
+    private async Task DeleteEventAsync()
+    {
+        if (ExistingEvent is null) return;
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            TranslationService.GetTranslation("common.confirmDelete", "Conferma eliminazione"),
+            TranslationService.GetTranslationFormatted("event.confirmDelete", "Eliminare l'evento '{0}'? L'operazione non può essere annullata.", ExistingEvent.Name),
+            yesText: TranslationService.GetTranslation("common.delete", "Elimina"),
+            cancelText: TranslationService.GetTranslation("common.cancel", "Annulla"));
+        if (confirmed != true) return;
+
+        _isLoading = true;
+        try
+        {
+            await EventService.DeleteEventAsync(ExistingEvent.Id, ExistingEvent.RowVersion);
+            AppNotification.ShowSuccess(TranslationService.GetTranslation("event.deleted", "Evento eliminato"));
+            MudDialog.Close(DialogResult.Ok<object>(new EventDeletedResult(ExistingEvent.Id)));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting event {EventId}.", ExistingEvent.Id);
+            AppNotification.ShowError(TranslationService.GetTranslation("event.deleteError", "Impossibile eliminare l'evento."));
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
 
     private void AddTimeSlot()
     {
