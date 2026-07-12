@@ -121,9 +121,12 @@ public class PaymentTermService(
             ArgumentNullException.ThrowIfNull(updatePaymentTermDto);
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for payment term operations.");
+
             var originalPaymentTerm = await context.PaymentTerms
                 .AsNoTracking()
-                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPaymentTerm is null)
@@ -133,7 +136,7 @@ public class PaymentTermService(
             }
 
             var paymentTerm = await context.PaymentTerms
-                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (paymentTerm is null)
@@ -183,9 +186,12 @@ public class PaymentTermService(
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for payment term operations.");
+
             var originalPaymentTerm = await context.PaymentTerms
                 .AsNoTracking()
-                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (originalPaymentTerm is null)
@@ -195,7 +201,7 @@ public class PaymentTermService(
             }
 
             var paymentTerm = await context.PaymentTerms
-                .Where(pt => pt.Id == id && !pt.IsDeleted)
+                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (paymentTerm is null)
