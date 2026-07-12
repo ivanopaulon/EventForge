@@ -80,6 +80,11 @@
                                 }
                             </td>
                             <td class="text-center">
+                                <MudTooltip Text="@TranslationService.GetTranslation("common.edit", "Modifica")">
+                                    <PrymIconButton Icon="@Icons.Material.Outlined.Edit"
+                                                    Size="Size.Small"
+                                                    OnClick="@(() => OpenEditDocumentDialogAsync(doc))" />
+                                </MudTooltip>
                                 <MudTooltip Text="@TranslationService.GetTranslation("common.delete", "Elimina")">
                                     <PrymIconButton Icon="@Icons.Material.Outlined.Delete"
                                                     Size="Size.Small"
@@ -146,6 +151,29 @@
         {
             Logger.LogError(ex, "Error opening create document dialog");
             AppNotification.ShowWarning("Errore nell'apertura del dialogo documento.");
+        }
+    }
+
+    private async Task OpenEditDocumentDialogAsync(DocumentReferenceDto doc)
+    {
+        try
+        {
+            var parameters = new DialogParameters
+            {
+                [nameof(EditDocumentReferenceDialog.Document)] = doc
+            };
+            var dialog = await DialogService.ShowAsync<EditDocumentReferenceDialog>(string.Empty, parameters, EFDialogDefaults.Options);
+            var result = await dialog.Result;
+            if (result is { Canceled: false })
+            {
+                await LoadDocumentsAsync();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error opening edit document dialog for document {Id}.", doc.Id);
+            AppNotification.ShowWarning("Errore nell'apertura del dialogo di modifica documento.");
         }
     }
 

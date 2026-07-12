@@ -40,7 +40,6 @@ public interface ITeamService
 
     // Document References
     Task<IEnumerable<DocumentReferenceDto>?> GetDocumentsByOwnerAsync(Guid ownerId, string ownerType, CancellationToken ct = default);
-    Task<DocumentReferenceDto?> CreateDocumentReferenceAsync(CreateDocumentReferenceDto dto, CancellationToken ct = default);
     Task<DocumentReferenceDto?> UpdateDocumentReferenceAsync(Guid id, UpdateDocumentReferenceDto dto, CancellationToken ct = default);
     Task DeleteDocumentReferenceAsync(Guid id, CancellationToken ct = default);
 
