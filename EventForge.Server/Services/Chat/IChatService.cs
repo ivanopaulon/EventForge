@@ -84,6 +84,7 @@ public interface IChatService
         Guid chatId,
         UpdateChatDto updateDto,
         Guid userId,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -104,6 +105,7 @@ public interface IChatService
         Guid userId,
         string? reason = null,
         bool softDelete = true,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     #endregion
@@ -220,6 +222,7 @@ public interface IChatService
         Guid userId,
         string? reason = null,
         bool softDelete = true,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     #endregion
@@ -244,6 +247,7 @@ public interface IChatService
         MessageStatus status,
         Guid userId,
         Dictionary<string, object>? metadata = null,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -376,6 +380,7 @@ public interface IChatService
         Guid attachmentId,
         Guid userId,
         string? reason = null,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     #endregion
@@ -423,6 +428,7 @@ public interface IChatService
         List<Guid> userIds,
         Guid removedBy,
         string? reason = null,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -441,6 +447,7 @@ public interface IChatService
         Guid chatId,
         Dictionary<Guid, ChatMemberRole> roleUpdates,
         Guid updatedBy,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -604,6 +611,7 @@ public interface IChatService
     Task<ChatLocalizationPreferencesDto> UpdateChatLocalizationAsync(
         Guid userId,
         ChatLocalizationPreferencesDto preferences,
+        Guid? tenantId = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>

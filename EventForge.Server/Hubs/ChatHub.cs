@@ -300,7 +300,7 @@ public class ChatHub : Hub
 
         try
         {
-            await _chatService.DeleteMessageAsync(messageId, userId.Value, reason, softDelete: true, CancellationToken.None);
+            await _chatService.DeleteMessageAsync(messageId, userId.Value, reason, softDelete: true, GetCurrentTenantId(), CancellationToken.None);
 
             _logger.LogInformation("User {UserId} deleted message {MessageId} with reason: {Reason}",
                 userId.Value, messageId, reason ?? "No reason provided");
@@ -410,7 +410,7 @@ public class ChatHub : Hub
             // Remove members via service
             if (updateMembersDto.UsersToRemove?.Any() == true)
             {
-                await _chatService.RemoveMembersAsync(updateMembersDto.ChatId, updateMembersDto.UsersToRemove, userId.Value, updateMembersDto.Reason);
+                await _chatService.RemoveMembersAsync(updateMembersDto.ChatId, updateMembersDto.UsersToRemove, userId.Value, updateMembersDto.Reason, GetCurrentTenantId());
                 foreach (var removedUserId in updateMembersDto.UsersToRemove)
                 {
                     await Clients.Group($"user_{removedUserId}").SendAsync("RemovedFromChat", new { ChatId = updateMembersDto.ChatId, RemovedBy = userId.Value, Reason = updateMembersDto.Reason });

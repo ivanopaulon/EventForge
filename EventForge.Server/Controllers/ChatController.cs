@@ -209,7 +209,7 @@ public class ChatController(
         {
             var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
-            var result = await chatService.UpdateChatAsync(id, updateDto, userId, cancellationToken);
+            var result = await chatService.UpdateChatAsync(id, updateDto, userId, tenantContext.CurrentTenantId, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -251,7 +251,7 @@ public class ChatController(
             var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.DeleteChatAsync(
-                id, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
+                id, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, tenantContext.CurrentTenantId, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
@@ -587,7 +587,7 @@ public class ChatController(
             var userId = tenantContext.CurrentUserId ?? Guid.Empty;
 
             var result = await chatService.DeleteMessageAsync(
-                messageId, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, cancellationToken);
+                messageId, userId, deleteDto?.Reason, deleteDto?.SoftDelete ?? true, tenantContext.CurrentTenantId, cancellationToken);
             return Ok(result);
         }
         catch (ArgumentException ex)
