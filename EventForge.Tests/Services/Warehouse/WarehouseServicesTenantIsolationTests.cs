@@ -69,6 +69,7 @@ public class WarehouseServicesTenantIsolationTests : IDisposable
             TenantId = _tenantAId,
             WarehouseId = _facilityAId,
             Code = "LOC-A",
+            Zone = "ZONE-A",
             Occupancy = 0
         });
 
@@ -246,6 +247,46 @@ public class WarehouseServicesTenantIsolationTests : IDisposable
         Assert.Equal(0, unchanged.Occupancy);
     }
 
+    [Fact]
+    public async Task GetStorageLocationByIdAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateLocationService(_tenantBId);
+
+        var result = await service.GetStorageLocationByIdAsync(_locationAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetStorageLocationsAsync_CrossTenant_DoesNotReturnOtherTenantData()
+    {
+        var service = CreateLocationService(_tenantBId);
+
+        var result = await service.GetStorageLocationsAsync(new PaginationParameters { Page = 1, PageSize = 50 });
+
+        Assert.DoesNotContain(result.Items, l => l.Id == _locationAId);
+    }
+
+    [Fact]
+    public async Task GetLocationsByWarehouseAsync_Paged_CrossTenant_DoesNotReturnOtherTenantData()
+    {
+        var service = CreateLocationService(_tenantBId);
+
+        var result = await service.GetLocationsByWarehouseAsync(_facilityAId, new PaginationParameters { Page = 1, PageSize = 50 });
+
+        Assert.DoesNotContain(result.Items, l => l.Id == _locationAId);
+    }
+
+    [Fact]
+    public async Task GetLocationsByZoneAsync_CrossTenant_DoesNotReturnOtherTenantData()
+    {
+        var service = CreateLocationService(_tenantBId);
+
+        var result = await service.GetLocationsByZoneAsync("ZONE-A", new PaginationParameters { Page = 1, PageSize = 50 });
+
+        Assert.DoesNotContain(result.Items, l => l.Id == _locationAId);
+    }
+
     // ---- DocumentAnalyticsService ----
 
     [Fact]
@@ -402,6 +443,41 @@ public class WarehouseServicesTenantIsolationTests : IDisposable
         Assert.Equal(1, removedCount);
         var updated = await _context.DocumentRows.IgnoreQueryFilters().AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
         Assert.True(updated.IsDeleted);
+    }
+
+    [Fact]
+    public async Task DiagnoseDocumentAsync_CrossTenant_ReturnsEmptyReport()
+    {
+        var service = CreateInventoryDiagnosticService(_tenantBId);
+
+        var report = await service.DiagnoseDocumentAsync(_documentHeaderAId);
+
+        Assert.Equal(0, report.TotalRows);
+    }
+
+    [Fact]
+    public async Task AutoRepairDocumentAsync_CrossTenant_DoesNotModifyOtherTenantRows()
+    {
+        var service = CreateInventoryDiagnosticService(_tenantBId);
+        var options = new InventoryAutoRepairOptionsDto { RemoveInvalidReferences = true };
+
+        _ = await service.AutoRepairDocumentAsync(_documentHeaderAId, options, "attacker");
+
+        var unchanged = await _context.DocumentRows.AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
+        Assert.False(unchanged.IsDeleted);
+    }
+
+    [Fact]
+    public async Task RepairRowAsync_CrossTenant_ReturnsFalse()
+    {
+        var service = CreateInventoryDiagnosticService(_tenantBId);
+        var repairData = new InventoryRowRepairDto { NewNotes = "HACKED" };
+
+        var success = await service.RepairRowAsync(_documentHeaderAId, _documentRowAId, repairData, "attacker");
+
+        Assert.False(success);
+        var unchanged = await _context.DocumentRows.AsNoTracking().FirstAsync(r => r.Id == _documentRowAId);
+        Assert.NotEqual("HACKED", unchanged.Notes);
     }
 
     public void Dispose()
