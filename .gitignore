@@ -373,7 +373,10 @@ missing-keys-report.json
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/EventForge.Server/Migrations
+
+# EF Core migrations: temporary probe/reference scripts (never to be committed, see Migrations/README.md)
+probe_schema_check.sql
+baseline_reference.sql
 
 # SQLite database files
 *.db
