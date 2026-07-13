@@ -84,10 +84,35 @@ public class RouteAnalysisTests
     {
         var controllerFiles = Directory.GetFiles(controllersPath, "*.cs");
 
+        // First pass: read all files and resolve the real class name (handles
+        // `partial class Foo` files that don't repeat the base list or [Route] attribute).
+        var fileContents = new List<(string FilePath, string Content, string ClassName)>();
         foreach (var file in controllerFiles)
         {
-            Console.WriteLine($"   🔍 Analizzando: {Path.GetFileName(file)}");
-            await AnalyzeControllerFileAsync(file);
+            var content = await File.ReadAllTextAsync(file);
+            var fileName = Path.GetFileNameWithoutExtension(file);
+
+            // Matches both `class Foo : BaseController` and `partial class Foo`
+            var controllerMatch = Regex.Match(content, @"class\s+(\w+)");
+            var className = controllerMatch.Success ? controllerMatch.Groups[1].Value : fileName;
+
+            fileContents.Add((file, content, className));
+        }
+
+        // Second pass: resolve the base [Route] for each class name by looking across all
+        // partial files sharing that class name (the attribute is only declared once, on the
+        // main/shell file).
+        var baseRouteByClass = fileContents
+            .GroupBy(f => f.ClassName)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(f => Regex.Match(f.Content, @"\[Route\s*\(\s*""([^""]+)""\s*\)\]"))
+                      .FirstOrDefault(m => m.Success)?.Groups[1].Value ?? "");
+
+        foreach (var (filePath, content, className) in fileContents)
+        {
+            Console.WriteLine($"   🔍 Analizzando: {Path.GetFileName(filePath)}");
+            AnalyzeControllerFile(filePath, content, className, baseRouteByClass[className]);
         }
 
         Console.WriteLine();
@@ -95,19 +120,8 @@ public class RouteAnalysisTests
         DetectConflicts();
     }
 
-    private async Task AnalyzeControllerFileAsync(string filePath)
+    private void AnalyzeControllerFile(string filePath, string content, string controllerName, string baseRoute)
     {
-        var content = await File.ReadAllTextAsync(filePath);
-        var fileName = Path.GetFileNameWithoutExtension(filePath);
-
-        // Estrae il nome del controller
-        var controllerMatch = Regex.Match(content, @"class\s+(\w+)\s*:\s*\w*Controller");
-        var controllerName = controllerMatch.Success ? controllerMatch.Groups[1].Value : fileName;
-
-        // Estrae la route base del controller
-        var baseRouteMatch = Regex.Match(content, @"\[Route\s*\(\s*""([^""]+)""\s*\)\]");
-        var baseRoute = baseRouteMatch.Success ? baseRouteMatch.Groups[1].Value : "";
-
         // Sostituisce [controller] con il nome effettivo
         if (baseRoute.Contains("[controller]"))
         {
