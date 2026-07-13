@@ -25,55 +25,48 @@ public class PriceListValidationService(
         DateTime evaluationDate,
         CancellationToken ct = default)
     {
-        try
+        var priceList = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
+            .Select(pl => new { pl.ValidFrom, pl.ValidTo, pl.Name })
+            .FirstOrDefaultAsync(ct);
+
+        if (priceList is null)
         {
-            var priceList = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
-                .Select(pl => new { pl.ValidFrom, pl.ValidTo, pl.Name })
-                .FirstOrDefaultAsync(ct);
-
-            if (priceList is null)
-            {
-                return ValidationResult.NotFound("Listino non trovato");
-            }
-
-            // Check data inizio validità
-            if (priceList.ValidFrom.HasValue && priceList.ValidFrom.Value > evaluationDate)
-            {
-                logger.LogWarning(
-                    "Price list {PriceListId} not yet valid. Valid from: {ValidFrom}, Evaluation date: {Date}",
-                    priceListId, priceList.ValidFrom.Value, evaluationDate);
-
-                return ValidationResult.Invalid(
-                    $"Listino '{priceList.Name}' non ancora valido. Valido dal: {priceList.ValidFrom.Value:dd/MM/yyyy}",
-                    "PRICE_LIST_NOT_YET_VALID"
-                );
-            }
-
-            // Check data fine validità
-            if (priceList.ValidTo.HasValue && priceList.ValidTo.Value < evaluationDate)
-            {
-                logger.LogWarning(
-                    "Price list {PriceListId} expired. Valid until: {ValidTo}, Evaluation date: {Date}",
-                    priceListId, priceList.ValidTo.Value, evaluationDate);
-
-                return ValidationResult.Invalid(
-                    $"Listino '{priceList.Name}' scaduto. Valido fino al: {priceList.ValidTo.Value:dd/MM/yyyy}",
-                    "PRICE_LIST_EXPIRED"
-                );
-            }
-
-            logger.LogDebug(
-                "Price list {PriceListId} is valid for date {Date}",
-                priceListId, evaluationDate);
-
-            return ValidationResult.Success();
+            return ValidationResult.NotFound("Listino non trovato");
         }
-        catch
+
+        // Check data inizio validità
+        if (priceList.ValidFrom.HasValue && priceList.ValidFrom.Value > evaluationDate)
         {
-            throw;
+            logger.LogWarning(
+                "Price list {PriceListId} not yet valid. Valid from: {ValidFrom}, Evaluation date: {Date}",
+                priceListId, priceList.ValidFrom.Value, evaluationDate);
+
+            return ValidationResult.Invalid(
+                $"Listino '{priceList.Name}' non ancora valido. Valido dal: {priceList.ValidFrom.Value:dd/MM/yyyy}",
+                "PRICE_LIST_NOT_YET_VALID"
+            );
         }
+
+        // Check data fine validità
+        if (priceList.ValidTo.HasValue && priceList.ValidTo.Value < evaluationDate)
+        {
+            logger.LogWarning(
+                "Price list {PriceListId} expired. Valid until: {ValidTo}, Evaluation date: {Date}",
+                priceListId, priceList.ValidTo.Value, evaluationDate);
+
+            return ValidationResult.Invalid(
+                $"Listino '{priceList.Name}' scaduto. Valido fino al: {priceList.ValidTo.Value:dd/MM/yyyy}",
+                "PRICE_LIST_EXPIRED"
+            );
+        }
+
+        logger.LogDebug(
+            "Price list {PriceListId} is valid for date {Date}",
+            priceListId, evaluationDate);
+
+        return ValidationResult.Success();
     }
 
     /// <inheritdoc/>
@@ -85,54 +78,47 @@ public class PriceListValidationService(
         Guid? excludePriceListId = null,
         CancellationToken ct = default)
     {
-        try
-        {
-            var overlappingLists = await context.PriceListBusinessParties
-                .AsNoTracking()
-                .Where(plbp => plbp.BusinessPartyId == businessPartyId
-                            && !plbp.IsDeleted
-                            && plbp.PriceList.Direction == direction
-                            && plbp.PriceList.Status == PriceListStatus.Active)
-                .Where(plbp => excludePriceListId == null || plbp.PriceListId != excludePriceListId)
-                .Select(plbp => new
-                {
-                    plbp.PriceListId,
-                    plbp.PriceList.Name,
-                    plbp.SpecificValidFrom,
-                    plbp.SpecificValidTo
-                })
-                .ToListAsync(ct);
-
-            var newFrom = validFrom ?? DateTime.MinValue;
-            var newTo = validTo ?? DateTime.MaxValue;
-
-            foreach (var existing in overlappingLists)
+        var overlappingLists = await context.PriceListBusinessParties
+            .AsNoTracking()
+            .Where(plbp => plbp.BusinessPartyId == businessPartyId
+                        && !plbp.IsDeleted
+                        && plbp.PriceList.Direction == direction
+                        && plbp.PriceList.Status == PriceListStatus.Active)
+            .Where(plbp => excludePriceListId == null || plbp.PriceListId != excludePriceListId)
+            .Select(plbp => new
             {
-                var existingFrom = existing.SpecificValidFrom ?? DateTime.MinValue;
-                var existingTo = existing.SpecificValidTo ?? DateTime.MaxValue;
+                plbp.PriceListId,
+                plbp.PriceList.Name,
+                plbp.SpecificValidFrom,
+                plbp.SpecificValidTo
+            })
+            .ToListAsync(ct);
 
-                // Check sovrapposizione
-                if (newFrom <= existingTo && newTo >= existingFrom)
-                {
-                    logger.LogWarning(
-                        "Price list overlap detected for BusinessParty {BusinessPartyId}. " +
-                        "Overlapping with price list {PriceListId}",
-                        businessPartyId, existing.PriceListId);
+        var newFrom = validFrom ?? DateTime.MinValue;
+        var newTo = validTo ?? DateTime.MaxValue;
 
-                    return ValidationResult.Invalid(
-                        $"Il listino si sovrappone con '{existing.Name}' " +
-                        $"(valido: {existingFrom:dd/MM/yyyy} - {existingTo:dd/MM/yyyy})",
-                        "PRICE_LIST_OVERLAP"
-                    );
-                }
-            }
-
-            return ValidationResult.Success();
-        }
-        catch
+        foreach (var existing in overlappingLists)
         {
-            throw;
+            var existingFrom = existing.SpecificValidFrom ?? DateTime.MinValue;
+            var existingTo = existing.SpecificValidTo ?? DateTime.MaxValue;
+
+            // Check sovrapposizione
+            if (newFrom <= existingTo && newTo >= existingFrom)
+            {
+                logger.LogWarning(
+                    "Price list overlap detected for BusinessParty {BusinessPartyId}. " +
+                    "Overlapping with price list {PriceListId}",
+                    businessPartyId, existing.PriceListId);
+
+                return ValidationResult.Invalid(
+                    $"Il listino si sovrappone con '{existing.Name}' " +
+                    $"(valido: {existingFrom:dd/MM/yyyy} - {existingTo:dd/MM/yyyy})",
+                    "PRICE_LIST_OVERLAP"
+                );
+            }
         }
+
+        return ValidationResult.Success();
     }
 
     // ==================== VALIDAZIONI STATO ====================
@@ -143,37 +129,30 @@ public class PriceListValidationService(
         PriceListStatus requiredStatus,
         CancellationToken ct = default)
     {
-        try
+        var priceList = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
+            .Select(pl => new { pl.Status, pl.Name })
+            .FirstOrDefaultAsync(ct);
+
+        if (priceList is null)
         {
-            var priceList = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Id == priceListId && !pl.IsDeleted)
-                .Select(pl => new { pl.Status, pl.Name })
-                .FirstOrDefaultAsync(ct);
-
-            if (priceList is null)
-            {
-                return ValidationResult.NotFound("Listino non trovato");
-            }
-
-            if (priceList.Status != requiredStatus)
-            {
-                logger.LogWarning(
-                    "Price list {PriceListId} has invalid status. Current: {Current}, Required: {Required}",
-                    priceListId, priceList.Status, requiredStatus);
-
-                return ValidationResult.Invalid(
-                    $"Listino '{priceList.Name}' in stato '{priceList.Status}'. Richiesto stato '{requiredStatus}'",
-                    "INVALID_PRICE_LIST_STATUS"
-                );
-            }
-
-            return ValidationResult.Success();
+            return ValidationResult.NotFound("Listino non trovato");
         }
-        catch
+
+        if (priceList.Status != requiredStatus)
         {
-            throw;
+            logger.LogWarning(
+                "Price list {PriceListId} has invalid status. Current: {Current}, Required: {Required}",
+                priceListId, priceList.Status, requiredStatus);
+
+            return ValidationResult.Invalid(
+                $"Listino '{priceList.Name}' in stato '{priceList.Status}'. Richiesto stato '{requiredStatus}'",
+                "INVALID_PRICE_LIST_STATUS"
+            );
         }
+
+        return ValidationResult.Success();
     }
 
     /// <inheritdoc/>
@@ -214,39 +193,32 @@ public class PriceListValidationService(
         Guid? excludeEntryId = null,
         CancellationToken ct = default)
     {
-        try
+        var exists = await context.PriceListEntries
+            .AsNoTracking()
+            .AnyAsync(ple => ple.PriceListId == priceListId
+                          && ple.ProductId == productId
+                          && !ple.IsDeleted
+                          && (excludeEntryId == null || ple.Id != excludeEntryId), ct);
+
+        if (exists)
         {
-            var exists = await context.PriceListEntries
+            var product = await context.Products
                 .AsNoTracking()
-                .AnyAsync(ple => ple.PriceListId == priceListId
-                              && ple.ProductId == productId
-                              && !ple.IsDeleted
-                              && (excludeEntryId == null || ple.Id != excludeEntryId), ct);
+                .Where(p => p.Id == productId)
+                .Select(p => new { p.Name, p.Code })
+                .FirstOrDefaultAsync(ct);
 
-            if (exists)
-            {
-                var product = await context.Products
-                    .AsNoTracking()
-                    .Where(p => p.Id == productId)
-                    .Select(p => new { p.Name, p.Code })
-                    .FirstOrDefaultAsync(ct);
+            logger.LogWarning(
+                "Duplicate product {ProductId} in price list {PriceListId}",
+                productId, priceListId);
 
-                logger.LogWarning(
-                    "Duplicate product {ProductId} in price list {PriceListId}",
-                    productId, priceListId);
-
-                return ValidationResult.Invalid(
-                    $"Prodotto '{product?.Name}' ({product?.Code}) già presente nel listino",
-                    "DUPLICATE_PRODUCT_IN_PRICE_LIST"
-                );
-            }
-
-            return ValidationResult.Success();
+            return ValidationResult.Invalid(
+                $"Prodotto '{product?.Name}' ({product?.Code}) già presente nel listino",
+                "DUPLICATE_PRODUCT_IN_PRICE_LIST"
+            );
         }
-        catch
-        {
-            throw;
-        }
+
+        return ValidationResult.Success();
     }
 
     /// <inheritdoc/>
@@ -255,38 +227,31 @@ public class PriceListValidationService(
         Guid businessPartyId,
         CancellationToken ct = default)
     {
-        try
+        var exists = await context.PriceListBusinessParties
+            .AsNoTracking()
+            .AnyAsync(plbp => plbp.PriceListId == priceListId
+                           && plbp.BusinessPartyId == businessPartyId
+                           && !plbp.IsDeleted, ct);
+
+        if (exists)
         {
-            var exists = await context.PriceListBusinessParties
+            var bp = await context.BusinessParties
                 .AsNoTracking()
-                .AnyAsync(plbp => plbp.PriceListId == priceListId
-                               && plbp.BusinessPartyId == businessPartyId
-                               && !plbp.IsDeleted, ct);
+                .Where(b => b.Id == businessPartyId)
+                .Select(b => b.Name)
+                .FirstOrDefaultAsync(ct);
 
-            if (exists)
-            {
-                var bp = await context.BusinessParties
-                    .AsNoTracking()
-                    .Where(b => b.Id == businessPartyId)
-                    .Select(b => b.Name)
-                    .FirstOrDefaultAsync(ct);
+            logger.LogWarning(
+                "Duplicate business party {BusinessPartyId} in price list {PriceListId}",
+                businessPartyId, priceListId);
 
-                logger.LogWarning(
-                    "Duplicate business party {BusinessPartyId} in price list {PriceListId}",
-                    businessPartyId, priceListId);
-
-                return ValidationResult.Invalid(
-                    $"Business Party '{bp}' già assegnato al listino",
-                    "DUPLICATE_BUSINESS_PARTY_IN_PRICE_LIST"
-                );
-            }
-
-            return ValidationResult.Success();
+            return ValidationResult.Invalid(
+                $"Business Party '{bp}' già assegnato al listino",
+                "DUPLICATE_BUSINESS_PARTY_IN_PRICE_LIST"
+            );
         }
-        catch
-        {
-            throw;
-        }
+
+        return ValidationResult.Success();
     }
 
     // ==================== VALIDAZIONI PREZZI ====================
@@ -384,37 +349,30 @@ public class PriceListValidationService(
         Guid productId,
         CancellationToken ct = default)
     {
-        try
+        var product = await context.Products
+            .AsNoTracking()
+            .Where(p => p.Id == productId && !p.IsDeleted)
+            .Select(p => new { p.Status, p.Name, p.Code })
+            .FirstOrDefaultAsync(ct);
+
+        if (product is null)
         {
-            var product = await context.Products
-                .AsNoTracking()
-                .Where(p => p.Id == productId && !p.IsDeleted)
-                .Select(p => new { p.Status, p.Name, p.Code })
-                .FirstOrDefaultAsync(ct);
-
-            if (product is null)
-            {
-                return ValidationResult.NotFound("Prodotto non trovato");
-            }
-
-            if (product.Status != ProductStatus.Active)
-            {
-                logger.LogWarning(
-                    "Product {ProductId} is not active. Status: {Status}",
-                    productId, product.Status);
-
-                return ValidationResult.Invalid(
-                    $"Prodotto '{product.Name}' ({product.Code}) non è attivo. Stato: {product.Status}",
-                    "PRODUCT_NOT_ACTIVE"
-                );
-            }
-
-            return ValidationResult.Success();
+            return ValidationResult.NotFound("Prodotto non trovato");
         }
-        catch
+
+        if (product.Status != ProductStatus.Active)
         {
-            throw;
+            logger.LogWarning(
+                "Product {ProductId} is not active. Status: {Status}",
+                productId, product.Status);
+
+            return ValidationResult.Invalid(
+                $"Prodotto '{product.Name}' ({product.Code}) non è attivo. Stato: {product.Status}",
+                "PRODUCT_NOT_ACTIVE"
+            );
         }
+
+        return ValidationResult.Success();
     }
 
     /// <inheritdoc/>
@@ -423,48 +381,41 @@ public class PriceListValidationService(
         PriceListDirection direction,
         CancellationToken ct = default)
     {
-        try
+        var businessParty = await context.BusinessParties
+            .AsNoTracking()
+            .Where(bp => bp.Id == businessPartyId && !bp.IsDeleted)
+            .Select(bp => new { bp.PartyType, bp.Name })
+            .FirstOrDefaultAsync(ct);
+
+        if (businessParty is null)
         {
-            var businessParty = await context.BusinessParties
-                .AsNoTracking()
-                .Where(bp => bp.Id == businessPartyId && !bp.IsDeleted)
-                .Select(bp => new { bp.PartyType, bp.Name })
-                .FirstOrDefaultAsync(ct);
-
-            if (businessParty is null)
-            {
-                return ValidationResult.NotFound("Business Party non trovato");
-            }
-
-            // Verifica compatibilità tipo con direzione listino
-            var isCompatible = (direction, businessParty.PartyType) switch
-            {
-                (PriceListDirection.Output, BusinessPartyType.Cliente) => true,
-                (PriceListDirection.Output, BusinessPartyType.ClienteFornitore) => true,
-                (PriceListDirection.Input, BusinessPartyType.Fornitore) => true,
-                (PriceListDirection.Input, BusinessPartyType.ClienteFornitore) => true,
-                _ => false
-            };
-
-            if (!isCompatible)
-            {
-                logger.LogWarning(
-                    "Business party {BusinessPartyId} (type: {Type}) incompatible with price list direction {Direction}",
-                    businessPartyId, businessParty.PartyType, direction);
-
-                return ValidationResult.Invalid(
-                    $"Business Party '{businessParty.Name}' (tipo: {businessParty.PartyType}) " +
-                    $"non compatibile con listino {direction}",
-                    "INCOMPATIBLE_BUSINESS_PARTY_TYPE"
-                );
-            }
-
-            return ValidationResult.Success();
+            return ValidationResult.NotFound("Business Party non trovato");
         }
-        catch
+
+        // Verifica compatibilità tipo con direzione listino
+        var isCompatible = (direction, businessParty.PartyType) switch
         {
-            throw;
+            (PriceListDirection.Output, BusinessPartyType.Cliente) => true,
+            (PriceListDirection.Output, BusinessPartyType.ClienteFornitore) => true,
+            (PriceListDirection.Input, BusinessPartyType.Fornitore) => true,
+            (PriceListDirection.Input, BusinessPartyType.ClienteFornitore) => true,
+            _ => false
+        };
+
+        if (!isCompatible)
+        {
+            logger.LogWarning(
+                "Business party {BusinessPartyId} (type: {Type}) incompatible with price list direction {Direction}",
+                businessPartyId, businessParty.PartyType, direction);
+
+            return ValidationResult.Invalid(
+                $"Business Party '{businessParty.Name}' (tipo: {businessParty.PartyType}) " +
+                $"non compatibile con listino {direction}",
+                "INCOMPATIBLE_BUSINESS_PARTY_TYPE"
+            );
         }
+
+        return ValidationResult.Success();
     }
 
 }

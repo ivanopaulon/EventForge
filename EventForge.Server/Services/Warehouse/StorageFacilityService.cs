@@ -19,123 +19,102 @@ public class StorageFacilityService(
 
     public async Task<PagedResult<StorageFacilityDto>> GetStorageFacilitiesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for storage facility operations.");
-            }
-
-            // Cache all StorageFacilities for 5 minutes
-            var allFacilities = await cacheService.GetOrCreateAsync(
-                CACHE_KEY_ALL,
-                currentTenantId.Value,
-                async (ct) =>
-                {
-                    var facilities = await context.StorageFacilities
-                        .AsNoTracking()
-                        .WhereActiveTenant(currentTenantId.Value)
-                        .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value))
-                        .OrderBy(sf => sf.Name)
-                        .ToListAsync(ct);
-
-                    return facilities.Select(MapToStorageFacilityDto).ToList();
-                },
-                absoluteExpiration: TimeSpan.FromMinutes(5),
-                ct: cancellationToken
-            );
-
-            // Paginate in memory (StorageFacilities are typically few - usually < 50 per tenant)
-            // Note: If a tenant has a very large number of facilities, consider per-page caching
-            var totalCount = allFacilities.Count;
-            var items = allFacilities
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToList();
-
-            return new PagedResult<StorageFacilityDto>
-            {
-                Items = items,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for storage facility operations.");
         }
-        catch
+
+        // Cache all StorageFacilities for 5 minutes
+        var allFacilities = await cacheService.GetOrCreateAsync(
+            CACHE_KEY_ALL,
+            currentTenantId.Value,
+            async (ct) =>
+            {
+                var facilities = await context.StorageFacilities
+                    .AsNoTracking()
+                    .WhereActiveTenant(currentTenantId.Value)
+                    .Include(sf => sf.Locations.Where(l => !l.IsDeleted && l.TenantId == currentTenantId.Value))
+                    .OrderBy(sf => sf.Name)
+                    .ToListAsync(ct);
+
+                return facilities.Select(MapToStorageFacilityDto).ToList();
+            },
+            absoluteExpiration: TimeSpan.FromMinutes(5),
+            ct: cancellationToken
+        );
+
+        // Paginate in memory (StorageFacilities are typically few - usually < 50 per tenant)
+        // Note: If a tenant has a very large number of facilities, consider per-page caching
+        var totalCount = allFacilities.Count;
+        var items = allFacilities
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToList();
+
+        return new PagedResult<StorageFacilityDto>
         {
-            throw;
-        }
+            Items = items,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<StorageFacilityDto?> GetStorageFacilityByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var facility = await context.StorageFacilities
-                .AsNoTracking()
-                .Include(sf => sf.Locations)
-                .Where(sf => sf.Id == id && !sf.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var facility = await context.StorageFacilities
+            .AsNoTracking()
+            .Include(sf => sf.Locations)
+            .Where(sf => sf.Id == id && !sf.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return facility is null ? null : MapToStorageFacilityDto(facility);
-        }
-        catch
-        {
-            throw;
-        }
+        return facility is null ? null : MapToStorageFacilityDto(facility);
     }
 
     public async Task<StorageFacilityDto> CreateStorageFacilityAsync(CreateStorageFacilityDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for storage facility operations.");
-            }
-
-            var facility = new StorageFacility
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                Name = createDto.Name,
-                Code = createDto.Code,
-                Address = createDto.Address,
-                Phone = createDto.Phone,
-                Email = createDto.Email,
-                Manager = createDto.Manager,
-                IsFiscal = createDto.IsFiscal,
-                Notes = createDto.Notes,
-                AreaSquareMeters = createDto.AreaSquareMeters,
-                Capacity = createDto.Capacity,
-                IsRefrigerated = createDto.IsRefrigerated,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser,
-                IsActive = true
-            };
-
-            _ = context.StorageFacilities.Add(facility);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
-
-            logger.LogInformation("Storage facility {FacilityId} created by {User}.", facility.Id, currentUser);
-
-            return MapToStorageFacilityDto(facility);
+            throw new InvalidOperationException("Tenant context is required for storage facility operations.");
         }
-        catch
+
+        var facility = new StorageFacility
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            Name = createDto.Name,
+            Code = createDto.Code,
+            Address = createDto.Address,
+            Phone = createDto.Phone,
+            Email = createDto.Email,
+            Manager = createDto.Manager,
+            IsFiscal = createDto.IsFiscal,
+            Notes = createDto.Notes,
+            AreaSquareMeters = createDto.AreaSquareMeters,
+            Capacity = createDto.Capacity,
+            IsRefrigerated = createDto.IsRefrigerated,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser,
+            IsActive = true
+        };
+
+        _ = context.StorageFacilities.Add(facility);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(facility, "Create", currentUser, null, cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
+        logger.LogInformation("Storage facility {FacilityId} created by {User}.", facility.Id, currentUser);
+
+        return MapToStorageFacilityDto(facility);
     }
 
     public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto updateDto, string currentUser, CancellationToken cancellationToken = default)
@@ -262,16 +241,9 @@ public class StorageFacilityService(
 
     public async Task<bool> StorageFacilityExistsAsync(Guid facilityId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.StorageFacilities
-                .AsNoTracking()
-                .AnyAsync(sf => sf.Id == facilityId && !sf.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.StorageFacilities
+            .AsNoTracking()
+            .AnyAsync(sf => sf.Id == facilityId && !sf.IsDeleted, cancellationToken);
     }
 
     private static StorageFacilityDto MapToStorageFacilityDto(StorageFacility facility)
@@ -306,51 +278,44 @@ public class StorageFacilityService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for storage facility operations.");
-            }
-
-            var query = context.StorageFacilities
-                .AsNoTracking()
-                .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
-                .OrderBy(sf => sf.Name);
-
-            var totalCount = await query.CountAsync(ct);
-
-
-            // Use batch processing for large datasets
-            if (totalCount > 10000)
-            {
-                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-                return await GetWarehousesInBatchesAsync(query, ct);
-            }
-
-            // Standard export for smaller datasets
-            var items = await query
-                .Take(pagination.PageSize)
-                .ToListAsync(ct);
-
-            return items.Select(sf => new Prym.DTOs.Export.WarehouseExportDto
-            {
-                Id = sf.Id,
-                Code = sf.Code,
-                Name = sf.Name,
-                Type = sf.IsFiscal ? "Fiscal" : "Standard",
-                Address = sf.Address,
-                City = ExtractCityFromAddress(sf.Address),
-                IsActive = sf.IsActive,
-                TotalStorageLocations = sf.TotalLocations,
-                CreatedAt = sf.CreatedAt
-            });
+            throw new InvalidOperationException("Tenant context is required for storage facility operations.");
         }
-        catch
+
+        var query = context.StorageFacilities
+            .AsNoTracking()
+            .Where(sf => !sf.IsDeleted && sf.TenantId == currentTenantId.Value)
+            .OrderBy(sf => sf.Name);
+
+        var totalCount = await query.CountAsync(ct);
+
+
+        // Use batch processing for large datasets
+        if (totalCount > 10000)
         {
-            throw;
+            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            return await GetWarehousesInBatchesAsync(query, ct);
         }
+
+        // Standard export for smaller datasets
+        var items = await query
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+
+        return items.Select(sf => new Prym.DTOs.Export.WarehouseExportDto
+        {
+            Id = sf.Id,
+            Code = sf.Code,
+            Name = sf.Name,
+            Type = sf.IsFiscal ? "Fiscal" : "Standard",
+            Address = sf.Address,
+            City = ExtractCityFromAddress(sf.Address),
+            IsActive = sf.IsActive,
+            TotalStorageLocations = sf.TotalLocations,
+            CreatedAt = sf.CreatedAt
+        });
     }
 
     private async Task<IEnumerable<Prym.DTOs.Export.WarehouseExportDto>> GetWarehousesInBatchesAsync(

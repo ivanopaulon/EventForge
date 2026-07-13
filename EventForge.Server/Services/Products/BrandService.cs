@@ -15,110 +15,89 @@ public class BrandService(
 
     public async Task<PagedResult<BrandDto>> GetBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
-
-            var query = context.Brands
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var brandDtos = await query
-                .OrderBy(b => b.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(b => new BrandDto
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    Description = b.Description,
-                    Website = b.Website,
-                    Country = b.Country,
-                    CreatedAt = b.CreatedAt,
-                    CreatedBy = b.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<BrandDto>
-            {
-                Items = brandDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
         }
-        catch
+
+        var query = context.Brands
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var brandDtos = await query
+            .OrderBy(b => b.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(b => new BrandDto
+            {
+                Id = b.Id,
+                Name = b.Name,
+                Description = b.Description,
+                Website = b.Website,
+                Country = b.Country,
+                CreatedAt = b.CreatedAt,
+                CreatedBy = b.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<BrandDto>
         {
-            throw;
-        }
+            Items = brandDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<BrandDto?> GetBrandByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
-
-            var brand = await context.Brands
-                .AsNoTracking()
-                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return brand is not null ? MapToBrandDto(brand) : null;
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var brand = await context.Brands
+            .AsNoTracking()
+            .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return brand is not null ? MapToBrandDto(brand) : null;
     }
 
     public async Task<BrandDto> CreateBrandAsync(CreateBrandDto createBrandDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createBrandDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createBrandDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
-
-            var brand = new Brand
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                Name = createBrandDto.Name,
-                Description = createBrandDto.Description,
-                Website = createBrandDto.Website,
-                Country = createBrandDto.Country,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            _ = context.Brands.Add(brand);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(brand, "Insert", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Brand {BrandId} created by {User}.", brand.Id, currentUser);
-
-            return MapToBrandDto(brand);
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
         }
-        catch
+
+        var brand = new Brand
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            Name = createBrandDto.Name,
+            Description = createBrandDto.Description,
+            Website = createBrandDto.Website,
+            Country = createBrandDto.Country,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        _ = context.Brands.Add(brand);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(brand, "Insert", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Brand {BrandId} created by {User}.", brand.Id, currentUser);
+
+        return MapToBrandDto(brand);
     }
 
     public async Task<BrandDto?> UpdateBrandAsync(Guid id, UpdateBrandDto updateBrandDto, string currentUser, CancellationToken cancellationToken = default)
@@ -237,23 +216,16 @@ public class BrandService(
 
     public async Task<bool> BrandExistsAsync(Guid brandId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
+        }
 
-            return await context.Brands
-                .AsNoTracking()
-                .Where(b => b.Id == brandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .AnyAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Brands
+            .AsNoTracking()
+            .Where(b => b.Id == brandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .AnyAsync(cancellationToken);
     }
 
     private static BrandDto MapToBrandDto(Brand brand)
@@ -272,48 +244,41 @@ public class BrandService(
 
     public async Task<PagedResult<BrandDto>> GetActiveBrandsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
-
-            var query = context.Brands
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Where(b => b.IsActive);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var brandDtos = await query
-                .OrderBy(b => b.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(b => new BrandDto
-                {
-                    Id = b.Id,
-                    Name = b.Name,
-                    Description = b.Description,
-                    Website = b.Website,
-                    Country = b.Country,
-                    CreatedAt = b.CreatedAt,
-                    CreatedBy = b.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<BrandDto>
-            {
-                Items = brandDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
         }
-        catch
+
+        var query = context.Brands
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .Where(b => b.IsActive);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var brandDtos = await query
+            .OrderBy(b => b.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(b => new BrandDto
+            {
+                Id = b.Id,
+                Name = b.Name,
+                Description = b.Description,
+                Website = b.Website,
+                Country = b.Country,
+                CreatedAt = b.CreatedAt,
+                CreatedBy = b.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<BrandDto>
         {
-            throw;
-        }
+            Items = brandDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
 }

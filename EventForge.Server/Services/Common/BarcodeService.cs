@@ -11,47 +11,40 @@ public class BarcodeService(ILogger<BarcodeService> logger) : IBarcodeService
 
     public async Task<BarcodeResponseDto> GenerateBarcodeAsync(BarcodeRequestDto request, CancellationToken ct = default)
     {
-        try
+        logger.LogInformation("Generating barcode of type {BarcodeType} for data length {DataLength}",
+            request.BarcodeType, request.Data.Length);
+
+        // Validate data for barcode type
+        if (!ValidateDataForBarcodeType(request.Data, request.BarcodeType))
         {
-            logger.LogInformation("Generating barcode of type {BarcodeType} for data length {DataLength}",
-                request.BarcodeType, request.Data.Length);
-
-            // Validate data for barcode type
-            if (!ValidateDataForBarcodeType(request.Data, request.BarcodeType))
-            {
-                throw new ArgumentException($"Invalid data format for barcode type {request.BarcodeType}");
-            }
-
-            // Create barcode settings
-            var settings = new BarcodeSettings
-            {
-                Type = MapBarcodeType(request.BarcodeType),
-                Data = request.Data,
-                ImageWidth = request.Width,
-                ImageHeight = request.Height
-            };
-
-            // Generate barcode
-            var generator = new BarCodeGenerator(settings);
-
-            // Convert to base64 using cross-platform method
-            var base64Image = await ConvertBarcodeToBase64Async(generator, request.ImageFormat, request.Width, request.Height, request.Data, ct);
-            var mimeType = GetMimeType(request.ImageFormat);
-
-            return new BarcodeResponseDto
-            {
-                Base64Image = base64Image,
-                MimeType = mimeType,
-                Width = request.Width,
-                Height = request.Height,
-                BarcodeType = request.BarcodeType,
-                Data = request.Data
-            };
+            throw new ArgumentException($"Invalid data format for barcode type {request.BarcodeType}");
         }
-        catch
+
+        // Create barcode settings
+        var settings = new BarcodeSettings
         {
-            throw;
-        }
+            Type = MapBarcodeType(request.BarcodeType),
+            Data = request.Data,
+            ImageWidth = request.Width,
+            ImageHeight = request.Height
+        };
+
+        // Generate barcode
+        var generator = new BarCodeGenerator(settings);
+
+        // Convert to base64 using cross-platform method
+        var base64Image = await ConvertBarcodeToBase64Async(generator, request.ImageFormat, request.Width, request.Height, request.Data, ct);
+        var mimeType = GetMimeType(request.ImageFormat);
+
+        return new BarcodeResponseDto
+        {
+            Base64Image = base64Image,
+            MimeType = mimeType,
+            Width = request.Width,
+            Height = request.Height,
+            BarcodeType = request.BarcodeType,
+            Data = request.Data
+        };
     }
 
     public async Task<BarcodeResponseDto> GenerateQRCodeAsync(string data, CancellationToken ct = default)

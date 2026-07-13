@@ -19,18 +19,11 @@ public partial class CustomFiscalPrinterService
         Guid printerId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            logger.LogInformation("DailyClosureAsync for printer {PrinterId}", printerId);
+        logger.LogInformation("DailyClosureAsync for printer {PrinterId}", printerId);
 
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-            byte[] cmd = _builder.BuildDailyClosureCommand();
-            return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+        byte[] cmd = _builder.BuildDailyClosureCommand();
+        return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -320,50 +313,43 @@ public partial class CustomFiscalPrinterService
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.PrinterId == printerId && !r.IsDeleted);
+
+        if (fromDate.HasValue)
+            query = query.Where(r => r.ClosedAt >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(r => r.ClosedAt <= toDate.Value);
+
+        var printerName = await context.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == printerId && !p.IsDeleted)
+            .Select(p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? printerId.ToString();
+
+        var records = await query
+            .OrderByDescending(r => r.ClosedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return records.Select(r => new DailyClosureHistoryDto
         {
-            var query = context.DailyClosureRecords
-                .AsNoTracking()
-                .Where(r => r.PrinterId == printerId && !r.IsDeleted);
-
-            if (fromDate.HasValue)
-                query = query.Where(r => r.ClosedAt >= fromDate.Value);
-            if (toDate.HasValue)
-                query = query.Where(r => r.ClosedAt <= toDate.Value);
-
-            var printerName = await context.Printers
-                .AsNoTracking()
-                .Where(p => p.Id == printerId && !p.IsDeleted)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? printerId.ToString();
-
-            var records = await query
-                .OrderByDescending(r => r.ClosedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            return records.Select(r => new DailyClosureHistoryDto
-            {
-                Id = r.Id,
-                PrinterId = r.PrinterId ?? printerId,
-                PrinterName = printerName,
-                ZReportNumber = r.ZReportNumber,
-                ClosedAt = r.ClosedAt,
-                ReceiptCount = r.ReceiptCount,
-                TotalAmount = r.TotalAmount,
-                CashAmount = r.CashAmount,
-                CardAmount = r.CardAmount,
-                Operator = r.Operator,
-                HasPdf = r.HasPdf,
-                ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var ct) ? ct : ClosureType.Fiscale,
-                FiscalClosurePending = r.FiscalClosurePending
-            }).ToList();
-        }
-        catch
-        {
-            throw;
-        }
+            Id = r.Id,
+            PrinterId = r.PrinterId ?? printerId,
+            PrinterName = printerName,
+            ZReportNumber = r.ZReportNumber,
+            ClosedAt = r.ClosedAt,
+            ReceiptCount = r.ReceiptCount,
+            TotalAmount = r.TotalAmount,
+            CashAmount = r.CashAmount,
+            CardAmount = r.CardAmount,
+            Operator = r.Operator,
+            HasPdf = r.HasPdf,
+            ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var ct) ? ct : ClosureType.Fiscale,
+            FiscalClosurePending = r.FiscalClosurePending
+        }).ToList();
     }
 
     /// <inheritdoc />

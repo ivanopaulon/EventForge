@@ -21,70 +21,56 @@ public class BusinessPartyGroupService(
         BusinessPartyGroupType? groupType = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var query = context.BusinessPartyGroups
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
-                .AsQueryable();
-
-            if (groupType.HasValue)
-            {
-                query = query.Where(g => g.GroupType == groupType.Value);
-            }
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var groups = await query
-                .OrderBy(g => g.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var groupDtos = groups.Select(MapToGroupDto);
-
-            return new PagedResult<BusinessPartyGroupDto>
-            {
-                Items = groupDtos,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
+
+        var query = context.BusinessPartyGroups
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
+            .AsQueryable();
+
+        if (groupType.HasValue)
         {
-            throw;
+            query = query.Where(g => g.GroupType == groupType.Value);
         }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var groups = await query
+            .OrderBy(g => g.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var groupDtos = groups.Select(MapToGroupDto);
+
+        return new PagedResult<BusinessPartyGroupDto>
+        {
+            Items = groupDtos,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<BusinessPartyGroupDto?> GetGroupByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var group = await context.BusinessPartyGroups
-                .AsNoTracking()
-                .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
-                .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return group is not null ? MapToGroupDto(group) : null;
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var group = await context.BusinessPartyGroups
+            .AsNoTracking()
+            .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
+            .Include(g => g.Members.Where(m => !m.IsDeleted && m.TenantId == currentTenantId.Value))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return group is not null ? MapToGroupDto(group) : null;
     }
 
     public async Task<BusinessPartyGroupDto> CreateGroupAsync(
@@ -92,60 +78,53 @@ public class BusinessPartyGroupService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(dto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(dto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            // Check for duplicate code if provided
-            if (!string.IsNullOrWhiteSpace(dto.Code))
-            {
-                var codeExists = await context.BusinessPartyGroups
-                    .AsNoTracking()
-                    .AnyAsync(g => g.Code == dto.Code && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
-
-                if (codeExists)
-                {
-                    throw new InvalidOperationException($"A Business Party Group with code '{dto.Code}' already exists.");
-                }
-            }
-
-            var group = new Data.Entities.Business.BusinessPartyGroup
-            {
-                TenantId = currentTenantId.Value,
-                Name = dto.Name,
-                Code = dto.Code,
-                Description = dto.Description,
-                GroupType = dto.GroupType,
-                ColorHex = dto.ColorHex ?? "#1976D2",
-                Icon = dto.Icon ?? "Group",
-                Priority = dto.Priority,
-                IsActive = dto.IsActive,
-                ValidFrom = dto.ValidFrom,
-                ValidTo = dto.ValidTo,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            context.BusinessPartyGroups.Add(group);
-            await context.SaveChangesAsync(cancellationToken);
-
-            await auditLogService.TrackEntityChangesAsync(group, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Business Party Group {GroupId} created by {User}.", group.Id, currentUser);
-
-            return MapToGroupDto(group);
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
+
+        // Check for duplicate code if provided
+        if (!string.IsNullOrWhiteSpace(dto.Code))
         {
-            throw;
+            var codeExists = await context.BusinessPartyGroups
+                .AsNoTracking()
+                .AnyAsync(g => g.Code == dto.Code && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
+
+            if (codeExists)
+            {
+                throw new InvalidOperationException($"A Business Party Group with code '{dto.Code}' already exists.");
+            }
         }
+
+        var group = new Data.Entities.Business.BusinessPartyGroup
+        {
+            TenantId = currentTenantId.Value,
+            Name = dto.Name,
+            Code = dto.Code,
+            Description = dto.Description,
+            GroupType = dto.GroupType,
+            ColorHex = dto.ColorHex ?? "#1976D2",
+            Icon = dto.Icon ?? "Group",
+            Priority = dto.Priority,
+            IsActive = dto.IsActive,
+            ValidFrom = dto.ValidFrom,
+            ValidTo = dto.ValidTo,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        context.BusinessPartyGroups.Add(group);
+        await context.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.TrackEntityChangesAsync(group, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Business Party Group {GroupId} created by {User}.", group.Id, currentUser);
+
+        return MapToGroupDto(group);
     }
 
     public async Task<BusinessPartyGroupDto> UpdateGroupAsync(
@@ -317,41 +296,34 @@ public class BusinessPartyGroupService(
         int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var query = context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.BusinessPartyGroupId == groupId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .Include(m => m.Group)
-                .Include(m => m.BusinessParty);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var members = await query
-                .OrderBy(m => m.BusinessParty.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var memberDtos = members.Select(MapToMemberDto);
-
-            return new PagedResult<BusinessPartyGroupMemberDto>
-            {
-                Items = memberDtos,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
+
+        var query = context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .Where(m => m.BusinessPartyGroupId == groupId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .Include(m => m.Group)
+            .Include(m => m.BusinessParty);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var members = await query
+            .OrderBy(m => m.BusinessParty.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var memberDtos = members.Select(MapToMemberDto);
+
+        return new PagedResult<BusinessPartyGroupMemberDto>
         {
-            throw;
-        }
+            Items = memberDtos,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<BusinessPartyGroupMemberDto> AddMemberToGroupAsync(
@@ -360,83 +332,76 @@ public class BusinessPartyGroupService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(dto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(dto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            // Verify group exists
-            var groupExists = await context.BusinessPartyGroups
-                .AsNoTracking()
-                .AnyAsync(g => g.Id == groupId && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
-
-            if (!groupExists)
-            {
-                throw new InvalidOperationException($"Business Party Group with ID {groupId} not found.");
-            }
-
-            // Verify business party exists
-            var businessPartyExists = await context.BusinessParties
-                .AsNoTracking()
-                .AnyAsync(bp => bp.Id == dto.BusinessPartyId && bp.TenantId == currentTenantId.Value && !bp.IsDeleted, cancellationToken);
-
-            if (!businessPartyExists)
-            {
-                throw new InvalidOperationException($"Business Party with ID {dto.BusinessPartyId} not found.");
-            }
-
-            // Check if already a member
-            var existingMember = await context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.BusinessPartyGroupId == groupId
-                    && m.BusinessPartyId == dto.BusinessPartyId
-                    && m.TenantId == currentTenantId.Value
-                    && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (existingMember is not null)
-            {
-                throw new InvalidOperationException("Business Party is already a member of this group.");
-            }
-
-            var member = new Data.Entities.Business.BusinessPartyGroupMember
-            {
-                TenantId = currentTenantId.Value,
-                BusinessPartyGroupId = groupId,
-                BusinessPartyId = dto.BusinessPartyId,
-                MemberSince = dto.MemberSince ?? DateTime.UtcNow,
-                MemberUntil = dto.MemberUntil,
-                Status = dto.Status,
-                OverridePriority = dto.OverridePriority,
-                Notes = dto.Notes,
-                IsFeatured = dto.IsFeatured,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            context.BusinessPartyGroupMembers.Add(member);
-            await context.SaveChangesAsync(cancellationToken);
-
-            await auditLogService.TrackEntityChangesAsync(member, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Business Party {BPId} added to Group {GroupId} by {User}.", dto.BusinessPartyId, groupId, currentUser);
-
-            // Load navigation properties for DTO mapping
-            await context.Entry(member).Reference(m => m.Group).LoadAsync(cancellationToken);
-            await context.Entry(member).Reference(m => m.BusinessParty).LoadAsync(cancellationToken);
-
-            return MapToMemberDto(member);
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
+
+        // Verify group exists
+        var groupExists = await context.BusinessPartyGroups
+            .AsNoTracking()
+            .AnyAsync(g => g.Id == groupId && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
+
+        if (!groupExists)
         {
-            throw;
+            throw new InvalidOperationException($"Business Party Group with ID {groupId} not found.");
         }
+
+        // Verify business party exists
+        var businessPartyExists = await context.BusinessParties
+            .AsNoTracking()
+            .AnyAsync(bp => bp.Id == dto.BusinessPartyId && bp.TenantId == currentTenantId.Value && !bp.IsDeleted, cancellationToken);
+
+        if (!businessPartyExists)
+        {
+            throw new InvalidOperationException($"Business Party with ID {dto.BusinessPartyId} not found.");
+        }
+
+        // Check if already a member
+        var existingMember = await context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .Where(m => m.BusinessPartyGroupId == groupId
+                && m.BusinessPartyId == dto.BusinessPartyId
+                && m.TenantId == currentTenantId.Value
+                && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingMember is not null)
+        {
+            throw new InvalidOperationException("Business Party is already a member of this group.");
+        }
+
+        var member = new Data.Entities.Business.BusinessPartyGroupMember
+        {
+            TenantId = currentTenantId.Value,
+            BusinessPartyGroupId = groupId,
+            BusinessPartyId = dto.BusinessPartyId,
+            MemberSince = dto.MemberSince ?? DateTime.UtcNow,
+            MemberUntil = dto.MemberUntil,
+            Status = dto.Status,
+            OverridePriority = dto.OverridePriority,
+            Notes = dto.Notes,
+            IsFeatured = dto.IsFeatured,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        context.BusinessPartyGroupMembers.Add(member);
+        await context.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.TrackEntityChangesAsync(member, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Business Party {BPId} added to Group {GroupId} by {User}.", dto.BusinessPartyId, groupId, currentUser);
+
+        // Load navigation properties for DTO mapping
+        await context.Entry(member).Reference(m => m.Group).LoadAsync(cancellationToken);
+        await context.Entry(member).Reference(m => m.BusinessParty).LoadAsync(cancellationToken);
+
+        return MapToMemberDto(member);
     }
 
     public async Task<BulkOperationResultDto> BulkAddMembersAsync(
@@ -444,102 +409,95 @@ public class BusinessPartyGroupService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(dto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(dto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
+        }
 
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
+        var result = new BulkOperationResultDto();
 
-            var result = new BulkOperationResultDto();
+        // Verify group exists
+        var groupExists = await context.BusinessPartyGroups
+            .AsNoTracking()
+            .AnyAsync(g => g.Id == dto.BusinessPartyGroupId && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
 
-            // Verify group exists
-            var groupExists = await context.BusinessPartyGroups
-                .AsNoTracking()
-                .AnyAsync(g => g.Id == dto.BusinessPartyGroupId && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
-
-            if (!groupExists)
-            {
-                result.Errors.Add($"Business Party Group with ID {dto.BusinessPartyGroupId} not found.");
-                result.FailureCount = dto.BusinessPartyIds.Count;
-                return result;
-            }
-
-            foreach (var businessPartyId in dto.BusinessPartyIds)
-            {
-                try
-                {
-                    // Verify business party exists
-                    var businessPartyExists = await context.BusinessParties
-                        .AsNoTracking()
-                        .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == currentTenantId.Value && !bp.IsDeleted, cancellationToken);
-
-                    if (!businessPartyExists)
-                    {
-                        result.Errors.Add($"Business Party {businessPartyId} not found.");
-                        result.FailureCount++;
-                        continue;
-                    }
-
-                    // Check if already a member
-                    var existingMember = await context.BusinessPartyGroupMembers
-                        .AsNoTracking()
-                        .AnyAsync(m => m.BusinessPartyGroupId == dto.BusinessPartyGroupId
-                            && m.BusinessPartyId == businessPartyId
-                            && m.TenantId == currentTenantId.Value
-                            && !m.IsDeleted, cancellationToken);
-
-                    if (existingMember)
-                    {
-                        result.Errors.Add($"Business Party {businessPartyId} is already a member.");
-                        result.FailureCount++;
-                        continue;
-                    }
-
-                    var member = new Data.Entities.Business.BusinessPartyGroupMember
-                    {
-                        TenantId = currentTenantId.Value,
-                        BusinessPartyGroupId = dto.BusinessPartyGroupId,
-                        BusinessPartyId = businessPartyId,
-                        MemberSince = dto.MemberSince ?? DateTime.UtcNow,
-                        MemberUntil = dto.MemberUntil,
-                        Status = dto.Status,
-                        OverridePriority = dto.OverridePriority,
-                        Notes = dto.Notes,
-                        IsFeatured = dto.IsFeatured,
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = currentUser
-                    };
-
-                    context.BusinessPartyGroupMembers.Add(member);
-                    result.SuccessCount++;
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error adding Business Party {BPId} to group {GroupId}.", businessPartyId, dto.BusinessPartyGroupId);
-                    result.Errors.Add($"Error adding Business Party {businessPartyId}: {ex.Message}");
-                    result.FailureCount++;
-                }
-            }
-
-            if (result.SuccessCount > 0)
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-
-            logger.LogInformation("Bulk add members to Group {GroupId}: {Success} succeeded, {Failure} failed.",
-                dto.BusinessPartyGroupId, result.SuccessCount, result.FailureCount);
-
+        if (!groupExists)
+        {
+            result.Errors.Add($"Business Party Group with ID {dto.BusinessPartyGroupId} not found.");
+            result.FailureCount = dto.BusinessPartyIds.Count;
             return result;
         }
-        catch
+
+        foreach (var businessPartyId in dto.BusinessPartyIds)
         {
-            throw;
+            try
+            {
+                // Verify business party exists
+                var businessPartyExists = await context.BusinessParties
+                    .AsNoTracking()
+                    .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == currentTenantId.Value && !bp.IsDeleted, cancellationToken);
+
+                if (!businessPartyExists)
+                {
+                    result.Errors.Add($"Business Party {businessPartyId} not found.");
+                    result.FailureCount++;
+                    continue;
+                }
+
+                // Check if already a member
+                var existingMember = await context.BusinessPartyGroupMembers
+                    .AsNoTracking()
+                    .AnyAsync(m => m.BusinessPartyGroupId == dto.BusinessPartyGroupId
+                        && m.BusinessPartyId == businessPartyId
+                        && m.TenantId == currentTenantId.Value
+                        && !m.IsDeleted, cancellationToken);
+
+                if (existingMember)
+                {
+                    result.Errors.Add($"Business Party {businessPartyId} is already a member.");
+                    result.FailureCount++;
+                    continue;
+                }
+
+                var member = new Data.Entities.Business.BusinessPartyGroupMember
+                {
+                    TenantId = currentTenantId.Value,
+                    BusinessPartyGroupId = dto.BusinessPartyGroupId,
+                    BusinessPartyId = businessPartyId,
+                    MemberSince = dto.MemberSince ?? DateTime.UtcNow,
+                    MemberUntil = dto.MemberUntil,
+                    Status = dto.Status,
+                    OverridePriority = dto.OverridePriority,
+                    Notes = dto.Notes,
+                    IsFeatured = dto.IsFeatured,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                };
+
+                context.BusinessPartyGroupMembers.Add(member);
+                result.SuccessCount++;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error adding Business Party {BPId} to group {GroupId}.", businessPartyId, dto.BusinessPartyGroupId);
+                result.Errors.Add($"Error adding Business Party {businessPartyId}: {ex.Message}");
+                result.FailureCount++;
+            }
         }
+
+        if (result.SuccessCount > 0)
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+
+        logger.LogInformation("Bulk add members to Group {GroupId}: {Success} succeeded, {Failure} failed.",
+            dto.BusinessPartyGroupId, result.SuccessCount, result.FailureCount);
+
+        return result;
     }
 
     public async Task<bool> RemoveMemberFromGroupAsync(
@@ -548,57 +506,50 @@ public class BusinessPartyGroupService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var member = await context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.BusinessPartyGroupId == groupId
-                    && m.BusinessPartyId == businessPartyId
-                    && m.TenantId == currentTenantId.Value
-                    && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (member is null)
-            {
-                logger.LogWarning("Member not found in group {GroupId}.", groupId);
-                return false;
-            }
-
-            // Capture original state for audit
-            var originalMember = new BusinessPartyGroupMember
-            {
-                Id = member.Id,
-                BusinessPartyGroupId = member.BusinessPartyGroupId,
-                BusinessPartyId = member.BusinessPartyId,
-                Status = member.Status
-            };
-
-            member.IsDeleted = true;
-            member.DeletedAt = DateTime.UtcNow;
-            member.DeletedBy = currentUser;
-            member.ModifiedAt = DateTime.UtcNow;
-            member.ModifiedBy = currentUser;
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
-
-            logger.LogInformation("Business Party {BPId} removed from Group {GroupId} by {User}.", businessPartyId, groupId, currentUser);
-
-            return true;
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
+
+        var member = await context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .Where(m => m.BusinessPartyGroupId == groupId
+                && m.BusinessPartyId == businessPartyId
+                && m.TenantId == currentTenantId.Value
+                && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
         {
-            throw;
+            logger.LogWarning("Member not found in group {GroupId}.", groupId);
+            return false;
         }
+
+        // Capture original state for audit
+        var originalMember = new BusinessPartyGroupMember
+        {
+            Id = member.Id,
+            BusinessPartyGroupId = member.BusinessPartyGroupId,
+            BusinessPartyId = member.BusinessPartyId,
+            Status = member.Status
+        };
+
+        member.IsDeleted = true;
+        member.DeletedAt = DateTime.UtcNow;
+        member.DeletedBy = currentUser;
+        member.ModifiedAt = DateTime.UtcNow;
+        member.ModifiedBy = currentUser;
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+
+        logger.LogInformation("Business Party {BPId} removed from Group {GroupId} by {User}.", businessPartyId, groupId, currentUser);
+
+        return true;
     }
 
     public async Task<BusinessPartyGroupMemberDto> UpdateMembershipAsync(
@@ -607,64 +558,57 @@ public class BusinessPartyGroupService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(dto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(dto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var member = await context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Include(m => m.Group)
-                .Include(m => m.BusinessParty)
-                .Where(m => m.Id == membershipId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (member is null)
-            {
-                throw new InvalidOperationException($"Membership with ID {membershipId} not found.");
-            }
-
-            // Capture original state for audit
-            var originalMember = new BusinessPartyGroupMember
-            {
-                Id = member.Id,
-                BusinessPartyGroupId = member.BusinessPartyGroupId,
-                BusinessPartyId = member.BusinessPartyId,
-                MemberSince = member.MemberSince,
-                MemberUntil = member.MemberUntil,
-                Status = member.Status,
-                OverridePriority = member.OverridePriority,
-                Notes = member.Notes,
-                IsFeatured = member.IsFeatured
-            };
-
-            member.MemberSince = dto.MemberSince;
-            member.MemberUntil = dto.MemberUntil;
-            member.Status = dto.Status;
-            member.OverridePriority = dto.OverridePriority;
-            member.Notes = dto.Notes;
-            member.IsFeatured = dto.IsFeatured;
-            member.ModifiedAt = DateTime.UtcNow;
-            member.ModifiedBy = currentUser;
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            await auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
-
-            logger.LogInformation("Membership {MembershipId} updated by {User}.", membershipId, currentUser);
-
-            return MapToMemberDto(member);
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
+
+        var member = await context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .Include(m => m.Group)
+            .Include(m => m.BusinessParty)
+            .Where(m => m.Id == membershipId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
         {
-            throw;
+            throw new InvalidOperationException($"Membership with ID {membershipId} not found.");
         }
+
+        // Capture original state for audit
+        var originalMember = new BusinessPartyGroupMember
+        {
+            Id = member.Id,
+            BusinessPartyGroupId = member.BusinessPartyGroupId,
+            BusinessPartyId = member.BusinessPartyId,
+            MemberSince = member.MemberSince,
+            MemberUntil = member.MemberUntil,
+            Status = member.Status,
+            OverridePriority = member.OverridePriority,
+            Notes = member.Notes,
+            IsFeatured = member.IsFeatured
+        };
+
+        member.MemberSince = dto.MemberSince;
+        member.MemberUntil = dto.MemberUntil;
+        member.Status = dto.Status;
+        member.OverridePriority = dto.OverridePriority;
+        member.Notes = dto.Notes;
+        member.IsFeatured = dto.IsFeatured;
+        member.ModifiedAt = DateTime.UtcNow;
+        member.ModifiedBy = currentUser;
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
+
+        logger.LogInformation("Membership {MembershipId} updated by {User}.", membershipId, currentUser);
+
+        return MapToMemberDto(member);
     }
 
     #endregion
@@ -675,29 +619,22 @@ public class BusinessPartyGroupService(
         Guid businessPartyId,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var groups = await context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.BusinessPartyId == businessPartyId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .Include(m => m.Group.Members.Where(mem => !mem.IsDeleted && mem.TenantId == currentTenantId.Value))
-                .Select(m => m.Group)
-                .Where(g => !g.IsDeleted)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            return groups.Select(MapToGroupDto).ToList();
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var groups = await context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .Where(m => m.BusinessPartyId == businessPartyId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .Include(m => m.Group.Members.Where(mem => !mem.IsDeleted && mem.TenantId == currentTenantId.Value))
+            .Select(m => m.Group)
+            .Where(g => !g.IsDeleted)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return groups.Select(MapToGroupDto).ToList();
     }
 
     public async Task<List<Guid>> GetActiveGroupIdsForBusinessPartyAsync(
@@ -705,39 +642,32 @@ public class BusinessPartyGroupService(
         DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var evalDate = evaluationDate ?? DateTime.UtcNow;
-
-            var groupIds = await context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .Where(m => m.BusinessPartyId == businessPartyId
-                    && m.TenantId == currentTenantId.Value
-                    && !m.IsDeleted
-                    && m.Status == BusinessPartyGroupMemberStatus.Active
-                    && (!m.MemberSince.HasValue || m.MemberSince.Value <= evalDate)
-                    && (!m.MemberUntil.HasValue || m.MemberUntil.Value >= evalDate))
-                .Include(m => m.Group)
-                .Where(m => !m.Group.IsDeleted
-                    && m.Group.IsActive
-                    && (!m.Group.ValidFrom.HasValue || m.Group.ValidFrom.Value <= evalDate)
-                    && (!m.Group.ValidTo.HasValue || m.Group.ValidTo.Value >= evalDate))
-                .Select(m => m.BusinessPartyGroupId)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            return groupIds;
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var evalDate = evaluationDate ?? DateTime.UtcNow;
+
+        var groupIds = await context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .Where(m => m.BusinessPartyId == businessPartyId
+                && m.TenantId == currentTenantId.Value
+                && !m.IsDeleted
+                && m.Status == BusinessPartyGroupMemberStatus.Active
+                && (!m.MemberSince.HasValue || m.MemberSince.Value <= evalDate)
+                && (!m.MemberUntil.HasValue || m.MemberUntil.Value >= evalDate))
+            .Include(m => m.Group)
+            .Where(m => !m.Group.IsDeleted
+                && m.Group.IsActive
+                && (!m.Group.ValidFrom.HasValue || m.Group.ValidFrom.Value <= evalDate)
+                && (!m.Group.ValidTo.HasValue || m.Group.ValidTo.Value >= evalDate))
+            .Select(m => m.BusinessPartyGroupId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        return groupIds;
     }
 
     public async Task<bool> IsBusinessPartyInGroupAsync(
@@ -745,26 +675,19 @@ public class BusinessPartyGroupService(
         Guid groupId,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
+        }
 
-            return await context.BusinessPartyGroupMembers
-                .AsNoTracking()
-                .AnyAsync(m => m.BusinessPartyId == businessPartyId
-                    && m.BusinessPartyGroupId == groupId
-                    && m.TenantId == currentTenantId.Value
-                    && !m.IsDeleted
-                    && m.Status == BusinessPartyGroupMemberStatus.Active, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.BusinessPartyGroupMembers
+            .AsNoTracking()
+            .AnyAsync(m => m.BusinessPartyId == businessPartyId
+                && m.BusinessPartyGroupId == groupId
+                && m.TenantId == currentTenantId.Value
+                && !m.IsDeleted
+                && m.Status == BusinessPartyGroupMemberStatus.Active, cancellationToken);
     }
 
     #endregion

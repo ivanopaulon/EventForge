@@ -75,18 +75,11 @@ public class AuditLogService(
         Guid entityId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.EntityChangeLogs
-                .AsNoTracking()
-                .Where(log => log.EntityId == entityId)
-                .OrderByDescending(log => log.ChangedAt)
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.EntityChangeLogs
+            .AsNoTracking()
+            .Where(log => log.EntityId == entityId)
+            .OrderByDescending(log => log.ChangedAt)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -97,19 +90,11 @@ public class AuditLogService(
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entityName);
-
-        try
-        {
-            return await context.EntityChangeLogs
-                .AsNoTracking()
-                .Where(log => log.EntityName == entityName)
-                .OrderByDescending(log => log.ChangedAt)
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.EntityChangeLogs
+            .AsNoTracking()
+            .Where(log => log.EntityName == entityName)
+            .OrderByDescending(log => log.ChangedAt)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -120,18 +105,11 @@ public class AuditLogService(
         DateTime toDate,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.EntityChangeLogs
-                .AsNoTracking()
-                .Where(log => log.ChangedAt >= fromDate && log.ChangedAt <= toDate)
-                .OrderByDescending(log => log.ChangedAt)
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.EntityChangeLogs
+            .AsNoTracking()
+            .Where(log => log.ChangedAt >= fromDate && log.ChangedAt <= toDate)
+            .OrderByDescending(log => log.ChangedAt)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -142,19 +120,11 @@ public class AuditLogService(
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(username);
-
-        try
-        {
-            return await context.EntityChangeLogs
-                .AsNoTracking()
-                .Where(log => log.ChangedBy == username)
-                .OrderByDescending(log => log.ChangedAt)
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.EntityChangeLogs
+            .AsNoTracking()
+            .Where(log => log.ChangedBy == username)
+            .OrderByDescending(log => log.ChangedAt)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -167,27 +137,20 @@ public class AuditLogService(
         int take = 100,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
-            if (filter is not null)
-                query = query.Where(filter);
+        if (filter is not null)
+            query = query.Where(filter);
 
-            if (orderBy is not null)
-                query = query.OrderBy(orderBy);
-            else
-                query = query.OrderByDescending(log => log.ChangedAt);
+        if (orderBy is not null)
+            query = query.OrderBy(orderBy);
+        else
+            query = query.OrderByDescending(log => log.ChangedAt);
 
-            return await query
-                .Skip(skip)
-                .Take(take)
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await query
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
     }
 
     /// <summary>
@@ -204,29 +167,54 @@ public class AuditLogService(
         ArgumentNullException.ThrowIfNull(entity);
         ArgumentException.ThrowIfNullOrWhiteSpace(operationType);
         ArgumentException.ThrowIfNullOrWhiteSpace(changedBy);
+        var entityType = typeof(TEntity);
+        var entityName = entityType.Name;
+        var changeLogs = new List<EntityChangeLog>();
 
-        try
+        // For Insert and Delete operations, track all properties
+        if (operationType is "Insert" or "Delete")
         {
-            var entityType = typeof(TEntity);
-            var entityName = entityType.Name;
-            var changeLogs = new List<EntityChangeLog>();
+            var properties = GetTrackableProperties(entityType);
 
-            // For Insert and Delete operations, track all properties
-            if (operationType is "Insert" or "Delete")
+            foreach (var property in properties)
             {
-                var properties = GetTrackableProperties(entityType);
-
-                foreach (var property in properties)
+                var value = property.GetValue(entity)?.ToString();
+                var changeLog = new EntityChangeLog
                 {
-                    var value = property.GetValue(entity)?.ToString();
+                    EntityName = entityName,
+                    EntityId = entity.Id,
+                    PropertyName = property.Name,
+                    OperationType = operationType,
+                    OldValue = operationType == "Delete" ? value : null,
+                    NewValue = operationType == "Insert" ? value : null,
+                    ChangedBy = changedBy,
+                    ChangedAt = DateTime.UtcNow
+                };
+
+                changeLogs.Add(changeLog);
+            }
+        }
+        // For Update operations, compare with original values
+        else if (operationType == "Update" && originalValues != null)
+        {
+            var properties = GetTrackableProperties(entityType);
+
+            foreach (var property in properties)
+            {
+                var oldValue = property.GetValue(originalValues)?.ToString();
+                var newValue = property.GetValue(entity)?.ToString();
+
+                // Only log if values are different
+                if (!string.Equals(oldValue, newValue, StringComparison.Ordinal))
+                {
                     var changeLog = new EntityChangeLog
                     {
                         EntityName = entityName,
                         EntityId = entity.Id,
                         PropertyName = property.Name,
                         OperationType = operationType,
-                        OldValue = operationType == "Delete" ? value : null,
-                        NewValue = operationType == "Insert" ? value : null,
+                        OldValue = oldValue,
+                        NewValue = newValue,
                         ChangedBy = changedBy,
                         ChangedAt = DateTime.UtcNow
                     };
@@ -234,48 +222,15 @@ public class AuditLogService(
                     changeLogs.Add(changeLog);
                 }
             }
-            // For Update operations, compare with original values
-            else if (operationType == "Update" && originalValues != null)
-            {
-                var properties = GetTrackableProperties(entityType);
-
-                foreach (var property in properties)
-                {
-                    var oldValue = property.GetValue(originalValues)?.ToString();
-                    var newValue = property.GetValue(entity)?.ToString();
-
-                    // Only log if values are different
-                    if (!string.Equals(oldValue, newValue, StringComparison.Ordinal))
-                    {
-                        var changeLog = new EntityChangeLog
-                        {
-                            EntityName = entityName,
-                            EntityId = entity.Id,
-                            PropertyName = property.Name,
-                            OperationType = operationType,
-                            OldValue = oldValue,
-                            NewValue = newValue,
-                            ChangedBy = changedBy,
-                            ChangedAt = DateTime.UtcNow
-                        };
-
-                        changeLogs.Add(changeLog);
-                    }
-                }
-            }
-
-            if (changeLogs.Count > 0)
-            {
-                context.EntityChangeLogs.AddRange(changeLogs);
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-
-            return changeLogs;
         }
-        catch
+
+        if (changeLogs.Count > 0)
         {
-            throw;
+            context.EntityChangeLogs.AddRange(changeLogs);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
+
+        return changeLogs;
     }
 
     /// <summary>
@@ -286,71 +241,63 @@ public class AuditLogService(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(queryParameters);
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
-        try
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(queryParameters.EntityName))
         {
-            var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
-
-            // Apply filters
-            if (!string.IsNullOrWhiteSpace(queryParameters.EntityName))
-            {
-                query = query.Where(log => log.EntityName.Contains(queryParameters.EntityName));
-            }
-
-            if (queryParameters.EntityId.HasValue)
-            {
-                query = query.Where(log => log.EntityId == queryParameters.EntityId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(queryParameters.ChangedBy))
-            {
-                query = query.Where(log => log.ChangedBy.Contains(queryParameters.ChangedBy));
-            }
-
-            if (!string.IsNullOrWhiteSpace(queryParameters.OperationType))
-            {
-                query = query.Where(log => log.OperationType == queryParameters.OperationType);
-            }
-
-            if (!string.IsNullOrWhiteSpace(queryParameters.PropertyName))
-            {
-                query = query.Where(log => log.PropertyName.Contains(queryParameters.PropertyName));
-            }
-
-            if (queryParameters.FromDate.HasValue)
-            {
-                query = query.Where(log => log.ChangedAt >= queryParameters.FromDate.Value);
-            }
-
-            if (queryParameters.ToDate.HasValue)
-            {
-                query = query.Where(log => log.ChangedAt <= queryParameters.ToDate.Value);
-            }
-
-            // Get total count before pagination
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            // Apply sorting
-            query = ApplySorting(query, queryParameters.SortBy, queryParameters.SortDirection);
-
-            // Apply pagination
-            var items = await query
-                .Skip(queryParameters.Skip)
-                .Take(queryParameters.PageSize)
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<EntityChangeLog>
-            {
-                Items = items,
-                Page = queryParameters.Page,
-                PageSize = queryParameters.PageSize,
-                TotalCount = totalCount
-            };
+            query = query.Where(log => log.EntityName.Contains(queryParameters.EntityName));
         }
-        catch
+
+        if (queryParameters.EntityId.HasValue)
         {
-            throw;
+            query = query.Where(log => log.EntityId == queryParameters.EntityId.Value);
         }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.ChangedBy))
+        {
+            query = query.Where(log => log.ChangedBy.Contains(queryParameters.ChangedBy));
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.OperationType))
+        {
+            query = query.Where(log => log.OperationType == queryParameters.OperationType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(queryParameters.PropertyName))
+        {
+            query = query.Where(log => log.PropertyName.Contains(queryParameters.PropertyName));
+        }
+
+        if (queryParameters.FromDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt >= queryParameters.FromDate.Value);
+        }
+
+        if (queryParameters.ToDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt <= queryParameters.ToDate.Value);
+        }
+
+        // Get total count before pagination
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply sorting
+        query = ApplySorting(query, queryParameters.SortBy, queryParameters.SortDirection);
+
+        // Apply pagination
+        var items = await query
+            .Skip(queryParameters.Skip)
+            .Take(queryParameters.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<EntityChangeLog>
+        {
+            Items = items,
+            Page = queryParameters.Page,
+            PageSize = queryParameters.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     /// <summary>
@@ -360,16 +307,9 @@ public class AuditLogService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.EntityChangeLogs
-                .AsNoTracking()
-                .FirstOrDefaultAsync(log => log.Id == id, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.EntityChangeLogs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(log => log.Id == id, cancellationToken);
     }
 
     /// <summary>
@@ -437,87 +377,80 @@ public class AuditLogService(
         Prym.DTOs.Audit.AuditTrailSearchDto searchDto,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
+
+        // Apply filters
+        if (!string.IsNullOrWhiteSpace(searchDto.EntityName))
         {
-            var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
-
-            // Apply filters
-            if (!string.IsNullOrWhiteSpace(searchDto.EntityName))
-            {
-                query = query.Where(log => log.EntityName == searchDto.EntityName);
-            }
-
-            if (searchDto.EntityId.HasValue)
-            {
-                query = query.Where(log => log.EntityId == searchDto.EntityId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchDto.OperationType))
-            {
-                query = query.Where(log => log.OperationType == searchDto.OperationType);
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchDto.ChangedBy))
-            {
-                query = query.Where(log => log.ChangedBy == searchDto.ChangedBy);
-            }
-
-            if (searchDto.FromDate.HasValue)
-            {
-                query = query.Where(log => log.ChangedAt >= searchDto.FromDate.Value);
-            }
-
-            if (searchDto.ToDate.HasValue)
-            {
-                query = query.Where(log => log.ChangedAt <= searchDto.ToDate.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
-            {
-                query = query.Where(log =>
-                    log.EntityName.Contains(searchDto.SearchTerm) ||
-                    log.PropertyName.Contains(searchDto.SearchTerm) ||
-                    log.ChangedBy.Contains(searchDto.SearchTerm) ||
-                    (log.OldValue != null && log.OldValue.Contains(searchDto.SearchTerm)) ||
-                    (log.NewValue != null && log.NewValue.Contains(searchDto.SearchTerm)));
-            }
-
-            // Get total count
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            // Apply pagination
-            var skip = (searchDto.Page - 1) * searchDto.PageSize;
-            var items = await query
-                .OrderByDescending(log => log.ChangedAt)
-                .Skip(skip)
-                .Take(searchDto.PageSize)
-                .Select(log => new Prym.DTOs.Audit.AuditTrailResponseDto
-                {
-                    Id = log.Id,
-                    EntityName = log.EntityName,
-                    EntityDisplayName = log.EntityDisplayName,
-                    EntityId = log.EntityId,
-                    PropertyName = log.PropertyName,
-                    OperationType = log.OperationType,
-                    OldValue = log.OldValue,
-                    NewValue = log.NewValue,
-                    ChangedBy = log.ChangedBy,
-                    ChangedAt = log.ChangedAt
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto>
-            {
-                Items = items,
-                TotalCount = totalCount,
-                Page = searchDto.Page,
-                PageSize = searchDto.PageSize
-            };
+            query = query.Where(log => log.EntityName == searchDto.EntityName);
         }
-        catch
+
+        if (searchDto.EntityId.HasValue)
         {
-            throw;
+            query = query.Where(log => log.EntityId == searchDto.EntityId.Value);
         }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.OperationType))
+        {
+            query = query.Where(log => log.OperationType == searchDto.OperationType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.ChangedBy))
+        {
+            query = query.Where(log => log.ChangedBy == searchDto.ChangedBy);
+        }
+
+        if (searchDto.FromDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt >= searchDto.FromDate.Value);
+        }
+
+        if (searchDto.ToDate.HasValue)
+        {
+            query = query.Where(log => log.ChangedAt <= searchDto.ToDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchDto.SearchTerm))
+        {
+            query = query.Where(log =>
+                log.EntityName.Contains(searchDto.SearchTerm) ||
+                log.PropertyName.Contains(searchDto.SearchTerm) ||
+                log.ChangedBy.Contains(searchDto.SearchTerm) ||
+                (log.OldValue != null && log.OldValue.Contains(searchDto.SearchTerm)) ||
+                (log.NewValue != null && log.NewValue.Contains(searchDto.SearchTerm)));
+        }
+
+        // Get total count
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination
+        var skip = (searchDto.Page - 1) * searchDto.PageSize;
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(skip)
+            .Take(searchDto.PageSize)
+            .Select(log => new Prym.DTOs.Audit.AuditTrailResponseDto
+            {
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<Prym.DTOs.Audit.AuditTrailResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = searchDto.Page,
+            PageSize = searchDto.PageSize
+        };
     }
 
     /// <summary>
@@ -526,31 +459,24 @@ public class AuditLogService(
     public async Task<Prym.DTOs.Audit.AuditTrailStatisticsDto> GetAuditTrailStatisticsAsync(
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var now = DateTime.UtcNow;
-            var today = now.Date;
-            var weekStart = now.AddDays(-(int)now.DayOfWeek);
+        var now = DateTime.UtcNow;
+        var today = now.Date;
+        var weekStart = now.AddDays(-(int)now.DayOfWeek);
 
-            var totalEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(cancellationToken);
-            var todayEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedAt >= today, cancellationToken);
-            var thisWeekEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
-            var superAdminEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
-            var deletedEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.OperationType == "Delete", cancellationToken);
+        var totalEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(cancellationToken);
+        var todayEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedAt >= today, cancellationToken);
+        var thisWeekEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedAt >= weekStart, cancellationToken);
+        var superAdminEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.ChangedBy.Contains("SuperAdmin"), cancellationToken);
+        var deletedEntries = await context.EntityChangeLogs.AsNoTracking().CountAsync(log => log.OperationType == "Delete", cancellationToken);
 
-            return new Prym.DTOs.Audit.AuditTrailStatisticsDto
-            {
-                TotalEntries = totalEntries,
-                TodayEntries = todayEntries,
-                ThisWeekEntries = thisWeekEntries,
-                SuperAdminEntries = superAdminEntries,
-                DeletedEntries = deletedEntries
-            };
-        }
-        catch
+        return new Prym.DTOs.Audit.AuditTrailStatisticsDto
         {
-            throw;
-        }
+            TotalEntries = totalEntries,
+            TodayEntries = todayEntries,
+            ThisWeekEntries = thisWeekEntries,
+            SuperAdminEntries = superAdminEntries,
+            DeletedEntries = deletedEntries
+        };
     }
 
     /// <summary>
@@ -569,70 +495,62 @@ public class AuditLogService(
         var type = exportRequest.Type.ToLowerInvariant();
         if (!new[] { "audit", "systemlogs", "users", "tenants" }.Contains(type))
             throw new ArgumentException("Invalid type. Supported types: audit, systemlogs, users, tenants");
+        var maxRecords = exportRequest.MaxRecords ?? 10_000;
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
-        try
-        {
-            var maxRecords = exportRequest.MaxRecords ?? 10_000;
-            var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
+        if (exportRequest.FromDate.HasValue)
+            query = query.Where(l => l.ChangedAt >= exportRequest.FromDate.Value);
+        if (exportRequest.ToDate.HasValue)
+            query = query.Where(l => l.ChangedAt <= exportRequest.ToDate.Value);
 
-            if (exportRequest.FromDate.HasValue)
-                query = query.Where(l => l.ChangedAt >= exportRequest.FromDate.Value);
-            if (exportRequest.ToDate.HasValue)
-                query = query.Where(l => l.ChangedAt <= exportRequest.ToDate.Value);
-
-            var records = await query
-                .OrderByDescending(l => l.ChangedAt)
-                .Take(maxRecords)
-                .Select(l => new EntityChangeLogDto
-                {
-                    Id = l.Id,
-                    EntityName = l.EntityName,
-                    EntityDisplayName = l.EntityDisplayName,
-                    EntityId = l.EntityId,
-                    PropertyName = l.PropertyName,
-                    OperationType = l.OperationType,
-                    OldValue = l.OldValue,
-                    NewValue = l.NewValue,
-                    ChangedBy = l.ChangedBy,
-                    ChangedAt = l.ChangedAt
-                })
-                .ToListAsync(cancellationToken);
-
-            byte[] bytes = format == "CSV" ? BuildAuditCsv(records) : BuildAuditJson(records);
-
-            var exportId = Guid.NewGuid();
-            var fileName = exportRequest.FileName ?? $"audit_export_{exportId:N}.{format.ToLowerInvariant()}";
-            var exportResult = new ExportResultDto
+        var records = await query
+            .OrderByDescending(l => l.ChangedAt)
+            .Take(maxRecords)
+            .Select(l => new EntityChangeLogDto
             {
-                Id = exportId,
-                Type = type,
-                Format = format,
-                Status = "Completed",
-                TotalRecords = records.Count,
-                FileName = fileName,
-                DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
-                FileSizeBytes = bytes.Length,
-                RequestedAt = DateTime.UtcNow,
-                CompletedAt = DateTime.UtcNow,
-                RequestedBy = "System",
-                ExpiresAt = DateTime.UtcNow.AddDays(1)
-            };
+                Id = l.Id,
+                EntityName = l.EntityName,
+                EntityDisplayName = l.EntityDisplayName,
+                EntityId = l.EntityId,
+                PropertyName = l.PropertyName,
+                OperationType = l.OperationType,
+                OldValue = l.OldValue,
+                NewValue = l.NewValue,
+                ChangedBy = l.ChangedBy,
+                ChangedAt = l.ChangedAt
+            })
+            .ToListAsync(cancellationToken);
 
-            memoryCache.Set(
-                ExportCacheKey(exportId),
-                (bytes, format, fileName),
-                new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
-                {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24),
-                    Size = 1
-                });
+        byte[] bytes = format == "CSV" ? BuildAuditCsv(records) : BuildAuditJson(records);
 
-            return exportResult;
-        }
-        catch
+        var exportId = Guid.NewGuid();
+        var fileName = exportRequest.FileName ?? $"audit_export_{exportId:N}.{format.ToLowerInvariant()}";
+        var exportResult = new ExportResultDto
         {
-            throw;
-        }
+            Id = exportId,
+            Type = type,
+            Format = format,
+            Status = "Completed",
+            TotalRecords = records.Count,
+            FileName = fileName,
+            DownloadUrl = $"/api/v1/auditlog/export/{exportId}/download",
+            FileSizeBytes = bytes.Length,
+            RequestedAt = DateTime.UtcNow,
+            CompletedAt = DateTime.UtcNow,
+            RequestedBy = "System",
+            ExpiresAt = DateTime.UtcNow.AddDays(1)
+        };
+
+        memoryCache.Set(
+            ExportCacheKey(exportId),
+            (bytes, format, fileName),
+            new Microsoft.Extensions.Caching.Memory.MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24),
+                Size = 1
+            });
+
+        return exportResult;
     }
 
     /// <summary>
@@ -705,43 +623,36 @@ public class AuditLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
-        {
-            var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
+        var query = context.EntityChangeLogs.AsNoTracking().AsQueryable();
 
-            var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderByDescending(log => log.ChangedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(log => new EntityChangeLogDto
-                {
-                    Id = log.Id,
-                    EntityName = log.EntityName,
-                    EntityDisplayName = log.EntityDisplayName,
-                    EntityId = log.EntityId,
-                    PropertyName = log.PropertyName,
-                    OperationType = log.OperationType,
-                    OldValue = log.OldValue,
-                    NewValue = log.NewValue,
-                    ChangedBy = log.ChangedBy,
-                    ChangedAt = log.ChangedAt
-                })
-                .ToListAsync(ct);
-
-            return new PagedResult<EntityChangeLogDto>
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
-        }
-        catch
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
         {
-            throw;
-        }
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     /// <summary>
@@ -752,45 +663,38 @@ public class AuditLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
-        {
-            var query = context.EntityChangeLogs
-                .AsNoTracking()
-                .Where(log => log.EntityName == entityType);
+        var query = context.EntityChangeLogs
+            .AsNoTracking()
+            .Where(log => log.EntityName == entityType);
 
-            var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderByDescending(log => log.ChangedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(log => new EntityChangeLogDto
-                {
-                    Id = log.Id,
-                    EntityName = log.EntityName,
-                    EntityDisplayName = log.EntityDisplayName,
-                    EntityId = log.EntityId,
-                    PropertyName = log.PropertyName,
-                    OperationType = log.OperationType,
-                    OldValue = log.OldValue,
-                    NewValue = log.NewValue,
-                    ChangedBy = log.ChangedBy,
-                    ChangedAt = log.ChangedAt
-                })
-                .ToListAsync(ct);
-
-            return new PagedResult<EntityChangeLogDto>
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
-        }
-        catch
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
         {
-            throw;
-        }
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     /// <summary>
@@ -801,48 +705,41 @@ public class AuditLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
-        {
-            // Note: EntityChangeLog stores ChangedBy as string (username), not Guid
-            // We need to join with Users table to filter by userId
-            var query = from log in context.EntityChangeLogs.AsNoTracking()
-                        join user in context.Users on log.ChangedBy equals user.Username
-                        where user.Id == userId
-                        select log;
+        // Note: EntityChangeLog stores ChangedBy as string (username), not Guid
+        // We need to join with Users table to filter by userId
+        var query = from log in context.EntityChangeLogs.AsNoTracking()
+                    join user in context.Users on log.ChangedBy equals user.Username
+                    where user.Id == userId
+                    select log;
 
-            var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderByDescending(log => log.ChangedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(log => new EntityChangeLogDto
-                {
-                    Id = log.Id,
-                    EntityName = log.EntityName,
-                    EntityDisplayName = log.EntityDisplayName,
-                    EntityId = log.EntityId,
-                    PropertyName = log.PropertyName,
-                    OperationType = log.OperationType,
-                    OldValue = log.OldValue,
-                    NewValue = log.NewValue,
-                    ChangedBy = log.ChangedBy,
-                    ChangedAt = log.ChangedAt
-                })
-                .ToListAsync(ct);
-
-            return new PagedResult<EntityChangeLogDto>
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
-        }
-        catch
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
         {
-            throw;
-        }
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     /// <summary>
@@ -854,47 +751,40 @@ public class AuditLogService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
-        {
-            var end = endDate ?? DateTime.UtcNow;
+        var end = endDate ?? DateTime.UtcNow;
 
-            var query = context.EntityChangeLogs
-                .AsNoTracking()
-                .Where(log => log.ChangedAt >= startDate && log.ChangedAt <= end);
+        var query = context.EntityChangeLogs
+            .AsNoTracking()
+            .Where(log => log.ChangedAt >= startDate && log.ChangedAt <= end);
 
-            var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderByDescending(log => log.ChangedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(log => new EntityChangeLogDto
-                {
-                    Id = log.Id,
-                    EntityName = log.EntityName,
-                    EntityDisplayName = log.EntityDisplayName,
-                    EntityId = log.EntityId,
-                    PropertyName = log.PropertyName,
-                    OperationType = log.OperationType,
-                    OldValue = log.OldValue,
-                    NewValue = log.NewValue,
-                    ChangedBy = log.ChangedBy,
-                    ChangedAt = log.ChangedAt
-                })
-                .ToListAsync(ct);
-
-            return new PagedResult<EntityChangeLogDto>
+        var items = await query
+            .OrderByDescending(log => log.ChangedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(log => new EntityChangeLogDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
-        }
-        catch
+                Id = log.Id,
+                EntityName = log.EntityName,
+                EntityDisplayName = log.EntityDisplayName,
+                EntityId = log.EntityId,
+                PropertyName = log.PropertyName,
+                OperationType = log.OperationType,
+                OldValue = log.OldValue,
+                NewValue = log.NewValue,
+                ChangedBy = log.ChangedBy,
+                ChangedAt = log.ChangedAt
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<EntityChangeLogDto>
         {
-            throw;
-        }
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
 }

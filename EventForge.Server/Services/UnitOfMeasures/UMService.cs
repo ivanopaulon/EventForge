@@ -15,103 +15,82 @@ public class UMService(
 
     public async Task<PagedResult<UMDto>> GetUMsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
-            }
-
-            var query = context.UMs
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Where(u => !u.IsDeleted);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var ums = await query
-                .OrderBy(u => u.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var umDtos = ums.Select(MapToUMDto);
-
-            return new PagedResult<UMDto>
-            {
-                Items = umDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
         }
-        catch
+
+        var query = context.UMs
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .Where(u => !u.IsDeleted);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var ums = await query
+            .OrderBy(u => u.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var umDtos = ums.Select(MapToUMDto);
+
+        return new PagedResult<UMDto>
         {
-            throw;
-        }
+            Items = umDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<UMDto?> GetUMByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
-            }
-
-            var um = await context.UMs
-                .Where(u => u.Id == id && u.TenantId == currentTenantId.Value && !u.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return um is not null ? MapToUMDto(um) : null;
+            throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var um = await context.UMs
+            .Where(u => u.Id == id && u.TenantId == currentTenantId.Value && !u.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return um is not null ? MapToUMDto(um) : null;
     }
 
     public async Task<UMDto> CreateUMAsync(CreateUMDto createUMDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createUMDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createUMDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
-            }
-
-            var um = new UM
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                Name = createUMDto.Name,
-                Symbol = createUMDto.Symbol,
-                Description = createUMDto.Description,
-                IsDefault = createUMDto.IsDefault,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            _ = context.UMs.Add(um);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(um, "Insert", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Unit of measure {UMId} created by {User}.", um.Id, currentUser);
-
-            return MapToUMDto(um);
+            throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
         }
-        catch
+
+        var um = new UM
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            Name = createUMDto.Name,
+            Symbol = createUMDto.Symbol,
+            Description = createUMDto.Description,
+            IsDefault = createUMDto.IsDefault,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        _ = context.UMs.Add(um);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(um, "Insert", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Unit of measure {UMId} created by {User}.", um.Id, currentUser);
+
+        return MapToUMDto(um);
     }
 
     public async Task<UMDto?> UpdateUMAsync(Guid id, UpdateUMDto updateUMDto, string currentUser, CancellationToken cancellationToken = default)
@@ -224,15 +203,8 @@ public class UMService(
 
     public async Task<bool> UMExistsAsync(Guid umId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.UMs
-                .AnyAsync(u => u.Id == umId && !u.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.UMs
+            .AnyAsync(u => u.Id == umId && !u.IsDeleted, cancellationToken);
     }
 
     private static UMDto MapToUMDto(UM um)

@@ -16,162 +16,127 @@ public class NoteFlagService(
 
     public async Task<PagedResult<NoteFlagDto>> GetNoteFlagsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            var query = context.NoteFlags
-                .AsNoTracking()
-                .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            var noteFlags = await query
-                .OrderBy(nf => nf.DisplayOrder)
-                .ThenBy(nf => nf.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<NoteFlagDto>
-            {
-                Items = noteFlags.Select(MapToDto),
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
         }
-        catch
+
+        var query = context.NoteFlags
+            .AsNoTracking()
+            .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var noteFlags = await query
+            .OrderBy(nf => nf.DisplayOrder)
+            .ThenBy(nf => nf.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<NoteFlagDto>
         {
-            throw;
-        }
+            Items = noteFlags.Select(MapToDto),
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<List<NoteFlagDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            var noteFlags = await context.NoteFlags
-                .AsNoTracking()
-                .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted)
-                .OrderBy(nf => nf.DisplayOrder)
-                .ThenBy(nf => nf.Name)
-                .ToListAsync(cancellationToken);
-
-            return noteFlags.Select(MapToDto).ToList();
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var noteFlags = await context.NoteFlags
+            .AsNoTracking()
+            .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted)
+            .OrderBy(nf => nf.DisplayOrder)
+            .ThenBy(nf => nf.Name)
+            .ToListAsync(cancellationToken);
+
+        return noteFlags.Select(MapToDto).ToList();
     }
 
     public async Task<List<NoteFlagDto>> GetActiveAsync(CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            var noteFlags = await context.NoteFlags
-                .AsNoTracking()
-                .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted && nf.IsActive)
-                .OrderBy(nf => nf.DisplayOrder)
-                .ThenBy(nf => nf.Name)
-                .ToListAsync(cancellationToken);
-
-            return noteFlags.Select(MapToDto).ToList();
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var noteFlags = await context.NoteFlags
+            .AsNoTracking()
+            .Where(nf => nf.TenantId == currentTenantId.Value && !nf.IsDeleted && nf.IsActive)
+            .OrderBy(nf => nf.DisplayOrder)
+            .ThenBy(nf => nf.Name)
+            .ToListAsync(cancellationToken);
+
+        return noteFlags.Select(MapToDto).ToList();
     }
 
     public async Task<NoteFlagDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            var noteFlag = await context.NoteFlags
-                .AsNoTracking()
-                .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
-
-            return noteFlag is null ? null : MapToDto(noteFlag);
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var noteFlag = await context.NoteFlags
+            .AsNoTracking()
+            .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
+
+        return noteFlag is null ? null : MapToDto(noteFlag);
     }
 
     public async Task<NoteFlagDto> CreateAsync(CreateNoteFlagDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            // Check if code already exists
-            var codeExists = await context.NoteFlags
-                .AnyAsync(nf => nf.Code == createDto.Code && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
-
-            if (codeExists)
-            {
-                throw new InvalidOperationException($"A note flag with code '{createDto.Code}' already exists.");
-            }
-
-            var noteFlag = new NoteFlag
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                Code = createDto.Code,
-                Name = createDto.Name,
-                Description = createDto.Description,
-                Color = createDto.Color,
-                Icon = createDto.Icon,
-                IsActive = createDto.IsActive,
-                DisplayOrder = createDto.DisplayOrder,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-            _ = context.NoteFlags.Add(noteFlag);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Code", "Create", null, createDto.Code, currentUser, "Note Flag", cancellationToken);
-
-            logger.LogInformation("Created note flag {NoteFlagId} with code {Code}", noteFlag.Id, createDto.Code);
-
-            return MapToDto(noteFlag);
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
         }
-        catch
+
+        // Check if code already exists
+        var codeExists = await context.NoteFlags
+            .AnyAsync(nf => nf.Code == createDto.Code && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
+
+        if (codeExists)
         {
-            throw;
+            throw new InvalidOperationException($"A note flag with code '{createDto.Code}' already exists.");
         }
+
+        var noteFlag = new NoteFlag
+        {
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            Code = createDto.Code,
+            Name = createDto.Name,
+            Description = createDto.Description,
+            Color = createDto.Color,
+            Icon = createDto.Icon,
+            IsActive = createDto.IsActive,
+            DisplayOrder = createDto.DisplayOrder,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        _ = context.NoteFlags.Add(noteFlag);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Code", "Create", null, createDto.Code, currentUser, "Note Flag", cancellationToken);
+
+        logger.LogInformation("Created note flag {NoteFlagId} with code {Code}", noteFlag.Id, createDto.Code);
+
+        return MapToDto(noteFlag);
     }
 
     public async Task<NoteFlagDto?> UpdateAsync(Guid id, UpdateNoteFlagDto updateDto, string currentUser, CancellationToken cancellationToken = default)

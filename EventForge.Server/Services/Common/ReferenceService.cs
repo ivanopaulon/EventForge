@@ -15,126 +15,98 @@ public class ReferenceService(
     /// <inheritdoc />
     public async Task<PagedResult<ReferenceDto>> GetReferencesAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for reference operations.");
-            }
-
-            var skip = (page - 1) * pageSize;
-
-            var totalCount = await context.References
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .LongCountAsync(cancellationToken);
-
-            var entities = await context.References
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .OrderBy(r => r.LastName)
-                .ThenBy(r => r.FirstName)
-                .Skip(skip)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var dtos = ReferenceMapper.ToDtoList(entities);
-
-            return new PagedResult<ReferenceDto>
-            {
-                Items = dtos,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for reference operations.");
         }
-        catch
+
+        var skip = (page - 1) * pageSize;
+
+        var totalCount = await context.References
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .LongCountAsync(cancellationToken);
+
+        var entities = await context.References
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .OrderBy(r => r.LastName)
+            .ThenBy(r => r.FirstName)
+            .Skip(skip)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var dtos = ReferenceMapper.ToDtoList(entities);
+
+        return new PagedResult<ReferenceDto>
         {
-            throw;
-        }
+            Items = dtos,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<ReferenceDto>> GetReferencesByOwnerAsync(Guid ownerId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for reference operations.");
-            }
-
-            var entities = await context.References
-                .AsNoTracking()
-                .Where(r => r.OwnerId == ownerId && !r.IsDeleted && r.TenantId == currentTenantId.Value)
-                .OrderBy(r => r.LastName)
-                .ThenBy(r => r.FirstName)
-                .ToListAsync(cancellationToken);
-
-            return ReferenceMapper.ToDtoCollection(entities);
+            throw new InvalidOperationException("Tenant context is required for reference operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var entities = await context.References
+            .AsNoTracking()
+            .Where(r => r.OwnerId == ownerId && !r.IsDeleted && r.TenantId == currentTenantId.Value)
+            .OrderBy(r => r.LastName)
+            .ThenBy(r => r.FirstName)
+            .ToListAsync(cancellationToken);
+
+        return ReferenceMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<ReferenceDto?> GetReferenceByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
 
-            var entity = await context.References
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+        var entity = await context.References
+            .AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
-            return entity is null ? null : ReferenceMapper.ToDto(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        return entity is null ? null : ReferenceMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<ReferenceDto> CreateReferenceAsync(CreateReferenceDto createReferenceDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createReferenceDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createReferenceDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for reference operations.");
-            }
-
-            var entity = ReferenceMapper.ToEntity(createReferenceDto);
-            entity.Id = Guid.NewGuid();
-            entity.TenantId = currentTenantId.Value;
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.CreatedBy = currentUser;
-
-            _ = context.References.Add(entity);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Reference {ReferenceId} created by {User}.", entity.Id, currentUser);
-
-            return ReferenceMapper.ToDto(entity);
+            throw new InvalidOperationException("Tenant context is required for reference operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var entity = ReferenceMapper.ToEntity(createReferenceDto);
+        entity.Id = Guid.NewGuid();
+        entity.TenantId = currentTenantId.Value;
+        entity.CreatedAt = DateTime.UtcNow;
+        entity.CreatedBy = currentUser;
+
+        _ = context.References.Add(entity);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Reference {ReferenceId} created by {User}.", entity.Id, currentUser);
+
+        return ReferenceMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
@@ -247,16 +219,9 @@ public class ReferenceService(
     /// <inheritdoc />
     public async Task<bool> ReferenceExistsAsync(Guid referenceId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.References
-                .AsNoTracking()
-                .AnyAsync(r => r.Id == referenceId, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.References
+            .AsNoTracking()
+            .AnyAsync(r => r.Id == referenceId, cancellationToken);
     }
 
 }

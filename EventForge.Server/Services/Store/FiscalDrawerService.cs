@@ -16,153 +16,118 @@ public class FiscalDrawerService(
 
     public async Task<PagedResult<FiscalDrawerDto>> GetFiscalDrawersAsync(int page = 1, int pageSize = 20, string? searchTerm = null, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+
+        // WhereActiveTenant already filters by !IsDeleted, TenantId, and IsActive
+        var query = context.FiscalDrawers
+            .AsNoTracking()
+            .WhereActiveTenant(tenantId)
+            .Include(d => d.Pos)
+            .Include(d => d.Operator)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            var tenantId = RequireTenantId();
-
-            // WhereActiveTenant already filters by !IsDeleted, TenantId, and IsActive
-            var query = context.FiscalDrawers
-                .AsNoTracking()
-                .WhereActiveTenant(tenantId)
-                .Include(d => d.Pos)
-                .Include(d => d.Operator)
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                var term = searchTerm.Trim().ToLower();
-                query = query.Where(d =>
-                    d.Name.ToLower().Contains(term) ||
-                    (d.Code != null && d.Code.ToLower().Contains(term)) ||
-                    (d.Description != null && d.Description.ToLower().Contains(term)));
-            }
-
-            var totalCount = await query.CountAsync(ct);
-            var items = await query
-                .OrderBy(d => d.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(ct);
-
-            // Batch-load open sessions for all returned drawers to avoid N+1
-            var drawerIds = items.Select(d => d.Id).ToList();
-            var openSessions = await context.FiscalDrawerSessions
-                .AsNoTracking()
-                .Where(s => drawerIds.Contains(s.FiscalDrawerId) &&
-                            s.Status == FiscalDrawerSessionStatus.Open &&
-                            !s.IsDeleted &&
-                            s.TenantId == tenantId)
-                .ToDictionaryAsync(s => s.FiscalDrawerId, ct);
-
-            return new PagedResult<FiscalDrawerDto>
-            {
-                Items = items.Select(d => MapToDto(d, openSessions.GetValueOrDefault(d.Id))),
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            var term = searchTerm.Trim().ToLower();
+            query = query.Where(d =>
+                d.Name.ToLower().Contains(term) ||
+                (d.Code != null && d.Code.ToLower().Contains(term)) ||
+                (d.Description != null && d.Description.ToLower().Contains(term)));
         }
-        catch
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(d => d.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        // Batch-load open sessions for all returned drawers to avoid N+1
+        var drawerIds = items.Select(d => d.Id).ToList();
+        var openSessions = await context.FiscalDrawerSessions
+            .AsNoTracking()
+            .Where(s => drawerIds.Contains(s.FiscalDrawerId) &&
+                        s.Status == FiscalDrawerSessionStatus.Open &&
+                        !s.IsDeleted &&
+                        s.TenantId == tenantId)
+            .ToDictionaryAsync(s => s.FiscalDrawerId, ct);
+
+        return new PagedResult<FiscalDrawerDto>
         {
-            throw;
-        }
+            Items = items.Select(d => MapToDto(d, openSessions.GetValueOrDefault(d.Id))),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<FiscalDrawerDto?> GetFiscalDrawerByIdAsync(Guid id, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var entity = await context.FiscalDrawers
-                .AsNoTracking()
-                .Include(d => d.Pos)
-                .Include(d => d.Operator)
-                .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
-            if (entity is null) return null;
-            var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
-            return MapToDto(entity, openSession);
-        }
-        catch
-        {
-            throw;
-        }
+        var tenantId = RequireTenantId();
+        var entity = await context.FiscalDrawers
+            .AsNoTracking()
+            .Include(d => d.Pos)
+            .Include(d => d.Operator)
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
+        if (entity is null) return null;
+        var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<FiscalDrawerDto?> GetFiscalDrawerByPosIdAsync(Guid posId, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var entity = await context.FiscalDrawers
-                .AsNoTracking()
-                .Include(d => d.Pos)
-                .Include(d => d.Operator)
-                .FirstOrDefaultAsync(d => d.PosId == posId && !d.IsDeleted && d.TenantId == tenantId, ct);
-            if (entity is null) return null;
-            var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
-            return MapToDto(entity, openSession);
-        }
-        catch
-        {
-            throw;
-        }
+        var tenantId = RequireTenantId();
+        var entity = await context.FiscalDrawers
+            .AsNoTracking()
+            .Include(d => d.Pos)
+            .Include(d => d.Operator)
+            .FirstOrDefaultAsync(d => d.PosId == posId && !d.IsDeleted && d.TenantId == tenantId, ct);
+        if (entity is null) return null;
+        var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<FiscalDrawerDto?> GetFiscalDrawerByOperatorIdAsync(Guid operatorId, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var entity = await context.FiscalDrawers
-                .AsNoTracking()
-                .Include(d => d.Pos)
-                .Include(d => d.Operator)
-                .FirstOrDefaultAsync(d => d.OperatorId == operatorId && !d.IsDeleted && d.TenantId == tenantId, ct);
-            if (entity is null) return null;
-            var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
-            return MapToDto(entity, openSession);
-        }
-        catch
-        {
-            throw;
-        }
+        var tenantId = RequireTenantId();
+        var entity = await context.FiscalDrawers
+            .AsNoTracking()
+            .Include(d => d.Pos)
+            .Include(d => d.Operator)
+            .FirstOrDefaultAsync(d => d.OperatorId == operatorId && !d.IsDeleted && d.TenantId == tenantId, ct);
+        if (entity is null) return null;
+        var openSession = await GetOpenSessionForDrawerAsync(entity.Id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<FiscalDrawerDto> CreateFiscalDrawerAsync(CreateFiscalDrawerDto dto, string currentUser, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+
+        var entity = new FiscalDrawer
         {
-            var tenantId = RequireTenantId();
+            TenantId = tenantId,
+            Name = dto.Name,
+            Code = dto.Code,
+            Description = dto.Description,
+            AssignmentType = dto.AssignmentType,
+            CurrencyCode = dto.CurrencyCode,
+            Status = dto.Status,
+            OpeningBalance = dto.OpeningBalance,
+            CurrentBalance = dto.OpeningBalance,
+            PosId = dto.PosId,
+            OperatorId = dto.OperatorId,
+            Notes = dto.Notes,
+            CreatedBy = currentUser
+        };
 
-            var entity = new FiscalDrawer
-            {
-                TenantId = tenantId,
-                Name = dto.Name,
-                Code = dto.Code,
-                Description = dto.Description,
-                AssignmentType = dto.AssignmentType,
-                CurrencyCode = dto.CurrencyCode,
-                Status = dto.Status,
-                OpeningBalance = dto.OpeningBalance,
-                CurrentBalance = dto.OpeningBalance,
-                PosId = dto.PosId,
-                OperatorId = dto.OperatorId,
-                Notes = dto.Notes,
-                CreatedBy = currentUser
-            };
+        context.FiscalDrawers.Add(entity);
+        await context.SaveChangesAsync(ct);
 
-            context.FiscalDrawers.Add(entity);
-            await context.SaveChangesAsync(ct);
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, ct);
+        logger.LogInformation("FiscalDrawer {FiscalDrawerId} created by {User}", entity.Id, currentUser);
 
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Insert", currentUser, null, ct);
-            logger.LogInformation("FiscalDrawer {FiscalDrawerId} created by {User}", entity.Id, currentUser);
-
-            return MapToDto(entity, null);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToDto(entity, null);
     }
 
     public async Task<FiscalDrawerDto?> UpdateFiscalDrawerAsync(Guid id, UpdateFiscalDrawerDto dto, string currentUser, CancellationToken ct = default)
@@ -219,28 +184,21 @@ public class FiscalDrawerService(
 
     public async Task<bool> DeleteFiscalDrawerAsync(Guid id, string currentUser, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var entity = await context.FiscalDrawers
-                .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
+        var tenantId = RequireTenantId();
+        var entity = await context.FiscalDrawers
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
 
-            if (entity is null) return false;
+        if (entity is null) return false;
 
-            entity.IsDeleted = true;
-            entity.DeletedAt = DateTime.UtcNow;
-            entity.DeletedBy = currentUser;
-            entity.ModifiedBy = currentUser;
-            entity.ModifiedAt = DateTime.UtcNow;
+        entity.IsDeleted = true;
+        entity.DeletedAt = DateTime.UtcNow;
+        entity.DeletedBy = currentUser;
+        entity.ModifiedBy = currentUser;
+        entity.ModifiedAt = DateTime.UtcNow;
 
-            await context.SaveChangesAsync(ct);
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, null, ct);
-            return true;
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(ct);
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, null, ct);
+        return true;
     }
 
     #endregion
@@ -249,59 +207,45 @@ public class FiscalDrawerService(
 
     public async Task<FiscalDrawerSessionDto?> GetCurrentSessionAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var session = await context.FiscalDrawerSessions
-                .AsNoTracking()
-                .Include(s => s.OpenedByOperator)
-                .Include(s => s.ClosedByOperator)
-                .Include(s => s.FiscalDrawer)
-                .FirstOrDefaultAsync(s =>
-                    s.FiscalDrawerId == fiscalDrawerId &&
-                    s.Status == FiscalDrawerSessionStatus.Open &&
-                    !s.IsDeleted &&
-                    s.TenantId == tenantId, ct);
+        var tenantId = RequireTenantId();
+        var session = await context.FiscalDrawerSessions
+            .AsNoTracking()
+            .Include(s => s.OpenedByOperator)
+            .Include(s => s.ClosedByOperator)
+            .Include(s => s.FiscalDrawer)
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == fiscalDrawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct);
 
-            return session is null ? null : MapSessionToDto(session);
-        }
-        catch
-        {
-            throw;
-        }
+        return session is null ? null : MapSessionToDto(session);
     }
 
     public async Task<PagedResult<FiscalDrawerSessionDto>> GetSessionsAsync(Guid fiscalDrawerId, int page = 1, int pageSize = 20, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var query = context.FiscalDrawerSessions
-                .AsNoTracking()
-                .Include(s => s.OpenedByOperator)
-                .Include(s => s.ClosedByOperator)
-                .Include(s => s.FiscalDrawer)
-                .Where(s => s.FiscalDrawerId == fiscalDrawerId && !s.IsDeleted && s.TenantId == tenantId);
+        var tenantId = RequireTenantId();
+        var query = context.FiscalDrawerSessions
+            .AsNoTracking()
+            .Include(s => s.OpenedByOperator)
+            .Include(s => s.ClosedByOperator)
+            .Include(s => s.FiscalDrawer)
+            .Where(s => s.FiscalDrawerId == fiscalDrawerId && !s.IsDeleted && s.TenantId == tenantId);
 
-            var totalCount = await query.CountAsync(ct);
-            var items = await query
-                .OrderByDescending(s => s.SessionDate)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(ct);
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(s => s.SessionDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
 
-            return new PagedResult<FiscalDrawerSessionDto>
-            {
-                Items = items.Select(MapSessionToDto),
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
-        }
-        catch
+        return new PagedResult<FiscalDrawerSessionDto>
         {
-            throw;
-        }
+            Items = items.Select(MapSessionToDto),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<FiscalDrawerSessionDto> OpenSessionAsync(Guid fiscalDrawerId, OpenFiscalDrawerSessionDto dto, string currentUser, CancellationToken ct = default)
@@ -450,35 +394,28 @@ public class FiscalDrawerService(
 
     public async Task<PagedResult<FiscalDrawerTransactionDto>> GetTransactionsAsync(Guid fiscalDrawerId, Guid? sessionId = null, int page = 1, int pageSize = 50, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+        var query = context.FiscalDrawerTransactions
+            .AsNoTracking()
+            .Where(t => t.FiscalDrawerId == fiscalDrawerId && !t.IsDeleted && t.TenantId == tenantId);
+
+        if (sessionId.HasValue)
+            query = query.Where(t => t.FiscalDrawerSessionId == sessionId.Value);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(t => t.TransactionAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<FiscalDrawerTransactionDto>
         {
-            var tenantId = RequireTenantId();
-            var query = context.FiscalDrawerTransactions
-                .AsNoTracking()
-                .Where(t => t.FiscalDrawerId == fiscalDrawerId && !t.IsDeleted && t.TenantId == tenantId);
-
-            if (sessionId.HasValue)
-                query = query.Where(t => t.FiscalDrawerSessionId == sessionId.Value);
-
-            var totalCount = await query.CountAsync(ct);
-            var items = await query
-                .OrderByDescending(t => t.TransactionAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(ct);
-
-            return new PagedResult<FiscalDrawerTransactionDto>
-            {
-                Items = items.Select(MapTransactionToDto),
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
-        }
-        catch
-        {
-            throw;
-        }
+            Items = items.Select(MapTransactionToDto),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<FiscalDrawerTransactionDto> CreateTransactionAsync(Guid fiscalDrawerId, CreateFiscalDrawerTransactionDto dto, string currentUser, CancellationToken ct = default)
@@ -558,66 +495,59 @@ public class FiscalDrawerService(
 
     public async Task RecordSaleTransactionAsync(Guid fiscalDrawerId, decimal cashAmount, decimal cardAmount, decimal otherAmount, Guid saleSessionId, string operatorName, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+        var now = DateTime.UtcNow;
+
+        var drawer = await context.FiscalDrawers
+            .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct);
+        if (drawer is null) return;
+
+        var session = await context.FiscalDrawerSessions
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == fiscalDrawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct);
+
+        var totalSale = cashAmount + cardAmount + otherAmount;
+
+        void AddTx(decimal amount, FiscalDrawerPaymentType payType)
         {
-            var tenantId = RequireTenantId();
-            var now = DateTime.UtcNow;
-
-            var drawer = await context.FiscalDrawers
-                .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct);
-            if (drawer is null) return;
-
-            var session = await context.FiscalDrawerSessions
-                .FirstOrDefaultAsync(s =>
-                    s.FiscalDrawerId == fiscalDrawerId &&
-                    s.Status == FiscalDrawerSessionStatus.Open &&
-                    !s.IsDeleted &&
-                    s.TenantId == tenantId, ct);
-
-            var totalSale = cashAmount + cardAmount + otherAmount;
-
-            void AddTx(decimal amount, FiscalDrawerPaymentType payType)
+            if (amount <= 0) return;
+            context.FiscalDrawerTransactions.Add(new FiscalDrawerTransaction
             {
-                if (amount <= 0) return;
-                context.FiscalDrawerTransactions.Add(new FiscalDrawerTransaction
-                {
-                    TenantId = tenantId,
-                    FiscalDrawerId = fiscalDrawerId,
-                    FiscalDrawerSessionId = session?.Id,
-                    TransactionType = FiscalDrawerTransactionType.Sale,
-                    PaymentType = payType,
-                    Amount = amount,
-                    SaleSessionId = saleSessionId,
-                    TransactionAt = now,
-                    OperatorName = operatorName,
-                    CreatedBy = operatorName
-                });
-            }
-
-            AddTx(cashAmount, FiscalDrawerPaymentType.Cash);
-            AddTx(cardAmount, FiscalDrawerPaymentType.Card);
-            AddTx(otherAmount, FiscalDrawerPaymentType.Other);
-
-            if (session is not null)
-            {
-                session.TotalSales += totalSale;
-                session.TotalCashIn += totalSale;
-                session.TransactionCount++;
-                session.ClosingBalance = session.OpeningBalance + session.TotalCashIn - session.TotalCashOut;
-                session.ModifiedBy = operatorName;
-                session.ModifiedAt = now;
-            }
-
-            drawer.CurrentBalance += cashAmount; // Only cash affects physical drawer balance
-            drawer.ModifiedBy = operatorName;
-            drawer.ModifiedAt = now;
-
-            await context.SaveChangesAsync(ct);
+                TenantId = tenantId,
+                FiscalDrawerId = fiscalDrawerId,
+                FiscalDrawerSessionId = session?.Id,
+                TransactionType = FiscalDrawerTransactionType.Sale,
+                PaymentType = payType,
+                Amount = amount,
+                SaleSessionId = saleSessionId,
+                TransactionAt = now,
+                OperatorName = operatorName,
+                CreatedBy = operatorName
+            });
         }
-        catch
+
+        AddTx(cashAmount, FiscalDrawerPaymentType.Cash);
+        AddTx(cardAmount, FiscalDrawerPaymentType.Card);
+        AddTx(otherAmount, FiscalDrawerPaymentType.Other);
+
+        if (session is not null)
         {
-            throw;
+            session.TotalSales += totalSale;
+            session.TotalCashIn += totalSale;
+            session.TransactionCount++;
+            session.ClosingBalance = session.OpeningBalance + session.TotalCashIn - session.TotalCashOut;
+            session.ModifiedBy = operatorName;
+            session.ModifiedAt = now;
         }
+
+        drawer.CurrentBalance += cashAmount; // Only cash affects physical drawer balance
+        drawer.ModifiedBy = operatorName;
+        drawer.ModifiedAt = now;
+
+        await context.SaveChangesAsync(ct);
     }
 
     #endregion
@@ -668,92 +598,71 @@ public class FiscalDrawerService(
 
     public async Task<List<CashDenominationDto>> GetCashDenominationsAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var items = await context.CashDenominations
-                .AsNoTracking()
-                .Where(d => d.FiscalDrawerId == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId)
-                .OrderBy(d => d.SortOrder)
-                .ThenBy(d => d.Value)
-                .ToListAsync(ct);
+        var tenantId = RequireTenantId();
+        var items = await context.CashDenominations
+            .AsNoTracking()
+            .Where(d => d.FiscalDrawerId == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId)
+            .OrderBy(d => d.SortOrder)
+            .ThenBy(d => d.Value)
+            .ToListAsync(ct);
 
-            return items.Select(MapDenominationToDto).ToList();
-        }
-        catch
-        {
-            throw;
-        }
+        return items.Select(MapDenominationToDto).ToList();
     }
 
     public async Task<List<CashDenominationDto>> InitializeDenominationsAsync(Guid fiscalDrawerId, string currencyCode, string currentUser, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+
+        var existing = await context.CashDenominations
+            .Where(d => d.FiscalDrawerId == fiscalDrawerId && d.TenantId == tenantId && !d.IsDeleted)
+            .ToListAsync(ct);
+        foreach (var d in existing)
         {
-            var tenantId = RequireTenantId();
-
-            var existing = await context.CashDenominations
-                .Where(d => d.FiscalDrawerId == fiscalDrawerId && d.TenantId == tenantId && !d.IsDeleted)
-                .ToListAsync(ct);
-            foreach (var d in existing)
-            {
-                d.IsDeleted = true;
-                d.DeletedAt = DateTime.UtcNow;
-                d.DeletedBy = currentUser;
-            }
-
-            if (!CurrencyDenominations.TryGetValue(currencyCode, out var denomList))
-                denomList = CurrencyDenominations["EUR"]; // fallback
-
-            var result = new List<CashDenomination>();
-            for (int i = 0; i < denomList.Count; i++)
-            {
-                var (value, type) = denomList[i];
-                var denom = new CashDenomination
-                {
-                    TenantId = tenantId,
-                    FiscalDrawerId = fiscalDrawerId,
-                    CurrencyCode = currencyCode,
-                    Value = value,
-                    DenominationType = type,
-                    Quantity = 0,
-                    SortOrder = i,
-                    CreatedBy = currentUser
-                };
-                context.CashDenominations.Add(denom);
-                result.Add(denom);
-            }
-
-            await context.SaveChangesAsync(ct);
-            return result.Select(MapDenominationToDto).ToList();
+            d.IsDeleted = true;
+            d.DeletedAt = DateTime.UtcNow;
+            d.DeletedBy = currentUser;
         }
-        catch
+
+        if (!CurrencyDenominations.TryGetValue(currencyCode, out var denomList))
+            denomList = CurrencyDenominations["EUR"]; // fallback
+
+        var result = new List<CashDenomination>();
+        for (int i = 0; i < denomList.Count; i++)
         {
-            throw;
+            var (value, type) = denomList[i];
+            var denom = new CashDenomination
+            {
+                TenantId = tenantId,
+                FiscalDrawerId = fiscalDrawerId,
+                CurrencyCode = currencyCode,
+                Value = value,
+                DenominationType = type,
+                Quantity = 0,
+                SortOrder = i,
+                CreatedBy = currentUser
+            };
+            context.CashDenominations.Add(denom);
+            result.Add(denom);
         }
+
+        await context.SaveChangesAsync(ct);
+        return result.Select(MapDenominationToDto).ToList();
     }
 
     public async Task<CashDenominationDto?> UpdateDenominationQuantityAsync(Guid denominationId, UpdateCashDenominationDto dto, string currentUser, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var entity = await context.CashDenominations
-                .FirstOrDefaultAsync(d => d.Id == denominationId && !d.IsDeleted && d.TenantId == tenantId, ct);
+        var tenantId = RequireTenantId();
+        var entity = await context.CashDenominations
+            .FirstOrDefaultAsync(d => d.Id == denominationId && !d.IsDeleted && d.TenantId == tenantId, ct);
 
-            if (entity is null) return null;
+        if (entity is null) return null;
 
-            entity.Quantity = dto.Quantity;
-            entity.ModifiedBy = currentUser;
-            entity.ModifiedAt = DateTime.UtcNow;
+        entity.Quantity = dto.Quantity;
+        entity.ModifiedBy = currentUser;
+        entity.ModifiedAt = DateTime.UtcNow;
 
-            await context.SaveChangesAsync(ct);
-            return MapDenominationToDto(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(ct);
+        return MapDenominationToDto(entity);
     }
 
     #endregion
@@ -762,71 +671,64 @@ public class FiscalDrawerService(
 
     public async Task<CalculateChangeResponseDto> CalculateChangeAsync(Guid fiscalDrawerId, CalculateChangeRequestDto request, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+        var changeAmount = request.ReceivedAmount - request.TotalAmount;
+
+        var response = new CalculateChangeResponseDto
         {
-            var tenantId = RequireTenantId();
-            var changeAmount = request.ReceivedAmount - request.TotalAmount;
+            TotalAmount = request.TotalAmount,
+            ReceivedAmount = request.ReceivedAmount,
+            ChangeAmount = changeAmount,
+            HasSufficientFunds = request.ReceivedAmount >= request.TotalAmount
+        };
 
-            var response = new CalculateChangeResponseDto
-            {
-                TotalAmount = request.TotalAmount,
-                ReceivedAmount = request.ReceivedAmount,
-                ChangeAmount = changeAmount,
-                HasSufficientFunds = request.ReceivedAmount >= request.TotalAmount
-            };
-
-            if (!response.HasSufficientFunds)
-            {
-                response.Message = "Importo ricevuto insufficiente.";
-                return response;
-            }
-
-            if (changeAmount == 0)
-            {
-                response.IsExact = true;
-                response.Message = "Pagamento esatto.";
-                return response;
-            }
-
-            var denominations = await context.CashDenominations
-                .AsNoTracking()
-                .Where(d => d.FiscalDrawerId == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId && d.Quantity > 0)
-                .OrderByDescending(d => d.Value)
-                .ToListAsync(ct);
-
-            // Greedy change-making algorithm
-            var remaining = changeAmount;
-            var breakdown = new List<ChangeItem>();
-
-            foreach (var denom in denominations)
-            {
-                if (remaining <= 0) break;
-                var useCount = (int)Math.Min(Math.Floor(remaining / denom.Value), denom.Quantity);
-                if (useCount > 0)
-                {
-                    breakdown.Add(new ChangeItem
-                    {
-                        Value = denom.Value,
-                        DenominationType = denom.DenominationType,
-                        Quantity = useCount
-                    });
-                    remaining -= denom.Value * useCount;
-                    remaining = Math.Round(remaining, 4); // avoid floating-point drift
-                }
-            }
-
-            response.ChangeBreakdown = breakdown;
-            response.IsExact = remaining == 0;
-            response.Message = response.IsExact
-                ? $"Resto: {changeAmount:C}"
-                : $"Resto parziale: {changeAmount - remaining:C} (mancano {remaining:C} in contanti)";
-
+        if (!response.HasSufficientFunds)
+        {
+            response.Message = "Importo ricevuto insufficiente.";
             return response;
         }
-        catch
+
+        if (changeAmount == 0)
         {
-            throw;
+            response.IsExact = true;
+            response.Message = "Pagamento esatto.";
+            return response;
         }
+
+        var denominations = await context.CashDenominations
+            .AsNoTracking()
+            .Where(d => d.FiscalDrawerId == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId && d.Quantity > 0)
+            .OrderByDescending(d => d.Value)
+            .ToListAsync(ct);
+
+        // Greedy change-making algorithm
+        var remaining = changeAmount;
+        var breakdown = new List<ChangeItem>();
+
+        foreach (var denom in denominations)
+        {
+            if (remaining <= 0) break;
+            var useCount = (int)Math.Min(Math.Floor(remaining / denom.Value), denom.Quantity);
+            if (useCount > 0)
+            {
+                breakdown.Add(new ChangeItem
+                {
+                    Value = denom.Value,
+                    DenominationType = denom.DenominationType,
+                    Quantity = useCount
+                });
+                remaining -= denom.Value * useCount;
+                remaining = Math.Round(remaining, 4); // avoid floating-point drift
+            }
+        }
+
+        response.ChangeBreakdown = breakdown;
+        response.IsExact = remaining == 0;
+        response.Message = response.IsExact
+            ? $"Resto: {changeAmount:C}"
+            : $"Resto parziale: {changeAmount - remaining:C} (mancano {remaining:C} in contanti)";
+
+        return response;
     }
 
     #endregion
@@ -835,158 +737,144 @@ public class FiscalDrawerService(
 
     public async Task<FiscalDrawerSummaryDto?> GetDrawerSummaryAsync(Guid fiscalDrawerId, CancellationToken ct = default)
     {
-        try
-        {
-            var tenantId = RequireTenantId();
-            var drawer = await context.FiscalDrawers
-                .AsNoTracking()
-                .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct);
-            if (drawer is null) return null;
+        var tenantId = RequireTenantId();
+        var drawer = await context.FiscalDrawers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct);
+        if (drawer is null) return null;
 
-            var session = await context.FiscalDrawerSessions
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s =>
-                    s.FiscalDrawerId == fiscalDrawerId &&
-                    s.Status == FiscalDrawerSessionStatus.Open &&
-                    !s.IsDeleted &&
-                    s.TenantId == tenantId, ct);
+        var session = await context.FiscalDrawerSessions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == fiscalDrawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct);
 
-            return new FiscalDrawerSummaryDto
-            {
-                Id = drawer.Id,
-                Name = drawer.Name,
-                CurrencyCode = drawer.CurrencyCode,
-                CurrentBalance = drawer.CurrentBalance,
-                Status = drawer.Status,
-                HasOpenSession = session is not null,
-                CurrentSessionId = session?.Id,
-                SessionOpenedAt = session?.OpenedAt,
-                SessionOpeningBalance = session?.OpeningBalance ?? 0,
-                SessionTotalSales = session?.TotalSales ?? 0,
-                SessionTotalDeposits = session?.TotalDeposits ?? 0,
-                SessionTotalWithdrawals = session?.TotalWithdrawals ?? 0
-            };
-        }
-        catch
+        return new FiscalDrawerSummaryDto
         {
-            throw;
-        }
+            Id = drawer.Id,
+            Name = drawer.Name,
+            CurrencyCode = drawer.CurrencyCode,
+            CurrentBalance = drawer.CurrentBalance,
+            Status = drawer.Status,
+            HasOpenSession = session is not null,
+            CurrentSessionId = session?.Id,
+            SessionOpenedAt = session?.OpenedAt,
+            SessionOpeningBalance = session?.OpeningBalance ?? 0,
+            SessionTotalSales = session?.TotalSales ?? 0,
+            SessionTotalDeposits = session?.TotalDeposits ?? 0,
+            SessionTotalWithdrawals = session?.TotalWithdrawals ?? 0
+        };
     }
 
     public async Task<SalesDashboardDto> GetSalesDashboardAsync(CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+        var today = DateTime.UtcNow.Date;
+        var weekStart = today.AddDays(-(int)today.DayOfWeek);
+        var monthStart = new DateTime(today.Year, today.Month, 1);
+
+        // Push all aggregations to SQL — no ToListAsync for summaries
+        var drawerQuery = context.FiscalDrawers
+            .AsNoTracking()
+            .Where(d => !d.IsDeleted && d.TenantId == tenantId && d.Status == FiscalDrawerStatus.Active);
+
+        var openSessionsQuery = context.FiscalDrawerSessions
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.Status == FiscalDrawerSessionStatus.Open);
+
+        var todayTxQuery = context.FiscalDrawerTransactions
+            .AsNoTracking()
+            .Where(t => !t.IsDeleted && t.TenantId == tenantId &&
+                        t.TransactionType == FiscalDrawerTransactionType.Sale &&
+                        t.TransactionAt >= today);
+
+        // Run scalar aggregations sequentially — EF Core DbContext does not support
+        // concurrent operations on the same instance.
+        var totalDrawerBalance = await drawerQuery.SumAsync(d => d.CurrentBalance, ct);
+        var activeDrawersCount = await drawerQuery.CountAsync(ct);
+        var openSessionsCount = await openSessionsQuery.CountAsync(ct);
+
+        // Fetch today's sales totals grouped by payment type in a single query
+        var todayPaymentSummary = await todayTxQuery
+            .GroupBy(t => t.PaymentType)
+            .Select(g => new { PaymentType = g.Key, Total = g.Sum(t => t.Amount) })
+            .ToListAsync(ct);
+        var todayTotalSales = todayPaymentSummary.Sum(x => x.Total);
+        var todayCashSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Cash).Sum(x => x.Total);
+        var todayCardSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Card).Sum(x => x.Total);
+        var todayOtherSales = todayPaymentSummary.Where(x => x.PaymentType != FiscalDrawerPaymentType.Cash && x.PaymentType != FiscalDrawerPaymentType.Card).Sum(x => x.Total);
+
+        var todayTransactionCount = await context.FiscalDrawerSessions.AsNoTracking()
+            .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate == today)
+            .SumAsync(s => s.TransactionCount, ct);
+        var weekTotalSales = await context.FiscalDrawerSessions.AsNoTracking()
+            .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= weekStart)
+            .SumAsync(s => s.TotalSales, ct);
+        var monthTotalSales = await context.FiscalDrawerSessions.AsNoTracking()
+            .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= monthStart)
+            .SumAsync(s => s.TotalSales, ct);
+
+        // Weekly trend — project in SQL, group in memory (EF can't always push GroupBy for complex types)
+        var weekSessions = await context.FiscalDrawerSessions
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= weekStart)
+            .Select(s => new { s.SessionDate, s.TotalSales, s.TransactionCount })
+            .ToListAsync(ct);
+
+        // Drawer summaries: load drawers + open sessions together
+        var drawers = await drawerQuery.ToListAsync(ct);
+        var openSessionList = await openSessionsQuery.ToListAsync(ct);
+
+        var openSessionDict = openSessionList.ToDictionary(s => s.FiscalDrawerId);
+
+        var drawerSummaries = drawers.Select(d =>
         {
-            var tenantId = RequireTenantId();
-            var today = DateTime.UtcNow.Date;
-            var weekStart = today.AddDays(-(int)today.DayOfWeek);
-            var monthStart = new DateTime(today.Year, today.Month, 1);
-
-            // Push all aggregations to SQL — no ToListAsync for summaries
-            var drawerQuery = context.FiscalDrawers
-                .AsNoTracking()
-                .Where(d => !d.IsDeleted && d.TenantId == tenantId && d.Status == FiscalDrawerStatus.Active);
-
-            var openSessionsQuery = context.FiscalDrawerSessions
-                .AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.Status == FiscalDrawerSessionStatus.Open);
-
-            var todayTxQuery = context.FiscalDrawerTransactions
-                .AsNoTracking()
-                .Where(t => !t.IsDeleted && t.TenantId == tenantId &&
-                            t.TransactionType == FiscalDrawerTransactionType.Sale &&
-                            t.TransactionAt >= today);
-
-            // Run scalar aggregations sequentially — EF Core DbContext does not support
-            // concurrent operations on the same instance.
-            var totalDrawerBalance = await drawerQuery.SumAsync(d => d.CurrentBalance, ct);
-            var activeDrawersCount = await drawerQuery.CountAsync(ct);
-            var openSessionsCount = await openSessionsQuery.CountAsync(ct);
-
-            // Fetch today's sales totals grouped by payment type in a single query
-            var todayPaymentSummary = await todayTxQuery
-                .GroupBy(t => t.PaymentType)
-                .Select(g => new { PaymentType = g.Key, Total = g.Sum(t => t.Amount) })
-                .ToListAsync(ct);
-            var todayTotalSales = todayPaymentSummary.Sum(x => x.Total);
-            var todayCashSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Cash).Sum(x => x.Total);
-            var todayCardSales = todayPaymentSummary.Where(x => x.PaymentType == FiscalDrawerPaymentType.Card).Sum(x => x.Total);
-            var todayOtherSales = todayPaymentSummary.Where(x => x.PaymentType != FiscalDrawerPaymentType.Cash && x.PaymentType != FiscalDrawerPaymentType.Card).Sum(x => x.Total);
-
-            var todayTransactionCount = await context.FiscalDrawerSessions.AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate == today)
-                .SumAsync(s => s.TransactionCount, ct);
-            var weekTotalSales = await context.FiscalDrawerSessions.AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= weekStart)
-                .SumAsync(s => s.TotalSales, ct);
-            var monthTotalSales = await context.FiscalDrawerSessions.AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= monthStart)
-                .SumAsync(s => s.TotalSales, ct);
-
-            // Weekly trend — project in SQL, group in memory (EF can't always push GroupBy for complex types)
-            var weekSessions = await context.FiscalDrawerSessions
-                .AsNoTracking()
-                .Where(s => !s.IsDeleted && s.TenantId == tenantId && s.SessionDate >= weekStart)
-                .Select(s => new { s.SessionDate, s.TotalSales, s.TransactionCount })
-                .ToListAsync(ct);
-
-            // Drawer summaries: load drawers + open sessions together
-            var drawers = await drawerQuery.ToListAsync(ct);
-            var openSessionList = await openSessionsQuery.ToListAsync(ct);
-
-            var openSessionDict = openSessionList.ToDictionary(s => s.FiscalDrawerId);
-
-            var drawerSummaries = drawers.Select(d =>
+            openSessionDict.TryGetValue(d.Id, out var openSession);
+            return new FiscalDrawerSummaryDto
             {
-                openSessionDict.TryGetValue(d.Id, out var openSession);
-                return new FiscalDrawerSummaryDto
-                {
-                    Id = d.Id,
-                    Name = d.Name,
-                    CurrencyCode = d.CurrencyCode,
-                    CurrentBalance = d.CurrentBalance,
-                    Status = d.Status,
-                    HasOpenSession = openSession is not null,
-                    CurrentSessionId = openSession?.Id,
-                    SessionOpenedAt = openSession?.OpenedAt,
-                    SessionOpeningBalance = openSession?.OpeningBalance ?? 0,
-                    SessionTotalSales = openSession?.TotalSales ?? 0,
-                    SessionTotalDeposits = openSession?.TotalDeposits ?? 0,
-                    SessionTotalWithdrawals = openSession?.TotalWithdrawals ?? 0
-                };
-            }).ToList();
-
-            var weeklyTrend = weekSessions
-                .GroupBy(s => s.SessionDate.Date)
-                .Select(g => new DailySalesPointDto
-                {
-                    Date = g.Key,
-                    TotalSales = g.Sum(s => s.TotalSales),
-                    TransactionCount = g.Sum(s => s.TransactionCount)
-                })
-                .OrderBy(p => p.Date)
-                .ToList();
-
-            return new SalesDashboardDto
-            {
-                TodayTotalSales = todayTotalSales,
-                TodayCashSales = todayCashSales,
-                TodayCardSales = todayCardSales,
-                TodayOtherSales = todayOtherSales,
-                TodayTransactionCount = todayTransactionCount,
-                WeekTotalSales = weekTotalSales,
-                MonthTotalSales = monthTotalSales,
-                TotalDrawerBalance = totalDrawerBalance,
-                ActiveDrawersCount = activeDrawersCount,
-                OpenSessionsCount = openSessionsCount,
-                DrawerSummaries = drawerSummaries,
-                WeeklySalesTrend = weeklyTrend
+                Id = d.Id,
+                Name = d.Name,
+                CurrencyCode = d.CurrencyCode,
+                CurrentBalance = d.CurrentBalance,
+                Status = d.Status,
+                HasOpenSession = openSession is not null,
+                CurrentSessionId = openSession?.Id,
+                SessionOpenedAt = openSession?.OpenedAt,
+                SessionOpeningBalance = openSession?.OpeningBalance ?? 0,
+                SessionTotalSales = openSession?.TotalSales ?? 0,
+                SessionTotalDeposits = openSession?.TotalDeposits ?? 0,
+                SessionTotalWithdrawals = openSession?.TotalWithdrawals ?? 0
             };
-        }
-        catch
+        }).ToList();
+
+        var weeklyTrend = weekSessions
+            .GroupBy(s => s.SessionDate.Date)
+            .Select(g => new DailySalesPointDto
+            {
+                Date = g.Key,
+                TotalSales = g.Sum(s => s.TotalSales),
+                TransactionCount = g.Sum(s => s.TransactionCount)
+            })
+            .OrderBy(p => p.Date)
+            .ToList();
+
+        return new SalesDashboardDto
         {
-            throw;
-        }
+            TodayTotalSales = todayTotalSales,
+            TodayCashSales = todayCashSales,
+            TodayCardSales = todayCardSales,
+            TodayOtherSales = todayOtherSales,
+            TodayTransactionCount = todayTransactionCount,
+            WeekTotalSales = weekTotalSales,
+            MonthTotalSales = monthTotalSales,
+            TotalDrawerBalance = totalDrawerBalance,
+            ActiveDrawersCount = activeDrawersCount,
+            OpenSessionsCount = openSessionsCount,
+            DrawerSummaries = drawerSummaries,
+            WeeklySalesTrend = weeklyTrend
+        };
     }
 
     #endregion

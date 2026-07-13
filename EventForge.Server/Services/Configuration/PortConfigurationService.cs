@@ -65,43 +65,36 @@ public class PortConfigurationService(
 
     public async Task WritePortConfigurationAsync(int? httpPort, int? httpsPort, CancellationToken cancellationToken = default)
     {
-        try
+        var overridesPath = Path.Combine(environment.ContentRootPath, "appsettings.overrides.json");
+
+        Dictionary<string, object>? existingConfig = null;
+        if (File.Exists(overridesPath))
         {
-            var overridesPath = Path.Combine(environment.ContentRootPath, "appsettings.overrides.json");
-
-            Dictionary<string, object>? existingConfig = null;
-            if (File.Exists(overridesPath))
-            {
-                var existingJson = await File.ReadAllTextAsync(overridesPath, cancellationToken);
-                existingConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(existingJson);
-            }
-
-            existingConfig ??= new Dictionary<string, object>();
-
-            var urls = new List<string>();
-            if (httpPort.HasValue)
-            {
-                urls.Add($"http://localhost:{httpPort.Value}");
-            }
-            if (httpsPort.HasValue)
-            {
-                urls.Add($"https://localhost:{httpsPort.Value}");
-            }
-
-            if (urls.Any())
-            {
-                existingConfig["Urls"] = string.Join(";", urls);
-            }
-
-            var json = JsonSerializer.Serialize(existingConfig, new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(overridesPath, json, cancellationToken);
-
-            logger.LogInformation("Port configuration saved: HTTP={HttpPort}, HTTPS={HttpsPort}", httpPort, httpsPort);
+            var existingJson = await File.ReadAllTextAsync(overridesPath, cancellationToken);
+            existingConfig = JsonSerializer.Deserialize<Dictionary<string, object>>(existingJson);
         }
-        catch
+
+        existingConfig ??= new Dictionary<string, object>();
+
+        var urls = new List<string>();
+        if (httpPort.HasValue)
         {
-            throw;
+            urls.Add($"http://localhost:{httpPort.Value}");
         }
+        if (httpsPort.HasValue)
+        {
+            urls.Add($"https://localhost:{httpsPort.Value}");
+        }
+
+        if (urls.Any())
+        {
+            existingConfig["Urls"] = string.Join(";", urls);
+        }
+
+        var json = JsonSerializer.Serialize(existingConfig, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(overridesPath, json, cancellationToken);
+
+        logger.LogInformation("Port configuration saved: HTTP={HttpPort}, HTTPS={HttpsPort}", httpPort, httpsPort);
     }
 
 }

@@ -17,175 +17,140 @@ public class TeamService(
 
     public async Task<PagedResult<TeamDto>> GetTeamsAsync(int page = 1, int pageSize = 20, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for team operations.");
-            }
-
-            var query = context.Teams
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var teamDtos = await query
-                .OrderBy(t => t.Name)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Select(t => new TeamDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    ShortDescription = t.ShortDescription,
-                    LongDescription = t.LongDescription,
-                    Email = t.Email,
-                    Status = (Prym.DTOs.Common.TeamStatus)t.Status,
-                    EventId = t.EventId,
-                    EventName = t.Event != null ? t.Event.Name : null,
-                    ClubCode = t.ClubCode,
-                    FederationCode = t.FederationCode,
-                    Category = t.Category,
-                    CoachContactId = t.CoachContactId,
-                    TeamLogoDocumentId = t.TeamLogoDocumentId,
-                    MemberCount = t.Members.Count(m => !m.IsDeleted && m.TenantId == currentTenantId.Value),
-                    CreatedAt = t.CreatedAt,
-                    CreatedBy = t.CreatedBy,
-                    ModifiedAt = t.ModifiedAt,
-                    ModifiedBy = t.ModifiedBy
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<TeamDto>
-            {
-                Items = teamDtos,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for team operations.");
         }
-        catch
+
+        var query = context.Teams
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var teamDtos = await query
+            .OrderBy(t => t.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new TeamDto
+            {
+                Id = t.Id,
+                Name = t.Name,
+                ShortDescription = t.ShortDescription,
+                LongDescription = t.LongDescription,
+                Email = t.Email,
+                Status = (Prym.DTOs.Common.TeamStatus)t.Status,
+                EventId = t.EventId,
+                EventName = t.Event != null ? t.Event.Name : null,
+                ClubCode = t.ClubCode,
+                FederationCode = t.FederationCode,
+                Category = t.Category,
+                CoachContactId = t.CoachContactId,
+                TeamLogoDocumentId = t.TeamLogoDocumentId,
+                MemberCount = t.Members.Count(m => !m.IsDeleted && m.TenantId == currentTenantId.Value),
+                CreatedAt = t.CreatedAt,
+                CreatedBy = t.CreatedBy,
+                ModifiedAt = t.ModifiedAt,
+                ModifiedBy = t.ModifiedBy
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<TeamDto>
         {
-            throw;
-        }
+            Items = teamDtos,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<IEnumerable<TeamDto>> GetTeamsByEventAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var teams = await context.Teams
-                .AsNoTracking()
-                .Where(t => t.EventId == eventId && !t.IsDeleted)
-                .Include(t => t.Event)
-                .Include(t => t.Members.Where(m => !m.IsDeleted))
-                .OrderBy(t => t.Name)
-                .ToListAsync(cancellationToken);
+        var teams = await context.Teams
+            .AsNoTracking()
+            .Where(t => t.EventId == eventId && !t.IsDeleted)
+            .Include(t => t.Event)
+            .Include(t => t.Members.Where(m => !m.IsDeleted))
+            .OrderBy(t => t.Name)
+            .ToListAsync(cancellationToken);
 
-            return teams.Select(MapToTeamDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return teams.Select(MapToTeamDto);
     }
 
     public async Task<TeamDto?> GetTeamByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var team = await context.Teams
+            .AsNoTracking()
+            .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
+            .Include(t => t.Event)
+            .Include(t => t.Members.Where(m => !m.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (team is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var team = await context.Teams
-                .AsNoTracking()
-                .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
-                .Include(t => t.Event)
-                .Include(t => t.Members.Where(m => !m.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (team is null)
-            {
-                logger.LogWarning("Team con ID {TeamId} non trovato.", id);
-                return null;
-            }
-
-            return MapToTeamDto(team);
+            logger.LogWarning("Team con ID {TeamId} non trovato.", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        return MapToTeamDto(team);
     }
 
     public async Task<TeamDetailDto?> GetTeamDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var team = await context.Teams
+            .AsNoTracking()
+            .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
+            .Include(t => t.Event)
+            .Include(t => t.Members.Where(m => !m.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (team is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var team = await context.Teams
-                .AsNoTracking()
-                .Where(t => t.Id == id && t.TenantId == currentTenantId && !t.IsDeleted)
-                .Include(t => t.Event)
-                .Include(t => t.Members.Where(m => !m.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (team is null)
-            {
-                logger.LogWarning("Team con ID {TeamId} non trovato per dettagli.", id);
-                return null;
-            }
-
-            return MapToTeamDetailDto(team);
+            logger.LogWarning("Team con ID {TeamId} non trovato per dettagli.", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        return MapToTeamDetailDto(team);
     }
 
     public async Task<TeamDto> CreateTeamAsync(CreateTeamDto createTeamDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createTeamDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var eventExists = await EventExistsAsync(createTeamDto.EventId, cancellationToken);
+        if (!eventExists)
+            throw new ArgumentException($"Event with ID {createTeamDto.EventId} does not exist.", nameof(createTeamDto));
+
+        var team = new Team
         {
-            ArgumentNullException.ThrowIfNull(createTeamDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            Name = createTeamDto.Name,
+            ShortDescription = createTeamDto.ShortDescription,
+            LongDescription = createTeamDto.LongDescription,
+            Email = createTeamDto.Email,
+            EventId = createTeamDto.EventId,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            var eventExists = await EventExistsAsync(createTeamDto.EventId, cancellationToken);
-            if (!eventExists)
-                throw new ArgumentException($"Event with ID {createTeamDto.EventId} does not exist.", nameof(createTeamDto));
+        _ = context.Teams.Add(team);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            var team = new Team
-            {
-                Name = createTeamDto.Name,
-                ShortDescription = createTeamDto.ShortDescription,
-                LongDescription = createTeamDto.LongDescription,
-                Email = createTeamDto.Email,
-                EventId = createTeamDto.EventId,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow
-            };
+        // Audit log
+        _ = await auditLogService.TrackEntityChangesAsync(team, "Insert", currentUser, null, cancellationToken);
 
-            _ = context.Teams.Add(team);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        var createdTeam = await context.Teams
+            .Include(t => t.Event)
+            .Include(t => t.Members)
+            .FirstAsync(t => t.Id == team.Id, cancellationToken);
 
-            // Audit log
-            _ = await auditLogService.TrackEntityChangesAsync(team, "Insert", currentUser, null, cancellationToken);
-
-            var createdTeam = await context.Teams
-                .Include(t => t.Event)
-                .Include(t => t.Members)
-                .FirstAsync(t => t.Id == team.Id, cancellationToken);
-
-            return MapToTeamDto(createdTeam);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToTeamDto(createdTeam);
     }
 
     public async Task<TeamDto?> UpdateTeamAsync(Guid id, UpdateTeamDto updateTeamDto, string currentUser, CancellationToken cancellationToken = default)
@@ -328,99 +293,78 @@ public class TeamService(
 
     public async Task<IEnumerable<TeamMemberDto>> GetTeamMembersAsync(Guid teamId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var members = await context.TeamMembers
-                .AsNoTracking()
-                .Where(m => m.TeamId == teamId && !m.IsDeleted)
-                .Include(m => m.Team)
-                .OrderBy(m => m.LastName)
-                .ThenBy(m => m.FirstName)
-                .ToListAsync(cancellationToken);
+        var members = await context.TeamMembers
+            .AsNoTracking()
+            .Where(m => m.TeamId == teamId && !m.IsDeleted)
+            .Include(m => m.Team)
+            .OrderBy(m => m.LastName)
+            .ThenBy(m => m.FirstName)
+            .ToListAsync(cancellationToken);
 
-            return members.Select(MapToTeamMemberDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return members.Select(MapToTeamMemberDto);
     }
 
     public async Task<TeamMemberDto?> GetTeamMemberByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var member = await context.TeamMembers
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
+            .Include(m => m.Team)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var member = await context.TeamMembers
-                .AsNoTracking()
-                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
-                .Include(m => m.Team)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (member is null)
-            {
-                logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
-                return null;
-            }
-
-            return MapToTeamMemberDto(member);
+            logger.LogWarning("Team member con ID {MemberId} non trovato.", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        return MapToTeamMemberDto(member);
     }
 
     public async Task<TeamMemberDto> AddTeamMemberAsync(CreateTeamMemberDto createTeamMemberDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createTeamMemberDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var teamExists = await TeamExistsAsync(createTeamMemberDto.TeamId, cancellationToken);
+        if (!teamExists)
+            throw new ArgumentException($"Team with ID {createTeamMemberDto.TeamId} does not exist.", nameof(createTeamMemberDto));
+
+        var member = new TeamMember
         {
-            ArgumentNullException.ThrowIfNull(createTeamMemberDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            FirstName = createTeamMemberDto.FirstName,
+            LastName = createTeamMemberDto.LastName,
+            Email = createTeamMemberDto.Email,
+            Role = createTeamMemberDto.Role,
+            DateOfBirth = createTeamMemberDto.DateOfBirth,
+            FiscalCode = createTeamMemberDto.FiscalCode,
+            Status = ToEntityTeamMemberStatus(createTeamMemberDto.Status),
+            Position = createTeamMemberDto.Position,
+            JerseyNumber = createTeamMemberDto.JerseyNumber,
+            EligibilityStatus = createTeamMemberDto.EligibilityStatus,
+            PhotoDocumentId = createTeamMemberDto.PhotoDocumentId,
+            PhotoConsent = createTeamMemberDto.PhotoConsent,
+            PhotoConsentAt = createTeamMemberDto.PhotoConsentAt,
+            TeamId = createTeamMemberDto.TeamId,
+            TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("TenantId is required but was not found in the current tenant context."),
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            var teamExists = await TeamExistsAsync(createTeamMemberDto.TeamId, cancellationToken);
-            if (!teamExists)
-                throw new ArgumentException($"Team with ID {createTeamMemberDto.TeamId} does not exist.", nameof(createTeamMemberDto));
+        _ = context.TeamMembers.Add(member);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            var member = new TeamMember
-            {
-                FirstName = createTeamMemberDto.FirstName,
-                LastName = createTeamMemberDto.LastName,
-                Email = createTeamMemberDto.Email,
-                Role = createTeamMemberDto.Role,
-                DateOfBirth = createTeamMemberDto.DateOfBirth,
-                FiscalCode = createTeamMemberDto.FiscalCode,
-                Status = ToEntityTeamMemberStatus(createTeamMemberDto.Status),
-                Position = createTeamMemberDto.Position,
-                JerseyNumber = createTeamMemberDto.JerseyNumber,
-                EligibilityStatus = createTeamMemberDto.EligibilityStatus,
-                PhotoDocumentId = createTeamMemberDto.PhotoDocumentId,
-                PhotoConsent = createTeamMemberDto.PhotoConsent,
-                PhotoConsentAt = createTeamMemberDto.PhotoConsentAt,
-                TeamId = createTeamMemberDto.TeamId,
-                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("TenantId is required but was not found in the current tenant context."),
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow
-            };
+        // Audit log
+        _ = await auditLogService.TrackEntityChangesAsync(member, "Insert", currentUser, null, cancellationToken);
 
-            _ = context.TeamMembers.Add(member);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        var createdMember = await context.TeamMembers
+            .Include(m => m.Team)
+            .FirstAsync(m => m.Id == member.Id, cancellationToken);
 
-            // Audit log
-            _ = await auditLogService.TrackEntityChangesAsync(member, "Insert", currentUser, null, cancellationToken);
-
-            var createdMember = await context.TeamMembers
-                .Include(m => m.Team)
-                .FirstAsync(m => m.Id == member.Id, cancellationToken);
-
-            return MapToTeamMemberDto(createdMember);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToTeamMemberDto(createdMember);
     }
 
     public async Task<TeamMemberDto?> UpdateTeamMemberAsync(Guid id, UpdateTeamMemberDto updateTeamMemberDto, string currentUser, CancellationToken cancellationToken = default)
@@ -545,757 +489,603 @@ public class TeamService(
 
     public async Task<bool> TeamExistsAsync(Guid teamId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Teams
-                .AsNoTracking()
-                .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Teams
+            .AsNoTracking()
+            .AnyAsync(t => t.Id == teamId && !t.IsDeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<TeamMemberDto>> GetMembersWithBirthdayAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue) return Enumerable.Empty<TeamMemberDto>();
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue) return Enumerable.Empty<TeamMemberDto>();
 
-            var members = await context.TeamMembers
-                .AsNoTracking()
-                .Where(m => !m.IsDeleted && m.DateOfBirth.HasValue && m.TenantId == tenantId.Value)
-                .Include(m => m.Team)
-                .OrderBy(m => m.LastName)
-                .ThenBy(m => m.FirstName)
-                .ToListAsync(cancellationToken);
+        var members = await context.TeamMembers
+            .AsNoTracking()
+            .Where(m => !m.IsDeleted && m.DateOfBirth.HasValue && m.TenantId == tenantId.Value)
+            .Include(m => m.Team)
+            .OrderBy(m => m.LastName)
+            .ThenBy(m => m.FirstName)
+            .ToListAsync(cancellationToken);
 
-            return members.Select(MapToTeamMemberDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return members.Select(MapToTeamMemberDto);
     }
 
     public async Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Events
-                .AsNoTracking()
-                .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Events
+            .AsNoTracking()
+            .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
     }
 
     // Document Reference operations
 
     public async Task<IEnumerable<DocumentReferenceDto>> GetDocumentsByOwnerAsync(Guid ownerId, string ownerType, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var documents = await context.DocumentReferences
-                .AsNoTracking()
-                .Where(d => d.OwnerId == ownerId && d.OwnerType == ownerType && !d.IsDeleted)
-                .OrderBy(d => d.Type)
-                .ThenBy(d => d.CreatedAt)
-                .ToListAsync(cancellationToken);
+        var documents = await context.DocumentReferences
+            .AsNoTracking()
+            .Where(d => d.OwnerId == ownerId && d.OwnerType == ownerType && !d.IsDeleted)
+            .OrderBy(d => d.Type)
+            .ThenBy(d => d.CreatedAt)
+            .ToListAsync(cancellationToken);
 
-            return documents.Select(MapToDocumentReferenceDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return documents.Select(MapToDocumentReferenceDto);
     }
 
     public async Task<DocumentReferenceDto?> GetDocumentReferenceByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
 
-            var document = await context.DocumentReferences
-                .AsNoTracking()
-                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var document = await context.DocumentReferences
+            .AsNoTracking()
+            .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return document is not null ? MapToDocumentReferenceDto(document) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return document is not null ? MapToDocumentReferenceDto(document) : null;
     }
 
     public async Task<DocumentReferenceDto> CreateDocumentReferenceAsync(CreateDocumentReferenceDto createDocumentDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createDocumentDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var document = new DocumentReference
         {
-            ArgumentNullException.ThrowIfNull(createDocumentDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            OwnerId = createDocumentDto.OwnerId,
+            OwnerType = createDocumentDto.OwnerType,
+            FileName = createDocumentDto.FileName,
+            Type = createDocumentDto.Type,
+            SubType = createDocumentDto.SubType,
+            MimeType = createDocumentDto.MimeType,
+            StorageKey = createDocumentDto.StorageKey,
+            Url = createDocumentDto.Url,
+            ThumbnailStorageKey = createDocumentDto.ThumbnailStorageKey,
+            Expiry = createDocumentDto.Expiry,
+            FileSizeBytes = createDocumentDto.FileSizeBytes,
+            Title = createDocumentDto.Title,
+            Notes = createDocumentDto.Notes,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+        };
 
-            var document = new DocumentReference
-            {
-                OwnerId = createDocumentDto.OwnerId,
-                OwnerType = createDocumentDto.OwnerType,
-                FileName = createDocumentDto.FileName,
-                Type = createDocumentDto.Type,
-                SubType = createDocumentDto.SubType,
-                MimeType = createDocumentDto.MimeType,
-                StorageKey = createDocumentDto.StorageKey,
-                Url = createDocumentDto.Url,
-                ThumbnailStorageKey = createDocumentDto.ThumbnailStorageKey,
-                Expiry = createDocumentDto.Expiry,
-                FileSizeBytes = createDocumentDto.FileSizeBytes,
-                Title = createDocumentDto.Title,
-                Notes = createDocumentDto.Notes,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
-            };
+        _ = context.DocumentReferences.Add(document);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = context.DocumentReferences.Add(document);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
 
-            _ = await auditLogService.TrackEntityChangesAsync(document, "Insert", currentUser, null, cancellationToken);
-
-            return MapToDocumentReferenceDto(document);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToDocumentReferenceDto(document);
     }
 
     public async Task<DocumentReferenceDto?> UpdateDocumentReferenceAsync(Guid id, UpdateDocumentReferenceDto updateDocumentDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(updateDocumentDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var document = await context.DocumentReferences
+            .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (document is null)
         {
-            ArgumentNullException.ThrowIfNull(updateDocumentDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var document = await context.DocumentReferences
-                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (document is null)
-            {
-                logger.LogWarning("Document reference {DocumentId} not found for update", id);
-                return null;
-            }
-
-            var originalDocument = await context.DocumentReferences
-                .AsNoTracking()
-                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            document.FileName = updateDocumentDto.FileName ?? document.FileName;
-            document.Type = updateDocumentDto.Type ?? document.Type;
-            document.SubType = updateDocumentDto.SubType ?? document.SubType;
-            document.Url = updateDocumentDto.Url;
-            document.ThumbnailStorageKey = updateDocumentDto.ThumbnailStorageKey;
-            document.Expiry = updateDocumentDto.Expiry;
-            document.Title = updateDocumentDto.Title;
-            document.Notes = updateDocumentDto.Notes;
-            document.ModifiedBy = currentUser;
-            document.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
-
-            return MapToDocumentReferenceDto(document);
+            logger.LogWarning("Document reference {DocumentId} not found for update", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalDocument = await context.DocumentReferences
+            .AsNoTracking()
+            .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        document.FileName = updateDocumentDto.FileName ?? document.FileName;
+        document.Type = updateDocumentDto.Type ?? document.Type;
+        document.SubType = updateDocumentDto.SubType ?? document.SubType;
+        document.Url = updateDocumentDto.Url;
+        document.ThumbnailStorageKey = updateDocumentDto.ThumbnailStorageKey;
+        document.Expiry = updateDocumentDto.Expiry;
+        document.Title = updateDocumentDto.Title;
+        document.Notes = updateDocumentDto.Notes;
+        document.ModifiedBy = currentUser;
+        document.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(document, "Update", currentUser, originalDocument, cancellationToken);
+
+        return MapToDocumentReferenceDto(document);
     }
 
     public async Task<bool> DeleteDocumentReferenceAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var document = await context.DocumentReferences
+            .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (document is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var document = await context.DocumentReferences
-                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (document is null)
-            {
-                logger.LogWarning("Document reference {DocumentId} not found for deletion", id);
-                return false;
-            }
-
-            var originalDocument = await context.DocumentReferences
-                .AsNoTracking()
-                .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            document.IsDeleted = true;
-            document.DeletedBy = currentUser;
-            document.DeletedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
-
-            return true;
+            logger.LogWarning("Document reference {DocumentId} not found for deletion", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalDocument = await context.DocumentReferences
+            .AsNoTracking()
+            .Where(d => d.Id == id && d.TenantId == currentTenantId && !d.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        document.IsDeleted = true;
+        document.DeletedBy = currentUser;
+        document.DeletedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(document, "Delete", currentUser, originalDocument, cancellationToken);
+
+        return true;
     }
 
     // Membership Card operations
 
     public async Task<IEnumerable<MembershipCardDto>> GetMembershipCardsByMemberAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
 
-            var cards = await context.MembershipCards
-                .AsNoTracking()
-                .Where(mc => mc.TeamMemberId == teamMemberId && mc.TenantId == currentTenantId && !mc.IsDeleted)
-                .Include(mc => mc.DocumentReference)
-                .OrderBy(mc => mc.ValidFrom)
-                .ToListAsync(cancellationToken);
+        var cards = await context.MembershipCards
+            .AsNoTracking()
+            .Where(mc => mc.TeamMemberId == teamMemberId && mc.TenantId == currentTenantId && !mc.IsDeleted)
+            .Include(mc => mc.DocumentReference)
+            .OrderBy(mc => mc.ValidFrom)
+            .ToListAsync(cancellationToken);
 
-            return cards.Select(MapToMembershipCardDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return cards.Select(MapToMembershipCardDto);
     }
 
     public async Task<MembershipCardDto?> GetMembershipCardByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
 
-            var card = await context.MembershipCards
-                .AsNoTracking()
-                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
-                .Include(mc => mc.DocumentReference)
-                .Include(mc => mc.TeamMember)
-                .FirstOrDefaultAsync(cancellationToken);
+        var card = await context.MembershipCards
+            .AsNoTracking()
+            .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
+            .Include(mc => mc.DocumentReference)
+            .Include(mc => mc.TeamMember)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return card is not null ? MapToMembershipCardDto(card) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return card is not null ? MapToMembershipCardDto(card) : null;
     }
 
     public async Task<MembershipCardDto> CreateMembershipCardAsync(CreateMembershipCardDto createMembershipCardDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createMembershipCardDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var card = new MembershipCard
         {
-            ArgumentNullException.ThrowIfNull(createMembershipCardDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            TeamMemberId = createMembershipCardDto.TeamMemberId,
+            CardNumber = createMembershipCardDto.CardNumber,
+            Federation = createMembershipCardDto.Federation,
+            ValidFrom = createMembershipCardDto.ValidFrom,
+            ValidTo = createMembershipCardDto.ValidTo,
+            DocumentReferenceId = createMembershipCardDto.DocumentReferenceId,
+            Category = createMembershipCardDto.Category,
+            Notes = createMembershipCardDto.Notes,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+        };
 
-            var card = new MembershipCard
-            {
-                TeamMemberId = createMembershipCardDto.TeamMemberId,
-                CardNumber = createMembershipCardDto.CardNumber,
-                Federation = createMembershipCardDto.Federation,
-                ValidFrom = createMembershipCardDto.ValidFrom,
-                ValidTo = createMembershipCardDto.ValidTo,
-                DocumentReferenceId = createMembershipCardDto.DocumentReferenceId,
-                Category = createMembershipCardDto.Category,
-                Notes = createMembershipCardDto.Notes,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
-            };
+        _ = context.MembershipCards.Add(card);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = context.MembershipCards.Add(card);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
 
-            _ = await auditLogService.TrackEntityChangesAsync(card, "Insert", currentUser, null, cancellationToken);
+        var createdCard = await context.MembershipCards
+            .Include(mc => mc.DocumentReference)
+            .Include(mc => mc.TeamMember)
+            .FirstAsync(mc => mc.Id == card.Id, cancellationToken);
 
-            var createdCard = await context.MembershipCards
-                .Include(mc => mc.DocumentReference)
-                .Include(mc => mc.TeamMember)
-                .FirstAsync(mc => mc.Id == card.Id, cancellationToken);
-
-            return MapToMembershipCardDto(createdCard);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToMembershipCardDto(createdCard);
     }
 
     public async Task<MembershipCardDto?> UpdateMembershipCardAsync(Guid id, UpdateMembershipCardDto updateMembershipCardDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(updateMembershipCardDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var card = await context.MembershipCards
+            .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
+            .Include(mc => mc.DocumentReference)
+            .Include(mc => mc.TeamMember)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (card is null)
         {
-            ArgumentNullException.ThrowIfNull(updateMembershipCardDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var card = await context.MembershipCards
-                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
-                .Include(mc => mc.DocumentReference)
-                .Include(mc => mc.TeamMember)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (card is null)
-            {
-                logger.LogWarning("Membership card {CardId} not found for update", id);
-                return null;
-            }
-
-            var originalCard = await context.MembershipCards
-                .AsNoTracking()
-                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            card.CardNumber = updateMembershipCardDto.CardNumber ?? card.CardNumber;
-            card.Federation = updateMembershipCardDto.Federation ?? card.Federation;
-            card.ValidFrom = updateMembershipCardDto.ValidFrom ?? card.ValidFrom;
-            card.ValidTo = updateMembershipCardDto.ValidTo ?? card.ValidTo;
-            card.DocumentReferenceId = updateMembershipCardDto.DocumentReferenceId;
-            card.Category = updateMembershipCardDto.Category;
-            card.Notes = updateMembershipCardDto.Notes;
-            card.ModifiedBy = currentUser;
-            card.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
-
-            return MapToMembershipCardDto(card);
+            logger.LogWarning("Membership card {CardId} not found for update", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalCard = await context.MembershipCards
+            .AsNoTracking()
+            .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        card.CardNumber = updateMembershipCardDto.CardNumber ?? card.CardNumber;
+        card.Federation = updateMembershipCardDto.Federation ?? card.Federation;
+        card.ValidFrom = updateMembershipCardDto.ValidFrom ?? card.ValidFrom;
+        card.ValidTo = updateMembershipCardDto.ValidTo ?? card.ValidTo;
+        card.DocumentReferenceId = updateMembershipCardDto.DocumentReferenceId;
+        card.Category = updateMembershipCardDto.Category;
+        card.Notes = updateMembershipCardDto.Notes;
+        card.ModifiedBy = currentUser;
+        card.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(card, "Update", currentUser, originalCard, cancellationToken);
+
+        return MapToMembershipCardDto(card);
     }
 
     public async Task<bool> DeleteMembershipCardAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var card = await context.MembershipCards
+            .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (card is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var card = await context.MembershipCards
-                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (card is null)
-            {
-                logger.LogWarning("Membership card {CardId} not found for deletion", id);
-                return false;
-            }
-
-            var originalCard = await context.MembershipCards
-                .AsNoTracking()
-                .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            card.IsDeleted = true;
-            card.DeletedBy = currentUser;
-            card.DeletedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
-
-            return true;
+            logger.LogWarning("Membership card {CardId} not found for deletion", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalCard = await context.MembershipCards
+            .AsNoTracking()
+            .Where(mc => mc.Id == id && mc.TenantId == currentTenantId && !mc.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        card.IsDeleted = true;
+        card.DeletedBy = currentUser;
+        card.DeletedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(card, "Delete", currentUser, originalCard, cancellationToken);
+
+        return true;
     }
 
     // Insurance Policy operations
 
     public async Task<IEnumerable<InsurancePolicyDto>> GetInsurancePoliciesByMemberAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
 
-            var policies = await context.InsurancePolicies
-                .AsNoTracking()
-                .Where(ip => ip.TeamMemberId == teamMemberId && ip.TenantId == currentTenantId && !ip.IsDeleted)
-                .Include(ip => ip.DocumentReference)
-                .OrderBy(ip => ip.ValidFrom)
-                .ToListAsync(cancellationToken);
+        var policies = await context.InsurancePolicies
+            .AsNoTracking()
+            .Where(ip => ip.TeamMemberId == teamMemberId && ip.TenantId == currentTenantId && !ip.IsDeleted)
+            .Include(ip => ip.DocumentReference)
+            .OrderBy(ip => ip.ValidFrom)
+            .ToListAsync(cancellationToken);
 
-            return policies.Select(MapToInsurancePolicyDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return policies.Select(MapToInsurancePolicyDto);
     }
 
     public async Task<InsurancePolicyDto?> GetInsurancePolicyByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
 
-            var policy = await context.InsurancePolicies
-                .AsNoTracking()
-                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
-                .Include(ip => ip.DocumentReference)
-                .Include(ip => ip.TeamMember)
-                .FirstOrDefaultAsync(cancellationToken);
+        var policy = await context.InsurancePolicies
+            .AsNoTracking()
+            .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
+            .Include(ip => ip.DocumentReference)
+            .Include(ip => ip.TeamMember)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return policy is not null ? MapToInsurancePolicyDto(policy) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return policy is not null ? MapToInsurancePolicyDto(policy) : null;
     }
 
     public async Task<InsurancePolicyDto> CreateInsurancePolicyAsync(CreateInsurancePolicyDto createInsurancePolicyDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createInsurancePolicyDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var policy = new InsurancePolicy
         {
-            ArgumentNullException.ThrowIfNull(createInsurancePolicyDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            TeamMemberId = createInsurancePolicyDto.TeamMemberId,
+            Provider = createInsurancePolicyDto.Provider,
+            PolicyNumber = createInsurancePolicyDto.PolicyNumber,
+            ValidFrom = createInsurancePolicyDto.ValidFrom,
+            ValidTo = createInsurancePolicyDto.ValidTo,
+            CoverageType = createInsurancePolicyDto.CoverageType,
+            CoverageAmount = createInsurancePolicyDto.CoverageAmount,
+            Currency = createInsurancePolicyDto.Currency,
+            DocumentReferenceId = createInsurancePolicyDto.DocumentReferenceId,
+            Notes = createInsurancePolicyDto.Notes,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
+        };
 
-            var policy = new InsurancePolicy
-            {
-                TeamMemberId = createInsurancePolicyDto.TeamMemberId,
-                Provider = createInsurancePolicyDto.Provider,
-                PolicyNumber = createInsurancePolicyDto.PolicyNumber,
-                ValidFrom = createInsurancePolicyDto.ValidFrom,
-                ValidTo = createInsurancePolicyDto.ValidTo,
-                CoverageType = createInsurancePolicyDto.CoverageType,
-                CoverageAmount = createInsurancePolicyDto.CoverageAmount,
-                Currency = createInsurancePolicyDto.Currency,
-                DocumentReferenceId = createInsurancePolicyDto.DocumentReferenceId,
-                Notes = createInsurancePolicyDto.Notes,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                TenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Tenant context is required")
-            };
+        _ = context.InsurancePolicies.Add(policy);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = context.InsurancePolicies.Add(policy);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
 
-            _ = await auditLogService.TrackEntityChangesAsync(policy, "Insert", currentUser, null, cancellationToken);
+        var createdPolicy = await context.InsurancePolicies
+            .Include(ip => ip.DocumentReference)
+            .Include(ip => ip.TeamMember)
+            .FirstAsync(ip => ip.Id == policy.Id, cancellationToken);
 
-            var createdPolicy = await context.InsurancePolicies
-                .Include(ip => ip.DocumentReference)
-                .Include(ip => ip.TeamMember)
-                .FirstAsync(ip => ip.Id == policy.Id, cancellationToken);
-
-            return MapToInsurancePolicyDto(createdPolicy);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToInsurancePolicyDto(createdPolicy);
     }
 
     public async Task<InsurancePolicyDto?> UpdateInsurancePolicyAsync(Guid id, UpdateInsurancePolicyDto updateInsurancePolicyDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(updateInsurancePolicyDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var policy = await context.InsurancePolicies
+            .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
+            .Include(ip => ip.DocumentReference)
+            .Include(ip => ip.TeamMember)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (policy is null)
         {
-            ArgumentNullException.ThrowIfNull(updateInsurancePolicyDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var policy = await context.InsurancePolicies
-                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
-                .Include(ip => ip.DocumentReference)
-                .Include(ip => ip.TeamMember)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (policy is null)
-            {
-                logger.LogWarning("Insurance policy {PolicyId} not found for update", id);
-                return null;
-            }
-
-            var originalPolicy = await context.InsurancePolicies
-                .AsNoTracking()
-                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            policy.Provider = updateInsurancePolicyDto.Provider ?? policy.Provider;
-            policy.PolicyNumber = updateInsurancePolicyDto.PolicyNumber ?? policy.PolicyNumber;
-            policy.ValidFrom = updateInsurancePolicyDto.ValidFrom ?? policy.ValidFrom;
-            policy.ValidTo = updateInsurancePolicyDto.ValidTo ?? policy.ValidTo;
-            policy.CoverageType = updateInsurancePolicyDto.CoverageType;
-            policy.CoverageAmount = updateInsurancePolicyDto.CoverageAmount;
-            policy.Currency = updateInsurancePolicyDto.Currency;
-            policy.DocumentReferenceId = updateInsurancePolicyDto.DocumentReferenceId;
-            policy.Notes = updateInsurancePolicyDto.Notes;
-            policy.ModifiedBy = currentUser;
-            policy.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
-
-            return MapToInsurancePolicyDto(policy);
+            logger.LogWarning("Insurance policy {PolicyId} not found for update", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalPolicy = await context.InsurancePolicies
+            .AsNoTracking()
+            .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        policy.Provider = updateInsurancePolicyDto.Provider ?? policy.Provider;
+        policy.PolicyNumber = updateInsurancePolicyDto.PolicyNumber ?? policy.PolicyNumber;
+        policy.ValidFrom = updateInsurancePolicyDto.ValidFrom ?? policy.ValidFrom;
+        policy.ValidTo = updateInsurancePolicyDto.ValidTo ?? policy.ValidTo;
+        policy.CoverageType = updateInsurancePolicyDto.CoverageType;
+        policy.CoverageAmount = updateInsurancePolicyDto.CoverageAmount;
+        policy.Currency = updateInsurancePolicyDto.Currency;
+        policy.DocumentReferenceId = updateInsurancePolicyDto.DocumentReferenceId;
+        policy.Notes = updateInsurancePolicyDto.Notes;
+        policy.ModifiedBy = currentUser;
+        policy.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(policy, "Update", currentUser, originalPolicy, cancellationToken);
+
+        return MapToInsurancePolicyDto(policy);
     }
 
     public async Task<bool> DeleteInsurancePolicyAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var policy = await context.InsurancePolicies
+            .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (policy is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var policy = await context.InsurancePolicies
-                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (policy is null)
-            {
-                logger.LogWarning("Insurance policy {PolicyId} not found for deletion", id);
-                return false;
-            }
-
-            var originalPolicy = await context.InsurancePolicies
-                .AsNoTracking()
-                .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            policy.IsDeleted = true;
-            policy.DeletedBy = currentUser;
-            policy.DeletedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
-
-            return true;
+            logger.LogWarning("Insurance policy {PolicyId} not found for deletion", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalPolicy = await context.InsurancePolicies
+            .AsNoTracking()
+            .Where(ip => ip.Id == id && ip.TenantId == currentTenantId && !ip.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        policy.IsDeleted = true;
+        policy.DeletedBy = currentUser;
+        policy.DeletedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(policy, "Delete", currentUser, originalPolicy, cancellationToken);
+
+        return true;
     }
 
     // Business Logic Methods
 
     public async Task<bool> ValidateJerseyNumberAsync(Guid teamId, int jerseyNumber, Guid? excludeTeamMemberId = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var query = context.TeamMembers
-                .AsNoTracking()
-                .Where(tm => tm.TeamId == teamId && tm.JerseyNumber == jerseyNumber && !tm.IsDeleted);
+        var query = context.TeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.TeamId == teamId && tm.JerseyNumber == jerseyNumber && !tm.IsDeleted);
 
-            if (excludeTeamMemberId.HasValue)
-            {
-                query = query.Where(tm => tm.Id != excludeTeamMemberId.Value);
-            }
-
-            var exists = await query.AnyAsync(cancellationToken);
-            return !exists; // Return true if number is available (not taken)
-        }
-        catch
+        if (excludeTeamMemberId.HasValue)
         {
-            throw;
+            query = query.Where(tm => tm.Id != excludeTeamMemberId.Value);
         }
+
+        var exists = await query.AnyAsync(cancellationToken);
+        return !exists; // Return true if number is available (not taken)
     }
 
     public async Task<List<TeamMemberDto>> GetOtherActiveTeamsForFiscalCodeAsync(string fiscalCode, Guid excludeTeamMemberId, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(fiscalCode);
+
+        // Non-blocking check: looks for other TeamMembers sharing the same fiscal code,
+        // active, and belonging to a different team than the excluded member's own team.
+        // This never prevents saving — the caller (client) is responsible for surfacing the warning.
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var excludedMemberTeamId = await context.TeamMembers
+            .AsNoTracking()
+            .Where(m => m.Id == excludeTeamMemberId && m.TenantId == currentTenantId && !m.IsDeleted)
+            .Select(m => (Guid?)m.TeamId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var query = context.TeamMembers
+            .AsNoTracking()
+            .Where(m => !m.IsDeleted
+                && m.FiscalCode == fiscalCode
+                && m.Status == EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Active
+                && m.Id != excludeTeamMemberId
+                && m.TenantId == currentTenantId);
+
+        if (excludedMemberTeamId.HasValue)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(fiscalCode);
-
-            // Non-blocking check: looks for other TeamMembers sharing the same fiscal code,
-            // active, and belonging to a different team than the excluded member's own team.
-            // This never prevents saving — the caller (client) is responsible for surfacing the warning.
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var excludedMemberTeamId = await context.TeamMembers
-                .AsNoTracking()
-                .Where(m => m.Id == excludeTeamMemberId && m.TenantId == currentTenantId && !m.IsDeleted)
-                .Select(m => (Guid?)m.TeamId)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            var query = context.TeamMembers
-                .AsNoTracking()
-                .Where(m => !m.IsDeleted
-                    && m.FiscalCode == fiscalCode
-                    && m.Status == EventForge.Server.Data.Entities.Teams.TeamMemberStatus.Active
-                    && m.Id != excludeTeamMemberId
-                    && m.TenantId == currentTenantId);
-
-            if (excludedMemberTeamId.HasValue)
-            {
-                query = query.Where(m => m.TeamId != excludedMemberTeamId.Value);
-            }
-
-            var conflicts = await query
-                .Include(m => m.Team)
-                .OrderBy(m => m.LastName)
-                .ThenBy(m => m.FirstName)
-                .ToListAsync(cancellationToken);
-
-            return conflicts.Select(MapToTeamMemberDto).ToList();
+            query = query.Where(m => m.TeamId != excludedMemberTeamId.Value);
         }
-        catch
-        {
-            throw;
-        }
+
+        var conflicts = await query
+            .Include(m => m.Team)
+            .OrderBy(m => m.LastName)
+            .ThenBy(m => m.FirstName)
+            .ToListAsync(cancellationToken);
+
+        return conflicts.Select(MapToTeamMemberDto).ToList();
     }
 
     public async Task<IEnumerable<TeamMemberDto>> GetMembersWithExpiringDocumentsAsync(int daysBeforeExpiry = 30, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var expiryDate = DateTime.UtcNow.AddDays(daysBeforeExpiry);
+        var expiryDate = DateTime.UtcNow.AddDays(daysBeforeExpiry);
 
-            var membersWithExpiringDocs = await context.TeamMembers
-                .AsNoTracking()
-                .Where(tm => !tm.IsDeleted)
-                .Include(tm => tm.Team)
-                .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate))
-                .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted && ip.ValidTo <= expiryDate))
-                .Where(tm => tm.MembershipCards.Any(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate) ||
-                            tm.InsurancePolicies.Any(ip => !ip.IsDeleted && ip.ValidTo <= expiryDate))
-                .ToListAsync(cancellationToken);
+        var membersWithExpiringDocs = await context.TeamMembers
+            .AsNoTracking()
+            .Where(tm => !tm.IsDeleted)
+            .Include(tm => tm.Team)
+            .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate))
+            .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted && ip.ValidTo <= expiryDate))
+            .Where(tm => tm.MembershipCards.Any(mc => !mc.IsDeleted && mc.ValidTo <= expiryDate) ||
+                        tm.InsurancePolicies.Any(ip => !ip.IsDeleted && ip.ValidTo <= expiryDate))
+            .ToListAsync(cancellationToken);
 
-            return membersWithExpiringDocs.Select(MapToTeamMemberDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return membersWithExpiringDocs.Select(MapToTeamMemberDto);
     }
 
     public async Task<EligibilityValidationResult> ValidateTeamMemberEligibilityAsync(Guid teamMemberId, CancellationToken cancellationToken = default)
     {
-        try
+        var result = new EligibilityValidationResult
         {
-            var result = new EligibilityValidationResult
+            IsEligible = true,
+            ValidatedAt = DateTime.UtcNow
+        };
+
+        var member = await context.TeamMembers
+            .AsNoTracking()
+            .Where(tm => tm.Id == teamMemberId && !tm.IsDeleted)
+            .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted))
+            .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
+        {
+            result.IsEligible = false;
+            result.Issues.Add(new EligibilityIssue
             {
-                IsEligible = true,
-                ValidatedAt = DateTime.UtcNow
-            };
-
-            var member = await context.TeamMembers
-                .AsNoTracking()
-                .Where(tm => tm.Id == teamMemberId && !tm.IsDeleted)
-                .Include(tm => tm.MembershipCards.Where(mc => !mc.IsDeleted))
-                .Include(tm => tm.InsurancePolicies.Where(ip => !ip.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (member is null)
-            {
-                result.IsEligible = false;
-                result.Issues.Add(new EligibilityIssue
-                {
-                    Type = EligibilityIssueType.InvalidData,
-                    Severity = EligibilityIssueSeverity.Critical,
-                    Description = "Team member not found",
-                    Field = "TeamMemberId"
-                });
-                return result;
-            }
-
-            // Check for valid membership card
-            var validMembershipCard = member.MembershipCards
-                .FirstOrDefault(mc => mc.IsValid);
-
-            if (validMembershipCard is null)
-            {
-                result.IsEligible = false;
-                result.Issues.Add(new EligibilityIssue
-                {
-                    Type = EligibilityIssueType.MissingDocument,
-                    Severity = EligibilityIssueSeverity.Error,
-                    Description = "No valid membership card found",
-                    Field = "MembershipCard",
-                    SuggestedAction = "Add a valid membership card"
-                });
-            }
-
-            // Check for valid insurance policy
-            var validInsurancePolicy = member.InsurancePolicies
-                .FirstOrDefault(ip => ip.IsValid);
-
-            if (validInsurancePolicy is null)
-            {
-                result.Issues.Add(new EligibilityIssue
-                {
-                    Type = EligibilityIssueType.MissingDocument,
-                    Severity = EligibilityIssueSeverity.Warning,
-                    Description = "No valid insurance policy found",
-                    Field = "InsurancePolicy",
-                    SuggestedAction = "Add a valid insurance policy"
-                });
-            }
-
-            // Check for expiring documents
-            var expiringCards = member.MembershipCards
-                .Where(mc => mc.DaysUntilExpiration <= 30 && mc.DaysUntilExpiration > 0);
-
-            foreach (var card in expiringCards)
-            {
-                result.Warnings.Add(new EligibilityIssue
-                {
-                    Type = EligibilityIssueType.ExpiredDocument,
-                    Severity = EligibilityIssueSeverity.Warning,
-                    Description = $"Membership card expires in {card.DaysUntilExpiration} days",
-                    Field = "MembershipCard",
-                    DueDate = card.ValidTo,
-                    SuggestedAction = "Renew membership card before expiry"
-                });
-            }
-
+                Type = EligibilityIssueType.InvalidData,
+                Severity = EligibilityIssueSeverity.Critical,
+                Description = "Team member not found",
+                Field = "TeamMemberId"
+            });
             return result;
         }
-        catch
+
+        // Check for valid membership card
+        var validMembershipCard = member.MembershipCards
+            .FirstOrDefault(mc => mc.IsValid);
+
+        if (validMembershipCard is null)
         {
-            throw;
+            result.IsEligible = false;
+            result.Issues.Add(new EligibilityIssue
+            {
+                Type = EligibilityIssueType.MissingDocument,
+                Severity = EligibilityIssueSeverity.Error,
+                Description = "No valid membership card found",
+                Field = "MembershipCard",
+                SuggestedAction = "Add a valid membership card"
+            });
         }
+
+        // Check for valid insurance policy
+        var validInsurancePolicy = member.InsurancePolicies
+            .FirstOrDefault(ip => ip.IsValid);
+
+        if (validInsurancePolicy is null)
+        {
+            result.Issues.Add(new EligibilityIssue
+            {
+                Type = EligibilityIssueType.MissingDocument,
+                Severity = EligibilityIssueSeverity.Warning,
+                Description = "No valid insurance policy found",
+                Field = "InsurancePolicy",
+                SuggestedAction = "Add a valid insurance policy"
+            });
+        }
+
+        // Check for expiring documents
+        var expiringCards = member.MembershipCards
+            .Where(mc => mc.DaysUntilExpiration <= 30 && mc.DaysUntilExpiration > 0);
+
+        foreach (var card in expiringCards)
+        {
+            result.Warnings.Add(new EligibilityIssue
+            {
+                Type = EligibilityIssueType.ExpiredDocument,
+                Severity = EligibilityIssueSeverity.Warning,
+                Description = $"Membership card expires in {card.DaysUntilExpiration} days",
+                Field = "MembershipCard",
+                DueDate = card.ValidTo,
+                SuggestedAction = "Renew membership card before expiry"
+            });
+        }
+
+        return result;
     }
 
     // Private mapping methods

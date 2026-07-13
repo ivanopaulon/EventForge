@@ -187,69 +187,62 @@ public class PriceListBulkOperationsService(
 
     public async Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
     {
-        try
+        // Get price list entries with related product information
+        var query = context.PriceListEntries
+            .AsNoTracking()
+            .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+            .Include(ple => ple.Product!)
+            .ThenInclude(p => p.CategoryNode)
+            .Include(ple => ple.Product!)
+            .ThenInclude(p => p.Units.Where(pu => pu.UnitType == "Base" && !pu.IsDeleted))
+            .ThenInclude(pu => pu.UnitOfMeasure)
+            .AsQueryable();
+
+        if (!includeInactiveEntries)
         {
-            // Get price list entries with related product information
-            var query = context.PriceListEntries
-                .AsNoTracking()
-                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
-                .Include(ple => ple.Product!)
-                .ThenInclude(p => p.CategoryNode)
-                .Include(ple => ple.Product!)
-                .ThenInclude(p => p.Units.Where(pu => pu.UnitType == "Base" && !pu.IsDeleted))
-                .ThenInclude(pu => pu.UnitOfMeasure)
-                .AsQueryable();
-
-            if (!includeInactiveEntries)
-            {
-                query = query.Where(ple => ple.Status == PriceListEntryStatus.Active);
-            }
-
-            var entries = await query.ToListAsync(cancellationToken);
-
-            var exportableEntries = entries.Select(entry =>
-            {
-                var product = entry.Product;
-                var baseUnit = product?.Units.FirstOrDefault();
-                var unitOfMeasure = baseUnit?.UnitOfMeasure;
-
-                return new ExportablePriceListEntryDto
-                {
-                    Id = entry.Id,
-                    ProductId = entry.ProductId,
-                    ProductName = product?.Name ?? "Unknown",
-                    ProductCode = product?.Code,
-                    ProductSku = product?.Code, // Product uses Code property
-                    PriceListId = entry.PriceListId,
-                    Price = entry.Price,
-                    Currency = entry.Currency,
-                    Score = entry.Score,
-                    IsEditableInFrontend = entry.IsEditableInFrontend,
-                    IsDiscountable = entry.IsDiscountable,
-                    Status = entry.Status.ToString(),
-                    MinQuantity = entry.MinQuantity,
-                    MaxQuantity = entry.MaxQuantity,
-                    Notes = entry.Notes,
-                    CreatedAt = entry.CreatedAt,
-                    CreatedBy = entry.CreatedBy,
-                    ModifiedAt = entry.ModifiedAt,
-                    ModifiedBy = entry.ModifiedBy,
-                    IsActive = entry.Status == PriceListEntryStatus.Active,
-                    ProductCategory = product?.CategoryNode?.Name,
-                    UnitOfMeasure = unitOfMeasure?.Symbol,
-                    ProductDefaultPrice = product?.DefaultPrice
-                };
-            }).ToList();
-
-            logger.LogInformation("Exported {Count} price list entries from price list {PriceListId}",
-                exportableEntries.Count, priceListId);
-
-            return exportableEntries;
+            query = query.Where(ple => ple.Status == PriceListEntryStatus.Active);
         }
-        catch
+
+        var entries = await query.ToListAsync(cancellationToken);
+
+        var exportableEntries = entries.Select(entry =>
         {
-            throw;
-        }
+            var product = entry.Product;
+            var baseUnit = product?.Units.FirstOrDefault();
+            var unitOfMeasure = baseUnit?.UnitOfMeasure;
+
+            return new ExportablePriceListEntryDto
+            {
+                Id = entry.Id,
+                ProductId = entry.ProductId,
+                ProductName = product?.Name ?? "Unknown",
+                ProductCode = product?.Code,
+                ProductSku = product?.Code, // Product uses Code property
+                PriceListId = entry.PriceListId,
+                Price = entry.Price,
+                Currency = entry.Currency,
+                Score = entry.Score,
+                IsEditableInFrontend = entry.IsEditableInFrontend,
+                IsDiscountable = entry.IsDiscountable,
+                Status = entry.Status.ToString(),
+                MinQuantity = entry.MinQuantity,
+                MaxQuantity = entry.MaxQuantity,
+                Notes = entry.Notes,
+                CreatedAt = entry.CreatedAt,
+                CreatedBy = entry.CreatedBy,
+                ModifiedAt = entry.ModifiedAt,
+                ModifiedBy = entry.ModifiedBy,
+                IsActive = entry.Status == PriceListEntryStatus.Active,
+                ProductCategory = product?.CategoryNode?.Name,
+                UnitOfMeasure = unitOfMeasure?.Symbol,
+                ProductDefaultPrice = product?.DefaultPrice
+            };
+        }).ToList();
+
+        logger.LogInformation("Exported {Count} price list entries from price list {PriceListId}",
+            exportableEntries.Count, priceListId);
+
+        return exportableEntries;
     }
 
     public async Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
@@ -452,84 +445,77 @@ public class PriceListBulkOperationsService(
         BulkPriceUpdateDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
+        // Verifica esistenza listino
+        var priceListExists = await context.PriceLists
+            .AsNoTracking()
+            .AnyAsync(pl => pl.Id == priceListId && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+
+        if (!priceListExists)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+            throw new InvalidOperationException($"Price list {priceListId} not found.");
+        }
 
-            // Verifica esistenza listino
-            var priceListExists = await context.PriceLists
-                .AsNoTracking()
-                .AnyAsync(pl => pl.Id == priceListId && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+        // Query base per gli items del listino
+        IQueryable<PriceListEntry> query = context.PriceListEntries
+            .AsNoTracking()
+            .Where(ple => ple.PriceListId == priceListId && ple.TenantId == currentTenantId && !ple.IsDeleted)
+            .Include(ple => ple.Product);
 
-            if (!priceListExists)
-            {
-                throw new InvalidOperationException($"Price list {priceListId} not found.");
-            }
+        // Applica filtri
+        query = ApplyBulkUpdateFilters(query, dto);
 
-            // Query base per gli items del listino
-            IQueryable<PriceListEntry> query = context.PriceListEntries
-                .AsNoTracking()
-                .Where(ple => ple.PriceListId == priceListId && ple.TenantId == currentTenantId && !ple.IsDeleted)
-                .Include(ple => ple.Product);
+        // Recupera items
+        var items = await query.ToListAsync(cancellationToken);
 
-            // Applica filtri
-            query = ApplyBulkUpdateFilters(query, dto);
+        var changes = new List<PriceChangePreview>();
+        decimal totalCurrentValue = 0;
+        decimal totalNewValue = 0;
 
-            // Recupera items
-            var items = await query.ToListAsync(cancellationToken);
+        foreach (var item in items)
+        {
+            var currentPrice = item.Price;
+            var newPrice = CalculateNewPrice(currentPrice, dto.Operation, dto.Value);
+            newPrice = ApplyRounding(newPrice, dto.RoundingStrategy);
 
-            var changes = new List<PriceChangePreview>();
-            decimal totalCurrentValue = 0;
-            decimal totalNewValue = 0;
+            // Assicura che il prezzo non sia negativo
+            if (newPrice < 0)
+                newPrice = 0;
 
-            foreach (var item in items)
-            {
-                var currentPrice = item.Price;
-                var newPrice = CalculateNewPrice(currentPrice, dto.Operation, dto.Value);
-                newPrice = ApplyRounding(newPrice, dto.RoundingStrategy);
-
-                // Assicura che il prezzo non sia negativo
-                if (newPrice < 0)
-                    newPrice = 0;
-
-                var changeAmount = newPrice - currentPrice;
-                var changePercentage = currentPrice != 0
-                    ? (changeAmount / currentPrice) * 100
-                    : 0;
-
-                changes.Add(new PriceChangePreview
-                {
-                    ProductId = item.ProductId,
-                    ProductName = item.Product?.Name ?? "Unknown",
-                    ProductCode = item.Product?.Code,
-                    CurrentPrice = currentPrice,
-                    NewPrice = newPrice,
-                    ChangeAmount = changeAmount,
-                    ChangePercentage = changePercentage
-                });
-
-                totalCurrentValue += currentPrice;
-                totalNewValue += newPrice;
-            }
-
-            var averageIncreasePercentage = totalCurrentValue != 0
-                ? ((totalNewValue - totalCurrentValue) / totalCurrentValue) * 100
+            var changeAmount = newPrice - currentPrice;
+            var changePercentage = currentPrice != 0
+                ? (changeAmount / currentPrice) * 100
                 : 0;
 
-            return new BulkUpdatePreviewDto
+            changes.Add(new PriceChangePreview
             {
-                AffectedCount = changes.Count,
-                Changes = changes,
-                TotalCurrentValue = totalCurrentValue,
-                TotalNewValue = totalNewValue,
-                AverageIncreasePercentage = averageIncreasePercentage
-            };
+                ProductId = item.ProductId,
+                ProductName = item.Product?.Name ?? "Unknown",
+                ProductCode = item.Product?.Code,
+                CurrentPrice = currentPrice,
+                NewPrice = newPrice,
+                ChangeAmount = changeAmount,
+                ChangePercentage = changePercentage
+            });
+
+            totalCurrentValue += currentPrice;
+            totalNewValue += newPrice;
         }
-        catch
+
+        var averageIncreasePercentage = totalCurrentValue != 0
+            ? ((totalNewValue - totalCurrentValue) / totalCurrentValue) * 100
+            : 0;
+
+        return new BulkUpdatePreviewDto
         {
-            throw;
-        }
+            AffectedCount = changes.Count,
+            Changes = changes,
+            TotalCurrentValue = totalCurrentValue,
+            TotalNewValue = totalNewValue,
+            AverageIncreasePercentage = averageIncreasePercentage
+        };
     }
 
     /// <summary>
@@ -541,94 +527,87 @@ public class PriceListBulkOperationsService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
+        // Verifica esistenza listino
+        var priceListExists = await context.PriceLists
+            .AsNoTracking()
+            .AnyAsync(pl => pl.Id == priceListId && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+
+        if (!priceListExists)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+            throw new InvalidOperationException($"Price list {priceListId} not found.");
+        }
 
-            // Verifica esistenza listino
-            var priceListExists = await context.PriceLists
-                .AsNoTracking()
-                .AnyAsync(pl => pl.Id == priceListId && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+        // Query base per gli items del listino
+        IQueryable<PriceListEntry> query = context.PriceListEntries
+            .Where(ple => ple.PriceListId == priceListId && ple.TenantId == currentTenantId && !ple.IsDeleted)
+            .Include(ple => ple.Product);
 
-            if (!priceListExists)
+        // Applica filtri
+        query = ApplyBulkUpdateFilters(query, dto);
+
+        // Recupera items
+        var items = await query.ToListAsync(cancellationToken);
+
+        var result = new BulkUpdateResultDto
+        {
+            UpdatedAt = DateTime.UtcNow,
+            Errors = new List<string>()
+        };
+
+        // Aggiorna prezzi
+        foreach (var item in items)
+        {
+            try
             {
-                throw new InvalidOperationException($"Price list {priceListId} not found.");
-            }
+                var currentPrice = item.Price;
+                var newPrice = CalculateNewPrice(currentPrice, dto.Operation, dto.Value);
+                newPrice = ApplyRounding(newPrice, dto.RoundingStrategy);
 
-            // Query base per gli items del listino
-            IQueryable<PriceListEntry> query = context.PriceListEntries
-                .Where(ple => ple.PriceListId == priceListId && ple.TenantId == currentTenantId && !ple.IsDeleted)
-                .Include(ple => ple.Product);
-
-            // Applica filtri
-            query = ApplyBulkUpdateFilters(query, dto);
-
-            // Recupera items
-            var items = await query.ToListAsync(cancellationToken);
-
-            var result = new BulkUpdateResultDto
-            {
-                UpdatedAt = DateTime.UtcNow,
-                Errors = new List<string>()
-            };
-
-            // Aggiorna prezzi
-            foreach (var item in items)
-            {
-                try
+                // Assicura che il prezzo non sia negativo
+                if (newPrice < 0)
                 {
-                    var currentPrice = item.Price;
-                    var newPrice = CalculateNewPrice(currentPrice, dto.Operation, dto.Value);
-                    newPrice = ApplyRounding(newPrice, dto.RoundingStrategy);
-
-                    // Assicura che il prezzo non sia negativo
-                    if (newPrice < 0)
-                    {
-                        result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: Calculated price is negative, skipping.");
-                        result.FailedCount++;
-                        continue;
-                    }
-
-                    item.Price = newPrice;
-                    item.ModifiedBy = currentUser;
-                    item.ModifiedAt = DateTime.UtcNow;
-
-                    result.UpdatedCount++;
-                }
-                catch (Exception ex)
-                {
-                    result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: {ex.Message}");
+                    result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: Calculated price is negative, skipping.");
                     result.FailedCount++;
-                    logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}",
-                        item.ProductId, priceListId);
+                    continue;
                 }
-            }
 
-            // Salva modifiche in una transazione
-            if (result.UpdatedCount > 0)
+                item.Price = newPrice;
+                item.ModifiedBy = currentUser;
+                item.ModifiedAt = DateTime.UtcNow;
+
+                result.UpdatedCount++;
+            }
+            catch (Exception ex)
             {
-                await context.SaveChangesAsync(cancellationToken);
-
-                // Audit log per l'operazione bulk
-                await auditLogService.LogEntityChangeAsync(
-                    "PriceList",
-                    priceListId,
-                    "BulkUpdate",
-                    "BulkUpdate",
-                    null,
-                    $"Operation: {dto.Operation}, Value: {dto.Value}, Updated: {result.UpdatedCount}, Failed: {result.FailedCount}",
-                    currentUser,
-                    null,
-                    cancellationToken);
+                result.Errors.Add($"Product {item.Product?.Name ?? item.ProductId.ToString()}: {ex.Message}");
+                result.FailedCount++;
+                logger.LogError(ex, "Error updating price for product {ProductId} in price list {PriceListId}",
+                    item.ProductId, priceListId);
             }
+        }
 
-            return result;
-        }
-        catch
+        // Salva modifiche in una transazione
+        if (result.UpdatedCount > 0)
         {
-            throw;
+            await context.SaveChangesAsync(cancellationToken);
+
+            // Audit log per l'operazione bulk
+            await auditLogService.LogEntityChangeAsync(
+                "PriceList",
+                priceListId,
+                "BulkUpdate",
+                "BulkUpdate",
+                null,
+                $"Operation: {dto.Operation}, Value: {dto.Value}, Updated: {result.UpdatedCount}, Failed: {result.FailedCount}",
+                currentUser,
+                null,
+                cancellationToken);
         }
+
+        return result;
     }
 
     /// <summary>

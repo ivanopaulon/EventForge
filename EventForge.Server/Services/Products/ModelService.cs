@@ -15,178 +15,150 @@ public class ModelService(
 
     public async Task<PagedResult<ModelDto>> GetModelsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
-
-            var query = context.Models
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Include(m => m.Brand);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var modelDtos = await query
-                .OrderBy(m => m.Brand!.Name)
-                .ThenBy(m => m.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(m => new ModelDto
-                {
-                    Id = m.Id,
-                    BrandId = m.BrandId,
-                    BrandName = m.Brand != null ? m.Brand.Name : null,
-                    Name = m.Name,
-                    Description = m.Description,
-                    ManufacturerPartNumber = m.ManufacturerPartNumber,
-                    CreatedAt = m.CreatedAt,
-                    CreatedBy = m.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<ModelDto>
-            {
-                Items = modelDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for model operations.");
         }
-        catch
+
+        var query = context.Models
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .Include(m => m.Brand);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var modelDtos = await query
+            .OrderBy(m => m.Brand!.Name)
+            .ThenBy(m => m.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(m => new ModelDto
+            {
+                Id = m.Id,
+                BrandId = m.BrandId,
+                BrandName = m.Brand != null ? m.Brand.Name : null,
+                Name = m.Name,
+                Description = m.Description,
+                ManufacturerPartNumber = m.ManufacturerPartNumber,
+                CreatedAt = m.CreatedAt,
+                CreatedBy = m.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ModelDto>
         {
-            throw;
-        }
+            Items = modelDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<PagedResult<ModelDto>> GetModelsByBrandIdAsync(Guid brandId, PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
-
-            var query = context.Models
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Where(m => m.BrandId == brandId)
-                .Include(m => m.Brand);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var modelDtos = await query
-                .OrderBy(m => m.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(m => new ModelDto
-                {
-                    Id = m.Id,
-                    BrandId = m.BrandId,
-                    BrandName = m.Brand != null ? m.Brand.Name : null,
-                    Name = m.Name,
-                    Description = m.Description,
-                    ManufacturerPartNumber = m.ManufacturerPartNumber,
-                    CreatedAt = m.CreatedAt,
-                    CreatedBy = m.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<ModelDto>
-            {
-                Items = modelDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for model operations.");
         }
-        catch
+
+        var query = context.Models
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .Where(m => m.BrandId == brandId)
+            .Include(m => m.Brand);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var modelDtos = await query
+            .OrderBy(m => m.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(m => new ModelDto
+            {
+                Id = m.Id,
+                BrandId = m.BrandId,
+                BrandName = m.Brand != null ? m.Brand.Name : null,
+                Name = m.Name,
+                Description = m.Description,
+                ManufacturerPartNumber = m.ManufacturerPartNumber,
+                CreatedAt = m.CreatedAt,
+                CreatedBy = m.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ModelDto>
         {
-            throw;
-        }
+            Items = modelDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<ModelDto?> GetModelByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
-
-            var model = await context.Models
-                .AsNoTracking()
-                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .Include(m => m.Brand)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return model is not null ? MapToModelDto(model) : null;
+            throw new InvalidOperationException("Tenant context is required for model operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var model = await context.Models
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .Include(m => m.Brand)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return model is not null ? MapToModelDto(model) : null;
     }
 
     public async Task<ModelDto> CreateModelAsync(CreateModelDto createModelDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createModelDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createModelDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
-
-            // Verify brand exists and belongs to the same tenant
-            var brandExists = await context.Brands
-                .AsNoTracking()
-                .Where(b => b.Id == createModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .AnyAsync(cancellationToken);
-
-            if (!brandExists)
-            {
-                throw new ArgumentException($"Brand with ID {createModelDto.BrandId} not found.");
-            }
-
-            var model = new Model
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                BrandId = createModelDto.BrandId,
-                Name = createModelDto.Name,
-                Description = createModelDto.Description,
-                ManufacturerPartNumber = createModelDto.ManufacturerPartNumber,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            _ = context.Models.Add(model);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(model, "Insert", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Model {ModelId} created by {User}.", model.Id, currentUser);
-
-            // Reload with Brand to get brand name
-            var createdModel = await context.Models
-                .Include(m => m.Brand)
-                .FirstAsync(m => m.Id == model.Id, cancellationToken);
-
-            return MapToModelDto(createdModel);
+            throw new InvalidOperationException("Tenant context is required for model operations.");
         }
-        catch
+
+        // Verify brand exists and belongs to the same tenant
+        var brandExists = await context.Brands
+            .AsNoTracking()
+            .Where(b => b.Id == createModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .AnyAsync(cancellationToken);
+
+        if (!brandExists)
         {
-            throw;
+            throw new ArgumentException($"Brand with ID {createModelDto.BrandId} not found.");
         }
+
+        var model = new Model
+        {
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            BrandId = createModelDto.BrandId,
+            Name = createModelDto.Name,
+            Description = createModelDto.Description,
+            ManufacturerPartNumber = createModelDto.ManufacturerPartNumber,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        _ = context.Models.Add(model);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(model, "Insert", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Model {ModelId} created by {User}.", model.Id, currentUser);
+
+        // Reload with Brand to get brand name
+        var createdModel = await context.Models
+            .Include(m => m.Brand)
+            .FirstAsync(m => m.Id == model.Id, cancellationToken);
+
+        return MapToModelDto(createdModel);
     }
 
     public async Task<ModelDto?> UpdateModelAsync(Guid id, UpdateModelDto updateModelDto, string currentUser, CancellationToken cancellationToken = default)
@@ -321,23 +293,16 @@ public class ModelService(
 
     public async Task<bool> ModelExistsAsync(Guid modelId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
+            throw new InvalidOperationException("Tenant context is required for model operations.");
+        }
 
-            return await context.Models
-                .AsNoTracking()
-                .Where(m => m.Id == modelId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .AnyAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Models
+            .AsNoTracking()
+            .Where(m => m.Id == modelId && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .AnyAsync(cancellationToken);
     }
 
     private static ModelDto MapToModelDto(Model model)

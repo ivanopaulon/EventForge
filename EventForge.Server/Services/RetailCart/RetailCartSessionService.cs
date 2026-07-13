@@ -23,213 +23,157 @@ namespace EventForge.Server.Services.RetailCart
 
         public async Task<CartSessionDto> CreateSessionAsync(CreateCartSessionDto createDto, CancellationToken cancellationToken = default)
         {
-            try
+            var tenantId = GetCurrentTenantId();
+            var sessionId = Guid.NewGuid();
+
+            var session = new CartSession
             {
-                var tenantId = GetCurrentTenantId();
-                var sessionId = Guid.NewGuid();
+                Id = sessionId,
+                TenantId = tenantId,
+                CustomerId = createDto.CustomerId,
+                SalesChannel = createDto.SalesChannel,
+                Currency = createDto.Currency,
+                Items = [],
+                CouponCodes = [],
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
 
-                var session = new CartSession
-                {
-                    Id = sessionId,
-                    TenantId = tenantId,
-                    CustomerId = createDto.CustomerId,
-                    SalesChannel = createDto.SalesChannel,
-                    Currency = createDto.Currency,
-                    Items = [],
-                    CouponCodes = [],
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
+            var sessionKey = GetSessionKey(tenantId, sessionId);
+            _sessions[sessionKey] = session;
 
-                var sessionKey = GetSessionKey(tenantId, sessionId);
-                _sessions[sessionKey] = session;
+            logger.LogInformation("Created cart session {SessionId} for tenant {TenantId}", sessionId, tenantId);
 
-                logger.LogInformation("Created cart session {SessionId} for tenant {TenantId}", sessionId, tenantId);
-
-                return await MapToDto(session, cancellationToken);
-            }
-            catch
-            {
-                throw;
-            }
+            return await MapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
 
-                return await MapToDto(session, cancellationToken);
-            }
-            catch
-            {
-                throw;
-            }
+            return await MapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> AddItemAsync(Guid sessionId, AddCartItemDto addItemDto, CancellationToken cancellationToken = default)
         {
-            try
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
+
+            // Check if item already exists
+            var existingItem = session.Items.FirstOrDefault(i => i.ProductId == addItemDto.ProductId);
+            if (existingItem is not null)
             {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
-
-                // Check if item already exists
-                var existingItem = session.Items.FirstOrDefault(i => i.ProductId == addItemDto.ProductId);
-                if (existingItem is not null)
-                {
-                    existingItem.Quantity += addItemDto.Quantity;
-                }
-                else
-                {
-                    var newItem = new CartSessionItem
-                    {
-                        Id = Guid.NewGuid(),
-                        ProductId = addItemDto.ProductId,
-                        ProductCode = addItemDto.ProductCode,
-                        ProductName = addItemDto.ProductName,
-                        UnitPrice = addItemDto.UnitPrice,
-                        Quantity = addItemDto.Quantity,
-                        CategoryIds = addItemDto.CategoryIds
-                    };
-                    session.Items.Add(newItem);
-                }
-
-                session.UpdatedAt = DateTime.UtcNow;
-
-                logger.LogDebug("Added item {ProductId} (qty: {Quantity}) to cart session {SessionId}",
-                    addItemDto.ProductId, addItemDto.Quantity, sessionId);
-
-                return await RecalculateAndMapToDto(session, cancellationToken);
+                existingItem.Quantity += addItemDto.Quantity;
             }
-            catch
+            else
             {
-                throw;
+                var newItem = new CartSessionItem
+                {
+                    Id = Guid.NewGuid(),
+                    ProductId = addItemDto.ProductId,
+                    ProductCode = addItemDto.ProductCode,
+                    ProductName = addItemDto.ProductName,
+                    UnitPrice = addItemDto.UnitPrice,
+                    Quantity = addItemDto.Quantity,
+                    CategoryIds = addItemDto.CategoryIds
+                };
+                session.Items.Add(newItem);
             }
+
+            session.UpdatedAt = DateTime.UtcNow;
+
+            logger.LogDebug("Added item {ProductId} (qty: {Quantity}) to cart session {SessionId}",
+                addItemDto.ProductId, addItemDto.Quantity, sessionId);
+
+            return await RecalculateAndMapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId, CancellationToken cancellationToken = default)
         {
-            try
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
+
+            var item = session.Items.FirstOrDefault(i => i.Id == itemId);
+            if (item is not null)
             {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
+                _ = session.Items.Remove(item);
+                session.UpdatedAt = DateTime.UtcNow;
 
-                var item = session.Items.FirstOrDefault(i => i.Id == itemId);
-                if (item is not null)
-                {
-                    _ = session.Items.Remove(item);
-                    session.UpdatedAt = DateTime.UtcNow;
-
-                    logger.LogDebug("Removed item {ItemId} from cart session {SessionId}", itemId, sessionId);
-                }
-
-                return await RecalculateAndMapToDto(session, cancellationToken);
+                logger.LogDebug("Removed item {ItemId} from cart session {SessionId}", itemId, sessionId);
             }
-            catch
-            {
-                throw;
-            }
+
+            return await RecalculateAndMapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> UpdateItemQuantityAsync(Guid sessionId, Guid itemId, UpdateCartItemDto updateDto, CancellationToken cancellationToken = default)
         {
-            try
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
+
+            var item = session.Items.FirstOrDefault(i => i.Id == itemId);
+            if (item is not null)
             {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
-
-                var item = session.Items.FirstOrDefault(i => i.Id == itemId);
-                if (item is not null)
+                if (updateDto.Quantity <= 0)
                 {
-                    if (updateDto.Quantity <= 0)
-                    {
-                        _ = session.Items.Remove(item);
-                        logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})",
-                            itemId, sessionId, updateDto.Quantity);
-                    }
-                    else
-                    {
-                        item.Quantity = updateDto.Quantity;
-                        logger.LogDebug("Updated item {ItemId} quantity to {Quantity} in cart session {SessionId}",
-                            itemId, updateDto.Quantity, sessionId);
-                    }
-
-                    session.UpdatedAt = DateTime.UtcNow;
+                    _ = session.Items.Remove(item);
+                    logger.LogDebug("Removed item {ItemId} from cart session {SessionId} (quantity set to {Quantity})",
+                        itemId, sessionId, updateDto.Quantity);
+                }
+                else
+                {
+                    item.Quantity = updateDto.Quantity;
+                    logger.LogDebug("Updated item {ItemId} quantity to {Quantity} in cart session {SessionId}",
+                        itemId, updateDto.Quantity, sessionId);
                 }
 
-                return await RecalculateAndMapToDto(session, cancellationToken);
+                session.UpdatedAt = DateTime.UtcNow;
             }
-            catch
-            {
-                throw;
-            }
+
+            return await RecalculateAndMapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> ApplyCouponsAsync(Guid sessionId, ApplyCouponsDto applyCouponsDto, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
 
-                session.CouponCodes = applyCouponsDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToList() ?? [];
-                session.UpdatedAt = DateTime.UtcNow;
+            session.CouponCodes = applyCouponsDto.CouponCodes?.Where(c => !string.IsNullOrWhiteSpace(c)).ToList() ?? [];
+            session.UpdatedAt = DateTime.UtcNow;
 
-                logger.LogDebug("Applied {CouponCount} coupons to cart session {SessionId}",
-                    session.CouponCodes.Count, sessionId);
+            logger.LogDebug("Applied {CouponCount} coupons to cart session {SessionId}",
+                session.CouponCodes.Count, sessionId);
 
-                return await RecalculateAndMapToDto(session, cancellationToken);
-            }
-            catch
-            {
-                throw;
-            }
+            return await RecalculateAndMapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> ClearAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
 
-                session.Items.Clear();
-                session.CouponCodes.Clear();
-                session.UpdatedAt = DateTime.UtcNow;
+            session.Items.Clear();
+            session.CouponCodes.Clear();
+            session.UpdatedAt = DateTime.UtcNow;
 
-                logger.LogDebug("Cleared cart session {SessionId}", sessionId);
+            logger.LogDebug("Cleared cart session {SessionId}", sessionId);
 
-                return await RecalculateAndMapToDto(session, cancellationToken);
-            }
-            catch
-            {
-                throw;
-            }
+            return await RecalculateAndMapToDto(session, cancellationToken);
         }
 
         public async Task<CartSessionDto?> GetTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
         {
-            try
-            {
-                var session = GetSession(sessionId);
-                if (session is null)
-                    return null;
+            var session = GetSession(sessionId);
+            if (session is null)
+                return null;
 
-                return await RecalculateAndMapToDto(session, cancellationToken);
-            }
-            catch
-            {
-                throw;
-            }
+            return await RecalculateAndMapToDto(session, cancellationToken);
         }
 
         #region Private Methods

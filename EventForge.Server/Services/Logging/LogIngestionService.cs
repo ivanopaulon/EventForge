@@ -67,29 +67,22 @@ public class LogIngestionService(ILogger<LogIngestionService> logger) : ILogInge
     /// <inheritdoc/>
     public async Task<int> EnqueueBatchAsync(IEnumerable<ClientLogDto> logEntries, CancellationToken cancellationToken = default)
     {
-        try
+        if (logEntries is null)
         {
-            if (logEntries is null)
-            {
-                logger.LogWarning("Attempted to enqueue null log batch");
-                return 0;
-            }
-
-            var successCount = 0;
-            foreach (var logEntry in logEntries)
-            {
-                if (await EnqueueAsync(logEntry, cancellationToken))
-                {
-                    successCount++;
-                }
-            }
-
-            return successCount;
+            logger.LogWarning("Attempted to enqueue null log batch");
+            return 0;
         }
-        catch
+
+        var successCount = 0;
+        foreach (var logEntry in logEntries)
         {
-            throw;
+            if (await EnqueueAsync(logEntry, cancellationToken))
+            {
+                successCount++;
+            }
         }
+
+        return successCount;
     }
 
     /// <inheritdoc/>

@@ -15,103 +15,82 @@ public class PaymentTermService(
 
     public async Task<PagedResult<PaymentTermDto>> GetPaymentTermsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for payment term operations.");
-            }
-
-            var query = context.PaymentTerms
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var paymentTerms = await query
-                .OrderBy(pt => pt.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var paymentTermDtos = paymentTerms.Select(MapToPaymentTermDto);
-
-            return new PagedResult<PaymentTermDto>
-            {
-                Items = paymentTermDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for payment term operations.");
         }
-        catch
+
+        var query = context.PaymentTerms
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var paymentTerms = await query
+            .OrderBy(pt => pt.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var paymentTermDtos = paymentTerms.Select(MapToPaymentTermDto);
+
+        return new PagedResult<PaymentTermDto>
         {
-            throw;
-        }
+            Items = paymentTermDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<PaymentTermDto?> GetPaymentTermByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for payment term operations.");
-            }
-
-            var paymentTerm = await context.PaymentTerms
-                .AsNoTracking()
-                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId.Value && !pt.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return paymentTerm is not null ? MapToPaymentTermDto(paymentTerm) : null;
+            throw new InvalidOperationException("Tenant context is required for payment term operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var paymentTerm = await context.PaymentTerms
+            .AsNoTracking()
+            .Where(pt => pt.Id == id && pt.TenantId == currentTenantId.Value && !pt.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return paymentTerm is not null ? MapToPaymentTermDto(paymentTerm) : null;
     }
 
     public async Task<PaymentTermDto> CreatePaymentTermAsync(CreatePaymentTermDto createPaymentTermDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createPaymentTermDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createPaymentTermDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for payment term operations.");
-            }
-
-            var paymentTerm = new PaymentTerm
-            {
-                TenantId = currentTenantId.Value,
-                Name = createPaymentTermDto.Name,
-                Description = createPaymentTermDto.Description,
-                DueDays = createPaymentTermDto.DueDays,
-                PaymentMethod = (EventForge.Server.Data.Entities.Business.PaymentMethod)createPaymentTermDto.PaymentMethod,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _ = context.PaymentTerms.Add(paymentTerm);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Audit log for the created payment term
-            _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Payment term created with ID {PaymentTermId} by user {User}.", paymentTerm.Id, currentUser);
-
-            return MapToPaymentTermDto(paymentTerm);
+            throw new InvalidOperationException("Tenant context is required for payment term operations.");
         }
-        catch
+
+        var paymentTerm = new PaymentTerm
         {
-            throw;
-        }
+            TenantId = currentTenantId.Value,
+            Name = createPaymentTermDto.Name,
+            Description = createPaymentTermDto.Description,
+            DueDays = createPaymentTermDto.DueDays,
+            PaymentMethod = (EventForge.Server.Data.Entities.Business.PaymentMethod)createPaymentTermDto.PaymentMethod,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _ = context.PaymentTerms.Add(paymentTerm);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Audit log for the created payment term
+        _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Payment term created with ID {PaymentTermId} by user {User}.", paymentTerm.Id, currentUser);
+
+        return MapToPaymentTermDto(paymentTerm);
     }
 
     public async Task<PaymentTermDto?> UpdatePaymentTermAsync(Guid id, UpdatePaymentTermDto updatePaymentTermDto, string currentUser, CancellationToken cancellationToken = default)
@@ -244,15 +223,8 @@ public class PaymentTermService(
 
     public async Task<bool> PaymentTermExistsAsync(Guid paymentTermId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.PaymentTerms
-                .AnyAsync(pt => pt.Id == paymentTermId && !pt.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.PaymentTerms
+            .AnyAsync(pt => pt.Id == paymentTermId && !pt.IsDeleted, cancellationToken);
     }
 
     // Private mapping method

@@ -133,168 +133,140 @@ public class BrandingService(
 
     public async Task<BrandingConfigurationDto> UpdateGlobalBrandingAsync(UpdateBrandingDto updateDto, string username, CancellationToken ct = default)
     {
-        try
+
+        // Update configuration values
+        if (!string.IsNullOrWhiteSpace(updateDto.LogoUrl))
         {
-
-            // Update configuration values
-            if (!string.IsNullOrWhiteSpace(updateDto.LogoUrl))
-            {
-                await configurationService.SetValueAsync("Branding:LogoUrl", updateDto.LogoUrl, $"Updated by {username}", ct);
-            }
-
-            if (updateDto.LogoHeight.HasValue)
-            {
-                await configurationService.SetValueAsync("Branding:LogoHeight", updateDto.LogoHeight.Value.ToString(), $"Updated by {username}", ct);
-            }
-
-            if (!string.IsNullOrWhiteSpace(updateDto.ApplicationName))
-            {
-                await configurationService.SetValueAsync("Branding:ApplicationName", updateDto.ApplicationName, $"Updated by {username}", ct);
-            }
-
-            if (!string.IsNullOrWhiteSpace(updateDto.FaviconUrl))
-            {
-                await configurationService.SetValueAsync("Branding:FaviconUrl", updateDto.FaviconUrl, $"Updated by {username}", ct);
-            }
-
-            // Invalidate cache
-            cache.Remove(GLOBAL_CACHE_KEY);
-
-            logger.LogInformation("Global branding configuration updated successfully by user: {Username}", username);
-
-            return await GetBrandingAsync(null, ct);
+            await configurationService.SetValueAsync("Branding:LogoUrl", updateDto.LogoUrl, $"Updated by {username}", ct);
         }
-        catch
+
+        if (updateDto.LogoHeight.HasValue)
         {
-            throw;
+            await configurationService.SetValueAsync("Branding:LogoHeight", updateDto.LogoHeight.Value.ToString(), $"Updated by {username}", ct);
         }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.ApplicationName))
+        {
+            await configurationService.SetValueAsync("Branding:ApplicationName", updateDto.ApplicationName, $"Updated by {username}", ct);
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.FaviconUrl))
+        {
+            await configurationService.SetValueAsync("Branding:FaviconUrl", updateDto.FaviconUrl, $"Updated by {username}", ct);
+        }
+
+        // Invalidate cache
+        cache.Remove(GLOBAL_CACHE_KEY);
+
+        logger.LogInformation("Global branding configuration updated successfully by user: {Username}", username);
+
+        return await GetBrandingAsync(null, ct);
     }
 
     public async Task<BrandingConfigurationDto> UpdateTenantBrandingAsync(Guid tenantId, UpdateBrandingDto updateDto, string username, CancellationToken ct = default)
     {
-        try
+
+        var tenant = await context.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
+
+        if (tenant is null)
         {
-
-            var tenant = await context.Tenants
-                .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
-
-            if (tenant is null)
-            {
-                throw new InvalidOperationException($"Tenant with ID {tenantId} not found.");
-            }
-
-            // Update tenant branding properties
-            if (!string.IsNullOrWhiteSpace(updateDto.LogoUrl))
-            {
-                tenant.CustomLogoUrl = updateDto.LogoUrl;
-            }
-
-            if (!string.IsNullOrWhiteSpace(updateDto.ApplicationName))
-            {
-                tenant.CustomApplicationName = updateDto.ApplicationName;
-            }
-
-            if (!string.IsNullOrWhiteSpace(updateDto.FaviconUrl))
-            {
-                tenant.CustomFaviconUrl = updateDto.FaviconUrl;
-            }
-
-            tenant.ModifiedBy = username;
-            tenant.ModifiedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync(ct);
-
-            // Invalidate cache
-            cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
-
-            logger.LogInformation("Tenant branding updated successfully for TenantId: {TenantId}", tenantId);
-
-            return await GetBrandingAsync(tenantId, ct);
+            throw new InvalidOperationException($"Tenant with ID {tenantId} not found.");
         }
-        catch
+
+        // Update tenant branding properties
+        if (!string.IsNullOrWhiteSpace(updateDto.LogoUrl))
         {
-            throw;
+            tenant.CustomLogoUrl = updateDto.LogoUrl;
         }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.ApplicationName))
+        {
+            tenant.CustomApplicationName = updateDto.ApplicationName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.FaviconUrl))
+        {
+            tenant.CustomFaviconUrl = updateDto.FaviconUrl;
+        }
+
+        tenant.ModifiedBy = username;
+        tenant.ModifiedAt = DateTime.UtcNow;
+
+        await context.SaveChangesAsync(ct);
+
+        // Invalidate cache
+        cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
+
+        logger.LogInformation("Tenant branding updated successfully for TenantId: {TenantId}", tenantId);
+
+        return await GetBrandingAsync(tenantId, ct);
     }
 
     public async Task DeleteTenantBrandingAsync(Guid tenantId, CancellationToken ct = default)
     {
-        try
+
+        var tenant = await context.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
+
+        if (tenant is null)
         {
-
-            var tenant = await context.Tenants
-                .FirstOrDefaultAsync(t => t.Id == tenantId, ct);
-
-            if (tenant is null)
-            {
-                throw new InvalidOperationException($"Tenant with ID {tenantId} not found.");
-            }
-
-            // Clear tenant branding
-            tenant.CustomLogoUrl = null;
-            tenant.CustomApplicationName = null;
-            tenant.CustomFaviconUrl = null;
-            tenant.ModifiedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync(ct);
-
-            // Invalidate cache
-            cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
-
-            logger.LogInformation("Tenant branding override deleted successfully for TenantId: {TenantId}", tenantId);
+            throw new InvalidOperationException($"Tenant with ID {tenantId} not found.");
         }
-        catch
-        {
-            throw;
-        }
+
+        // Clear tenant branding
+        tenant.CustomLogoUrl = null;
+        tenant.CustomApplicationName = null;
+        tenant.CustomFaviconUrl = null;
+        tenant.ModifiedAt = DateTime.UtcNow;
+
+        await context.SaveChangesAsync(ct);
+
+        // Invalidate cache
+        cache.Remove($"{CACHE_KEY_PREFIX}{tenantId}");
+
+        logger.LogInformation("Tenant branding override deleted successfully for TenantId: {TenantId}", tenantId);
     }
 
     public async Task<string> UploadLogoAsync(IFormFile file, Guid? tenantId = null, CancellationToken ct = default)
     {
-        try
+        if (file is null || file.Length == 0)
         {
-            if (file is null || file.Length == 0)
-            {
-                throw new ArgumentException("File is required.");
-            }
-
-            // Validate file size
-            if (file.Length > MAX_FILE_SIZE)
-            {
-                throw new ArgumentException($"File size exceeds maximum allowed size of {MAX_FILE_SIZE / 1024 / 1024}MB.");
-            }
-
-            // Validate file extension
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-            if (!ALLOWED_EXTENSIONS.Contains(extension))
-            {
-                throw new ArgumentException($"File type {extension} is not allowed. Allowed types: {string.Join(", ", ALLOWED_EXTENSIONS)}");
-            }
-
-            // Create upload directory if it doesn't exist
-            var uploadPath = Path.Combine(environment.WebRootPath, UPLOAD_FOLDER);
-            Directory.CreateDirectory(uploadPath);
-
-            // Generate unique filename
-            var fileName = $"{(tenantId.HasValue ? $"tenant_{tenantId}_" : "global_")}{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(uploadPath, fileName);
-
-            // Save file
-            await using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream, ct);
-            }
-
-            var logoUrl = $"/{UPLOAD_FOLDER}/{fileName}";
-
-            logger.LogInformation("Logo uploaded successfully: {LogoUrl} for TenantId: {TenantId}", logoUrl, tenantId);
-
-            return logoUrl;
+            throw new ArgumentException("File is required.");
         }
-        catch
+
+        // Validate file size
+        if (file.Length > MAX_FILE_SIZE)
         {
-            throw;
+            throw new ArgumentException($"File size exceeds maximum allowed size of {MAX_FILE_SIZE / 1024 / 1024}MB.");
         }
+
+        // Validate file extension
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!ALLOWED_EXTENSIONS.Contains(extension))
+        {
+            throw new ArgumentException($"File type {extension} is not allowed. Allowed types: {string.Join(", ", ALLOWED_EXTENSIONS)}");
+        }
+
+        // Create upload directory if it doesn't exist
+        var uploadPath = Path.Combine(environment.WebRootPath, UPLOAD_FOLDER);
+        Directory.CreateDirectory(uploadPath);
+
+        // Generate unique filename
+        var fileName = $"{(tenantId.HasValue ? $"tenant_{tenantId}_" : "global_")}{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadPath, fileName);
+
+        // Save file
+        await using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream, ct);
+        }
+
+        var logoUrl = $"/{UPLOAD_FOLDER}/{fileName}";
+
+        logger.LogInformation("Logo uploaded successfully: {LogoUrl} for TenantId: {TenantId}", logoUrl, tenantId);
+
+        return logoUrl;
     }
 
 }

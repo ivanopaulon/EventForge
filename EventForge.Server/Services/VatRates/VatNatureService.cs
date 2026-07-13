@@ -19,113 +19,92 @@ public class VatNatureService(
 
     public async Task<PagedResult<VatNatureDto>> GetVatNaturesAsync(int page = 1, int pageSize = 100, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
-            }
-
-            // Cache all VatNatures for 30 minutes
-            var allNatures = await cacheService.GetOrCreateAsync(
-                CACHE_KEY_ALL,
-                currentTenantId.Value,
-                async (ct) =>
-                {
-                    return await context.VatNatures
-                        .AsNoTracking()
-                        .WhereActiveTenant(currentTenantId.Value)
-                        .OrderBy(v => v.Code)
-                        .Select(v => MapToVatNatureDto(v))
-                        .ToListAsync(ct);
-                },
-                absoluteExpiration: TimeSpan.FromMinutes(30),
-                ct: cancellationToken
-            );
-
-            // Paginate in memory (VatNatures are typically few - usually < 50 per tenant)
-            // Note: If a tenant has a very large number of VAT natures, consider per-page caching
-            var totalCount = allNatures.Count;
-            var items = allNatures
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
-
-            return new PagedResult<VatNatureDto>
-            {
-                Items = items,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
         }
-        catch
+
+        // Cache all VatNatures for 30 minutes
+        var allNatures = await cacheService.GetOrCreateAsync(
+            CACHE_KEY_ALL,
+            currentTenantId.Value,
+            async (ct) =>
+            {
+                return await context.VatNatures
+                    .AsNoTracking()
+                    .WhereActiveTenant(currentTenantId.Value)
+                    .OrderBy(v => v.Code)
+                    .Select(v => MapToVatNatureDto(v))
+                    .ToListAsync(ct);
+            },
+            absoluteExpiration: TimeSpan.FromMinutes(30),
+            ct: cancellationToken
+        );
+
+        // Paginate in memory (VatNatures are typically few - usually < 50 per tenant)
+        // Note: If a tenant has a very large number of VAT natures, consider per-page caching
+        var totalCount = allNatures.Count;
+        var items = allNatures
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<VatNatureDto>
         {
-            throw;
-        }
+            Items = items,
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<VatNatureDto?> GetVatNatureByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
 
-            var vatNature = await context.VatNatures
-                .AsNoTracking()
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var vatNature = await context.VatNatures
+            .AsNoTracking()
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return vatNature is not null ? MapToVatNatureDto(vatNature) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return vatNature is not null ? MapToVatNatureDto(vatNature) : null;
     }
 
     public async Task<VatNatureDto> CreateVatNatureAsync(CreateVatNatureDto createVatNatureDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createVatNatureDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createVatNatureDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
-            }
-
-            var vatNature = new VatNature
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                Code = createVatNatureDto.Code,
-                Name = createVatNatureDto.Name,
-                Description = createVatNatureDto.Description,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            _ = context.VatNatures.Add(vatNature);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
-
-            logger.LogInformation("VAT nature {VatNatureId} created by {User}.", vatNature.Id, currentUser);
-
-            return MapToVatNatureDto(vatNature);
+            throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
         }
-        catch
+
+        var vatNature = new VatNature
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            Code = createVatNatureDto.Code,
+            Name = createVatNatureDto.Name,
+            Description = createVatNatureDto.Description,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        _ = context.VatNatures.Add(vatNature);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Insert", currentUser, null, cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
+        logger.LogInformation("VAT nature {VatNatureId} created by {User}.", vatNature.Id, currentUser);
+
+        return MapToVatNatureDto(vatNature);
     }
 
     public async Task<VatNatureDto?> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateVatNatureDto, string currentUser, CancellationToken cancellationToken = default)

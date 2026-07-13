@@ -19,196 +19,154 @@ public class BackupService(
 
     public async Task<BackupStatusDto> StartBackupAsync(BackupRequestDto request, CancellationToken ct = default)
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                throw new UnauthorizedAccessException("Only SuperAdmin can perform backup operations.");
-            }
-
-            var backup = new BackupOperation
-            {
-                Status = "Starting",
-                StartedByUserId = tenantContext.CurrentUserId ?? throw new InvalidOperationException("Current user ID not available"),
-                Description = request.Description,
-                IncludeAuditLogs = request.IncludeAuditLogs,
-                IncludeUserData = request.IncludeUserData,
-                IncludeConfiguration = request.IncludeConfiguration,
-                StartedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = tenantContext.CurrentUserId.ToString()
-            };
-
-            _ = context.BackupOperations.Add(backup);
-            _ = await context.SaveChangesAsync(ct);
-
-            // Start backup process in background
-            _ = Task.Run(async () => await PerformBackupAsync(backup.Id, CancellationToken.None), CancellationToken.None);
-
-            var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
-
-            return result;
+            throw new UnauthorizedAccessException("Only SuperAdmin can perform backup operations.");
         }
-        catch
+
+        var backup = new BackupOperation
         {
-            throw;
-        }
+            Status = "Starting",
+            StartedByUserId = tenantContext.CurrentUserId ?? throw new InvalidOperationException("Current user ID not available"),
+            Description = request.Description,
+            IncludeAuditLogs = request.IncludeAuditLogs,
+            IncludeUserData = request.IncludeUserData,
+            IncludeConfiguration = request.IncludeConfiguration,
+            StartedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = tenantContext.CurrentUserId.ToString()
+        };
+
+        _ = context.BackupOperations.Add(backup);
+        _ = await context.SaveChangesAsync(ct);
+
+        // Start backup process in background
+        _ = Task.Run(async () => await PerformBackupAsync(backup.Id, CancellationToken.None), CancellationToken.None);
+
+        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
+
+        return result;
     }
 
     public async Task<BackupStatusDto?> GetBackupStatusAsync(Guid backupId, CancellationToken ct = default)
     {
-        try
+        var backup = await context.BackupOperations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
+
+        if (backup is null)
         {
-            var backup = await context.BackupOperations
-                .AsNoTracking()
-                .FirstOrDefaultAsync(b => b.Id == backupId, ct);
-
-            if (backup is null)
-            {
-                return null;
-            }
-
-            var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
-
-            return result;
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        var result = BackupMapper.ToServerStatusDto(backup, await GetUserDisplayNameAsync(backup.StartedByUserId, ct));
+
+        return result;
     }
 
     public async Task<IEnumerable<BackupStatusDto>> GetBackupsAsync(int limit = 50, CancellationToken ct = default)
     {
-        try
+        var backups = await context.BackupOperations
+            .AsNoTracking()
+            .OrderByDescending(b => b.StartedAt)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        var userIds = backups.Select(b => b.StartedByUserId).Distinct().ToList();
+        var users = await context.Users
+            .AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToListAsync(ct);
+        var userDisplayNames = users.ToDictionary(
+            u => u.Id,
+            u => $"{u.FirstName} {u.LastName}".Trim());
+
+        var results = backups.Select(backup =>
         {
-            var backups = await context.BackupOperations
-                .AsNoTracking()
-                .OrderByDescending(b => b.StartedAt)
-                .Take(limit)
-                .ToListAsync(ct);
+            var displayName = userDisplayNames.TryGetValue(backup.StartedByUserId, out var name) ? name : "Unknown User";
+            return BackupMapper.ToServerStatusDto(backup, displayName);
+        }).ToList();
 
-            var userIds = backups.Select(b => b.StartedByUserId).Distinct().ToList();
-            var users = await context.Users
-                .AsNoTracking()
-                .Where(u => userIds.Contains(u.Id))
-                .ToListAsync(ct);
-            var userDisplayNames = users.ToDictionary(
-                u => u.Id,
-                u => $"{u.FirstName} {u.LastName}".Trim());
-
-            var results = backups.Select(backup =>
-            {
-                var displayName = userDisplayNames.TryGetValue(backup.StartedByUserId, out var name) ? name : "Unknown User";
-                return BackupMapper.ToServerStatusDto(backup, displayName);
-            }).ToList();
-
-            return results;
-        }
-        catch
-        {
-            throw;
-        }
+        return results;
     }
 
     public async Task CancelBackupAsync(Guid backupId, CancellationToken ct = default)
     {
-        try
+        var backup = await context.BackupOperations
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
+
+        if (backup is null)
         {
-            var backup = await context.BackupOperations
-                .FirstOrDefaultAsync(b => b.Id == backupId, ct);
-
-            if (backup is null)
-            {
-                throw new InvalidOperationException($"Backup operation {backupId} not found.");
-            }
-
-            if (backup.Status == "Completed" || backup.Status == "Failed" || backup.Status == "Cancelled")
-            {
-                throw new InvalidOperationException($"Cannot cancel backup in {backup.Status} status.");
-            }
-
-            backup.Status = "Cancelled";
-            backup.CompletedAt = DateTime.UtcNow;
-            backup.ModifiedAt = DateTime.UtcNow;
-            backup.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
-
-            _ = await context.SaveChangesAsync(ct);
-
-            // Notify clients
-            await NotifyBackupStatusChange(backup, ct);
+            throw new InvalidOperationException($"Backup operation {backupId} not found.");
         }
-        catch
+
+        if (backup.Status == "Completed" || backup.Status == "Failed" || backup.Status == "Cancelled")
         {
-            throw;
+            throw new InvalidOperationException($"Cannot cancel backup in {backup.Status} status.");
         }
+
+        backup.Status = "Cancelled";
+        backup.CompletedAt = DateTime.UtcNow;
+        backup.ModifiedAt = DateTime.UtcNow;
+        backup.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
+
+        _ = await context.SaveChangesAsync(ct);
+
+        // Notify clients
+        await NotifyBackupStatusChange(backup, ct);
     }
 
     public async Task<(Stream FileStream, string FileName)?> DownloadBackupAsync(Guid backupId, CancellationToken ct = default)
     {
-        try
+        var backup = await context.BackupOperations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == backupId, ct);
+
+        if (backup is null || backup.Status != "Completed" || string.IsNullOrEmpty(backup.FilePath))
         {
-            var backup = await context.BackupOperations
-                .AsNoTracking()
-                .FirstOrDefaultAsync(b => b.Id == backupId, ct);
-
-            if (backup is null || backup.Status != "Completed" || string.IsNullOrEmpty(backup.FilePath))
-            {
-                return null;
-            }
-
-            if (!File.Exists(backup.FilePath))
-            {
-                return null;
-            }
-
-            var fileStream = new FileStream(backup.FilePath, FileMode.Open, FileAccess.Read);
-            var fileName = $"PRYM_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
-
-            return (fileStream, fileName);
+            return null;
         }
-        catch
+
+        if (!File.Exists(backup.FilePath))
         {
-            throw;
+            return null;
         }
+
+        var fileStream = new FileStream(backup.FilePath, FileMode.Open, FileAccess.Read);
+        var fileName = $"PRYM_Backup_{backup.StartedAt:yyyyMMdd_HHmmss}.zip";
+
+        return (fileStream, fileName);
     }
 
     public async Task DeleteBackupAsync(Guid backupId, CancellationToken ct = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var backup = await context.BackupOperations
+            .FirstOrDefaultAsync(b => b.Id == backupId && b.TenantId == currentTenantId, ct);
+
+        if (backup is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var backup = await context.BackupOperations
-                .FirstOrDefaultAsync(b => b.Id == backupId && b.TenantId == currentTenantId, ct);
-
-            if (backup is null)
-            {
-                throw new InvalidOperationException($"Backup operation {backupId} not found.");
-            }
-
-            // Delete physical file if it exists
-            if (!string.IsNullOrEmpty(backup.FilePath) && File.Exists(backup.FilePath))
-            {
-                try
-                {
-                    File.Delete(backup.FilePath);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to delete backup file: {FilePath}", backup.FilePath);
-                }
-            }
-
-            // Delete database record
-            _ = context.BackupOperations.Remove(backup);
-            _ = await context.SaveChangesAsync(ct);
+            throw new InvalidOperationException($"Backup operation {backupId} not found.");
         }
-        catch
+
+        // Delete physical file if it exists
+        if (!string.IsNullOrEmpty(backup.FilePath) && File.Exists(backup.FilePath))
         {
-            throw;
+            try
+            {
+                File.Delete(backup.FilePath);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to delete backup file: {FilePath}", backup.FilePath);
+            }
         }
+
+        // Delete database record
+        _ = context.BackupOperations.Remove(backup);
+        _ = await context.SaveChangesAsync(ct);
     }
 
     private async Task PerformBackupAsync(Guid backupId, CancellationToken ct = default)

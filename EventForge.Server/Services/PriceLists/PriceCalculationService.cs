@@ -22,282 +22,261 @@ public class PriceCalculationService(
         int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        try
+        var evalDate = evaluationDate ?? DateTime.UtcNow;
+
+        // Step 1: Trova listini vendita applicabili
+        var query = context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Type == PriceListType.Sales &&
+                         pl.Direction == PriceListDirection.Output &&
+                         !pl.IsDeleted &&
+                         pl.Status == PriceListStatus.Active)
+            .Where(pl => pl.EventId == eventId)
+            .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
+                         (pl.ValidTo == null || pl.ValidTo >= evalDate))
+            .Include(pl => pl.BusinessParties.Where(bp =>
+                !bp.IsDeleted &&
+                bp.Status == PriceListBusinessPartyStatus.Active))
+            .ThenInclude(bp => bp.BusinessParty)
+            .Include(pl => pl.ProductPrices.Where(ple =>
+                ple.ProductId == productId &&
+                !ple.IsDeleted &&
+                ple.Status == PriceListEntryStatus.Active &&
+                ple.MinQuantity <= quantity &&
+                (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
+            .ThenInclude(ple => ple.UnitOfMeasure);
+
+        var applicablePriceLists = await query.ToListAsync(cancellationToken);
+
+        // Step 2: Filtra per BusinessParty se specificato
+        if (businessPartyId.HasValue)
         {
-            var evalDate = evaluationDate ?? DateTime.UtcNow;
+            applicablePriceLists = applicablePriceLists
+                .Where(pl =>
+                    // Listino generico (senza BusinessParty assegnati)
+                    !pl.BusinessParties.Any() ||
+                    // Oppure listino assegnato a questo BusinessParty
+                    pl.BusinessParties.Any(bp =>
+                        bp.BusinessPartyId == businessPartyId.Value &&
+                        (!bp.SpecificValidFrom.HasValue || bp.SpecificValidFrom.Value <= evalDate) &&
+                        (!bp.SpecificValidTo.HasValue || bp.SpecificValidTo.Value >= evalDate)))
+                .ToList();
+        }
+        else
+        {
+            // Solo listini generici (senza BusinessParty)
+            applicablePriceLists = applicablePriceLists
+                .Where(pl => !pl.BusinessParties.Any())
+                .ToList();
+        }
 
-            // Step 1: Trova listini vendita applicabili
-            var query = context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Type == PriceListType.Sales &&
-                             pl.Direction == PriceListDirection.Output &&
-                             !pl.IsDeleted &&
-                             pl.Status == PriceListStatus.Active)
-                .Where(pl => pl.EventId == eventId)
-                .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
-                             (pl.ValidTo == null || pl.ValidTo >= evalDate))
-                .Include(pl => pl.BusinessParties.Where(bp =>
-                    !bp.IsDeleted &&
-                    bp.Status == PriceListBusinessPartyStatus.Active))
-                .ThenInclude(bp => bp.BusinessParty)
-                .Include(pl => pl.ProductPrices.Where(ple =>
-                    ple.ProductId == productId &&
-                    !ple.IsDeleted &&
-                    ple.Status == PriceListEntryStatus.Active &&
-                    ple.MinQuantity <= quantity &&
-                    (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
-                .ThenInclude(ple => ple.UnitOfMeasure);
-
-            var applicablePriceLists = await query.ToListAsync(cancellationToken);
-
-            // Step 2: Filtra per BusinessParty se specificato
-            if (businessPartyId.HasValue)
+        // Step 3: Ordina per precedenza
+        var orderedPriceList = applicablePriceLists
+            .SelectMany(pl => pl.ProductPrices.Select(ple => new
             {
-                applicablePriceLists = applicablePriceLists
-                    .Where(pl =>
-                        // Listino generico (senza BusinessParty assegnati)
-                        !pl.BusinessParties.Any() ||
-                        // Oppure listino assegnato a questo BusinessParty
-                        pl.BusinessParties.Any(bp =>
-                            bp.BusinessPartyId == businessPartyId.Value &&
-                            (!bp.SpecificValidFrom.HasValue || bp.SpecificValidFrom.Value <= evalDate) &&
-                            (!bp.SpecificValidTo.HasValue || bp.SpecificValidTo.Value >= evalDate)))
-                    .ToList();
-            }
-            else
-            {
-                // Solo listini generici (senza BusinessParty)
-                applicablePriceLists = applicablePriceLists
-                    .Where(pl => !pl.BusinessParties.Any())
-                    .ToList();
-            }
-
-            // Step 3: Ordina per precedenza
-            var orderedPriceList = applicablePriceLists
-                .SelectMany(pl => pl.ProductPrices.Select(ple => new
-                {
-                    PriceList = pl,
-                    Entry = ple,
-                    BusinessPartyRel = businessPartyId.HasValue
-                        ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
-                        : null,
-                    EffectivePriority = businessPartyId.HasValue
-                        ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
-                            ?.OverridePriority ?? pl.Priority
-                        : pl.Priority,
-                    GlobalDiscount = businessPartyId.HasValue
-                        ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
-                            ?.GlobalDiscountPercentage
-                        : null
-                }))
-                .OrderBy(x => x.EffectivePriority)  // Priorità più bassa = più importante
-                .ThenBy(x => x.PriceList.IsDefault ? 0 : 1)
-                .ThenByDescending(x => x.PriceList.CreatedAt)
-                .FirstOrDefault();
-
-            if (orderedPriceList is null)
-                return null;
-
-            // Step 4: Calcola prezzo finale con sconto globale
-            var finalPrice = orderedPriceList.Entry.Price;
-            if (orderedPriceList.GlobalDiscount.HasValue)
-            {
-                finalPrice *= (1 - orderedPriceList.GlobalDiscount.Value / 100m);
-            }
-
-            return new AppliedPriceDto
-            {
-                ProductId = productId,
-                EventId = eventId,
-                Price = finalPrice,
-                OriginalPrice = orderedPriceList.Entry.Price,
-                Currency = orderedPriceList.Entry.Currency,
-                PriceListId = orderedPriceList.PriceList.Id,
-                PriceListName = orderedPriceList.PriceList.Name,
-                PriceListPriority = orderedPriceList.EffectivePriority,
-                MinQuantity = orderedPriceList.Entry.MinQuantity,
-                MaxQuantity = orderedPriceList.Entry.MaxQuantity,
-                IsEditableInFrontend = orderedPriceList.Entry.IsEditableInFrontend,
-                IsDiscountable = orderedPriceList.Entry.IsDiscountable,
-                Score = orderedPriceList.Entry.Score,
-                CalculatedAt = DateTime.UtcNow,
-                BusinessPartyId = orderedPriceList.BusinessPartyRel?.BusinessPartyId,
-                BusinessPartyName = orderedPriceList.BusinessPartyRel?.BusinessParty?.Name,
-                AppliedDiscountPercentage = orderedPriceList.GlobalDiscount,
-                UnitOfMeasureId = orderedPriceList.Entry.UnitOfMeasureId ?? Guid.Empty,
-                UnitOfMeasureName = orderedPriceList.Entry.UnitOfMeasure?.Name ?? string.Empty,
-                UnitSymbol = orderedPriceList.Entry.UnitOfMeasure?.Symbol ?? string.Empty,
-                CalculationNotes = orderedPriceList.GlobalDiscount.HasValue
-                    ? $"Applied {orderedPriceList.GlobalDiscount.Value:F2}% global discount for {orderedPriceList.BusinessPartyRel?.BusinessParty?.Name}"
+                PriceList = pl,
+                Entry = ple,
+                BusinessPartyRel = businessPartyId.HasValue
+                    ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
+                    : null,
+                EffectivePriority = businessPartyId.HasValue
+                    ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
+                        ?.OverridePriority ?? pl.Priority
+                    : pl.Priority,
+                GlobalDiscount = businessPartyId.HasValue
+                    ? pl.BusinessParties.FirstOrDefault(bp => bp.BusinessPartyId == businessPartyId.Value)
+                        ?.GlobalDiscountPercentage
                     : null
-            };
-        }
-        catch
+            }))
+            .OrderBy(x => x.EffectivePriority)  // Priorità più bassa = più importante
+            .ThenBy(x => x.PriceList.IsDefault ? 0 : 1)
+            .ThenByDescending(x => x.PriceList.CreatedAt)
+            .FirstOrDefault();
+
+        if (orderedPriceList is null)
+            return null;
+
+        // Step 4: Calcola prezzo finale con sconto globale
+        var finalPrice = orderedPriceList.Entry.Price;
+        if (orderedPriceList.GlobalDiscount.HasValue)
         {
-            throw;
+            finalPrice *= (1 - orderedPriceList.GlobalDiscount.Value / 100m);
         }
+
+        return new AppliedPriceDto
+        {
+            ProductId = productId,
+            EventId = eventId,
+            Price = finalPrice,
+            OriginalPrice = orderedPriceList.Entry.Price,
+            Currency = orderedPriceList.Entry.Currency,
+            PriceListId = orderedPriceList.PriceList.Id,
+            PriceListName = orderedPriceList.PriceList.Name,
+            PriceListPriority = orderedPriceList.EffectivePriority,
+            MinQuantity = orderedPriceList.Entry.MinQuantity,
+            MaxQuantity = orderedPriceList.Entry.MaxQuantity,
+            IsEditableInFrontend = orderedPriceList.Entry.IsEditableInFrontend,
+            IsDiscountable = orderedPriceList.Entry.IsDiscountable,
+            Score = orderedPriceList.Entry.Score,
+            CalculatedAt = DateTime.UtcNow,
+            BusinessPartyId = orderedPriceList.BusinessPartyRel?.BusinessPartyId,
+            BusinessPartyName = orderedPriceList.BusinessPartyRel?.BusinessParty?.Name,
+            AppliedDiscountPercentage = orderedPriceList.GlobalDiscount,
+            UnitOfMeasureId = orderedPriceList.Entry.UnitOfMeasureId ?? Guid.Empty,
+            UnitOfMeasureName = orderedPriceList.Entry.UnitOfMeasure?.Name ?? string.Empty,
+            UnitSymbol = orderedPriceList.Entry.UnitOfMeasure?.Symbol ?? string.Empty,
+            CalculationNotes = orderedPriceList.GlobalDiscount.HasValue
+                ? $"Applied {orderedPriceList.GlobalDiscount.Value:F2}% global discount for {orderedPriceList.BusinessPartyRel?.BusinessParty?.Name}"
+                : null
+        };
     }
 
     public async Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, Guid? businessPartyId = null, CancellationToken cancellationToken = default)
     {
-        try
+        // First get the base applied price
+        var basePrice = await GetAppliedPriceAsync(productId, eventId, null, evaluationDate, quantity, cancellationToken);
+        if (basePrice is null)
         {
-            // First get the base applied price
-            var basePrice = await GetAppliedPriceAsync(productId, eventId, null, evaluationDate, quantity, cancellationToken);
-            if (basePrice is null)
-            {
-                return null;
-            }
-
-            // Get the target unit information
-            var targetProductUnit = await context.ProductUnits
-                .AsNoTracking()
-                .Include(pu => pu.UnitOfMeasure)
-                .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
-                                         pu.UnitOfMeasureId == targetUnitId &&
-                                         !pu.IsDeleted &&
-                                         pu.Status == ProductUnitStatus.Active,
-                                         cancellationToken);
-
-            if (targetProductUnit is null)
-            {
-                logger.LogWarning("Target unit {TargetUnitId} not found for product {ProductId}", targetUnitId, productId);
-                return basePrice; // Return base price if target unit not found
-            }
-
-            // Get the base unit information for conversion
-            var baseProductUnit = await context.ProductUnits
-                .AsNoTracking()
-                .Include(pu => pu.UnitOfMeasure)
-                .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
-                                         pu.UnitOfMeasureId == basePrice.UnitOfMeasureId &&
-                                         !pu.IsDeleted &&
-                                         pu.Status == ProductUnitStatus.Active,
-                                         cancellationToken);
-
-            if (baseProductUnit is null)
-            {
-                logger.LogWarning("Base unit {BaseUnitId} not found for product {ProductId}", basePrice.UnitOfMeasureId, productId);
-                return basePrice; // Return base price if conversion not possible
-            }
-
-            // Perform price conversion using the unit conversion service
-            var convertedPrice = unitConversionService.ConvertPrice(
-                basePrice.Price,
-                baseProductUnit.ConversionFactor,
-                targetProductUnit.ConversionFactor,
-                2); // 2 decimal places for currency
-
-            // Create the result with conversion information
-            var result = new AppliedPriceDto
-            {
-                ProductId = basePrice.ProductId,
-                EventId = basePrice.EventId,
-                Price = convertedPrice,
-                Currency = basePrice.Currency,
-                UnitOfMeasureId = targetUnitId,
-                UnitOfMeasureName = targetProductUnit.UnitOfMeasure?.Name ?? "Unknown",
-                UnitSymbol = targetProductUnit.UnitOfMeasure?.Symbol ?? "?",
-                ConversionFactor = targetProductUnit.ConversionFactor,
-                OriginalPrice = basePrice.Price,
-                OriginalUnitOfMeasureId = basePrice.UnitOfMeasureId,
-                PriceListId = basePrice.PriceListId,
-                PriceListName = basePrice.PriceListName,
-                PriceListPriority = basePrice.PriceListPriority,
-                MinQuantity = basePrice.MinQuantity,
-                MaxQuantity = basePrice.MaxQuantity,
-                CalculatedAt = DateTime.UtcNow,
-                IsEditableInFrontend = basePrice.IsEditableInFrontend,
-                IsDiscountable = basePrice.IsDiscountable,
-                Score = basePrice.Score,
-                CalculationNotes = $"Price converted from {basePrice.UnitOfMeasureName} (factor: {baseProductUnit.ConversionFactor}) to {targetProductUnit.UnitOfMeasure?.Name} (factor: {targetProductUnit.ConversionFactor}). Original: {basePrice.Price:F2} {basePrice.Currency}"
-            };
-
-            logger.LogInformation("Converted price from {OriginalPrice} {Currency}/{OriginalUnit} to {ConvertedPrice} {Currency}/{TargetUnit} for product {ProductId}",
-                basePrice.Price, basePrice.Currency, basePrice.UnitOfMeasureName,
-                convertedPrice, result.Currency, result.UnitOfMeasureName, productId);
-
-            return result;
+            return null;
         }
-        catch
+
+        // Get the target unit information
+        var targetProductUnit = await context.ProductUnits
+            .AsNoTracking()
+            .Include(pu => pu.UnitOfMeasure)
+            .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
+                                     pu.UnitOfMeasureId == targetUnitId &&
+                                     !pu.IsDeleted &&
+                                     pu.Status == ProductUnitStatus.Active,
+                                     cancellationToken);
+
+        if (targetProductUnit is null)
         {
-            throw;
+            logger.LogWarning("Target unit {TargetUnitId} not found for product {ProductId}", targetUnitId, productId);
+            return basePrice; // Return base price if target unit not found
         }
+
+        // Get the base unit information for conversion
+        var baseProductUnit = await context.ProductUnits
+            .AsNoTracking()
+            .Include(pu => pu.UnitOfMeasure)
+            .FirstOrDefaultAsync(pu => pu.ProductId == productId &&
+                                     pu.UnitOfMeasureId == basePrice.UnitOfMeasureId &&
+                                     !pu.IsDeleted &&
+                                     pu.Status == ProductUnitStatus.Active,
+                                     cancellationToken);
+
+        if (baseProductUnit is null)
+        {
+            logger.LogWarning("Base unit {BaseUnitId} not found for product {ProductId}", basePrice.UnitOfMeasureId, productId);
+            return basePrice; // Return base price if conversion not possible
+        }
+
+        // Perform price conversion using the unit conversion service
+        var convertedPrice = unitConversionService.ConvertPrice(
+            basePrice.Price,
+            baseProductUnit.ConversionFactor,
+            targetProductUnit.ConversionFactor,
+            2); // 2 decimal places for currency
+
+        // Create the result with conversion information
+        var result = new AppliedPriceDto
+        {
+            ProductId = basePrice.ProductId,
+            EventId = basePrice.EventId,
+            Price = convertedPrice,
+            Currency = basePrice.Currency,
+            UnitOfMeasureId = targetUnitId,
+            UnitOfMeasureName = targetProductUnit.UnitOfMeasure?.Name ?? "Unknown",
+            UnitSymbol = targetProductUnit.UnitOfMeasure?.Symbol ?? "?",
+            ConversionFactor = targetProductUnit.ConversionFactor,
+            OriginalPrice = basePrice.Price,
+            OriginalUnitOfMeasureId = basePrice.UnitOfMeasureId,
+            PriceListId = basePrice.PriceListId,
+            PriceListName = basePrice.PriceListName,
+            PriceListPriority = basePrice.PriceListPriority,
+            MinQuantity = basePrice.MinQuantity,
+            MaxQuantity = basePrice.MaxQuantity,
+            CalculatedAt = DateTime.UtcNow,
+            IsEditableInFrontend = basePrice.IsEditableInFrontend,
+            IsDiscountable = basePrice.IsDiscountable,
+            Score = basePrice.Score,
+            CalculationNotes = $"Price converted from {basePrice.UnitOfMeasureName} (factor: {baseProductUnit.ConversionFactor}) to {targetProductUnit.UnitOfMeasure?.Name} (factor: {targetProductUnit.ConversionFactor}). Original: {basePrice.Price:F2} {basePrice.Currency}"
+        };
+
+        logger.LogInformation("Converted price from {OriginalPrice} {Currency}/{OriginalUnit} to {ConvertedPrice} {Currency}/{TargetUnit} for product {ProductId}",
+            basePrice.Price, basePrice.Currency, basePrice.UnitOfMeasureName,
+            convertedPrice, result.Currency, result.UnitOfMeasureName, productId);
+
+        return result;
     }
 
     // Enhanced methods implementation (Issue #245)
     public async Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        try
+        var from = fromDate ?? DateTime.UtcNow.AddYears(-1); // Default to last year
+        var to = toDate ?? DateTime.UtcNow;
+
+        // Get all price lists for the event
+        var priceLists = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
+            .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted))
+            .ToListAsync(cancellationToken);
+
+        var historyEntries = new List<PriceHistoryDto>();
+
+        foreach (var priceList in priceLists)
         {
-            var from = fromDate ?? DateTime.UtcNow.AddYears(-1); // Default to last year
-            var to = toDate ?? DateTime.UtcNow;
-
-            // Get all price lists for the event
-            var priceLists = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
-                .Include(pl => pl.ProductPrices.Where(ple => ple.ProductId == productId && !ple.IsDeleted))
-                .ToListAsync(cancellationToken);
-
-            var historyEntries = new List<PriceHistoryDto>();
-
-            foreach (var priceList in priceLists)
+            foreach (var entry in priceList.ProductPrices)
             {
-                foreach (var entry in priceList.ProductPrices)
+                // Determine effective date range
+                var effectiveFrom = priceList.ValidFrom ?? entry.CreatedAt;
+                var effectiveTo = priceList.ValidTo;
+
+                // Skip entries outside the requested date range
+                if (effectiveTo.HasValue && effectiveTo.Value < from)
+                    continue;
+                if (effectiveFrom > to)
+                    continue;
+
+                var wasActive = priceList.Status == PriceListStatus.Active &&
+                               entry.Status == PriceListEntryStatus.Active &&
+                               (!priceList.ValidFrom.HasValue || priceList.ValidFrom.Value <= to) &&
+                               (!priceList.ValidTo.HasValue || priceList.ValidTo.Value >= from);
+
+                historyEntries.Add(new PriceHistoryDto
                 {
-                    // Determine effective date range
-                    var effectiveFrom = priceList.ValidFrom ?? entry.CreatedAt;
-                    var effectiveTo = priceList.ValidTo;
-
-                    // Skip entries outside the requested date range
-                    if (effectiveTo.HasValue && effectiveTo.Value < from)
-                        continue;
-                    if (effectiveFrom > to)
-                        continue;
-
-                    var wasActive = priceList.Status == PriceListStatus.Active &&
-                                   entry.Status == PriceListEntryStatus.Active &&
-                                   (!priceList.ValidFrom.HasValue || priceList.ValidFrom.Value <= to) &&
-                                   (!priceList.ValidTo.HasValue || priceList.ValidTo.Value >= from);
-
-                    historyEntries.Add(new PriceHistoryDto
-                    {
-                        ProductId = productId,
-                        EventId = eventId,
-                        PriceListId = priceList.Id,
-                        PriceListName = priceList.Name,
-                        Price = entry.Price,
-                        Currency = entry.Currency,
-                        EffectiveFrom = effectiveFrom,
-                        EffectiveTo = effectiveTo,
-                        Priority = priceList.Priority,
-                        IsDefault = priceList.IsDefault,
-                        CreatedAt = entry.CreatedAt,
-                        CreatedBy = entry.CreatedBy,
-                        ModifiedAt = entry.ModifiedAt,
-                        ModifiedBy = entry.ModifiedBy,
-                        MinQuantity = entry.MinQuantity,
-                        MaxQuantity = entry.MaxQuantity,
-                        WasActive = wasActive,
-                        Notes = entry.Notes
-                    });
-                }
+                    ProductId = productId,
+                    EventId = eventId,
+                    PriceListId = priceList.Id,
+                    PriceListName = priceList.Name,
+                    Price = entry.Price,
+                    Currency = entry.Currency,
+                    EffectiveFrom = effectiveFrom,
+                    EffectiveTo = effectiveTo,
+                    Priority = priceList.Priority,
+                    IsDefault = priceList.IsDefault,
+                    CreatedAt = entry.CreatedAt,
+                    CreatedBy = entry.CreatedBy,
+                    ModifiedAt = entry.ModifiedAt,
+                    ModifiedBy = entry.ModifiedBy,
+                    MinQuantity = entry.MinQuantity,
+                    MaxQuantity = entry.MaxQuantity,
+                    WasActive = wasActive,
+                    Notes = entry.Notes
+                });
             }
-
-            // Order by effective date descending, then by priority
-            var result = historyEntries
-                .OrderByDescending(h => h.EffectiveFrom)
-                .ThenBy(h => h.Priority)
-                .ToList();
-
-
-            return result;
         }
-        catch
-        {
-            throw;
-        }
+
+        // Order by effective date descending, then by priority
+        var result = historyEntries
+            .OrderByDescending(h => h.EffectiveFrom)
+            .ThenBy(h => h.Priority)
+            .ToList();
+
+
+        return result;
     }
 
     /// <summary>
@@ -307,36 +286,29 @@ public class PriceCalculationService(
         GetProductPriceRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        try
+        // 1. Recupera il prodotto
+        var product = await context.Products
+            .AsNoTracking()
+            .Include(p => p.Codes)
+            .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
+
+        if (product is null)
         {
-            // 1. Recupera il prodotto
-            var product = await context.Products
-                .AsNoTracking()
-                .Include(p => p.Codes)
-                .FirstOrDefaultAsync(p => p.Id == request.ProductId && !p.IsDeleted, cancellationToken);
-
-            if (product is null)
-            {
-                throw new InvalidOperationException($"Product with ID {request.ProductId} not found");
-            }
-
-            // 2. Determina la modalità di applicazione
-            var mode = await DeterminePriceApplicationModeAsync(request, cancellationToken);
-
-            // 3. Applica la strategia corretta
-            return mode switch
-            {
-                PriceApplicationMode.Manual => await ApplyManualPriceAsync(request, product, cancellationToken),
-                PriceApplicationMode.ForcedPriceList => await ApplyForcedPriceListAsync(request, product, cancellationToken),
-                PriceApplicationMode.HybridForcedWithOverrides => await ApplyHybridPriceAsync(request, product, cancellationToken),
-                PriceApplicationMode.Automatic => await ApplyAutomaticPriceAsync(request, product, cancellationToken),
-                _ => throw new InvalidOperationException($"Unknown price application mode: {mode}")
-            };
+            throw new InvalidOperationException($"Product with ID {request.ProductId} not found");
         }
-        catch
+
+        // 2. Determina la modalità di applicazione
+        var mode = await DeterminePriceApplicationModeAsync(request, cancellationToken);
+
+        // 3. Applica la strategia corretta
+        return mode switch
         {
-            throw;
-        }
+            PriceApplicationMode.Manual => await ApplyManualPriceAsync(request, product, cancellationToken),
+            PriceApplicationMode.ForcedPriceList => await ApplyForcedPriceListAsync(request, product, cancellationToken),
+            PriceApplicationMode.HybridForcedWithOverrides => await ApplyHybridPriceAsync(request, product, cancellationToken),
+            PriceApplicationMode.Automatic => await ApplyAutomaticPriceAsync(request, product, cancellationToken),
+            _ => throw new InvalidOperationException($"Unknown price application mode: {mode}")
+        };
     }
 
     #region Purchase Price Comparison
@@ -347,83 +319,76 @@ public class PriceCalculationService(
         DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var evalDate = evaluationDate ?? DateTime.UtcNow;
+
+        // Trova tutti i listini acquisto applicabili
+        var purchasePriceLists = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Type == PriceListType.Purchase &&
+                         pl.Direction == PriceListDirection.Input &&
+                         !pl.IsDeleted &&
+                         pl.Status == PriceListStatus.Active)
+            .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
+                         (pl.ValidTo == null || pl.ValidTo >= evalDate))
+            .Include(pl => pl.BusinessParties.Where(bp =>
+                !bp.IsDeleted &&
+                bp.Status == PriceListBusinessPartyStatus.Active &&
+                (bp.SpecificValidFrom == null || bp.SpecificValidFrom <= evalDate) &&
+                (bp.SpecificValidTo == null || bp.SpecificValidTo >= evalDate)))
+            .ThenInclude(bp => bp.BusinessParty)
+            .Include(pl => pl.ProductPrices.Where(ple =>
+                ple.ProductId == productId &&
+                !ple.IsDeleted &&
+                ple.Status == PriceListEntryStatus.Active &&
+                ple.MinQuantity <= quantity &&
+                (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
+            .ToListAsync(cancellationToken);
+
+        var comparisons = new List<PurchasePriceComparisonDto>();
+
+        foreach (var priceList in purchasePriceLists)
         {
-            var evalDate = evaluationDate ?? DateTime.UtcNow;
+            var entry = priceList.ProductPrices.FirstOrDefault();
+            if (entry is null) continue;
 
-            // Trova tutti i listini acquisto applicabili
-            var purchasePriceLists = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Type == PriceListType.Purchase &&
-                             pl.Direction == PriceListDirection.Input &&
-                             !pl.IsDeleted &&
-                             pl.Status == PriceListStatus.Active)
-                .Where(pl => (pl.ValidFrom == null || pl.ValidFrom <= evalDate) &&
-                             (pl.ValidTo == null || pl.ValidTo >= evalDate))
-                .Include(pl => pl.BusinessParties.Where(bp =>
-                    !bp.IsDeleted &&
-                    bp.Status == PriceListBusinessPartyStatus.Active &&
-                    (bp.SpecificValidFrom == null || bp.SpecificValidFrom <= evalDate) &&
-                    (bp.SpecificValidTo == null || bp.SpecificValidTo >= evalDate)))
-                .ThenInclude(bp => bp.BusinessParty)
-                .Include(pl => pl.ProductPrices.Where(ple =>
-                    ple.ProductId == productId &&
-                    !ple.IsDeleted &&
-                    ple.Status == PriceListEntryStatus.Active &&
-                    ple.MinQuantity <= quantity &&
-                    (ple.MaxQuantity == 0 || ple.MaxQuantity >= quantity)))
-                .ToListAsync(cancellationToken);
+            // Se non ci sono BusinessParty assegnati, salta questo listino
+            if (!priceList.BusinessParties.Any()) continue;
 
-            var comparisons = new List<PurchasePriceComparisonDto>();
-
-            foreach (var priceList in purchasePriceLists)
+            foreach (var businessPartyRel in priceList.BusinessParties)
             {
-                var entry = priceList.ProductPrices.FirstOrDefault();
-                if (entry is null) continue;
+                var effectivePrice = entry.Price;
+                decimal? discountPercentage = null;
 
-                // Se non ci sono BusinessParty assegnati, salta questo listino
-                if (!priceList.BusinessParties.Any()) continue;
-
-                foreach (var businessPartyRel in priceList.BusinessParties)
+                // Applica sconto globale se presente
+                if (businessPartyRel.GlobalDiscountPercentage.HasValue)
                 {
-                    var effectivePrice = entry.Price;
-                    decimal? discountPercentage = null;
-
-                    // Applica sconto globale se presente
-                    if (businessPartyRel.GlobalDiscountPercentage.HasValue)
-                    {
-                        discountPercentage = businessPartyRel.GlobalDiscountPercentage.Value;
-                        effectivePrice *= (1 - discountPercentage.Value / 100m);
-                    }
-
-                    comparisons.Add(new PurchasePriceComparisonDto
-                    {
-                        ProductId = productId,
-                        SupplierId = businessPartyRel.BusinessPartyId,
-                        SupplierName = businessPartyRel.BusinessParty?.Name ?? "Unknown",
-                        PriceListId = priceList.Id,
-                        PriceListName = priceList.Name,
-                        Price = effectivePrice,
-                        OriginalPrice = entry.Price,
-                        Currency = entry.Currency,
-                        LeadTimeDays = entry.LeadTimeDays,
-                        MinimumOrderQuantity = entry.MinimumOrderQuantity,
-                        QuantityIncrement = entry.QuantityIncrement,
-                        SupplierProductCode = entry.SupplierProductCode,
-                        IsPrimarySupplier = businessPartyRel.IsPrimary,
-                        Priority = businessPartyRel.OverridePriority ?? priceList.Priority,
-                        AppliedDiscountPercentage = discountPercentage
-                    });
+                    discountPercentage = businessPartyRel.GlobalDiscountPercentage.Value;
+                    effectivePrice *= (1 - discountPercentage.Value / 100m);
                 }
-            }
 
-            // Ordina per prezzo (migliore prima)
-            return comparisons.OrderBy(c => c.Price).ToList();
+                comparisons.Add(new PurchasePriceComparisonDto
+                {
+                    ProductId = productId,
+                    SupplierId = businessPartyRel.BusinessPartyId,
+                    SupplierName = businessPartyRel.BusinessParty?.Name ?? "Unknown",
+                    PriceListId = priceList.Id,
+                    PriceListName = priceList.Name,
+                    Price = effectivePrice,
+                    OriginalPrice = entry.Price,
+                    Currency = entry.Currency,
+                    LeadTimeDays = entry.LeadTimeDays,
+                    MinimumOrderQuantity = entry.MinimumOrderQuantity,
+                    QuantityIncrement = entry.QuantityIncrement,
+                    SupplierProductCode = entry.SupplierProductCode,
+                    IsPrimarySupplier = businessPartyRel.IsPrimary,
+                    Priority = businessPartyRel.OverridePriority ?? priceList.Priority,
+                    AppliedDiscountPercentage = discountPercentage
+                });
+            }
         }
-        catch
-        {
-            throw;
-        }
+
+        // Ordina per prezzo (migliore prima)
+        return comparisons.OrderBy(c => c.Price).ToList();
     }
 
     #endregion

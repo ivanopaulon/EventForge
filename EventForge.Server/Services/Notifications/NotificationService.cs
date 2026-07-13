@@ -1345,40 +1345,33 @@ public class NotificationService(
         Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        // 1. Check if already in target locale (early return)
+        if (notification.Payload.Locale == targetLocale)
         {
-            // 1. Check if already in target locale (early return)
-            if (notification.Payload.Locale == targetLocale)
-            {
-                logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
-                    notification.Id, targetLocale);
-                return notification;
-            }
-
-            logger.LogInformation(
-                "Localizing notification {NotificationId} to locale {Locale} for user {UserId}",
-                notification.Id, targetLocale, userId);
-
-            // 2. Update notification.Payload.Locale
-            notification.Payload.Locale = targetLocale;
-
-            // Translation of payload content requires ITranslationService (future integration).
-
-            // 4. Log localization request for analytics
-            logger.LogDebug(
-                "Localized notification {NotificationId} to {ToLocale} (translation service integration pending)",
+            logger.LogDebug("Notification {NotificationId} already in target locale {Locale}",
                 notification.Id, targetLocale);
-
-            // Suppress async warning for future-proofing
-            await Task.CompletedTask;
-
-            // 5. Return localized notification
             return notification;
         }
-        catch
-        {
-            throw;
-        }
+
+        logger.LogInformation(
+            "Localizing notification {NotificationId} to locale {Locale} for user {UserId}",
+            notification.Id, targetLocale, userId);
+
+        // 2. Update notification.Payload.Locale
+        notification.Payload.Locale = targetLocale;
+
+        // Translation of payload content requires ITranslationService (future integration).
+
+        // 4. Log localization request for analytics
+        logger.LogDebug(
+            "Localized notification {NotificationId} to {ToLocale} (translation service integration pending)",
+            notification.Id, targetLocale);
+
+        // Suppress async warning for future-proofing
+        await Task.CompletedTask;
+
+        // 5. Return localized notification
+        return notification;
     }
 
     #endregion
@@ -1703,29 +1696,22 @@ public class NotificationService(
         RateLimitPolicyDto rateLimitPolicy,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _ = await auditLogService.LogEntityChangeAsync(
-                entityName: "RateLimitPolicy",
-                entityId: tenantId,
-                propertyName: "Update",
-                operationType: "Update",
-                oldValue: "Previous policy",
-                newValue: $"GlobalLimit: {rateLimitPolicy.GlobalLimit}, Window: {rateLimitPolicy.WindowSize}",
-                changedBy: "System",
-                entityDisplayName: $"Rate Limit Policy: {tenantId}",
-                cancellationToken: cancellationToken);
+        _ = await auditLogService.LogEntityChangeAsync(
+            entityName: "RateLimitPolicy",
+            entityId: tenantId,
+            propertyName: "Update",
+            operationType: "Update",
+            oldValue: "Previous policy",
+            newValue: $"GlobalLimit: {rateLimitPolicy.GlobalLimit}, Window: {rateLimitPolicy.WindowSize}",
+            changedBy: "System",
+            entityDisplayName: $"Rate Limit Policy: {tenantId}",
+            cancellationToken: cancellationToken);
 
-            logger.LogInformation(
-                "Updated rate limit policy for tenant {TenantId}: GlobalLimit={GlobalLimit}",
-                tenantId, rateLimitPolicy.GlobalLimit);
+        logger.LogInformation(
+            "Updated rate limit policy for tenant {TenantId}: GlobalLimit={GlobalLimit}",
+            tenantId, rateLimitPolicy.GlobalLimit);
 
-            return rateLimitPolicy;
-        }
-        catch
-        {
-            throw;
-        }
+        return rateLimitPolicy;
     }
 
     /// <summary>
@@ -1796,35 +1782,28 @@ public class NotificationService(
         Guid adminUserId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            _ = await auditLogService.LogEntityChangeAsync(
-                entityName: "SystemNotification",
-                entityId: Guid.NewGuid(),
-                propertyName: "Send",
-                operationType: "Insert",
-                oldValue: null,
-                newValue: $"Emergency: {systemNotification.IsEmergency}, Override: {systemNotification.OverrideUserPreferences}",
-                changedBy: adminUserId.ToString(),
-                entityDisplayName: $"System Notification: {systemNotification.Payload.Title}",
-                cancellationToken: cancellationToken);
+        _ = await auditLogService.LogEntityChangeAsync(
+            entityName: "SystemNotification",
+            entityId: Guid.NewGuid(),
+            propertyName: "Send",
+            operationType: "Insert",
+            oldValue: null,
+            newValue: $"Emergency: {systemNotification.IsEmergency}, Override: {systemNotification.OverrideUserPreferences}",
+            changedBy: adminUserId.ToString(),
+            entityDisplayName: $"System Notification: {systemNotification.Payload.Title}",
+            cancellationToken: cancellationToken);
 
-            logger.LogWarning(
-                "System notification sent by admin {AdminId}: Emergency={Emergency}, Title={Title}",
-                adminUserId, systemNotification.IsEmergency, systemNotification.Payload.Title);
+        logger.LogWarning(
+            "System notification sent by admin {AdminId}: Emergency={Emergency}, Title={Title}",
+            adminUserId, systemNotification.IsEmergency, systemNotification.Payload.Title);
 
-            return new SystemNotificationResultDto
-            {
-                NotificationId = Guid.NewGuid(),
-                TotalRecipients = systemNotification.RecipientIds.Count,
-                DeliveredCount = systemNotification.RecipientIds.Count,
-                FailedCount = 0
-            };
-        }
-        catch
+        return new SystemNotificationResultDto
         {
-            throw;
-        }
+            NotificationId = Guid.NewGuid(),
+            TotalRecipients = systemNotification.RecipientIds.Count,
+            DeliveredCount = systemNotification.RecipientIds.Count,
+            FailedCount = 0
+        };
     }
 
     /// <summary>

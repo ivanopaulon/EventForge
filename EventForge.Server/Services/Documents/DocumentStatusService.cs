@@ -82,56 +82,42 @@ public class DocumentStatusService(
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var history = await context.DocumentStatusHistories
-                .AsNoTracking()
-                .Where(h => h.DocumentHeaderId == documentId && !h.IsDeleted)
-                .OrderByDescending(h => h.ChangedAt)
-                .ToListAsync(cancellationToken);
+        var history = await context.DocumentStatusHistories
+            .AsNoTracking()
+            .Where(h => h.DocumentHeaderId == documentId && !h.IsDeleted)
+            .OrderByDescending(h => h.ChangedAt)
+            .ToListAsync(cancellationToken);
 
-            return history.Select(h => new DocumentStatusHistoryDto
-            {
-                Id = h.Id,
-                DocumentHeaderId = h.DocumentHeaderId,
-                FromStatus = h.FromStatus,
-                ToStatus = h.ToStatus,
-                Reason = h.Reason,
-                ChangedBy = h.ChangedBy,
-                ChangedAt = h.ChangedAt,
-                IpAddress = h.IpAddress,
-                UserAgent = h.UserAgent
-            }).ToList();
-        }
-        catch
+        return history.Select(h => new DocumentStatusHistoryDto
         {
-            throw;
-        }
+            Id = h.Id,
+            DocumentHeaderId = h.DocumentHeaderId,
+            FromStatus = h.FromStatus,
+            ToStatus = h.ToStatus,
+            Reason = h.Reason,
+            ChangedBy = h.ChangedBy,
+            ChangedAt = h.ChangedAt,
+            IpAddress = h.IpAddress,
+            UserAgent = h.UserAgent
+        }).ToList();
     }
 
     public async Task<List<DocumentStatus>> GetAvailableTransitionsAsync(
         Guid documentId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentStatus = await context.DocumentHeaders
-                .Where(d => d.Id == documentId && !d.IsDeleted)
-                .Select(d => (DocumentStatus?)d.Status)
-                .FirstOrDefaultAsync(cancellationToken);
+        var currentStatus = await context.DocumentHeaders
+            .Where(d => d.Id == documentId && !d.IsDeleted)
+            .Select(d => (DocumentStatus?)d.Status)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            if (currentStatus is null)
-            {
-                logger.LogWarning("Document with ID {DocumentId} not found", documentId);
-                return [];
-            }
-
-            return DocumentStateMachine.GetAvailableTransitions(currentStatus.Value);
-        }
-        catch
+        if (currentStatus is null)
         {
-            throw;
+            logger.LogWarning("Document with ID {DocumentId} not found", documentId);
+            return [];
         }
+
+        return DocumentStateMachine.GetAvailableTransitions(currentStatus.Value);
     }
 
     public async Task<StateTransitionValidationResult> ValidateTransitionAsync(
@@ -139,27 +125,20 @@ public class DocumentStatusService(
         DocumentStatus newStatus,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var document = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(d => d.Rows.Where(r => !r.IsDeleted))
-                .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
+        var document = await context.DocumentHeaders
+            .AsNoTracking()
+            .Include(d => d.Rows.Where(r => !r.IsDeleted))
+            .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
 
-            if (document is null)
-            {
-                return StateTransitionValidationResult.Fail(
-                    "Document not found",
-                    StateTransitionErrorCode.InvalidTransition);
-            }
-
-            var documentDto = document.ToDto();
-            return DocumentStateMachine.ValidateTransition(documentDto, newStatus);
-        }
-        catch
+        if (document is null)
         {
-            throw;
+            return StateTransitionValidationResult.Fail(
+                "Document not found",
+                StateTransitionErrorCode.InvalidTransition);
         }
+
+        var documentDto = document.ToDto();
+        return DocumentStateMachine.ValidateTransition(documentDto, newStatus);
     }
 
     #region Helper Methods

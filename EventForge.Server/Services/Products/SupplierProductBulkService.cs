@@ -146,64 +146,57 @@ public class SupplierProductBulkService(
         BulkUpdateSupplierProductsRequest request,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for supplier product operations.");
+
+        var previews = new List<SupplierProductPreview>();
+
+        if (request.ProductIds.Count == 0)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for supplier product operations.");
-
-            var previews = new List<SupplierProductPreview>();
-
-            if (request.ProductIds.Count == 0)
-            {
-                return previews;
-            }
-
-            // Load all product suppliers
-            var productSuppliers = await context.ProductSuppliers
-                .AsNoTracking()
-                .Include(ps => ps.Product)
-                .Where(ps => ps.SupplierId == supplierId && ps.TenantId == currentTenantId && request.ProductIds.Contains(ps.ProductId))
-                .ToListAsync(cancellationToken);
-
-            foreach (var ps in productSuppliers)
-            {
-                var preview = new SupplierProductPreview
-                {
-                    ProductId = ps.ProductId,
-                    ProductName = ps.Product?.Name,
-                    CurrentUnitCost = ps.UnitCost,
-                    CurrentLeadTimeDays = ps.LeadTimeDays,
-                    CurrentCurrency = ps.Currency,
-                    CurrentMinOrderQty = ps.MinOrderQty,
-                    CurrentPreferred = ps.Preferred
-                };
-
-                // Calculate new values
-                if (request.UpdateMode.HasValue && request.UnitCostValue.HasValue)
-                {
-                    preview.NewUnitCost = CalculateNewPrice(ps.UnitCost, request.UpdateMode.Value, request.UnitCostValue.Value);
-                    preview.Delta = preview.NewUnitCost - ps.UnitCost;
-                }
-                else
-                {
-                    preview.NewUnitCost = ps.UnitCost;
-                    preview.Delta = 0;
-                }
-
-                preview.NewLeadTimeDays = request.LeadTimeDays ?? ps.LeadTimeDays;
-                preview.NewCurrency = request.Currency ?? ps.Currency;
-                preview.NewMinOrderQty = request.MinOrderQuantity ?? ps.MinOrderQty;
-                preview.NewPreferred = request.IsPreferred ?? ps.Preferred;
-
-                previews.Add(preview);
-            }
-
             return previews;
         }
-        catch
+
+        // Load all product suppliers
+        var productSuppliers = await context.ProductSuppliers
+            .AsNoTracking()
+            .Include(ps => ps.Product)
+            .Where(ps => ps.SupplierId == supplierId && ps.TenantId == currentTenantId && request.ProductIds.Contains(ps.ProductId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var ps in productSuppliers)
         {
-            throw;
+            var preview = new SupplierProductPreview
+            {
+                ProductId = ps.ProductId,
+                ProductName = ps.Product?.Name,
+                CurrentUnitCost = ps.UnitCost,
+                CurrentLeadTimeDays = ps.LeadTimeDays,
+                CurrentCurrency = ps.Currency,
+                CurrentMinOrderQty = ps.MinOrderQty,
+                CurrentPreferred = ps.Preferred
+            };
+
+            // Calculate new values
+            if (request.UpdateMode.HasValue && request.UnitCostValue.HasValue)
+            {
+                preview.NewUnitCost = CalculateNewPrice(ps.UnitCost, request.UpdateMode.Value, request.UnitCostValue.Value);
+                preview.Delta = preview.NewUnitCost - ps.UnitCost;
+            }
+            else
+            {
+                preview.NewUnitCost = ps.UnitCost;
+                preview.Delta = 0;
+            }
+
+            preview.NewLeadTimeDays = request.LeadTimeDays ?? ps.LeadTimeDays;
+            preview.NewCurrency = request.Currency ?? ps.Currency;
+            preview.NewMinOrderQty = request.MinOrderQuantity ?? ps.MinOrderQty;
+            preview.NewPreferred = request.IsPreferred ?? ps.Preferred;
+
+            previews.Add(preview);
         }
+
+        return previews;
     }
 
     /// <summary>

@@ -15,100 +15,79 @@ public class BankService(
 
     public async Task<PagedResult<BankDto>> GetBanksAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for bank operations.");
-            }
-
-            var query = context.Banks
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value)
-                .Include(b => b.Addresses.Where(a => !a.IsDeleted && a.TenantId == currentTenantId.Value))
-                .Include(b => b.Contacts.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value));
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var banks = await query
-                .OrderBy(b => b.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var bankDtos = banks.Select(MapToBankDto);
-
-            return new PagedResult<BankDto>
-            {
-                Items = bankDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for bank operations.");
         }
-        catch
+
+        var query = context.Banks
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value)
+            .Include(b => b.Addresses.Where(a => !a.IsDeleted && a.TenantId == currentTenantId.Value))
+            .Include(b => b.Contacts.Where(c => !c.IsDeleted && c.TenantId == currentTenantId.Value));
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var banks = await query
+            .OrderBy(b => b.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var bankDtos = banks.Select(MapToBankDto);
+
+        return new PagedResult<BankDto>
         {
-            throw;
-        }
+            Items = bankDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<BankDto?> GetBankByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
 
-            var bank = await context.Banks
-                .AsNoTracking()
-                .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var bank = await context.Banks
+            .AsNoTracking()
+            .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return bank is not null ? MapToBankDto(bank) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return bank is not null ? MapToBankDto(bank) : null;
     }
 
     public async Task<BankDto> CreateBankAsync(CreateBankDto createBankDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createBankDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var bank = new Bank
         {
-            ArgumentNullException.ThrowIfNull(createBankDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+            Id = Guid.NewGuid(),
+            Name = createBankDto.Name,
+            Code = createBankDto.Code,
+            SwiftBic = createBankDto.SwiftBic,
+            Branch = createBankDto.Branch,
+            Address = createBankDto.Address,
+            Country = createBankDto.Country,
+            Phone = createBankDto.Phone,
+            Email = createBankDto.Email,
+            Notes = createBankDto.Notes,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
 
-            var bank = new Bank
-            {
-                Id = Guid.NewGuid(),
-                Name = createBankDto.Name,
-                Code = createBankDto.Code,
-                SwiftBic = createBankDto.SwiftBic,
-                Branch = createBankDto.Branch,
-                Address = createBankDto.Address,
-                Country = createBankDto.Country,
-                Phone = createBankDto.Phone,
-                Email = createBankDto.Email,
-                Notes = createBankDto.Notes,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
+        _ = context.Banks.Add(bank);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = context.Banks.Add(bank);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync(bank, "Insert", currentUser, null, cancellationToken);
 
-            _ = await auditLogService.TrackEntityChangesAsync(bank, "Insert", currentUser, null, cancellationToken);
+        logger.LogInformation("Bank {BankId} created by {User}.", bank.Id, currentUser);
 
-            logger.LogInformation("Bank {BankId} created by {User}.", bank.Id, currentUser);
-
-            return MapToBankDto(bank);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToBankDto(bank);
     }
 
     public async Task<BankDto?> UpdateBankAsync(Guid id, UpdateBankDto updateBankDto, string currentUser, CancellationToken cancellationToken = default)
@@ -219,16 +198,9 @@ public class BankService(
 
     public async Task<bool> BankExistsAsync(Guid bankId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Banks
-                .AsNoTracking()
-                .AnyAsync(b => b.Id == bankId && !b.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Banks
+            .AsNoTracking()
+            .AnyAsync(b => b.Id == bankId && !b.IsDeleted, cancellationToken);
     }
 
     private static BankDto MapToBankDto(Bank bank)

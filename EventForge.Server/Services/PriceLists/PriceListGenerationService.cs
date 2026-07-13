@@ -24,116 +24,146 @@ public class PriceListGenerationService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        // 1. Recupero TenantId dal contesto multi-tenant
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for price list generation.");
+
+        // 2. Validazione EventId se specificato
+        if (dto.EventId.HasValue)
         {
-            // 1. Recupero TenantId dal contesto multi-tenant
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
-                throw new InvalidOperationException("Tenant context is required for price list generation.");
-
-            // 2. Validazione EventId se specificato
-            if (dto.EventId.HasValue)
-            {
-                var eventExists = await context.Events
-                    .AsNoTracking()
-                    .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
-
-                if (!eventExists)
-                {
-                    throw new InvalidOperationException($"Evento {dto.EventId.Value} non trovato");
-                }
-            }
-
-            // 3. Query prodotti con filtri
-            var query = context.Products
+            var eventExists = await context.Events
                 .AsNoTracking()
-                .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
+                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
-            // Filtro prodotti attivi
-            if (dto.OnlyActiveProducts)
+            if (!eventExists)
             {
-                query = query.Where(p => p.Status == EventForge.Server.Data.Entities.Products.ProductStatus.Active);
+                throw new InvalidOperationException($"Evento {dto.EventId.Value} non trovato");
+            }
+        }
+
+        // 3. Query prodotti con filtri
+        var query = context.Products
+            .AsNoTracking()
+            .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
+
+        // Filtro prodotti attivi
+        if (dto.OnlyActiveProducts)
+        {
+            query = query.Where(p => p.Status == EventForge.Server.Data.Entities.Products.ProductStatus.Active);
+        }
+
+        // Filtro prodotti con prezzo
+        if (dto.OnlyProductsWithPrice)
+        {
+            query = query.Where(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0);
+        }
+
+        // Filtro per categorie
+        if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any())
+        {
+            query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
+        }
+
+        var products = await query.ToListAsync(cancellationToken);
+
+        if (!products.Any())
+        {
+            throw new InvalidOperationException("Nessun prodotto trovato con i criteri specificati");
+        }
+
+        if (dto.OnlyProductsWithPrice && !products.Any(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0))
+        {
+            throw new InvalidOperationException("Nessun prodotto trovato con prezzo maggiore di 0");
+        }
+
+        // 4. Crea PriceList
+        var priceList = new PriceList
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId.Value,
+            Name = dto.Name,
+            Description = dto.Description ?? string.Empty,
+            Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId.Value, cancellationToken),
+            Type = dto.Type,
+            Direction = dto.Direction,
+            Priority = dto.Priority,
+            IsDefault = dto.IsDefault,
+            ValidFrom = dto.ValidFrom,
+            ValidTo = dto.ValidTo,
+            Status = PriceListStatus.Active,
+            EventId = dto.EventId,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        context.PriceLists.Add(priceList);
+
+        // 5. Crea PriceListEntries
+        var entriesCount = 0;
+        foreach (var product in products)
+        {
+            if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
+                continue;
+
+            var price = product.DefaultPrice.Value;
+
+            // Applica maggiorazione
+            if (dto.MarkupPercentage.HasValue)
+            {
+                price *= (1 + dto.MarkupPercentage.Value / 100);
             }
 
-            // Filtro prodotti con prezzo
-            if (dto.OnlyProductsWithPrice)
+            // Applica arrotondamento
+            price = ApplyRounding(price, dto.RoundingStrategy);
+
+            // Applica prezzo minimo se specificato
+            if (dto.MinimumPrice.HasValue && price < dto.MinimumPrice.Value)
             {
-                query = query.Where(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0);
+                continue; // Salta questo prodotto se il prezzo è inferiore al minimo
             }
 
-            // Filtro per categorie
-            if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any())
-            {
-                query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
-            }
-
-            var products = await query.ToListAsync(cancellationToken);
-
-            if (!products.Any())
-            {
-                throw new InvalidOperationException("Nessun prodotto trovato con i criteri specificati");
-            }
-
-            if (dto.OnlyProductsWithPrice && !products.Any(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0))
-            {
-                throw new InvalidOperationException("Nessun prodotto trovato con prezzo maggiore di 0");
-            }
-
-            // 4. Crea PriceList
-            var priceList = new PriceList
+            var entry = new PriceListEntry
             {
                 Id = Guid.NewGuid(),
+                PriceListId = priceList.Id,
+                ProductId = product.Id,
+                Price = price,
+                Status = PriceListEntryStatus.Active,
                 TenantId = tenantId.Value,
-                Name = dto.Name,
-                Description = dto.Description ?? string.Empty,
-                Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId.Value, cancellationToken),
-                Type = dto.Type,
-                Direction = dto.Direction,
-                Priority = dto.Priority,
-                IsDefault = dto.IsDefault,
-                ValidFrom = dto.ValidFrom,
-                ValidTo = dto.ValidTo,
-                Status = PriceListStatus.Active,
-                EventId = dto.EventId,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedBy = currentUser,
                 ModifiedAt = DateTime.UtcNow
             };
 
-            context.PriceLists.Add(priceList);
+            context.PriceListEntries.Add(entry);
+            entriesCount++;
+        }
 
-            // 5. Crea PriceListEntries
-            var entriesCount = 0;
-            foreach (var product in products)
+        // 6. Associa BusinessParties se specificati
+        if (dto.BusinessPartyIds is not null && dto.BusinessPartyIds.Any())
+        {
+            foreach (var businessPartyId in dto.BusinessPartyIds)
             {
-                if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
+                // Verifica che il BusinessParty esista
+                var businessPartyExists = await context.BusinessParties
+                    .AsNoTracking()
+                    .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == tenantId.Value && !bp.IsDeleted, cancellationToken);
+
+                if (!businessPartyExists)
+                {
+                    logger.LogWarning("BusinessParty {BusinessPartyId} non trovato, skip associazione", businessPartyId);
                     continue;
-
-                var price = product.DefaultPrice.Value;
-
-                // Applica maggiorazione
-                if (dto.MarkupPercentage.HasValue)
-                {
-                    price *= (1 + dto.MarkupPercentage.Value / 100);
                 }
 
-                // Applica arrotondamento
-                price = ApplyRounding(price, dto.RoundingStrategy);
-
-                // Applica prezzo minimo se specificato
-                if (dto.MinimumPrice.HasValue && price < dto.MinimumPrice.Value)
+                var priceListBusinessParty = new PriceListBusinessParty
                 {
-                    continue; // Salta questo prodotto se il prezzo è inferiore al minimo
-                }
-
-                var entry = new PriceListEntry
-                {
-                    Id = Guid.NewGuid(),
                     PriceListId = priceList.Id,
-                    ProductId = product.Id,
-                    Price = price,
-                    Status = PriceListEntryStatus.Active,
+                    BusinessPartyId = businessPartyId,
+                    Status = PriceListBusinessPartyStatus.Active,
                     TenantId = tenantId.Value,
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow,
@@ -141,62 +171,25 @@ public class PriceListGenerationService(
                     ModifiedAt = DateTime.UtcNow
                 };
 
-                context.PriceListEntries.Add(entry);
-                entriesCount++;
+                context.PriceListBusinessParties.Add(priceListBusinessParty);
             }
-
-            // 6. Associa BusinessParties se specificati
-            if (dto.BusinessPartyIds is not null && dto.BusinessPartyIds.Any())
-            {
-                foreach (var businessPartyId in dto.BusinessPartyIds)
-                {
-                    // Verifica che il BusinessParty esista
-                    var businessPartyExists = await context.BusinessParties
-                        .AsNoTracking()
-                        .AnyAsync(bp => bp.Id == businessPartyId && bp.TenantId == tenantId.Value && !bp.IsDeleted, cancellationToken);
-
-                    if (!businessPartyExists)
-                    {
-                        logger.LogWarning("BusinessParty {BusinessPartyId} non trovato, skip associazione", businessPartyId);
-                        continue;
-                    }
-
-                    var priceListBusinessParty = new PriceListBusinessParty
-                    {
-                        PriceListId = priceList.Id,
-                        BusinessPartyId = businessPartyId,
-                        Status = PriceListBusinessPartyStatus.Active,
-                        TenantId = tenantId.Value,
-                        CreatedBy = currentUser,
-                        CreatedAt = DateTime.UtcNow,
-                        ModifiedBy = currentUser,
-                        ModifiedAt = DateTime.UtcNow
-                    };
-
-                    context.PriceListBusinessParties.Add(priceListBusinessParty);
-                }
-            }
-
-            // 7. Salva e audit log
-            await context.SaveChangesAsync(cancellationToken);
-
-            await auditLogService.LogEntityChangeAsync(
-                "PriceList",
-                priceList.Id,
-                "Create",
-                "GenFromProducts",
-                null,
-                $"Generated price list '{priceList.Name}' from {entriesCount} products",
-                currentUser,
-                null,
-                cancellationToken);
-
-            return priceList.Id;
         }
-        catch
-        {
-            throw;
-        }
+
+        // 7. Salva e audit log
+        await context.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.LogEntityChangeAsync(
+            "PriceList",
+            priceList.Id,
+            "Create",
+            "GenFromProducts",
+            null,
+            $"Generated price list '{priceList.Name}' from {entriesCount} products",
+            currentUser,
+            null,
+            cancellationToken);
+
+        return priceList.Id;
     }
 
     /// <summary>
@@ -206,114 +199,107 @@ public class PriceListGenerationService(
         GeneratePriceListFromProductsDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Recupero TenantId dal contesto multi-tenant
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for price list generation.");
+
+        // Validazione EventId se specificato
+        if (dto.EventId.HasValue)
         {
-            // Recupero TenantId dal contesto multi-tenant
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
-                throw new InvalidOperationException("Tenant context is required for price list generation.");
-
-            // Validazione EventId se specificato
-            if (dto.EventId.HasValue)
-            {
-                var eventExists = await context.Events
-                    .AsNoTracking()
-                    .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
-
-                if (!eventExists)
-                {
-                    throw new InvalidOperationException($"Event {dto.EventId.Value} non trovato");
-                }
-            }
-
-            // Query prodotti con stessa logica di GenerateFromProductPricesAsync
-            var query = context.Products
+            var eventExists = await context.Events
                 .AsNoTracking()
-                .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
+                .AnyAsync(e => e.Id == dto.EventId.Value && e.TenantId == tenantId.Value && !e.IsDeleted, cancellationToken);
 
-            if (dto.OnlyActiveProducts)
+            if (!eventExists)
             {
-                query = query.Where(p => p.Status == EventForge.Server.Data.Entities.Products.ProductStatus.Active);
+                throw new InvalidOperationException($"Event {dto.EventId.Value} non trovato");
             }
-
-            if (dto.OnlyProductsWithPrice)
-            {
-                query = query.Where(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0);
-            }
-
-            if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any())
-            {
-                query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
-            }
-
-            var products = await query.ToListAsync(cancellationToken);
-
-            if (!products.Any())
-            {
-                throw new InvalidOperationException("Nessun prodotto trovato con i criteri specificati");
-            }
-
-            // Calcola preview entries
-            var previewEntries = new List<ProductPricePreview>();
-            decimal totalEstimatedValue = 0m;
-            int validProductsCount = 0;
-
-            foreach (var product in products)
-            {
-                if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
-                    continue;
-
-                var basePrice = product.DefaultPrice.Value;
-
-                // Applica markup se specificato
-                if (dto.MarkupPercentage.HasValue)
-                {
-                    basePrice *= (1 + dto.MarkupPercentage.Value / 100m);
-                }
-
-                // Applica arrotondamento se specificato
-                basePrice = ApplyRounding(basePrice, dto.RoundingStrategy);
-
-                // Applica prezzo minimo se specificato
-                if (dto.MinimumPrice.HasValue && basePrice < dto.MinimumPrice.Value)
-                {
-                    continue; // Salta questo prodotto se il prezzo è inferiore al minimo
-                }
-
-                previewEntries.Add(new ProductPricePreview
-                {
-                    ProductId = product.Id,
-                    ProductCode = product.Code,
-                    ProductName = product.Name,
-                    OriginalPrice = product.DefaultPrice.Value,
-                    CalculatedPrice = basePrice,
-                    OccurrencesInDocuments = 0, // Not applicable for default price generation
-                    LowestPrice = null,
-                    HighestPrice = null,
-                    AveragePrice = null,
-                    LastPurchaseDate = null
-                });
-
-                totalEstimatedValue += basePrice;
-                validProductsCount++;
-            }
-
-            return new GeneratePriceListPreviewDto
-            {
-                TotalDocumentsAnalyzed = 0, // Not applicable for default price generation
-                TotalProductsFound = validProductsCount,
-                ProductsWithMultiplePrices = 0, // Not applicable for default price generation
-                ProductPreviews = previewEntries,
-                TotalEstimatedValue = totalEstimatedValue,
-                AnalysisFromDate = DateTime.MinValue, // Not applicable for default price generation
-                AnalysisToDate = DateTime.MinValue, // Not applicable for default price generation
-                ProductsExcluded = products.Count - validProductsCount
-            };
         }
-        catch
+
+        // Query prodotti con stessa logica di GenerateFromProductPricesAsync
+        var query = context.Products
+            .AsNoTracking()
+            .Where(p => p.TenantId == tenantId.Value && !p.IsDeleted);
+
+        if (dto.OnlyActiveProducts)
         {
-            throw;
+            query = query.Where(p => p.Status == EventForge.Server.Data.Entities.Products.ProductStatus.Active);
         }
+
+        if (dto.OnlyProductsWithPrice)
+        {
+            query = query.Where(p => p.DefaultPrice.HasValue && p.DefaultPrice.Value > 0);
+        }
+
+        if (dto.FilterByCategoryIds is not null && dto.FilterByCategoryIds.Any())
+        {
+            query = query.Where(p => p.CategoryNodeId.HasValue && dto.FilterByCategoryIds.Contains(p.CategoryNodeId.Value));
+        }
+
+        var products = await query.ToListAsync(cancellationToken);
+
+        if (!products.Any())
+        {
+            throw new InvalidOperationException("Nessun prodotto trovato con i criteri specificati");
+        }
+
+        // Calcola preview entries
+        var previewEntries = new List<ProductPricePreview>();
+        decimal totalEstimatedValue = 0m;
+        int validProductsCount = 0;
+
+        foreach (var product in products)
+        {
+            if (!product.DefaultPrice.HasValue || product.DefaultPrice.Value <= 0)
+                continue;
+
+            var basePrice = product.DefaultPrice.Value;
+
+            // Applica markup se specificato
+            if (dto.MarkupPercentage.HasValue)
+            {
+                basePrice *= (1 + dto.MarkupPercentage.Value / 100m);
+            }
+
+            // Applica arrotondamento se specificato
+            basePrice = ApplyRounding(basePrice, dto.RoundingStrategy);
+
+            // Applica prezzo minimo se specificato
+            if (dto.MinimumPrice.HasValue && basePrice < dto.MinimumPrice.Value)
+            {
+                continue; // Salta questo prodotto se il prezzo è inferiore al minimo
+            }
+
+            previewEntries.Add(new ProductPricePreview
+            {
+                ProductId = product.Id,
+                ProductCode = product.Code,
+                ProductName = product.Name,
+                OriginalPrice = product.DefaultPrice.Value,
+                CalculatedPrice = basePrice,
+                OccurrencesInDocuments = 0, // Not applicable for default price generation
+                LowestPrice = null,
+                HighestPrice = null,
+                AveragePrice = null,
+                LastPurchaseDate = null
+            });
+
+            totalEstimatedValue += basePrice;
+            validProductsCount++;
+        }
+
+        return new GeneratePriceListPreviewDto
+        {
+            TotalDocumentsAnalyzed = 0, // Not applicable for default price generation
+            TotalProductsFound = validProductsCount,
+            ProductsWithMultiplePrices = 0, // Not applicable for default price generation
+            ProductPreviews = previewEntries,
+            TotalEstimatedValue = totalEstimatedValue,
+            AnalysisFromDate = DateTime.MinValue, // Not applicable for default price generation
+            AnalysisToDate = DateTime.MinValue, // Not applicable for default price generation
+            ProductsExcluded = products.Count - validProductsCount
+        };
     }
 
     #endregion
@@ -338,116 +324,109 @@ public class PriceListGenerationService(
         GeneratePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Validazione fornitore e recupero TenantId
+        var supplier = await context.BusinessParties
+            .AsNoTracking()
+            .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
+
+        if (supplier is null)
         {
-            // Validazione fornitore e recupero TenantId
-            var supplier = await context.BusinessParties
-                .AsNoTracking()
-                .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
-
-            if (supplier is null)
-            {
-                throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
-            }
-
-            var tenantId = supplier.TenantId;
-
-            // Validazione range date
-            if (dto.FromDate >= dto.ToDate)
-            {
-                throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
-            }
-
-            // Allow dates up to "tomorrow UTC" to accommodate clients in UTC+ timezones where local
-            // "today" can be one calendar day ahead of the server's UTC date.
-            if (dto.ToDate.Date > DateTime.UtcNow.Date.AddDays(1))
-            {
-                throw new InvalidOperationException("La data di fine non può essere nel futuro");
-            }
-
-            // Ottieni prezzi dai documenti
-            var productPricesDict = await GetProductPricesFromDocumentsAsync(
-                dto.SupplierId,
-                dto.FromDate,
-                dto.ToDate,
-                dto.FilterByCategoryIds,
-                dto.OnlyActiveProducts,
-                dto.MinimumQuantity,
-                tenantId,
-                cancellationToken);
-
-            var productPreviews = new List<ProductPricePreview>();
-            decimal totalValue = 0;
-
-            foreach (var kvp in productPricesDict)
-            {
-                var productId = kvp.Key;
-                var occurrences = kvp.Value;
-
-                if (!occurrences.Any())
-                    continue;
-
-                var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
-                var originalPrice = calculatedPrice;
-
-                // Applica maggiorazione
-                if (dto.MarkupPercentage.HasValue)
-                {
-                    calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
-                }
-
-                // Applica arrotondamento
-                calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
-
-                var product = await context.Products
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
-
-                if (product is null)
-                    continue;
-
-                productPreviews.Add(new ProductPricePreview
-                {
-                    ProductId = productId,
-                    ProductName = product.Name,
-                    ProductCode = product.Code ?? string.Empty,
-                    CalculatedPrice = calculatedPrice,
-                    OriginalPrice = originalPrice,
-                    OccurrencesInDocuments = occurrences.Count,
-                    LowestPrice = occurrences.Min(o => o.Price),
-                    HighestPrice = occurrences.Max(o => o.Price),
-                    AveragePrice = occurrences.Average(o => o.Price),
-                    LastPurchaseDate = occurrences.Max(o => o.Date)
-                });
-
-                totalValue += calculatedPrice;
-            }
-
-            // Conta documenti distinti
-            var documentCount = await context.DocumentHeaders
-                .AsNoTracking()
-                .Where(dh => dh.TenantId == tenantId &&
-                            dh.BusinessPartyId == dto.SupplierId &&
-                            dh.Date >= dto.FromDate &&
-                            dh.Date <= dto.ToDate &&
-                            dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
-                .CountAsync(cancellationToken);
-
-            return new GeneratePriceListPreviewDto
-            {
-                TotalDocumentsAnalyzed = documentCount,
-                TotalProductsFound = productPricesDict.Count,
-                ProductsWithMultiplePrices = productPricesDict.Count(kvp => kvp.Value.Count > 1),
-                ProductPreviews = productPreviews,
-                TotalEstimatedValue = totalValue,
-                AnalysisFromDate = dto.FromDate,
-                AnalysisToDate = dto.ToDate
-            };
+            throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
         }
-        catch
+
+        var tenantId = supplier.TenantId;
+
+        // Validazione range date
+        if (dto.FromDate >= dto.ToDate)
         {
-            throw;
+            throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
         }
+
+        // Allow dates up to "tomorrow UTC" to accommodate clients in UTC+ timezones where local
+        // "today" can be one calendar day ahead of the server's UTC date.
+        if (dto.ToDate.Date > DateTime.UtcNow.Date.AddDays(1))
+        {
+            throw new InvalidOperationException("La data di fine non può essere nel futuro");
+        }
+
+        // Ottieni prezzi dai documenti
+        var productPricesDict = await GetProductPricesFromDocumentsAsync(
+            dto.SupplierId,
+            dto.FromDate,
+            dto.ToDate,
+            dto.FilterByCategoryIds,
+            dto.OnlyActiveProducts,
+            dto.MinimumQuantity,
+            tenantId,
+            cancellationToken);
+
+        var productPreviews = new List<ProductPricePreview>();
+        decimal totalValue = 0;
+
+        foreach (var kvp in productPricesDict)
+        {
+            var productId = kvp.Key;
+            var occurrences = kvp.Value;
+
+            if (!occurrences.Any())
+                continue;
+
+            var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
+            var originalPrice = calculatedPrice;
+
+            // Applica maggiorazione
+            if (dto.MarkupPercentage.HasValue)
+            {
+                calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
+            }
+
+            // Applica arrotondamento
+            calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
+
+            var product = await context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
+
+            if (product is null)
+                continue;
+
+            productPreviews.Add(new ProductPricePreview
+            {
+                ProductId = productId,
+                ProductName = product.Name,
+                ProductCode = product.Code ?? string.Empty,
+                CalculatedPrice = calculatedPrice,
+                OriginalPrice = originalPrice,
+                OccurrencesInDocuments = occurrences.Count,
+                LowestPrice = occurrences.Min(o => o.Price),
+                HighestPrice = occurrences.Max(o => o.Price),
+                AveragePrice = occurrences.Average(o => o.Price),
+                LastPurchaseDate = occurrences.Max(o => o.Date)
+            });
+
+            totalValue += calculatedPrice;
+        }
+
+        // Conta documenti distinti
+        var documentCount = await context.DocumentHeaders
+            .AsNoTracking()
+            .Where(dh => dh.TenantId == tenantId &&
+                        dh.BusinessPartyId == dto.SupplierId &&
+                        dh.Date >= dto.FromDate &&
+                        dh.Date <= dto.ToDate &&
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
+            .CountAsync(cancellationToken);
+
+        return new GeneratePriceListPreviewDto
+        {
+            TotalDocumentsAnalyzed = documentCount,
+            TotalProductsFound = productPricesDict.Count,
+            ProductsWithMultiplePrices = productPricesDict.Count(kvp => kvp.Value.Count > 1),
+            ProductPreviews = productPreviews,
+            TotalEstimatedValue = totalValue,
+            AnalysisFromDate = dto.FromDate,
+            AnalysisToDate = dto.ToDate
+        };
     }
 
     /// <summary>
@@ -458,103 +437,137 @@ public class PriceListGenerationService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Validazione fornitore e recupero TenantId
+        var supplier = await context.BusinessParties
+            .AsNoTracking()
+            .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
+
+        if (supplier is null)
         {
-            // Validazione fornitore e recupero TenantId
-            var supplier = await context.BusinessParties
-                .AsNoTracking()
-                .FirstOrDefaultAsync(bp => bp.Id == dto.SupplierId, cancellationToken);
+            throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
+        }
 
-            if (supplier is null)
+        var tenantId = supplier.TenantId;
+
+        // Validazione range date
+        if (dto.FromDate >= dto.ToDate)
+        {
+            throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
+        }
+
+        // Allow dates up to "tomorrow UTC" to accommodate clients in UTC+ timezones where local
+        // "today" can be one calendar day ahead of the server's UTC date.
+        if (dto.ToDate.Date > DateTime.UtcNow.Date.AddDays(1))
+        {
+            throw new InvalidOperationException("La data di fine non può essere nel futuro");
+        }
+
+        // Ottieni prezzi dai documenti
+        var productPricesDict = await GetProductPricesFromDocumentsAsync(
+            dto.SupplierId,
+            dto.FromDate,
+            dto.ToDate,
+            dto.FilterByCategoryIds,
+            dto.OnlyActiveProducts,
+            dto.MinimumQuantity,
+            tenantId,
+            cancellationToken);
+
+        if (!productPricesDict.Any())
+        {
+            throw new InvalidOperationException("Nessun prodotto trovato nei documenti del periodo specificato");
+        }
+
+        // Crea PriceList
+        var priceList = new PriceList
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            Name = dto.Name,
+            Description = dto.Description ?? string.Empty,
+            Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId, cancellationToken),
+            Type = PriceListType.Purchase,
+            Direction = PriceListDirection.Input,
+            Status = PriceListStatus.Active,
+            IsGeneratedFromDocuments = true,
+            LastSyncedAt = DateTime.UtcNow,
+            LastSyncedBy = currentUser,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        // Conta documenti per metadati
+        var documentCount = await context.DocumentHeaders
+            .AsNoTracking()
+            .Where(dh => dh.TenantId == tenantId &&
+                        dh.BusinessPartyId == dto.SupplierId &&
+                        dh.Date >= dto.FromDate &&
+                        dh.Date <= dto.ToDate &&
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
+            .CountAsync(cancellationToken);
+
+        // Salva metadati
+        var metadata = new PriceListGenerationMetadata
+        {
+            Strategy = dto.CalculationStrategy,
+            Rounding = dto.RoundingStrategy,
+            MarkupPercentage = dto.MarkupPercentage,
+            AnalysisFromDate = dto.FromDate,
+            AnalysisToDate = dto.ToDate,
+            DocumentsAnalyzed = documentCount,
+            ProductsGenerated = productPricesDict.Count,
+            GeneratedAt = DateTime.UtcNow,
+            GeneratedBy = currentUser
+        };
+
+        priceList.GenerationMetadata = System.Text.Json.JsonSerializer.Serialize(metadata);
+
+        context.PriceLists.Add(priceList);
+
+        // Crea PriceListBusinessParty
+        var priceListBusinessParty = new PriceListBusinessParty
+        {
+            PriceListId = priceList.Id,
+            BusinessPartyId = dto.SupplierId,
+            Status = PriceListBusinessPartyStatus.Active,
+            TenantId = tenantId,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        context.PriceListBusinessParties.Add(priceListBusinessParty);
+
+        // Crea PriceListEntries
+        foreach (var kvp in productPricesDict)
+        {
+            var productId = kvp.Key;
+            var occurrences = kvp.Value;
+
+            if (!occurrences.Any())
+                continue;
+
+            var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
+
+            // Applica maggiorazione
+            if (dto.MarkupPercentage.HasValue)
             {
-                throw new InvalidOperationException($"Fornitore {dto.SupplierId} non trovato");
+                calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
             }
 
-            var tenantId = supplier.TenantId;
+            // Applica arrotondamento
+            calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
 
-            // Validazione range date
-            if (dto.FromDate >= dto.ToDate)
-            {
-                throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
-            }
-
-            // Allow dates up to "tomorrow UTC" to accommodate clients in UTC+ timezones where local
-            // "today" can be one calendar day ahead of the server's UTC date.
-            if (dto.ToDate.Date > DateTime.UtcNow.Date.AddDays(1))
-            {
-                throw new InvalidOperationException("La data di fine non può essere nel futuro");
-            }
-
-            // Ottieni prezzi dai documenti
-            var productPricesDict = await GetProductPricesFromDocumentsAsync(
-                dto.SupplierId,
-                dto.FromDate,
-                dto.ToDate,
-                dto.FilterByCategoryIds,
-                dto.OnlyActiveProducts,
-                dto.MinimumQuantity,
-                tenantId,
-                cancellationToken);
-
-            if (!productPricesDict.Any())
-            {
-                throw new InvalidOperationException("Nessun prodotto trovato nei documenti del periodo specificato");
-            }
-
-            // Crea PriceList
-            var priceList = new PriceList
+            var entry = new PriceListEntry
             {
                 Id = Guid.NewGuid(),
-                TenantId = tenantId,
-                Name = dto.Name,
-                Description = dto.Description ?? string.Empty,
-                Code = dto.Code ?? await GenerateUniquePriceListCodeAsync(tenantId, cancellationToken),
-                Type = PriceListType.Purchase,
-                Direction = PriceListDirection.Input,
-                Status = PriceListStatus.Active,
-                IsGeneratedFromDocuments = true,
-                LastSyncedAt = DateTime.UtcNow,
-                LastSyncedBy = currentUser,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-            // Conta documenti per metadati
-            var documentCount = await context.DocumentHeaders
-                .AsNoTracking()
-                .Where(dh => dh.TenantId == tenantId &&
-                            dh.BusinessPartyId == dto.SupplierId &&
-                            dh.Date >= dto.FromDate &&
-                            dh.Date <= dto.ToDate &&
-                            dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
-                .CountAsync(cancellationToken);
-
-            // Salva metadati
-            var metadata = new PriceListGenerationMetadata
-            {
-                Strategy = dto.CalculationStrategy,
-                Rounding = dto.RoundingStrategy,
-                MarkupPercentage = dto.MarkupPercentage,
-                AnalysisFromDate = dto.FromDate,
-                AnalysisToDate = dto.ToDate,
-                DocumentsAnalyzed = documentCount,
-                ProductsGenerated = productPricesDict.Count,
-                GeneratedAt = DateTime.UtcNow,
-                GeneratedBy = currentUser
-            };
-
-            priceList.GenerationMetadata = System.Text.Json.JsonSerializer.Serialize(metadata);
-
-            context.PriceLists.Add(priceList);
-
-            // Crea PriceListBusinessParty
-            var priceListBusinessParty = new PriceListBusinessParty
-            {
                 PriceListId = priceList.Id,
-                BusinessPartyId = dto.SupplierId,
-                Status = PriceListBusinessPartyStatus.Active,
+                ProductId = productId,
+                Price = calculatedPrice,
+                Status = PriceListEntryStatus.Active,
                 TenantId = tenantId,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
@@ -562,65 +575,24 @@ public class PriceListGenerationService(
                 ModifiedAt = DateTime.UtcNow
             };
 
-            context.PriceListBusinessParties.Add(priceListBusinessParty);
-
-            // Crea PriceListEntries
-            foreach (var kvp in productPricesDict)
-            {
-                var productId = kvp.Key;
-                var occurrences = kvp.Value;
-
-                if (!occurrences.Any())
-                    continue;
-
-                var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
-
-                // Applica maggiorazione
-                if (dto.MarkupPercentage.HasValue)
-                {
-                    calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
-                }
-
-                // Applica arrotondamento
-                calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
-
-                var entry = new PriceListEntry
-                {
-                    Id = Guid.NewGuid(),
-                    PriceListId = priceList.Id,
-                    ProductId = productId,
-                    Price = calculatedPrice,
-                    Status = PriceListEntryStatus.Active,
-                    TenantId = tenantId,
-                    CreatedBy = currentUser,
-                    CreatedAt = DateTime.UtcNow,
-                    ModifiedBy = currentUser,
-                    ModifiedAt = DateTime.UtcNow
-                };
-
-                context.PriceListEntries.Add(entry);
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "PriceList",
-                priceList.Id,
-                "Create",
-                "GenerateFromPurchases",
-                null,
-                $"Generated price list '{priceList.Name}' from {productPricesDict.Count} products in {documentCount} purchase documents",
-                currentUser,
-                null,
-                cancellationToken);
-
-            return priceList.Id;
+            context.PriceListEntries.Add(entry);
         }
-        catch
-        {
-            throw;
-        }
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "PriceList",
+            priceList.Id,
+            "Create",
+            "GenerateFromPurchases",
+            null,
+            $"Generated price list '{priceList.Name}' from {productPricesDict.Count} products in {documentCount} purchase documents",
+            currentUser,
+            null,
+            cancellationToken);
+
+        return priceList.Id;
     }
 
     /// <summary>
@@ -630,122 +602,115 @@ public class PriceListGenerationService(
         UpdatePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Carica listino esistente
+        var priceList = await context.PriceLists
+            .AsNoTracking()
+            .Include(pl => pl.BusinessParties)
+            .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
+
+        if (priceList is null)
         {
-            // Carica listino esistente
-            var priceList = await context.PriceLists
+            throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
+        }
+
+        var tenantId = priceList.TenantId;
+
+        // Ottieni fornitore
+        var supplierRelation = priceList.BusinessParties.FirstOrDefault();
+        if (supplierRelation is null)
+        {
+            throw new InvalidOperationException("Listino non ha un fornitore assegnato");
+        }
+
+        var supplierId = supplierRelation.BusinessPartyId;
+
+        // Default range date
+        var fromDate = dto.FromDate ?? DateTime.UtcNow.AddDays(-90);
+        var toDate = dto.ToDate ?? DateTime.UtcNow;
+
+        // Validazione range date
+        if (fromDate >= toDate)
+        {
+            throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
+        }
+
+        // Ottieni prezzi dai documenti
+        var productPricesDict = await GetProductPricesFromDocumentsAsync(
+            supplierId,
+            fromDate,
+            toDate,
+            null,
+            false,
+            null,
+            tenantId,
+            cancellationToken);
+
+        var productPreviews = new List<ProductPricePreview>();
+        decimal totalValue = 0;
+
+        foreach (var kvp in productPricesDict)
+        {
+            var productId = kvp.Key;
+            var occurrences = kvp.Value;
+
+            if (!occurrences.Any())
+                continue;
+
+            var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
+            var originalPrice = calculatedPrice;
+
+            // Applica maggiorazione
+            if (dto.MarkupPercentage.HasValue)
+            {
+                calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
+            }
+
+            // Applica arrotondamento
+            calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
+
+            var product = await context.Products
                 .AsNoTracking()
-                .Include(pl => pl.BusinessParties)
-                .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
+                .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
 
-            if (priceList is null)
+            if (product is null)
+                continue;
+
+            productPreviews.Add(new ProductPricePreview
             {
-                throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
-            }
+                ProductId = productId,
+                ProductName = product.Name,
+                ProductCode = product.Code ?? string.Empty,
+                CalculatedPrice = calculatedPrice,
+                OriginalPrice = originalPrice,
+                OccurrencesInDocuments = occurrences.Count,
+                LowestPrice = occurrences.Min(o => o.Price),
+                HighestPrice = occurrences.Max(o => o.Price),
+                AveragePrice = occurrences.Average(o => o.Price),
+                LastPurchaseDate = occurrences.Max(o => o.Date)
+            });
 
-            var tenantId = priceList.TenantId;
-
-            // Ottieni fornitore
-            var supplierRelation = priceList.BusinessParties.FirstOrDefault();
-            if (supplierRelation is null)
-            {
-                throw new InvalidOperationException("Listino non ha un fornitore assegnato");
-            }
-
-            var supplierId = supplierRelation.BusinessPartyId;
-
-            // Default range date
-            var fromDate = dto.FromDate ?? DateTime.UtcNow.AddDays(-90);
-            var toDate = dto.ToDate ?? DateTime.UtcNow;
-
-            // Validazione range date
-            if (fromDate >= toDate)
-            {
-                throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
-            }
-
-            // Ottieni prezzi dai documenti
-            var productPricesDict = await GetProductPricesFromDocumentsAsync(
-                supplierId,
-                fromDate,
-                toDate,
-                null,
-                false,
-                null,
-                tenantId,
-                cancellationToken);
-
-            var productPreviews = new List<ProductPricePreview>();
-            decimal totalValue = 0;
-
-            foreach (var kvp in productPricesDict)
-            {
-                var productId = kvp.Key;
-                var occurrences = kvp.Value;
-
-                if (!occurrences.Any())
-                    continue;
-
-                var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
-                var originalPrice = calculatedPrice;
-
-                // Applica maggiorazione
-                if (dto.MarkupPercentage.HasValue)
-                {
-                    calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
-                }
-
-                // Applica arrotondamento
-                calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
-
-                var product = await context.Products
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == productId, cancellationToken);
-
-                if (product is null)
-                    continue;
-
-                productPreviews.Add(new ProductPricePreview
-                {
-                    ProductId = productId,
-                    ProductName = product.Name,
-                    ProductCode = product.Code ?? string.Empty,
-                    CalculatedPrice = calculatedPrice,
-                    OriginalPrice = originalPrice,
-                    OccurrencesInDocuments = occurrences.Count,
-                    LowestPrice = occurrences.Min(o => o.Price),
-                    HighestPrice = occurrences.Max(o => o.Price),
-                    AveragePrice = occurrences.Average(o => o.Price),
-                    LastPurchaseDate = occurrences.Max(o => o.Date)
-                });
-
-                totalValue += calculatedPrice;
-            }
-
-            // Conta documenti distinti
-            var documentCount = await context.DocumentHeaders
-                .Where(dh => dh.TenantId == tenantId &&
-                            dh.BusinessPartyId == supplierId &&
-                            dh.Date >= fromDate &&
-                            dh.Date <= toDate &&
-                            dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
-                .CountAsync(cancellationToken);
-
-            return new GeneratePriceListPreviewDto
-            {
-                TotalDocumentsAnalyzed = documentCount,
-                TotalProductsFound = productPricesDict.Count,
-                ProductsWithMultiplePrices = productPricesDict.Count(kvp => kvp.Value.Count > 1),
-                ProductPreviews = productPreviews,
-                TotalEstimatedValue = totalValue,
-                AnalysisFromDate = fromDate,
-                AnalysisToDate = toDate
-            };
+            totalValue += calculatedPrice;
         }
-        catch
+
+        // Conta documenti distinti
+        var documentCount = await context.DocumentHeaders
+            .Where(dh => dh.TenantId == tenantId &&
+                        dh.BusinessPartyId == supplierId &&
+                        dh.Date >= fromDate &&
+                        dh.Date <= toDate &&
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
+            .CountAsync(cancellationToken);
+
+        return new GeneratePriceListPreviewDto
         {
-            throw;
-        }
+            TotalDocumentsAnalyzed = documentCount,
+            TotalProductsFound = productPricesDict.Count,
+            ProductsWithMultiplePrices = productPricesDict.Count(kvp => kvp.Value.Count > 1),
+            ProductPreviews = productPreviews,
+            TotalEstimatedValue = totalValue,
+            AnalysisFromDate = fromDate,
+            AnalysisToDate = toDate
+        };
     }
 
     /// <summary>
@@ -756,201 +721,194 @@ public class PriceListGenerationService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Carica listino esistente
+        var priceList = await context.PriceLists
+            .Include(pl => pl.BusinessParties)
+            .Include(pl => pl.ProductPrices)
+            .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
+
+        if (priceList is null)
         {
-            // Carica listino esistente
-            var priceList = await context.PriceLists
-                .Include(pl => pl.BusinessParties)
-                .Include(pl => pl.ProductPrices)
-                .FirstOrDefaultAsync(pl => pl.Id == dto.PriceListId, cancellationToken);
+            throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
+        }
 
-            if (priceList is null)
+        var tenantId = priceList.TenantId;
+
+        // Ottieni fornitore
+        var supplierRelation = priceList.BusinessParties.FirstOrDefault();
+        if (supplierRelation is null)
+        {
+            throw new InvalidOperationException("Listino non ha un fornitore assegnato");
+        }
+
+        var supplierId = supplierRelation.BusinessPartyId;
+
+        // Default range date
+        var fromDate = dto.FromDate ?? DateTime.UtcNow.AddDays(-90);
+        var toDate = dto.ToDate ?? DateTime.UtcNow;
+
+        // Validazione range date
+        if (fromDate >= toDate)
+        {
+            throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
+        }
+
+        // Ottieni prezzi dai documenti
+        var productPricesDict = await GetProductPricesFromDocumentsAsync(
+            supplierId,
+            fromDate,
+            toDate,
+            null,
+            false,
+            null,
+            tenantId,
+            cancellationToken);
+
+        int pricesUpdated = 0;
+        int pricesAdded = 0;
+        int pricesRemoved = 0;
+        int pricesUnchanged = 0;
+        var warnings = new List<string>();
+
+        // Calcola nuovi prezzi
+        var newPrices = new Dictionary<Guid, decimal>();
+        foreach (var kvp in productPricesDict)
+        {
+            var productId = kvp.Key;
+            var occurrences = kvp.Value;
+
+            if (!occurrences.Any())
+                continue;
+
+            var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
+
+            // Applica maggiorazione
+            if (dto.MarkupPercentage.HasValue)
             {
-                throw new InvalidOperationException($"Listino {dto.PriceListId} non trovato");
+                calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
             }
 
-            var tenantId = priceList.TenantId;
+            // Applica arrotondamento
+            calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
 
-            // Ottieni fornitore
-            var supplierRelation = priceList.BusinessParties.FirstOrDefault();
-            if (supplierRelation is null)
+            newPrices[productId] = calculatedPrice;
+        }
+
+        // Aggiorna prezzi esistenti
+        foreach (var entry in priceList.ProductPrices.ToList())
+        {
+            if (newPrices.TryGetValue(entry.ProductId, out var newPrice))
             {
-                throw new InvalidOperationException("Listino non ha un fornitore assegnato");
-            }
-
-            var supplierId = supplierRelation.BusinessPartyId;
-
-            // Default range date
-            var fromDate = dto.FromDate ?? DateTime.UtcNow.AddDays(-90);
-            var toDate = dto.ToDate ?? DateTime.UtcNow;
-
-            // Validazione range date
-            if (fromDate >= toDate)
-            {
-                throw new InvalidOperationException("La data di inizio deve essere precedente alla data di fine");
-            }
-
-            // Ottieni prezzi dai documenti
-            var productPricesDict = await GetProductPricesFromDocumentsAsync(
-                supplierId,
-                fromDate,
-                toDate,
-                null,
-                false,
-                null,
-                tenantId,
-                cancellationToken);
-
-            int pricesUpdated = 0;
-            int pricesAdded = 0;
-            int pricesRemoved = 0;
-            int pricesUnchanged = 0;
-            var warnings = new List<string>();
-
-            // Calcola nuovi prezzi
-            var newPrices = new Dictionary<Guid, decimal>();
-            foreach (var kvp in productPricesDict)
-            {
-                var productId = kvp.Key;
-                var occurrences = kvp.Value;
-
-                if (!occurrences.Any())
-                    continue;
-
-                var calculatedPrice = CalculatePriceByStrategy(occurrences, dto.CalculationStrategy);
-
-                // Applica maggiorazione
-                if (dto.MarkupPercentage.HasValue)
+                if (Math.Abs(entry.Price - newPrice) > 0.001m)
                 {
-                    calculatedPrice *= (1 + dto.MarkupPercentage.Value / 100);
-                }
-
-                // Applica arrotondamento
-                calculatedPrice = ApplyRounding(calculatedPrice, dto.RoundingStrategy);
-
-                newPrices[productId] = calculatedPrice;
-            }
-
-            // Aggiorna prezzi esistenti
-            foreach (var entry in priceList.ProductPrices.ToList())
-            {
-                if (newPrices.TryGetValue(entry.ProductId, out var newPrice))
-                {
-                    if (Math.Abs(entry.Price - newPrice) > 0.001m)
-                    {
-                        entry.Price = newPrice;
-                        entry.ModifiedBy = currentUser;
-                        entry.ModifiedAt = DateTime.UtcNow;
-                        pricesUpdated++;
-                    }
-                    else
-                    {
-                        pricesUnchanged++;
-                    }
-
-                    newPrices.Remove(entry.ProductId);
-                }
-                else if (dto.RemoveObsoleteProducts)
-                {
-                    context.PriceListEntries.Remove(entry);
-                    pricesRemoved++;
+                    entry.Price = newPrice;
+                    entry.ModifiedBy = currentUser;
+                    entry.ModifiedAt = DateTime.UtcNow;
+                    pricesUpdated++;
                 }
                 else
                 {
                     pricesUnchanged++;
                 }
+
+                newPrices.Remove(entry.ProductId);
             }
-
-            // Aggiungi nuovi prodotti
-            if (dto.AddNewProducts)
+            else if (dto.RemoveObsoleteProducts)
             {
-                foreach (var kvp in newPrices)
-                {
-                    var entry = new PriceListEntry
-                    {
-                        Id = Guid.NewGuid(),
-                        PriceListId = priceList.Id,
-                        ProductId = kvp.Key,
-                        Price = kvp.Value,
-                        Status = PriceListEntryStatus.Active,
-                        TenantId = tenantId,
-                        CreatedBy = currentUser,
-                        CreatedAt = DateTime.UtcNow,
-                        ModifiedBy = currentUser,
-                        ModifiedAt = DateTime.UtcNow
-                    };
-
-                    context.PriceListEntries.Add(entry);
-                    pricesAdded++;
-                }
+                context.PriceListEntries.Remove(entry);
+                pricesRemoved++;
             }
-            else if (newPrices.Any())
+            else
             {
-                warnings.Add($"{newPrices.Count} nuovi prodotti trovati ma non aggiunti (AddNewProducts = false)");
+                pricesUnchanged++;
             }
-
-            // Conta documenti per metadati
-            var documentCount = await context.DocumentHeaders
-                .AsNoTracking()
-                .Where(dh => dh.TenantId == tenantId &&
-                            dh.BusinessPartyId == supplierId &&
-                            dh.Date >= fromDate &&
-                            dh.Date <= toDate &&
-                            dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
-                .CountAsync(cancellationToken);
-
-            // Aggiorna metadati listino
-            var metadata = new PriceListGenerationMetadata
-            {
-                Strategy = dto.CalculationStrategy,
-                Rounding = dto.RoundingStrategy,
-                MarkupPercentage = dto.MarkupPercentage,
-                AnalysisFromDate = fromDate,
-                AnalysisToDate = toDate,
-                DocumentsAnalyzed = documentCount,
-                ProductsGenerated = productPricesDict.Count,
-                GeneratedAt = DateTime.UtcNow,
-                GeneratedBy = currentUser
-            };
-
-            priceList.GenerationMetadata = System.Text.Json.JsonSerializer.Serialize(metadata);
-            priceList.LastSyncedAt = DateTime.UtcNow;
-            priceList.LastSyncedBy = currentUser;
-            priceList.IsGeneratedFromDocuments = true;
-            priceList.ModifiedBy = currentUser;
-            priceList.ModifiedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "PriceList",
-                priceList.Id,
-                "Update",
-                "UpdateFromPurchases",
-                null,
-                $"Updated: {pricesUpdated}, Added: {pricesAdded}, Removed: {pricesRemoved}, Unchanged: {pricesUnchanged}",
-                currentUser,
-                null,
-                cancellationToken);
-
-            return new UpdatePriceListResultDto
-            {
-                PriceListId = priceList.Id,
-                PriceListName = priceList.Name,
-                PricesUpdated = pricesUpdated,
-                PricesAdded = pricesAdded,
-                PricesRemoved = pricesRemoved,
-                PricesUnchanged = pricesUnchanged,
-                SyncedAt = DateTime.UtcNow,
-                SyncedBy = currentUser,
-                Warnings = warnings
-            };
         }
-        catch
+
+        // Aggiungi nuovi prodotti
+        if (dto.AddNewProducts)
         {
-            throw;
+            foreach (var kvp in newPrices)
+            {
+                var entry = new PriceListEntry
+                {
+                    Id = Guid.NewGuid(),
+                    PriceListId = priceList.Id,
+                    ProductId = kvp.Key,
+                    Price = kvp.Value,
+                    Status = PriceListEntryStatus.Active,
+                    TenantId = tenantId,
+                    CreatedBy = currentUser,
+                    CreatedAt = DateTime.UtcNow,
+                    ModifiedBy = currentUser,
+                    ModifiedAt = DateTime.UtcNow
+                };
+
+                context.PriceListEntries.Add(entry);
+                pricesAdded++;
+            }
         }
+        else if (newPrices.Any())
+        {
+            warnings.Add($"{newPrices.Count} nuovi prodotti trovati ma non aggiunti (AddNewProducts = false)");
+        }
+
+        // Conta documenti per metadati
+        var documentCount = await context.DocumentHeaders
+            .AsNoTracking()
+            .Where(dh => dh.TenantId == tenantId &&
+                        dh.BusinessPartyId == supplierId &&
+                        dh.Date >= fromDate &&
+                        dh.Date <= toDate &&
+                        dh.DocumentType != null && dh.DocumentType.IsStockIncrease)
+            .CountAsync(cancellationToken);
+
+        // Aggiorna metadati listino
+        var metadata = new PriceListGenerationMetadata
+        {
+            Strategy = dto.CalculationStrategy,
+            Rounding = dto.RoundingStrategy,
+            MarkupPercentage = dto.MarkupPercentage,
+            AnalysisFromDate = fromDate,
+            AnalysisToDate = toDate,
+            DocumentsAnalyzed = documentCount,
+            ProductsGenerated = productPricesDict.Count,
+            GeneratedAt = DateTime.UtcNow,
+            GeneratedBy = currentUser
+        };
+
+        priceList.GenerationMetadata = System.Text.Json.JsonSerializer.Serialize(metadata);
+        priceList.LastSyncedAt = DateTime.UtcNow;
+        priceList.LastSyncedBy = currentUser;
+        priceList.IsGeneratedFromDocuments = true;
+        priceList.ModifiedBy = currentUser;
+        priceList.ModifiedAt = DateTime.UtcNow;
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "PriceList",
+            priceList.Id,
+            "Update",
+            "UpdateFromPurchases",
+            null,
+            $"Updated: {pricesUpdated}, Added: {pricesAdded}, Removed: {pricesRemoved}, Unchanged: {pricesUnchanged}",
+            currentUser,
+            null,
+            cancellationToken);
+
+        return new UpdatePriceListResultDto
+        {
+            PriceListId = priceList.Id,
+            PriceListName = priceList.Name,
+            PricesUpdated = pricesUpdated,
+            PricesAdded = pricesAdded,
+            PricesRemoved = pricesRemoved,
+            PricesUnchanged = pricesUnchanged,
+            SyncedAt = DateTime.UtcNow,
+            SyncedBy = currentUser,
+            Warnings = warnings
+        };
     }
 
     /// <summary>
@@ -1083,211 +1041,204 @@ public class PriceListGenerationService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            // 1. Recupera il listino sorgente
-            var sourcePriceList = await context.PriceLists
-                .AsNoTracking()
-                .Include(pl => pl.ProductPrices)
-                    .ThenInclude(pp => pp.Product)
-                .Include(pl => pl.BusinessParties)
-                    .ThenInclude(plbp => plbp.BusinessParty)
-                .FirstOrDefaultAsync(pl => pl.Id == sourcePriceListId && !pl.IsDeleted, cancellationToken);
+        // 1. Recupera il listino sorgente
+        var sourcePriceList = await context.PriceLists
+            .AsNoTracking()
+            .Include(pl => pl.ProductPrices)
+                .ThenInclude(pp => pp.Product)
+            .Include(pl => pl.BusinessParties)
+                .ThenInclude(plbp => plbp.BusinessParty)
+            .FirstOrDefaultAsync(pl => pl.Id == sourcePriceListId && !pl.IsDeleted, cancellationToken);
 
-            if (sourcePriceList is null)
+        if (sourcePriceList is null)
+        {
+            logger.LogWarning("Source price list {PriceListId} not found for duplication", sourcePriceListId);
+            throw new InvalidOperationException($"Price list {sourcePriceListId} not found");
+        }
+
+        // Count source entries BEFORE adding the new price list
+        var sourceEntriesCount = await context.PriceListEntries
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
+            .CountAsync(cancellationToken);
+
+        // 2. Genera codice se non fornito
+        var newCode = dto.Code ?? await GenerateUniquePriceListCodeAsync(
+            dto.Name, cancellationToken);
+
+        // 3. Crea il nuovo listino (copia metadati)
+        var newPriceList = new Data.Entities.PriceList.PriceList
+        {
+            Id = Guid.NewGuid(),
+            TenantId = sourcePriceList.TenantId,
+            Name = dto.Name,
+            Description = dto.Description ?? $"Duplicato da: {sourcePriceList.Name}",
+            Code = newCode,
+            Type = dto.NewType ?? sourcePriceList.Type,
+            Direction = dto.NewDirection ?? sourcePriceList.Direction,
+            Status = (Data.Entities.PriceList.PriceListStatus)dto.NewStatus,
+            Priority = dto.NewPriority ?? sourcePriceList.Priority,
+            ValidFrom = dto.NewValidFrom ?? sourcePriceList.ValidFrom,
+            ValidTo = dto.NewValidTo ?? sourcePriceList.ValidTo,
+            EventId = dto.NewEventId ?? sourcePriceList.EventId,
+            IsDefault = false, // Mai copiare IsDefault
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        context.PriceLists.Add(newPriceList);
+
+        var stats = new
+        {
+            SourcePriceCount = sourceEntriesCount,
+            CopiedPriceCount = 0,
+            SkippedPriceCount = 0,
+            CopiedBusinessPartyCount = 0
+        };
+
+        // 4. Copia le voci di prezzo (se richiesto)
+        if (dto.CopyPrices)
+        {
+            var pricesToCopy = (sourcePriceList.ProductPrices ?? [])
+                .Where(pp => !pp.IsDeleted && pp.Status == PriceListEntryStatus.Active);
+
+            // Applica filtri
+            if (dto.OnlyActiveProducts)
             {
-                logger.LogWarning("Source price list {PriceListId} not found for duplication", sourcePriceListId);
-                throw new InvalidOperationException($"Price list {sourcePriceListId} not found");
+                pricesToCopy = pricesToCopy.Where(pp => pp.Product != null && !pp.Product.IsDeleted);
             }
 
-            // Count source entries BEFORE adding the new price list
-            var sourceEntriesCount = await context.PriceListEntries
-                .AsNoTracking()
-                .IgnoreQueryFilters()
-                .Where(e => e.PriceListId == sourcePriceListId && !e.IsDeleted)
-                .CountAsync(cancellationToken);
-
-            // 2. Genera codice se non fornito
-            var newCode = dto.Code ?? await GenerateUniquePriceListCodeAsync(
-                dto.Name, cancellationToken);
-
-            // 3. Crea il nuovo listino (copia metadati)
-            var newPriceList = new Data.Entities.PriceList.PriceList
+            if (dto.FilterByProductIds?.Any() == true)
             {
-                Id = Guid.NewGuid(),
-                TenantId = sourcePriceList.TenantId,
-                Name = dto.Name,
-                Description = dto.Description ?? $"Duplicato da: {sourcePriceList.Name}",
-                Code = newCode,
-                Type = dto.NewType ?? sourcePriceList.Type,
-                Direction = dto.NewDirection ?? sourcePriceList.Direction,
-                Status = (Data.Entities.PriceList.PriceListStatus)dto.NewStatus,
-                Priority = dto.NewPriority ?? sourcePriceList.Priority,
-                ValidFrom = dto.NewValidFrom ?? sourcePriceList.ValidFrom,
-                ValidTo = dto.NewValidTo ?? sourcePriceList.ValidTo,
-                EventId = dto.NewEventId ?? sourcePriceList.EventId,
-                IsDefault = false, // Mai copiare IsDefault
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
+                pricesToCopy = pricesToCopy.Where(pp =>
+                    dto.FilterByProductIds.Contains(pp.ProductId));
+            }
 
-            context.PriceLists.Add(newPriceList);
-
-            var stats = new
+            if (dto.FilterByCategoryIds?.Any() == true)
             {
-                SourcePriceCount = sourceEntriesCount,
-                CopiedPriceCount = 0,
-                SkippedPriceCount = 0,
-                CopiedBusinessPartyCount = 0
-            };
+                pricesToCopy = pricesToCopy.Where(pp =>
+                    pp.Product != null &&
+                    pp.Product.CategoryNodeId.HasValue &&
+                    dto.FilterByCategoryIds.Contains(pp.Product.CategoryNodeId.Value));
+            }
 
-            // 4. Copia le voci di prezzo (se richiesto)
-            if (dto.CopyPrices)
+            var pricesList = pricesToCopy.ToList();
+
+            foreach (var sourcePrice in pricesList)
             {
-                var pricesToCopy = (sourcePriceList.ProductPrices ?? [])
-                    .Where(pp => !pp.IsDeleted && pp.Status == PriceListEntryStatus.Active);
+                var newPrice = sourcePrice.Price;
 
-                // Applica filtri
-                if (dto.OnlyActiveProducts)
+                // Applica maggiorazione se specificata
+                if (dto.ApplyMarkupPercentage.HasValue)
                 {
-                    pricesToCopy = pricesToCopy.Where(pp => pp.Product != null && !pp.Product.IsDeleted);
+                    newPrice *= (1 + dto.ApplyMarkupPercentage.Value / 100);
                 }
 
-                if (dto.FilterByProductIds?.Any() == true)
+                // Applica arrotondamento se specificato
+                if (dto.RoundingStrategy.HasValue)
                 {
-                    pricesToCopy = pricesToCopy.Where(pp =>
-                        dto.FilterByProductIds.Contains(pp.ProductId));
+                    newPrice = ApplyRounding(newPrice, dto.RoundingStrategy.Value);
                 }
 
-                if (dto.FilterByCategoryIds?.Any() == true)
+                var newEntry = new PriceListEntry
                 {
-                    pricesToCopy = pricesToCopy.Where(pp =>
-                        pp.Product != null &&
-                        pp.Product.CategoryNodeId.HasValue &&
-                        dto.FilterByCategoryIds.Contains(pp.Product.CategoryNodeId.Value));
-                }
-
-                var pricesList = pricesToCopy.ToList();
-
-                foreach (var sourcePrice in pricesList)
-                {
-                    var newPrice = sourcePrice.Price;
-
-                    // Applica maggiorazione se specificata
-                    if (dto.ApplyMarkupPercentage.HasValue)
-                    {
-                        newPrice *= (1 + dto.ApplyMarkupPercentage.Value / 100);
-                    }
-
-                    // Applica arrotondamento se specificato
-                    if (dto.RoundingStrategy.HasValue)
-                    {
-                        newPrice = ApplyRounding(newPrice, dto.RoundingStrategy.Value);
-                    }
-
-                    var newEntry = new PriceListEntry
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = sourcePriceList.TenantId,
-                        PriceListId = newPriceList.Id,
-                        ProductId = sourcePrice.ProductId,
-                        Price = newPrice,
-                        Currency = sourcePrice.Currency,
-                        MinQuantity = sourcePrice.MinQuantity,
-                        MaxQuantity = sourcePrice.MaxQuantity,
-                        LeadTimeDays = sourcePrice.LeadTimeDays,
-                        MinimumOrderQuantity = sourcePrice.MinimumOrderQuantity,
-                        SupplierProductCode = sourcePrice.SupplierProductCode,
-                        IsEditableInFrontend = sourcePrice.IsEditableInFrontend,
-                        IsDiscountable = sourcePrice.IsDiscountable,
-                        Score = sourcePrice.Score,
-                        Status = PriceListEntryStatus.Active,
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = currentUser
-                    };
-
-                    context.PriceListEntries.Add(newEntry);
-                    stats = stats with { CopiedPriceCount = stats.CopiedPriceCount + 1 };
-                }
-
-                stats = stats with
-                {
-                    SkippedPriceCount = stats.SourcePriceCount - stats.CopiedPriceCount
+                    Id = Guid.NewGuid(),
+                    TenantId = sourcePriceList.TenantId,
+                    PriceListId = newPriceList.Id,
+                    ProductId = sourcePrice.ProductId,
+                    Price = newPrice,
+                    Currency = sourcePrice.Currency,
+                    MinQuantity = sourcePrice.MinQuantity,
+                    MaxQuantity = sourcePrice.MaxQuantity,
+                    LeadTimeDays = sourcePrice.LeadTimeDays,
+                    MinimumOrderQuantity = sourcePrice.MinimumOrderQuantity,
+                    SupplierProductCode = sourcePrice.SupplierProductCode,
+                    IsEditableInFrontend = sourcePrice.IsEditableInFrontend,
+                    IsDiscountable = sourcePrice.IsDiscountable,
+                    Score = sourcePrice.Score,
+                    Status = PriceListEntryStatus.Active,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = currentUser
                 };
+
+                context.PriceListEntries.Add(newEntry);
+                stats = stats with { CopiedPriceCount = stats.CopiedPriceCount + 1 };
             }
 
-            // 5. Copia le assegnazioni BusinessParty (se richiesto)
-            if (dto.CopyBusinessParties)
+            stats = stats with
             {
-                foreach (var sourceBP in sourcePriceList.BusinessParties.Where(bp => !bp.IsDeleted))
-                {
-                    var newBP = new PriceListBusinessParty
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = sourcePriceList.TenantId,
-                        PriceListId = newPriceList.Id,
-                        BusinessPartyId = sourceBP.BusinessPartyId,
-                        IsPrimary = sourceBP.IsPrimary,
-                        OverridePriority = sourceBP.OverridePriority,
-                        GlobalDiscountPercentage = sourceBP.GlobalDiscountPercentage,
-                        SpecificValidFrom = sourceBP.SpecificValidFrom,
-                        SpecificValidTo = sourceBP.SpecificValidTo,
-                        Status = sourceBP.Status,
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = currentUser
-                    };
-
-                    context.PriceListBusinessParties.Add(newBP);
-                    stats = stats with { CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount + 1 };
-                }
-            }
-
-            // 6. Salva tutto
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Price list duplicated: {SourceId} -> {NewId} ({CopiedPrices} prices, {CopiedBP} business parties)",
-                sourcePriceListId, newPriceList.Id, stats.CopiedPriceCount, stats.CopiedBusinessPartyCount);
-
-            // 7. Recupera il listino completo per il DTO - need to use the interface method from PriceListService
-            // For now we'll create a minimal DTO
-            var newPriceListDto = new PriceListDto
-            {
-                Id = newPriceList.Id,
-                Name = newPriceList.Name,
-                Description = newPriceList.Description,
-                Code = newPriceList.Code,
-                Type = newPriceList.Type,
-                Direction = newPriceList.Direction,
-                Status = (Prym.DTOs.Common.PriceListStatus)newPriceList.Status,
-                Priority = newPriceList.Priority,
-                ValidFrom = newPriceList.ValidFrom,
-                ValidTo = newPriceList.ValidTo,
-                IsDefault = newPriceList.IsDefault,
-                EventId = newPriceList.EventId,
-                CreatedAt = newPriceList.CreatedAt,
-                CreatedBy = newPriceList.CreatedBy
-            };
-
-            return new DuplicatePriceListResultDto
-            {
-                SourcePriceListId = sourcePriceListId,
-                SourcePriceListName = sourcePriceList.Name,
-                NewPriceList = newPriceListDto,
-                SourcePriceCount = stats.SourcePriceCount,
-                CopiedPriceCount = stats.CopiedPriceCount,
-                SkippedPriceCount = stats.SkippedPriceCount,
-                CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount,
-                AppliedMarkupPercentage = dto.ApplyMarkupPercentage,
-                AppliedRoundingStrategy = dto.RoundingStrategy,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
+                SkippedPriceCount = stats.SourcePriceCount - stats.CopiedPriceCount
             };
         }
-        catch
+
+        // 5. Copia le assegnazioni BusinessParty (se richiesto)
+        if (dto.CopyBusinessParties)
         {
-            throw;
+            foreach (var sourceBP in sourcePriceList.BusinessParties.Where(bp => !bp.IsDeleted))
+            {
+                var newBP = new PriceListBusinessParty
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = sourcePriceList.TenantId,
+                    PriceListId = newPriceList.Id,
+                    BusinessPartyId = sourceBP.BusinessPartyId,
+                    IsPrimary = sourceBP.IsPrimary,
+                    OverridePriority = sourceBP.OverridePriority,
+                    GlobalDiscountPercentage = sourceBP.GlobalDiscountPercentage,
+                    SpecificValidFrom = sourceBP.SpecificValidFrom,
+                    SpecificValidTo = sourceBP.SpecificValidTo,
+                    Status = sourceBP.Status,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                };
+
+                context.PriceListBusinessParties.Add(newBP);
+                stats = stats with { CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount + 1 };
+            }
         }
+
+        // 6. Salva tutto
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Price list duplicated: {SourceId} -> {NewId} ({CopiedPrices} prices, {CopiedBP} business parties)",
+            sourcePriceListId, newPriceList.Id, stats.CopiedPriceCount, stats.CopiedBusinessPartyCount);
+
+        // 7. Recupera il listino completo per il DTO - need to use the interface method from PriceListService
+        // For now we'll create a minimal DTO
+        var newPriceListDto = new PriceListDto
+        {
+            Id = newPriceList.Id,
+            Name = newPriceList.Name,
+            Description = newPriceList.Description,
+            Code = newPriceList.Code,
+            Type = newPriceList.Type,
+            Direction = newPriceList.Direction,
+            Status = (Prym.DTOs.Common.PriceListStatus)newPriceList.Status,
+            Priority = newPriceList.Priority,
+            ValidFrom = newPriceList.ValidFrom,
+            ValidTo = newPriceList.ValidTo,
+            IsDefault = newPriceList.IsDefault,
+            EventId = newPriceList.EventId,
+            CreatedAt = newPriceList.CreatedAt,
+            CreatedBy = newPriceList.CreatedBy
+        };
+
+        return new DuplicatePriceListResultDto
+        {
+            SourcePriceListId = sourcePriceListId,
+            SourcePriceListName = sourcePriceList.Name,
+            NewPriceList = newPriceListDto,
+            SourcePriceCount = stats.SourcePriceCount,
+            CopiedPriceCount = stats.CopiedPriceCount,
+            SkippedPriceCount = stats.SkippedPriceCount,
+            CopiedBusinessPartyCount = stats.CopiedBusinessPartyCount,
+            AppliedMarkupPercentage = dto.ApplyMarkupPercentage,
+            AppliedRoundingStrategy = dto.RoundingStrategy,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
     }
 
     #endregion

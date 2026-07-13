@@ -14,131 +14,103 @@ public class AddressService(
 
     public async Task<PagedResult<AddressDto>> GetAddressesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for address operations.");
-            }
-
-            var query = context.Addresses
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var addresses = await query
-                .OrderBy(a => a.OwnerType)
-                .ThenBy(a => a.City)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var addressDtos = addresses.Select(MapToAddressDto);
-
-            return new PagedResult<AddressDto>
-            {
-                Items = addressDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for address operations.");
         }
-        catch
+
+        var query = context.Addresses
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var addresses = await query
+            .OrderBy(a => a.OwnerType)
+            .ThenBy(a => a.City)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var addressDtos = addresses.Select(MapToAddressDto);
+
+        return new PagedResult<AddressDto>
         {
-            throw;
-        }
+            Items = addressDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<IEnumerable<AddressDto>> GetAddressesByOwnerAsync(Guid ownerId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for address operations.");
-            }
-
-            var addresses = await context.Addresses
-                .AsNoTracking()
-                .Where(a => a.OwnerId == ownerId && !a.IsDeleted && a.TenantId == currentTenantId.Value)
-                .OrderBy(a => a.AddressType)
-                .ToListAsync(cancellationToken);
-
-            return addresses.Select(MapToAddressDto);
+            throw new InvalidOperationException("Tenant context is required for address operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var addresses = await context.Addresses
+            .AsNoTracking()
+            .Where(a => a.OwnerId == ownerId && !a.IsDeleted && a.TenantId == currentTenantId.Value)
+            .OrderBy(a => a.AddressType)
+            .ToListAsync(cancellationToken);
+
+        return addresses.Select(MapToAddressDto);
     }
 
     public async Task<AddressDto?> GetAddressByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for address operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for address operations.");
 
-            var address = await context.Addresses
-                .AsNoTracking()
-                .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var address = await context.Addresses
+            .AsNoTracking()
+            .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return address is null ? null : MapToAddressDto(address);
-        }
-        catch
-        {
-            throw;
-        }
+        return address is null ? null : MapToAddressDto(address);
     }
 
     public async Task<AddressDto> CreateAddressAsync(CreateAddressDto createAddressDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createAddressDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createAddressDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for address operations.");
-            }
-
-            var address = new Address
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                OwnerId = createAddressDto.OwnerId,
-                OwnerType = createAddressDto.OwnerType,
-                AddressType = createAddressDto.AddressType.ToEntity(),
-                Street = createAddressDto.Street,
-                City = createAddressDto.City,
-                ZipCode = createAddressDto.ZipCode,
-                Province = createAddressDto.Province,
-                Country = createAddressDto.Country,
-                Notes = createAddressDto.Notes,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser,
-                IsActive = true
-            };
-
-            _ = context.Addresses.Add(address);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(address, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Address {AddressId} created by {User}.", address.Id, currentUser);
-
-            return MapToAddressDto(address);
+            throw new InvalidOperationException("Tenant context is required for address operations.");
         }
-        catch
+
+        var address = new Address
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            OwnerId = createAddressDto.OwnerId,
+            OwnerType = createAddressDto.OwnerType,
+            AddressType = createAddressDto.AddressType.ToEntity(),
+            Street = createAddressDto.Street,
+            City = createAddressDto.City,
+            ZipCode = createAddressDto.ZipCode,
+            Province = createAddressDto.Province,
+            Country = createAddressDto.Country,
+            Notes = createAddressDto.Notes,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser,
+            IsActive = true
+        };
+
+        _ = context.Addresses.Add(address);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(address, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Address {AddressId} created by {User}.", address.Id, currentUser);
+
+        return MapToAddressDto(address);
     }
 
     public async Task<AddressDto?> UpdateAddressAsync(Guid id, UpdateAddressDto updateAddressDto, string currentUser, CancellationToken cancellationToken = default)
@@ -252,16 +224,9 @@ public class AddressService(
 
     public async Task<bool> AddressExistsAsync(Guid addressId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Addresses
-                .AsNoTracking()
-                .AnyAsync(a => a.Id == addressId && !a.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Addresses
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == addressId && !a.IsDeleted, cancellationToken);
     }
 
     private static AddressDto MapToAddressDto(Address address)

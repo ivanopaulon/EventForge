@@ -156,10 +156,8 @@ public class LicenseSeeder(
 
     private async Task SyncSuperAdminLicenseFeaturesAsync(Guid licenseId, CancellationToken cancellationToken)
     {
-        try
+        var expectedFeatures = new[]
         {
-            var expectedFeatures = new[]
-            {
                 // Event Management
                 new { Name = "BasicEventManagement", DisplayName = "Gestione Eventi Base", Description = "Funzionalità base per la gestione degli eventi", Category = "Events" },
                 
@@ -203,92 +201,87 @@ public class LicenseSeeder(
                 new { Name = "AdvancedSecurity", DisplayName = "Sicurezza Avanzata", Description = "Funzionalità di sicurezza avanzate", Category = "Security" }
             };
 
-            var existingFeatures = await dbContext.LicenseFeatures
-                .Where(lf => lf.LicenseId == licenseId)
-                .ToListAsync(cancellationToken);
+        var existingFeatures = await dbContext.LicenseFeatures
+            .Where(lf => lf.LicenseId == licenseId)
+            .ToListAsync(cancellationToken);
 
-            var featuresAdded = 0;
-            var featuresUpdated = 0;
+        var featuresAdded = 0;
+        var featuresUpdated = 0;
 
-            foreach (var expected in expectedFeatures)
+        foreach (var expected in expectedFeatures)
+        {
+            var existing = existingFeatures.FirstOrDefault(f => f.Name == expected.Name);
+
+            if (existing is null)
             {
-                var existing = existingFeatures.FirstOrDefault(f => f.Name == expected.Name);
-
-                if (existing is null)
+                // Feature doesn't exist, create it
+                var newFeature = new LicenseFeature
                 {
-                    // Feature doesn't exist, create it
-                    var newFeature = new LicenseFeature
-                    {
-                        Name = expected.Name,
-                        DisplayName = expected.DisplayName,
-                        Description = expected.Description,
-                        Category = expected.Category,
-                        LicenseId = licenseId,
-                        IsActive = true,
-                        CreatedBy = "system",
-                        CreatedAt = DateTime.UtcNow,
-                        TenantId = Guid.Empty
-                    };
+                    Name = expected.Name,
+                    DisplayName = expected.DisplayName,
+                    Description = expected.Description,
+                    Category = expected.Category,
+                    LicenseId = licenseId,
+                    IsActive = true,
+                    CreatedBy = "system",
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = Guid.Empty
+                };
 
-                    _ = dbContext.LicenseFeatures.Add(newFeature);
-                    featuresAdded++;
-                }
-                else
+                _ = dbContext.LicenseFeatures.Add(newFeature);
+                featuresAdded++;
+            }
+            else
+            {
+                // Feature exists, check if it needs updating
+                var hasChanges = false;
+
+                if (existing.DisplayName != expected.DisplayName)
                 {
-                    // Feature exists, check if it needs updating
-                    var hasChanges = false;
-
-                    if (existing.DisplayName != expected.DisplayName)
-                    {
-                        existing.DisplayName = expected.DisplayName;
-                        hasChanges = true;
-                    }
-
-                    if (existing.Description != expected.Description)
-                    {
-                        existing.Description = expected.Description;
-                        hasChanges = true;
-                    }
-
-                    if (existing.Category != expected.Category)
-                    {
-                        existing.Category = expected.Category;
-                        hasChanges = true;
-                    }
-
-                    if (!existing.IsActive)
-                    {
-                        existing.IsActive = true;
-                        hasChanges = true;
-                    }
-
-                    if (hasChanges)
-                    {
-                        existing.ModifiedBy = "system";
-                        existing.ModifiedAt = DateTime.UtcNow;
-                        featuresUpdated++;
-                    }
+                    existing.DisplayName = expected.DisplayName;
+                    hasChanges = true;
                 }
-            }
 
-            var expectedNames = expectedFeatures.Select(f => f.Name).ToHashSet();
-            var obsoleteFeatures = existingFeatures.Where(f => !expectedNames.Contains(f.Name) && f.IsActive).ToList();
+                if (existing.Description != expected.Description)
+                {
+                    existing.Description = expected.Description;
+                    hasChanges = true;
+                }
 
-            foreach (var obsolete in obsoleteFeatures)
-            {
-                obsolete.IsActive = false;
-                obsolete.ModifiedBy = "system";
-                obsolete.ModifiedAt = DateTime.UtcNow;
-            }
+                if (existing.Category != expected.Category)
+                {
+                    existing.Category = expected.Category;
+                    hasChanges = true;
+                }
 
-            if (featuresAdded > 0 || featuresUpdated > 0 || obsoleteFeatures.Count > 0)
-            {
-                _ = await dbContext.SaveChangesAsync(cancellationToken);
+                if (!existing.IsActive)
+                {
+                    existing.IsActive = true;
+                    hasChanges = true;
+                }
+
+                if (hasChanges)
+                {
+                    existing.ModifiedBy = "system";
+                    existing.ModifiedAt = DateTime.UtcNow;
+                    featuresUpdated++;
+                }
             }
         }
-        catch
+
+        var expectedNames = expectedFeatures.Select(f => f.Name).ToHashSet();
+        var obsoleteFeatures = existingFeatures.Where(f => !expectedNames.Contains(f.Name) && f.IsActive).ToList();
+
+        foreach (var obsolete in obsoleteFeatures)
         {
-            throw;
+            obsolete.IsActive = false;
+            obsolete.ModifiedBy = "system";
+            obsolete.ModifiedAt = DateTime.UtcNow;
+        }
+
+        if (featuresAdded > 0 || featuresUpdated > 0 || obsoleteFeatures.Count > 0)
+        {
+            _ = await dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 
