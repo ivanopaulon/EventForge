@@ -14,158 +14,151 @@ public class InventoryDiagnosticService(
 
     public async Task<InventoryDiagnosticReportDto> DiagnoseDocumentAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        try
+
+        var report = new InventoryDiagnosticReportDto
         {
+            DocumentId = documentId,
+            AnalyzedAt = DateTime.UtcNow,
+            IsHealthy = true
+        };
 
-            var report = new InventoryDiagnosticReportDto
-            {
-                DocumentId = documentId,
-                AnalyzedAt = DateTime.UtcNow,
-                IsHealthy = true
-            };
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        // 1. Get all document rows
+        var rows = await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
+            .ToListAsync(cancellationToken);
 
-            // 1. Get all document rows
-            var rows = await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
-                .ToListAsync(cancellationToken);
+        report.TotalRows = rows.Count;
 
-            report.TotalRows = rows.Count;
-
-            if (rows.Count == 0)
-            {
-                report.IsHealthy = true;
-                return report;
-            }
-
-            // 2. Check for missing ProductId or LocationId
-            var rowsWithMissingData = rows.Where(r => r.ProductId == null || r.LocationId == null).ToList();
-            report.Stats.RowsWithMissingData = rowsWithMissingData.Count;
-
-            foreach (var row in rowsWithMissingData)
-            {
-                var missingFields = new List<string>();
-                if (row.ProductId is null) missingFields.Add("ProductId");
-                if (row.LocationId is null) missingFields.Add("LocationId");
-
-                report.Issues.Add(new InventoryDiagnosticIssue
-                {
-                    RowId = row.Id,
-                    IssueType = "MISSING_DATA",
-                    Severity = "Error",
-                    Description = $"Row missing required field(s): {string.Join(", ", missingFields)}",
-                    CanAutoFix = false
-                });
-                report.IsHealthy = false;
-            }
-
-            // 3. Check for invalid references (non-existent products/locations)
-            var productIds = rows.Where(r => r.ProductId != null).Select(r => r.ProductId!.Value).Distinct().ToList();
-            var locationIds = rows.Where(r => r.LocationId != null).Select(r => r.LocationId!.Value).Distinct().ToList();
-
-            var existingProductIds = await context.Products
-                .AsNoTracking()
-                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
-                .Select(p => p.Id)
-                .ToListAsync(cancellationToken);
-
-            var existingLocationIds = await context.StorageLocations
-                .AsNoTracking()
-                .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
-                .Select(l => l.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingProductIds = productIds.Except(existingProductIds).ToHashSet();
-            var missingLocationIds = locationIds.Except(existingLocationIds).ToHashSet();
-
-            foreach (var row in rows.Where(r => r.ProductId.HasValue && missingProductIds.Contains(r.ProductId.Value)))
-            {
-                report.Issues.Add(new InventoryDiagnosticIssue
-                {
-                    RowId = row.Id,
-                    IssueType = "INVALID_PRODUCT_REFERENCE",
-                    Severity = "Error",
-                    Description = $"Row references non-existent product {row.ProductId}",
-                    CanAutoFix = true
-                });
-                report.Stats.InvalidReferences++;
-                report.IsHealthy = false;
-            }
-
-            foreach (var row in rows.Where(r => r.LocationId.HasValue && missingLocationIds.Contains(r.LocationId.Value)))
-            {
-                report.Issues.Add(new InventoryDiagnosticIssue
-                {
-                    RowId = row.Id,
-                    IssueType = "INVALID_LOCATION_REFERENCE",
-                    Severity = "Error",
-                    Description = $"Row references non-existent location {row.LocationId}",
-                    CanAutoFix = true
-                });
-                report.Stats.InvalidReferences++;
-                report.IsHealthy = false;
-            }
-
-            // 4. Check for duplicates (same ProductId + LocationId)
-            var duplicateGroups = rows
-                .Where(r => r.ProductId != null && r.LocationId != null)
-                .GroupBy(r => new { r.ProductId, r.LocationId })
-                .Where(g => g.Count() > 1)
-                .ToList();
-
-            report.Stats.DuplicateProducts = duplicateGroups.Sum(g => g.Count() - 1);
-
-            foreach (var group in duplicateGroups)
-            {
-                foreach (var row in group.Skip(1))
-                {
-                    report.Issues.Add(new InventoryDiagnosticIssue
-                    {
-                        RowId = row.Id,
-                        IssueType = "DUPLICATE_ENTRY",
-                        Severity = "Warning",
-                        Description = $"Duplicate entry for Product {row.ProductId} at Location {row.LocationId}",
-                        CanAutoFix = true
-                    });
-                }
-                if (report.Stats.DuplicateProducts > 0)
-                {
-                    report.IsHealthy = false;
-                }
-            }
-
-            // 5. Check for negative quantities
-            var rowsWithNegativeQty = rows.Where(r => r.Quantity < 0).ToList();
-            report.Stats.NegativeQuantities = rowsWithNegativeQty.Count;
-
-            foreach (var row in rowsWithNegativeQty)
-            {
-                report.Issues.Add(new InventoryDiagnosticIssue
-                {
-                    RowId = row.Id,
-                    IssueType = "NEGATIVE_QUANTITY",
-                    Severity = "Warning",
-                    Description = $"Row has negative quantity: {row.Quantity}",
-                    CanAutoFix = true
-                });
-                report.IsHealthy = false;
-            }
-
-            report.TotalIssues = report.Issues.Count;
-
-            logger.LogInformation(
-                "Diagnostic completed for document {DocumentId}. Total rows: {TotalRows}, Issues: {TotalIssues}, Healthy: {IsHealthy}",
-                documentId, report.TotalRows, report.TotalIssues, report.IsHealthy);
-
+        if (rows.Count == 0)
+        {
+            report.IsHealthy = true;
             return report;
         }
-        catch
+
+        // 2. Check for missing ProductId or LocationId
+        var rowsWithMissingData = rows.Where(r => r.ProductId == null || r.LocationId == null).ToList();
+        report.Stats.RowsWithMissingData = rowsWithMissingData.Count;
+
+        foreach (var row in rowsWithMissingData)
         {
-            throw;
+            var missingFields = new List<string>();
+            if (row.ProductId is null) missingFields.Add("ProductId");
+            if (row.LocationId is null) missingFields.Add("LocationId");
+
+            report.Issues.Add(new InventoryDiagnosticIssue
+            {
+                RowId = row.Id,
+                IssueType = "MISSING_DATA",
+                Severity = "Error",
+                Description = $"Row missing required field(s): {string.Join(", ", missingFields)}",
+                CanAutoFix = false
+            });
+            report.IsHealthy = false;
         }
+
+        // 3. Check for invalid references (non-existent products/locations)
+        var productIds = rows.Where(r => r.ProductId != null).Select(r => r.ProductId!.Value).Distinct().ToList();
+        var locationIds = rows.Where(r => r.LocationId != null).Select(r => r.LocationId!.Value).Distinct().ToList();
+
+        var existingProductIds = await context.Products
+            .AsNoTracking()
+            .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
+
+        var existingLocationIds = await context.StorageLocations
+            .AsNoTracking()
+            .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
+            .Select(l => l.Id)
+            .ToListAsync(cancellationToken);
+
+        var missingProductIds = productIds.Except(existingProductIds).ToHashSet();
+        var missingLocationIds = locationIds.Except(existingLocationIds).ToHashSet();
+
+        foreach (var row in rows.Where(r => r.ProductId.HasValue && missingProductIds.Contains(r.ProductId.Value)))
+        {
+            report.Issues.Add(new InventoryDiagnosticIssue
+            {
+                RowId = row.Id,
+                IssueType = "INVALID_PRODUCT_REFERENCE",
+                Severity = "Error",
+                Description = $"Row references non-existent product {row.ProductId}",
+                CanAutoFix = true
+            });
+            report.Stats.InvalidReferences++;
+            report.IsHealthy = false;
+        }
+
+        foreach (var row in rows.Where(r => r.LocationId.HasValue && missingLocationIds.Contains(r.LocationId.Value)))
+        {
+            report.Issues.Add(new InventoryDiagnosticIssue
+            {
+                RowId = row.Id,
+                IssueType = "INVALID_LOCATION_REFERENCE",
+                Severity = "Error",
+                Description = $"Row references non-existent location {row.LocationId}",
+                CanAutoFix = true
+            });
+            report.Stats.InvalidReferences++;
+            report.IsHealthy = false;
+        }
+
+        // 4. Check for duplicates (same ProductId + LocationId)
+        var duplicateGroups = rows
+            .Where(r => r.ProductId != null && r.LocationId != null)
+            .GroupBy(r => new { r.ProductId, r.LocationId })
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        report.Stats.DuplicateProducts = duplicateGroups.Sum(g => g.Count() - 1);
+
+        foreach (var group in duplicateGroups)
+        {
+            foreach (var row in group.Skip(1))
+            {
+                report.Issues.Add(new InventoryDiagnosticIssue
+                {
+                    RowId = row.Id,
+                    IssueType = "DUPLICATE_ENTRY",
+                    Severity = "Warning",
+                    Description = $"Duplicate entry for Product {row.ProductId} at Location {row.LocationId}",
+                    CanAutoFix = true
+                });
+            }
+            if (report.Stats.DuplicateProducts > 0)
+            {
+                report.IsHealthy = false;
+            }
+        }
+
+        // 5. Check for negative quantities
+        var rowsWithNegativeQty = rows.Where(r => r.Quantity < 0).ToList();
+        report.Stats.NegativeQuantities = rowsWithNegativeQty.Count;
+
+        foreach (var row in rowsWithNegativeQty)
+        {
+            report.Issues.Add(new InventoryDiagnosticIssue
+            {
+                RowId = row.Id,
+                IssueType = "NEGATIVE_QUANTITY",
+                Severity = "Warning",
+                Description = $"Row has negative quantity: {row.Quantity}",
+                CanAutoFix = true
+            });
+            report.IsHealthy = false;
+        }
+
+        report.TotalIssues = report.Issues.Count;
+
+        logger.LogInformation(
+            "Diagnostic completed for document {DocumentId}. Total rows: {TotalRows}, Issues: {TotalIssues}, Healthy: {IsHealthy}",
+            documentId, report.TotalRows, report.TotalIssues, report.IsHealthy);
+
+        return report;
     }
 
     public async Task<InventoryRepairResultDto> AutoRepairDocumentAsync(
@@ -329,62 +322,55 @@ public class InventoryDiagnosticService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var row = await context.DocumentRows
+            .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (row is null)
         {
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var row = await context.DocumentRows
-                .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (row is null)
-            {
-                logger.LogWarning("Row {RowId} not found in document {DocumentId}", rowId, documentId);
-                return false;
-            }
-
-            var modified = false;
-
-            if (repairData.NewProductId.HasValue && repairData.NewProductId.Value != row.ProductId)
-            {
-                row.ProductId = repairData.NewProductId.Value;
-                modified = true;
-            }
-
-            if (repairData.NewLocationId.HasValue && repairData.NewLocationId.Value != row.LocationId)
-            {
-                row.LocationId = repairData.NewLocationId.Value;
-                modified = true;
-            }
-
-            if (repairData.NewQuantity.HasValue && repairData.NewQuantity.Value != row.Quantity)
-            {
-                row.Quantity = repairData.NewQuantity.Value;
-                modified = true;
-            }
-
-            if (repairData.NewNotes is not null && repairData.NewNotes != row.Notes)
-            {
-                row.Notes = repairData.NewNotes;
-                modified = true;
-            }
-
-            if (modified)
-            {
-                row.ModifiedBy = currentUser;
-                row.ModifiedAt = DateTime.UtcNow;
-                await context.SaveChangesAsync(cancellationToken);
-                logger.LogInformation("Row {RowId} repaired.", rowId);
-            }
-
-            return modified;
+            logger.LogWarning("Row {RowId} not found in document {DocumentId}", rowId, documentId);
+            return false;
         }
-        catch
+
+        var modified = false;
+
+        if (repairData.NewProductId.HasValue && repairData.NewProductId.Value != row.ProductId)
         {
-            throw;
+            row.ProductId = repairData.NewProductId.Value;
+            modified = true;
         }
+
+        if (repairData.NewLocationId.HasValue && repairData.NewLocationId.Value != row.LocationId)
+        {
+            row.LocationId = repairData.NewLocationId.Value;
+            modified = true;
+        }
+
+        if (repairData.NewQuantity.HasValue && repairData.NewQuantity.Value != row.Quantity)
+        {
+            row.Quantity = repairData.NewQuantity.Value;
+            modified = true;
+        }
+
+        if (repairData.NewNotes is not null && repairData.NewNotes != row.Notes)
+        {
+            row.Notes = repairData.NewNotes;
+            modified = true;
+        }
+
+        if (modified)
+        {
+            row.ModifiedBy = currentUser;
+            row.ModifiedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("Row {RowId} repaired.", rowId);
+        }
+
+        return modified;
     }
 
     public async Task<int> RemoveProblematicRowsAsync(
@@ -393,32 +379,25 @@ public class InventoryDiagnosticService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var rows = await context.DocumentRows
+            .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var row in rows)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var rows = await context.DocumentRows
-                .Where(r => rowIds.Contains(r.Id) && r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            foreach (var row in rows)
-            {
-                row.IsDeleted = true;
-                row.ModifiedBy = currentUser;
-                row.ModifiedAt = DateTime.UtcNow;
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("{Count} rows removed from document {DocumentId}.", rows.Count, documentId);
-
-            return rows.Count;
+            row.IsDeleted = true;
+            row.ModifiedBy = currentUser;
+            row.ModifiedAt = DateTime.UtcNow;
         }
-        catch
-        {
-            throw;
-        }
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("{Count} rows removed from document {DocumentId}.", rows.Count, documentId);
+
+        return rows.Count;
     }
 
 }

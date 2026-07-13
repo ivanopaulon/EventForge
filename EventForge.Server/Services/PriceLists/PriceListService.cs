@@ -22,171 +22,136 @@ public class PriceListService(
 
     public async Task<PagedResult<PriceListDto>> GetPriceListsAsync(PaginationParameters pagination, PriceListDirection? direction = null, Prym.DTOs.Common.PriceListStatus? status = null, CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.PriceLists
+            .Where(pl => !pl.IsDeleted);
+
+        // Apply filters BEFORE pagination
+        if (direction.HasValue)
         {
-            var query = context.PriceLists
-                .Where(pl => !pl.IsDeleted);
+            query = query.Where(pl => pl.Direction == direction.Value);
+            logger.LogDebug("Filtering price lists by direction: {Direction}", direction.Value);
+        }
 
-            // Apply filters BEFORE pagination
-            if (direction.HasValue)
+        if (status.HasValue)
+        {
+            // Map DTO enum to entity enum by name (the two enums have different ordinal values)
+            var entityStatus = status.Value switch
             {
-                query = query.Where(pl => pl.Direction == direction.Value);
-                logger.LogDebug("Filtering price lists by direction: {Direction}", direction.Value);
-            }
-
-            if (status.HasValue)
-            {
-                // Map DTO enum to entity enum by name (the two enums have different ordinal values)
-                var entityStatus = status.Value switch
-                {
-                    Prym.DTOs.Common.PriceListStatus.Active => PriceListStatus.Active,
-                    Prym.DTOs.Common.PriceListStatus.Suspended => PriceListStatus.Suspended,
-                    Prym.DTOs.Common.PriceListStatus.Deleted => PriceListStatus.Deleted,
-                    _ => (PriceListStatus?)null
-                };
-                if (entityStatus.HasValue)
-                {
-                    query = query.Where(pl => pl.Status == entityStatus.Value);
-                }
-                logger.LogDebug("Filtering price lists by status: {Status}", status.Value);
-            }
-
-            // Count AFTER filters
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Found {TotalCount} price lists matching filters (Direction: {Direction}, Status: {Status})",
-                totalCount,
-                direction?.ToString() ?? "Any",
-                status?.ToString() ?? "Any");
-
-            // Include related data and apply pagination AFTER filters
-            var priceLists = await query
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .OrderBy(pl => pl.Priority)
-                .ThenBy(pl => pl.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var priceListDtos = priceLists.Select(MapToPriceListDto);
-
-            return new PagedResult<PriceListDto>
-            {
-                Items = priceListDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
+                Prym.DTOs.Common.PriceListStatus.Active => PriceListStatus.Active,
+                Prym.DTOs.Common.PriceListStatus.Suspended => PriceListStatus.Suspended,
+                Prym.DTOs.Common.PriceListStatus.Deleted => PriceListStatus.Deleted,
+                _ => (PriceListStatus?)null
             };
+            if (entityStatus.HasValue)
+            {
+                query = query.Where(pl => pl.Status == entityStatus.Value);
+            }
+            logger.LogDebug("Filtering price lists by status: {Status}", status.Value);
         }
-        catch
+
+        // Count AFTER filters
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Found {TotalCount} price lists matching filters (Direction: {Direction}, Status: {Status})",
+            totalCount,
+            direction?.ToString() ?? "Any",
+            status?.ToString() ?? "Any");
+
+        // Include related data and apply pagination AFTER filters
+        var priceLists = await query
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .OrderBy(pl => pl.Priority)
+            .ThenBy(pl => pl.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var priceListDtos = priceLists.Select(MapToPriceListDto);
+
+        return new PagedResult<PriceListDto>
         {
-            throw;
-        }
+            Items = priceListDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByEventAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var priceLists = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .OrderBy(pl => pl.Priority)
-                .ThenBy(pl => pl.Name)
-                .ToListAsync(cancellationToken);
+        var priceLists = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.EventId == eventId && !pl.IsDeleted)
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .OrderBy(pl => pl.Priority)
+            .ThenBy(pl => pl.Name)
+            .ToListAsync(cancellationToken);
 
-            return priceLists.Select(MapToPriceListDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return priceLists.Select(MapToPriceListDto);
     }
 
     public async Task<PriceListDto?> GetPriceListByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
 
-            var priceList = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
+        var priceList = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted)
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return priceList is not null ? MapToPriceListDto(priceList) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return priceList is not null ? MapToPriceListDto(priceList) : null;
     }
 
     public async Task<PriceListDetailDto?> GetPriceListDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
 
-            var priceList = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
+        var priceList = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted)
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return priceList is not null ? MapToPriceListDetailDto(priceList) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return priceList is not null ? MapToPriceListDetailDto(priceList) : null;
     }
 
     public async Task<PriceListDto> CreatePriceListAsync(CreatePriceListDto createPriceListDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createPriceListDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        // Only validate EventId if it's provided
+        if (createPriceListDto.EventId.HasValue && !await EventExistsAsync(createPriceListDto.EventId.Value, cancellationToken))
         {
-            ArgumentNullException.ThrowIfNull(createPriceListDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            // Only validate EventId if it's provided
-            if (createPriceListDto.EventId.HasValue && !await EventExistsAsync(createPriceListDto.EventId.Value, cancellationToken))
-            {
-                throw new ArgumentException($"Event with ID {createPriceListDto.EventId} does not exist.");
-            }
-
-            var priceList = new Data.Entities.PriceList.PriceList
-            {
-                Name = createPriceListDto.Name,
-                Description = createPriceListDto.Description,
-                ValidFrom = createPriceListDto.ValidFrom,
-                ValidTo = createPriceListDto.ValidTo,
-                Notes = createPriceListDto.Notes,
-                IsDefault = createPriceListDto.IsDefault,
-                Priority = createPriceListDto.Priority,
-                EventId = createPriceListDto.EventId,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _ = context.PriceLists.Add(priceList);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Price list created with ID {PriceListId} by user {User}.", priceList.Id, currentUser);
-
-            return MapToPriceListDto(priceList);
+            throw new ArgumentException($"Event with ID {createPriceListDto.EventId} does not exist.");
         }
-        catch
+
+        var priceList = new Data.Entities.PriceList.PriceList
         {
-            throw;
-        }
+            Name = createPriceListDto.Name,
+            Description = createPriceListDto.Description,
+            ValidFrom = createPriceListDto.ValidFrom,
+            ValidTo = createPriceListDto.ValidTo,
+            Notes = createPriceListDto.Notes,
+            IsDefault = createPriceListDto.IsDefault,
+            Priority = createPriceListDto.Priority,
+            EventId = createPriceListDto.EventId,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _ = context.PriceLists.Add(priceList);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(priceList, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Price list created with ID {PriceListId} by user {User}.", priceList.Id, currentUser);
+
+        return MapToPriceListDto(priceList);
     }
 
     public async Task<PriceListDto?> UpdatePriceListAsync(Guid id, UpdatePriceListDto updatePriceListDto, string currentUser, CancellationToken cancellationToken = default)
@@ -330,117 +295,89 @@ public class PriceListService(
 
     public async Task<IEnumerable<PriceListEntryDto>> GetPriceListEntriesAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entries = await context.PriceListEntries
-                .AsNoTracking()
-                .Include(ple => ple.UnitOfMeasure)
-                .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
-                .OrderBy(ple => ple.ProductId)
-                .ToListAsync(cancellationToken);
+        var entries = await context.PriceListEntries
+            .AsNoTracking()
+            .Include(ple => ple.UnitOfMeasure)
+            .Where(ple => ple.PriceListId == priceListId && !ple.IsDeleted)
+            .OrderBy(ple => ple.ProductId)
+            .ToListAsync(cancellationToken);
 
-            return entries.Select(MapToPriceListEntryDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return entries.Select(MapToPriceListEntryDto);
     }
 
     public async Task<List<ProductPriceListMembershipDto>> GetPriceListsForProductAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entries = await context.PriceListEntries
-                .AsNoTracking()
-                .Include(ple => ple.PriceList)
-                .Where(ple => ple.ProductId == productId && !ple.IsDeleted && ple.PriceList != null && !ple.PriceList.IsDeleted)
-                .OrderBy(ple => ple.PriceList!.Name)
-                .ToListAsync(cancellationToken);
+        var entries = await context.PriceListEntries
+            .AsNoTracking()
+            .Include(ple => ple.PriceList)
+            .Where(ple => ple.ProductId == productId && !ple.IsDeleted && ple.PriceList != null && !ple.PriceList.IsDeleted)
+            .OrderBy(ple => ple.PriceList!.Name)
+            .ToListAsync(cancellationToken);
 
-            return entries.Select(ple => new ProductPriceListMembershipDto
-            {
-                PriceListId = ple.PriceListId,
-                PriceListName = ple.PriceList?.Name ?? string.Empty,
-                Price = ple.Price,
-                IsActive = ple.Status == Data.Entities.PriceList.PriceListEntryStatus.Active
-            }).ToList();
-        }
-        catch
+        return entries.Select(ple => new ProductPriceListMembershipDto
         {
-            throw;
-        }
+            PriceListId = ple.PriceListId,
+            PriceListName = ple.PriceList?.Name ?? string.Empty,
+            Price = ple.Price,
+            IsActive = ple.Status == Data.Entities.PriceList.PriceListEntryStatus.Active
+        }).ToList();
     }
 
     public async Task<PriceListEntryDto?> GetPriceListEntryByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
 
-            var entry = await context.PriceListEntries
-                .AsNoTracking()
-                .Include(ple => ple.UnitOfMeasure)
-                .Where(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var entry = await context.PriceListEntries
+            .AsNoTracking()
+            .Include(ple => ple.UnitOfMeasure)
+            .Where(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return entry is not null ? MapToPriceListEntryDto(entry) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return entry is not null ? MapToPriceListEntryDto(entry) : null;
     }
 
     public async Task<PriceListEntryDto> AddPriceListEntryAsync(CreatePriceListEntryDto createPriceListEntryDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createPriceListEntryDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        if (!await PriceListExistsAsync(createPriceListEntryDto.PriceListId, cancellationToken))
         {
-            ArgumentNullException.ThrowIfNull(createPriceListEntryDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            if (!await PriceListExistsAsync(createPriceListEntryDto.PriceListId, cancellationToken))
-            {
-                throw new ArgumentException($"Price list with ID {createPriceListEntryDto.PriceListId} does not exist.");
-            }
-
-            if (!await ProductExistsAsync(createPriceListEntryDto.ProductId, cancellationToken))
-            {
-                throw new ArgumentException($"Product with ID {createPriceListEntryDto.ProductId} does not exist.");
-            }
-
-            var entry = new PriceListEntry
-            {
-                ProductId = createPriceListEntryDto.ProductId,
-                PriceListId = createPriceListEntryDto.PriceListId,
-                Price = createPriceListEntryDto.Price,
-                Currency = createPriceListEntryDto.Currency,
-                Score = createPriceListEntryDto.Score,
-                IsEditableInFrontend = createPriceListEntryDto.IsEditableInFrontend,
-                IsDiscountable = createPriceListEntryDto.IsDiscountable,
-                MinQuantity = createPriceListEntryDto.MinQuantity,
-                MaxQuantity = createPriceListEntryDto.MaxQuantity,
-                UnitOfMeasureId = createPriceListEntryDto.UnitOfMeasureId,
-                Notes = createPriceListEntryDto.Notes,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            _ = context.PriceListEntries.Add(entry);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
-                entry.Id, createPriceListEntryDto.PriceListId, currentUser);
-
-            return MapToPriceListEntryDto(entry);
+            throw new ArgumentException($"Price list with ID {createPriceListEntryDto.PriceListId} does not exist.");
         }
-        catch
+
+        if (!await ProductExistsAsync(createPriceListEntryDto.ProductId, cancellationToken))
         {
-            throw;
+            throw new ArgumentException($"Product with ID {createPriceListEntryDto.ProductId} does not exist.");
         }
+
+        var entry = new PriceListEntry
+        {
+            ProductId = createPriceListEntryDto.ProductId,
+            PriceListId = createPriceListEntryDto.PriceListId,
+            Price = createPriceListEntryDto.Price,
+            Currency = createPriceListEntryDto.Currency,
+            Score = createPriceListEntryDto.Score,
+            IsEditableInFrontend = createPriceListEntryDto.IsEditableInFrontend,
+            IsDiscountable = createPriceListEntryDto.IsDiscountable,
+            MinQuantity = createPriceListEntryDto.MinQuantity,
+            MaxQuantity = createPriceListEntryDto.MaxQuantity,
+            UnitOfMeasureId = createPriceListEntryDto.UnitOfMeasureId,
+            Notes = createPriceListEntryDto.Notes,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _ = context.PriceListEntries.Add(entry);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(entry, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Price list entry created with ID {EntryId} for price list {PriceListId} by user {User}.",
+            entry.Id, createPriceListEntryDto.PriceListId, currentUser);
+
+        return MapToPriceListEntryDto(entry);
     }
 
     public async Task<PriceListEntryDto?> UpdatePriceListEntryAsync(Guid id, UpdatePriceListEntryDto updatePriceListEntryDto, string currentUser, CancellationToken cancellationToken = default)
@@ -571,44 +508,23 @@ public class PriceListService(
 
     public async Task<bool> PriceListExistsAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.PriceLists
-                .AsNoTracking()
-                .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.PriceLists
+            .AsNoTracking()
+            .AnyAsync(pl => pl.Id == priceListId && !pl.IsDeleted, cancellationToken);
     }
 
     public async Task<bool> EventExistsAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Events
-                .AsNoTracking()
-                .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Events
+            .AsNoTracking()
+            .AnyAsync(e => e.Id == eventId && !e.IsDeleted, cancellationToken);
     }
 
     public async Task<bool> ProductExistsAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Products
-                .AsNoTracking()
-                .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Products
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == productId && !p.IsDeleted, cancellationToken);
     }
 
     // Private mapping methods
@@ -716,38 +632,17 @@ public class PriceListService(
         int quantity = 1,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await calculationService.GetAppliedPriceAsync(productId, eventId, businessPartyId, evaluationDate, quantity, cancellationToken);
     }
 
     public async Task<AppliedPriceDto?> GetAppliedPriceWithUnitConversionAsync(Guid productId, Guid eventId, Guid targetUnitId, DateTime? evaluationDate = null, int quantity = 1, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await calculationService.GetAppliedPriceWithUnitConversionAsync(productId, eventId, targetUnitId, evaluationDate, quantity, null, cancellationToken);
     }
 
     public async Task<IEnumerable<PriceHistoryDto>> GetPriceHistoryAsync(Guid productId, Guid eventId, DateTime? fromDate = null, DateTime? toDate = null, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await calculationService.GetPriceHistoryAsync(productId, eventId, fromDate, toDate, cancellationToken);
     }
 
     public async Task<List<PurchasePriceComparisonDto>> GetPurchasePriceComparisonAsync(
@@ -756,14 +651,7 @@ public class PriceListService(
         DateTime? evaluationDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await calculationService.GetPurchasePriceComparisonAsync(productId, quantity, evaluationDate, cancellationToken);
     }
 
     /// <summary>
@@ -773,14 +661,7 @@ public class PriceListService(
         GetProductPriceRequestDto request,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await calculationService.GetProductPriceAsync(request, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await calculationService.GetProductPriceAsync(request, cancellationToken);
     }
 
     #endregion
@@ -789,38 +670,17 @@ public class PriceListService(
 
     public async Task<BulkImportResultDto> BulkImportPriceListEntriesAsync(Guid priceListId, IEnumerable<CreatePriceListEntryDto> entries, string currentUser, bool replaceExisting = false, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await bulkOperationsService.BulkImportPriceListEntriesAsync(priceListId, entries, currentUser, replaceExisting, cancellationToken);
     }
 
     public async Task<IEnumerable<ExportablePriceListEntryDto>> ExportPriceListEntriesAsync(Guid priceListId, bool includeInactiveEntries = false, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await bulkOperationsService.ExportPriceListEntriesAsync(priceListId, includeInactiveEntries, cancellationToken);
     }
 
     public async Task<PrecedenceValidationResultDto> ValidatePriceListPrecedenceAsync(Guid eventId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await bulkOperationsService.ValidatePriceListPrecedenceAsync(eventId, cancellationToken);
     }
 
     #endregion
@@ -829,70 +689,35 @@ public class PriceListService(
 
     public async Task<PriceListBusinessPartyDto> AssignBusinessPartyAsync(Guid priceListId, AssignBusinessPartyToPriceListDto dto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await businessPartyService.AssignBusinessPartyAsync(priceListId, dto, currentUser, cancellationToken);
     }
 
     public async Task<bool> RemoveBusinessPartyAsync(Guid priceListId, Guid businessPartyId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await businessPartyService.RemoveBusinessPartyAsync(priceListId, businessPartyId, currentUser, cancellationToken);
     }
 
     public async Task<IEnumerable<PriceListBusinessPartyDto>> GetBusinessPartiesForPriceListAsync(Guid priceListId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await businessPartyService.GetBusinessPartiesForPriceListAsync(priceListId, cancellationToken);
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByTypeAsync(PriceListType type, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var priceLists = await context.PriceLists
-                .AsNoTracking()
-                .Where(pl => pl.Type == type && !pl.IsDeleted)
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .OrderBy(pl => pl.Priority)
-                .ThenBy(pl => pl.Name)
-                .ToListAsync(cancellationToken);
+        var priceLists = await context.PriceLists
+            .AsNoTracking()
+            .Where(pl => pl.Type == type && !pl.IsDeleted)
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .OrderBy(pl => pl.Priority)
+            .ThenBy(pl => pl.Name)
+            .ToListAsync(cancellationToken);
 
-            return priceLists.Select(MapToPriceListDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return priceLists.Select(MapToPriceListDto);
     }
 
     public async Task<IEnumerable<PriceListDto>> GetPriceListsByBusinessPartyAsync(Guid businessPartyId, PriceListType? type, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await businessPartyService.GetPriceListsByBusinessPartyAsync(businessPartyId, type, cancellationToken);
     }
 
     #endregion
@@ -912,14 +737,7 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.DuplicatePriceListAsync(sourcePriceListId, dto, currentUser, cancellationToken);
     }
 
     #region Bulk Price Update Methods
@@ -932,14 +750,7 @@ public class PriceListService(
         BulkPriceUpdateDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await bulkOperationsService.PreviewBulkUpdateAsync(priceListId, dto, cancellationToken);
     }
 
     /// <summary>
@@ -951,14 +762,7 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await bulkOperationsService.BulkUpdatePricesAsync(priceListId, dto, currentUser, cancellationToken);
     }
 
     #endregion
@@ -972,14 +776,7 @@ public class PriceListService(
         GeneratePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.PreviewGenerateFromPurchasesAsync(dto, cancellationToken);
     }
 
     /// <summary>
@@ -990,14 +787,7 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.GenerateFromPurchasesAsync(dto, currentUser, cancellationToken);
     }
 
     /// <summary>
@@ -1007,14 +797,7 @@ public class PriceListService(
         UpdatePriceListFromPurchasesDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.PreviewUpdateFromPurchasesAsync(dto, cancellationToken);
     }
 
     /// <summary>
@@ -1025,14 +808,7 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.UpdateFromPurchasesAsync(dto, currentUser, cancellationToken);
     }
 
     #endregion
@@ -1047,14 +823,7 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.GenerateFromProductPricesAsync(dto, currentUser, cancellationToken);
     }
 
     /// <summary>
@@ -1064,14 +833,7 @@ public class PriceListService(
         GeneratePriceListFromProductsDto dto,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await generationService.PreviewGenerateFromProductPricesAsync(dto, cancellationToken);
     }
 
     /// <summary>
@@ -1082,14 +844,7 @@ public class PriceListService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await bulkOperationsService.ApplyPriceListToProductsAsync(dto, currentUser, cancellationToken);
     }
 
     #endregion

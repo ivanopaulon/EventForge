@@ -23,259 +23,217 @@ public class LotService(
         string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var query = context.Lots
-                .AsNoTracking()
-                .Where(l => l.TenantId == currentTenantId.Value && !l.IsDeleted);
-
-            // Apply filters
-            if (productId.HasValue)
-            {
-                query = query.Where(l => l.ProductId == productId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(status) && Enum.TryParse<LotStatus>(status, out var lotStatus))
-            {
-                query = query.Where(l => l.Status == lotStatus);
-            }
-
-            if (expiringSoon.HasValue && expiringSoon.Value)
-            {
-                var expiryThreshold = DateTime.UtcNow.AddDays(30);
-                query = query.Where(l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= expiryThreshold);
-            }
-
-            if (recent.HasValue && recent.Value)
-            {
-                var createdAfter = DateTime.UtcNow.AddDays(-30);
-                query = query.Where(l => l.CreatedAt >= createdAfter);
-            }
-
-            if (!string.IsNullOrEmpty(searchTerm))
-            {
-                query = query.Where(l => l.Code.Contains(searchTerm) ||
-                                         (l.Barcode != null && l.Barcode.Contains(searchTerm)) ||
-                                         (l.Notes != null && l.Notes.Contains(searchTerm)) ||
-                                         (l.Product != null && (l.Product.Name.Contains(searchTerm) || l.Product.Code.Contains(searchTerm))));
-            }
-
-            // Get total count
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            // Apply pagination and ordering
-            var lotDtos = await query
-                .OrderByDescending(l => l.CreatedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(l => new LotDto
-                {
-                    Id = l.Id,
-                    TenantId = l.TenantId,
-                    Code = l.Code,
-                    ProductId = l.ProductId,
-                    ProductName = l.Product != null ? l.Product.Name : null,
-                    ProductCode = l.Product != null ? l.Product.Code : null,
-                    ProductionDate = l.ProductionDate,
-                    ExpiryDate = l.ExpiryDate,
-                    SupplierId = l.SupplierId,
-                    SupplierName = l.Supplier != null ? l.Supplier.Name : null,
-                    OriginalQuantity = l.OriginalQuantity,
-                    AvailableQuantity = l.AvailableQuantity,
-                    Status = l.Status.ToString(),
-                    QualityStatus = l.QualityStatus.ToString(),
-                    Notes = l.Notes,
-                    Barcode = l.Barcode,
-                    CountryOfOrigin = l.CountryOfOrigin,
-                    CreatedAt = l.CreatedAt,
-                    CreatedBy = l.CreatedBy,
-                    ModifiedAt = l.ModifiedAt,
-                    ModifiedBy = l.ModifiedBy,
-                    IsActive = l.IsActive
-                })
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<LotDto>
-            {
-                Items = lotDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var query = context.Lots
+            .AsNoTracking()
+            .Where(l => l.TenantId == currentTenantId.Value && !l.IsDeleted);
+
+        // Apply filters
+        if (productId.HasValue)
         {
-            throw;
+            query = query.Where(l => l.ProductId == productId.Value);
         }
+
+        if (!string.IsNullOrEmpty(status) && Enum.TryParse<LotStatus>(status, out var lotStatus))
+        {
+            query = query.Where(l => l.Status == lotStatus);
+        }
+
+        if (expiringSoon.HasValue && expiringSoon.Value)
+        {
+            var expiryThreshold = DateTime.UtcNow.AddDays(30);
+            query = query.Where(l => l.ExpiryDate.HasValue && l.ExpiryDate.Value <= expiryThreshold);
+        }
+
+        if (recent.HasValue && recent.Value)
+        {
+            var createdAfter = DateTime.UtcNow.AddDays(-30);
+            query = query.Where(l => l.CreatedAt >= createdAfter);
+        }
+
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            query = query.Where(l => l.Code.Contains(searchTerm) ||
+                                     (l.Barcode != null && l.Barcode.Contains(searchTerm)) ||
+                                     (l.Notes != null && l.Notes.Contains(searchTerm)) ||
+                                     (l.Product != null && (l.Product.Name.Contains(searchTerm) || l.Product.Code.Contains(searchTerm))));
+        }
+
+        // Get total count
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        // Apply pagination and ordering
+        var lotDtos = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(l => new LotDto
+            {
+                Id = l.Id,
+                TenantId = l.TenantId,
+                Code = l.Code,
+                ProductId = l.ProductId,
+                ProductName = l.Product != null ? l.Product.Name : null,
+                ProductCode = l.Product != null ? l.Product.Code : null,
+                ProductionDate = l.ProductionDate,
+                ExpiryDate = l.ExpiryDate,
+                SupplierId = l.SupplierId,
+                SupplierName = l.Supplier != null ? l.Supplier.Name : null,
+                OriginalQuantity = l.OriginalQuantity,
+                AvailableQuantity = l.AvailableQuantity,
+                Status = l.Status.ToString(),
+                QualityStatus = l.QualityStatus.ToString(),
+                Notes = l.Notes,
+                Barcode = l.Barcode,
+                CountryOfOrigin = l.CountryOfOrigin,
+                CreatedAt = l.CreatedAt,
+                CreatedBy = l.CreatedBy,
+                ModifiedAt = l.ModifiedAt,
+                ModifiedBy = l.ModifiedBy,
+                IsActive = l.IsActive
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<LotDto>
+        {
+            Items = lotDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<LotDto?> GetLotByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lot = await context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            return lot is not null ? LotMapper.ToDto(lot) : null;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var lot = await context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        return lot is not null ? LotMapper.ToDto(lot) : null;
     }
 
     public async Task<LotDto?> GetLotByCodeAsync(string code, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lot = await context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .FirstOrDefaultAsync(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            return lot is not null ? LotMapper.ToDto(lot) : null;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var lot = await context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .FirstOrDefaultAsync(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        return lot is not null ? LotMapper.ToDto(lot) : null;
     }
 
     public async Task<IEnumerable<LotDto>> GetLotsByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lots = await context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .Where(l => l.ProductId == productId && l.TenantId == currentTenantId.Value && !l.IsDeleted)
-                .OrderByDescending(l => l.CreatedAt)
-                .ToListAsync(cancellationToken);
-
-            return lots.Select(LotMapper.ToDto);
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var lots = await context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .Where(l => l.ProductId == productId && l.TenantId == currentTenantId.Value && !l.IsDeleted)
+            .OrderByDescending(l => l.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return lots.Select(LotMapper.ToDto);
     }
 
     public async Task<IEnumerable<LotDto>> GetExpiringLotsAsync(int daysAhead = 30, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var expiryThreshold = DateTime.UtcNow.AddDays(daysAhead);
-
-            var lots = await context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .Where(l => l.TenantId == currentTenantId.Value &&
-                           !l.IsDeleted &&
-                           l.Status == LotStatus.Active &&
-                           l.ExpiryDate.HasValue &&
-                           l.ExpiryDate.Value <= expiryThreshold)
-                .OrderBy(l => l.ExpiryDate)
-                .ToListAsync(cancellationToken);
-
-            return lots.Select(LotMapper.ToDto);
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var expiryThreshold = DateTime.UtcNow.AddDays(daysAhead);
+
+        var lots = await context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .Where(l => l.TenantId == currentTenantId.Value &&
+                       !l.IsDeleted &&
+                       l.Status == LotStatus.Active &&
+                       l.ExpiryDate.HasValue &&
+                       l.ExpiryDate.Value <= expiryThreshold)
+            .OrderBy(l => l.ExpiryDate)
+            .ToListAsync(cancellationToken);
+
+        return lots.Select(LotMapper.ToDto);
     }
 
     public async Task<LotDto> CreateLotAsync(CreateLotDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            // Check if lot code is unique
-            var existingLot = await context.Lots
-                .AsNoTracking()
-                .FirstOrDefaultAsync(l => l.Code == createDto.Code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (existingLot is not null)
-            {
-                throw new InvalidOperationException($"A lot with code '{createDto.Code}' already exists.");
-            }
-
-            // Verify product exists
-            var product = await context.Products
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Id == createDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
-
-            if (product is null)
-            {
-                throw new InvalidOperationException($"Product with ID '{createDto.ProductId}' not found.");
-            }
-
-            var lot = LotMapper.ToEntity(createDto, currentTenantId.Value, currentUser);
-
-            _ = context.Lots.Add(lot);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log audit event
-            _ = await auditLogService.LogEntityChangeAsync(
-                "Lot",
-                lot.Id,
-                "Create",
-                "Create",
-                null,
-                $"Created lot {lot.Code} for product {product.Name}",
-                currentUser);
-
-            logger.LogInformation("Created lot {LotId} with code {Code} for tenant {TenantId}", lot.Id, lot.Code, currentTenantId.Value);
-
-            // Return with loaded navigation properties
-            var createdLot = await GetLotByIdAsync(lot.Id, cancellationToken);
-            return createdLot!;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        // Check if lot code is unique
+        var existingLot = await context.Lots
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Code == createDto.Code && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (existingLot is not null)
         {
-            throw;
+            throw new InvalidOperationException($"A lot with code '{createDto.Code}' already exists.");
         }
+
+        // Verify product exists
+        var product = await context.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == createDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
+
+        if (product is null)
+        {
+            throw new InvalidOperationException($"Product with ID '{createDto.ProductId}' not found.");
+        }
+
+        var lot = LotMapper.ToEntity(createDto, currentTenantId.Value, currentUser);
+
+        _ = context.Lots.Add(lot);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Log audit event
+        _ = await auditLogService.LogEntityChangeAsync(
+            "Lot",
+            lot.Id,
+            "Create",
+            "Create",
+            null,
+            $"Created lot {lot.Code} for product {product.Name}",
+            currentUser);
+
+        logger.LogInformation("Created lot {LotId} with code {Code} for tenant {TenantId}", lot.Id, lot.Code, currentTenantId.Value);
+
+        // Return with loaded navigation properties
+        var createdLot = await GetLotByIdAsync(lot.Id, cancellationToken);
+        return createdLot!;
     }
 
     public async Task<LotDto?> UpdateLotAsync(Guid id, UpdateLotDto updateDto, string currentUser, CancellationToken cancellationToken = default)
@@ -410,190 +368,155 @@ public class LotService(
 
     public async Task<bool> UpdateQualityStatusAsync(Guid id, string qualityStatus, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            if (!Enum.TryParse<QualityStatus>(qualityStatus, out var status))
-            {
-                throw new ArgumentException($"Invalid quality status: {qualityStatus}");
-            }
-
-            var lot = await context.Lots
-                .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (lot is null)
-            {
-                return false;
-            }
-
-            var originalStatus = lot.QualityStatus;
-            lot.QualityStatus = status;
-            lot.ModifiedBy = currentUser;
-            lot.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log audit event
-            _ = await auditLogService.LogEntityChangeAsync(
-                "Lot",
-                lot.Id,
-                "QualityStatus",
-                "Update",
-                originalStatus.ToString(),
-                status.ToString(),
-                currentUser);
-
-            logger.LogInformation("Updated quality status for lot {LotId} from {OriginalStatus} to {NewStatus}",
-                lot.Id, originalStatus, status);
-
-            return true;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        if (!Enum.TryParse<QualityStatus>(qualityStatus, out var status))
         {
-            throw;
+            throw new ArgumentException($"Invalid quality status: {qualityStatus}");
         }
+
+        var lot = await context.Lots
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (lot is null)
+        {
+            return false;
+        }
+
+        var originalStatus = lot.QualityStatus;
+        lot.QualityStatus = status;
+        lot.ModifiedBy = currentUser;
+        lot.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Log audit event
+        _ = await auditLogService.LogEntityChangeAsync(
+            "Lot",
+            lot.Id,
+            "QualityStatus",
+            "Update",
+            originalStatus.ToString(),
+            status.ToString(),
+            currentUser);
+
+        logger.LogInformation("Updated quality status for lot {LotId} from {OriginalStatus} to {NewStatus}",
+            lot.Id, originalStatus, status);
+
+        return true;
     }
 
     public async Task<bool> BlockLotAsync(Guid id, string reason, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lot = await context.Lots
-                .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (lot is null)
-            {
-                return false;
-            }
-
-            lot.Status = LotStatus.Blocked;
-            lot.ModifiedBy = currentUser;
-            lot.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log audit event
-            _ = await auditLogService.LogEntityChangeAsync(
-                "Lot",
-                lot.Id,
-                "Status",
-                "Update",
-                "Active",
-                "Blocked",
-                currentUser);
-
-            logger.LogWarning("Blocked lot {LotId} ({Code}). Reason: {Reason}", lot.Id, lot.Code, reason);
-            return true;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var lot = await context.Lots
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (lot is null)
         {
-            throw;
+            return false;
         }
+
+        lot.Status = LotStatus.Blocked;
+        lot.ModifiedBy = currentUser;
+        lot.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Log audit event
+        _ = await auditLogService.LogEntityChangeAsync(
+            "Lot",
+            lot.Id,
+            "Status",
+            "Update",
+            "Active",
+            "Blocked",
+            currentUser);
+
+        logger.LogWarning("Blocked lot {LotId} ({Code}). Reason: {Reason}", lot.Id, lot.Code, reason);
+        return true;
     }
 
     public async Task<bool> UnblockLotAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lot = await context.Lots
-                .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (lot is null)
-            {
-                return false;
-            }
-
-            lot.Status = LotStatus.Active;
-            lot.ModifiedBy = currentUser;
-            lot.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log audit event
-            _ = await auditLogService.LogEntityChangeAsync(
-                "Lot",
-                lot.Id,
-                "Status",
-                "Update",
-                "Blocked",
-                "Active",
-                currentUser);
-
-            logger.LogInformation("Unblocked lot {LotId} ({Code})", lot.Id, lot.Code);
-            return true;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var lot = await context.Lots
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (lot is null)
         {
-            throw;
+            return false;
         }
+
+        lot.Status = LotStatus.Active;
+        lot.ModifiedBy = currentUser;
+        lot.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Log audit event
+        _ = await auditLogService.LogEntityChangeAsync(
+            "Lot",
+            lot.Id,
+            "Status",
+            "Update",
+            "Blocked",
+            "Active",
+            currentUser);
+
+        logger.LogInformation("Unblocked lot {LotId} ({Code})", lot.Id, lot.Code);
+        return true;
     }
 
     public async Task<decimal> GetAvailableQuantityAsync(Guid lotId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var totalQuantity = await context.Stocks
-                .AsNoTracking()
-                .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
-                .SumAsync(s => s.AvailableQuantity, cancellationToken);
-
-            return totalQuantity;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var totalQuantity = await context.Stocks
+            .AsNoTracking()
+            .Where(s => s.LotId == lotId && s.TenantId == currentTenantId.Value)
+            .SumAsync(s => s.AvailableQuantity, cancellationToken);
+
+        return totalQuantity;
     }
 
     public async Task<bool> IsLotCodeUniqueAsync(string code, Guid? excludeId = null, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var query = context.Lots
-                .AsNoTracking()
-                .Where(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted);
-
-            if (excludeId.HasValue)
-            {
-                query = query.Where(l => l.Id != excludeId.Value);
-            }
-
-            var exists = await query.AnyAsync(cancellationToken);
-            return !exists;
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var query = context.Lots
+            .AsNoTracking()
+            .Where(l => l.Code == code && l.TenantId == currentTenantId.Value && !l.IsDeleted);
+
+        if (excludeId.HasValue)
         {
-            throw;
+            query = query.Where(l => l.Id != excludeId.Value);
         }
+
+        var exists = await query.AnyAsync(cancellationToken);
+        return !exists;
     }
 
     public async Task<PagedResult<LotDto>> GetLotsByProductAsync(
@@ -601,45 +524,38 @@ public class LotService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var query = context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .Where(l => !l.IsDeleted
-                    && l.TenantId == currentTenantId.Value
-                    && l.ProductId == productId);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            var lots = await query
-                .OrderByDescending(l => l.ExpiryDate)
-                .ThenBy(l => l.Code)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
-
-            return new PagedResult<LotDto>
-            {
-                Items = lotDtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var query = context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .Where(l => !l.IsDeleted
+                && l.TenantId == currentTenantId.Value
+                && l.ProductId == productId);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var lots = await query
+            .OrderByDescending(l => l.ExpiryDate)
+            .ThenBy(l => l.Code)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var lotDtos = lots.Select(LotMapper.ToDto).ToList();
+
+        return new PagedResult<LotDto>
         {
-            throw;
-        }
+            Items = lotDtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<PagedResult<LotDto>> GetLotsByWarehouseAsync(
@@ -647,47 +563,40 @@ public class LotService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            // Note: Lots don't have a direct StorageLocation relationship
-            // This returns all lots for the tenant as the warehouse filter
-            // would require joining through inventory/stock records
-            var query = context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .Where(l => !l.IsDeleted
-                    && l.TenantId == currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            var lots = await query
-                .OrderByDescending(l => l.ExpiryDate)
-                .ThenBy(l => l.Code)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
-
-            return new PagedResult<LotDto>
-            {
-                Items = lotDtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        // Note: Lots don't have a direct StorageLocation relationship
+        // This returns all lots for the tenant as the warehouse filter
+        // would require joining through inventory/stock records
+        var query = context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .Where(l => !l.IsDeleted
+                && l.TenantId == currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var lots = await query
+            .OrderByDescending(l => l.ExpiryDate)
+            .ThenBy(l => l.Code)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var lotDtos = lots.Select(LotMapper.ToDto).ToList();
+
+        return new PagedResult<LotDto>
         {
-            throw;
-        }
+            Items = lotDtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<PagedResult<LotDto>> GetExpiredLotsAsync(
@@ -695,48 +604,41 @@ public class LotService(
         PaginationParameters pagination,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var expiryDate = threshold ?? DateTime.UtcNow;
-
-            var query = context.Lots
-                .AsNoTracking()
-                .Include(l => l.Product)
-                .Include(l => l.Supplier)
-                .Where(l => !l.IsDeleted
-                    && l.TenantId == currentTenantId.Value
-                    && l.ExpiryDate.HasValue
-                    && l.ExpiryDate.Value <= expiryDate);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            var lots = await query
-                .OrderBy(l => l.ExpiryDate)
-                .ThenBy(l => l.Code)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var lotDtos = lots.Select(LotMapper.ToDto).ToList();
-
-            return new PagedResult<LotDto>
-            {
-                Items = lotDtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var expiryDate = threshold ?? DateTime.UtcNow;
+
+        var query = context.Lots
+            .AsNoTracking()
+            .Include(l => l.Product)
+            .Include(l => l.Supplier)
+            .Where(l => !l.IsDeleted
+                && l.TenantId == currentTenantId.Value
+                && l.ExpiryDate.HasValue
+                && l.ExpiryDate.Value <= expiryDate);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var lots = await query
+            .OrderBy(l => l.ExpiryDate)
+            .ThenBy(l => l.Code)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var lotDtos = lots.Select(LotMapper.ToDto).ToList();
+
+        return new PagedResult<LotDto>
         {
-            throw;
-        }
+            Items = lotDtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetLotHistoryAsync(Guid lotId, CancellationToken cancellationToken = default)

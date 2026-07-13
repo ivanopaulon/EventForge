@@ -345,185 +345,171 @@ public class WarehouseFacade(
         IEnumerable<DocumentRowDto> rows,
         CancellationToken cancellationToken = default)
     {
-        try
+        var rowsList = rows.ToList();
+        if (!rowsList.Any())
         {
-            var rowsList = rows.ToList();
-            if (!rowsList.Any())
-            {
-                return [];
-            }
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-            // BATCH 1: Fetch ALL products in a single query
-            var productIds = rowsList
-                .Where(r => r.ProductId.HasValue)
-                .Select(r => r.ProductId!.Value)
-                .Distinct()
-                .ToList();
-
-            var productsDict = new Dictionary<Guid, Product>();
-            if (productIds.Any())
-            {
-                var products = await context.Products
-                    .AsNoTracking()
-                    .Where(p => productIds.Contains(p.Id))
-                    .ToListAsync(cancellationToken);
-
-                productsDict = products.ToDictionary(p => p.Id);
-                logger.LogDebug("Batch loaded {ProductCount} unique products", productsDict.Count);
-            }
-
-            // BATCH 2: Fetch ALL locations in a single query
-            var locationIds = rowsList
-                .Where(r => r.LocationId.HasValue)
-                .Select(r => r.LocationId!.Value)
-                .Distinct()
-                .ToList();
-
-            var locationsDict = new Dictionary<Guid, StorageLocation>();
-            if (locationIds.Any())
-            {
-                var locations = await context.StorageLocations
-                    .AsNoTracking()
-                    .Where(l => locationIds.Contains(l.Id))
-                    .ToListAsync(cancellationToken);
-
-                locationsDict = locations.ToDictionary(l => l.Id);
-                logger.LogDebug("Batch loaded {LocationCount} unique locations", locationsDict.Count);
-            }
-
-            // BATCH 3: Fetch ALL stocks in a single query
-            // Build list of (ProductId, LocationId) pairs for stock lookup
-            var stockKeys = rowsList
-                .Where(r => r.ProductId.HasValue && r.LocationId.HasValue)
-                .Select(r => new { ProductId = r.ProductId!.Value, LocationId = r.LocationId!.Value })
-                .Distinct()
-                .ToList();
-
-            var stocksDict = new Dictionary<(Guid ProductId, Guid LocationId), Stock>();
-            if (stockKeys.Any())
-            {
-                var stockProductIds = stockKeys.Select(k => k.ProductId).ToList();
-                var stockLocationIds = stockKeys.Select(k => k.LocationId).ToList();
-
-                var stocks = await context.Stocks
-                    .AsNoTracking()
-                    .Where(s => stockProductIds.Contains(s.ProductId) &&
-                                stockLocationIds.Contains(s.StorageLocationId) &&
-                                s.LotId == null) // Only get stock without lot for inventory
-                    .ToListAsync(cancellationToken);
-
-                stocksDict = stocks.ToDictionary(s => (s.ProductId, s.StorageLocationId));
-                logger.LogDebug("Batch loaded {StockCount} stock entries", stocksDict.Count);
-            }
-
-            // Now process all rows with O(1) dictionary lookups
-            var enrichedRows = new List<InventoryDocumentRowDto>(rowsList.Count);
-            foreach (var row in rowsList)
-            {
-                var productId = row.ProductId;
-                var locationId = row.LocationId;
-
-                // Lookup product from dictionary (O(1))
-                Product? product = null;
-                if (productId.HasValue)
-                {
-                    if (!productsDict.TryGetValue(productId.Value, out product))
-                    {
-                        // Product lookup failed - log for data quality tracking
-                        logger.LogWarning("Product {ProductId} not found in batch - using row description as fallback", productId.Value);
-                    }
-                }
-
-                // Lookup location from dictionary (O(1))
-                StorageLocation? location = null;
-                string locationName = string.Empty;
-                if (locationId.HasValue)
-                {
-                    if (locationsDict.TryGetValue(locationId.Value, out location))
-                    {
-                        locationName = location.Code ?? string.Empty;
-                    }
-                }
-
-                // Lookup stock from dictionary (O(1))
-                decimal? previousQuantity = null;
-                decimal? adjustmentQuantity = null;
-                if (productId.HasValue && locationId.HasValue)
-                {
-                    if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock) && stock is not null)
-                    {
-                        previousQuantity = stock.Quantity;
-                        adjustmentQuantity = row.Quantity - previousQuantity;
-                    }
-                }
-
-                enrichedRows.Add(new InventoryDocumentRowDto
-                {
-                    Id = row.Id,
-                    ProductId = productId ?? Guid.Empty,
-                    ProductCode = row.ProductCode ?? string.Empty,
-                    ProductName = product?.Name ?? row.Description,
-                    LocationId = locationId ?? Guid.Empty,
-                    LocationName = locationName,
-                    Quantity = row.Quantity,
-                    PreviousQuantity = previousQuantity,
-                    AdjustmentQuantity = adjustmentQuantity,
-                    Notes = row.Notes,
-                    CreatedAt = row.CreatedAt,
-                    CreatedBy = row.CreatedBy
-                });
-            }
-
-            stopwatch.Stop();
-            logger.LogInformation(
-                "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
-                "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
-                rowsList.Count, stopwatch.ElapsedMilliseconds,
-                productsDict.Count, locationsDict.Count, stocksDict.Count);
-
-            return enrichedRows;
+            return [];
         }
-        catch
+
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // BATCH 1: Fetch ALL products in a single query
+        var productIds = rowsList
+            .Where(r => r.ProductId.HasValue)
+            .Select(r => r.ProductId!.Value)
+            .Distinct()
+            .ToList();
+
+        var productsDict = new Dictionary<Guid, Product>();
+        if (productIds.Any())
         {
-            throw;
+            var products = await context.Products
+                .AsNoTracking()
+                .Where(p => productIds.Contains(p.Id))
+                .ToListAsync(cancellationToken);
+
+            productsDict = products.ToDictionary(p => p.Id);
+            logger.LogDebug("Batch loaded {ProductCount} unique products", productsDict.Count);
         }
+
+        // BATCH 2: Fetch ALL locations in a single query
+        var locationIds = rowsList
+            .Where(r => r.LocationId.HasValue)
+            .Select(r => r.LocationId!.Value)
+            .Distinct()
+            .ToList();
+
+        var locationsDict = new Dictionary<Guid, StorageLocation>();
+        if (locationIds.Any())
+        {
+            var locations = await context.StorageLocations
+                .AsNoTracking()
+                .Where(l => locationIds.Contains(l.Id))
+                .ToListAsync(cancellationToken);
+
+            locationsDict = locations.ToDictionary(l => l.Id);
+            logger.LogDebug("Batch loaded {LocationCount} unique locations", locationsDict.Count);
+        }
+
+        // BATCH 3: Fetch ALL stocks in a single query
+        // Build list of (ProductId, LocationId) pairs for stock lookup
+        var stockKeys = rowsList
+            .Where(r => r.ProductId.HasValue && r.LocationId.HasValue)
+            .Select(r => new { ProductId = r.ProductId!.Value, LocationId = r.LocationId!.Value })
+            .Distinct()
+            .ToList();
+
+        var stocksDict = new Dictionary<(Guid ProductId, Guid LocationId), Stock>();
+        if (stockKeys.Any())
+        {
+            var stockProductIds = stockKeys.Select(k => k.ProductId).ToList();
+            var stockLocationIds = stockKeys.Select(k => k.LocationId).ToList();
+
+            var stocks = await context.Stocks
+                .AsNoTracking()
+                .Where(s => stockProductIds.Contains(s.ProductId) &&
+                            stockLocationIds.Contains(s.StorageLocationId) &&
+                            s.LotId == null) // Only get stock without lot for inventory
+                .ToListAsync(cancellationToken);
+
+            stocksDict = stocks.ToDictionary(s => (s.ProductId, s.StorageLocationId));
+            logger.LogDebug("Batch loaded {StockCount} stock entries", stocksDict.Count);
+        }
+
+        // Now process all rows with O(1) dictionary lookups
+        var enrichedRows = new List<InventoryDocumentRowDto>(rowsList.Count);
+        foreach (var row in rowsList)
+        {
+            var productId = row.ProductId;
+            var locationId = row.LocationId;
+
+            // Lookup product from dictionary (O(1))
+            Product? product = null;
+            if (productId.HasValue)
+            {
+                if (!productsDict.TryGetValue(productId.Value, out product))
+                {
+                    // Product lookup failed - log for data quality tracking
+                    logger.LogWarning("Product {ProductId} not found in batch - using row description as fallback", productId.Value);
+                }
+            }
+
+            // Lookup location from dictionary (O(1))
+            StorageLocation? location = null;
+            string locationName = string.Empty;
+            if (locationId.HasValue)
+            {
+                if (locationsDict.TryGetValue(locationId.Value, out location))
+                {
+                    locationName = location.Code ?? string.Empty;
+                }
+            }
+
+            // Lookup stock from dictionary (O(1))
+            decimal? previousQuantity = null;
+            decimal? adjustmentQuantity = null;
+            if (productId.HasValue && locationId.HasValue)
+            {
+                if (stocksDict.TryGetValue((productId.Value, locationId.Value), out var stock) && stock is not null)
+                {
+                    previousQuantity = stock.Quantity;
+                    adjustmentQuantity = row.Quantity - previousQuantity;
+                }
+            }
+
+            enrichedRows.Add(new InventoryDocumentRowDto
+            {
+                Id = row.Id,
+                ProductId = productId ?? Guid.Empty,
+                ProductCode = row.ProductCode ?? string.Empty,
+                ProductName = product?.Name ?? row.Description,
+                LocationId = locationId ?? Guid.Empty,
+                LocationName = locationName,
+                Quantity = row.Quantity,
+                PreviousQuantity = previousQuantity,
+                AdjustmentQuantity = adjustmentQuantity,
+                Notes = row.Notes,
+                CreatedAt = row.CreatedAt,
+                CreatedBy = row.CreatedBy
+            });
+        }
+
+        stopwatch.Stop();
+        logger.LogInformation(
+            "Completed optimized enrichment for {RowCount} rows in {ElapsedMs}ms. " +
+            "Unique products: {ProductCount}, locations: {LocationCount}, stocks: {StockCount}",
+            rowsList.Count, stopwatch.ElapsedMilliseconds,
+            productsDict.Count, locationsDict.Count, stocksDict.Count);
+
+        return enrichedRows;
     }
 
     public async Task<List<InventoryDocumentHeaderDto>> GetOpenInventoryDocumentHeadersAsync(
         Guid tenantId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var inventoryDocType = await GetOrCreateInventoryDocumentTypeAsync(tenantId, cancellationToken);
+        var inventoryDocType = await GetOrCreateInventoryDocumentTypeAsync(tenantId, cancellationToken);
 
-            return await context.DocumentHeaders
-                .AsNoTracking()
-                .Where(d => d.TenantId == tenantId
-                            && d.DocumentTypeId == inventoryDocType.Id
-                            && d.Status == DocumentStatus.Active
-                            && !d.IsDeleted)
-                .OrderByDescending(d => d.CreatedAt)
-                .Select(d => new InventoryDocumentHeaderDto
-                {
-                    Id = d.Id,
-                    Number = d.Number,
-                    InventoryDate = d.Date,
-                    Status = d.Status.ToString(),
-                    WarehouseName = d.SourceWarehouse != null ? d.SourceWarehouse.Name : null,
-                    RowCount = d.Rows.Count(r => !r.IsDeleted),
-                    Notes = d.Notes,
-                    CreatedAt = d.CreatedAt,
-                    CreatedBy = d.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.DocumentHeaders
+            .AsNoTracking()
+            .Where(d => d.TenantId == tenantId
+                        && d.DocumentTypeId == inventoryDocType.Id
+                        && d.Status == DocumentStatus.Active
+                        && !d.IsDeleted)
+            .OrderByDescending(d => d.CreatedAt)
+            .Select(d => new InventoryDocumentHeaderDto
+            {
+                Id = d.Id,
+                Number = d.Number,
+                InventoryDate = d.Date,
+                Status = d.Status.ToString(),
+                WarehouseName = d.SourceWarehouse != null ? d.SourceWarehouse.Name : null,
+                RowCount = d.Rows.Count(r => !r.IsDeleted),
+                Notes = d.Notes,
+                CreatedAt = d.CreatedAt,
+                CreatedBy = d.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
     }
 
     #endregion
@@ -532,452 +518,354 @@ public class WarehouseFacade(
 
     public async Task<string?> GetUnitOfMeasureSymbolAsync(Guid unitOfMeasureId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var um = await context.UMs
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == unitOfMeasureId && !u.IsDeleted, cancellationToken);
-            return um?.Symbol;
-        }
-        catch
-        {
-            throw;
-        }
+        var um = await context.UMs
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == unitOfMeasureId && !u.IsDeleted, cancellationToken);
+        return um?.Symbol;
     }
 
     public async Task<(decimal Percentage, string? Description)?> GetVatRateDetailsAsync(Guid vatRateId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var vat = await context.VatRates
-                .AsNoTracking()
-                .FirstOrDefaultAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
+        var vat = await context.VatRates
+            .AsNoTracking()
+            .FirstOrDefaultAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
 
-            if (vat is null)
-                return null;
+        if (vat is null)
+            return null;
 
-            return (vat.Percentage, $"VAT {vat.Percentage}%");
-        }
-        catch
-        {
-            throw;
-        }
+        return (vat.Percentage, $"VAT {vat.Percentage}%");
     }
 
     public async Task<DocumentRowDto> UpdateOrMergeInventoryRowAsync(Guid documentId, Guid existingRowId, decimal newQuantity, string? additionalNotes, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var rowEntity = await context.DocumentRows
+            .FirstOrDefaultAsync(r => r.Id == existingRowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+
+        if (rowEntity is null)
+            throw new InvalidOperationException($"Row {existingRowId} not found");
+
+        rowEntity.Quantity = newQuantity;
+
+        if (!string.IsNullOrWhiteSpace(additionalNotes))
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var rowEntity = await context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == existingRowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
-
-            if (rowEntity is null)
-                throw new InvalidOperationException($"Row {existingRowId} not found");
-
-            rowEntity.Quantity = newQuantity;
-
-            if (!string.IsNullOrWhiteSpace(additionalNotes))
-            {
-                rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes)
-                    ? additionalNotes
-                    : $"{rowEntity.Notes}; {additionalNotes}";
-            }
-
-            rowEntity.ModifiedAt = DateTime.UtcNow;
-            rowEntity.ModifiedBy = currentUser;
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            return new DocumentRowDto
-            {
-                Id = rowEntity.Id,
-                ProductId = rowEntity.ProductId,
-                ProductCode = rowEntity.ProductCode,
-                LocationId = rowEntity.LocationId,
-                Description = rowEntity.Description,
-                Quantity = rowEntity.Quantity,
-                Notes = rowEntity.Notes,
-                DocumentHeaderId = rowEntity.DocumentHeaderId,
-                CreatedAt = rowEntity.CreatedAt,
-                CreatedBy = rowEntity.CreatedBy
-            };
+            rowEntity.Notes = string.IsNullOrWhiteSpace(rowEntity.Notes)
+                ? additionalNotes
+                : $"{rowEntity.Notes}; {additionalNotes}";
         }
-        catch
+
+        rowEntity.ModifiedAt = DateTime.UtcNow;
+        rowEntity.ModifiedBy = currentUser;
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        return new DocumentRowDto
         {
-            throw;
-        }
+            Id = rowEntity.Id,
+            ProductId = rowEntity.ProductId,
+            ProductCode = rowEntity.ProductCode,
+            LocationId = rowEntity.LocationId,
+            Description = rowEntity.Description,
+            Quantity = rowEntity.Quantity,
+            Notes = rowEntity.Notes,
+            DocumentHeaderId = rowEntity.DocumentHeaderId,
+            CreatedAt = rowEntity.CreatedAt,
+            CreatedBy = rowEntity.CreatedBy
+        };
     }
 
     public async Task<bool> UpdateDocumentHeaderFieldsAsync(Guid documentId, DateTime date, Guid? warehouseId, string? notes, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var documentHeader = await context.DocumentHeaders
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == documentId && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
+        var documentHeader = await context.DocumentHeaders
+            .Include(dh => dh.Rows)
+            .FirstOrDefaultAsync(dh => dh.Id == documentId && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
 
-            if (documentHeader is null)
-                return false;
+        if (documentHeader is null)
+            return false;
 
-            documentHeader.Date = date;
-            documentHeader.SourceWarehouseId = warehouseId;
-            documentHeader.Notes = notes;
-            documentHeader.ModifiedBy = currentUser;
-            documentHeader.ModifiedAt = DateTime.UtcNow;
+        documentHeader.Date = date;
+        documentHeader.SourceWarehouseId = warehouseId;
+        documentHeader.Notes = notes;
+        documentHeader.ModifiedBy = currentUser;
+        documentHeader.ModifiedAt = DateTime.UtcNow;
 
-            await context.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> UpdateInventoryRowAsync(Guid rowId, Guid? productId, decimal quantity, Guid? locationId, string? notes, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var rowEntity = await context.DocumentRows
+            .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+
+        if (rowEntity is null)
+            return false;
+
+        if (productId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+            rowEntity.ProductId = productId.Value;
 
-            var rowEntity = await context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+            var product = await context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == productId.Value && !p.IsDeleted, cancellationToken);
 
-            if (rowEntity is null)
-                return false;
-
-            if (productId.HasValue)
+            if (product is not null)
             {
-                rowEntity.ProductId = productId.Value;
-
-                var product = await context.Products
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == productId.Value && !p.IsDeleted, cancellationToken);
-
-                if (product is not null)
-                {
-                    rowEntity.ProductCode = product.Code;
-                    rowEntity.Description = product.Name;
-                }
+                rowEntity.ProductCode = product.Code;
+                rowEntity.Description = product.Name;
             }
-
-            rowEntity.Quantity = quantity;
-
-            if (locationId.HasValue)
-            {
-                rowEntity.LocationId = locationId.Value;
-            }
-
-            rowEntity.Notes = notes;
-            rowEntity.ModifiedAt = DateTime.UtcNow;
-            rowEntity.ModifiedBy = currentUser;
-
-            await context.SaveChangesAsync(cancellationToken);
-            return true;
         }
-        catch
+
+        rowEntity.Quantity = quantity;
+
+        if (locationId.HasValue)
         {
-            throw;
+            rowEntity.LocationId = locationId.Value;
         }
+
+        rowEntity.Notes = notes;
+        rowEntity.ModifiedAt = DateTime.UtcNow;
+        rowEntity.ModifiedBy = currentUser;
+
+        await context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<bool> DeleteInventoryRowAsync(Guid rowId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var rowEntity = await context.DocumentRows
-                .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+        var rowEntity = await context.DocumentRows
+            .FirstOrDefaultAsync(r => r.Id == rowId && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
 
-            if (rowEntity is null)
-                return false;
+        if (rowEntity is null)
+            return false;
 
-            rowEntity.IsDeleted = true;
-            rowEntity.DeletedAt = DateTime.UtcNow;
-            rowEntity.DeletedBy = currentUser;
+        rowEntity.IsDeleted = true;
+        rowEntity.DeletedAt = DateTime.UtcNow;
+        rowEntity.DeletedBy = currentUser;
 
-            await context.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<List<Guid>> ValidateProductsExistAsync(List<Guid> productIds, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var existingProducts = await context.Products
-                .AsNoTracking()
-                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
-                .Select(p => p.Id)
-                .ToListAsync(cancellationToken);
+        var existingProducts = await context.Products
+            .AsNoTracking()
+            .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
 
-            return productIds.Except(existingProducts).ToList();
-        }
-        catch
-        {
-            throw;
-        }
+        return productIds.Except(existingProducts).ToList();
     }
 
     public async Task<List<Guid>> ValidateLocationsExistAsync(List<Guid> locationIds, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var existingLocations = await context.StorageLocations
-                .AsNoTracking()
-                .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
-                .Select(l => l.Id)
-                .ToListAsync(cancellationToken);
+        var existingLocations = await context.StorageLocations
+            .AsNoTracking()
+            .Where(l => locationIds.Contains(l.Id) && !l.IsDeleted)
+            .Select(l => l.Id)
+            .ToListAsync(cancellationToken);
 
-            return locationIds.Except(existingLocations).ToList();
-        }
-        catch
-        {
-            throw;
-        }
+        return locationIds.Except(existingLocations).ToList();
     }
 
     public async Task<bool> CancelInventoryDocumentAsync(Guid documentId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var documentEntity = await context.DocumentHeaders
-                .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == currentTenantId && !d.IsDeleted, cancellationToken);
+        var documentEntity = await context.DocumentHeaders
+            .FirstOrDefaultAsync(d => d.Id == documentId && d.TenantId == currentTenantId && !d.IsDeleted, cancellationToken);
 
-            if (documentEntity is null)
-                return false;
+        if (documentEntity is null)
+            return false;
 
-            documentEntity.Status = DocumentStatus.Archived;
-            documentEntity.ModifiedAt = DateTime.UtcNow;
-            documentEntity.ModifiedBy = currentUser;
+        documentEntity.Status = DocumentStatus.Archived;
+        documentEntity.ModifiedAt = DateTime.UtcNow;
+        documentEntity.ModifiedBy = currentUser;
 
-            await context.SaveChangesAsync(cancellationToken);
-            return true;
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public async Task<(List<DocumentRowDto> Rows, int TotalCount)> GetDocumentRowsPagedAsync(Guid documentId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var totalCount = await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-                .CountAsync(cancellationToken);
+        var totalCount = await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
+            .CountAsync(cancellationToken);
 
-            var skip = (page - 1) * pageSize;
-            var documentRows = await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-                .OrderBy(r => r.CreatedAt)
-                .Skip(skip)
-                .Take(pageSize)
-                .Select(r => new DocumentRowDto
-                {
-                    Id = r.Id,
-                    DocumentHeaderId = r.DocumentHeaderId,
-                    ProductId = r.ProductId,
-                    ProductCode = r.ProductCode,
-                    Description = r.Description,
-                    LocationId = r.LocationId,
-                    Quantity = r.Quantity,
-                    Notes = r.Notes,
-                    CreatedAt = r.CreatedAt,
-                    CreatedBy = r.CreatedBy
-                })
-                .ToListAsync(cancellationToken);
+        var skip = (page - 1) * pageSize;
+        var documentRows = await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
+            .OrderBy(r => r.CreatedAt)
+            .Skip(skip)
+            .Take(pageSize)
+            .Select(r => new DocumentRowDto
+            {
+                Id = r.Id,
+                DocumentHeaderId = r.DocumentHeaderId,
+                ProductId = r.ProductId,
+                ProductCode = r.ProductCode,
+                Description = r.Description,
+                LocationId = r.LocationId,
+                Quantity = r.Quantity,
+                Notes = r.Notes,
+                CreatedAt = r.CreatedAt,
+                CreatedBy = r.CreatedBy
+            })
+            .ToListAsync(cancellationToken);
 
-            return (documentRows, totalCount);
-        }
-        catch
-        {
-            throw;
-        }
+        return (documentRows, totalCount);
     }
 
     public async Task<int> CancelInventoryDocumentsBatchAsync(List<Guid> documentIds, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var documentEntities = await context.DocumentHeaders
+            .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+        int cancelledCount = 0;
+
+        foreach (var documentEntity in documentEntities)
         {
-            var documentEntities = await context.DocumentHeaders
-                .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            var now = DateTime.UtcNow;
-            int cancelledCount = 0;
-
-            foreach (var documentEntity in documentEntities)
-            {
-                documentEntity.Status = DocumentStatus.Archived;
-                documentEntity.ModifiedAt = now;
-                documentEntity.ModifiedBy = currentUser;
-                cancelledCount++;
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-            return cancelledCount;
+            documentEntity.Status = DocumentStatus.Archived;
+            documentEntity.ModifiedAt = now;
+            documentEntity.ModifiedBy = currentUser;
+            cancelledCount++;
         }
-        catch
-        {
-            throw;
-        }
+
+        await context.SaveChangesAsync(cancellationToken);
+        return cancelledCount;
     }
 
     public async Task<List<(Guid Id, DocumentStatus Status, Guid? SourceWarehouseId, List<DocumentRowDto> Rows, string Number, string? Notes)>> LoadDocumentsForMergeAsync(List<Guid> documentIds, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var documents = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(d => d.Rows)
-                .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
-                .ToListAsync(cancellationToken);
+        var documents = await context.DocumentHeaders
+            .AsNoTracking()
+            .Include(d => d.Rows)
+            .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+            .ToListAsync(cancellationToken);
 
-            return documents.Select(d => (
-                d.Id,
-                d.Status,
-                d.SourceWarehouseId,
-                d.Rows.Where(r => !r.IsDeleted).Select(r => new DocumentRowDto
-                {
-                    Id = r.Id,
-                    DocumentHeaderId = r.DocumentHeaderId,
-                    ProductId = r.ProductId,
-                    ProductCode = r.ProductCode,
-                    Description = r.Description,
-                    LocationId = r.LocationId,
-                    Quantity = r.Quantity,
-                    Notes = r.Notes,
-                    CreatedAt = r.CreatedAt,
-                    CreatedBy = r.CreatedBy
-                }).ToList(),
-                d.Number,
-                d.Notes
-            )).ToList();
-        }
-        catch
-        {
-            throw;
-        }
+        return documents.Select(d => (
+            d.Id,
+            d.Status,
+            d.SourceWarehouseId,
+            d.Rows.Where(r => !r.IsDeleted).Select(r => new DocumentRowDto
+            {
+                Id = r.Id,
+                DocumentHeaderId = r.DocumentHeaderId,
+                ProductId = r.ProductId,
+                ProductCode = r.ProductCode,
+                Description = r.Description,
+                LocationId = r.LocationId,
+                Quantity = r.Quantity,
+                Notes = r.Notes,
+                CreatedAt = r.CreatedAt,
+                CreatedBy = r.CreatedBy
+            }).ToList(),
+            d.Number,
+            d.Notes
+        )).ToList();
     }
 
     public async Task UpdateDocumentStatusesBatchAsync(List<(Guid DocumentId, DocumentStatus Status, string Notes)> updates, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var documentIds = updates.Select(u => u.DocumentId).ToList();
+        var documents = await context.DocumentHeaders
+            .Where(d => documentIds.Contains(d.Id) && d.TenantId == currentTenantId && !d.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var now = DateTime.UtcNow;
+
+        foreach (var doc in documents)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var documentIds = updates.Select(u => u.DocumentId).ToList();
-            var documents = await context.DocumentHeaders
-                .Where(d => documentIds.Contains(d.Id) && d.TenantId == currentTenantId && !d.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            var now = DateTime.UtcNow;
-
-            foreach (var doc in documents)
+            var update = updates.FirstOrDefault(u => u.DocumentId == doc.Id);
+            if (update != default)
             {
-                var update = updates.FirstOrDefault(u => u.DocumentId == doc.Id);
-                if (update != default)
-                {
-                    doc.Status = update.Status;
-                    doc.Notes = update.Notes;
-                    doc.ModifiedAt = now;
-                    doc.ModifiedBy = currentUser;
-                }
+                doc.Status = update.Status;
+                doc.Notes = update.Notes;
+                doc.ModifiedAt = now;
+                doc.ModifiedBy = currentUser;
             }
+        }
 
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<MergeInventoryDocumentsPreviewDto> PreviewMergeInventoryDocumentsAsync(
         List<Guid> documentIds,
         CancellationToken cancellationToken = default)
     {
-        try
+        var documents = await context.DocumentHeaders
+            .AsNoTracking()
+            .Include(d => d.Rows)
+            .Include(d => d.SourceWarehouse)
+            .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var preview = new MergeInventoryDocumentsPreviewDto();
+        var warnings = new List<string>();
+
+        foreach (var doc in documents)
         {
-            var documents = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(d => d.Rows)
-                .Include(d => d.SourceWarehouse)
-                .Where(d => documentIds.Contains(d.Id) && !d.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            var preview = new MergeInventoryDocumentsPreviewDto();
-            var warnings = new List<string>();
-
-            foreach (var doc in documents)
+            var rowCount = doc.Rows?.Count(r => !r.IsDeleted) ?? 0;
+            preview.SourceDocuments.Add(new MergeSourceDocumentSummaryDto
             {
-                var rowCount = doc.Rows?.Count(r => !r.IsDeleted) ?? 0;
-                preview.SourceDocuments.Add(new MergeSourceDocumentSummaryDto
-                {
-                    Id = doc.Id,
-                    Number = doc.Number,
-                    Status = doc.Status.ToString(),
-                    RowCount = rowCount,
-                    WarehouseId = doc.SourceWarehouseId,
-                    WarehouseName = doc.SourceWarehouse?.Name,
-                    InventoryDate = doc.Date
-                });
-            }
-
-            var allRows = documents.SelectMany(d => d.Rows?.Where(r => !r.IsDeleted) ?? Enumerable.Empty<EventForge.Server.Data.Entities.Documents.DocumentRow>()).ToList();
-            preview.TotalInputRows = allRows.Count;
-
-            var groupedByKey = allRows
-                .GroupBy(r => new { ProductId = r.ProductId ?? Guid.Empty, LocationId = r.LocationId ?? Guid.Empty })
-                .ToList();
-
-            preview.EstimatedOutputRows = groupedByKey.Count;
-            preview.RowsToMerge = groupedByKey.Count(g => g.Count() > 1);
-            preview.RowsToCopy = groupedByKey.Count(g => g.Count() == 1);
-
-            var warehouseIds = documents.Select(d => d.SourceWarehouseId).Distinct().ToList();
-            preview.WarehouseIds = warehouseIds;
-            preview.SameWarehouse = warehouseIds.Count == 1;
-
-            if (!preview.SameWarehouse)
-            {
-                warnings.Add("I documenti selezionati appartengono a magazzini diversi. Le righe verranno accorpate indipendentemente dal magazzino.");
-            }
-
-            if (preview.RowsToMerge > 0)
-            {
-                warnings.Add($"{preview.RowsToMerge} righe con stesso prodotto e ubicazione verranno accorpate sommando le quantità.");
-            }
-
-            preview.Warnings = warnings;
-
-            return preview;
+                Id = doc.Id,
+                Number = doc.Number,
+                Status = doc.Status.ToString(),
+                RowCount = rowCount,
+                WarehouseId = doc.SourceWarehouseId,
+                WarehouseName = doc.SourceWarehouse?.Name,
+                InventoryDate = doc.Date
+            });
         }
-        catch
+
+        var allRows = documents.SelectMany(d => d.Rows?.Where(r => !r.IsDeleted) ?? Enumerable.Empty<EventForge.Server.Data.Entities.Documents.DocumentRow>()).ToList();
+        preview.TotalInputRows = allRows.Count;
+
+        var groupedByKey = allRows
+            .GroupBy(r => new { ProductId = r.ProductId ?? Guid.Empty, LocationId = r.LocationId ?? Guid.Empty })
+            .ToList();
+
+        preview.EstimatedOutputRows = groupedByKey.Count;
+        preview.RowsToMerge = groupedByKey.Count(g => g.Count() > 1);
+        preview.RowsToCopy = groupedByKey.Count(g => g.Count() == 1);
+
+        var warehouseIds = documents.Select(d => d.SourceWarehouseId).Distinct().ToList();
+        preview.WarehouseIds = warehouseIds;
+        preview.SameWarehouse = warehouseIds.Count == 1;
+
+        if (!preview.SameWarehouse)
         {
-            throw;
+            warnings.Add("I documenti selezionati appartengono a magazzini diversi. Le righe verranno accorpate indipendentemente dal magazzino.");
         }
+
+        if (preview.RowsToMerge > 0)
+        {
+            warnings.Add($"{preview.RowsToMerge} righe con stesso prodotto e ubicazione verranno accorpate sommando le quantità.");
+        }
+
+        preview.Warnings = warnings;
+
+        return preview;
     }
 
     public async Task<MergeInventoryDocumentsResultDto> MergeInventoryDocumentsAsync(
@@ -1143,60 +1031,39 @@ public class WarehouseFacade(
 
     public async Task<int> CountDocumentRowsAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
-                .CountAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
+            .CountAsync(cancellationToken);
     }
 
     public async Task<List<(Guid Id, Guid? ProductId, Guid? LocationId)>> GetRowsWithNullDataAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted &&
-                           (r.ProductId == null || r.LocationId == null))
-                .Select(r => new ValueTuple<Guid, Guid?, Guid?>(r.Id, r.ProductId, r.LocationId))
-                .ToListAsync(cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted &&
+                       (r.ProductId == null || r.LocationId == null))
+            .Select(r => new ValueTuple<Guid, Guid?, Guid?>(r.Id, r.ProductId, r.LocationId))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<(List<Guid> ProductIds, List<Guid> LocationIds)> GetUniqueProductAndLocationIdsAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var productIds = await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.ProductId != null)
-                .Select(r => r.ProductId!.Value)
-                .Distinct()
-                .ToListAsync(cancellationToken);
+        var productIds = await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.ProductId != null)
+            .Select(r => r.ProductId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
-            var locationIds = await context.DocumentRows
-                .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.LocationId != null)
-                .Select(r => r.LocationId!.Value)
-                .Distinct()
-                .ToListAsync(cancellationToken);
+        var locationIds = await context.DocumentRows
+            .AsNoTracking()
+            .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted && r.LocationId != null)
+            .Select(r => r.LocationId!.Value)
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
-            return (productIds, locationIds);
-        }
-        catch
-        {
-            throw;
-        }
+        return (productIds, locationIds);
     }
 
     #endregion

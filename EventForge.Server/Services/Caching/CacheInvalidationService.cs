@@ -12,54 +12,26 @@ public class CacheInvalidationService(
 
     public async Task InvalidateStaticEntitiesAsync(CancellationToken ct = default)
     {
-        try
-        {
-            logger.LogInformation("Invalidating static entities cache");
-            await cache.EvictByTagAsync("static", ct);
-        }
-        catch
-        {
-            throw;
-        }
+        logger.LogInformation("Invalidating static entities cache");
+        await cache.EvictByTagAsync("static", ct);
     }
 
     public async Task InvalidateSemiStaticEntitiesAsync(CancellationToken ct = default)
     {
-        try
-        {
-            logger.LogInformation("Invalidating semi-static entities cache");
-            await cache.EvictByTagAsync("semi-static", ct);
-        }
-        catch
-        {
-            throw;
-        }
+        logger.LogInformation("Invalidating semi-static entities cache");
+        await cache.EvictByTagAsync("semi-static", ct);
     }
 
     public async Task InvalidateRealTimeEntitiesAsync(CancellationToken ct = default)
     {
-        try
-        {
-            logger.LogInformation("Invalidating real-time entities cache");
-            await cache.EvictByTagAsync("realtime", ct);
-        }
-        catch
-        {
-            throw;
-        }
+        logger.LogInformation("Invalidating real-time entities cache");
+        await cache.EvictByTagAsync("realtime", ct);
     }
 
     public async Task InvalidateByTagAsync(string tag, CancellationToken ct = default)
     {
-        try
-        {
-            logger.LogInformation("Invalidating cache tag: {Tag}", tag);
-            await cache.EvictByTagAsync(tag, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        logger.LogInformation("Invalidating cache tag: {Tag}", tag);
+        await cache.EvictByTagAsync(tag, ct);
     }
 
 }

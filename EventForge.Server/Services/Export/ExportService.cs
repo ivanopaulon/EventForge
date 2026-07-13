@@ -13,106 +13,92 @@ public class ExportService(ILogger<ExportService> logger) : IExportService
         string sheetName = "Data",
         CancellationToken ct = default) where T : class
     {
-        try
+        return await Task.Run(() =>
         {
-            return await Task.Run(() =>
+            var dataList = data.ToList();
+            var properties = typeof(T).GetProperties()
+                .Where(p => p.CanRead)
+                .ToArray();
+
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add(SanitizeSheetName(sheetName));
+
+            // Write header row
+            for (int col = 0; col < properties.Length; col++)
             {
-                var dataList = data.ToList();
-                var properties = typeof(T).GetProperties()
-                    .Where(p => p.CanRead)
-                    .ToArray();
+                var cell = worksheet.Cell(1, col + 1);
+                cell.Value = properties[col].Name;
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+            }
 
-                using var workbook = new XLWorkbook();
-                var worksheet = workbook.Worksheets.Add(SanitizeSheetName(sheetName));
-
-                // Write header row
+            // Write data rows
+            for (int row = 0; row < dataList.Count; row++)
+            {
+                ct.ThrowIfCancellationRequested();
                 for (int col = 0; col < properties.Length; col++)
                 {
-                    var cell = worksheet.Cell(1, col + 1);
-                    cell.Value = properties[col].Name;
-                    cell.Style.Font.Bold = true;
-                    cell.Style.Fill.BackgroundColor = XLColor.LightGray;
-                    cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                    var value = properties[col].GetValue(dataList[row]);
+                    var cell = worksheet.Cell(row + 2, col + 1);
+                    if (value is not null)
+                        cell.Value = XLCellValue.FromObject(value);
+                    else
+                        cell.Value = string.Empty;
                 }
+            }
 
-                // Write data rows
-                for (int row = 0; row < dataList.Count; row++)
-                {
-                    ct.ThrowIfCancellationRequested();
-                    for (int col = 0; col < properties.Length; col++)
-                    {
-                        var value = properties[col].GetValue(dataList[row]);
-                        var cell = worksheet.Cell(row + 2, col + 1);
-                        if (value is not null)
-                            cell.Value = XLCellValue.FromObject(value);
-                        else
-                            cell.Value = string.Empty;
-                    }
-                }
+            // Add auto-filter and auto-fit columns
+            if (properties.Length > 0 && dataList.Count > 0)
+                worksheet.Range(1, 1, dataList.Count + 1, properties.Length).SetAutoFilter();
+            worksheet.Columns().AdjustToContents();
 
-                // Add auto-filter and auto-fit columns
-                if (properties.Length > 0 && dataList.Count > 0)
-                    worksheet.Range(1, 1, dataList.Count + 1, properties.Length).SetAutoFilter();
-                worksheet.Columns().AdjustToContents();
+            logger.LogInformation("Excel export completed: {Rows} rows, {Columns} columns",
+                dataList.Count, properties.Length);
 
-                logger.LogInformation("Excel export completed: {Rows} rows, {Columns} columns",
-                    dataList.Count, properties.Length);
-
-                using var stream = new MemoryStream();
-                workbook.SaveAs(stream);
-                return stream.ToArray();
-            }, ct);
-        }
-        catch
-        {
-            throw;
-        }
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
+        }, ct);
     }
 
     public async Task<byte[]> ExportToCsvAsync<T>(
         IEnumerable<T> data,
         CancellationToken ct = default) where T : class
     {
-        try
+
+        using var memoryStream = new MemoryStream();
+        using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+
+        // Get properties via reflection
+        var properties = typeof(T).GetProperties()
+            .Where(p => p.CanRead)
+            .ToArray();
+
+        // Write header
+        var header = string.Join(",", properties.Select(p => EscapeCsvField(p.Name)));
+        await writer.WriteLineAsync(header);
+
+        // Write data rows
+        foreach (var item in data)
         {
+            ct.ThrowIfCancellationRequested();
 
-            using var memoryStream = new MemoryStream();
-            using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
-
-            // Get properties via reflection
-            var properties = typeof(T).GetProperties()
-                .Where(p => p.CanRead)
-                .ToArray();
-
-            // Write header
-            var header = string.Join(",", properties.Select(p => EscapeCsvField(p.Name)));
-            await writer.WriteLineAsync(header);
-
-            // Write data rows
-            foreach (var item in data)
+            var values = properties.Select(p =>
             {
-                ct.ThrowIfCancellationRequested();
+                var value = p.GetValue(item);
+                return value?.ToString() ?? string.Empty;
+            });
 
-                var values = properties.Select(p =>
-                {
-                    var value = p.GetValue(item);
-                    return value?.ToString() ?? string.Empty;
-                });
-
-                var line = string.Join(",", values.Select(EscapeCsvField));
-                await writer.WriteLineAsync(line);
-            }
-
-            await writer.FlushAsync();
-
-            logger.LogInformation("CSV export completed: {Rows} rows", data.Count());
-
-            return memoryStream.ToArray();
+            var line = string.Join(",", values.Select(EscapeCsvField));
+            await writer.WriteLineAsync(line);
         }
-        catch
-        {
-            throw;
-        }
+
+        await writer.FlushAsync();
+
+        logger.LogInformation("CSV export completed: {Rows} rows", data.Count());
+
+        return memoryStream.ToArray();
     }
 
     private static string EscapeCsvField(string field)

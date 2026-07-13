@@ -17,281 +17,211 @@ public class DocumentTemplateService(
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entities = await context.DocumentTemplates
-                .AsNoTracking()
-                .Include(dt => dt.DocumentType)
-                .Where(dt => dt.IsActive)
-                .OrderBy(dt => dt.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentTemplates
+            .AsNoTracking()
+            .Include(dt => dt.DocumentType)
+            .Where(dt => dt.IsActive)
+            .OrderBy(dt => dt.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentTemplateMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentTemplateMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<DocumentTemplateDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var entity = await context.DocumentTemplates
-                .AsNoTracking()
-                .Include(dt => dt.DocumentType)
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
+        var entity = await context.DocumentTemplates
+            .AsNoTracking()
+            .Include(dt => dt.DocumentType)
+            .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
 
-            return entity is null ? null : DocumentTemplateMapper.ToDto(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        return entity is null ? null : DocumentTemplateMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetByDocumentTypeAsync(Guid documentTypeId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var entities = await context.DocumentTemplates
-                .AsNoTracking()
-                .Include(dt => dt.DocumentType)
-                .Where(dt => dt.DocumentTypeId == documentTypeId && dt.TenantId == currentTenantId && dt.IsActive)
-                .OrderBy(dt => dt.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentTemplates
+            .AsNoTracking()
+            .Include(dt => dt.DocumentType)
+            .Where(dt => dt.DocumentTypeId == documentTypeId && dt.TenantId == currentTenantId && dt.IsActive)
+            .OrderBy(dt => dt.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentTemplateMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentTemplateMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetPublicTemplatesAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entities = await context.DocumentTemplates
-                .AsNoTracking()
-                .Include(dt => dt.DocumentType)
-                .Where(dt => dt.IsPublic && dt.IsActive)
-                .OrderBy(dt => dt.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentTemplates
+            .AsNoTracking()
+            .Include(dt => dt.DocumentType)
+            .Where(dt => dt.IsPublic && dt.IsActive)
+            .OrderBy(dt => dt.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentTemplateMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentTemplateMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetByOwnerAsync(string owner, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        ArgumentException.ThrowIfNullOrWhiteSpace(owner);
 
-            var entities = await context.DocumentTemplates
-                .AsNoTracking()
-                .Include(dt => dt.DocumentType)
-                .Where(dt => (dt.Owner == owner || dt.IsPublic) && dt.IsActive)
-                .OrderBy(dt => dt.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentTemplates
+            .AsNoTracking()
+            .Include(dt => dt.DocumentType)
+            .Where(dt => (dt.Owner == owner || dt.IsPublic) && dt.IsActive)
+            .OrderBy(dt => dt.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentTemplateMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentTemplateMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentTemplateDto>> GetByCategoryAsync(string category, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(category);
+        ArgumentException.ThrowIfNullOrWhiteSpace(category);
 
-            var entities = await context.DocumentTemplates
-                .AsNoTracking()
-                .Include(dt => dt.DocumentType)
-                .Where(dt => dt.Category == category && dt.IsActive)
-                .OrderBy(dt => dt.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentTemplates
+            .AsNoTracking()
+            .Include(dt => dt.DocumentType)
+            .Where(dt => dt.Category == category && dt.IsActive)
+            .OrderBy(dt => dt.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentTemplateMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentTemplateMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<DocumentTemplateDto> CreateAsync(CreateDocumentTemplateDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(createDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+        ArgumentNullException.ThrowIfNull(createDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var entity = DocumentTemplateMapper.ToEntity(createDto);
-            entity.Id = Guid.NewGuid();
-            entity.TenantId = currentTenantId;
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.CreatedBy = currentUser;
+        var entity = DocumentTemplateMapper.ToEntity(createDto);
+        entity.Id = Guid.NewGuid();
+        entity.TenantId = currentTenantId;
+        entity.CreatedAt = DateTime.UtcNow;
+        entity.CreatedBy = currentUser;
 
-            _ = context.DocumentTemplates.Add(entity);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = context.DocumentTemplates.Add(entity);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Insert", currentUser, null, cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Insert", currentUser, null, cancellationToken);
 
-            // Reload with includes
-            await context.Entry(entity)
-                .Reference(dt => dt.DocumentType)
-                .LoadAsync(cancellationToken);
+        // Reload with includes
+        await context.Entry(entity)
+            .Reference(dt => dt.DocumentType)
+            .LoadAsync(cancellationToken);
 
-            logger.LogInformation("Document template {TemplateId} created by {User}.", entity.Id, currentUser);
+        logger.LogInformation("Document template {TemplateId} created by {User}.", entity.Id, currentUser);
 
-            return DocumentTemplateMapper.ToDto(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentTemplateMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<DocumentTemplateDto?> UpdateAsync(Guid id, UpdateDocumentTemplateDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(updateDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var entity = await context.DocumentTemplates
+            .Include(dt => dt.DocumentType)
+            .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            ArgumentNullException.ThrowIfNull(updateDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var entity = await context.DocumentTemplates
-                .Include(dt => dt.DocumentType)
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document template {TemplateId} not found for update.", id);
-                return null;
-            }
-
-            var originalValues = entity.ToString();
-
-            DocumentTemplateMapper.UpdateEntity(entity, updateDto);
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Update", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Document template {TemplateId} updated by {User}.", id, currentUser);
-
-            return DocumentTemplateMapper.ToDto(entity);
+            logger.LogWarning("Document template {TemplateId} not found for update.", id);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        var originalValues = entity.ToString();
+
+        DocumentTemplateMapper.UpdateEntity(entity, updateDto);
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "Update", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Document template {TemplateId} updated by {User}.", id, currentUser);
+
+        return DocumentTemplateMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<bool> DeleteAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var entity = await context.DocumentTemplates
+            .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var entity = await context.DocumentTemplates
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document template {TemplateId} not found for deletion.", id);
-                return false;
-            }
-
-            // Soft delete
-            entity.IsActive = false;
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "SoftDelete", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Document template {TemplateId} soft deleted by {User}.", id, currentUser);
-
-            return true;
+            logger.LogWarning("Document template {TemplateId} not found for deletion.", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        // Soft delete
+        entity.IsActive = false;
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentTemplate>(entity, "SoftDelete", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Document template {TemplateId} soft deleted by {User}.", id, currentUser);
+
+        return true;
     }
 
     /// <inheritdoc />
     public async Task<bool> UpdateUsageAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var entity = await context.DocumentTemplates
+            .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var entity = await context.DocumentTemplates
-                .FirstOrDefaultAsync(dt => dt.Id == id && dt.TenantId == currentTenantId && dt.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document template {TemplateId} not found for usage update.", id);
-                return false;
-            }
-
-            entity.UsageCount++;
-            entity.LastUsedAt = DateTime.UtcNow;
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Document template {TemplateId} usage updated by {User}.", id, currentUser);
-
-            return true;
+            logger.LogWarning("Document template {TemplateId} not found for usage update.", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        entity.UsageCount++;
+        entity.LastUsedAt = DateTime.UtcNow;
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Document template {TemplateId} usage updated by {User}.", id, currentUser);
+
+        return true;
     }
 
 }

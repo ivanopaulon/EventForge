@@ -29,43 +29,36 @@ public partial class EpsonFiscalPrinterService
         Guid printerId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            logger.LogInformation("Epson DailyClosureAsync | PrinterId={PrinterId}", printerId);
+        logger.LogInformation("Epson DailyClosureAsync | PrinterId={PrinterId}", printerId);
 
-            // Build a minimal closure DTO from DB for the Z-report document
-            var lastClosure = await context.DailyClosureRecords
-                .AsNoTracking()
-                .Where(r => r.PrinterId == printerId && !r.IsDeleted)
-                .OrderByDescending(r => r.ClosedAt)
-                .FirstOrDefaultAsync(cancellationToken);
+        // Build a minimal closure DTO from DB for the Z-report document
+        var lastClosure = await context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.PrinterId == printerId && !r.IsDeleted)
+            .OrderByDescending(r => r.ClosedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            var closureDto = lastClosure is not null
-                ? new DailyClosureResultDto
-                {
-                    Success = true,
-                    ClosureId = lastClosure.Id,
-                    ZReportNumber = lastClosure.ZReportNumber,
-                    ClosedAt = lastClosure.ClosedAt,
-                    ReceiptCount = lastClosure.ReceiptCount,
-                    TotalAmount = lastClosure.TotalAmount,
-                    CashAmount = lastClosure.CashAmount,
-                    Operator = lastClosure.Operator
-                }
-                : new DailyClosureResultDto
-                {
-                    Success = true,
-                    ClosedAt = DateTime.UtcNow
-                };
+        var closureDto = lastClosure is not null
+            ? new DailyClosureResultDto
+            {
+                Success = true,
+                ClosureId = lastClosure.Id,
+                ZReportNumber = lastClosure.ZReportNumber,
+                ClosedAt = lastClosure.ClosedAt,
+                ReceiptCount = lastClosure.ReceiptCount,
+                TotalAmount = lastClosure.TotalAmount,
+                CashAmount = lastClosure.CashAmount,
+                Operator = lastClosure.Operator
+            }
+            : new DailyClosureResultDto
+            {
+                Success = true,
+                ClosedAt = DateTime.UtcNow
+            };
 
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-            var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-            return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+        var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+        return await ExecuteXmlAsync(channel, xml, printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -329,50 +322,43 @@ public partial class EpsonFiscalPrinterService
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.PrinterId == printerId && !r.IsDeleted);
+
+        if (fromDate.HasValue)
+            query = query.Where(r => r.ClosedAt >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(r => r.ClosedAt <= toDate.Value);
+
+        var printerName = await context.Printers
+            .AsNoTracking()
+            .Where(p => p.Id == printerId && !p.IsDeleted)
+            .Select(p => p.Name)
+            .FirstOrDefaultAsync(cancellationToken) ?? printerId.ToString();
+
+        var records = await query
+            .OrderByDescending(r => r.ClosedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return records.Select(r => new DailyClosureHistoryDto
         {
-            var query = context.DailyClosureRecords
-                .AsNoTracking()
-                .Where(r => r.PrinterId == printerId && !r.IsDeleted);
-
-            if (fromDate.HasValue)
-                query = query.Where(r => r.ClosedAt >= fromDate.Value);
-            if (toDate.HasValue)
-                query = query.Where(r => r.ClosedAt <= toDate.Value);
-
-            var printerName = await context.Printers
-                .AsNoTracking()
-                .Where(p => p.Id == printerId && !p.IsDeleted)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? printerId.ToString();
-
-            var records = await query
-                .OrderByDescending(r => r.ClosedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            return records.Select(r => new DailyClosureHistoryDto
-            {
-                Id = r.Id,
-                PrinterId = r.PrinterId ?? printerId,
-                PrinterName = printerName,
-                ZReportNumber = r.ZReportNumber,
-                ClosedAt = r.ClosedAt,
-                ReceiptCount = r.ReceiptCount,
-                TotalAmount = r.TotalAmount,
-                CashAmount = r.CashAmount,
-                CardAmount = r.CardAmount,
-                Operator = r.Operator,
-                HasPdf = r.HasPdf,
-                ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var ct) ? ct : ClosureType.Fiscale,
-                FiscalClosurePending = r.FiscalClosurePending
-            }).ToList();
-        }
-        catch
-        {
-            throw;
-        }
+            Id = r.Id,
+            PrinterId = r.PrinterId ?? printerId,
+            PrinterName = printerName,
+            ZReportNumber = r.ZReportNumber,
+            ClosedAt = r.ClosedAt,
+            ReceiptCount = r.ReceiptCount,
+            TotalAmount = r.TotalAmount,
+            CashAmount = r.CashAmount,
+            CardAmount = r.CardAmount,
+            Operator = r.Operator,
+            HasPdf = r.HasPdf,
+            ClosureType = Enum.TryParse<ClosureType>(r.ClosureType, out var ct) ? ct : ClosureType.Fiscale,
+            FiscalClosurePending = r.FiscalClosurePending
+        }).ToList();
     }
 
     /// <inheritdoc />
@@ -391,57 +377,50 @@ public partial class EpsonFiscalPrinterService
         Guid closureId,
         CancellationToken cancellationToken = default)
     {
-        try
+        var record = await context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (record is null)
         {
-            var record = await context.DailyClosureRecords
-                .AsNoTracking()
-                .Where(r => r.Id == closureId && !r.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (record is null)
+            return new FiscalPrintResult
             {
-                return new FiscalPrintResult
-                {
-                    Success = false,
-                    ErrorMessage = $"Closure {closureId} not found",
-                    PrintDate = DateTime.UtcNow
-                };
-            }
-
-            if (record.PrinterId is null)
-            {
-                return new FiscalPrintResult
-                {
-                    Success = false,
-                    ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure).",
-                    PrintDate = DateTime.UtcNow
-                };
-            }
-
-            logger.LogInformation(
-                "Epson ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}",
-                closureId, record.PrinterId);
-
-            var closureDto = new DailyClosureResultDto
-            {
-                Success = true,
-                ClosureId = record.Id,
-                ZReportNumber = record.ZReportNumber,
-                ClosedAt = record.ClosedAt,
-                ReceiptCount = record.ReceiptCount,
-                TotalAmount = record.TotalAmount,
-                CashAmount = record.CashAmount,
-                Operator = record.Operator
+                Success = false,
+                ErrorMessage = $"Closure {closureId} not found",
+                PrintDate = DateTime.UtcNow
             };
+        }
 
-            await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
-            var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
-            return await ExecuteXmlAsync(channel, xml, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
-        }
-        catch
+        if (record.PrinterId is null)
         {
-            throw;
+            return new FiscalPrintResult
+            {
+                Success = false,
+                ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure).",
+                PrintDate = DateTime.UtcNow
+            };
         }
+
+        logger.LogInformation(
+            "Epson ReprintZReportAsync | ClosureId={ClosureId} PrinterId={PrinterId}",
+            closureId, record.PrinterId);
+
+        var closureDto = new DailyClosureResultDto
+        {
+            Success = true,
+            ClosureId = record.Id,
+            ZReportNumber = record.ZReportNumber,
+            ClosedAt = record.ClosedAt,
+            ReceiptCount = record.ReceiptCount,
+            TotalAmount = record.TotalAmount,
+            CashAmount = record.CashAmount,
+            Operator = record.Operator
+        };
+
+        await using var channel = await CreateChannelAsync(record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
+        var xml = EpsonXmlBuilder.BuildZReport(closureDto, channel.DeviceId, EpsonProtocolConstants.DefaultTimeoutMs);
+        return await ExecuteXmlAsync(channel, xml, record.PrinterId!.Value, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

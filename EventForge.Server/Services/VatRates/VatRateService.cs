@@ -15,105 +15,84 @@ public class VatRateService(
 
     public async Task<PagedResult<VatRateDto>> GetVatRatesAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
-            }
-
-            var query = context.VatRates
-                .AsNoTracking()
-                .Include(v => v.VatNature)
-                .WhereActiveTenant(currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var vatRates = await query
-                .OrderBy(v => v.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var vatRateDtos = vatRates.Select(MapToVatRateDto);
-
-            return new PagedResult<VatRateDto>
-            {
-                Items = vatRateDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
         }
-        catch
+
+        var query = context.VatRates
+            .AsNoTracking()
+            .Include(v => v.VatNature)
+            .WhereActiveTenant(currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var vatRates = await query
+            .OrderBy(v => v.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var vatRateDtos = vatRates.Select(MapToVatRateDto);
+
+        return new PagedResult<VatRateDto>
         {
-            throw;
-        }
+            Items = vatRateDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<VatRateDto?> GetVatRateByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
 
-            var vatRate = await context.VatRates
-                .AsNoTracking()
-                .Include(v => v.VatNature)
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var vatRate = await context.VatRates
+            .AsNoTracking()
+            .Include(v => v.VatNature)
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return vatRate is not null ? MapToVatRateDto(vatRate) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return vatRate is not null ? MapToVatRateDto(vatRate) : null;
     }
 
     public async Task<VatRateDto> CreateVatRateAsync(CreateVatRateDto createVatRateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createVatRateDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createVatRateDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
-            }
-
-            var vatRate = new VatRate
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                Name = createVatRateDto.Name,
-                Percentage = createVatRateDto.Percentage,
-                ValidFrom = createVatRateDto.ValidFrom,
-                ValidTo = createVatRateDto.ValidTo,
-                Notes = createVatRateDto.Notes,
-                VatNatureId = createVatRateDto.VatNatureId,
-                FiscalCode = createVatRateDto.FiscalCode,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
-
-            _ = context.VatRates.Add(vatRate);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Insert", currentUser, null, cancellationToken);
-
-            logger.LogInformation("VAT rate {VatRateId} created by {User}.", vatRate.Id, currentUser);
-
-            return MapToVatRateDto(vatRate);
+            throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
         }
-        catch
+
+        var vatRate = new VatRate
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            Name = createVatRateDto.Name,
+            Percentage = createVatRateDto.Percentage,
+            ValidFrom = createVatRateDto.ValidFrom,
+            ValidTo = createVatRateDto.ValidTo,
+            Notes = createVatRateDto.Notes,
+            VatNatureId = createVatRateDto.VatNatureId,
+            FiscalCode = createVatRateDto.FiscalCode,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
+
+        _ = context.VatRates.Add(vatRate);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Insert", currentUser, null, cancellationToken);
+
+        logger.LogInformation("VAT rate {VatRateId} created by {User}.", vatRate.Id, currentUser);
+
+        return MapToVatRateDto(vatRate);
     }
 
     public async Task<VatRateDto?> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateVatRateDto, string currentUser, CancellationToken cancellationToken = default)
@@ -223,16 +202,9 @@ public class VatRateService(
 
     public async Task<bool> VatRateExistsAsync(Guid vatRateId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.VatRates
-                .AsNoTracking()
-                .AnyAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.VatRates
+            .AsNoTracking()
+            .AnyAsync(v => v.Id == vatRateId && !v.IsDeleted, cancellationToken);
     }
 
     private static VatRateDto MapToVatRateDto(VatRate vatRate)

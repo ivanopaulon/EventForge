@@ -89,112 +89,56 @@ public sealed class FiscalPrinterServiceRouter(
     public async Task<FiscalPrintResult> PrintReceiptAsync(
         Guid printerId, FiscalReceiptData receipt, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).PrintReceiptAsync(printerId, receipt, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).PrintReceiptAsync(printerId, receipt, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> CancelCurrentReceiptAsync(
         Guid printerId, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).CancelCurrentReceiptAsync(printerId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).CancelCurrentReceiptAsync(printerId, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> PrintRefundReceiptAsync(
         Guid printerId, FiscalRefundData refund, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).PrintRefundReceiptAsync(printerId, refund, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).PrintRefundReceiptAsync(printerId, refund, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> PrintPartialRefundAsync(
         Guid printerId, FiscalRefundData refund, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).PrintPartialRefundAsync(printerId, refund, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).PrintPartialRefundAsync(printerId, refund, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> DailyClosureAsync(
         Guid printerId, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).DailyClosureAsync(printerId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).DailyClosureAsync(printerId, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrinterStatus> GetStatusAsync(
         Guid printerId, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).GetStatusAsync(printerId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).GetStatusAsync(printerId, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> OpenDrawerAsync(
         Guid printerId, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).OpenDrawerAsync(printerId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).OpenDrawerAsync(printerId, ct);
     }
 
     /// <inheritdoc />
     public async Task<FiscalPrintResult> TestConnectionAsync(
         Guid printerId, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).TestConnectionAsync(printerId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).TestConnectionAsync(printerId, ct);
     }
 
     /// <inheritdoc />
@@ -226,28 +170,14 @@ public sealed class FiscalPrinterServiceRouter(
     public async Task<DailyClosurePreCheckDto> GetDailyClosurePreCheckAsync(
         Guid printerId, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).GetDailyClosurePreCheckAsync(printerId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).GetDailyClosurePreCheckAsync(printerId, ct);
     }
 
     /// <inheritdoc />
     public async Task<DailyClosureResultDto> ExecuteDailyClosureAsync(
         Guid printerId, string operatorName, CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct)).ExecuteDailyClosureAsync(printerId, operatorName, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct)).ExecuteDailyClosureAsync(printerId, operatorName, ct);
     }
 
     /// <inheritdoc />
@@ -256,15 +186,8 @@ public sealed class FiscalPrinterServiceRouter(
         DateTime? fromDate = null, DateTime? toDate = null,
         CancellationToken ct = default)
     {
-        try
-        {
-            return await (await ResolveAsync(printerId, ct))
-                       .GetClosureHistoryAsync(printerId, page, pageSize, fromDate, toDate, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(printerId, ct))
+                   .GetClosureHistoryAsync(printerId, page, pageSize, fromDate, toDate, ct);
     }
 
     /// <inheritdoc />
@@ -332,50 +255,36 @@ public sealed class FiscalPrinterServiceRouter(
     public async Task<FiscalPrintResult> ReprintZReportAsync(
         Guid closureId, CancellationToken ct = default)
     {
-        try
-        {
-            // ReprintZReport needs a closure ID, not a printer ID; look up the printer ID first
-            var closure = await context.DailyClosureRecords
-                .AsNoTracking()
-                .Where(r => r.Id == closureId && !r.IsDeleted)
-                .Select(r => new { r.PrinterId })
-                .FirstOrDefaultAsync(ct);
+        // ReprintZReport needs a closure ID, not a printer ID; look up the printer ID first
+        var closure = await context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .Select(r => new { r.PrinterId })
+            .FirstOrDefaultAsync(ct);
 
-            if (closure is null)
-                return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} not found" };
+        if (closure is null)
+            return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} not found" };
 
-            if (closure.PrinterId is null)
-                return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure)." };
+        if (closure.PrinterId is null)
+            return new FiscalPrintResult { Success = false, ErrorMessage = $"Closure {closureId} has no associated fiscal printer (non-fiscal closure)." };
 
-            return await (await ResolveAsync(closure.PrinterId.Value, ct)).ReprintZReportAsync(closureId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(closure.PrinterId.Value, ct)).ReprintZReportAsync(closureId, ct);
     }
 
     /// <inheritdoc />
     public async Task<byte[]?> GenerateZReportPdfAsync(
         Guid closureId, CancellationToken ct = default)
     {
-        try
-        {
-            var closure = await context.DailyClosureRecords
-                .AsNoTracking()
-                .Where(r => r.Id == closureId && !r.IsDeleted)
-                .Select(r => new { r.PrinterId })
-                .FirstOrDefaultAsync(ct);
+        var closure = await context.DailyClosureRecords
+            .AsNoTracking()
+            .Where(r => r.Id == closureId && !r.IsDeleted)
+            .Select(r => new { r.PrinterId })
+            .FirstOrDefaultAsync(ct);
 
-            if (closure?.PrinterId is null)
-                return null;
+        if (closure?.PrinterId is null)
+            return null;
 
-            return await (await ResolveAsync(closure.PrinterId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
-        }
-        catch
-        {
-            throw;
-        }
+        return await (await ResolveAsync(closure.PrinterId.Value, ct)).GenerateZReportPdfAsync(closureId, ct);
     }
 
     // -------------------------------------------------------------------------

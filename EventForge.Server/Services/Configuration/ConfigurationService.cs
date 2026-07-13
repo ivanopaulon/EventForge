@@ -385,24 +385,17 @@ public class ConfigurationService(
 
     public async Task ReloadConfigurationAsync(CancellationToken ct = default)
     {
-        try
-        {
-            // This would trigger a configuration reload in the application
-            // Implementation depends on how configuration is managed in the app
-            // NOTE: CancellationToken will be used when actual implementation is added
-            logger.LogInformation("Configuration reload requested");
+        // This would trigger a configuration reload in the application
+        // Implementation depends on how configuration is managed in the app
+        // NOTE: CancellationToken will be used when actual implementation is added
+        logger.LogInformation("Configuration reload requested");
 
-            // Here you could implement logic to:
-            // 1. Clear configuration cache
-            // 2. Reload configuration from database
-            // 3. Notify other services about configuration changes
+        // Here you could implement logic to:
+        // 1. Clear configuration cache
+        // 2. Reload configuration from database
+        // 3. Notify other services about configuration changes
 
-            await Task.CompletedTask;
-        }
-        catch
-        {
-            throw;
-        }
+        await Task.CompletedTask;
     }
 
     public async Task<IEnumerable<string>> GetCategoriesAsync(CancellationToken ct = default)

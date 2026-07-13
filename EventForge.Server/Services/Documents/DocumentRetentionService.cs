@@ -17,58 +17,37 @@ public class DocumentRetentionService(
     public async Task<IEnumerable<DocumentRetentionPolicyDto>> GetAllPoliciesAsync(
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var policies = await context.Set<DocumentRetentionPolicy>()
-                .AsNoTracking()
-                .Include(p => p.DocumentType)
-                .OrderBy(p => p.DocumentType!.Name)
-                .ToListAsync(cancellationToken);
+        var policies = await context.Set<DocumentRetentionPolicy>()
+            .AsNoTracking()
+            .Include(p => p.DocumentType)
+            .OrderBy(p => p.DocumentType!.Name)
+            .ToListAsync(cancellationToken);
 
-            return policies.Select(MapToDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return policies.Select(MapToDto);
     }
 
     public async Task<DocumentRetentionPolicyDto?> GetPolicyByIdAsync(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var policy = await context.Set<DocumentRetentionPolicy>()
-                .AsNoTracking()
-                .Include(p => p.DocumentType)
-                .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        var policy = await context.Set<DocumentRetentionPolicy>()
+            .AsNoTracking()
+            .Include(p => p.DocumentType)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-            return policy is not null ? MapToDto(policy) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return policy is not null ? MapToDto(policy) : null;
     }
 
     public async Task<DocumentRetentionPolicyDto?> GetPolicyByDocumentTypeAsync(
         Guid documentTypeId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var policy = await context.Set<DocumentRetentionPolicy>()
-                .AsNoTracking()
-                .Include(p => p.DocumentType)
-                .FirstOrDefaultAsync(p => p.DocumentTypeId == documentTypeId && p.IsActive, cancellationToken);
+        var policy = await context.Set<DocumentRetentionPolicy>()
+            .AsNoTracking()
+            .Include(p => p.DocumentType)
+            .FirstOrDefaultAsync(p => p.DocumentTypeId == documentTypeId && p.IsActive, cancellationToken);
 
-            return policy is not null ? MapToDto(policy) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return policy is not null ? MapToDto(policy) : null;
     }
 
     public async Task<DocumentRetentionPolicyDto> CreatePolicyAsync(
@@ -76,51 +55,44 @@ public class DocumentRetentionService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Check if policy already exists for this document type
+        var existingPolicy = await context.Set<DocumentRetentionPolicy>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.DocumentTypeId == dto.DocumentTypeId, cancellationToken);
+
+        if (existingPolicy is not null)
         {
-            // Check if policy already exists for this document type
-            var existingPolicy = await context.Set<DocumentRetentionPolicy>()
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.DocumentTypeId == dto.DocumentTypeId, cancellationToken);
-
-            if (existingPolicy is not null)
-            {
-                throw new InvalidOperationException(
-                    $"A retention policy already exists for document type {dto.DocumentTypeId}");
-            }
-
-            var policy = new DocumentRetentionPolicy
-            {
-                Id = Guid.NewGuid(),
-                DocumentTypeId = dto.DocumentTypeId,
-                RetentionDays = dto.RetentionDays,
-                AutoDeleteEnabled = dto.AutoDeleteEnabled,
-                GracePeriodDays = dto.GracePeriodDays,
-                ArchiveInsteadOfDelete = dto.ArchiveInsteadOfDelete,
-                IsActive = dto.IsActive,
-                Notes = dto.Notes,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-            _ = context.Set<DocumentRetentionPolicy>().Add(policy);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Created retention policy {PolicyId} for document type {DocumentTypeId} by {User}",
-                policy.Id, dto.DocumentTypeId, currentUser);
-
-            // Reload with navigation properties
-            await context.Entry(policy).Reference(p => p.DocumentType).LoadAsync(cancellationToken);
-
-            return MapToDto(policy);
+            throw new InvalidOperationException(
+                $"A retention policy already exists for document type {dto.DocumentTypeId}");
         }
-        catch
+
+        var policy = new DocumentRetentionPolicy
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            DocumentTypeId = dto.DocumentTypeId,
+            RetentionDays = dto.RetentionDays,
+            AutoDeleteEnabled = dto.AutoDeleteEnabled,
+            GracePeriodDays = dto.GracePeriodDays,
+            ArchiveInsteadOfDelete = dto.ArchiveInsteadOfDelete,
+            IsActive = dto.IsActive,
+            Notes = dto.Notes,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        _ = context.Set<DocumentRetentionPolicy>().Add(policy);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Created retention policy {PolicyId} for document type {DocumentTypeId} by {User}",
+            policy.Id, dto.DocumentTypeId, currentUser);
+
+        // Reload with navigation properties
+        await context.Entry(policy).Reference(p => p.DocumentType).LoadAsync(cancellationToken);
+
+        return MapToDto(policy);
     }
 
     public async Task<DocumentRetentionPolicyDto?> UpdatePolicyAsync(
@@ -129,54 +101,47 @@ public class DocumentRetentionService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var policy = await context.Set<DocumentRetentionPolicy>()
+            .Include(p => p.DocumentType)
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == currentTenantId, cancellationToken);
+
+        if (policy is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var policy = await context.Set<DocumentRetentionPolicy>()
-                .Include(p => p.DocumentType)
-                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == currentTenantId, cancellationToken);
-
-            if (policy is null)
-            {
-                return null;
-            }
-
-            // Update only provided fields
-            if (dto.RetentionDays.HasValue)
-                policy.RetentionDays = dto.RetentionDays.Value;
-
-            if (dto.AutoDeleteEnabled.HasValue)
-                policy.AutoDeleteEnabled = dto.AutoDeleteEnabled.Value;
-
-            if (dto.GracePeriodDays.HasValue)
-                policy.GracePeriodDays = dto.GracePeriodDays.Value;
-
-            if (dto.ArchiveInsteadOfDelete.HasValue)
-                policy.ArchiveInsteadOfDelete = dto.ArchiveInsteadOfDelete.Value;
-
-            if (dto.IsActive.HasValue)
-                policy.IsActive = dto.IsActive.Value;
-
-            if (dto.Notes is not null)
-                policy.Notes = dto.Notes;
-
-            policy.ModifiedBy = currentUser;
-            policy.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Updated retention policy {PolicyId} by {User}",
-                id, currentUser);
-
-            return MapToDto(policy);
+            return null;
         }
-        catch
-        {
-            throw;
-        }
+
+        // Update only provided fields
+        if (dto.RetentionDays.HasValue)
+            policy.RetentionDays = dto.RetentionDays.Value;
+
+        if (dto.AutoDeleteEnabled.HasValue)
+            policy.AutoDeleteEnabled = dto.AutoDeleteEnabled.Value;
+
+        if (dto.GracePeriodDays.HasValue)
+            policy.GracePeriodDays = dto.GracePeriodDays.Value;
+
+        if (dto.ArchiveInsteadOfDelete.HasValue)
+            policy.ArchiveInsteadOfDelete = dto.ArchiveInsteadOfDelete.Value;
+
+        if (dto.IsActive.HasValue)
+            policy.IsActive = dto.IsActive.Value;
+
+        if (dto.Notes is not null)
+            policy.Notes = dto.Notes;
+
+        policy.ModifiedBy = currentUser;
+        policy.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Updated retention policy {PolicyId} by {User}",
+            id, currentUser);
+
+        return MapToDto(policy);
     }
 
     public async Task<bool> DeletePolicyAsync(
@@ -184,32 +149,25 @@ public class DocumentRetentionService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var policy = await context.Set<DocumentRetentionPolicy>()
+            .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == currentTenantId, cancellationToken);
+
+        if (policy is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var policy = await context.Set<DocumentRetentionPolicy>()
-                .FirstOrDefaultAsync(p => p.Id == id && p.TenantId == currentTenantId, cancellationToken);
-
-            if (policy is null)
-            {
-                return false;
-            }
-
-            _ = context.Set<DocumentRetentionPolicy>().Remove(policy);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation(
-                "Deleted retention policy {PolicyId} by {User}",
-                id, currentUser);
-
-            return true;
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = context.Set<DocumentRetentionPolicy>().Remove(policy);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation(
+            "Deleted retention policy {PolicyId} by {User}",
+            id, currentUser);
+
+        return true;
     }
 
     public async Task<RetentionApplicationResultDto> ApplyRetentionPoliciesAsync(
@@ -289,41 +247,34 @@ public class DocumentRetentionService(
         Guid? policyId = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.Set<DocumentRetentionPolicy>()
+            .AsNoTracking()
+            .Where(p => p.IsActive && p.RetentionDays.HasValue);
+
+        if (policyId.HasValue)
         {
-            var query = context.Set<DocumentRetentionPolicy>()
+            query = query.Where(p => p.Id == policyId.Value);
+        }
+
+        var policies = await query.ToListAsync(cancellationToken);
+        var eligibleDocuments = new List<Guid>();
+
+        foreach (var policy in policies)
+        {
+            var cutoffDate = DateTime.UtcNow.AddDays(-(policy.RetentionDays!.Value + policy.GracePeriodDays));
+
+            var documents = await context.DocumentHeaders
                 .AsNoTracking()
-                .Where(p => p.IsActive && p.RetentionDays.HasValue);
+                .Where(d => d.DocumentTypeId == policy.DocumentTypeId)
+                .Where(d => d.CreatedAt <= cutoffDate)
+                .Where(d => !d.IsDeleted)
+                .Select(d => d.Id)
+                .ToListAsync(cancellationToken);
 
-            if (policyId.HasValue)
-            {
-                query = query.Where(p => p.Id == policyId.Value);
-            }
-
-            var policies = await query.ToListAsync(cancellationToken);
-            var eligibleDocuments = new List<Guid>();
-
-            foreach (var policy in policies)
-            {
-                var cutoffDate = DateTime.UtcNow.AddDays(-(policy.RetentionDays!.Value + policy.GracePeriodDays));
-
-                var documents = await context.DocumentHeaders
-                    .AsNoTracking()
-                    .Where(d => d.DocumentTypeId == policy.DocumentTypeId)
-                    .Where(d => d.CreatedAt <= cutoffDate)
-                    .Where(d => !d.IsDeleted)
-                    .Select(d => d.Id)
-                    .ToListAsync(cancellationToken);
-
-                eligibleDocuments.AddRange(documents);
-            }
-
-            return eligibleDocuments.Distinct();
+            eligibleDocuments.AddRange(documents);
         }
-        catch
-        {
-            throw;
-        }
+
+        return eligibleDocuments.Distinct();
     }
 
     private async Task<(int deleted, int archived)> ApplyPolicyAsync(

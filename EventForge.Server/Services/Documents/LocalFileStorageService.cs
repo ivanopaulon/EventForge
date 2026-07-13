@@ -21,60 +21,52 @@ public class LocalFileStorageService(
     {
         if (string.IsNullOrWhiteSpace(fileName))
             throw new ArgumentException("File name cannot be empty", nameof(fileName));
+        // Create tenant-specific directory
+        var tenantPath = Path.Combine(_baseStoragePath, tenantId.ToString());
+        _ = Directory.CreateDirectory(tenantPath);
 
-        try
+        // Generate unique file name to avoid conflicts
+        var fileExtension = Path.GetExtension(fileName);
+        var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+        var fullPath = Path.Combine(tenantPath, uniqueFileName);
+
+        // Calculate file hash and size
+        string fileHash;
+        long fileSize;
+
+        using (var sha256 = SHA256.Create())
         {
-            // Create tenant-specific directory
-            var tenantPath = Path.Combine(_baseStoragePath, tenantId.ToString());
-            _ = Directory.CreateDirectory(tenantPath);
+            var originalPosition = fileStream.Position;
+            fileStream.Position = 0;
 
-            // Generate unique file name to avoid conflicts
-            var fileExtension = Path.GetExtension(fileName);
-            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
-            var fullPath = Path.Combine(tenantPath, uniqueFileName);
+            var hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
+            fileHash = Convert.ToHexString(hashBytes);
 
-            // Calculate file hash and size
-            string fileHash;
-            long fileSize;
-
-            using (var sha256 = SHA256.Create())
-            {
-                var originalPosition = fileStream.Position;
-                fileStream.Position = 0;
-
-                var hashBytes = await sha256.ComputeHashAsync(fileStream, cancellationToken);
-                fileHash = Convert.ToHexString(hashBytes);
-
-                fileSize = fileStream.Length;
-                fileStream.Position = originalPosition;
-            }
-
-            // Save file to disk
-            using (var fileStreamOutput = new FileStream(fullPath, FileMode.Create, FileAccess.Write))
-            {
-                fileStream.Position = 0;
-                await fileStream.CopyToAsync(fileStreamOutput, cancellationToken);
-            }
-
-            var storagePath = Path.Combine(tenantId.ToString(), uniqueFileName);
-
-            logger.LogInformation("File saved successfully: {FileName} -> {StoragePath} (Size: {FileSize} bytes)",
-                fileName, storagePath, fileSize);
-
-            return new FileStorageResult
-            {
-                StoragePath = storagePath,
-                FileName = fileName,
-                ContentType = contentType,
-                FileSize = fileSize,
-                StoredAt = DateTime.UtcNow,
-                FileHash = fileHash
-            };
+            fileSize = fileStream.Length;
+            fileStream.Position = originalPosition;
         }
-        catch
+
+        // Save file to disk
+        using (var fileStreamOutput = new FileStream(fullPath, FileMode.Create, FileAccess.Write))
         {
-            throw;
+            fileStream.Position = 0;
+            await fileStream.CopyToAsync(fileStreamOutput, cancellationToken);
         }
+
+        var storagePath = Path.Combine(tenantId.ToString(), uniqueFileName);
+
+        logger.LogInformation("File saved successfully: {FileName} -> {StoragePath} (Size: {FileSize} bytes)",
+            fileName, storagePath, fileSize);
+
+        return new FileStorageResult
+        {
+            StoragePath = storagePath,
+            FileName = fileName,
+            ContentType = contentType,
+            FileSize = fileSize,
+            StoredAt = DateTime.UtcNow,
+            FileHash = fileHash
+        };
     }
 
     public Task<FileRetrievalResult?> GetFileAsync(
@@ -84,47 +76,39 @@ public class LocalFileStorageService(
     {
         if (string.IsNullOrWhiteSpace(storagePath))
             return Task.FromResult<FileRetrievalResult?>(null);
-
-        try
+        // Validate path is within tenant scope
+        if (!storagePath.StartsWith(tenantId.ToString()))
         {
-            // Validate path is within tenant scope
-            if (!storagePath.StartsWith(tenantId.ToString()))
-            {
-                logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}",
-                    storagePath, tenantId);
-                return Task.FromResult<FileRetrievalResult?>(null);
-            }
-
-            var fullPath = Path.Combine(_baseStoragePath, storagePath);
-
-            if (!File.Exists(fullPath))
-            {
-                logger.LogWarning("File not found: {StoragePath}", storagePath);
-                return Task.FromResult<FileRetrievalResult?>(null);
-            }
-
-            var fileInfo = new FileInfo(fullPath);
-            var fileName = Path.GetFileName(storagePath);
-
-            // Determine content type based on file extension
-            var contentType = GetContentType(Path.GetExtension(fileName));
-
-            var fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-
-            var result = new FileRetrievalResult
-            {
-                FileStream = fileStream,
-                FileName = fileName,
-                ContentType = contentType,
-                FileSize = fileInfo.Length,
-                LastModified = fileInfo.LastWriteTimeUtc
-            };
-            return Task.FromResult<FileRetrievalResult?>(result);
+            logger.LogWarning("Attempted to access file outside tenant scope: {StoragePath} for tenant {TenantId}",
+                storagePath, tenantId);
+            return Task.FromResult<FileRetrievalResult?>(null);
         }
-        catch
+
+        var fullPath = Path.Combine(_baseStoragePath, storagePath);
+
+        if (!File.Exists(fullPath))
         {
-            throw;
+            logger.LogWarning("File not found: {StoragePath}", storagePath);
+            return Task.FromResult<FileRetrievalResult?>(null);
         }
+
+        var fileInfo = new FileInfo(fullPath);
+        var fileName = Path.GetFileName(storagePath);
+
+        // Determine content type based on file extension
+        var contentType = GetContentType(Path.GetExtension(fileName));
+
+        var fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+        var result = new FileRetrievalResult
+        {
+            FileStream = fileStream,
+            FileName = fileName,
+            ContentType = contentType,
+            FileSize = fileInfo.Length,
+            LastModified = fileInfo.LastWriteTimeUtc
+        };
+        return Task.FromResult<FileRetrievalResult?>(result);
     }
 
     public Task<bool> DeleteFileAsync(
@@ -134,35 +118,27 @@ public class LocalFileStorageService(
     {
         if (string.IsNullOrWhiteSpace(storagePath))
             return Task.FromResult(false);
-
-        try
+        // Validate path is within tenant scope
+        if (!storagePath.StartsWith(tenantId.ToString()))
         {
-            // Validate path is within tenant scope
-            if (!storagePath.StartsWith(tenantId.ToString()))
-            {
-                logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}",
-                    storagePath, tenantId);
-                return Task.FromResult(false);
-            }
-
-            var fullPath = Path.Combine(_baseStoragePath, storagePath);
-
-            if (!File.Exists(fullPath))
-            {
-                return Task.FromResult(false);
-            }
-
-            File.Delete(fullPath);
-
-            logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}",
+            logger.LogWarning("Attempted to delete file outside tenant scope: {StoragePath} for tenant {TenantId}",
                 storagePath, tenantId);
+            return Task.FromResult(false);
+        }
 
-            return Task.FromResult(true);
-        }
-        catch
+        var fullPath = Path.Combine(_baseStoragePath, storagePath);
+
+        if (!File.Exists(fullPath))
         {
-            throw;
+            return Task.FromResult(false);
         }
+
+        File.Delete(fullPath);
+
+        logger.LogInformation("File deleted successfully: {StoragePath} for tenant {TenantId}",
+            storagePath, tenantId);
+
+        return Task.FromResult(true);
     }
 
     public Task<FileMetadata?> GetFileMetadataAsync(
@@ -172,42 +148,34 @@ public class LocalFileStorageService(
     {
         if (string.IsNullOrWhiteSpace(storagePath))
             return Task.FromResult<FileMetadata?>(null);
-
-        try
+        // Validate path is within tenant scope
+        if (!storagePath.StartsWith(tenantId.ToString()))
         {
-            // Validate path is within tenant scope
-            if (!storagePath.StartsWith(tenantId.ToString()))
-            {
-                logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}",
-                    storagePath, tenantId);
-                return Task.FromResult<FileMetadata?>(null);
-            }
-
-            var fullPath = Path.Combine(_baseStoragePath, storagePath);
-
-            if (!File.Exists(fullPath))
-            {
-                return Task.FromResult<FileMetadata?>(null);
-            }
-
-            var fileInfo = new FileInfo(fullPath);
-            var fileName = Path.GetFileName(storagePath);
-            var contentType = GetContentType(Path.GetExtension(fileName));
-
-            var result = new FileMetadata
-            {
-                FileName = fileName,
-                ContentType = contentType,
-                FileSize = fileInfo.Length,
-                CreatedAt = fileInfo.CreationTimeUtc,
-                LastModified = fileInfo.LastWriteTimeUtc
-            };
-            return Task.FromResult<FileMetadata?>(result);
+            logger.LogWarning("Attempted to access file metadata outside tenant scope: {StoragePath} for tenant {TenantId}",
+                storagePath, tenantId);
+            return Task.FromResult<FileMetadata?>(null);
         }
-        catch
+
+        var fullPath = Path.Combine(_baseStoragePath, storagePath);
+
+        if (!File.Exists(fullPath))
         {
-            throw;
+            return Task.FromResult<FileMetadata?>(null);
         }
+
+        var fileInfo = new FileInfo(fullPath);
+        var fileName = Path.GetFileName(storagePath);
+        var contentType = GetContentType(Path.GetExtension(fileName));
+
+        var result = new FileMetadata
+        {
+            FileName = fileName,
+            ContentType = contentType,
+            FileSize = fileInfo.Length,
+            CreatedAt = fileInfo.CreationTimeUtc,
+            LastModified = fileInfo.LastWriteTimeUtc
+        };
+        return Task.FromResult<FileMetadata?>(result);
     }
 
     private static string GetContentType(string fileExtension)

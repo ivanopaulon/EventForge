@@ -16,64 +16,43 @@ public class DocumentCounterService(
 
     public async Task<IEnumerable<DocumentCounterDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var counters = await context.DocumentCounters
-                .AsNoTracking()
-                .Include(dc => dc.DocumentType)
-                .Where(dc => !dc.IsDeleted)
-                .OrderBy(dc => dc.DocumentType!.Name)
-                .ThenBy(dc => dc.Series)
-                .ToListAsync(cancellationToken);
+        var counters = await context.DocumentCounters
+            .AsNoTracking()
+            .Include(dc => dc.DocumentType)
+            .Where(dc => !dc.IsDeleted)
+            .OrderBy(dc => dc.DocumentType!.Name)
+            .ThenBy(dc => dc.Series)
+            .ToListAsync(cancellationToken);
 
-            return counters.Select(c => c.ToDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return counters.Select(c => c.ToDto());
     }
 
     public async Task<IEnumerable<DocumentCounterDto>> GetByDocumentTypeAsync(Guid documentTypeId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var counters = await context.DocumentCounters
-                .AsNoTracking()
-                .Include(dc => dc.DocumentType)
-                .Where(dc => dc.DocumentTypeId == documentTypeId && dc.TenantId == currentTenantId && !dc.IsDeleted)
-                .OrderBy(dc => dc.Series)
-                .ToListAsync(cancellationToken);
+        var counters = await context.DocumentCounters
+            .AsNoTracking()
+            .Include(dc => dc.DocumentType)
+            .Where(dc => dc.DocumentTypeId == documentTypeId && dc.TenantId == currentTenantId && !dc.IsDeleted)
+            .OrderBy(dc => dc.Series)
+            .ToListAsync(cancellationToken);
 
-            return counters.Select(c => c.ToDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return counters.Select(c => c.ToDto());
     }
 
     public async Task<DocumentCounterDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var counter = await context.DocumentCounters
-                .AsNoTracking()
-                .Include(dc => dc.DocumentType)
-                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
+        var counter = await context.DocumentCounters
+            .AsNoTracking()
+            .Include(dc => dc.DocumentType)
+            .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
 
-            return counter?.ToDto();
-        }
-        catch
-        {
-            throw;
-        }
+        return counter?.ToDto();
     }
 
     public async Task<DocumentCounterDto?> GetByDocumentTypeSeriesYearAsync(
@@ -82,162 +61,134 @@ public class DocumentCounterService(
         int? year,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var counter = await context.DocumentCounters
-                .AsNoTracking()
-                .Include(dc => dc.DocumentType)
-                .FirstOrDefaultAsync(dc =>
-                    dc.DocumentTypeId == documentTypeId &&
-                    dc.Series == series &&
-                    dc.Year == year &&
-                    dc.TenantId == currentTenantId &&
-                    !dc.IsDeleted,
-                    cancellationToken);
+        var counter = await context.DocumentCounters
+            .AsNoTracking()
+            .Include(dc => dc.DocumentType)
+            .FirstOrDefaultAsync(dc =>
+                dc.DocumentTypeId == documentTypeId &&
+                dc.Series == series &&
+                dc.Year == year &&
+                dc.TenantId == currentTenantId &&
+                !dc.IsDeleted,
+                cancellationToken);
 
-            return counter?.ToDto();
-        }
-        catch
-        {
-            throw;
-        }
+        return counter?.ToDto();
     }
 
     public async Task<DocumentCounterDto> CreateAsync(CreateDocumentCounterDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
-            {
-                logger.LogWarning("Cannot create document counter without a tenant context.");
-                throw new InvalidOperationException("Tenant context is required.");
-            }
-
-            // Check if counter already exists
-            var existingCounter = await context.DocumentCounters
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dc =>
-                    dc.DocumentTypeId == createDto.DocumentTypeId &&
-                    dc.Series == createDto.Series &&
-                    dc.Year == createDto.Year &&
-                    !dc.IsDeleted,
-                    cancellationToken);
-
-            if (existingCounter is not null)
-            {
-                throw new InvalidOperationException($"A counter already exists for document type {createDto.DocumentTypeId}, series '{createDto.Series}', year {createDto.Year}.");
-            }
-
-            var counter = createDto.ToEntity();
-            counter.TenantId = tenantId.Value;
-            counter.CreatedBy = currentUser;
-            counter.CreatedAt = DateTime.UtcNow;
-
-            _ = context.DocumentCounters.Add(counter);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(counter, "Insert", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Document counter {CounterId} created by {User}.", counter.Id, currentUser);
-
-            return counter.ToDto();
+            logger.LogWarning("Cannot create document counter without a tenant context.");
+            throw new InvalidOperationException("Tenant context is required.");
         }
-        catch
+
+        // Check if counter already exists
+        var existingCounter = await context.DocumentCounters
+            .AsNoTracking()
+            .FirstOrDefaultAsync(dc =>
+                dc.DocumentTypeId == createDto.DocumentTypeId &&
+                dc.Series == createDto.Series &&
+                dc.Year == createDto.Year &&
+                !dc.IsDeleted,
+                cancellationToken);
+
+        if (existingCounter is not null)
         {
-            throw;
+            throw new InvalidOperationException($"A counter already exists for document type {createDto.DocumentTypeId}, series '{createDto.Series}', year {createDto.Year}.");
         }
+
+        var counter = createDto.ToEntity();
+        counter.TenantId = tenantId.Value;
+        counter.CreatedBy = currentUser;
+        counter.CreatedAt = DateTime.UtcNow;
+
+        _ = context.DocumentCounters.Add(counter);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(counter, "Insert", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Document counter {CounterId} created by {User}.", counter.Id, currentUser);
+
+        return counter.ToDto();
     }
 
     public async Task<DocumentCounterDto?> UpdateAsync(Guid id, UpdateDocumentCounterDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var originalCounter = await context.DocumentCounters
+            .AsNoTracking()
+            .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
+
+        if (originalCounter is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var originalCounter = await context.DocumentCounters
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
-
-            if (originalCounter is null)
-            {
-                logger.LogWarning("Document counter with ID {Id} not found for update.", id);
-                return null;
-            }
-
-            var counter = await context.DocumentCounters
-                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
-
-            if (counter is null)
-            {
-                logger.LogWarning("Document counter with ID {Id} not found for update.", id);
-                return null;
-            }
-
-            counter.UpdateFromDto(updateDto);
-            counter.ModifiedBy = currentUser;
-            counter.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(counter, "Update", currentUser, originalCounter, cancellationToken);
-
-            logger.LogInformation("Document counter {CounterId} updated by {User}.", id, currentUser);
-
-            return counter.ToDto();
+            logger.LogWarning("Document counter with ID {Id} not found for update.", id);
+            return null;
         }
-        catch
+
+        var counter = await context.DocumentCounters
+            .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
+
+        if (counter is null)
         {
-            throw;
+            logger.LogWarning("Document counter with ID {Id} not found for update.", id);
+            return null;
         }
+
+        counter.UpdateFromDto(updateDto);
+        counter.ModifiedBy = currentUser;
+        counter.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(counter, "Update", currentUser, originalCounter, cancellationToken);
+
+        logger.LogInformation("Document counter {CounterId} updated by {User}.", id, currentUser);
+
+        return counter.ToDto();
     }
 
     public async Task<bool> DeleteAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var originalCounter = await context.DocumentCounters
+            .AsNoTracking()
+            .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
+
+        if (originalCounter is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var originalCounter = await context.DocumentCounters
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
-
-            if (originalCounter is null)
-            {
-                logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
-                return false;
-            }
-
-            var counter = await context.DocumentCounters
-                .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
-
-            if (counter is null)
-            {
-                logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
-                return false;
-            }
-
-            counter.IsDeleted = true;
-            counter.DeletedBy = currentUser;
-            counter.DeletedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(counter, "Delete", currentUser, originalCounter, cancellationToken);
-
-            logger.LogInformation("Document counter {CounterId} deleted by {User}.", id, currentUser);
-
-            return true;
+            logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
+            return false;
         }
-        catch
+
+        var counter = await context.DocumentCounters
+            .FirstOrDefaultAsync(dc => dc.Id == id && dc.TenantId == currentTenantId && !dc.IsDeleted, cancellationToken);
+
+        if (counter is null)
         {
-            throw;
+            logger.LogWarning("Document counter with ID {Id} not found for deletion.", id);
+            return false;
         }
+
+        counter.IsDeleted = true;
+        counter.DeletedBy = currentUser;
+        counter.DeletedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(counter, "Delete", currentUser, originalCounter, cancellationToken);
+
+        logger.LogInformation("Document counter {CounterId} deleted by {User}.", id, currentUser);
+
+        return true;
     }
 
     public async Task<string> GenerateDocumentNumberAsync(
@@ -246,48 +197,41 @@ public class DocumentCounterService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required.");
+        }
+
+        var currentYear = DateTime.UtcNow.Year;
+
+        // Check if we're using in-memory database (for testing)
+        var isInMemoryDatabase = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
+
+        // Use a transaction only for non-in-memory databases
+        if (!isInMemoryDatabase)
+        {
+            using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+            try
             {
-                throw new InvalidOperationException("Tenant context is required.");
-            }
-
-            var currentYear = DateTime.UtcNow.Year;
-
-            // Check if we're using in-memory database (for testing)
-            var isInMemoryDatabase = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory";
-
-            // Use a transaction only for non-in-memory databases
-            if (!isInMemoryDatabase)
-            {
-                using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-
-                try
-                {
-                    var documentNumber = await GenerateDocumentNumberInternalAsync(
-                        documentTypeId, series, currentUser, tenantId.Value, currentYear, cancellationToken);
-
-                    await transaction.CommitAsync(cancellationToken);
-                    return documentNumber;
-                }
-                catch
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    throw;
-                }
-            }
-            else
-            {
-                // For in-memory database, just execute without transaction
-                return await GenerateDocumentNumberInternalAsync(
+                var documentNumber = await GenerateDocumentNumberInternalAsync(
                     documentTypeId, series, currentUser, tenantId.Value, currentYear, cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+                return documentNumber;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
             }
         }
-        catch
+        else
         {
-            throw;
+            // For in-memory database, just execute without transaction
+            return await GenerateDocumentNumberInternalAsync(
+                documentTypeId, series, currentUser, tenantId.Value, currentYear, cancellationToken);
         }
     }
 

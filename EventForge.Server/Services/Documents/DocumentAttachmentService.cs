@@ -19,27 +19,20 @@ public class DocumentAttachmentService(
         bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.DocumentAttachments
+            .AsNoTracking()
+            .Where(a => a.DocumentHeaderId == documentHeaderId && !a.IsDeleted);
+
+        if (!includeHistory)
         {
-            var query = context.DocumentAttachments
-                .AsNoTracking()
-                .Where(a => a.DocumentHeaderId == documentHeaderId && !a.IsDeleted);
-
-            if (!includeHistory)
-            {
-                query = query.Where(a => a.IsCurrentVersion);
-            }
-
-            var attachments = await query
-                .OrderByDescending(a => a.CreatedAt)
-                .ToListAsync(cancellationToken);
-
-            return attachments.Select(MapToDto);
+            query = query.Where(a => a.IsCurrentVersion);
         }
-        catch
-        {
-            throw;
-        }
+
+        var attachments = await query
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return attachments.Select(MapToDto);
     }
 
     /// <inheritdoc />
@@ -48,27 +41,20 @@ public class DocumentAttachmentService(
         bool includeHistory = false,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.DocumentAttachments
+            .AsNoTracking()
+            .Where(a => a.DocumentRowId == documentRowId && !a.IsDeleted);
+
+        if (!includeHistory)
         {
-            var query = context.DocumentAttachments
-                .AsNoTracking()
-                .Where(a => a.DocumentRowId == documentRowId && !a.IsDeleted);
-
-            if (!includeHistory)
-            {
-                query = query.Where(a => a.IsCurrentVersion);
-            }
-
-            var attachments = await query
-                .OrderByDescending(a => a.CreatedAt)
-                .ToListAsync(cancellationToken);
-
-            return attachments.Select(MapToDto);
+            query = query.Where(a => a.IsCurrentVersion);
         }
-        catch
-        {
-            throw;
-        }
+
+        var attachments = await query
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return attachments.Select(MapToDto);
     }
 
     /// <inheritdoc />
@@ -76,18 +62,11 @@ public class DocumentAttachmentService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var attachment = await context.DocumentAttachments
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+        var attachment = await context.DocumentAttachments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            return attachment is not null ? MapToDto(attachment) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return attachment is not null ? MapToDto(attachment) : null;
     }
 
     /// <inheritdoc />
@@ -96,56 +75,49 @@ public class DocumentAttachmentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Validate that either document header or row is specified
+        if (!createDto.DocumentHeaderId.HasValue && !createDto.DocumentRowId.HasValue)
         {
-            // Validate that either document header or row is specified
-            if (!createDto.DocumentHeaderId.HasValue && !createDto.DocumentRowId.HasValue)
-            {
-                throw new ArgumentException("Either DocumentHeaderId or DocumentRowId must be specified.");
-            }
-
-            var attachment = new DocumentAttachment
-            {
-                Id = Guid.NewGuid(),
-                DocumentHeaderId = createDto.DocumentHeaderId,
-                DocumentRowId = createDto.DocumentRowId,
-                FileName = createDto.FileName,
-                StoragePath = createDto.StoragePath,
-                MimeType = createDto.MimeType,
-                FileSizeBytes = createDto.FileSizeBytes,
-                Title = createDto.Title,
-                Notes = createDto.Notes,
-                Category = Enum.Parse<DocumentAttachmentCategory>(createDto.Category, true),
-                AccessLevel = Enum.Parse<AttachmentAccessLevel>(createDto.AccessLevel, true),
-                StorageProvider = createDto.StorageProvider,
-                ExternalReference = createDto.ExternalReference,
-                Version = 1,
-                IsCurrentVersion = true,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser,
-                TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
-            };
-
-            _ = context.DocumentAttachments.Add(attachment);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                "DocumentAttachment",
-                attachment.Id,
-                "CREATE",
-                "CREATE",
-                null,
-                $"Created attachment '{attachment.FileName}' for document",
-                currentUser);
-
-            logger.LogInformation("Created attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
-
-            return MapToDto(attachment);
+            throw new ArgumentException("Either DocumentHeaderId or DocumentRowId must be specified.");
         }
-        catch
+
+        var attachment = new DocumentAttachment
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            DocumentHeaderId = createDto.DocumentHeaderId,
+            DocumentRowId = createDto.DocumentRowId,
+            FileName = createDto.FileName,
+            StoragePath = createDto.StoragePath,
+            MimeType = createDto.MimeType,
+            FileSizeBytes = createDto.FileSizeBytes,
+            Title = createDto.Title,
+            Notes = createDto.Notes,
+            Category = Enum.Parse<DocumentAttachmentCategory>(createDto.Category, true),
+            AccessLevel = Enum.Parse<AttachmentAccessLevel>(createDto.AccessLevel, true),
+            StorageProvider = createDto.StorageProvider,
+            ExternalReference = createDto.ExternalReference,
+            Version = 1,
+            IsCurrentVersion = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser,
+            TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
+        };
+
+        _ = context.DocumentAttachments.Add(attachment);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync(
+            "DocumentAttachment",
+            attachment.Id,
+            "CREATE",
+            "CREATE",
+            null,
+            $"Created attachment '{attachment.FileName}' for document",
+            currentUser);
+
+        logger.LogInformation("Created attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+
+        return MapToDto(attachment);
     }
 
     /// <inheritdoc />
@@ -155,51 +127,44 @@ public class DocumentAttachmentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var attachment = await context.DocumentAttachments
-                .FirstOrDefaultAsync(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted, cancellationToken);
+        var attachment = await context.DocumentAttachments
+            .FirstOrDefaultAsync(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted, cancellationToken);
 
-            if (attachment is null)
-                return null;
+        if (attachment is null)
+            return null;
 
-            var originalValues = new { attachment.Title, attachment.Notes, attachment.Category, attachment.AccessLevel };
+        var originalValues = new { attachment.Title, attachment.Notes, attachment.Category, attachment.AccessLevel };
 
-            // Update fields
-            if (updateDto.Title is not null)
-                attachment.Title = updateDto.Title;
-            if (updateDto.Notes is not null)
-                attachment.Notes = updateDto.Notes;
-            if (!string.IsNullOrEmpty(updateDto.Category))
-                attachment.Category = Enum.Parse<DocumentAttachmentCategory>(updateDto.Category, true);
-            if (!string.IsNullOrEmpty(updateDto.AccessLevel))
-                attachment.AccessLevel = Enum.Parse<AttachmentAccessLevel>(updateDto.AccessLevel, true);
+        // Update fields
+        if (updateDto.Title is not null)
+            attachment.Title = updateDto.Title;
+        if (updateDto.Notes is not null)
+            attachment.Notes = updateDto.Notes;
+        if (!string.IsNullOrEmpty(updateDto.Category))
+            attachment.Category = Enum.Parse<DocumentAttachmentCategory>(updateDto.Category, true);
+        if (!string.IsNullOrEmpty(updateDto.AccessLevel))
+            attachment.AccessLevel = Enum.Parse<AttachmentAccessLevel>(updateDto.AccessLevel, true);
 
-            attachment.ModifiedAt = DateTime.UtcNow;
-            attachment.ModifiedBy = currentUser;
+        attachment.ModifiedAt = DateTime.UtcNow;
+        attachment.ModifiedBy = currentUser;
 
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await auditLogService.LogEntityChangeAsync(
-                "DocumentAttachment",
-                attachment.Id,
-                "UPDATE",
-                "UPDATE",
-                null,
-                $"Updated attachment '{attachment.FileName}' metadata",
-                currentUser);
+        _ = await auditLogService.LogEntityChangeAsync(
+            "DocumentAttachment",
+            attachment.Id,
+            "UPDATE",
+            "UPDATE",
+            null,
+            $"Updated attachment '{attachment.FileName}' metadata",
+            currentUser);
 
-            logger.LogInformation("Updated attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+        logger.LogInformation("Updated attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
-            return MapToDto(attachment);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToDto(attachment);
     }
 
     /// <inheritdoc />
@@ -209,62 +174,55 @@ public class DocumentAttachmentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var originalAttachment = await context.DocumentAttachments
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+
+        if (originalAttachment is null)
+            return null;
+
+        // Mark current version as not current
+        originalAttachment.IsCurrentVersion = false;
+
+        // Create new version
+        var newVersion = new DocumentAttachment
         {
-            var originalAttachment = await context.DocumentAttachments
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+            Id = Guid.NewGuid(),
+            DocumentHeaderId = originalAttachment.DocumentHeaderId,
+            DocumentRowId = originalAttachment.DocumentRowId,
+            FileName = versionDto.FileName,
+            StoragePath = versionDto.StoragePath,
+            MimeType = versionDto.MimeType,
+            FileSizeBytes = versionDto.FileSizeBytes,
+            Title = originalAttachment.Title,
+            Notes = versionDto.Notes ?? originalAttachment.Notes,
+            Category = originalAttachment.Category,
+            AccessLevel = originalAttachment.AccessLevel,
+            StorageProvider = originalAttachment.StorageProvider,
+            ExternalReference = originalAttachment.ExternalReference,
+            Version = originalAttachment.Version + 1,
+            PreviousVersionId = originalAttachment.Id,
+            IsCurrentVersion = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser,
+            TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
+        };
 
-            if (originalAttachment is null)
-                return null;
+        _ = context.DocumentAttachments.Add(newVersion);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            // Mark current version as not current
-            originalAttachment.IsCurrentVersion = false;
+        _ = await auditLogService.LogEntityChangeAsync(
+            "DocumentAttachment",
+            newVersion.Id,
+            "CREATE_VERSION",
+            "CREATE_VERSION",
+            null,
+            $"Created version {newVersion.Version} of attachment '{newVersion.FileName}'",
+            currentUser);
 
-            // Create new version
-            var newVersion = new DocumentAttachment
-            {
-                Id = Guid.NewGuid(),
-                DocumentHeaderId = originalAttachment.DocumentHeaderId,
-                DocumentRowId = originalAttachment.DocumentRowId,
-                FileName = versionDto.FileName,
-                StoragePath = versionDto.StoragePath,
-                MimeType = versionDto.MimeType,
-                FileSizeBytes = versionDto.FileSizeBytes,
-                Title = originalAttachment.Title,
-                Notes = versionDto.Notes ?? originalAttachment.Notes,
-                Category = originalAttachment.Category,
-                AccessLevel = originalAttachment.AccessLevel,
-                StorageProvider = originalAttachment.StorageProvider,
-                ExternalReference = originalAttachment.ExternalReference,
-                Version = originalAttachment.Version + 1,
-                PreviousVersionId = originalAttachment.Id,
-                IsCurrentVersion = true,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser,
-                TenantId = tenantContext.CurrentTenantId ?? Guid.Empty
-            };
+        logger.LogInformation("Created version {Version} of attachment {AttachmentId} for user {User}",
+            newVersion.Version, id, currentUser);
 
-            _ = context.DocumentAttachments.Add(newVersion);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                "DocumentAttachment",
-                newVersion.Id,
-                "CREATE_VERSION",
-                "CREATE_VERSION",
-                null,
-                $"Created version {newVersion.Version} of attachment '{newVersion.FileName}'",
-                currentUser);
-
-            logger.LogInformation("Created version {Version} of attachment {AttachmentId} for user {User}",
-                newVersion.Version, id, currentUser);
-
-            return MapToDto(newVersion);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToDto(newVersion);
     }
 
     /// <inheritdoc />
@@ -273,40 +231,33 @@ public class DocumentAttachmentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var attachment = await context.DocumentAttachments
-                .FirstOrDefaultAsync(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted, cancellationToken);
+        var attachment = await context.DocumentAttachments
+            .FirstOrDefaultAsync(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted, cancellationToken);
 
-            if (attachment is null)
-                return false;
+        if (attachment is null)
+            return false;
 
-            attachment.IsDeleted = true;
-            attachment.DeletedAt = DateTime.UtcNow;
-            attachment.DeletedBy = currentUser;
+        attachment.IsDeleted = true;
+        attachment.DeletedAt = DateTime.UtcNow;
+        attachment.DeletedBy = currentUser;
 
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await auditLogService.LogEntityChangeAsync(
-                "DocumentAttachment",
-                attachment.Id,
-                "DELETE",
-                "DELETE",
-                null,
-                $"Deleted attachment '{attachment.FileName}'",
-                currentUser);
+        _ = await auditLogService.LogEntityChangeAsync(
+            "DocumentAttachment",
+            attachment.Id,
+            "DELETE",
+            "DELETE",
+            null,
+            $"Deleted attachment '{attachment.FileName}'",
+            currentUser);
 
-            logger.LogInformation("Deleted attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+        logger.LogInformation("Deleted attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
-            return true;
-        }
-        catch
-        {
-            throw;
-        }
+        return true;
     }
 
     /// <inheritdoc />
@@ -314,42 +265,35 @@ public class DocumentAttachmentService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Find the original attachment or any version to get the base
+        var attachment = await context.DocumentAttachments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+
+        if (attachment is null)
+            return Enumerable.Empty<DocumentAttachmentDto>();
+
+        // Find the root attachment (version 1)
+        var rootAttachment = attachment;
+        while (rootAttachment.PreviousVersionId.HasValue)
         {
-            // Find the original attachment or any version to get the base
-            var attachment = await context.DocumentAttachments
+            var previous = await context.DocumentAttachments
                 .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
-
-            if (attachment is null)
-                return Enumerable.Empty<DocumentAttachmentDto>();
-
-            // Find the root attachment (version 1)
-            var rootAttachment = attachment;
-            while (rootAttachment.PreviousVersionId.HasValue)
-            {
-                var previous = await context.DocumentAttachments
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(a => a.Id == rootAttachment.PreviousVersionId.Value && !a.IsDeleted, cancellationToken);
-                if (previous is not null)
-                    rootAttachment = previous;
-                else
-                    break;
-            }
-
-            // Get all versions starting from root
-            var versions = await context.DocumentAttachments
-                .AsNoTracking()
-                .Where(a => a.Id == rootAttachment.Id || (a.PreviousVersionId == rootAttachment.Id && !a.IsDeleted))
-                .OrderBy(a => a.Version)
-                .ToListAsync(cancellationToken);
-
-            return versions.Select(MapToDto);
+                .FirstOrDefaultAsync(a => a.Id == rootAttachment.PreviousVersionId.Value && !a.IsDeleted, cancellationToken);
+            if (previous is not null)
+                rootAttachment = previous;
+            else
+                break;
         }
-        catch
-        {
-            throw;
-        }
+
+        // Get all versions starting from root
+        var versions = await context.DocumentAttachments
+            .AsNoTracking()
+            .Where(a => a.Id == rootAttachment.Id || (a.PreviousVersionId == rootAttachment.Id && !a.IsDeleted))
+            .OrderBy(a => a.Version)
+            .ToListAsync(cancellationToken);
+
+        return versions.Select(MapToDto);
     }
 
     /// <inheritdoc />
@@ -359,40 +303,33 @@ public class DocumentAttachmentService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var attachment = await context.DocumentAttachments
-                .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
+        var attachment = await context.DocumentAttachments
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
 
-            if (attachment is null)
-                return null;
+        if (attachment is null)
+            return null;
 
-            attachment.IsSigned = true;
-            attachment.SignatureInfo = signatureInfo;
-            attachment.SignedAt = DateTime.UtcNow;
-            attachment.SignedBy = currentUser;
-            attachment.ModifiedAt = DateTime.UtcNow;
-            attachment.ModifiedBy = currentUser;
+        attachment.IsSigned = true;
+        attachment.SignatureInfo = signatureInfo;
+        attachment.SignedAt = DateTime.UtcNow;
+        attachment.SignedBy = currentUser;
+        attachment.ModifiedAt = DateTime.UtcNow;
+        attachment.ModifiedBy = currentUser;
 
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await auditLogService.LogEntityChangeAsync(
-                "DocumentAttachment",
-                attachment.Id,
-                "SIGN",
-                "SIGN",
-                null,
-                $"Digitally signed attachment '{attachment.FileName}'",
-                currentUser);
+        _ = await auditLogService.LogEntityChangeAsync(
+            "DocumentAttachment",
+            attachment.Id,
+            "SIGN",
+            "SIGN",
+            null,
+            $"Digitally signed attachment '{attachment.FileName}'",
+            currentUser);
 
-            logger.LogInformation("Signed attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
+        logger.LogInformation("Signed attachment {AttachmentId} for user {User}", attachment.Id, currentUser);
 
-            return MapToDto(attachment);
-        }
-        catch
-        {
-            throw;
-        }
+        return MapToDto(attachment);
     }
 
     /// <inheritdoc />
@@ -400,25 +337,18 @@ public class DocumentAttachmentService(
         string category,
         CancellationToken cancellationToken = default)
     {
-        try
+        if (!Enum.TryParse<DocumentAttachmentCategory>(category, true, out var categoryEnum))
         {
-            if (!Enum.TryParse<DocumentAttachmentCategory>(category, true, out var categoryEnum))
-            {
-                return Enumerable.Empty<DocumentAttachmentDto>();
-            }
-
-            var attachments = await context.DocumentAttachments
-                .AsNoTracking()
-                .Where(a => a.Category == categoryEnum && a.IsCurrentVersion && !a.IsDeleted)
-                .OrderByDescending(a => a.CreatedAt)
-                .ToListAsync(cancellationToken);
-
-            return attachments.Select(MapToDto);
+            return Enumerable.Empty<DocumentAttachmentDto>();
         }
-        catch
-        {
-            throw;
-        }
+
+        var attachments = await context.DocumentAttachments
+            .AsNoTracking()
+            .Where(a => a.Category == categoryEnum && a.IsCurrentVersion && !a.IsDeleted)
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        return attachments.Select(MapToDto);
     }
 
     /// <inheritdoc />
@@ -426,16 +356,9 @@ public class DocumentAttachmentService(
         Guid id,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.DocumentAttachments
-                .AsNoTracking()
-                .AnyAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.DocumentAttachments
+            .AsNoTracking()
+            .AnyAsync(a => a.Id == id && !a.IsDeleted, cancellationToken);
     }
 
     /// <summary>

@@ -15,22 +15,14 @@ public partial class CustomFiscalPrinterService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(receipt);
+        logger.LogInformation(
+            "PrintReceiptAsync started for printer {PrinterId} | Items={ItemCount} Payments={PaymentCount}",
+            printerId, receipt.Items.Count, receipt.Payments.Count);
 
-        try
-        {
-            logger.LogInformation(
-                "PrintReceiptAsync started for printer {PrinterId} | Items={ItemCount} Payments={PaymentCount}",
-                printerId, receipt.Items.Count, receipt.Payments.Count);
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
 
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-
-            var sequence = _builder.BuildFullReceiptSequence(receipt);
-            return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        var sequence = _builder.BuildFullReceiptSequence(receipt);
+        return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -38,18 +30,11 @@ public partial class CustomFiscalPrinterService
         Guid printerId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            logger.LogInformation("CancelCurrentReceiptAsync for printer {PrinterId}", printerId);
+        logger.LogInformation("CancelCurrentReceiptAsync for printer {PrinterId}", printerId);
 
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-            byte[] cmd = _builder.BuildCancelReceiptCommand();
-            return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+        byte[] cmd = _builder.BuildCancelReceiptCommand();
+        return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -59,21 +44,13 @@ public partial class CustomFiscalPrinterService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(refund);
+        logger.LogInformation(
+            "PrintRefundReceiptAsync for printer {PrinterId} | Original={OriginalReceiptNumber}",
+            printerId, refund.OriginalReceiptNumber);
 
-        try
-        {
-            logger.LogInformation(
-                "PrintRefundReceiptAsync for printer {PrinterId} | Original={OriginalReceiptNumber}",
-                printerId, refund.OriginalReceiptNumber);
-
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-            var sequence = _builder.BuildRefundReceiptSequence(refund);
-            return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+        var sequence = _builder.BuildRefundReceiptSequence(refund);
+        return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -83,22 +60,14 @@ public partial class CustomFiscalPrinterService
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(refund);
+        logger.LogInformation(
+            "PrintPartialRefundAsync for printer {PrinterId} | Items={Count}",
+            printerId, refund.Items.Count);
 
-        try
-        {
-            logger.LogInformation(
-                "PrintPartialRefundAsync for printer {PrinterId} | Items={Count}",
-                printerId, refund.Items.Count);
-
-            // Partial refund shares the same build logic as full refund
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-            var sequence = _builder.BuildRefundReceiptSequence(refund);
-            return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        // Partial refund shares the same build logic as full refund
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+        var sequence = _builder.BuildRefundReceiptSequence(refund);
+        return await ExecuteSequenceAsync(channel, sequence, printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -106,18 +75,11 @@ public partial class CustomFiscalPrinterService
         Guid printerId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            logger.LogInformation("OpenDrawerAsync for printer {PrinterId}", printerId);
+        logger.LogInformation("OpenDrawerAsync for printer {PrinterId}", printerId);
 
-            await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
-            byte[] cmd = _builder.BuildOpenDrawerCommand();
-            return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
-        }
-        catch
-        {
-            throw;
-        }
+        await using var channel = await CreateChannelAsync(printerId, cancellationToken).ConfigureAwait(false);
+        byte[] cmd = _builder.BuildOpenDrawerCommand();
+        return await ExecuteSequenceAsync(channel, [cmd], printerId, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

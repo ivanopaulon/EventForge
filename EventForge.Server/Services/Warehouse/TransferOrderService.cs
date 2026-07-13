@@ -23,200 +23,179 @@ public class TransferOrderService(
         string? searchTerm = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var query = context.TransferOrders
-                .AsNoTracking()
-                .Include(t => t.SourceWarehouse)
-                .Include(t => t.DestinationWarehouse)
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.Product)
-                .Where(t => t.TenantId == currentTenantId.Value && !t.IsDeleted);
-
-            // Apply filters
-            if (sourceWarehouseId.HasValue)
-            {
-                query = query.Where(t => t.SourceWarehouseId == sourceWarehouseId.Value);
-            }
-
-            if (destinationWarehouseId.HasValue)
-            {
-                query = query.Where(t => t.DestinationWarehouseId == destinationWarehouseId.Value);
-            }
-
-            if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<TransferOrderStatus>(status, true, out var statusEnum))
-            {
-                query = query.Where(t => t.Status == statusEnum);
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                query = query.Where(t => t.Number.Contains(searchTerm) ||
-                                        (t.ShippingReference != null && t.ShippingReference.Contains(searchTerm)));
-            }
-
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            var transferOrders = await query
-                .OrderByDescending(t => t.CreatedAt)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            return new PagedResult<TransferOrderDto>
-            {
-                Items = transferOrders.Select(t => t.ToTransferOrderDto()),
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var query = context.TransferOrders
+            .AsNoTracking()
+            .Include(t => t.SourceWarehouse)
+            .Include(t => t.DestinationWarehouse)
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.Product)
+            .Where(t => t.TenantId == currentTenantId.Value && !t.IsDeleted);
+
+        // Apply filters
+        if (sourceWarehouseId.HasValue)
         {
-            throw;
+            query = query.Where(t => t.SourceWarehouseId == sourceWarehouseId.Value);
         }
+
+        if (destinationWarehouseId.HasValue)
+        {
+            query = query.Where(t => t.DestinationWarehouseId == destinationWarehouseId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<TransferOrderStatus>(status, true, out var statusEnum))
+        {
+            query = query.Where(t => t.Status == statusEnum);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            query = query.Where(t => t.Number.Contains(searchTerm) ||
+                                    (t.ShippingReference != null && t.ShippingReference.Contains(searchTerm)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var transferOrders = await query
+            .OrderByDescending(t => t.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<TransferOrderDto>
+        {
+            Items = transferOrders.Select(t => t.ToTransferOrderDto()),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<TransferOrderDto?> GetTransferOrderByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var transferOrder = await context.TransferOrders
-                .AsNoTracking()
-                .Include(t => t.SourceWarehouse)
-                .Include(t => t.DestinationWarehouse)
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.Product)
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.SourceLocation)
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.DestinationLocation)
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.Lot)
-                .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
-
-            return transferOrder?.ToTransferOrderDto();
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var transferOrder = await context.TransferOrders
+            .AsNoTracking()
+            .Include(t => t.SourceWarehouse)
+            .Include(t => t.DestinationWarehouse)
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.Product)
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.SourceLocation)
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.DestinationLocation)
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.Lot)
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
+
+        return transferOrder?.ToTransferOrderDto();
     }
 
     public async Task<TransferOrderDto> CreateTransferOrderAsync(CreateTransferOrderDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            // Validate warehouses exist and are different
-            if (createDto.SourceWarehouseId == createDto.DestinationWarehouseId)
-            {
-                throw new InvalidOperationException("Source and destination warehouses must be different.");
-            }
-
-            var sourceWarehouse = await context.StorageFacilities
-                .AsNoTracking()
-                .FirstOrDefaultAsync(w => w.Id == createDto.SourceWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
-
-            if (sourceWarehouse is null)
-            {
-                throw new InvalidOperationException("Source warehouse not found.");
-            }
-
-            var destinationWarehouse = await context.StorageFacilities
-                .AsNoTracking()
-                .FirstOrDefaultAsync(w => w.Id == createDto.DestinationWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
-
-            if (destinationWarehouse is null)
-            {
-                throw new InvalidOperationException("Destination warehouse not found.");
-            }
-
-            // Validate rows
-            if (createDto.Rows is null || !createDto.Rows.Any())
-            {
-                throw new InvalidOperationException("Transfer order must have at least one row.");
-            }
-
-            // Generate transfer order number if not provided
-            var number = createDto.Number;
-            if (string.IsNullOrWhiteSpace(number))
-            {
-                number = await GenerateTransferOrderNumberAsync(createDto.Series, currentTenantId.Value, cancellationToken);
-            }
-
-            // Create transfer order
-            var transferOrder = createDto.ToEntity(currentTenantId.Value, currentUser, number);
-            context.TransferOrders.Add(transferOrder);
-
-            // Create transfer order rows
-            foreach (var rowDto in createDto.Rows)
-            {
-                // Validate product exists
-                var product = await context.Products
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
-
-                if (product is null)
-                {
-                    throw new InvalidOperationException($"Product with ID {rowDto.ProductId} not found.");
-                }
-
-                // Validate source location exists and belongs to source warehouse
-                var sourceLocation = await context.StorageLocations
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(l => l.Id == rowDto.SourceLocationId && l.WarehouseId == createDto.SourceWarehouseId && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-                if (sourceLocation is null)
-                {
-                    throw new InvalidOperationException($"Source location with ID {rowDto.SourceLocationId} not found in source warehouse.");
-                }
-
-                // Create row
-                var row = rowDto.ToEntity(currentTenantId.Value, transferOrder.Id, currentUser);
-                context.TransferOrderRows.Add(row);
-            }
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "TransferOrder",
-                transferOrder.Id,
-                "Status",
-                "Create",
-                null,
-                "Pending",
-                currentUser,
-                $"Transfer order {number} created from {sourceWarehouse.Name} to {destinationWarehouse.Name}",
-                cancellationToken);
-
-            logger.LogInformation("Transfer order {TransferOrderNumber} created successfully by {User}.", number, currentUser);
-
-            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
-                ?? throw new InvalidOperationException("Failed to retrieve created transfer order.");
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        // Validate warehouses exist and are different
+        if (createDto.SourceWarehouseId == createDto.DestinationWarehouseId)
         {
-            throw;
+            throw new InvalidOperationException("Source and destination warehouses must be different.");
         }
+
+        var sourceWarehouse = await context.StorageFacilities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == createDto.SourceWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
+
+        if (sourceWarehouse is null)
+        {
+            throw new InvalidOperationException("Source warehouse not found.");
+        }
+
+        var destinationWarehouse = await context.StorageFacilities
+            .AsNoTracking()
+            .FirstOrDefaultAsync(w => w.Id == createDto.DestinationWarehouseId && w.TenantId == currentTenantId.Value && !w.IsDeleted, cancellationToken);
+
+        if (destinationWarehouse is null)
+        {
+            throw new InvalidOperationException("Destination warehouse not found.");
+        }
+
+        // Validate rows
+        if (createDto.Rows is null || !createDto.Rows.Any())
+        {
+            throw new InvalidOperationException("Transfer order must have at least one row.");
+        }
+
+        // Generate transfer order number if not provided
+        var number = createDto.Number;
+        if (string.IsNullOrWhiteSpace(number))
+        {
+            number = await GenerateTransferOrderNumberAsync(createDto.Series, currentTenantId.Value, cancellationToken);
+        }
+
+        // Create transfer order
+        var transferOrder = createDto.ToEntity(currentTenantId.Value, currentUser, number);
+        context.TransferOrders.Add(transferOrder);
+
+        // Create transfer order rows
+        foreach (var rowDto in createDto.Rows)
+        {
+            // Validate product exists
+            var product = await context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == rowDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
+
+            if (product is null)
+            {
+                throw new InvalidOperationException($"Product with ID {rowDto.ProductId} not found.");
+            }
+
+            // Validate source location exists and belongs to source warehouse
+            var sourceLocation = await context.StorageLocations
+                .AsNoTracking()
+                .FirstOrDefaultAsync(l => l.Id == rowDto.SourceLocationId && l.WarehouseId == createDto.SourceWarehouseId && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+            if (sourceLocation is null)
+            {
+                throw new InvalidOperationException($"Source location with ID {rowDto.SourceLocationId} not found in source warehouse.");
+            }
+
+            // Create row
+            var row = rowDto.ToEntity(currentTenantId.Value, transferOrder.Id, currentUser);
+            context.TransferOrderRows.Add(row);
+        }
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "TransferOrder",
+            transferOrder.Id,
+            "Status",
+            "Create",
+            null,
+            "Pending",
+            currentUser,
+            $"Transfer order {number} created from {sourceWarehouse.Name} to {destinationWarehouse.Name}",
+            cancellationToken);
+
+        logger.LogInformation("Transfer order {TransferOrderNumber} created successfully by {User}.", number, currentUser);
+
+        return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
+            ?? throw new InvalidOperationException("Failed to retrieve created transfer order.");
     }
 
     public async Task<TransferOrderDto> ShipTransferOrderAsync(Guid id, ShipTransferOrderDto shipDto, string currentUser, CancellationToken cancellationToken = default)

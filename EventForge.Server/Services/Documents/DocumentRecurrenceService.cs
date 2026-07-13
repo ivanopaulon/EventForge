@@ -17,350 +17,266 @@ public class DocumentRecurrenceService(
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entities = await context.DocumentRecurrences
-                .AsNoTracking()
-                .Include(dr => dr.Template)
-                .Where(dr => dr.IsActive)
-                .OrderBy(dr => dr.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentRecurrences
+            .AsNoTracking()
+            .Include(dr => dr.Template)
+            .Where(dr => dr.IsActive)
+            .OrderBy(dr => dr.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentRecurrenceMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentRecurrenceMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<DocumentRecurrenceDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var entity = await context.DocumentRecurrences
-                .AsNoTracking()
-                .Include(dr => dr.Template)
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
+        var entity = await context.DocumentRecurrences
+            .AsNoTracking()
+            .Include(dr => dr.Template)
+            .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
 
-            return entity is null ? null : DocumentRecurrenceMapper.ToDto(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        return entity is null ? null : DocumentRecurrenceMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetByTemplateAsync(Guid templateId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var entities = await context.DocumentRecurrences
-                .AsNoTracking()
-                .Include(dr => dr.Template)
-                .Where(dr => dr.TemplateId == templateId && dr.TenantId == currentTenantId && dr.IsActive)
-                .OrderBy(dr => dr.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentRecurrences
+            .AsNoTracking()
+            .Include(dr => dr.Template)
+            .Where(dr => dr.TemplateId == templateId && dr.TenantId == currentTenantId && dr.IsActive)
+            .OrderBy(dr => dr.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentRecurrenceMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentRecurrenceMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetActiveSchedulesAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entities = await context.DocumentRecurrences
-                .AsNoTracking()
-                .Include(dr => dr.Template)
-                .Where(dr => dr.IsEnabled && dr.IsActive && dr.Status == RecurrenceStatus.Active)
-                .OrderBy(dr => dr.NextExecutionDate)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentRecurrences
+            .AsNoTracking()
+            .Include(dr => dr.Template)
+            .Where(dr => dr.IsEnabled && dr.IsActive && dr.Status == RecurrenceStatus.Active)
+            .OrderBy(dr => dr.NextExecutionDate)
+            .ToListAsync(cancellationToken);
 
-            return DocumentRecurrenceMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentRecurrenceMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetDueForExecutionAsync(DateTime upToDate, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entities = await context.DocumentRecurrences
-                .AsNoTracking()
-                .Include(dr => dr.Template)
-                .Where(dr => dr.IsEnabled &&
-                           dr.IsActive &&
-                           dr.Status == RecurrenceStatus.Active &&
-                           dr.NextExecutionDate.HasValue &&
-                           dr.NextExecutionDate.Value <= upToDate)
-                .OrderBy(dr => dr.NextExecutionDate)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentRecurrences
+            .AsNoTracking()
+            .Include(dr => dr.Template)
+            .Where(dr => dr.IsEnabled &&
+                       dr.IsActive &&
+                       dr.Status == RecurrenceStatus.Active &&
+                       dr.NextExecutionDate.HasValue &&
+                       dr.NextExecutionDate.Value <= upToDate)
+            .OrderBy(dr => dr.NextExecutionDate)
+            .ToListAsync(cancellationToken);
 
-            return DocumentRecurrenceMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentRecurrenceMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<IEnumerable<DocumentRecurrenceDto>> GetByStatusAsync(RecurrenceStatus status, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entities = await context.DocumentRecurrences
-                .AsNoTracking()
-                .Include(dr => dr.Template)
-                .Where(dr => dr.Status == status && dr.IsActive)
-                .OrderBy(dr => dr.Name)
-                .ToListAsync(cancellationToken);
+        var entities = await context.DocumentRecurrences
+            .AsNoTracking()
+            .Include(dr => dr.Template)
+            .Where(dr => dr.Status == status && dr.IsActive)
+            .OrderBy(dr => dr.Name)
+            .ToListAsync(cancellationToken);
 
-            return DocumentRecurrenceMapper.ToDtoCollection(entities);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentRecurrenceMapper.ToDtoCollection(entities);
     }
 
     /// <inheritdoc />
     public async Task<DocumentRecurrenceDto> CreateAsync(CreateDocumentRecurrenceDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            ArgumentNullException.ThrowIfNull(createDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+        ArgumentNullException.ThrowIfNull(createDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
 
-            var entity = DocumentRecurrenceMapper.ToEntity(createDto);
-            entity.Id = Guid.NewGuid();
-            entity.CreatedAt = DateTime.UtcNow;
-            entity.CreatedBy = currentUser;
+        var entity = DocumentRecurrenceMapper.ToEntity(createDto);
+        entity.Id = Guid.NewGuid();
+        entity.CreatedAt = DateTime.UtcNow;
+        entity.CreatedBy = currentUser;
 
-            // Calculate next execution date
-            entity.NextExecutionDate = CalculateNextExecutionDate(entity);
+        // Calculate next execution date
+        entity.NextExecutionDate = CalculateNextExecutionDate(entity);
 
-            _ = context.DocumentRecurrences.Add(entity);
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = context.DocumentRecurrences.Add(entity);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Insert", currentUser, null, cancellationToken);
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Insert", currentUser, null, cancellationToken);
 
-            // Reload with includes
-            await context.Entry(entity)
-                .Reference(dr => dr.Template)
-                .LoadAsync(cancellationToken);
+        // Reload with includes
+        await context.Entry(entity)
+            .Reference(dr => dr.Template)
+            .LoadAsync(cancellationToken);
 
-            logger.LogInformation("Document recurrence {RecurrenceId} created by {User}.", entity.Id, currentUser);
+        logger.LogInformation("Document recurrence {RecurrenceId} created by {User}.", entity.Id, currentUser);
 
-            return DocumentRecurrenceMapper.ToDto(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        return DocumentRecurrenceMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<DocumentRecurrenceDto?> UpdateAsync(Guid id, UpdateDocumentRecurrenceDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(updateDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var entity = await context.DocumentRecurrences
+            .Include(dr => dr.Template)
+            .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            ArgumentNullException.ThrowIfNull(updateDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var entity = await context.DocumentRecurrences
-                .Include(dr => dr.Template)
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document recurrence {RecurrenceId} not found for update.", id);
-                return null;
-            }
-
-            var originalValues = entity.ToString();
-
-            DocumentRecurrenceMapper.UpdateEntity(entity, updateDto);
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            // Recalculate next execution date if pattern changed
-            if (entity.Pattern != updateDto.Pattern || entity.Interval != updateDto.Interval)
-            {
-                entity.NextExecutionDate = CalculateNextExecutionDate(entity);
-            }
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Update", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Document recurrence {RecurrenceId} updated by {User}.", id, currentUser);
-
-            return DocumentRecurrenceMapper.ToDto(entity);
+            logger.LogWarning("Document recurrence {RecurrenceId} not found for update.", id);
+            return null;
         }
-        catch
+
+        var originalValues = entity.ToString();
+
+        DocumentRecurrenceMapper.UpdateEntity(entity, updateDto);
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
+        // Recalculate next execution date if pattern changed
+        if (entity.Pattern != updateDto.Pattern || entity.Interval != updateDto.Interval)
         {
-            throw;
+            entity.NextExecutionDate = CalculateNextExecutionDate(entity);
         }
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "Update", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Document recurrence {RecurrenceId} updated by {User}.", id, currentUser);
+
+        return DocumentRecurrenceMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<bool> DeleteAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var entity = await context.DocumentRecurrences
+            .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var entity = await context.DocumentRecurrences
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document recurrence {RecurrenceId} not found for deletion.", id);
-                return false;
-            }
-
-            // Soft delete
-            entity.IsActive = false;
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "SoftDelete", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Document recurrence {RecurrenceId} soft deleted by {User}.", id, currentUser);
-
-            return true;
+            logger.LogWarning("Document recurrence {RecurrenceId} not found for deletion.", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        // Soft delete
+        entity.IsActive = false;
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "SoftDelete", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Document recurrence {RecurrenceId} soft deleted by {User}.", id, currentUser);
+
+        return true;
     }
 
     /// <inheritdoc />
     public async Task<bool> SetEnabledStatusAsync(Guid id, bool isEnabled, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var entity = await context.DocumentRecurrences
+            .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var entity = await context.DocumentRecurrences
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document recurrence {RecurrenceId} not found for status update.", id);
-                return false;
-            }
-
-            entity.IsEnabled = isEnabled;
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "StatusUpdate", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Document recurrence {RecurrenceId} enabled status updated to {Status} by {User}.", id, isEnabled, currentUser);
-
-            return true;
+            logger.LogWarning("Document recurrence {RecurrenceId} not found for status update.", id);
+            return false;
         }
-        catch
-        {
-            throw;
-        }
+
+        entity.IsEnabled = isEnabled;
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync<DocumentRecurrence>(entity, "StatusUpdate", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Document recurrence {RecurrenceId} enabled status updated to {Status} by {User}.", id, isEnabled, currentUser);
+
+        return true;
     }
 
     /// <inheritdoc />
     public async Task<bool> UpdateExecutionTrackingAsync(Guid id, DateTime executionDate, bool success, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var entity = await context.DocumentRecurrences
+            .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
+
+        if (entity is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var entity = await context.DocumentRecurrences
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.TenantId == currentTenantId && dr.IsActive, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Document recurrence {RecurrenceId} not found for execution tracking.", id);
-                return false;
-            }
-
-            entity.LastExecutionDate = executionDate;
-            entity.ExecutionCount++;
-
-            if (success)
-            {
-                // Calculate next execution date
-                entity.NextExecutionDate = CalculateNextExecutionDate(entity);
-
-                // Check if we've reached max occurrences
-                if (entity.MaxOccurrences.HasValue && entity.ExecutionCount >= entity.MaxOccurrences.Value)
-                {
-                    entity.Status = RecurrenceStatus.Completed;
-                    entity.IsEnabled = false;
-                }
-            }
-            else
-            {
-                entity.Status = RecurrenceStatus.Failed;
-            }
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Document recurrence {RecurrenceId} execution tracking updated - Success: {Success}.", id, success);
-
-            return true;
+            logger.LogWarning("Document recurrence {RecurrenceId} not found for execution tracking.", id);
+            return false;
         }
-        catch
+
+        entity.LastExecutionDate = executionDate;
+        entity.ExecutionCount++;
+
+        if (success)
         {
-            throw;
+            // Calculate next execution date
+            entity.NextExecutionDate = CalculateNextExecutionDate(entity);
+
+            // Check if we've reached max occurrences
+            if (entity.MaxOccurrences.HasValue && entity.ExecutionCount >= entity.MaxOccurrences.Value)
+            {
+                entity.Status = RecurrenceStatus.Completed;
+                entity.IsEnabled = false;
+            }
         }
+        else
+        {
+            entity.Status = RecurrenceStatus.Failed;
+        }
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Document recurrence {RecurrenceId} execution tracking updated - Success: {Success}.", id, success);
+
+        return true;
     }
 
     /// <inheritdoc />
     public async Task<DateTime?> CalculateNextExecutionDateAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var entity = await context.DocumentRecurrences
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
+        var entity = await context.DocumentRecurrences
+            .AsNoTracking()
+            .FirstOrDefaultAsync(dr => dr.Id == id && dr.IsActive, cancellationToken);
 
-            return entity is null ? null : CalculateNextExecutionDate(entity);
-        }
-        catch
-        {
-            throw;
-        }
+        return entity is null ? null : CalculateNextExecutionDate(entity);
     }
 
     /// <summary>

@@ -14,129 +14,101 @@ public class ContactService(
 
     public async Task<PagedResult<ContactDto>> GetContactsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        // NOTE: Tenant isolation test coverage should be expanded in future test iterations
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            // NOTE: Tenant isolation test coverage should be expanded in future test iterations
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for contact operations.");
-            }
-
-            var query = context.Contacts
-                .AsNoTracking()
-                .WhereActiveTenant(currentTenantId.Value);
-
-            var totalCount = await query.CountAsync(cancellationToken);
-            var contacts = await query
-                .OrderBy(c => c.OwnerType)
-                .ThenBy(c => c.ContactType)
-                .ThenBy(c => c.Value)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            var contactDtos = contacts.Select(MapToContactDto);
-
-            return new PagedResult<ContactDto>
-            {
-                Items = contactDtos,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                TotalCount = totalCount
-            };
+            throw new InvalidOperationException("Tenant context is required for contact operations.");
         }
-        catch
+
+        var query = context.Contacts
+            .AsNoTracking()
+            .WhereActiveTenant(currentTenantId.Value);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var contacts = await query
+            .OrderBy(c => c.OwnerType)
+            .ThenBy(c => c.ContactType)
+            .ThenBy(c => c.Value)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        var contactDtos = contacts.Select(MapToContactDto);
+
+        return new PagedResult<ContactDto>
         {
-            throw;
-        }
+            Items = contactDtos,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<IEnumerable<ContactDto>> GetContactsByOwnerAsync(Guid ownerId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for contact operations.");
-            }
-
-            var contacts = await context.Contacts
-                .AsNoTracking()
-                .Where(c => c.OwnerId == ownerId && !c.IsDeleted && c.TenantId == currentTenantId.Value)
-                .OrderBy(c => c.ContactType)
-                .ThenBy(c => c.Value)
-                .ToListAsync(cancellationToken);
-
-            return contacts.Select(MapToContactDto);
+            throw new InvalidOperationException("Tenant context is required for contact operations.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var contacts = await context.Contacts
+            .AsNoTracking()
+            .Where(c => c.OwnerId == ownerId && !c.IsDeleted && c.TenantId == currentTenantId.Value)
+            .OrderBy(c => c.ContactType)
+            .ThenBy(c => c.Value)
+            .ToListAsync(cancellationToken);
+
+        return contacts.Select(MapToContactDto);
     }
 
     public async Task<ContactDto?> GetContactByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
 
-            var contact = await context.Contacts
-                .AsNoTracking()
-                .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var contact = await context.Contacts
+            .AsNoTracking()
+            .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return contact is null ? null : MapToContactDto(contact);
-        }
-        catch
-        {
-            throw;
-        }
+        return contact is null ? null : MapToContactDto(contact);
     }
 
     public async Task<ContactDto> CreateContactAsync(CreateContactDto createContactDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        ArgumentNullException.ThrowIfNull(createContactDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            ArgumentNullException.ThrowIfNull(createContactDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for contact operations.");
-            }
-
-            var contact = new Contact
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                OwnerId = createContactDto.OwnerId,
-                OwnerType = createContactDto.OwnerType,
-                ContactType = createContactDto.ContactType.ToEntity(),
-                Value = createContactDto.Value,
-                Notes = createContactDto.Notes,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser,
-                IsActive = true
-            };
-
-            _ = context.Contacts.Add(contact);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.TrackEntityChangesAsync(contact, "Create", currentUser, null, cancellationToken);
-
-            logger.LogInformation("Contact {ContactId} created by {User}.", contact.Id, currentUser);
-
-            return MapToContactDto(contact);
+            throw new InvalidOperationException("Tenant context is required for contact operations.");
         }
-        catch
+
+        var contact = new Contact
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            OwnerId = createContactDto.OwnerId,
+            OwnerType = createContactDto.OwnerType,
+            ContactType = createContactDto.ContactType.ToEntity(),
+            Value = createContactDto.Value,
+            Notes = createContactDto.Notes,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser,
+            IsActive = true
+        };
+
+        _ = context.Contacts.Add(contact);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.TrackEntityChangesAsync(contact, "Create", currentUser, null, cancellationToken);
+
+        logger.LogInformation("Contact {ContactId} created by {User}.", contact.Id, currentUser);
+
+        return MapToContactDto(contact);
     }
 
     public async Task<ContactDto?> UpdateContactAsync(Guid id, UpdateContactDto updateContactDto, string currentUser, CancellationToken cancellationToken = default)
@@ -244,76 +216,48 @@ public class ContactService(
 
     public async Task<bool> ContactExistsAsync(Guid contactId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            return await context.Contacts
-                .AsNoTracking()
-                .AnyAsync(c => c.Id == contactId && !c.IsDeleted, cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await context.Contacts
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == contactId && !c.IsDeleted, cancellationToken);
     }
 
     public async Task<IEnumerable<ContactDto>> GetContactsByOwnerAndPurposeAsync(Guid ownerId, string ownerType, ContactPurpose purpose, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var contacts = await context.Contacts
-                .AsNoTracking()
-                .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && c.Purpose == purpose && !c.IsDeleted)
-                .OrderBy(c => c.ContactType)
-                .ThenBy(c => c.Value)
-                .ToListAsync(cancellationToken);
+        var contacts = await context.Contacts
+            .AsNoTracking()
+            .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType && c.Purpose == purpose && !c.IsDeleted)
+            .OrderBy(c => c.ContactType)
+            .ThenBy(c => c.Value)
+            .ToListAsync(cancellationToken);
 
-            return contacts.Select(MapToContactDto);
-        }
-        catch
-        {
-            throw;
-        }
+        return contacts.Select(MapToContactDto);
     }
 
     public async Task<ContactDto?> GetPrimaryContactAsync(Guid ownerId, string ownerType, ContactType contactType, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var contact = await context.Contacts
-                .AsNoTracking()
-                .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType &&
-                           c.ContactType == contactType.ToEntity() && c.IsPrimary && !c.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var contact = await context.Contacts
+            .AsNoTracking()
+            .Where(c => c.OwnerId == ownerId && c.OwnerType == ownerType &&
+                       c.ContactType == contactType.ToEntity() && c.IsPrimary && !c.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            return contact is not null ? MapToContactDto(contact) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return contact is not null ? MapToContactDto(contact) : null;
     }
 
     public async Task<bool> ValidateEmergencyContactRequirementsAsync(Guid ownerId, bool isMinor, CancellationToken cancellationToken = default)
     {
-        try
+        if (!isMinor)
         {
-            if (!isMinor)
-            {
-                // Emergency contact not required for adults
-                return true;
-            }
-
-            // Check if there's at least one emergency contact
-            var hasEmergencyContact = await context.Contacts
-                .AsNoTracking()
-                .AnyAsync(c => c.OwnerId == ownerId && c.Purpose == ContactPurpose.Emergency && !c.IsDeleted, cancellationToken);
-
-            return hasEmergencyContact;
+            // Emergency contact not required for adults
+            return true;
         }
-        catch
-        {
-            throw;
-        }
+
+        // Check if there's at least one emergency contact
+        var hasEmergencyContact = await context.Contacts
+            .AsNoTracking()
+            .AnyAsync(c => c.OwnerId == ownerId && c.Purpose == ContactPurpose.Emergency && !c.IsDeleted, cancellationToken);
+
+        return hasEmergencyContact;
     }
 
     private static ContactDto MapToContactDto(Contact contact)

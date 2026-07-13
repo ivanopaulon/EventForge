@@ -19,81 +19,67 @@ public class DocumentAnalyticsService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        // Get or create analytics record
+        var analytics = await context.DocumentAnalytics
+            .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId && a.TenantId == currentTenantId, cancellationToken);
+
+        if (analytics is null)
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            // Get or create analytics record
-            var analytics = await context.DocumentAnalytics
-                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId && a.TenantId == currentTenantId, cancellationToken);
-
-            if (analytics is null)
+            // Create new analytics record
+            analytics = new DocumentAnalytics
             {
-                // Create new analytics record
-                analytics = new DocumentAnalytics
-                {
-                    DocumentHeaderId = documentHeaderId,
-                    TenantId = currentTenantId,
-                    AnalyticsDate = DateTime.UtcNow.Date,
-                    CreatedBy = currentUser,
-                    CreatedAt = DateTime.UtcNow
-                };
+                DocumentHeaderId = documentHeaderId,
+                TenantId = currentTenantId,
+                AnalyticsDate = DateTime.UtcNow.Date,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow
+            };
 
-                _ = context.DocumentAnalytics.Add(analytics);
-            }
-
-            // Calculate analytics from document data
-            await CalculateAnalyticsMetrics(analytics, cancellationToken);
-
-            analytics.ModifiedBy = currentUser;
-            analytics.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                "DocumentAnalytics",
-                analytics.Id,
-                "Analytics",
-                analytics is null ? "Created" : "Updated",
-                null,
-                analytics?.Id.ToString() ?? "N/A",
-                currentUser,
-                "Document Analytics",
-                cancellationToken);
-
-            logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}",
-                documentHeaderId, currentUser);
-
-            return DocumentAnalyticsMapper.ToDto(analytics!);
+            _ = context.DocumentAnalytics.Add(analytics);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Calculate analytics from document data
+        await CalculateAnalyticsMetrics(analytics, cancellationToken);
+
+        analytics.ModifiedBy = currentUser;
+        analytics.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync(
+            "DocumentAnalytics",
+            analytics.Id,
+            "Analytics",
+            analytics is null ? "Created" : "Updated",
+            null,
+            analytics?.Id.ToString() ?? "N/A",
+            currentUser,
+            "Document Analytics",
+            cancellationToken);
+
+        logger.LogInformation("Analytics updated for document {DocumentHeaderId} by user {User}",
+            documentHeaderId, currentUser);
+
+        return DocumentAnalyticsMapper.ToDto(analytics!);
     }
 
     public async Task<DocumentAnalyticsDto?> GetDocumentAnalyticsAsync(
         Guid documentHeaderId,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
 
-            var analytics = await context.DocumentAnalytics
-                .AsNoTracking()
-                .Include(a => a.DocumentHeader)
-                .Include(a => a.DocumentType)
-                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId && a.TenantId == currentTenantId, cancellationToken);
+        var analytics = await context.DocumentAnalytics
+            .AsNoTracking()
+            .Include(a => a.DocumentHeader)
+            .Include(a => a.DocumentType)
+            .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId && a.TenantId == currentTenantId, cancellationToken);
 
-            return analytics is not null ? DocumentAnalyticsMapper.ToDto(analytics) : null;
-        }
-        catch
-        {
-            throw;
-        }
+        return analytics is not null ? DocumentAnalyticsMapper.ToDto(analytics) : null;
     }
 
     public async Task<DocumentAnalyticsSummaryDto> GetAnalyticsSummaryAsync(
@@ -102,46 +88,39 @@ public class DocumentAnalyticsService(
         string? groupBy = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var query = context.DocumentAnalytics.AsNoTracking();
+
+        // Apply date filters
+        if (from.HasValue)
+            query = query.Where(a => a.AnalyticsDate >= from.Value.Date);
+
+        if (to.HasValue)
+            query = query.Where(a => a.AnalyticsDate <= to.Value.Date);
+
+        var analytics = await query
+            .Include(a => a.DocumentType)
+            .ToListAsync(cancellationToken);
+
+        var summary = new DocumentAnalyticsSummaryDto
         {
-            var query = context.DocumentAnalytics.AsNoTracking();
+            PeriodStart = from,
+            PeriodEnd = to,
+            GroupBy = groupBy,
+            TotalDocuments = analytics.Count(),
+            CompletedDocuments = analytics.Count(a => !string.IsNullOrEmpty(a.FinalStatus?.ToString())),
+            PendingDocuments = analytics.Count(a => string.IsNullOrEmpty(a.FinalStatus?.ToString())),
+            AverageCompletionTimeHours = analytics.Where(a => a.TimeToClosureHours.HasValue)
+                .Average(a => a.TimeToClosureHours),
+            AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
+                .Average(a => a.QualityScore),
+            TotalDocumentValue = analytics.Where(a => a.DocumentValue.HasValue)
+                .Sum(a => a.DocumentValue)
+        };
 
-            // Apply date filters
-            if (from.HasValue)
-                query = query.Where(a => a.AnalyticsDate >= from.Value.Date);
+        // Create groups based on groupBy parameter
+        summary.Groups = CreateAnalyticsGroups(analytics, groupBy ?? "documentType");
 
-            if (to.HasValue)
-                query = query.Where(a => a.AnalyticsDate <= to.Value.Date);
-
-            var analytics = await query
-                .Include(a => a.DocumentType)
-                .ToListAsync(cancellationToken);
-
-            var summary = new DocumentAnalyticsSummaryDto
-            {
-                PeriodStart = from,
-                PeriodEnd = to,
-                GroupBy = groupBy,
-                TotalDocuments = analytics.Count(),
-                CompletedDocuments = analytics.Count(a => !string.IsNullOrEmpty(a.FinalStatus?.ToString())),
-                PendingDocuments = analytics.Count(a => string.IsNullOrEmpty(a.FinalStatus?.ToString())),
-                AverageCompletionTimeHours = analytics.Where(a => a.TimeToClosureHours.HasValue)
-                    .Average(a => a.TimeToClosureHours),
-                AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
-                    .Average(a => a.QualityScore),
-                TotalDocumentValue = analytics.Where(a => a.DocumentValue.HasValue)
-                    .Sum(a => a.DocumentValue)
-            };
-
-            // Create groups based on groupBy parameter
-            summary.Groups = CreateAnalyticsGroups(analytics, groupBy ?? "documentType");
-
-            return summary;
-        }
-        catch
-        {
-            throw;
-        }
+        return summary;
     }
 
     public async Task<DocumentAnalyticsDto> HandleWorkflowEventAsync(
@@ -151,40 +130,33 @@ public class DocumentAnalyticsService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var analytics = await context.DocumentAnalytics
-                .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
+        var analytics = await context.DocumentAnalytics
+            .FirstOrDefaultAsync(a => a.DocumentHeaderId == documentHeaderId, cancellationToken);
 
-            if (analytics is null)
+        if (analytics is null)
+        {
+            analytics = new DocumentAnalytics
             {
-                analytics = new DocumentAnalytics
-                {
-                    DocumentHeaderId = documentHeaderId,
-                    AnalyticsDate = DateTime.UtcNow.Date,
-                    CreatedBy = currentUser,
-                    CreatedAt = DateTime.UtcNow
-                };
-                _ = context.DocumentAnalytics.Add(analytics);
-            }
-
-            // Update analytics based on event type
-            UpdateAnalyticsForWorkflowEvent(analytics, eventType, eventData);
-
-            analytics.ModifiedBy = currentUser;
-            analytics.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}",
-                eventType, documentHeaderId);
-
-            return DocumentAnalyticsMapper.ToDto(analytics);
+                DocumentHeaderId = documentHeaderId,
+                AnalyticsDate = DateTime.UtcNow.Date,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow
+            };
+            _ = context.DocumentAnalytics.Add(analytics);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Update analytics based on event type
+        UpdateAnalyticsForWorkflowEvent(analytics, eventType, eventData);
+
+        analytics.ModifiedBy = currentUser;
+        analytics.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Analytics updated for workflow event {EventType} on document {DocumentHeaderId}",
+            eventType, documentHeaderId);
+
+        return DocumentAnalyticsMapper.ToDto(analytics);
     }
 
     public async Task<DocumentKpiSummaryDto> CalculateKpiSummaryAsync(
@@ -192,41 +164,34 @@ public class DocumentAnalyticsService(
         DateTime to,
         CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var analytics = await context.DocumentAnalytics
-                .AsNoTracking()
-                .Where(a => a.AnalyticsDate >= from.Date && a.AnalyticsDate <= to.Date)
-                .ToListAsync(cancellationToken);
+        var analytics = await context.DocumentAnalytics
+            .AsNoTracking()
+            .Where(a => a.AnalyticsDate >= from.Date && a.AnalyticsDate <= to.Date)
+            .ToListAsync(cancellationToken);
 
-            var totalDocuments = analytics.Count;
-            var completedDocuments = analytics.Count(a => !string.IsNullOrEmpty(a.FinalStatus?.ToString()));
+        var totalDocuments = analytics.Count;
+        var completedDocuments = analytics.Count(a => !string.IsNullOrEmpty(a.FinalStatus?.ToString()));
 
-            return new DocumentKpiSummaryDto
-            {
-                PeriodStart = from,
-                PeriodEnd = to,
-                TotalDocuments = totalDocuments,
-                CompletionRate = totalDocuments > 0 ? (decimal)completedDocuments / totalDocuments * 100 : 0,
-                AverageProcessingTime = analytics.Where(a => a.TotalProcessingTimeHours.HasValue)
-                    .Average(a => a.TotalProcessingTimeHours) ?? 0,
-                AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
-                    .Average(a => a.QualityScore) ?? 0,
-                ErrorRate = totalDocuments > 0 ?
-                    (decimal)(analytics.Average(a => a.Errors) / Math.Max(totalDocuments, 1) * 100) : 0,
-                EscalationRate = totalDocuments > 0 ?
-                    (decimal)analytics.Sum(a => a.Escalations) / totalDocuments * 100 : 0,
-                AverageCustomerSatisfaction = analytics.Where(a => a.SatisfactionScore.HasValue)
-                    .Average(a => a.SatisfactionScore),
-                TotalBusinessValue = analytics.Where(a => a.DocumentValue.HasValue)
-                    .Sum(a => a.DocumentValue),
-                CostEfficiencyRatio = CalculateCostEfficiencyRatio(analytics)
-            };
-        }
-        catch
+        return new DocumentKpiSummaryDto
         {
-            throw;
-        }
+            PeriodStart = from,
+            PeriodEnd = to,
+            TotalDocuments = totalDocuments,
+            CompletionRate = totalDocuments > 0 ? (decimal)completedDocuments / totalDocuments * 100 : 0,
+            AverageProcessingTime = analytics.Where(a => a.TotalProcessingTimeHours.HasValue)
+                .Average(a => a.TotalProcessingTimeHours) ?? 0,
+            AverageQualityScore = analytics.Where(a => a.QualityScore.HasValue)
+                .Average(a => a.QualityScore) ?? 0,
+            ErrorRate = totalDocuments > 0 ?
+                (decimal)(analytics.Average(a => a.Errors) / Math.Max(totalDocuments, 1) * 100) : 0,
+            EscalationRate = totalDocuments > 0 ?
+                (decimal)analytics.Sum(a => a.Escalations) / totalDocuments * 100 : 0,
+            AverageCustomerSatisfaction = analytics.Where(a => a.SatisfactionScore.HasValue)
+                .Average(a => a.SatisfactionScore),
+            TotalBusinessValue = analytics.Where(a => a.DocumentValue.HasValue)
+                .Sum(a => a.DocumentValue),
+            CostEfficiencyRatio = CalculateCostEfficiencyRatio(analytics)
+        };
     }
 
     private async Task CalculateAnalyticsMetrics(DocumentAnalytics analytics, CancellationToken cancellationToken)

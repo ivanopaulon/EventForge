@@ -334,46 +334,32 @@ public class TenantService(
 
     public async Task<TenantResponseDto?> GetTenantAsync(Guid tenantId)
     {
-        try
+        var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
+        if (!canAccess)
         {
-            var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
-            if (!canAccess)
-            {
-                logger.LogWarning("Accesso negato al tenant {TenantId}.", tenantId);
-                throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
-            }
-
-            var tenant = await context.Tenants
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == tenantId);
-
-            return tenant is not null ? TenantMapper.ToServerResponseDto(tenant) : null;
+            logger.LogWarning("Accesso negato al tenant {TenantId}.", tenantId);
+            throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var tenant = await context.Tenants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.Id == tenantId);
+
+        return tenant is not null ? TenantMapper.ToServerResponseDto(tenant) : null;
     }
 
     public async Task<IEnumerable<TenantResponseDto>> GetAllTenantsAsync()
     {
-        try
-        {
-            if (!tenantContext.IsSuperAdmin)
-                throw new UnauthorizedAccessException("Only super administrators can view all tenants.");
+        if (!tenantContext.IsSuperAdmin)
+            throw new UnauthorizedAccessException("Only super administrators can view all tenants.");
 
-            var tenants = await context.Tenants
-                .AsNoTracking()
-                .Where(t => !t.IsDeleted)
-                .OrderBy(t => t.Name)
-                .ToListAsync();
+        var tenants = await context.Tenants
+            .AsNoTracking()
+            .Where(t => !t.IsDeleted)
+            .OrderBy(t => t.Name)
+            .ToListAsync();
 
-            return TenantMapper.ToServerResponseDtoCollection(tenants);
-        }
-        catch
-        {
-            throw;
-        }
+        return TenantMapper.ToServerResponseDtoCollection(tenants);
     }
 
     public async Task<TenantResponseDto> UpdateTenantAsync(Guid tenantId, UpdateTenantDto updateDto)
@@ -470,394 +456,352 @@ public class TenantService(
 
     public async Task SetTenantStatusAsync(Guid tenantId, bool isEnabled, string reason)
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                logger.LogWarning("Tentativo di cambio stato tenant non autorizzato.");
-                throw new UnauthorizedAccessException("Only super administrators can change tenant status.");
-            }
-
-            var tenant = await context.Tenants
-                .FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant is null)
-            {
-                logger.LogWarning("Tenant {TenantId} non trovato per cambio stato.", tenantId);
-                throw new ArgumentException($"Tenant {tenantId} not found.");
-            }
-
-            // Create copy for audit purposes
-            var originalTenant = new Tenant
-            {
-                Id = tenant.Id,
-                Name = tenant.Name,
-                DisplayName = tenant.DisplayName,
-                Description = tenant.Description,
-                Domain = tenant.Domain,
-                ContactEmail = tenant.ContactEmail,
-                MaxUsers = tenant.MaxUsers,
-                IsActive = tenant.IsActive,
-                SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
-                CreatedAt = tenant.CreatedAt,
-                CreatedBy = tenant.CreatedBy,
-                ModifiedAt = tenant.ModifiedAt,
-                ModifiedBy = tenant.ModifiedBy
-            };
-
-            tenant.IsActive = isEnabled;
-            tenant.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync();
-
-            // Audit log
-            var currentUserId = tenantContext.CurrentUserId;
-            if (currentUserId.HasValue)
-            {
-                var auditTrail = new AuditTrail
-                {
-                    TenantId = tenant.Id,
-                    OperationType = AuthAuditOperationType.TenantStatusChanged,
-                    PerformedByUserId = currentUserId.Value,
-                    TargetTenantId = tenant.Id,
-                    Details = $"Tenant {(isEnabled ? "enabled" : "disabled")}: {reason}",
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow
-                };
-                _ = context.AuditTrails.Add(auditTrail);
-                _ = await context.SaveChangesAsync();
-            }
+            logger.LogWarning("Tentativo di cambio stato tenant non autorizzato.");
+            throw new UnauthorizedAccessException("Only super administrators can change tenant status.");
         }
-        catch
+
+        var tenant = await context.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId);
+        if (tenant is null)
         {
-            throw;
+            logger.LogWarning("Tenant {TenantId} non trovato per cambio stato.", tenantId);
+            throw new ArgumentException($"Tenant {tenantId} not found.");
+        }
+
+        // Create copy for audit purposes
+        var originalTenant = new Tenant
+        {
+            Id = tenant.Id,
+            Name = tenant.Name,
+            DisplayName = tenant.DisplayName,
+            Description = tenant.Description,
+            Domain = tenant.Domain,
+            ContactEmail = tenant.ContactEmail,
+            MaxUsers = tenant.MaxUsers,
+            IsActive = tenant.IsActive,
+            SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
+            CreatedAt = tenant.CreatedAt,
+            CreatedBy = tenant.CreatedBy,
+            ModifiedAt = tenant.ModifiedAt,
+            ModifiedBy = tenant.ModifiedBy
+        };
+
+        tenant.IsActive = isEnabled;
+        tenant.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync();
+
+        // Audit log
+        var currentUserId = tenantContext.CurrentUserId;
+        if (currentUserId.HasValue)
+        {
+            var auditTrail = new AuditTrail
+            {
+                TenantId = tenant.Id,
+                OperationType = AuthAuditOperationType.TenantStatusChanged,
+                PerformedByUserId = currentUserId.Value,
+                TargetTenantId = tenant.Id,
+                Details = $"Tenant {(isEnabled ? "enabled" : "disabled")}: {reason}",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow
+            };
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
         }
     }
 
     public async Task<AdminTenantResponseDto> AddTenantAdminAsync(Guid tenantId, Guid userId, AdminAccessLevel accessLevel, string reason, DateTime expiresAt)
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                logger.LogWarning("Tentativo di aggiunta admin tenant non autorizzato.");
-                throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
-            }
+            logger.LogWarning("Tentativo di aggiunta admin tenant non autorizzato.");
+            throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
+        }
 
-            if (string.IsNullOrWhiteSpace(reason))
-            {
-                throw new ArgumentException("Reason is required to grant admin access.");
-            }
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ArgumentException("Reason is required to grant admin access.");
+        }
 
-            if (expiresAt <= DateTime.UtcNow)
-            {
-                throw new ArgumentException("ExpiresAt must be in the future.");
-            }
+        if (expiresAt <= DateTime.UtcNow)
+        {
+            throw new ArgumentException("ExpiresAt must be in the future.");
+        }
 
-            if (expiresAt > DateTime.UtcNow.AddDays(MaxAdminGrantDurationDays))
-            {
-                throw new ArgumentException($"ExpiresAt cannot exceed {MaxAdminGrantDurationDays} days from now.");
-            }
+        if (expiresAt > DateTime.UtcNow.AddDays(MaxAdminGrantDurationDays))
+        {
+            throw new ArgumentException($"ExpiresAt cannot exceed {MaxAdminGrantDurationDays} days from now.");
+        }
 
-            var tenant = await context.Tenants
-                .FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant is null)
-            {
-                logger.LogWarning("Tenant {TenantId} non trovato per aggiunta admin.", tenantId);
-                throw new ArgumentException($"Tenant {tenantId} not found.");
-            }
+        var tenant = await context.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId);
+        if (tenant is null)
+        {
+            logger.LogWarning("Tenant {TenantId} non trovato per aggiunta admin.", tenantId);
+            throw new ArgumentException($"Tenant {tenantId} not found.");
+        }
 
-            var user = await context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user is null)
-            {
-                logger.LogWarning("Utente {UserId} non trovato per aggiunta admin.", userId);
-                throw new ArgumentException($"User {userId} not found.");
-            }
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
+        {
+            logger.LogWarning("Utente {UserId} non trovato per aggiunta admin.", userId);
+            throw new ArgumentException($"User {userId} not found.");
+        }
 
-            var existingMapping = await context.AdminTenants
-                .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId);
-            if (existingMapping is not null)
-            {
-                logger.LogWarning("Utente {UserId} gi� admin per tenant {TenantId}.", userId, tenantId);
-                throw new InvalidOperationException($"User {userId} is already an admin for tenant {tenantId}.");
-            }
+        var existingMapping = await context.AdminTenants
+            .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId);
+        if (existingMapping is not null)
+        {
+            logger.LogWarning("Utente {UserId} gi� admin per tenant {TenantId}.", userId, tenantId);
+            throw new InvalidOperationException($"User {userId} is already an admin for tenant {tenantId}.");
+        }
 
-            var adminTenant = new AdminTenant
+        var adminTenant = new AdminTenant
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            UserId = userId,
+            ManagedTenantId = tenantId,
+            AccessLevel = accessLevel,
+            GrantedAt = DateTime.UtcNow,
+            ExpiresAt = expiresAt,
+            Reason = reason
+        };
+
+        _ = context.AdminTenants.Add(adminTenant);
+        _ = await context.SaveChangesAsync();
+
+        // Audit log
+        var currentUserId = tenantContext.CurrentUserId;
+        if (currentUserId.HasValue)
+        {
+            var auditTrail = new AuditTrail
             {
-                Id = Guid.NewGuid(),
                 TenantId = tenantId,
-                UserId = userId,
-                ManagedTenantId = tenantId,
-                AccessLevel = accessLevel,
-                GrantedAt = DateTime.UtcNow,
-                ExpiresAt = expiresAt,
-                Reason = reason
-            };
-
-            _ = context.AdminTenants.Add(adminTenant);
-            _ = await context.SaveChangesAsync();
-
-            // Audit log
-            var currentUserId = tenantContext.CurrentUserId;
-            if (currentUserId.HasValue)
-            {
-                var auditTrail = new AuditTrail
+                OperationType = AuthAuditOperationType.AdminTenantGranted,
+                PerformedByUserId = currentUserId.Value,
+                TargetTenantId = tenantId,
+                TargetUserId = userId,
+                Details = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    TenantId = tenantId,
-                    OperationType = AuthAuditOperationType.AdminTenantGranted,
-                    PerformedByUserId = currentUserId.Value,
-                    TargetTenantId = tenantId,
-                    TargetUserId = userId,
-                    Details = System.Text.Json.JsonSerializer.Serialize(new
-                    {
-                        AccessLevel = accessLevel.ToString(),
-                        adminTenant.GrantedAt,
-                        adminTenant.ExpiresAt,
-                        adminTenant.Reason
-                    }),
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow
-                };
-                _ = context.AuditTrails.Add(auditTrail);
-                _ = await context.SaveChangesAsync();
-            }
-
-            return new AdminTenantResponseDto
-            {
-                Id = adminTenant.Id,
-                UserId = userId,
-                ManagedTenantId = tenantId,
-                AccessLevel = accessLevel.ToString(),
-                GrantedAt = adminTenant.GrantedAt,
-                ExpiresAt = adminTenant.ExpiresAt,
-                Reason = adminTenant.Reason,
-                Username = user.Username,
-                Email = user.Email,
-                FullName = user.FullName,
-                TenantName = tenant.Name
+                    AccessLevel = accessLevel.ToString(),
+                    adminTenant.GrantedAt,
+                    adminTenant.ExpiresAt,
+                    adminTenant.Reason
+                }),
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow
             };
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
         }
-        catch
+
+        return new AdminTenantResponseDto
         {
-            throw;
-        }
+            Id = adminTenant.Id,
+            UserId = userId,
+            ManagedTenantId = tenantId,
+            AccessLevel = accessLevel.ToString(),
+            GrantedAt = adminTenant.GrantedAt,
+            ExpiresAt = adminTenant.ExpiresAt,
+            Reason = adminTenant.Reason,
+            Username = user.Username,
+            Email = user.Email,
+            FullName = user.FullName,
+            TenantName = tenant.Name
+        };
     }
 
     public async Task RemoveTenantAdminAsync(Guid tenantId, Guid userId)
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                logger.LogWarning("Tentativo di rimozione admin tenant non autorizzato.");
-                throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
-            }
-
-            var adminTenant = await context.AdminTenants
-                .Include(at => at.User)
-                .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId);
-            if (adminTenant is null)
-            {
-                logger.LogWarning("Admin mapping non trovato per utente {UserId} e tenant {TenantId}.", userId, tenantId);
-                throw new ArgumentException($"Admin mapping not found for user {userId} and tenant {tenantId}.");
-            }
-
-            // Create copy for audit purposes
-            var originalAdminTenant = new AdminTenant
-            {
-                Id = adminTenant.Id,
-                UserId = adminTenant.UserId,
-                ManagedTenantId = adminTenant.ManagedTenantId,
-                AccessLevel = adminTenant.AccessLevel,
-                GrantedAt = adminTenant.GrantedAt,
-                ExpiresAt = adminTenant.ExpiresAt,
-                Reason = adminTenant.Reason,
-                CreatedAt = adminTenant.CreatedAt,
-                CreatedBy = adminTenant.CreatedBy,
-                ModifiedAt = adminTenant.ModifiedAt,
-                ModifiedBy = adminTenant.ModifiedBy
-            };
-
-            _ = context.AdminTenants.Remove(adminTenant);
-            _ = await context.SaveChangesAsync();
-
-            // Audit log
-            var currentUserId = tenantContext.CurrentUserId;
-            if (currentUserId.HasValue)
-            {
-                var auditTrail = new AuditTrail
-                {
-                    TenantId = tenantId,
-                    OperationType = AuthAuditOperationType.AdminTenantRevoked,
-                    PerformedByUserId = currentUserId.Value,
-                    TargetTenantId = tenantId,
-                    TargetUserId = userId,
-                    Details = System.Text.Json.JsonSerializer.Serialize(new
-                    {
-                        adminTenant.User.Username,
-                        AccessLevel = originalAdminTenant.AccessLevel.ToString(),
-                        originalAdminTenant.GrantedAt,
-                        originalAdminTenant.ExpiresAt,
-                        originalAdminTenant.Reason
-                    }),
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow
-                };
-                _ = context.AuditTrails.Add(auditTrail);
-                _ = await context.SaveChangesAsync();
-            }
+            logger.LogWarning("Tentativo di rimozione admin tenant non autorizzato.");
+            throw new UnauthorizedAccessException("Only super administrators can manage tenant admins.");
         }
-        catch
+
+        var adminTenant = await context.AdminTenants
+            .Include(at => at.User)
+            .FirstOrDefaultAsync(at => at.UserId == userId && at.ManagedTenantId == tenantId);
+        if (adminTenant is null)
         {
-            throw;
+            logger.LogWarning("Admin mapping non trovato per utente {UserId} e tenant {TenantId}.", userId, tenantId);
+            throw new ArgumentException($"Admin mapping not found for user {userId} and tenant {tenantId}.");
+        }
+
+        // Create copy for audit purposes
+        var originalAdminTenant = new AdminTenant
+        {
+            Id = adminTenant.Id,
+            UserId = adminTenant.UserId,
+            ManagedTenantId = adminTenant.ManagedTenantId,
+            AccessLevel = adminTenant.AccessLevel,
+            GrantedAt = adminTenant.GrantedAt,
+            ExpiresAt = adminTenant.ExpiresAt,
+            Reason = adminTenant.Reason,
+            CreatedAt = adminTenant.CreatedAt,
+            CreatedBy = adminTenant.CreatedBy,
+            ModifiedAt = adminTenant.ModifiedAt,
+            ModifiedBy = adminTenant.ModifiedBy
+        };
+
+        _ = context.AdminTenants.Remove(adminTenant);
+        _ = await context.SaveChangesAsync();
+
+        // Audit log
+        var currentUserId = tenantContext.CurrentUserId;
+        if (currentUserId.HasValue)
+        {
+            var auditTrail = new AuditTrail
+            {
+                TenantId = tenantId,
+                OperationType = AuthAuditOperationType.AdminTenantRevoked,
+                PerformedByUserId = currentUserId.Value,
+                TargetTenantId = tenantId,
+                TargetUserId = userId,
+                Details = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    adminTenant.User.Username,
+                    AccessLevel = originalAdminTenant.AccessLevel.ToString(),
+                    originalAdminTenant.GrantedAt,
+                    originalAdminTenant.ExpiresAt,
+                    originalAdminTenant.Reason
+                }),
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow
+            };
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
         }
     }
 
     public async Task<IEnumerable<AdminTenantResponseDto>> GetTenantAdminsAsync(Guid tenantId)
     {
-        try
+        var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
+        if (!canAccess)
         {
-            var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
-            if (!canAccess)
-            {
-                logger.LogWarning("Accesso negato alla lista admin per tenant {TenantId}.", tenantId);
-                throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
-            }
-
-            var adminTenants = await context.AdminTenants
-                .AsNoTracking()
-                .Include(at => at.User)
-                .Include(at => at.ManagedTenant)
-                .Where(at => at.ManagedTenantId == tenantId)
-                .ToListAsync();
-
-            return adminTenants.Select(at => new AdminTenantResponseDto
-            {
-                Id = at.Id,
-                UserId = at.UserId,
-                ManagedTenantId = at.ManagedTenantId,
-                AccessLevel = at.AccessLevel.ToString(),
-                GrantedAt = at.GrantedAt,
-                ExpiresAt = at.ExpiresAt,
-                Reason = at.Reason,
-                Username = at.User.Username,
-                Email = at.User.Email,
-                FullName = at.User.FullName,
-                TenantName = at.ManagedTenant.Name
-            });
+            logger.LogWarning("Accesso negato alla lista admin per tenant {TenantId}.", tenantId);
+            throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
         }
-        catch
+
+        var adminTenants = await context.AdminTenants
+            .AsNoTracking()
+            .Include(at => at.User)
+            .Include(at => at.ManagedTenant)
+            .Where(at => at.ManagedTenantId == tenantId)
+            .ToListAsync();
+
+        return adminTenants.Select(at => new AdminTenantResponseDto
         {
-            throw;
-        }
+            Id = at.Id,
+            UserId = at.UserId,
+            ManagedTenantId = at.ManagedTenantId,
+            AccessLevel = at.AccessLevel.ToString(),
+            GrantedAt = at.GrantedAt,
+            ExpiresAt = at.ExpiresAt,
+            Reason = at.Reason,
+            Username = at.User.Username,
+            Email = at.User.Email,
+            FullName = at.User.FullName,
+            TenantName = at.ManagedTenant.Name
+        });
     }
 
     public async Task<IEnumerable<AdminTenantResponseDto>> GetAllAdminTenantsAsync()
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                logger.LogWarning("Tentativo di accesso alla lista admin cross-tenant non autorizzato.");
-                throw new UnauthorizedAccessException("Only super administrators can view all admin tenant grants.");
-            }
-
-            var adminTenants = await context.AdminTenants
-                .AsNoTracking()
-                .Include(at => at.User)
-                .Include(at => at.ManagedTenant)
-                .OrderBy(at => at.ExpiresAt == null ? 0 : 1)
-                .ThenBy(at => at.ExpiresAt)
-                .ToListAsync();
-
-            return adminTenants.Select(at => new AdminTenantResponseDto
-            {
-                Id = at.Id,
-                UserId = at.UserId,
-                ManagedTenantId = at.ManagedTenantId,
-                AccessLevel = at.AccessLevel.ToString(),
-                GrantedAt = at.GrantedAt,
-                ExpiresAt = at.ExpiresAt,
-                Reason = at.Reason,
-                Username = at.User.Username,
-                Email = at.User.Email,
-                FullName = at.User.FullName,
-                TenantName = at.ManagedTenant.Name
-            });
+            logger.LogWarning("Tentativo di accesso alla lista admin cross-tenant non autorizzato.");
+            throw new UnauthorizedAccessException("Only super administrators can view all admin tenant grants.");
         }
-        catch
+
+        var adminTenants = await context.AdminTenants
+            .AsNoTracking()
+            .Include(at => at.User)
+            .Include(at => at.ManagedTenant)
+            .OrderBy(at => at.ExpiresAt == null ? 0 : 1)
+            .ThenBy(at => at.ExpiresAt)
+            .ToListAsync();
+
+        return adminTenants.Select(at => new AdminTenantResponseDto
         {
-            throw;
-        }
+            Id = at.Id,
+            UserId = at.UserId,
+            ManagedTenantId = at.ManagedTenantId,
+            AccessLevel = at.AccessLevel.ToString(),
+            GrantedAt = at.GrantedAt,
+            ExpiresAt = at.ExpiresAt,
+            Reason = at.Reason,
+            Username = at.User.Username,
+            Email = at.User.Email,
+            FullName = at.User.FullName,
+            TenantName = at.ManagedTenant.Name
+        });
     }
 
     public async Task ForcePasswordChangeAsync(Guid userId)
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                logger.LogWarning("Tentativo di forzare cambio password non autorizzato.");
-                throw new UnauthorizedAccessException("Only super administrators can force password changes.");
-            }
-
-            var user = await context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user is null)
-            {
-                logger.LogWarning("Utente {UserId} non trovato per forzatura cambio password.", userId);
-                throw new ArgumentException($"User {userId} not found.");
-            }
-
-            // Create copy for audit purposes
-            var originalUser = new User
-            {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                PasswordHash = user.PasswordHash,
-                PasswordSalt = user.PasswordSalt,
-                MustChangePassword = user.MustChangePassword,
-                PasswordChangedAt = user.PasswordChangedAt,
-                FailedLoginAttempts = user.FailedLoginAttempts,
-                LockedUntil = user.LockedUntil,
-                LastLoginAt = user.LastLoginAt,
-                LastFailedLoginAt = user.LastFailedLoginAt,
-                IsActive = user.IsActive,
-                CreatedAt = user.CreatedAt,
-                CreatedBy = user.CreatedBy,
-                ModifiedAt = user.ModifiedAt,
-                ModifiedBy = user.ModifiedBy
-            };
-
-            user.MustChangePassword = true;
-            user.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync();
-
-            // Audit log
-            var currentUserId = tenantContext.CurrentUserId;
-            if (currentUserId.HasValue)
-            {
-                var auditTrail = new AuditTrail
-                {
-                    TenantId = user.TenantId, // Now non-nullable
-                    OperationType = AuthAuditOperationType.ForcePasswordChange,
-                    PerformedByUserId = currentUserId.Value,
-                    TargetUserId = userId,
-                    Details = $"Password change forced",
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow
-                };
-                _ = context.AuditTrails.Add(auditTrail);
-                _ = await context.SaveChangesAsync();
-            }
+            logger.LogWarning("Tentativo di forzare cambio password non autorizzato.");
+            throw new UnauthorizedAccessException("Only super administrators can force password changes.");
         }
-        catch
+
+        var user = await context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
         {
-            throw;
+            logger.LogWarning("Utente {UserId} non trovato per forzatura cambio password.", userId);
+            throw new ArgumentException($"User {userId} not found.");
+        }
+
+        // Create copy for audit purposes
+        var originalUser = new User
+        {
+            Id = user.Id,
+            Username = user.Username,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            PasswordHash = user.PasswordHash,
+            PasswordSalt = user.PasswordSalt,
+            MustChangePassword = user.MustChangePassword,
+            PasswordChangedAt = user.PasswordChangedAt,
+            FailedLoginAttempts = user.FailedLoginAttempts,
+            LockedUntil = user.LockedUntil,
+            LastLoginAt = user.LastLoginAt,
+            LastFailedLoginAt = user.LastFailedLoginAt,
+            IsActive = user.IsActive,
+            CreatedAt = user.CreatedAt,
+            CreatedBy = user.CreatedBy,
+            ModifiedAt = user.ModifiedAt,
+            ModifiedBy = user.ModifiedBy
+        };
+
+        user.MustChangePassword = true;
+        user.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync();
+
+        // Audit log
+        var currentUserId = tenantContext.CurrentUserId;
+        if (currentUserId.HasValue)
+        {
+            var auditTrail = new AuditTrail
+            {
+                TenantId = user.TenantId, // Now non-nullable
+                OperationType = AuthAuditOperationType.ForcePasswordChange,
+                PerformedByUserId = currentUserId.Value,
+                TargetUserId = userId,
+                Details = $"Password change forced",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow
+            };
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
         }
     }
 
@@ -867,72 +811,65 @@ public class TenantService(
         int pageNumber = 1,
         int pageSize = 50)
     {
-        try
+        if (!tenantContext.IsSuperAdmin)
         {
-            if (!tenantContext.IsSuperAdmin)
-            {
-                logger.LogWarning("Tentativo di accesso all'audit trail senza permessi.");
-                throw new UnauthorizedAccessException("Only super administrators can view audit trails.");
-            }
-
-            var query = context.AuditTrails
-                .AsNoTracking()
-                .Include(at => at.PerformedByUser)
-                .Include(at => at.SourceTenant)
-                .Include(at => at.TargetTenant)
-                .Include(at => at.TargetUser)
-                .AsQueryable();
-
-            if (tenantId.HasValue)
-            {
-                query = query.Where(at => at.SourceTenantId == tenantId.Value || at.TargetTenantId == tenantId.Value);
-            }
-
-            if (operationType.HasValue)
-            {
-                query = query.Where(at => at.OperationType == operationType.Value);
-            }
-
-            var totalCount = await query.CountAsync();
-
-            var items = await query
-                .OrderByDescending(at => at.PerformedAt)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(at => new Prym.DTOs.SuperAdmin.AuditTrailResponseDto
-                {
-                    Id = at.Id,
-                    OperationType = at.OperationType,
-                    PerformedByUserId = at.PerformedByUserId,
-                    PerformedByUsername = at.PerformedByUser.Username,
-                    SourceTenantId = at.SourceTenantId,
-                    SourceTenantName = at.SourceTenant != null ? at.SourceTenant.Name : null,
-                    TargetTenantId = at.TargetTenantId,
-                    TargetTenantName = at.TargetTenant != null ? at.TargetTenant.Name : null,
-                    TargetUserId = at.TargetUserId,
-                    TargetUsername = at.TargetUser != null ? at.TargetUser.Username : null,
-                    SessionId = at.SessionId,
-                    IpAddress = at.IpAddress,
-                    UserAgent = at.UserAgent,
-                    Details = at.Details ?? string.Empty,
-                    WasSuccessful = at.WasSuccessful,
-                    ErrorMessage = at.ErrorMessage,
-                    PerformedAt = at.PerformedAt
-                })
-                .ToListAsync();
-
-            return new PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>
-            {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pageNumber,
-                PageSize = pageSize
-            };
+            logger.LogWarning("Tentativo di accesso all'audit trail senza permessi.");
+            throw new UnauthorizedAccessException("Only super administrators can view audit trails.");
         }
-        catch
+
+        var query = context.AuditTrails
+            .AsNoTracking()
+            .Include(at => at.PerformedByUser)
+            .Include(at => at.SourceTenant)
+            .Include(at => at.TargetTenant)
+            .Include(at => at.TargetUser)
+            .AsQueryable();
+
+        if (tenantId.HasValue)
         {
-            throw;
+            query = query.Where(at => at.SourceTenantId == tenantId.Value || at.TargetTenantId == tenantId.Value);
         }
+
+        if (operationType.HasValue)
+        {
+            query = query.Where(at => at.OperationType == operationType.Value);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .OrderByDescending(at => at.PerformedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(at => new Prym.DTOs.SuperAdmin.AuditTrailResponseDto
+            {
+                Id = at.Id,
+                OperationType = at.OperationType,
+                PerformedByUserId = at.PerformedByUserId,
+                PerformedByUsername = at.PerformedByUser.Username,
+                SourceTenantId = at.SourceTenantId,
+                SourceTenantName = at.SourceTenant != null ? at.SourceTenant.Name : null,
+                TargetTenantId = at.TargetTenantId,
+                TargetTenantName = at.TargetTenant != null ? at.TargetTenant.Name : null,
+                TargetUserId = at.TargetUserId,
+                TargetUsername = at.TargetUser != null ? at.TargetUser.Username : null,
+                SessionId = at.SessionId,
+                IpAddress = at.IpAddress,
+                UserAgent = at.UserAgent,
+                Details = at.Details ?? string.Empty,
+                WasSuccessful = at.WasSuccessful,
+                ErrorMessage = at.ErrorMessage,
+                PerformedAt = at.PerformedAt
+            })
+            .ToListAsync();
+
+        return new PagedResult<Prym.DTOs.SuperAdmin.AuditTrailResponseDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = pageNumber,
+            PageSize = pageSize
+        };
     }
 
     public async Task<TenantStatisticsDto> GetTenantStatisticsAsync()
@@ -941,47 +878,39 @@ public class TenantService(
         {
             throw new UnauthorizedAccessException("Only super administrators can view tenant statistics.");
         }
+        var totalTenants = await context.Tenants.AsNoTracking().CountAsync();
+        var activeTenants = await context.Tenants.AsNoTracking().CountAsync(t => t.IsActive);
+        var inactiveTenants = totalTenants - activeTenants;
 
-        try
+        var totalUsers = await context.Users.AsNoTracking().CountAsync();
+        var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+        var usersLastMonth = await context.Users.AsNoTracking().CountAsync(u => u.CreatedAt >= oneMonthAgo);
+
+        // Batch load user counts per tenant to avoid correlated subquery N+1
+        var userCountsByTenant = await context.Users
+            .AsNoTracking()
+            .GroupBy(u => u.TenantId)
+            .Select(g => new { TenantId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.TenantId, x => x.Count);
+
+        var activeTenantsForLimit = await context.Tenants
+            .AsNoTracking()
+            .Where(t => t.IsActive)
+            .Select(t => new { t.Id, t.MaxUsers })
+            .ToListAsync();
+
+        var tenantsNearLimit = activeTenantsForLimit
+            .Count(t => userCountsByTenant.TryGetValue(t.Id, out var count) && count >= t.MaxUsers * 0.9);
+
+        return new TenantStatisticsDto
         {
-            var totalTenants = await context.Tenants.AsNoTracking().CountAsync();
-            var activeTenants = await context.Tenants.AsNoTracking().CountAsync(t => t.IsActive);
-            var inactiveTenants = totalTenants - activeTenants;
-
-            var totalUsers = await context.Users.AsNoTracking().CountAsync();
-            var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
-            var usersLastMonth = await context.Users.AsNoTracking().CountAsync(u => u.CreatedAt >= oneMonthAgo);
-
-            // Batch load user counts per tenant to avoid correlated subquery N+1
-            var userCountsByTenant = await context.Users
-                .AsNoTracking()
-                .GroupBy(u => u.TenantId)
-                .Select(g => new { TenantId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.TenantId, x => x.Count);
-
-            var activeTenantsForLimit = await context.Tenants
-                .AsNoTracking()
-                .Where(t => t.IsActive)
-                .Select(t => new { t.Id, t.MaxUsers })
-                .ToListAsync();
-
-            var tenantsNearLimit = activeTenantsForLimit
-                .Count(t => userCountsByTenant.TryGetValue(t.Id, out var count) && count >= t.MaxUsers * 0.9);
-
-            return new TenantStatisticsDto
-            {
-                TotalTenants = totalTenants,
-                ActiveTenants = activeTenants,
-                InactiveTenants = inactiveTenants,
-                TotalUsers = totalUsers,
-                UsersLastMonth = usersLastMonth,
-                TenantsNearLimit = tenantsNearLimit
-            };
-        }
-        catch
-        {
-            throw;
-        }
+            TotalTenants = totalTenants,
+            ActiveTenants = activeTenants,
+            InactiveTenants = inactiveTenants,
+            TotalUsers = totalUsers,
+            UsersLastMonth = usersLastMonth,
+            TenantsNearLimit = tenantsNearLimit
+        };
     }
 
     public async Task<PagedResult<TenantResponseDto>> SearchTenantsAsync(TenantSearchDto searchDto)
@@ -990,111 +919,103 @@ public class TenantService(
         {
             throw new UnauthorizedAccessException("Only super administrators can search tenants.");
         }
+        var query = context.Tenants.AsNoTracking().AsQueryable();
 
-        try
+        // Apply filters
+        if (!string.IsNullOrEmpty(searchDto.SearchTerm))
         {
-            var query = context.Tenants.AsNoTracking().AsQueryable();
+            var term = searchDto.SearchTerm.ToLower();
+            query = query.Where(t =>
+                t.Name.ToLower().Contains(term) ||
+                t.DisplayName.ToLower().Contains(term) ||
+                (t.Domain != null && t.Domain.ToLower().Contains(term)));
+        }
 
-            // Apply filters
-            if (!string.IsNullOrEmpty(searchDto.SearchTerm))
+        if (!string.IsNullOrEmpty(searchDto.Status) && searchDto.Status != "all")
+        {
+            var isActive = searchDto.Status == "active";
+            query = query.Where(t => t.IsActive == isActive);
+        }
+
+        if (searchDto.MaxUsers.HasValue)
+        {
+            query = query.Where(t => t.MaxUsers <= searchDto.MaxUsers.Value);
+        }
+
+        if (searchDto.CreatedAfter.HasValue)
+        {
+            query = query.Where(t => t.CreatedAt >= searchDto.CreatedAfter.Value);
+        }
+
+        if (searchDto.CreatedBefore.HasValue)
+        {
+            query = query.Where(t => t.CreatedAt <= searchDto.CreatedBefore.Value);
+        }
+
+        // Apply sorting
+        if (!string.IsNullOrEmpty(searchDto.SortBy))
+        {
+            var isDesc = searchDto.SortOrder?.ToLower() == "desc";
+            query = searchDto.SortBy.ToLower() switch
             {
-                var term = searchDto.SearchTerm.ToLower();
-                query = query.Where(t =>
-                    t.Name.ToLower().Contains(term) ||
-                    t.DisplayName.ToLower().Contains(term) ||
-                    (t.Domain != null && t.Domain.ToLower().Contains(term)));
-            }
-
-            if (!string.IsNullOrEmpty(searchDto.Status) && searchDto.Status != "all")
-            {
-                var isActive = searchDto.Status == "active";
-                query = query.Where(t => t.IsActive == isActive);
-            }
-
-            if (searchDto.MaxUsers.HasValue)
-            {
-                query = query.Where(t => t.MaxUsers <= searchDto.MaxUsers.Value);
-            }
-
-            if (searchDto.CreatedAfter.HasValue)
-            {
-                query = query.Where(t => t.CreatedAt >= searchDto.CreatedAfter.Value);
-            }
-
-            if (searchDto.CreatedBefore.HasValue)
-            {
-                query = query.Where(t => t.CreatedAt <= searchDto.CreatedBefore.Value);
-            }
-
-            // Apply sorting
-            if (!string.IsNullOrEmpty(searchDto.SortBy))
-            {
-                var isDesc = searchDto.SortOrder?.ToLower() == "desc";
-                query = searchDto.SortBy.ToLower() switch
-                {
-                    "name" => isDesc ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name),
-                    "displayname" => isDesc ? query.OrderByDescending(t => t.DisplayName) : query.OrderBy(t => t.DisplayName),
-                    "createdat" => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt),
-                    "maxusers" => isDesc ? query.OrderByDescending(t => t.MaxUsers) : query.OrderBy(t => t.MaxUsers),
-                    _ => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt)
-                };
-            }
-            else
-            {
-                query = query.OrderByDescending(t => t.CreatedAt);
-            }
-
-            var totalCount = await query.CountAsync();
-            var tenants = await query
-                .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
-                .Take(searchDto.PageSize)
-                .ToListAsync();
-
-            // Apply NearUserLimit filter in-memory after fetching to avoid correlated subquery N+1
-            IEnumerable<Tenant> filteredTenants = tenants;
-            if (searchDto.NearUserLimit.HasValue && searchDto.NearUserLimit.Value)
-            {
-                var tenantIds = tenants.Select(t => t.Id).ToList();
-                var userCountsByTenant = await context.Users
-                    .AsNoTracking()
-                    .Where(u => tenantIds.Contains(u.TenantId))
-                    .GroupBy(u => u.TenantId)
-                    .Select(g => new { TenantId = g.Key, Count = g.Count() })
-                    .ToDictionaryAsync(x => x.TenantId, x => x.Count);
-
-                filteredTenants = tenants
-                    .Where(t => userCountsByTenant.TryGetValue(t.Id, out var count) && count >= t.MaxUsers * 0.9);
-            }
-
-            var tenantDtos = filteredTenants.Select(t => new TenantResponseDto
-            {
-                Id = t.Id,
-                Name = t.Name,
-                DisplayName = t.DisplayName,
-                Description = t.Description,
-                Domain = t.Domain,
-                ContactEmail = t.ContactEmail,
-                MaxUsers = t.MaxUsers,
-                IsActive = t.IsActive,
-                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
-                CreatedAt = t.CreatedAt,
-                CreatedBy = t.CreatedBy,
-                ModifiedAt = t.ModifiedAt,
-                ModifiedBy = t.ModifiedBy
-            }).ToList();
-
-            return new PagedResult<TenantResponseDto>
-            {
-                Items = tenantDtos,
-                TotalCount = totalCount,
-                Page = searchDto.PageNumber,
-                PageSize = searchDto.PageSize
+                "name" => isDesc ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name),
+                "displayname" => isDesc ? query.OrderByDescending(t => t.DisplayName) : query.OrderBy(t => t.DisplayName),
+                "createdat" => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt),
+                "maxusers" => isDesc ? query.OrderByDescending(t => t.MaxUsers) : query.OrderBy(t => t.MaxUsers),
+                _ => isDesc ? query.OrderByDescending(t => t.CreatedAt) : query.OrderBy(t => t.CreatedAt)
             };
         }
-        catch
+        else
         {
-            throw;
+            query = query.OrderByDescending(t => t.CreatedAt);
         }
+
+        var totalCount = await query.CountAsync();
+        var tenants = await query
+            .Skip((searchDto.PageNumber - 1) * searchDto.PageSize)
+            .Take(searchDto.PageSize)
+            .ToListAsync();
+
+        // Apply NearUserLimit filter in-memory after fetching to avoid correlated subquery N+1
+        IEnumerable<Tenant> filteredTenants = tenants;
+        if (searchDto.NearUserLimit.HasValue && searchDto.NearUserLimit.Value)
+        {
+            var tenantIds = tenants.Select(t => t.Id).ToList();
+            var userCountsByTenant = await context.Users
+                .AsNoTracking()
+                .Where(u => tenantIds.Contains(u.TenantId))
+                .GroupBy(u => u.TenantId)
+                .Select(g => new { TenantId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.TenantId, x => x.Count);
+
+            filteredTenants = tenants
+                .Where(t => userCountsByTenant.TryGetValue(t.Id, out var count) && count >= t.MaxUsers * 0.9);
+        }
+
+        var tenantDtos = filteredTenants.Select(t => new TenantResponseDto
+        {
+            Id = t.Id,
+            Name = t.Name,
+            DisplayName = t.DisplayName,
+            Description = t.Description,
+            Domain = t.Domain,
+            ContactEmail = t.ContactEmail,
+            MaxUsers = t.MaxUsers,
+            IsActive = t.IsActive,
+            SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+            CreatedAt = t.CreatedAt,
+            CreatedBy = t.CreatedBy,
+            ModifiedAt = t.ModifiedAt,
+            ModifiedBy = t.ModifiedBy
+        }).ToList();
+
+        return new PagedResult<TenantResponseDto>
+        {
+            Items = tenantDtos,
+            TotalCount = totalCount,
+            Page = searchDto.PageNumber,
+            PageSize = searchDto.PageSize
+        };
     }
 
     public async Task<TenantDetailDto?> GetTenantDetailsAsync(Guid tenantId)
@@ -1103,53 +1024,45 @@ public class TenantService(
         {
             throw new UnauthorizedAccessException("Only super administrators can view tenant details.");
         }
-
-        try
+        var tenant = await context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
         {
-            var tenant = await context.Tenants.FindAsync(tenantId);
-            if (tenant is null)
-            {
-                return null;
-            }
-
-            var admins = await GetTenantAdminsAsync(tenantId);
-            var limits = await GetTenantLimitsAsync(tenantId);
-            var usageStats = await GetTenantUsageStatsAsync(tenantId);
-            var recentActivities = await GetRecentActivitiesAsync(tenantId);
-
-            return new TenantDetailDto
-            {
-                Id = tenant.Id,
-                Name = tenant.Name,
-                DisplayName = tenant.DisplayName,
-                Description = tenant.Description,
-                Domain = tenant.Domain,
-                ContactEmail = tenant.ContactEmail,
-                MaxUsers = tenant.MaxUsers,
-                IsActive = tenant.IsActive,
-                SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
-                CreatedAt = tenant.CreatedAt,
-                CreatedBy = tenant.CreatedBy,
-                ModifiedAt = tenant.ModifiedAt,
-                ModifiedBy = tenant.ModifiedBy,
-                Admins = admins.Select(a => new TenantAdminResponseDto
-                {
-                    UserId = a.UserId,
-                    Username = a.Username,
-                    Email = a.Email,
-                    FullName = a.FullName ?? string.Empty,
-                    MustChangePassword = false, // Default value since not available in AdminTenantResponseDto
-                    GeneratedPassword = null // Only for creation
-                }).ToList(),
-                Limits = limits ?? new TenantLimitsDto { TenantId = tenantId },
-                UsageStats = usageStats,
-                RecentActivities = recentActivities
-            };
+            return null;
         }
-        catch
+
+        var admins = await GetTenantAdminsAsync(tenantId);
+        var limits = await GetTenantLimitsAsync(tenantId);
+        var usageStats = await GetTenantUsageStatsAsync(tenantId);
+        var recentActivities = await GetRecentActivitiesAsync(tenantId);
+
+        return new TenantDetailDto
         {
-            throw;
-        }
+            Id = tenant.Id,
+            Name = tenant.Name,
+            DisplayName = tenant.DisplayName,
+            Description = tenant.Description,
+            Domain = tenant.Domain,
+            ContactEmail = tenant.ContactEmail,
+            MaxUsers = tenant.MaxUsers,
+            IsActive = tenant.IsActive,
+            SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
+            CreatedAt = tenant.CreatedAt,
+            CreatedBy = tenant.CreatedBy,
+            ModifiedAt = tenant.ModifiedAt,
+            ModifiedBy = tenant.ModifiedBy,
+            Admins = admins.Select(a => new TenantAdminResponseDto
+            {
+                UserId = a.UserId,
+                Username = a.Username,
+                Email = a.Email,
+                FullName = a.FullName ?? string.Empty,
+                MustChangePassword = false, // Default value since not available in AdminTenantResponseDto
+                GeneratedPassword = null // Only for creation
+            }).ToList(),
+            Limits = limits ?? new TenantLimitsDto { TenantId = tenantId },
+            UsageStats = usageStats,
+            RecentActivities = recentActivities
+        };
     }
 
     public async Task<TenantLimitsDto?> GetTenantLimitsAsync(Guid tenantId)
@@ -1158,34 +1071,26 @@ public class TenantService(
         {
             throw new UnauthorizedAccessException("Only super administrators can view tenant limits.");
         }
-
-        try
+        var tenant = await context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
         {
-            var tenant = await context.Tenants.FindAsync(tenantId);
-            if (tenant is null)
-            {
-                return null;
-            }
-
-            var currentUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
-            var currentStorage = await CalculateStorageUsageAsync(tenantId);
-            var currentEventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
-
-            return new TenantLimitsDto
-            {
-                TenantId = tenantId,
-                MaxUsers = tenant.MaxUsers,
-                CurrentUsers = currentUsers,
-                MaxStorageBytes = 1073741824, // Default 1GB - should be configurable
-                CurrentStorageBytes = currentStorage,
-                MaxEventsPerMonth = 1000, // Default - should be configurable
-                CurrentEventsThisMonth = currentEventsThisMonth
-            };
+            return null;
         }
-        catch
+
+        var currentUsers = await context.Users.CountAsync(u => u.TenantId == tenantId);
+        var currentStorage = await CalculateStorageUsageAsync(tenantId);
+        var currentEventsThisMonth = await CalculateEventsThisMonthAsync(tenantId);
+
+        return new TenantLimitsDto
         {
-            throw;
-        }
+            TenantId = tenantId,
+            MaxUsers = tenant.MaxUsers,
+            CurrentUsers = currentUsers,
+            MaxStorageBytes = 1073741824, // Default 1GB - should be configurable
+            CurrentStorageBytes = currentStorage,
+            MaxEventsPerMonth = 1000, // Default - should be configurable
+            CurrentEventsThisMonth = currentEventsThisMonth
+        };
     }
 
     public async Task<TenantLimitsDto> UpdateTenantLimitsAsync(Guid tenantId, UpdateTenantLimitsDto updateDto)
@@ -1194,43 +1099,35 @@ public class TenantService(
         {
             throw new UnauthorizedAccessException("Only super administrators can update tenant limits.");
         }
-
-        try
+        var tenant = await context.Tenants.FindAsync(tenantId);
+        if (tenant is null)
         {
-            var tenant = await context.Tenants.FindAsync(tenantId);
-            if (tenant is null)
-            {
-                throw new ArgumentException($"Tenant {tenantId} not found.");
-            }
-
-            tenant.MaxUsers = updateDto.MaxUsers;
-            tenant.ModifiedAt = DateTime.UtcNow;
-            tenant.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
-
-            _ = await context.SaveChangesAsync();
-
-            // Create audit trail entry
-            var auditTrail = new AuditTrail
-            {
-                PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
-                OperationType = AuthAuditOperationType.TenantStatusChanged,
-                TargetTenantId = tenantId,
-                Details = $"Tenant limits updated: MaxUsers={updateDto.MaxUsers}, MaxStorage={updateDto.MaxStorageBytes}, MaxEvents={updateDto.MaxEventsPerMonth}. Reason: {updateDto.Reason}",
-                WasSuccessful = true,
-                PerformedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = tenant.ModifiedBy
-            };
-
-            _ = context.AuditTrails.Add(auditTrail);
-            _ = await context.SaveChangesAsync();
-
-            return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
+            throw new ArgumentException($"Tenant {tenantId} not found.");
         }
-        catch
+
+        tenant.MaxUsers = updateDto.MaxUsers;
+        tenant.ModifiedAt = DateTime.UtcNow;
+        tenant.ModifiedBy = tenantContext.CurrentUserId?.ToString() ?? "System";
+
+        _ = await context.SaveChangesAsync();
+
+        // Create audit trail entry
+        var auditTrail = new AuditTrail
         {
-            throw;
-        }
+            PerformedByUserId = tenantContext.CurrentUserId ?? Guid.Empty,
+            OperationType = AuthAuditOperationType.TenantStatusChanged,
+            TargetTenantId = tenantId,
+            Details = $"Tenant limits updated: MaxUsers={updateDto.MaxUsers}, MaxStorage={updateDto.MaxStorageBytes}, MaxEvents={updateDto.MaxEventsPerMonth}. Reason: {updateDto.Reason}",
+            WasSuccessful = true,
+            PerformedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = tenant.ModifiedBy
+        };
+
+        _ = context.AuditTrails.Add(auditTrail);
+        _ = await context.SaveChangesAsync();
+
+        return await GetTenantLimitsAsync(tenantId) ?? throw new InvalidOperationException("Failed to retrieve updated limits.");
     }
 
     private async Task<TenantUsageStatsDto> GetTenantUsageStatsAsync(Guid tenantId)
@@ -1319,43 +1216,35 @@ public class TenantService(
     {
         if (!tenantContext.IsSuperAdmin)
             throw new UnauthorizedAccessException("Only super administrators can delete tenants.");
+        var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
+        if (tenant is null)
+            throw new ArgumentException($"Tenant {tenantId} not found.");
 
-        try
+        if (tenant.IsDeleted)
+            throw new InvalidOperationException("Tenant is already deleted.");
+
+        tenant.IsDeleted = true;
+        tenant.IsActive = false;
+        tenant.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync();
+
+        // Audit log
+        var currentUserId = tenantContext.CurrentUserId;
+        if (currentUserId.HasValue)
         {
-            var tenant = await context.Tenants.FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant is null)
-                throw new ArgumentException($"Tenant {tenantId} not found.");
-
-            if (tenant.IsDeleted)
-                throw new InvalidOperationException("Tenant is already deleted.");
-
-            tenant.IsDeleted = true;
-            tenant.IsActive = false;
-            tenant.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync();
-
-            // Audit log
-            var currentUserId = tenantContext.CurrentUserId;
-            if (currentUserId.HasValue)
+            var auditTrail = new AuditTrail
             {
-                var auditTrail = new AuditTrail
-                {
-                    TenantId = tenant.Id,
-                    OperationType = AuthAuditOperationType.TenantStatusChanged,
-                    PerformedByUserId = currentUserId.Value,
-                    TargetTenantId = tenant.Id,
-                    Details = $"Tenant soft deleted: {reason}",
-                    WasSuccessful = true,
-                    PerformedAt = DateTime.UtcNow
-                };
-                _ = context.AuditTrails.Add(auditTrail);
-                _ = await context.SaveChangesAsync();
-            }
-        }
-        catch
-        {
-            throw;
+                TenantId = tenant.Id,
+                OperationType = AuthAuditOperationType.TenantStatusChanged,
+                PerformedByUserId = currentUserId.Value,
+                TargetTenantId = tenant.Id,
+                Details = $"Tenant soft deleted: {reason}",
+                WasSuccessful = true,
+                PerformedAt = DateTime.UtcNow
+            };
+            _ = context.AuditTrails.Add(auditTrail);
+            _ = await context.SaveChangesAsync();
         }
     }
 
@@ -1366,51 +1255,44 @@ public class TenantService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
-        {
-            // NOTE: No tenant filter - SuperAdmin sees all tenants
-            var query = context.Tenants
-                .AsNoTracking()
-                .Where(t => !t.IsDeleted);
+        // NOTE: No tenant filter - SuperAdmin sees all tenants
+        var query = context.Tenants
+            .AsNoTracking()
+            .Where(t => !t.IsDeleted);
 
-            var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderBy(t => t.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(t => new TenantResponseDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Code = t.Code,
-                    DisplayName = t.DisplayName,
-                    Description = t.Description,
-                    Domain = t.Domain,
-                    ContactEmail = t.ContactEmail,
-                    MaxUsers = t.MaxUsers,
-                    IsActive = t.IsActive,
-                    SubscriptionExpiresAt = t.SubscriptionExpiresAt,
-                    CreatedAt = t.CreatedAt,
-                    UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
-                    CreatedBy = t.CreatedBy,
-                    ModifiedAt = t.ModifiedAt,
-                    ModifiedBy = t.ModifiedBy
-                })
-                .ToListAsync(ct);
-
-            return new PagedResult<TenantResponseDto>
+        var items = await query
+            .OrderBy(t => t.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(t => new TenantResponseDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
-        }
-        catch
+                Id = t.Id,
+                Name = t.Name,
+                Code = t.Code,
+                DisplayName = t.DisplayName,
+                Description = t.Description,
+                Domain = t.Domain,
+                ContactEmail = t.ContactEmail,
+                MaxUsers = t.MaxUsers,
+                IsActive = t.IsActive,
+                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
+                CreatedBy = t.CreatedBy,
+                ModifiedAt = t.ModifiedAt,
+                ModifiedBy = t.ModifiedBy
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<TenantResponseDto>
         {
-            throw;
-        }
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     /// <summary>
@@ -1420,50 +1302,43 @@ public class TenantService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
-        {
-            var query = context.Tenants
-                .AsNoTracking()
-                .Where(t => !t.IsDeleted && t.IsActive);
+        var query = context.Tenants
+            .AsNoTracking()
+            .Where(t => !t.IsDeleted && t.IsActive);
 
-            var totalCount = await query.CountAsync(ct);
+        var totalCount = await query.CountAsync(ct);
 
-            var items = await query
-                .OrderBy(t => t.Name)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .Select(t => new TenantResponseDto
-                {
-                    Id = t.Id,
-                    Name = t.Name,
-                    Code = t.Code,
-                    DisplayName = t.DisplayName,
-                    Description = t.Description,
-                    Domain = t.Domain,
-                    ContactEmail = t.ContactEmail,
-                    MaxUsers = t.MaxUsers,
-                    IsActive = t.IsActive,
-                    SubscriptionExpiresAt = t.SubscriptionExpiresAt,
-                    CreatedAt = t.CreatedAt,
-                    UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
-                    CreatedBy = t.CreatedBy,
-                    ModifiedAt = t.ModifiedAt,
-                    ModifiedBy = t.ModifiedBy
-                })
-                .ToListAsync(ct);
-
-            return new PagedResult<TenantResponseDto>
+        var items = await query
+            .OrderBy(t => t.Name)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .Select(t => new TenantResponseDto
             {
-                Items = items,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
-        }
-        catch
+                Id = t.Id,
+                Name = t.Name,
+                Code = t.Code,
+                DisplayName = t.DisplayName,
+                Description = t.Description,
+                Domain = t.Domain,
+                ContactEmail = t.ContactEmail,
+                MaxUsers = t.MaxUsers,
+                IsActive = t.IsActive,
+                SubscriptionExpiresAt = t.SubscriptionExpiresAt,
+                CreatedAt = t.CreatedAt,
+                UpdatedAt = t.ModifiedAt ?? t.CreatedAt,
+                CreatedBy = t.CreatedBy,
+                ModifiedAt = t.ModifiedAt,
+                ModifiedBy = t.ModifiedBy
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<TenantResponseDto>
         {
-            throw;
-        }
+            Items = items,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
 }

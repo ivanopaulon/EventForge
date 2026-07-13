@@ -26,286 +26,230 @@ public class StockMovementService(
         DateTime? toDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var query = context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.Serial)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => sm.TenantId == currentTenantId.Value && !sm.IsDeleted);
-
-            // Apply filters
-            if (productId.HasValue)
-            {
-                query = query.Where(sm => sm.ProductId == productId.Value);
-            }
-
-            if (lotId.HasValue)
-            {
-                query = query.Where(sm => sm.LotId == lotId.Value);
-            }
-
-            if (serialId.HasValue)
-            {
-                query = query.Where(sm => sm.SerialId == serialId.Value);
-            }
-
-            if (locationId.HasValue)
-            {
-                query = query.Where(sm => sm.FromLocationId == locationId.Value || sm.ToLocationId == locationId.Value);
-            }
-
-            if (!string.IsNullOrEmpty(movementType) && Enum.TryParse<StockMovementType>(movementType, true, out var type))
-            {
-                query = query.Where(sm => sm.MovementType == type);
-            }
-
-            if (fromDate.HasValue)
-            {
-                query = query.Where(sm => sm.MovementDate >= fromDate.Value);
-            }
-
-            if (toDate.HasValue)
-            {
-                query = query.Where(sm => sm.MovementDate <= toDate.Value);
-            }
-
-            var totalCount = await query.CountAsync(cancellationToken);
-
-            var movements = await query
-                .OrderByDescending(sm => sm.MovementDate)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var movementDtos = movements.Select(m => m.ToStockMovementDto()).ToList();
-
-            return new PagedResult<StockMovementDto>
-            {
-                Items = movementDtos,
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
-            };
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
+
+        var query = context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.Serial)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => sm.TenantId == currentTenantId.Value && !sm.IsDeleted);
+
+        // Apply filters
+        if (productId.HasValue)
         {
-            throw;
+            query = query.Where(sm => sm.ProductId == productId.Value);
         }
+
+        if (lotId.HasValue)
+        {
+            query = query.Where(sm => sm.LotId == lotId.Value);
+        }
+
+        if (serialId.HasValue)
+        {
+            query = query.Where(sm => sm.SerialId == serialId.Value);
+        }
+
+        if (locationId.HasValue)
+        {
+            query = query.Where(sm => sm.FromLocationId == locationId.Value || sm.ToLocationId == locationId.Value);
+        }
+
+        if (!string.IsNullOrEmpty(movementType) && Enum.TryParse<StockMovementType>(movementType, true, out var type))
+        {
+            query = query.Where(sm => sm.MovementType == type);
+        }
+
+        if (fromDate.HasValue)
+        {
+            query = query.Where(sm => sm.MovementDate >= fromDate.Value);
+        }
+
+        if (toDate.HasValue)
+        {
+            query = query.Where(sm => sm.MovementDate <= toDate.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var movements = await query
+            .OrderByDescending(sm => sm.MovementDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var movementDtos = movements.Select(m => m.ToStockMovementDto()).ToList();
+
+        return new PagedResult<StockMovementDto>
+        {
+            Items = movementDtos,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<StockMovementDto?> GetMovementByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var movement = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.Serial)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .FirstOrDefaultAsync(sm => sm.Id == id && sm.TenantId == currentTenantId.Value && !sm.IsDeleted, cancellationToken);
-
-            return movement?.ToStockMovementDto();
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch
-        {
-            throw;
-        }
+
+        var movement = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.Serial)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .FirstOrDefaultAsync(sm => sm.Id == id && sm.TenantId == currentTenantId.Value && !sm.IsDeleted, cancellationToken);
+
+        return movement?.ToStockMovementDto();
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByProductIdAsync(Guid productId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-            var movements = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => sm.ProductId == productId && sm.TenantId == currentTenantId && !sm.IsDeleted)
-                .OrderByDescending(sm => sm.MovementDate)
-                .ToListAsync(cancellationToken);
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => sm.ProductId == productId && sm.TenantId == currentTenantId && !sm.IsDeleted)
+            .OrderByDescending(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
 
-            return movements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return movements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByLotIdAsync(Guid lotId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-            var movements = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId && !sm.IsDeleted)
-                .OrderByDescending(sm => sm.MovementDate)
-                .ToListAsync(cancellationToken);
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => sm.LotId == lotId && sm.TenantId == currentTenantId && !sm.IsDeleted)
+            .OrderByDescending(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
 
-            return movements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return movements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsBySerialIdAsync(Guid serialId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-            var movements = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Serial)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => sm.SerialId == serialId && sm.TenantId == currentTenantId && !sm.IsDeleted)
-                .OrderByDescending(sm => sm.MovementDate)
-                .ToListAsync(cancellationToken);
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Serial)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => sm.SerialId == serialId && sm.TenantId == currentTenantId && !sm.IsDeleted)
+            .OrderByDescending(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
 
-            return movements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return movements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByLocationIdAsync(Guid locationId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-            var movements = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => (sm.FromLocationId == locationId || sm.ToLocationId == locationId) && sm.TenantId == currentTenantId && !sm.IsDeleted)
-                .OrderByDescending(sm => sm.MovementDate)
-                .ToListAsync(cancellationToken);
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => (sm.FromLocationId == locationId || sm.ToLocationId == locationId) && sm.TenantId == currentTenantId && !sm.IsDeleted)
+            .OrderByDescending(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
 
-            return movements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return movements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetMovementsByDocumentIdAsync(Guid documentId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-            var movements = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => sm.DocumentHeaderId == documentId && sm.TenantId == currentTenantId && !sm.IsDeleted)
-                .OrderByDescending(sm => sm.MovementDate)
-                .ToListAsync(cancellationToken);
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => sm.DocumentHeaderId == documentId && sm.TenantId == currentTenantId && !sm.IsDeleted)
+            .OrderByDescending(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
 
-            return movements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return movements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<StockMovementDto> CreateMovementAsync(CreateStockMovementDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+        var movement = new StockMovement
         {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId,
+            MovementType = Enum.Parse<StockMovementType>(createDto.MovementType, ignoreCase: true),
+            ProductId = createDto.ProductId,
+            LotId = createDto.LotId,
+            SerialId = createDto.SerialId,
+            FromLocationId = createDto.FromLocationId,
+            ToLocationId = createDto.ToLocationId,
+            Quantity = createDto.Quantity,
+            UnitCost = createDto.UnitCost,
+            MovementDate = createDto.MovementDate,
+            DocumentHeaderId = createDto.DocumentHeaderId,
+            DocumentRowId = createDto.DocumentRowId,
+            Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
+                ? reasonEnum
+                : StockMovementReason.Other,
+            Notes = createDto.Notes,
+            UserId = currentUser,
+            IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
+            ReconciliationRunId = createDto.ReconciliationRunId,
+            Status = MovementStatus.Completed,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = currentUser
+        };
 
-            var movement = new StockMovement
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId,
-                MovementType = Enum.Parse<StockMovementType>(createDto.MovementType, ignoreCase: true),
-                ProductId = createDto.ProductId,
-                LotId = createDto.LotId,
-                SerialId = createDto.SerialId,
-                FromLocationId = createDto.FromLocationId,
-                ToLocationId = createDto.ToLocationId,
-                Quantity = createDto.Quantity,
-                UnitCost = createDto.UnitCost,
-                MovementDate = createDto.MovementDate,
-                DocumentHeaderId = createDto.DocumentHeaderId,
-                DocumentRowId = createDto.DocumentRowId,
-                Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
-                    ? reasonEnum
-                    : StockMovementReason.Other,
-                Notes = createDto.Notes,
-                UserId = currentUser,
-                IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
-                ReconciliationRunId = createDto.ReconciliationRunId,
-                Status = MovementStatus.Completed,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = currentUser
-            };
+        _ = context.StockMovements.Add(movement);
 
-            _ = context.StockMovements.Add(movement);
+        // Update stock levels
+        await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
 
-            // Update stock levels
-            await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
 
-            _ = await context.SaveChangesAsync(cancellationToken);
+        _ = await auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Created", "Create",
+            null, $"Created stock movement: {movement.MovementType}", currentUser);
 
-            _ = await auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Created", "Create",
-                null, $"Created stock movement: {movement.MovementType}", currentUser);
+        // Load navigation properties needed for DTO mapping
+        await context.Entry(movement).Reference(m => m.Product).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.Lot).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.Serial).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.FromLocation).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
 
-            // Load navigation properties needed for DTO mapping
-            await context.Entry(movement).Reference(m => m.Product).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.Lot).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.Serial).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.FromLocation).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
-
-            return movement.ToStockMovementDto();
-        }
-        catch
-        {
-            throw;
-        }
+        return movement.ToStockMovementDto();
     }
 
     public async Task<IEnumerable<StockMovementDto>> CreateMovementsBatchAsync(
@@ -313,66 +257,59 @@ public class StockMovementService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        // Process in chunks to keep each SaveChangesAsync batch manageable.
+        // The custom SaveChangesAsync generates one EntityChangeLog row per property per entity;
+        // large batches produce thousands of audit INSERTs that exceed SQL Server limits.
+        const int chunkSize = 25;
+        var allMovements = new List<StockMovement>();
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+        foreach (var chunk in createDtos.Chunk(chunkSize))
         {
-            // Process in chunks to keep each SaveChangesAsync batch manageable.
-            // The custom SaveChangesAsync generates one EntityChangeLog row per property per entity;
-            // large batches produce thousands of audit INSERTs that exceed SQL Server limits.
-            const int chunkSize = 25;
-            var allMovements = new List<StockMovement>();
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+            var movements = new List<StockMovement>();
 
-            foreach (var chunk in createDtos.Chunk(chunkSize))
+            foreach (var createDto in chunk)
             {
-                var movements = new List<StockMovement>();
-
-                foreach (var createDto in chunk)
+                var movement = new StockMovement
                 {
-                    var movement = new StockMovement
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = currentTenantId,
-                        MovementType = Enum.Parse<StockMovementType>(createDto.MovementType, ignoreCase: true),
-                        ProductId = createDto.ProductId,
-                        LotId = createDto.LotId,
-                        SerialId = createDto.SerialId,
-                        FromLocationId = createDto.FromLocationId,
-                        ToLocationId = createDto.ToLocationId,
-                        Quantity = createDto.Quantity,
-                        UnitCost = createDto.UnitCost,
-                        MovementDate = createDto.MovementDate,
-                        DocumentHeaderId = createDto.DocumentHeaderId,
-                        DocumentRowId = createDto.DocumentRowId,
-                        Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
-                            ? reasonEnum
-                            : StockMovementReason.Other,
-                        Notes = createDto.Notes,
-                        UserId = currentUser,
-                        IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
-                        ReconciliationRunId = createDto.ReconciliationRunId,
-                        Status = MovementStatus.Completed,
-                        CreatedAt = DateTime.UtcNow,
-                        CreatedBy = currentUser
-                    };
+                    Id = Guid.NewGuid(),
+                    TenantId = currentTenantId,
+                    MovementType = Enum.Parse<StockMovementType>(createDto.MovementType, ignoreCase: true),
+                    ProductId = createDto.ProductId,
+                    LotId = createDto.LotId,
+                    SerialId = createDto.SerialId,
+                    FromLocationId = createDto.FromLocationId,
+                    ToLocationId = createDto.ToLocationId,
+                    Quantity = createDto.Quantity,
+                    UnitCost = createDto.UnitCost,
+                    MovementDate = createDto.MovementDate,
+                    DocumentHeaderId = createDto.DocumentHeaderId,
+                    DocumentRowId = createDto.DocumentRowId,
+                    Reason = !string.IsNullOrEmpty(createDto.Reason) && Enum.TryParse<StockMovementReason>(createDto.Reason, out var reasonEnum)
+                        ? reasonEnum
+                        : StockMovementReason.Other,
+                    Notes = createDto.Notes,
+                    UserId = currentUser,
+                    IsReconciliationAdjustment = createDto.IsReconciliationAdjustment,
+                    ReconciliationRunId = createDto.ReconciliationRunId,
+                    Status = MovementStatus.Completed,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = currentUser
+                };
 
-                    movements.Add(movement);
-                    await UpdateStockLevelsForMovementAsync(movement, cancellationToken, throwOnMissingSourceStock: false);
-                }
-
-                context.StockMovements.AddRange(movements);
-                _ = await context.SaveChangesAsync(cancellationToken);
-                allMovements.AddRange(movements);
+                movements.Add(movement);
+                await UpdateStockLevelsForMovementAsync(movement, cancellationToken, throwOnMissingSourceStock: false);
             }
 
-            _ = await auditLogService.LogEntityChangeAsync("StockMovement", Guid.Empty, "BatchCreated", "BatchCreate",
-                null, $"Created {allMovements.Count} stock movements", currentUser);
+            context.StockMovements.AddRange(movements);
+            _ = await context.SaveChangesAsync(cancellationToken);
+            allMovements.AddRange(movements);
+        }
 
-            return allMovements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        _ = await auditLogService.LogEntityChangeAsync("StockMovement", Guid.Empty, "BatchCreated", "BatchCreate",
+            null, $"Created {allMovements.Count} stock movements", currentUser);
+
+        return allMovements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<StockMovementDto> ProcessInboundMovementAsync(
@@ -389,30 +326,23 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var createDto = new CreateStockMovementDto
         {
-            var createDto = new CreateStockMovementDto
-            {
-                MovementType = StockMovementType.Inbound.ToString(),
-                ProductId = productId,
-                ToLocationId = toLocationId,
-                Quantity = quantity,
-                UnitCost = unitCost,
-                LotId = lotId,
-                SerialId = serialId,
-                DocumentHeaderId = documentHeaderId,
-                DocumentRowId = documentRowId,
-                Notes = notes,
-                Reason = "Purchase",
-                MovementDate = movementDate ?? DateTime.UtcNow
-            };
+            MovementType = StockMovementType.Inbound.ToString(),
+            ProductId = productId,
+            ToLocationId = toLocationId,
+            Quantity = quantity,
+            UnitCost = unitCost,
+            LotId = lotId,
+            SerialId = serialId,
+            DocumentHeaderId = documentHeaderId,
+            DocumentRowId = documentRowId,
+            Notes = notes,
+            Reason = "Purchase",
+            MovementDate = movementDate ?? DateTime.UtcNow
+        };
 
-            return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
     }
 
     public async Task<StockMovementDto> ProcessOutboundMovementAsync(
@@ -429,30 +359,23 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var createDto = new CreateStockMovementDto
         {
-            var createDto = new CreateStockMovementDto
-            {
-                MovementType = StockMovementType.Outbound.ToString(),
-                ProductId = productId,
-                FromLocationId = fromLocationId,
-                Quantity = quantity,
-                UnitCost = unitCost,
-                LotId = lotId,
-                SerialId = serialId,
-                DocumentHeaderId = documentHeaderId,
-                DocumentRowId = documentRowId,
-                Notes = notes,
-                Reason = "Sale",
-                MovementDate = movementDate ?? DateTime.UtcNow
-            };
+            MovementType = StockMovementType.Outbound.ToString(),
+            ProductId = productId,
+            FromLocationId = fromLocationId,
+            Quantity = quantity,
+            UnitCost = unitCost,
+            LotId = lotId,
+            SerialId = serialId,
+            DocumentHeaderId = documentHeaderId,
+            DocumentRowId = documentRowId,
+            Notes = notes,
+            Reason = "Sale",
+            MovementDate = movementDate ?? DateTime.UtcNow
+        };
 
-            return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
     }
 
     public async Task<StockMovementDto> ProcessTransferMovementAsync(
@@ -467,28 +390,21 @@ public class StockMovementService(
         DateTime? movementDate = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var createDto = new CreateStockMovementDto
         {
-            var createDto = new CreateStockMovementDto
-            {
-                MovementType = StockMovementType.Transfer.ToString(),
-                ProductId = productId,
-                FromLocationId = fromLocationId,
-                ToLocationId = toLocationId,
-                Quantity = quantity,
-                LotId = lotId,
-                SerialId = serialId,
-                Notes = notes,
-                Reason = "Transfer",
-                MovementDate = movementDate ?? DateTime.UtcNow
-            };
+            MovementType = StockMovementType.Transfer.ToString(),
+            ProductId = productId,
+            FromLocationId = fromLocationId,
+            ToLocationId = toLocationId,
+            Quantity = quantity,
+            LotId = lotId,
+            SerialId = serialId,
+            Notes = notes,
+            Reason = "Transfer",
+            MovementDate = movementDate ?? DateTime.UtcNow
+        };
 
-            return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
     }
 
     public async Task<StockMovementDto> ProcessAdjustmentMovementAsync(
@@ -504,67 +420,53 @@ public class StockMovementService(
         Guid? reconciliationRunId = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var createDto = new CreateStockMovementDto
         {
-            var createDto = new CreateStockMovementDto
-            {
-                MovementType = StockMovementType.Adjustment.ToString(),
-                ProductId = productId,
-                ToLocationId = adjustmentQuantity > 0 ? locationId : null,
-                FromLocationId = adjustmentQuantity < 0 ? locationId : null,
-                Quantity = Math.Abs(adjustmentQuantity),
-                LotId = lotId,
-                Notes = $"{reason} - {notes}",
-                Reason = "Adjustment",
-                MovementDate = movementDate ?? DateTime.UtcNow,
-                IsReconciliationAdjustment = isReconciliationAdjustment,
-                ReconciliationRunId = reconciliationRunId
-            };
+            MovementType = StockMovementType.Adjustment.ToString(),
+            ProductId = productId,
+            ToLocationId = adjustmentQuantity > 0 ? locationId : null,
+            FromLocationId = adjustmentQuantity < 0 ? locationId : null,
+            Quantity = Math.Abs(adjustmentQuantity),
+            LotId = lotId,
+            Notes = $"{reason} - {notes}",
+            Reason = "Adjustment",
+            MovementDate = movementDate ?? DateTime.UtcNow,
+            IsReconciliationAdjustment = isReconciliationAdjustment,
+            ReconciliationRunId = reconciliationRunId
+        };
 
-            return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
-        }
-        catch
-        {
-            throw;
-        }
+        return await CreateMovementAsync(createDto, currentUser ?? "System", cancellationToken);
     }
 
     public async Task<StockMovementDto> ReverseMovementAsync(Guid movementId, string reason, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var originalMovement = await context.StockMovements.FindAsync(new object[] { movementId }, cancellationToken);
+        if (originalMovement is null)
         {
-            var originalMovement = await context.StockMovements.FindAsync(new object[] { movementId }, cancellationToken);
-            if (originalMovement is null)
-            {
-                throw new InvalidOperationException($"Stock movement {movementId} not found");
-            }
-
-            var reversedMovementType = originalMovement.MovementType switch
-            {
-                StockMovementType.Inbound => StockMovementType.Outbound,
-                StockMovementType.Outbound => StockMovementType.Inbound,
-                _ => originalMovement.MovementType // Transfer, Adjustment unchanged
-            };
-
-            var reverseDto = new CreateStockMovementDto
-            {
-                MovementType = reversedMovementType.ToString(),
-                ProductId = originalMovement.ProductId,
-                FromLocationId = originalMovement.ToLocationId,
-                ToLocationId = originalMovement.FromLocationId,
-                Quantity = originalMovement.Quantity,
-                LotId = originalMovement.LotId,
-                SerialId = originalMovement.SerialId,
-                Notes = $"Reversal of movement {movementId}: {reason}",
-                Reason = "Return"
-            };
-
-            return await CreateMovementAsync(reverseDto, currentUser, cancellationToken);
+            throw new InvalidOperationException($"Stock movement {movementId} not found");
         }
-        catch
+
+        var reversedMovementType = originalMovement.MovementType switch
         {
-            throw;
-        }
+            StockMovementType.Inbound => StockMovementType.Outbound,
+            StockMovementType.Outbound => StockMovementType.Inbound,
+            _ => originalMovement.MovementType // Transfer, Adjustment unchanged
+        };
+
+        var reverseDto = new CreateStockMovementDto
+        {
+            MovementType = reversedMovementType.ToString(),
+            ProductId = originalMovement.ProductId,
+            FromLocationId = originalMovement.ToLocationId,
+            ToLocationId = originalMovement.FromLocationId,
+            Quantity = originalMovement.Quantity,
+            LotId = originalMovement.LotId,
+            SerialId = originalMovement.SerialId,
+            Notes = $"Reversal of movement {movementId}: {reason}",
+            Reason = "Return"
+        };
+
+        return await CreateMovementAsync(reverseDto, currentUser, cancellationToken);
     }
 
     public async Task<MovementSummaryDto> GetMovementSummaryAsync(
@@ -574,178 +476,150 @@ public class StockMovementService(
         Guid? locationId = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+        var query = context.StockMovements
+            .AsNoTracking()
+            .Where(sm => sm.TenantId == currentTenantId
+                      && !sm.IsDeleted
+                      && sm.MovementDate >= fromDate
+                      && sm.MovementDate <= toDate);
+
+        if (productId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-
-            var query = context.StockMovements
-                .AsNoTracking()
-                .Where(sm => sm.TenantId == currentTenantId
-                          && !sm.IsDeleted
-                          && sm.MovementDate >= fromDate
-                          && sm.MovementDate <= toDate);
-
-            if (productId.HasValue)
-            {
-                query = query.Where(sm => sm.ProductId == productId.Value);
-            }
-
-            if (locationId.HasValue)
-            {
-                query = query.Where(sm => sm.FromLocationId == locationId.Value || sm.ToLocationId == locationId.Value);
-            }
-
-            var movements = await query.ToListAsync(cancellationToken);
-
-            var inboundMovements = movements.Where(m => m.MovementType == StockMovementType.Inbound).ToList();
-            var outboundMovements = movements.Where(m => m.MovementType == StockMovementType.Outbound).ToList();
-
-            return new MovementSummaryDto
-            {
-                FromDate = fromDate,
-                ToDate = toDate,
-                ProductId = productId,
-                LocationId = locationId,
-                TotalInbound = inboundMovements.Sum(m => m.Quantity),
-                TotalOutbound = outboundMovements.Sum(m => m.Quantity),
-                InboundTransactionCount = inboundMovements.Count,
-                OutboundTransactionCount = outboundMovements.Count,
-                TotalInboundValue = inboundMovements.Sum(m => m.TotalValue),
-                TotalOutboundValue = outboundMovements.Sum(m => m.TotalValue)
-            };
+            query = query.Where(sm => sm.ProductId == productId.Value);
         }
-        catch
+
+        if (locationId.HasValue)
         {
-            throw;
+            query = query.Where(sm => sm.FromLocationId == locationId.Value || sm.ToLocationId == locationId.Value);
         }
+
+        var movements = await query.ToListAsync(cancellationToken);
+
+        var inboundMovements = movements.Where(m => m.MovementType == StockMovementType.Inbound).ToList();
+        var outboundMovements = movements.Where(m => m.MovementType == StockMovementType.Outbound).ToList();
+
+        return new MovementSummaryDto
+        {
+            FromDate = fromDate,
+            ToDate = toDate,
+            ProductId = productId,
+            LocationId = locationId,
+            TotalInbound = inboundMovements.Sum(m => m.Quantity),
+            TotalOutbound = outboundMovements.Sum(m => m.Quantity),
+            InboundTransactionCount = inboundMovements.Count,
+            OutboundTransactionCount = outboundMovements.Count,
+            TotalInboundValue = inboundMovements.Sum(m => m.TotalValue),
+            TotalOutboundValue = outboundMovements.Sum(m => m.TotalValue)
+        };
     }
 
     public async Task<MovementValidationResult> ValidateMovementAsync(CreateStockMovementDto movementDto, CancellationToken cancellationToken = default)
     {
-        try
+        var result = new MovementValidationResult { IsValid = true };
+
+        // Validate product exists
+        var product = await context.Products.FindAsync(new object[] { movementDto.ProductId }, cancellationToken);
+        if (product is null)
         {
-            var result = new MovementValidationResult { IsValid = true };
-
-            // Validate product exists
-            var product = await context.Products.FindAsync(new object[] { movementDto.ProductId }, cancellationToken);
-            if (product is null)
-            {
-                result.IsValid = false;
-                result.Errors.Add($"Product {movementDto.ProductId} not found");
-                return result;
-            }
-
-            // Validate locations exist
-            if (movementDto.FromLocationId.HasValue)
-            {
-                var fromLocation = await context.StorageLocations.FindAsync(new object[] { movementDto.FromLocationId.Value }, cancellationToken);
-                if (fromLocation is null)
-                {
-                    result.IsValid = false;
-                    result.Errors.Add($"From location {movementDto.FromLocationId} not found");
-                }
-            }
-
-            if (movementDto.ToLocationId.HasValue)
-            {
-                var toLocation = await context.StorageLocations.FindAsync(new object[] { movementDto.ToLocationId.Value }, cancellationToken);
-                if (toLocation is null)
-                {
-                    result.IsValid = false;
-                    result.Errors.Add($"To location {movementDto.ToLocationId} not found");
-                }
-            }
-
-            // For outbound movements, check if sufficient stock is available
-            if (movementDto.MovementType == StockMovementType.Outbound.ToString() && movementDto.FromLocationId.HasValue)
-            {
-                var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
-
-                var availableStock = await context.Stocks
-                    .Where(s => s.TenantId == currentTenantId
-                             && s.ProductId == movementDto.ProductId
-                             && s.StorageLocationId == movementDto.FromLocationId.Value
-                             && (!movementDto.LotId.HasValue || s.LotId == movementDto.LotId.Value))
-                    .SumAsync(s => s.AvailableQuantity, cancellationToken);
-
-                if (availableStock < movementDto.Quantity)
-                {
-                    result.IsValid = false;
-                    result.Errors.Add($"Insufficient stock available. Required: {movementDto.Quantity}, Available: {availableStock}");
-                }
-            }
-
+            result.IsValid = false;
+            result.Errors.Add($"Product {movementDto.ProductId} not found");
             return result;
         }
-        catch
+
+        // Validate locations exist
+        if (movementDto.FromLocationId.HasValue)
         {
-            throw;
+            var fromLocation = await context.StorageLocations.FindAsync(new object[] { movementDto.FromLocationId.Value }, cancellationToken);
+            if (fromLocation is null)
+            {
+                result.IsValid = false;
+                result.Errors.Add($"From location {movementDto.FromLocationId} not found");
+            }
         }
+
+        if (movementDto.ToLocationId.HasValue)
+        {
+            var toLocation = await context.StorageLocations.FindAsync(new object[] { movementDto.ToLocationId.Value }, cancellationToken);
+            if (toLocation is null)
+            {
+                result.IsValid = false;
+                result.Errors.Add($"To location {movementDto.ToLocationId} not found");
+            }
+        }
+
+        // For outbound movements, check if sufficient stock is available
+        if (movementDto.MovementType == StockMovementType.Outbound.ToString() && movementDto.FromLocationId.HasValue)
+        {
+            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+
+            var availableStock = await context.Stocks
+                .Where(s => s.TenantId == currentTenantId
+                         && s.ProductId == movementDto.ProductId
+                         && s.StorageLocationId == movementDto.FromLocationId.Value
+                         && (!movementDto.LotId.HasValue || s.LotId == movementDto.LotId.Value))
+                .SumAsync(s => s.AvailableQuantity, cancellationToken);
+
+            if (availableStock < movementDto.Quantity)
+            {
+                result.IsValid = false;
+                result.Errors.Add($"Insufficient stock available. Required: {movementDto.Quantity}, Available: {availableStock}");
+            }
+        }
+
+        return result;
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetPendingMovementsAsync(CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
+        var currentTenantId = tenantContext.CurrentTenantId ?? throw new InvalidOperationException("Current tenant ID is not available.");
 
-            var movements = await context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                .Include(sm => sm.Lot)
-                .Include(sm => sm.FromLocation)
-                .Include(sm => sm.ToLocation)
-                .Where(sm => sm.TenantId == currentTenantId && !sm.IsDeleted && sm.Status == MovementStatus.Planned)
-                .OrderBy(sm => sm.MovementDate)
-                .ToListAsync(cancellationToken);
+        var movements = await context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+            .Include(sm => sm.Lot)
+            .Include(sm => sm.FromLocation)
+            .Include(sm => sm.ToLocation)
+            .Where(sm => sm.TenantId == currentTenantId && !sm.IsDeleted && sm.Status == MovementStatus.Planned)
+            .OrderBy(sm => sm.MovementDate)
+            .ToListAsync(cancellationToken);
 
-            return movements.Select(m => m.ToStockMovementDto());
-        }
-        catch
-        {
-            throw;
-        }
+        return movements.Select(m => m.ToStockMovementDto());
     }
 
     public async Task<StockMovementDto> ExecutePlannedMovementAsync(Guid movementPlanId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var movement = await context.StockMovements.FindAsync(new object[] { movementPlanId }, cancellationToken);
+        if (movement is null)
         {
-            var movement = await context.StockMovements.FindAsync(new object[] { movementPlanId }, cancellationToken);
-            if (movement is null)
-            {
-                throw new InvalidOperationException($"Movement plan {movementPlanId} not found");
-            }
-
-            if (movement.Status != MovementStatus.Planned)
-            {
-                throw new InvalidOperationException($"Movement {movementPlanId} is not in planned status");
-            }
-
-            movement.Status = MovementStatus.Completed;
-            movement.MovementDate = DateTime.UtcNow;
-            movement.ModifiedAt = DateTime.UtcNow;
-            movement.ModifiedBy = currentUser;
-
-            await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Status", "Execute",
-                "Planned", "Completed", currentUser);
-
-            // Load navigation properties needed for DTO mapping
-            await context.Entry(movement).Reference(m => m.Product).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.Lot).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.Serial).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.FromLocation).LoadAsync(cancellationToken);
-            await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
-
-            return movement.ToStockMovementDto();
+            throw new InvalidOperationException($"Movement plan {movementPlanId} not found");
         }
-        catch
+
+        if (movement.Status != MovementStatus.Planned)
         {
-            throw;
+            throw new InvalidOperationException($"Movement {movementPlanId} is not in planned status");
         }
+
+        movement.Status = MovementStatus.Completed;
+        movement.MovementDate = DateTime.UtcNow;
+        movement.ModifiedAt = DateTime.UtcNow;
+        movement.ModifiedBy = currentUser;
+
+        await UpdateStockLevelsForMovementAsync(movement, cancellationToken);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("StockMovement", movement.Id, "Status", "Execute",
+            "Planned", "Completed", currentUser);
+
+        // Load navigation properties needed for DTO mapping
+        await context.Entry(movement).Reference(m => m.Product).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.Lot).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.Serial).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.FromLocation).LoadAsync(cancellationToken);
+        await context.Entry(movement).Reference(m => m.ToLocation).LoadAsync(cancellationToken);
+
+        return movement.ToStockMovementDto();
     }
 
     private async Task UpdateStockLevelsForMovementAsync(StockMovement movement, CancellationToken cancellationToken, bool throwOnMissingSourceStock = true)
@@ -886,46 +760,39 @@ public class StockMovementService(
         PaginationParameters pagination,
         CancellationToken ct = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for inventory operations.");
-            }
-
-            var query = context.StockMovements
-                .AsNoTracking()
-                .Include(sm => sm.Product)
-                    .ThenInclude(p => p!.UnitOfMeasure)
-                .Include(sm => sm.FromLocation)
-                    .ThenInclude(loc => loc!.Warehouse)
-                .Include(sm => sm.ToLocation)
-                    .ThenInclude(loc => loc!.Warehouse)
-                .Where(sm => !sm.IsDeleted && sm.TenantId == currentTenantId.Value)
-                .OrderBy(sm => sm.MovementDate);
-
-            var totalCount = await query.CountAsync(ct);
-
-
-            // Use batch processing for large datasets
-            if (totalCount > 10000)
-            {
-                logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
-                return await GetInventoryInBatchesAsync(query, ct);
-            }
-
-            // Standard export for smaller datasets
-            var items = await query
-                .Take(pagination.PageSize)
-                .ToListAsync(ct);
-
-            return items.Select(MapToInventoryExportDto);
+            throw new InvalidOperationException("Tenant context is required for inventory operations.");
         }
-        catch
+
+        var query = context.StockMovements
+            .AsNoTracking()
+            .Include(sm => sm.Product)
+                .ThenInclude(p => p!.UnitOfMeasure)
+            .Include(sm => sm.FromLocation)
+                .ThenInclude(loc => loc!.Warehouse)
+            .Include(sm => sm.ToLocation)
+                .ThenInclude(loc => loc!.Warehouse)
+            .Where(sm => !sm.IsDeleted && sm.TenantId == currentTenantId.Value)
+            .OrderBy(sm => sm.MovementDate);
+
+        var totalCount = await query.CountAsync(ct);
+
+
+        // Use batch processing for large datasets
+        if (totalCount > 10000)
         {
-            throw;
+            logger.LogWarning("Large export: {Count} records. Using batch processing.", totalCount);
+            return await GetInventoryInBatchesAsync(query, ct);
         }
+
+        // Standard export for smaller datasets
+        var items = await query
+            .Take(pagination.PageSize)
+            .ToListAsync(ct);
+
+        return items.Select(MapToInventoryExportDto);
     }
 
     private async Task<IEnumerable<Prym.DTOs.Export.InventoryExportDto>> GetInventoryInBatchesAsync(

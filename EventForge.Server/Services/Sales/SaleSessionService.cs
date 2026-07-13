@@ -31,267 +31,237 @@ public class SaleSessionService(
 
     public async Task<SaleSessionDto> CreateSessionAsync(CreateSaleSessionDto createDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = new SaleSession
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                OperatorId = createDto.OperatorId,
-                PosId = createDto.PosId,
-                CustomerId = createDto.CustomerId,
-                SaleType = createDto.SaleType,
-                TableId = createDto.TableId,
-                Currency = createDto.Currency,
-                Status = SaleSessionStatus.Open,
-                OriginalTotal = 0,
-                DiscountAmount = 0,
-                FinalTotal = 0,
-                TaxAmount = 0,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-            _ = context.SaleSessions.Add(session);
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Create", null, "Open", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Created sale session {SessionId} for operator {OperatorId} at POS {PosId}", session.Id, createDto.OperatorId, createDto.PosId);
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = new SaleSession
         {
-            throw;
-        }
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            OperatorId = createDto.OperatorId,
+            PosId = createDto.PosId,
+            CustomerId = createDto.CustomerId,
+            SaleType = createDto.SaleType,
+            TableId = createDto.TableId,
+            Currency = createDto.Currency,
+            Status = SaleSessionStatus.Open,
+            OriginalTotal = 0,
+            DiscountAmount = 0,
+            FinalTotal = 0,
+            TaxAmount = 0,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        _ = context.SaleSessions.Add(session);
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Create", null, "Open", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Created sale session {SessionId} for operator {OperatorId} at POS {PosId}", session.Id, createDto.OperatorId, createDto.PosId);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> GetSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .AsNoTracking()
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = await context.SaleSessions
+            .AsNoTracking()
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return null;
         }
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> UpdateSessionAsync(Guid sessionId, UpdateSaleSessionDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            session.CustomerId = updateDto.CustomerId ?? session.CustomerId;
-            session.FidelityCardId = updateDto.FidelityCardId ?? session.FidelityCardId;
-            session.SaleType = updateDto.SaleType ?? session.SaleType;
-
-            if (updateDto.ClearTable)
-            {
-                session.TableId = null;
-            }
-            else if (updateDto.TableId.HasValue && updateDto.TableId.Value != Guid.Empty)
-            {
-                session.TableId = updateDto.TableId.Value;
-            }
-
-            if (updateDto.Status.HasValue)
-            {
-                session.Status = (SaleSessionStatus)updateDto.Status.Value;
-            }
-
-            if (updateDto.CouponCodes is not null)
-            {
-                session.CouponCodes = updateDto.CouponCodes.Count > 0
-                    ? string.Join(",", updateDto.CouponCodes.Select(c => c.Trim().ToUpperInvariant()))
-                    : null;
-            }
-
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Update", null, session.Status.ToString(), currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Updated sale session {SessionId}", sessionId);
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return null;
         }
+
+        session.CustomerId = updateDto.CustomerId ?? session.CustomerId;
+        session.FidelityCardId = updateDto.FidelityCardId ?? session.FidelityCardId;
+        session.SaleType = updateDto.SaleType ?? session.SaleType;
+
+        if (updateDto.ClearTable)
+        {
+            session.TableId = null;
+        }
+        else if (updateDto.TableId.HasValue && updateDto.TableId.Value != Guid.Empty)
+        {
+            session.TableId = updateDto.TableId.Value;
+        }
+
+        if (updateDto.Status.HasValue)
+        {
+            session.Status = (SaleSessionStatus)updateDto.Status.Value;
+        }
+
+        if (updateDto.CouponCodes is not null)
+        {
+            session.CouponCodes = updateDto.CouponCodes.Count > 0
+                ? string.Join(",", updateDto.CouponCodes.Select(c => c.Trim().ToUpperInvariant()))
+                : null;
+        }
+
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Update", null, session.Status.ToString(), currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Updated sale session {SessionId}", sessionId);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<bool> DeleteSessionAsync(Guid sessionId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return false;
-            }
-
-            session.IsDeleted = true;
-            session.DeletedAt = DateTime.UtcNow;
-            session.DeletedBy = currentUser;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Deleted sale session {SessionId}", sessionId);
-
-            return true;
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = await context.SaleSessions
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return false;
         }
+
+        session.IsDeleted = true;
+        session.DeletedAt = DateTime.UtcNow;
+        session.DeletedBy = currentUser;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Deleted sale session {SessionId}", sessionId);
+
+        return true;
     }
 
     public async Task<SaleSessionDto?> AddItemAsync(Guid sessionId, AddSaleItemDto addItemDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
+        }
+
+        // Validate session exists (no tracking to avoid modifying tracked SaleSession)
+        var sessionExists = await context.SaleSessions
+            .AsNoTracking()
+            .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (!sessionExists)
+        {
+            return null;
+        }
+
+        // Load product (we need VAT and price info)
+        var product = await context.Products
+            .AsNoTracking()
+            .Include(p => p.VatRate)
+            .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
+
+        if (product is null)
+        {
+            logger.LogWarning(
+                "Product not found - ProductId: {ProductId}, TenantId: {TenantId}, SessionId: {SessionId}",
+                addItemDto.ProductId,
+                currentTenantId.Value,
+                sessionId);
+            throw new InvalidOperationException($"Product {addItemDto.ProductId} not found or not accessible.");
+        }
+
+        var unitPrice = addItemDto.UnitPrice ?? product.DefaultPrice ?? 0m;
+        var subtotal = unitPrice * addItemDto.Quantity;
+        var discountAmount = subtotal * (addItemDto.DiscountPercent / 100m);
+        var totalAmount = subtotal - discountAmount;
+
+        var taxRate = 0m;
+        if (product.VatRateId.HasValue && product.VatRate is not null)
+        {
+            taxRate = product.VatRate.Percentage;
+        }
+        var taxAmount = totalAmount * (taxRate / 100m);
+
+        var item = new SaleItem
+        {
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            SaleSessionId = sessionId,
+            ProductId = addItemDto.ProductId,
+            ProductCode = product.Code,
+            ProductName = product.Name,
+            UnitPrice = unitPrice,
+            Quantity = addItemDto.Quantity,
+            DiscountPercent = addItemDto.DiscountPercent,
+            TotalAmount = totalAmount,
+            TaxRate = taxRate,
+            TaxAmount = taxAmount,
+            Notes = addItemDto.Notes,
+            IsService = addItemDto.IsService,
+            PriceListId = addItemDto.PriceListId,
+            PriceListName = addItemDto.PriceListName,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+
+        // Use explicit transaction: INSERT item via EF (tracked only for the item), then update session totals via raw SQL.
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
+            // Insert the new sale item (tracked only as SaleItem)
+            context.SaleItems.Add(item);
+            await context.SaveChangesAsync(cancellationToken);
 
-            // Validate session exists (no tracking to avoid modifying tracked SaleSession)
-            var sessionExists = await context.SaleSessions
-                .AsNoTracking()
-                .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+            logger.LogInformation("Inserted SaleItem {ItemId} for Session {SessionId}", item.Id, sessionId);
 
-            if (!sessionExists)
-            {
-                return null;
-            }
+            // Recalculate and update totals using a single SQL statement to avoid loading/modifying the SaleSession entity
+            var now = DateTime.UtcNow;
 
-            // Load product (we need VAT and price info)
-            var product = await context.Products
-                .AsNoTracking()
-                .Include(p => p.VatRate)
-                .FirstOrDefaultAsync(p => p.Id == addItemDto.ProductId && p.TenantId == currentTenantId.Value && !p.IsDeleted, cancellationToken);
-
-            if (product is null)
-            {
-                logger.LogWarning(
-                    "Product not found - ProductId: {ProductId}, TenantId: {TenantId}, SessionId: {SessionId}",
-                    addItemDto.ProductId,
-                    currentTenantId.Value,
-                    sessionId);
-                throw new InvalidOperationException($"Product {addItemDto.ProductId} not found or not accessible.");
-            }
-
-            var unitPrice = addItemDto.UnitPrice ?? product.DefaultPrice ?? 0m;
-            var subtotal = unitPrice * addItemDto.Quantity;
-            var discountAmount = subtotal * (addItemDto.DiscountPercent / 100m);
-            var totalAmount = subtotal - discountAmount;
-
-            var taxRate = 0m;
-            if (product.VatRateId.HasValue && product.VatRate is not null)
-            {
-                taxRate = product.VatRate.Percentage;
-            }
-            var taxAmount = totalAmount * (taxRate / 100m);
-
-            var item = new SaleItem
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                SaleSessionId = sessionId,
-                ProductId = addItemDto.ProductId,
-                ProductCode = product.Code,
-                ProductName = product.Name,
-                UnitPrice = unitPrice,
-                Quantity = addItemDto.Quantity,
-                DiscountPercent = addItemDto.DiscountPercent,
-                TotalAmount = totalAmount,
-                TaxRate = taxRate,
-                TaxAmount = taxAmount,
-                Notes = addItemDto.Notes,
-                IsService = addItemDto.IsService,
-                PriceListId = addItemDto.PriceListId,
-                PriceListName = addItemDto.PriceListName,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-
-            // Use explicit transaction: INSERT item via EF (tracked only for the item), then update session totals via raw SQL.
-            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                // Insert the new sale item (tracked only as SaleItem)
-                context.SaleItems.Add(item);
-                await context.SaveChangesAsync(cancellationToken);
-
-                logger.LogInformation("Inserted SaleItem {ItemId} for Session {SessionId}", item.Id, sessionId);
-
-                // Recalculate and update totals using a single SQL statement to avoid loading/modifying the SaleSession entity
-                var now = DateTime.UtcNow;
-
-                // This uses parameterization via EF Core interpolated SQL to avoid SQL injection.
-                await context.Database.ExecuteSqlInterpolatedAsync($@"
+            // This uses parameterization via EF Core interpolated SQL to avoid SQL injection.
+            await context.Database.ExecuteSqlInterpolatedAsync($@"
 UPDATE ss
 SET ss.OriginalTotal = COALESCE(s.OriginalTotal, 0),
     ss.DiscountAmount = COALESCE(s.DiscountAmount, 0),
@@ -314,41 +284,36 @@ LEFT JOIN (
 WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 ", cancellationToken);
 
-                // Commit SQL transaction (item insert + totals update)
-                await transaction.CommitAsync(cancellationToken);
+            // Commit SQL transaction (item insert + totals update)
+            await transaction.CommitAsync(cancellationToken);
 
-                logger.LogInformation("Session {SessionId} totals updated after adding item {ItemId}.", sessionId, item.Id);
+            logger.LogInformation("Session {SessionId} totals updated after adding item {ItemId}.", sessionId, item.Id);
 
-                // Audit log: record that an item was added to the session
-                _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
+            // Audit log: record that an item was added to the session
+            _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Items", "AddItem", null, $"Added {product.Name}", currentUser, "Sale Session", cancellationToken);
 
-                // Reload full session (with includes) to map and return DTO
-                var reloadedSession = await context.SaleSessions
-                    .Include(s => s.Items)
-                    .Include(s => s.Payments)
-                    .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                    .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+            // Reload full session (with includes) to map and return DTO
+            var reloadedSession = await context.SaleSessions
+                .Include(s => s.Items)
+                .Include(s => s.Payments)
+                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
 
-                if (reloadedSession is null)
-                {
-                    logger.LogWarning("Session {SessionId} not found after insert/update", sessionId);
-                    return null;
-                }
-
-                // Apply promotions to all items in the session and recalculate totals
-                var nearMissPromotions = await ApplyPromotionsToSessionItemsAsync(reloadedSession, currentUser, cancellationToken);
-
-                return await MapToDtoAsync(reloadedSession, cancellationToken, nearMissPromotions);
-            }
-            catch
+            if (reloadedSession is null)
             {
-                // If something goes wrong, ensure rollback and rethrow
-                await transaction.RollbackAsync(cancellationToken);
-                throw;
+                logger.LogWarning("Session {SessionId} not found after insert/update", sessionId);
+                return null;
             }
+
+            // Apply promotions to all items in the session and recalculate totals
+            var nearMissPromotions = await ApplyPromotionsToSessionItemsAsync(reloadedSession, currentUser, cancellationToken);
+
+            return await MapToDtoAsync(reloadedSession, cancellationToken, nearMissPromotions);
         }
         catch
         {
+            // If something goes wrong, ensure rollback and rethrow
+            await transaction.RollbackAsync(cancellationToken);
             throw;
         }
     }
@@ -499,170 +464,149 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
     public async Task<SaleSessionDto?> AddPaymentAsync(Guid sessionId, AddSalePaymentDto addPaymentDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            // Verify session exists (no tracking to avoid modifying SaleSession row)
-            var sessionExists = await context.SaleSessions
-                .AsNoTracking()
-                .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (!sessionExists)
-            {
-                return null;
-            }
-
-            var payment = new SalePayment
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                SaleSessionId = sessionId,
-                PaymentMethodId = addPaymentDto.PaymentMethodId,
-                Amount = addPaymentDto.Amount,
-                Status = Data.Entities.Sales.PaymentStatus.Completed,
-                Notes = addPaymentDto.Notes,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-            // Insert payment only (avoid touching SaleSession entity)
-            context.SalePayments.Add(payment);
-            await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Inserted payment {PaymentId} of {Amount} for sale session {SessionId}", payment.Id, payment.Amount, sessionId);
-
-            // Reload full session with includes to return a consistent DTO
-            var reloadedSession = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (reloadedSession is null)
-            {
-                logger.LogWarning("Session {SessionId} not found after inserting payment {PaymentId}", sessionId, payment.Id);
-                return null;
-            }
-
-            return await MapToDtoAsync(reloadedSession, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        // Verify session exists (no tracking to avoid modifying SaleSession row)
+        var sessionExists = await context.SaleSessions
+            .AsNoTracking()
+            .AnyAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (!sessionExists)
         {
-            throw;
+            return null;
         }
+
+        var payment = new SalePayment
+        {
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            SaleSessionId = sessionId,
+            PaymentMethodId = addPaymentDto.PaymentMethodId,
+            Amount = addPaymentDto.Amount,
+            Status = Data.Entities.Sales.PaymentStatus.Completed,
+            Notes = addPaymentDto.Notes,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        // Insert payment only (avoid touching SaleSession entity)
+        context.SalePayments.Add(payment);
+        await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", sessionId, "Payments", "AddPayment", null, $"Payment: {addPaymentDto.Amount}", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Inserted payment {PaymentId} of {Amount} for sale session {SessionId}", payment.Id, payment.Amount, sessionId);
+
+        // Reload full session with includes to return a consistent DTO
+        var reloadedSession = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (reloadedSession is null)
+        {
+            logger.LogWarning("Session {SessionId} not found after inserting payment {PaymentId}", sessionId, payment.Id);
+            return null;
+        }
+
+        return await MapToDtoAsync(reloadedSession, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> RemovePaymentAsync(Guid sessionId, Guid paymentId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            var payment = session.Payments.FirstOrDefault(p => p.Id == paymentId && !p.IsDeleted);
-            if (payment is null)
-            {
-                throw new InvalidOperationException($"Payment {paymentId} not found in session {sessionId}.");
-            }
-
-            payment.IsDeleted = true;
-            payment.DeletedAt = DateTime.UtcNow;
-            payment.DeletedBy = currentUser;
-
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "RemovePayment", payment.Amount.ToString(), "Removed", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Removed payment {PaymentId} from sale session {SessionId}", paymentId, sessionId);
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return null;
         }
+
+        var payment = session.Payments.FirstOrDefault(p => p.Id == paymentId && !p.IsDeleted);
+        if (payment is null)
+        {
+            throw new InvalidOperationException($"Payment {paymentId} not found in session {sessionId}.");
+        }
+
+        payment.IsDeleted = true;
+        payment.DeletedAt = DateTime.UtcNow;
+        payment.DeletedBy = currentUser;
+
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Payments", "RemovePayment", payment.Amount.ToString(), "Removed", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Removed payment {PaymentId} from sale session {SessionId}", paymentId, sessionId);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> AddNoteAsync(Guid sessionId, AddSessionNoteDto addNoteDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            // Get user ID from username BEFORE loading session to avoid DataReader conflicts
-            var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            var note = new SessionNote
-            {
-                Id = Guid.NewGuid(),
-                TenantId = currentTenantId.Value,
-                SaleSessionId = sessionId,
-                NoteFlagId = addNoteDto.NoteFlagId,
-                Text = addNoteDto.Text,
-                CreatedByUserId = userId,
-                CreatedBy = currentUser,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedBy = currentUser,
-                ModifiedAt = DateTime.UtcNow
-            };
-
-            session.Notes.Add(note);
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Notes", "AddNote", null, "Note added", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Added note to sale session {SessionId}", sessionId);
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        // Get user ID from username BEFORE loading session to avoid DataReader conflicts
+        var userId = await GetUserIdFromUsernameAsync(currentUser, cancellationToken);
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return null;
         }
+
+        var note = new SessionNote
+        {
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            SaleSessionId = sessionId,
+            NoteFlagId = addNoteDto.NoteFlagId,
+            Text = addNoteDto.Text,
+            CreatedByUserId = userId,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        session.Notes.Add(note);
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Notes", "AddNote", null, "Note added", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Added note to sale session {SessionId}", sessionId);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> ApplyGlobalDiscountAsync(
@@ -671,539 +615,490 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
         string currentUser,
         CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            // Validate session state
-            if (session.Status == SaleSessionStatus.Closed)
-            {
-                throw new InvalidOperationException("Cannot apply discount to closed session");
-            }
-
-            // Apply discount to each item
-            foreach (var item in session.Items)
-            {
-                item.ManualDiscountPercent = discountDto.DiscountPercent;
-                item.DiscountPercent = item.ManualDiscountPercent + item.PromotionDiscountPercent;
-
-                // Recalculate item totals
-                var subtotal = item.UnitPrice * item.Quantity;
-                var discountAmount = subtotal * (item.DiscountPercent / 100);
-                var subtotalAfterDiscount = subtotal - discountAmount;
-                item.TaxAmount = subtotalAfterDiscount * (item.TaxRate / 100);
-                item.TotalAmount = subtotalAfterDiscount + item.TaxAmount;
-
-                item.ModifiedBy = currentUser;
-                item.ModifiedAt = DateTime.UtcNow;
-            }
-
-            // Recalculate session totals
-            session.OriginalTotal = session.Items.Sum(i => i.UnitPrice * i.Quantity);
-            session.DiscountAmount = session.Items.Sum(i => (i.UnitPrice * i.Quantity) * (i.DiscountPercent / 100));
-            session.TaxAmount = session.Items.Sum(i => i.TaxAmount);
-            session.FinalTotal = session.OriginalTotal - session.DiscountAmount + session.TaxAmount;
-
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "SaleSession",
-                session.Id,
-                "DiscountAmount",
-                "ApplyGlobalDiscount",
-                null,
-                $"{discountDto.DiscountPercent}% - {discountDto.Reason ?? "No reason"}",
-                currentUser,
-                "Sale Session",
-                cancellationToken);
-
-            logger.LogInformation(
-                "Applied {DiscountPercent}% global discount to session {SessionId} by {User}",
-                discountDto.DiscountPercent, sessionId, currentUser);
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return null;
         }
+
+        // Validate session state
+        if (session.Status == SaleSessionStatus.Closed)
+        {
+            throw new InvalidOperationException("Cannot apply discount to closed session");
+        }
+
+        // Apply discount to each item
+        foreach (var item in session.Items)
+        {
+            item.ManualDiscountPercent = discountDto.DiscountPercent;
+            item.DiscountPercent = item.ManualDiscountPercent + item.PromotionDiscountPercent;
+
+            // Recalculate item totals
+            var subtotal = item.UnitPrice * item.Quantity;
+            var discountAmount = subtotal * (item.DiscountPercent / 100);
+            var subtotalAfterDiscount = subtotal - discountAmount;
+            item.TaxAmount = subtotalAfterDiscount * (item.TaxRate / 100);
+            item.TotalAmount = subtotalAfterDiscount + item.TaxAmount;
+
+            item.ModifiedBy = currentUser;
+            item.ModifiedAt = DateTime.UtcNow;
+        }
+
+        // Recalculate session totals
+        session.OriginalTotal = session.Items.Sum(i => i.UnitPrice * i.Quantity);
+        session.DiscountAmount = session.Items.Sum(i => (i.UnitPrice * i.Quantity) * (i.DiscountPercent / 100));
+        session.TaxAmount = session.Items.Sum(i => i.TaxAmount);
+        session.FinalTotal = session.OriginalTotal - session.DiscountAmount + session.TaxAmount;
+
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "SaleSession",
+            session.Id,
+            "DiscountAmount",
+            "ApplyGlobalDiscount",
+            null,
+            $"{discountDto.DiscountPercent}% - {discountDto.Reason ?? "No reason"}",
+            currentUser,
+            "Sale Session",
+            cancellationToken);
+
+        logger.LogInformation(
+            "Applied {DiscountPercent}% global discount to session {SessionId} by {User}",
+            discountDto.DiscountPercent, sessionId, currentUser);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> CalculateTotalsAsync(Guid sessionId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            await RecalculateTotalsAsync(session, cancellationToken);
-
-            logger.LogInformation("Sale session {SessionId} totals recalculated.", sessionId);
-
-            return await MapToDtoAsync(session, cancellationToken);
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
         {
-            throw;
+            return null;
         }
+
+        await RecalculateTotalsAsync(session, cancellationToken);
+
+        logger.LogInformation("Sale session {SessionId} totals recalculated.", sessionId);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<SaleSessionDto?> CloseSessionAsync(Guid sessionId, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
+        }
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments).ThenInclude(p => p.PaymentMethod)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
+        {
+            return null;
+        }
+
+        // Validate that session is fully paid
+        var completedPayments = session.Payments.Where(p => !p.IsDeleted && p.Status == Data.Entities.Sales.PaymentStatus.Completed).Sum(p => p.Amount);
+        if (completedPayments < session.FinalTotal)
+        {
+            throw new InvalidOperationException($"Session cannot be closed. Total paid ({completedPayments}) is less than final total ({session.FinalTotal}).");
+        }
+
+        // No manual transaction needed - EF Core will use implicit transaction via SaveChangesAsync
+        // This prevents nested transaction errors when GenerateDocumentNumberAsync is called
+        session.Status = SaleSessionStatus.Closed;
+        session.ClosedAt = DateTime.UtcNow;
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        // Generate document
+        var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
+
+        if (documentId.HasValue)
+        {
+            session.DocumentId = documentId.Value;
+        }
+
+        // SaveChanges will handle transaction atomicity
+        await context.SaveChangesAsync(cancellationToken);
+
+        // Update fiscal drawer session totals (best-effort — session is already closed)
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            if (session.PosId != Guid.Empty)
             {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments).ThenInclude(p => p.PaymentMethod)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            // Validate that session is fully paid
-            var completedPayments = session.Payments.Where(p => !p.IsDeleted && p.Status == Data.Entities.Sales.PaymentStatus.Completed).Sum(p => p.Amount);
-            if (completedPayments < session.FinalTotal)
-            {
-                throw new InvalidOperationException($"Session cannot be closed. Total paid ({completedPayments}) is less than final total ({session.FinalTotal}).");
-            }
-
-            // No manual transaction needed - EF Core will use implicit transaction via SaveChangesAsync
-            // This prevents nested transaction errors when GenerateDocumentNumberAsync is called
-            session.Status = SaleSessionStatus.Closed;
-            session.ClosedAt = DateTime.UtcNow;
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            // Generate document
-            var documentId = await GenerateReceiptDocumentAsync(session, currentUser, cancellationToken);
-
-            if (documentId.HasValue)
-            {
-                session.DocumentId = documentId.Value;
-            }
-
-            // SaveChanges will handle transaction atomicity
-            await context.SaveChangesAsync(cancellationToken);
-
-            // Update fiscal drawer session totals (best-effort — session is already closed)
-            try
-            {
-                if (session.PosId != Guid.Empty)
+                var drawer = await fiscalDrawerService.GetFiscalDrawerByPosIdAsync(session.PosId, cancellationToken);
+                if (drawer is not null)
                 {
-                    var drawer = await fiscalDrawerService.GetFiscalDrawerByPosIdAsync(session.PosId, cancellationToken);
-                    if (drawer is not null)
-                    {
-                        var paidItems = session.Payments
-                            .Where(p => !p.IsDeleted && p.Status == Data.Entities.Sales.PaymentStatus.Completed)
-                            .ToList();
+                    var paidItems = session.Payments
+                        .Where(p => !p.IsDeleted && p.Status == Data.Entities.Sales.PaymentStatus.Completed)
+                        .ToList();
 
-                        var cashAmount = paidItems
-                            .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) == true)
-                            .Sum(p => p.Amount);
-                        var cardAmount = paidItems
-                            .Where(p => p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) == true)
-                            .Sum(p => p.Amount);
-                        var otherAmount = paidItems
-                            .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) != true
-                                     && p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) != true)
-                            .Sum(p => p.Amount);
+                    var cashAmount = paidItems
+                        .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) == true)
+                        .Sum(p => p.Amount);
+                    var cardAmount = paidItems
+                        .Where(p => p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) == true)
+                        .Sum(p => p.Amount);
+                    var otherAmount = paidItems
+                        .Where(p => p.PaymentMethod?.Code.Contains("CASH", StringComparison.OrdinalIgnoreCase) != true
+                                 && p.PaymentMethod?.Code.Contains("CARD", StringComparison.OrdinalIgnoreCase) != true)
+                        .Sum(p => p.Amount);
 
-                        await fiscalDrawerService.RecordSaleTransactionAsync(
-                            drawer.Id, cashAmount, cardAmount, otherAmount, session.Id, currentUser, cancellationToken);
-                    }
+                    await fiscalDrawerService.RecordSaleTransactionAsync(
+                        drawer.Id, cashAmount, cardAmount, otherAmount, session.Id, currentUser, cancellationToken);
                 }
             }
-            catch (Exception fiscalEx)
-            {
-                logger.LogWarning(fiscalEx, "Failed to record fiscal drawer transaction for session {SessionId}, but session was closed successfully", sessionId);
-            }
-
-            // Log audit entry (best effort - don't fail session close if audit fails)
-            try
-            {
-                await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
-            }
-            catch (Exception auditEx)
-            {
-                logger.LogWarning(auditEx, "Failed to log audit entry for session {SessionId}, but session was closed successfully", sessionId);
-            }
-
-            logger.LogInformation("Closed sale session {SessionId}", sessionId);
-
-            return await MapToDtoAsync(session, cancellationToken);
         }
-        catch
+        catch (Exception fiscalEx)
         {
-            throw;
+            logger.LogWarning(fiscalEx, "Failed to record fiscal drawer transaction for session {SessionId}, but session was closed successfully", sessionId);
         }
+
+        // Log audit entry (best effort - don't fail session close if audit fails)
+        try
+        {
+            await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Close", "Open", "Closed", currentUser, "Sale Session", cancellationToken);
+        }
+        catch (Exception auditEx)
+        {
+            logger.LogWarning(auditEx, "Failed to log audit entry for session {SessionId}, but session was closed successfully", sessionId);
+        }
+
+        logger.LogInformation("Closed sale session {SessionId}", sessionId);
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     public async Task<PagedResult<SaleSessionDto>> GetPOSSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var baseQuery = context.SaleSessions
-                .AsNoTracking()
-                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
-
-            var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
-            var sessions = await baseQuery
-                .AsSplitQuery()
-                .Include(s => s.Items.Where(i => !i.IsDeleted))
-                .Include(s => s.Payments.Where(p => !p.IsDeleted))
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .OrderByDescending(s => s.CreatedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
-            var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
-            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
-
-            var operators = await context.StoreUsers
-                .AsNoTracking()
-                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
-                .Select(u => new { u.Id, u.Name })
-                .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
-
-            var poses = await context.StorePoses
-                .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
-                .Select(p => new { p.Id, p.Name })
-                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
-
-            // Load all products for all sessions in a single batch
-            var allProductIds = sessions
-                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
-                .Distinct()
-                .ToList();
-
-            var allProducts = await context.Products
-                .AsNoTracking()
-                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
-                .Include(p => p.Brand)
-                .Include(p => p.VatRate)
-                .Include(p => p.ImageDocument)
-                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
-
-            var dtos = new List<SaleSessionDto>();
-            foreach (var session in sessions)
-            {
-                var dto = MapToDtoWithProducts(session, allProducts);
-                dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
-                dto.PosName = poses.GetValueOrDefault(session.PosId);
-                dtos.Add(dto);
-            }
-
-            return new PagedResult<SaleSessionDto>
-            {
-                Items = dtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var baseQuery = context.SaleSessions
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+        var sessions = await baseQuery
+            .AsSplitQuery()
+            .Include(s => s.Items.Where(i => !i.IsDeleted))
+            .Include(s => s.Payments.Where(p => !p.IsDeleted))
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
+        var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
+        var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+        var operators = await context.StoreUsers
+            .AsNoTracking()
+            .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
+            .Select(u => new { u.Id, u.Name })
+            .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+
+        var poses = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
+            .Select(p => new { p.Id, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+        // Load all products for all sessions in a single batch
+        var allProductIds = sessions
+            .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+            .Distinct()
+            .ToList();
+
+        var allProducts = await context.Products
+            .AsNoTracking()
+            .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+            .Include(p => p.Brand)
+            .Include(p => p.VatRate)
+            .Include(p => p.ImageDocument)
+            .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+
+        var dtos = new List<SaleSessionDto>();
+        foreach (var session in sessions)
         {
-            throw;
+            var dto = MapToDtoWithProducts(session, allProducts);
+            dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
+            dto.PosName = poses.GetValueOrDefault(session.PosId);
+            dtos.Add(dto);
         }
+
+        return new PagedResult<SaleSessionDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<PagedResult<SaleSessionDto>> GetSessionsByOperatorAsync(Guid operatorId, PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var baseQuery = context.SaleSessions
-                .AsNoTracking()
-                .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && s.OperatorId == operatorId);
-
-            var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
-            var sessions = await baseQuery
-                .AsSplitQuery()
-                .Include(s => s.Items.Where(i => !i.IsDeleted))
-                .Include(s => s.Payments.Where(p => !p.IsDeleted))
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .OrderByDescending(s => s.CreatedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
-            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
-
-            var operatorName = await context.StoreUsers
-                .AsNoTracking()
-                .Where(u => u.Id == operatorId && u.TenantId == currentTenantId.Value)
-                .Select(u => u.Name)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            var poses = await context.StorePoses
-                .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
-                .Select(p => new { p.Id, p.Name })
-                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
-
-            // Load all products for all sessions in a single batch
-            var allProductIds = sessions
-                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
-                .Distinct()
-                .ToList();
-
-            var allProducts = await context.Products
-                .AsNoTracking()
-                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
-                .Include(p => p.Brand)
-                .Include(p => p.VatRate)
-                .Include(p => p.ImageDocument)
-                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
-
-            var dtos = new List<SaleSessionDto>();
-            foreach (var session in sessions)
-            {
-                var dto = MapToDtoWithProducts(session, allProducts);
-                dto.OperatorName = operatorName;
-                dto.PosName = poses.GetValueOrDefault(session.PosId);
-                dtos.Add(dto);
-            }
-
-            return new PagedResult<SaleSessionDto>
-            {
-                Items = dtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var baseQuery = context.SaleSessions
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value && !s.IsDeleted && s.OperatorId == operatorId);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+        var sessions = await baseQuery
+            .AsSplitQuery()
+            .Include(s => s.Items.Where(i => !i.IsDeleted))
+            .Include(s => s.Payments.Where(p => !p.IsDeleted))
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
+        var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+        var operatorName = await context.StoreUsers
+            .AsNoTracking()
+            .Where(u => u.Id == operatorId && u.TenantId == currentTenantId.Value)
+            .Select(u => u.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var poses = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
+            .Select(p => new { p.Id, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+        // Load all products for all sessions in a single batch
+        var allProductIds = sessions
+            .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+            .Distinct()
+            .ToList();
+
+        var allProducts = await context.Products
+            .AsNoTracking()
+            .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+            .Include(p => p.Brand)
+            .Include(p => p.VatRate)
+            .Include(p => p.ImageDocument)
+            .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+
+        var dtos = new List<SaleSessionDto>();
+        foreach (var session in sessions)
         {
-            throw;
+            var dto = MapToDtoWithProducts(session, allProducts);
+            dto.OperatorName = operatorName;
+            dto.PosName = poses.GetValueOrDefault(session.PosId);
+            dtos.Add(dto);
         }
+
+        return new PagedResult<SaleSessionDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<PagedResult<SaleSessionDto>> GetSessionsByDateAsync(DateTime startDate, DateTime? endDate, PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var end = endDate ?? DateTime.UtcNow;
-
-            var baseQuery = context.SaleSessions
-                .AsNoTracking()
-                .Where(s => s.TenantId == currentTenantId.Value
-                    && !s.IsDeleted
-                    && s.CreatedAt >= startDate
-                    && s.CreatedAt <= end);
-
-            var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
-            var sessions = await baseQuery
-                .AsSplitQuery()
-                .Include(s => s.Items.Where(i => !i.IsDeleted))
-                .Include(s => s.Payments.Where(p => !p.IsDeleted))
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .OrderByDescending(s => s.CreatedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
-            var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
-            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
-
-            var operators = await context.StoreUsers
-                .AsNoTracking()
-                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
-                .Select(u => new { u.Id, u.Name })
-                .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
-
-            var poses = await context.StorePoses
-                .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
-                .Select(p => new { p.Id, p.Name })
-                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
-
-            // Load all products for all sessions in a single batch
-            var allProductIds = sessions
-                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
-                .Distinct()
-                .ToList();
-
-            var allProducts = await context.Products
-                .AsNoTracking()
-                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
-                .Include(p => p.Brand)
-                .Include(p => p.VatRate)
-                .Include(p => p.ImageDocument)
-                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
-
-            var dtos = new List<SaleSessionDto>();
-            foreach (var session in sessions)
-            {
-                var dto = MapToDtoWithProducts(session, allProducts);
-                dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
-                dto.PosName = poses.GetValueOrDefault(session.PosId);
-                dtos.Add(dto);
-            }
-
-            return new PagedResult<SaleSessionDto>
-            {
-                Items = dtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var end = endDate ?? DateTime.UtcNow;
+
+        var baseQuery = context.SaleSessions
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value
+                && !s.IsDeleted
+                && s.CreatedAt >= startDate
+                && s.CreatedAt <= end);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+        var sessions = await baseQuery
+            .AsSplitQuery()
+            .Include(s => s.Items.Where(i => !i.IsDeleted))
+            .Include(s => s.Payments.Where(p => !p.IsDeleted))
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
+        var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
+        var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+        var operators = await context.StoreUsers
+            .AsNoTracking()
+            .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
+            .Select(u => new { u.Id, u.Name })
+            .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+
+        var poses = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
+            .Select(p => new { p.Id, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+        // Load all products for all sessions in a single batch
+        var allProductIds = sessions
+            .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+            .Distinct()
+            .ToList();
+
+        var allProducts = await context.Products
+            .AsNoTracking()
+            .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+            .Include(p => p.Brand)
+            .Include(p => p.VatRate)
+            .Include(p => p.ImageDocument)
+            .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+
+        var dtos = new List<SaleSessionDto>();
+        foreach (var session in sessions)
         {
-            throw;
+            var dto = MapToDtoWithProducts(session, allProducts);
+            dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
+            dto.PosName = poses.GetValueOrDefault(session.PosId);
+            dtos.Add(dto);
         }
+
+        return new PagedResult<SaleSessionDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     public async Task<PagedResult<SaleSessionDto>> GetOpenSessionsAsync(PaginationParameters pagination, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var baseQuery = context.SaleSessions
-                .AsNoTracking()
-                .Where(s => s.TenantId == currentTenantId.Value
-                    && !s.IsDeleted
-                    && !s.ClosedAt.HasValue); // Session still open
-
-            var totalCount = await baseQuery.CountAsync(cancellationToken);
-
-            // Use AsSplitQuery to prevent cartesian explosion with multiple collections
-            var sessions = await baseQuery
-                .AsSplitQuery()
-                .Include(s => s.Items.Where(i => !i.IsDeleted))
-                .Include(s => s.Payments.Where(p => !p.IsDeleted))
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .OrderByDescending(s => s.CreatedAt)
-                .Skip(pagination.CalculateSkip())
-                .Take(pagination.PageSize)
-                .ToListAsync(cancellationToken);
-
-            // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
-            var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
-            var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
-
-            var operators = await context.StoreUsers
-                .AsNoTracking()
-                .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
-                .Select(u => new { u.Id, u.Name })
-                .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
-
-            var poses = await context.StorePoses
-                .AsNoTracking()
-                .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
-                .Select(p => new { p.Id, p.Name })
-                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
-
-            // Load all products for all sessions in a single batch
-            var allProductIds = sessions
-                .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
-                .Distinct()
-                .ToList();
-
-            var allProducts = await context.Products
-                .AsNoTracking()
-                .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
-                .Include(p => p.Brand)
-                .Include(p => p.VatRate)
-                .Include(p => p.ImageDocument)
-                .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
-
-            var dtos = new List<SaleSessionDto>();
-            foreach (var session in sessions)
-            {
-                var dto = MapToDtoWithProducts(session, allProducts);
-                dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
-                dto.PosName = poses.GetValueOrDefault(session.PosId);
-                dtos.Add(dto);
-            }
-
-            return new PagedResult<SaleSessionDto>
-            {
-                Items = dtos,
-                TotalCount = totalCount,
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            };
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var baseQuery = context.SaleSessions
+            .AsNoTracking()
+            .Where(s => s.TenantId == currentTenantId.Value
+                && !s.IsDeleted
+                && !s.ClosedAt.HasValue); // Session still open
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+
+        // Use AsSplitQuery to prevent cartesian explosion with multiple collections
+        var sessions = await baseQuery
+            .AsSplitQuery()
+            .Include(s => s.Items.Where(i => !i.IsDeleted))
+            .Include(s => s.Payments.Where(p => !p.IsDeleted))
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip(pagination.CalculateSkip())
+            .Take(pagination.PageSize)
+            .ToListAsync(cancellationToken);
+
+        // Load Operator and POS names in a single query (no IsDeleted filter for historical data integrity)
+        var operatorIds = sessions.Select(s => s.OperatorId).Distinct().ToList();
+        var posIds = sessions.Select(s => s.PosId).Distinct().ToList();
+
+        var operators = await context.StoreUsers
+            .AsNoTracking()
+            .Where(u => operatorIds.Contains(u.Id) && u.TenantId == currentTenantId.Value)
+            .Select(u => new { u.Id, u.Name })
+            .ToDictionaryAsync(u => u.Id, u => u.Name, cancellationToken);
+
+        var poses = await context.StorePoses
+            .AsNoTracking()
+            .Where(p => posIds.Contains(p.Id) && p.TenantId == currentTenantId.Value)
+            .Select(p => new { p.Id, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+        // Load all products for all sessions in a single batch
+        var allProductIds = sessions
+            .SelectMany(s => s.Items.Where(i => !i.IsDeleted).Select(i => i.ProductId))
+            .Distinct()
+            .ToList();
+
+        var allProducts = await context.Products
+            .AsNoTracking()
+            .Where(p => allProductIds.Contains(p.Id) && !p.IsDeleted)
+            .Include(p => p.Brand)
+            .Include(p => p.VatRate)
+            .Include(p => p.ImageDocument)
+            .ToDictionaryAsync(p => p.Id, p => p, cancellationToken);
+
+        var dtos = new List<SaleSessionDto>();
+        foreach (var session in sessions)
         {
-            throw;
+            var dto = MapToDtoWithProducts(session, allProducts);
+            dto.OperatorName = operators.GetValueOrDefault(session.OperatorId);
+            dto.PosName = poses.GetValueOrDefault(session.PosId);
+            dtos.Add(dto);
         }
+
+        return new PagedResult<SaleSessionDto>
+        {
+            Items = dtos,
+            TotalCount = totalCount,
+            Page = pagination.Page,
+            PageSize = pagination.PageSize
+        };
     }
 
     /// <summary>
@@ -1396,109 +1291,102 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
     public async Task<SaleSessionDto?> VoidSessionAsync(Guid sessionId, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
+        }
+
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
+        {
+            return null;
+        }
+
+        // Only closed sessions can be voided
+        if (session.Status != SaleSessionStatus.Closed)
+        {
+            throw new InvalidOperationException("Only closed sessions can be voided.");
+        }
+
+        // Update session status to Cancelled
+        session.Status = SaleSessionStatus.Cancelled;
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        await context.SaveChangesAsync(cancellationToken);
+
+        await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Void", "Closed", "Cancelled", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Voided sale session {SessionId}", sessionId);
+
+        // Create inverse stock movements to restore inventory
+        if (session.DocumentId.HasValue)
+        {
+            foreach (var item in session.Items.Where(i => !i.IsDeleted && !i.IsService))
             {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .FirstOrDefaultAsync(s => s.Id == sessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-            {
-                return null;
-            }
-
-            // Only closed sessions can be voided
-            if (session.Status != SaleSessionStatus.Closed)
-            {
-                throw new InvalidOperationException("Only closed sessions can be voided.");
-            }
-
-            // Update session status to Cancelled
-            session.Status = SaleSessionStatus.Cancelled;
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync(cancellationToken);
-
-            await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Void", "Closed", "Cancelled", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Voided sale session {SessionId}", sessionId);
-
-            // Create inverse stock movements to restore inventory
-            if (session.DocumentId.HasValue)
-            {
-                foreach (var item in session.Items.Where(i => !i.IsDeleted && !i.IsService))
-                {
-                    try
-                    {
-                        var voidMovementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
-                        {
-                            MovementType = StockMovementType.Return.ToString(),
-                            ProductId = item.ProductId,
-                            Quantity = item.Quantity, // Positive quantity: restores inventory
-                            MovementDate = DateTime.UtcNow,
-                            DocumentHeaderId = session.DocumentId.Value,
-                            Reason = "Return",
-                            Notes = $"Storno vendita da sessione {session.Id}",
-                            Reference = $"VOID-{session.Id.ToString("N")[..8]}"
-                        };
-
-                        await stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
-                        logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}",
-                            item.ProductId, item.Quantity);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}",
-                            item.ProductId, session.Id);
-                        // Continue with other items even if one fails
-                    }
-                }
-
-                // Mark document as archived
                 try
                 {
-                    var document = await context.DocumentHeaders
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(
-                            d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted,
-                            cancellationToken);
-
-                    if (document is not null)
+                    var voidMovementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
                     {
-                        // Re-attach to modify (only if not already tracked)
-                        var entry = context.Entry(document);
-                        if (entry.State == EntityState.Detached)
-                        {
-                            context.Attach(document);
-                        }
-                        document.Status = Prym.DTOs.Common.DocumentStatus.Archived;
-                        document.ModifiedBy = currentUser;
-                        document.ModifiedAt = DateTime.UtcNow;
-                        await context.SaveChangesAsync(cancellationToken);
-                        logger.LogInformation("Marked document {DocumentId} as archived", session.DocumentId.Value);
-                    }
+                        MovementType = StockMovementType.Return.ToString(),
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity, // Positive quantity: restores inventory
+                        MovementDate = DateTime.UtcNow,
+                        DocumentHeaderId = session.DocumentId.Value,
+                        Reason = "Return",
+                        Notes = $"Storno vendita da sessione {session.Id}",
+                        Reference = $"VOID-{session.Id.ToString("N")[..8]}"
+                    };
+
+                    await stockMovementService.CreateMovementAsync(voidMovementDto, currentUser, cancellationToken);
+                    logger.LogInformation("Created void stock movement for product {ProductId}, quantity {Quantity}",
+                        item.ProductId, item.Quantity);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error marking document {DocumentId} as archived", session.DocumentId.Value);
+                    logger.LogError(ex, "Error creating void stock movement for product {ProductId} in session {SessionId}",
+                        item.ProductId, session.Id);
+                    // Continue with other items even if one fails
                 }
             }
 
-            return await MapToDtoAsync(session, cancellationToken);
+            // Mark document as archived
+            try
+            {
+                var document = await context.DocumentHeaders
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(
+                        d => d.Id == session.DocumentId.Value && d.TenantId == currentTenantId.Value && !d.IsDeleted,
+                        cancellationToken);
+
+                if (document is not null)
+                {
+                    // Re-attach to modify (only if not already tracked)
+                    var entry = context.Entry(document);
+                    if (entry.State == EntityState.Detached)
+                    {
+                        context.Attach(document);
+                    }
+                    document.Status = Prym.DTOs.Common.DocumentStatus.Archived;
+                    document.ModifiedBy = currentUser;
+                    document.ModifiedAt = DateTime.UtcNow;
+                    await context.SaveChangesAsync(cancellationToken);
+                    logger.LogInformation("Marked document {DocumentId} as archived", session.DocumentId.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error marking document {DocumentId} as archived", session.DocumentId.Value);
+            }
         }
-        catch
-        {
-            throw;
-        }
+
+        return await MapToDtoAsync(session, cancellationToken);
     }
 
     /// <summary>
@@ -1533,141 +1421,113 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
     /// </summary>
     private async Task<Guid?> GenerateReceiptDocumentAsync(SaleSession session, string currentUser, CancellationToken cancellationToken)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            logger.LogWarning("Cannot generate receipt: No tenant context");
+            return null;
+        }
+
+
+        // Get or create RECEIPT document type
+        DocumentTypeDto receiptDocumentType;
+        receiptDocumentType = await documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
+
+        // Get or create System Internal business party if no customer is specified
+        Guid businessPartyId;
+        if (!session.CustomerId.HasValue)
+        {
+            businessPartyId = await documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
+        }
+        else
+        {
+            businessPartyId = session.CustomerId.Value;
+        }
+
+        // Validate items have required data
+        var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
+        if (activeItems.Count == 0)
+        {
+            logger.LogWarning("No active items in session {SessionId}, skipping document generation", session.Id);
+            return null;
+        }
+
+
+        // Create document header
+        var createDocumentDto = new Prym.DTOs.Documents.CreateDocumentHeaderDto
+        {
+            DocumentTypeId = receiptDocumentType.Id,
+            Number = null, // Will be auto-generated
+            Date = DateTime.UtcNow,
+            BusinessPartyId = businessPartyId,
+            CashRegisterId = session.PosId,
+            CashierId = session.OperatorId,
+            Currency = session.Currency ?? "EUR",
+            IsFiscal = true,
+            TotalDiscountAmount = session.DiscountAmount,
+            Notes = $"Generato dalla sessione di vendita {session.Id}",
+            Rows = activeItems.Select(item => new Prym.DTOs.Documents.CreateDocumentRowDto
             {
-                logger.LogWarning("Cannot generate receipt: No tenant context");
-                return null;
-            }
+                ProductId = item.ProductId,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                Description = item.ProductName
+            }).ToList()
+        };
 
+        DocumentHeaderDto? documentHeader;
+        documentHeader = await documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
+        if (documentHeader is null)
+        {
+            logger.LogError("CreateDocumentHeaderAsync returned null for session {SessionId}", session.Id);
+            return null;
+        }
+        logger.LogInformation("Document header created: {DocumentId} for session {SessionId}", documentHeader.Id, session.Id);
 
-            // Get or create RECEIPT document type
-            DocumentTypeDto receiptDocumentType;
+        // Create stock movements for each item (outbound)
+        var stockMovementErrors = 0;
+        foreach (var item in activeItems.Where(i => !i.IsService))
+        {
             try
             {
-                receiptDocumentType = await documentHeaderService.GetOrCreateReceiptDocumentTypeAsync(currentTenantId.Value, cancellationToken);
-            }
-            catch
-            {
-                throw;
-            }
 
-            // Get or create System Internal business party if no customer is specified
-            Guid businessPartyId;
-            if (!session.CustomerId.HasValue)
-            {
-                try
+                var movementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
                 {
-                    businessPartyId = await documentHeaderService.GetOrCreateSystemBusinessPartyAsync(currentTenantId.Value, cancellationToken);
-                }
-                catch
-                {
-                    throw;
-                }
-            }
-            else
-            {
-                businessPartyId = session.CustomerId.Value;
-            }
-
-            // Validate items have required data
-            var activeItems = session.Items.Where(i => !i.IsDeleted).ToList();
-            if (activeItems.Count == 0)
-            {
-                logger.LogWarning("No active items in session {SessionId}, skipping document generation", session.Id);
-                return null;
-            }
-
-
-            // Create document header
-            var createDocumentDto = new Prym.DTOs.Documents.CreateDocumentHeaderDto
-            {
-                DocumentTypeId = receiptDocumentType.Id,
-                Number = null, // Will be auto-generated
-                Date = DateTime.UtcNow,
-                BusinessPartyId = businessPartyId,
-                CashRegisterId = session.PosId,
-                CashierId = session.OperatorId,
-                Currency = session.Currency ?? "EUR",
-                IsFiscal = true,
-                TotalDiscountAmount = session.DiscountAmount,
-                Notes = $"Generato dalla sessione di vendita {session.Id}",
-                Rows = activeItems.Select(item => new Prym.DTOs.Documents.CreateDocumentRowDto
-                {
+                    MovementType = "Outbound",
                     ProductId = item.ProductId,
-                    Quantity = item.Quantity,
-                    UnitPrice = item.UnitPrice,
-                    Description = item.ProductName
-                }).ToList()
-            };
+                    Quantity = item.Quantity, // Positive quantity: direction is determined by MovementType
+                    MovementDate = DateTime.UtcNow,
+                    DocumentHeaderId = documentHeader.Id,
+                    Reason = "Sale",
+                    Notes = $"Vendita da sessione {session.Id}",
+                    Reference = $"SESS-{session.Id.ToString("N")[..8]}"
+                };
 
-            DocumentHeaderDto? documentHeader;
-            try
-            {
-                documentHeader = await documentHeaderService.CreateDocumentHeaderAsync(createDocumentDto, currentUser, cancellationToken);
-                if (documentHeader is null)
-                {
-                    logger.LogError("CreateDocumentHeaderAsync returned null for session {SessionId}", session.Id);
-                    return null;
-                }
-                logger.LogInformation("Document header created: {DocumentId} for session {SessionId}", documentHeader.Id, session.Id);
+                await stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
+                logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
+                    item.ProductId, -item.Quantity, documentHeader.Id);
             }
-            catch
+            catch (Exception ex)
             {
-                throw;
+                stockMovementErrors++;
+                logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
+                    item.ProductId, session.Id);
+                // Continue with other items even if one fails
             }
-
-            // Create stock movements for each item (outbound)
-            var stockMovementErrors = 0;
-            foreach (var item in activeItems.Where(i => !i.IsService))
-            {
-                try
-                {
-
-                    var movementDto = new Prym.DTOs.Warehouse.CreateStockMovementDto
-                    {
-                        MovementType = "Outbound",
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity, // Positive quantity: direction is determined by MovementType
-                        MovementDate = DateTime.UtcNow,
-                        DocumentHeaderId = documentHeader.Id,
-                        Reason = "Sale",
-                        Notes = $"Vendita da sessione {session.Id}",
-                        Reference = $"SESS-{session.Id.ToString("N")[..8]}"
-                    };
-
-                    await stockMovementService.CreateMovementAsync(movementDto, currentUser, cancellationToken);
-                    logger.LogInformation("Created stock movement for product {ProductId}, quantity {Quantity} for document {DocumentId}",
-                        item.ProductId, -item.Quantity, documentHeader.Id);
-                }
-                catch (Exception ex)
-                {
-                    stockMovementErrors++;
-                    logger.LogError(ex, "Error creating stock movement for product {ProductId} in session {SessionId}. Continuing with other items.",
-                        item.ProductId, session.Id);
-                    // Continue with other items even if one fails
-                }
-            }
-
-            if (stockMovementErrors > 0)
-            {
-                logger.LogWarning("Completed document {DocumentId} creation with {ErrorCount} stock movement errors for session {SessionId}",
-                    documentHeader.Id, stockMovementErrors, session.Id);
-            }
-            else
-            {
-                logger.LogInformation("Document {DocumentId} created successfully with all stock movements for session {SessionId}",
-                    documentHeader.Id, session.Id);
-            }
-
-            return documentHeader.Id;
         }
-        catch
+
+        if (stockMovementErrors > 0)
         {
-            throw;
+            logger.LogWarning("Completed document {DocumentId} creation with {ErrorCount} stock movement errors for session {SessionId}",
+                documentHeader.Id, stockMovementErrors, session.Id);
         }
+        else
+        {
+            logger.LogInformation("Document {DocumentId} created successfully with all stock movements for session {SessionId}",
+                documentHeader.Id, session.Id);
+        }
+
+        return documentHeader.Id;
     }
 
     /// <summary>
@@ -1736,257 +1596,236 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
     public async Task<SplitResultDto?> SplitSessionAsync(SplitSessionDto splitDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            // Validate and retrieve session
-            var session = await context.SaleSessions
-                .Include(s => s.Items)
-                .FirstOrDefaultAsync(s => s.Id == splitDto.SessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (session is null)
-                return null;
-
-            // Validate session can be split
-            if (session.Status != SaleSessionStatus.Open)
-                throw new InvalidOperationException("Solo le sessioni aperte possono essere splittate.");
-
-            if (session.ParentSessionId is not null)
-                throw new InvalidOperationException("Una sessione già splitta non può essere nuovamente splitta.");
-
-            if (!session.Items.Any(i => !i.IsDeleted))
-                throw new InvalidOperationException("La sessione deve avere almeno un item per essere splitta.");
-
-            // Validate split-specific parameters
-            ValidateSplitParameters(splitDto, session);
-
-            // Create child sessions
-            var childSessions = new List<SaleSession>();
-            var splitType = splitDto.SplitType.ToString().ToUpperInvariant();
-
-            for (var i = 0; i < splitDto.NumberOfPeople; i++)
-            {
-                var childSession = new SaleSession
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = currentTenantId.Value,
-                    OperatorId = session.OperatorId,
-                    PosId = session.PosId,
-                    CustomerId = session.CustomerId,
-                    FidelityCardId = session.FidelityCardId,
-                    SaleType = session.SaleType,
-                    TableId = session.TableId,
-                    Currency = session.Currency,
-                    Status = SaleSessionStatus.Open,
-                    ParentSessionId = session.Id,
-                    SplitType = splitType,
-                    CreatedBy = currentUser,
-                    CreatedAt = DateTime.UtcNow,
-                    ModifiedBy = currentUser,
-                    ModifiedAt = DateTime.UtcNow
-                };
-
-                // Add items based on split type
-                switch (splitDto.SplitType)
-                {
-                    case SplitTypeDto.Equal:
-                        AddItemsForEqualSplit(session, childSession, i, splitDto.NumberOfPeople, currentUser);
-                        break;
-                    case SplitTypeDto.ByItems:
-                        AddItemsForItemsSplit(session, childSession, i, splitDto.ItemAssignments!, currentUser);
-                        break;
-                    case SplitTypeDto.Percentage:
-                        AddItemsForPercentageSplit(session, childSession, splitDto.Percentages![i], currentUser);
-                        childSession.SplitPercentage = splitDto.Percentages![i];
-                        break;
-                }
-
-                CalculateSessionTotals(childSession);
-                childSessions.Add(childSession);
-                _ = context.SaleSessions.Add(childSession);
-            }
-
-            // Update parent session status
-            session.Status = SaleSessionStatus.Splitting;
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = DateTime.UtcNow;
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log audit trail
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Split", "Open", "Splitting", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Split session {SessionId} into {Count} child sessions", session.Id, childSessions.Count);
-
-            // Map to DTOs
-            var childDtos = new List<SaleSessionDto>();
-            foreach (var child in childSessions)
-            {
-                childDtos.Add(await MapToDtoAsync(child, cancellationToken));
-            }
-
-            return new SplitResultDto
-            {
-                OriginalSessionId = session.Id,
-                ChildSessions = childDtos,
-                TotalAmount = session.FinalTotal,
-                SplitType = splitDto.SplitType
-            };
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        // Validate and retrieve session
+        var session = await context.SaleSessions
+            .Include(s => s.Items)
+            .FirstOrDefaultAsync(s => s.Id == splitDto.SessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (session is null)
+            return null;
+
+        // Validate session can be split
+        if (session.Status != SaleSessionStatus.Open)
+            throw new InvalidOperationException("Solo le sessioni aperte possono essere splittate.");
+
+        if (session.ParentSessionId is not null)
+            throw new InvalidOperationException("Una sessione già splitta non può essere nuovamente splitta.");
+
+        if (!session.Items.Any(i => !i.IsDeleted))
+            throw new InvalidOperationException("La sessione deve avere almeno un item per essere splitta.");
+
+        // Validate split-specific parameters
+        ValidateSplitParameters(splitDto, session);
+
+        // Create child sessions
+        var childSessions = new List<SaleSession>();
+        var splitType = splitDto.SplitType.ToString().ToUpperInvariant();
+
+        for (var i = 0; i < splitDto.NumberOfPeople; i++)
         {
-            throw;
-        }
-    }
-
-    public async Task<SaleSessionDto?> MergeSessionsAsync(MergeSessionsDto mergeDto, string currentUser, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            // Validate and retrieve sessions
-            var sessions = await context.SaleSessions
-                .Include(s => s.Items)
-                .Where(s => mergeDto.SessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            if (sessions.Count != mergeDto.SessionIds.Count)
-                return null;
-
-            // Validate sessions can be merged
-            if (sessions.Any(s => s.Status != SaleSessionStatus.Open))
-                throw new InvalidOperationException("Solo le sessioni aperte possono essere merge.");
-
-            if (sessions.Any(s => s.ParentSessionId != null))
-                throw new InvalidOperationException("Sessioni già splittate non possono essere merge.");
-
-            if (sessions.Select(s => s.TenantId).Distinct().Count() > 1)
-                throw new InvalidOperationException("Tutte le sessioni devono appartenere allo stesso tenant.");
-
-            // Create merged session
-            var firstSession = sessions.First();
-            var mergedSession = new SaleSession
+            var childSession = new SaleSession
             {
                 Id = Guid.NewGuid(),
                 TenantId = currentTenantId.Value,
-                OperatorId = firstSession.OperatorId,
-                PosId = firstSession.PosId,
-                CustomerId = firstSession.CustomerId,
-                FidelityCardId = firstSession.FidelityCardId,
-                SaleType = firstSession.SaleType,
-                TableId = mergeDto.TargetTableId ?? firstSession.TableId,
-                Currency = firstSession.Currency,
+                OperatorId = session.OperatorId,
+                PosId = session.PosId,
+                CustomerId = session.CustomerId,
+                FidelityCardId = session.FidelityCardId,
+                SaleType = session.SaleType,
+                TableId = session.TableId,
+                Currency = session.Currency,
                 Status = SaleSessionStatus.Open,
-                MergeReason = mergeDto.MergeReason,
+                ParentSessionId = session.Id,
+                SplitType = splitType,
                 CreatedBy = currentUser,
                 CreatedAt = DateTime.UtcNow,
                 ModifiedBy = currentUser,
                 ModifiedAt = DateTime.UtcNow
             };
 
-            // Copy all items from all sessions
-            foreach (var session in sessions)
+            // Add items based on split type
+            switch (splitDto.SplitType)
             {
-                foreach (var item in session.Items.Where(i => !i.IsDeleted))
-                {
-                    var newItem = new SaleItem
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = currentTenantId.Value,
-                        SaleSessionId = mergedSession.Id,
-                        ProductId = item.ProductId,
-                        ProductCode = item.ProductCode,
-                        ProductName = item.ProductName,
-                        UnitPrice = item.UnitPrice,
-                        Quantity = item.Quantity,
-                        DiscountPercent = item.DiscountPercent,
-                        TotalAmount = item.TotalAmount,
-                        TaxRate = item.TaxRate,
-                        TaxAmount = item.TaxAmount,
-                        Notes = item.Notes,
-                        IsService = item.IsService,
-                        PromotionId = item.PromotionId,
-                        PriceListId = item.PriceListId,
-                        PriceListName = item.PriceListName,
-                        AppliedPromotionsJSON = item.AppliedPromotionsJSON,
-                        CreatedBy = currentUser,
-                        CreatedAt = DateTime.UtcNow,
-                        ModifiedBy = currentUser,
-                        ModifiedAt = DateTime.UtcNow
-                    };
-                    mergedSession.Items.Add(newItem);
-                }
+                case SplitTypeDto.Equal:
+                    AddItemsForEqualSplit(session, childSession, i, splitDto.NumberOfPeople, currentUser);
+                    break;
+                case SplitTypeDto.ByItems:
+                    AddItemsForItemsSplit(session, childSession, i, splitDto.ItemAssignments!, currentUser);
+                    break;
+                case SplitTypeDto.Percentage:
+                    AddItemsForPercentageSplit(session, childSession, splitDto.Percentages![i], currentUser);
+                    childSession.SplitPercentage = splitDto.Percentages![i];
+                    break;
             }
 
-            // Calculate totals
-            CalculateSessionTotals(mergedSession);
-
-            // Add merged session
-            _ = context.SaleSessions.Add(mergedSession);
-
-            // Cancel original sessions
-            foreach (var session in sessions)
-            {
-                session.Status = SaleSessionStatus.Cancelled;
-                session.ModifiedBy = currentUser;
-                session.ModifiedAt = DateTime.UtcNow;
-            }
-
-            _ = await context.SaveChangesAsync(cancellationToken);
-
-            // Log audit trail
-            _ = await auditLogService.LogEntityChangeAsync("SaleSession", mergedSession.Id, "Status", "Merge", null, "Open", currentUser, "Sale Session", cancellationToken);
-
-            logger.LogInformation("Merged {Count} sessions into new session {SessionId}", sessions.Count, mergedSession.Id);
-
-            return await MapToDtoAsync(mergedSession, cancellationToken);
+            CalculateSessionTotals(childSession);
+            childSessions.Add(childSession);
+            _ = context.SaleSessions.Add(childSession);
         }
-        catch
+
+        // Update parent session status
+        session.Status = SaleSessionStatus.Splitting;
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = DateTime.UtcNow;
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Log audit trail
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", session.Id, "Status", "Split", "Open", "Splitting", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Split session {SessionId} into {Count} child sessions", session.Id, childSessions.Count);
+
+        // Map to DTOs
+        var childDtos = new List<SaleSessionDto>();
+        foreach (var child in childSessions)
         {
-            throw;
+            childDtos.Add(await MapToDtoAsync(child, cancellationToken));
         }
+
+        return new SplitResultDto
+        {
+            OriginalSessionId = session.Id,
+            ChildSessions = childDtos,
+            TotalAmount = session.FinalTotal,
+            SplitType = splitDto.SplitType
+        };
+    }
+
+    public async Task<SaleSessionDto?> MergeSessionsAsync(MergeSessionsDto mergeDto, string currentUser, CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
+        }
+
+        // Validate and retrieve sessions
+        var sessions = await context.SaleSessions
+            .Include(s => s.Items)
+            .Where(s => mergeDto.SessionIds.Contains(s.Id) && s.TenantId == currentTenantId.Value && !s.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        if (sessions.Count != mergeDto.SessionIds.Count)
+            return null;
+
+        // Validate sessions can be merged
+        if (sessions.Any(s => s.Status != SaleSessionStatus.Open))
+            throw new InvalidOperationException("Solo le sessioni aperte possono essere merge.");
+
+        if (sessions.Any(s => s.ParentSessionId != null))
+            throw new InvalidOperationException("Sessioni già splittate non possono essere merge.");
+
+        if (sessions.Select(s => s.TenantId).Distinct().Count() > 1)
+            throw new InvalidOperationException("Tutte le sessioni devono appartenere allo stesso tenant.");
+
+        // Create merged session
+        var firstSession = sessions.First();
+        var mergedSession = new SaleSession
+        {
+            Id = Guid.NewGuid(),
+            TenantId = currentTenantId.Value,
+            OperatorId = firstSession.OperatorId,
+            PosId = firstSession.PosId,
+            CustomerId = firstSession.CustomerId,
+            FidelityCardId = firstSession.FidelityCardId,
+            SaleType = firstSession.SaleType,
+            TableId = mergeDto.TargetTableId ?? firstSession.TableId,
+            Currency = firstSession.Currency,
+            Status = SaleSessionStatus.Open,
+            MergeReason = mergeDto.MergeReason,
+            CreatedBy = currentUser,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedBy = currentUser,
+            ModifiedAt = DateTime.UtcNow
+        };
+
+        // Copy all items from all sessions
+        foreach (var session in sessions)
+        {
+            foreach (var item in session.Items.Where(i => !i.IsDeleted))
+            {
+                var newItem = new SaleItem
+                {
+                    Id = Guid.NewGuid(),
+                    TenantId = currentTenantId.Value,
+                    SaleSessionId = mergedSession.Id,
+                    ProductId = item.ProductId,
+                    ProductCode = item.ProductCode,
+                    ProductName = item.ProductName,
+                    UnitPrice = item.UnitPrice,
+                    Quantity = item.Quantity,
+                    DiscountPercent = item.DiscountPercent,
+                    TotalAmount = item.TotalAmount,
+                    TaxRate = item.TaxRate,
+                    TaxAmount = item.TaxAmount,
+                    Notes = item.Notes,
+                    IsService = item.IsService,
+                    PromotionId = item.PromotionId,
+                    PriceListId = item.PriceListId,
+                    PriceListName = item.PriceListName,
+                    AppliedPromotionsJSON = item.AppliedPromotionsJSON,
+                    CreatedBy = currentUser,
+                    CreatedAt = DateTime.UtcNow,
+                    ModifiedBy = currentUser,
+                    ModifiedAt = DateTime.UtcNow
+                };
+                mergedSession.Items.Add(newItem);
+            }
+        }
+
+        // Calculate totals
+        CalculateSessionTotals(mergedSession);
+
+        // Add merged session
+        _ = context.SaleSessions.Add(mergedSession);
+
+        // Cancel original sessions
+        foreach (var session in sessions)
+        {
+            session.Status = SaleSessionStatus.Cancelled;
+            session.ModifiedBy = currentUser;
+            session.ModifiedAt = DateTime.UtcNow;
+        }
+
+        _ = await context.SaveChangesAsync(cancellationToken);
+
+        // Log audit trail
+        _ = await auditLogService.LogEntityChangeAsync("SaleSession", mergedSession.Id, "Status", "Merge", null, "Open", currentUser, "Sale Session", cancellationToken);
+
+        logger.LogInformation("Merged {Count} sessions into new session {SessionId}", sessions.Count, mergedSession.Id);
+
+        return await MapToDtoAsync(mergedSession, cancellationToken);
     }
 
     public async Task<List<SaleSessionDto>> GetChildSessionsAsync(Guid parentSessionId, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
-            }
-
-            var childSessions = await context.SaleSessions
-                .AsNoTracking()
-                .Include(s => s.Items)
-                .Include(s => s.Payments)
-                .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
-                .Where(s => s.ParentSessionId == parentSessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
-                .ToListAsync(cancellationToken);
-
-            var result = new List<SaleSessionDto>();
-            foreach (var session in childSessions)
-            {
-                result.Add(await MapToDtoAsync(session, cancellationToken));
-            }
-
-            return result;
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
         }
-        catch
+
+        var childSessions = await context.SaleSessions
+            .AsNoTracking()
+            .Include(s => s.Items)
+            .Include(s => s.Payments)
+            .Include(s => s.Notes).ThenInclude(n => n.NoteFlag)
+            .Where(s => s.ParentSessionId == parentSessionId && s.TenantId == currentTenantId.Value && !s.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<SaleSessionDto>();
+        foreach (var session in childSessions)
         {
-            throw;
+            result.Add(await MapToDtoAsync(session, cancellationToken));
         }
+
+        return result;
     }
 
     public async Task<bool> CanSplitSessionAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -2277,42 +2116,35 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
     public async Task<IEnumerable<Guid>> GetCustomerPurchasedProductIdsAsync(Guid customerId, int maxSessions = 30, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-                throw new InvalidOperationException("Tenant context is required for sale session operations.");
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for sale session operations.");
 
-            // Fetch the IDs of the most recent sessions for this customer directly from DB,
-            // then collect distinct product IDs — no full SaleSessionDto hydration needed.
-            var recentSessionIds = await context.SaleSessions
-                .AsNoTracking()
-                .Where(s => !s.IsDeleted
-                    && s.TenantId == currentTenantId.Value
-                    && s.CustomerId == customerId)
-                .OrderByDescending(s => s.ModifiedAt ?? s.CreatedAt)
-                .Take(maxSessions)
-                .Select(s => s.Id)
-                .ToListAsync(cancellationToken);
+        // Fetch the IDs of the most recent sessions for this customer directly from DB,
+        // then collect distinct product IDs — no full SaleSessionDto hydration needed.
+        var recentSessionIds = await context.SaleSessions
+            .AsNoTracking()
+            .Where(s => !s.IsDeleted
+                && s.TenantId == currentTenantId.Value
+                && s.CustomerId == customerId)
+            .OrderByDescending(s => s.ModifiedAt ?? s.CreatedAt)
+            .Take(maxSessions)
+            .Select(s => s.Id)
+            .ToListAsync(cancellationToken);
 
-            if (recentSessionIds.Count == 0)
-                return Enumerable.Empty<Guid>();
+        if (recentSessionIds.Count == 0)
+            return Enumerable.Empty<Guid>();
 
-            var productIds = await context.SaleItems
-                .AsNoTracking()
-                .Where(i => !i.IsDeleted
-                    && i.TenantId == currentTenantId.Value
-                    && recentSessionIds.Contains(i.SaleSessionId))
-                .Select(i => i.ProductId)
-                .Distinct()
-                .ToListAsync(cancellationToken);
+        var productIds = await context.SaleItems
+            .AsNoTracking()
+            .Where(i => !i.IsDeleted
+                && i.TenantId == currentTenantId.Value
+                && recentSessionIds.Contains(i.SaleSessionId))
+            .Select(i => i.ProductId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
 
-            return productIds;
-        }
-        catch
-        {
-            throw;
-        }
+        return productIds;
     }
 
 }
