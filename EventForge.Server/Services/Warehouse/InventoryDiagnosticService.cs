@@ -24,10 +24,13 @@ public class InventoryDiagnosticService(
                 IsHealthy = true
             };
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             // 1. Get all document rows
             var rows = await context.DocumentRows
                 .AsNoTracking()
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .Where(r => r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             report.TotalRows = rows.Count;
@@ -178,13 +181,16 @@ public class InventoryDiagnosticService(
             RepairedAt = DateTime.UtcNow
         };
 
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
         using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
             // Get all rows
             var rows = await context.DocumentRows
-                .Where(r => r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .Where(r => r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
                 .ToListAsync(cancellationToken);
 
             result.RowsAnalyzed = rows.Count;
@@ -326,8 +332,11 @@ public class InventoryDiagnosticService(
         try
         {
 
+            var currentTenantId = tenantContext.CurrentTenantId
+                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
             var row = await context.DocumentRows
-                .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && !r.IsDeleted)
+                .Where(r => r.Id == rowId && r.DocumentHeaderId == documentId && r.TenantId == currentTenantId && !r.IsDeleted)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (row is null)

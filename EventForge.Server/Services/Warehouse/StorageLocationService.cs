@@ -19,10 +19,16 @@ public class StorageLocationService(
         {
             logger.LogDebug("Getting storage locations: page={Page}, pageSize={PageSize}, warehouseId={WarehouseId}", pagination.Page, pagination.PageSize, warehouseId);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
-                .Where(sl => !sl.IsDeleted)
+                .Where(sl => !sl.IsDeleted && sl.TenantId == currentTenantId.Value)
                 .AsQueryable();
 
             if (warehouseId.HasValue)
@@ -83,10 +89,16 @@ public class StorageLocationService(
         {
             logger.LogDebug("Getting storage location by ID: {Id}", id);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var location = await context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
-                .Where(sl => sl.Id == id)
+                .Where(sl => sl.Id == id && sl.TenantId == currentTenantId.Value)
                 .Select(sl => new StorageLocationDto
                 {
                     Id = sl.Id,
@@ -126,10 +138,16 @@ public class StorageLocationService(
         {
             logger.LogDebug("Getting storage locations for warehouse: {WarehouseId}", warehouseId);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var locations = await context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
-                .Where(sl => sl.WarehouseId == warehouseId)
+                .Where(sl => sl.WarehouseId == warehouseId && sl.TenantId == currentTenantId.Value)
                 .OrderBy(sl => sl.Zone)
                 .ThenBy(sl => sl.Row)
                 .ThenBy(sl => sl.Column)
@@ -173,10 +191,16 @@ public class StorageLocationService(
         {
             logger.LogDebug("Getting available storage locations for warehouse: {WarehouseId}", warehouseId);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
-                .Where(sl => sl.IsActive &&
+                .Where(sl => sl.TenantId == currentTenantId.Value && sl.IsActive &&
                             (sl.Capacity == null || sl.Occupancy == null || sl.Occupancy < sl.Capacity));
 
             if (warehouseId.HasValue)
@@ -531,10 +555,16 @@ public class StorageLocationService(
             logger.LogDebug("Getting storage locations for warehouse {WarehouseId} with pagination: page={Page}, pageSize={PageSize}",
                 warehouseId, pagination.Page, pagination.PageSize);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
-                .Where(sl => !sl.IsDeleted && sl.WarehouseId == warehouseId);
+                .Where(sl => !sl.IsDeleted && sl.WarehouseId == warehouseId && sl.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
@@ -592,10 +622,16 @@ public class StorageLocationService(
             logger.LogDebug("Getting storage locations for zone {Zone} with pagination: page={Page}, pageSize={PageSize}",
                 zone, pagination.Page, pagination.PageSize);
 
+            var currentTenantId = tenantContext.CurrentTenantId;
+            if (!currentTenantId.HasValue)
+            {
+                throw new InvalidOperationException("Tenant context is required for storage location operations.");
+            }
+
             var query = context.StorageLocations
                 .AsNoTracking()
                 .Include(sl => sl.Warehouse)
-                .Where(sl => !sl.IsDeleted && sl.Zone == zone);
+                .Where(sl => !sl.IsDeleted && sl.Zone == zone && sl.TenantId == currentTenantId.Value);
 
             var totalCount = await query.CountAsync(cancellationToken);
 
