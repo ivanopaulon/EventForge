@@ -12,15 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EventForge.Server.Migrations
 {
     [DbContext(typeof(EventForgeDbContext))]
-    [Migration("20260713180327_InitialBaseline")]
-    partial class InitialBaseline
+    [Migration("20260406092935_20260406_BUONAPASQUA")]
+    partial class _20260406_BUONAPASQUA
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.9")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -266,92 +266,6 @@ namespace EventForge.Server.Migrations
                     b.ToTable("SupplierPriceAlerts");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Audit.AIUsageLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CallAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CallType")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("ChatThreadId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("CompletionTokens")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<decimal?>("EstimatedCostUsd")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ModelUsed")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("PromptTokens")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<bool>("Success")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("TokensUsed")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CallAt");
-
-                    b.HasIndex("TenantId");
-
-                    b.HasIndex("TenantId", "CallAt");
-
-                    b.ToTable("AIUsageLogs");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Audit.EntityChangeLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -368,8 +282,8 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("EntityDisplayName")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uniqueidentifier");
@@ -458,10 +372,6 @@ namespace EventForge.Server.Migrations
                     b.Property<string>("ModifiedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -1413,6 +1323,9 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("TenantId1")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("TimeZone")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -1427,6 +1340,8 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("AvatarDocumentId");
 
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId1");
 
                     b.HasIndex("Email", "TenantId")
                         .IsUnique();
@@ -1501,9 +1416,6 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("UserId")
                         .HasDatabaseName("IX_UserRoles_UserId");
-
-                    b.HasIndex("UserId", "ExpiresAt")
-                        .HasDatabaseName("IX_UserRoles_UserId_ExpiresAt");
 
                     b.ToTable("UserRoles");
                 });
@@ -1601,9 +1513,6 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("ForcedPriceListId")
                         .HasDatabaseName("IX_BusinessParties_ForcedPriceListId");
 
-                    b.HasIndex("TenantId", "IsDeleted", "Name")
-                        .HasDatabaseName("IX_BusinessParties_TenantId_IsDeleted_Name");
-
                     b.ToTable("BusinessParties");
                 });
 
@@ -1676,62 +1585,6 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("PaymentTermId");
 
                     b.ToTable("BusinessPartyAccountings");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyClassification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("BusinessPartyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ClassificationNodeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BusinessPartyId");
-
-                    b.HasIndex("ClassificationNodeId");
-
-                    b.ToTable("BusinessPartyClassifications");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyGroup", b =>
@@ -1889,512 +1742,6 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("BusinessPartyId");
 
                     b.ToTable("BusinessPartyGroupMembers");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityCard", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BusinessPartyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CardNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("CurrentPoints")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("DiscountPercentage")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<bool>("HasBirthdayBonus")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("HasPriorityAccess")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("TierEnteredAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("TierId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("TotalPointsEarned")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TotalPointsRedeemed")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ValidFrom")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ValidTo")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BusinessPartyId")
-                        .HasDatabaseName("IX_FidelityCards_BusinessPartyId");
-
-                    b.HasIndex("TierId")
-                        .HasDatabaseName("IX_FidelityCards_TierId");
-
-                    b.HasIndex("TenantId", "CardNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FidelityCards_TenantId_CardNumber")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.HasIndex("TenantId", "Status")
-                        .HasDatabaseName("IX_FidelityCards_TenantId_Status");
-
-                    b.ToTable("FidelityCards");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityPointsBaseRate", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("EffectiveFrom")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("EffectiveTo")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("Rate")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<int>("RoundingMode")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "EffectiveFrom")
-                        .HasDatabaseName("IX_FidelityPointsBaseRates_TenantId_EffectiveFrom")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("FidelityPointsBaseRates");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityPointsCampaign", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CategoryIdsJSON")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("Multiplier")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ProductIdsJSON")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("RoundingMode")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "StartDate", "EndDate")
-                        .HasDatabaseName("IX_FidelityPointsCampaigns_TenantId_StartDate_EndDate")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("FidelityPointsCampaigns");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityPointsTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("FidelityCardId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Points")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("TransactionDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TransactionType")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId")
-                        .HasDatabaseName("IX_FidelityPointsTransactions_TenantId");
-
-                    b.HasIndex("FidelityCardId", "TransactionDate")
-                        .HasDatabaseName("IX_FidelityPointsTransactions_FidelityCardId_TransactionDate");
-
-                    b.ToTable("FidelityPointsTransactions");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityTier", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Color")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Icon")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "SortOrder")
-                        .HasDatabaseName("IX_FidelityTiers_TenantId_SortOrder")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("FidelityTiers");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityTierMultiplier", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CampaignId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<decimal>("Multiplier")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TierId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TierId");
-
-                    b.HasIndex("CampaignId", "TierId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FidelityTierMultipliers_CampaignId_TierId")
-                        .HasFilter("[IsDeleted] = 0 AND [CampaignId] IS NOT NULL");
-
-                    b.ToTable("FidelityTierMultipliers");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityTierRule", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("EvaluationPeriodMonths")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<decimal?>("MinimumSpendThreshold")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TierId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TierId")
-                        .IsUnique();
-
-                    b.HasIndex("TenantId", "TierId")
-                        .HasDatabaseName("IX_FidelityTierRules_TenantId_TierId")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("FidelityTierRules");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Business.PaymentTerm", b =>
@@ -2669,7 +2016,8 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Content")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -2691,24 +2039,6 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime?>("EditedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("EditedByUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("FlagReason")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("FlaggedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FlaggedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Format")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -2718,15 +2048,9 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsEdited")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsFlagged")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Locale")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
-
-                    b.Property<int?>("MessageDirection")
-                        .HasColumnType("int");
 
                     b.Property<string>("MetadataJson")
                         .HasColumnType("nvarchar(max)");
@@ -2749,7 +2073,7 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid?>("SenderId")
+                    b.Property<Guid>("SenderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("SentAt")
@@ -2760,13 +2084,6 @@ namespace EventForge.Server.Migrations
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<int?>("WhatsAppDeliveryStatus")
-                        .HasColumnType("int");
-
-                    b.Property<string>("WhatsAppMessageId")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
@@ -2785,12 +2102,6 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("TenantId");
 
-                    b.HasIndex("WhatsAppMessageId");
-
-                    b.HasIndex("IsEdited", "EditedAt")
-                        .HasDatabaseName("IX_ChatMessages_IsEdited_EditedAt")
-                        .HasFilter("[IsEdited] = 1");
-
                     b.ToTable("ChatMessages");
                 });
 
@@ -2798,9 +2109,6 @@ namespace EventForge.Server.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("BusinessPartyId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -2821,10 +2129,6 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("ExternalPhoneNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -2832,9 +2136,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsPrivate")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsUnrecognizedNumber")
                         .HasColumnType("bit");
 
                     b.Property<DateTime?>("ModifiedAt")
@@ -2866,16 +2167,9 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("WhatsAppLastStatus")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("BusinessPartyId");
-
                     b.HasIndex("CreatedAt");
-
-                    b.HasIndex("ExternalPhoneNumber");
 
                     b.HasIndex("IsPrivate");
 
@@ -3048,143 +2342,6 @@ namespace EventForge.Server.Migrations
                         .IsUnique();
 
                     b.ToTable("MessageReadReceipts");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Chat.NumeroBloccato", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("BloccatoAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Note")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("NumeroDiTelefono")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NumeroDiTelefono")
-                        .HasDatabaseName("IX_NumeriBloccati_NumeroDiTelefono");
-
-                    b.HasIndex("TenantId", "NumeroDiTelefono")
-                        .IsUnique()
-                        .HasDatabaseName("UX_NumeriBloccati_TenantId_Numero");
-
-                    b.ToTable("NumeriBloccati");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Chat.OrderConversationSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AiRoundCount")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("BusinessPartyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ChatThreadId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid?>("CreatedDocumentHeaderId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DraftJson")
-                        .HasMaxLength(16000)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastAiPromptAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("State")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId");
-
-                    b.HasIndex("ChatThreadId", "TenantId");
-
-                    b.ToTable("OrderConversationSessions");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Address", b =>
@@ -3367,9 +2524,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("ApplicableTo")
-                        .HasColumnType("int");
-
                     b.Property<string>("Code")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
@@ -3541,21 +2695,12 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<Guid?>("AgentId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int?>("BaudRate")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Category")
                         .HasColumnType("int");
 
                     b.Property<string>("ConnectionString")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("ConnectionType")
-                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -3580,9 +2725,6 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsFiscalPrinter")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsThermal")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Location")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -3603,16 +2745,7 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("PaperWidth")
-                        .HasColumnType("int");
-
                     b.Property<int?>("Port")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PrintLanguage")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("PrinterWidth")
                         .HasColumnType("int");
 
                     b.Property<string>("ProtocolType")
@@ -3642,16 +2775,9 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
-                    b.Property<string>("UsbDeviceId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("StationId");
-
-                    b.HasIndex("IsDeleted", "IsFiscalPrinter")
-                        .HasDatabaseName("IX_Printers_IsDeleted_IsFiscalPrinter");
 
                     b.ToTable("Printers");
                 });
@@ -3938,91 +3064,6 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("VatNatureId");
 
                     b.ToTable("VatRates");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Configuration.AIOrderSettings", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AmbiguousProductMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("AutoCreateDocument")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("EnableAI")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MaxItemsPerOrder")
-                        .HasColumnType("int");
-
-                    b.Property<int>("MaxTokensPerDay")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("OrderConfirmationTemplate")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<bool>("RequireConfirmation")
-                        .HasColumnType("bit");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("SystemPromptTemplate")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("WelcomeMessage")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId")
-                        .IsUnique()
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("AIOrderSettings");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Configuration.BackupOperation", b =>
@@ -4508,9 +3549,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Severity", "ExecutedAt")
-                        .HasDatabaseName("IX_SystemOperationLogs_Severity_ExecutedAt");
 
                     b.ToTable("SystemOperationLogs");
                 });
@@ -5247,8 +4285,15 @@ namespace EventForge.Server.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
 
-                    b.Property<DateTime?>("ArchivedAt")
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("BaseCurrencyAmount")
                         .HasPrecision(18, 6)
@@ -5269,6 +4314,9 @@ namespace EventForge.Server.Migrations
 
                     b.Property<Guid?>("CashierId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -5915,10 +4963,6 @@ namespace EventForge.Server.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<string>("LineDiscountString")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<decimal>("LineDiscountValue")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)");
@@ -5975,10 +5019,6 @@ namespace EventForge.Server.Migrations
 
                     b.Property<Guid?>("StationId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal?>("SupplierGrossPrice")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
@@ -6426,12 +5466,6 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("CreatesStockMovements")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("DefaultMovementReason")
-                        .HasColumnType("int");
-
                     b.Property<Guid?>("DefaultWarehouseId")
                         .HasColumnType("uniqueidentifier");
 
@@ -6457,18 +5491,12 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsStockIncrease")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsTransferDocument")
-                        .HasColumnType("bit");
-
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("ModifiedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("MovesStockOnRowChange")
-                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -6502,6 +5530,16 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ChangeDescription")
                         .HasMaxLength(1000)
@@ -7245,108 +6283,6 @@ namespace EventForge.Server.Migrations
                     b.ToTable("EventTimeSlots");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.FiscalPrinting.DailyClosureRecord", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("CardAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("CashAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("ClosedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ClosureType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("FiscalClosurePending")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("HasPdf")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Operator")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte[]>("PdfBytes")
-                        .HasColumnType("varbinary(max)");
-
-                    b.Property<string>("PrinterErrors")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid?>("PrinterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PrinterResponse")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("ReceiptCount")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("ZReportNumber")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClosedAt");
-
-                    b.HasIndex("PrinterId");
-
-                    b.HasIndex("PrinterId", "ClosedAt");
-
-                    b.ToTable("DailyClosureRecords", (string)null);
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.LogEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -8073,6 +7009,11 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid?>("ImageDocumentId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -8225,12 +7166,9 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ComponentProductId");
+                    b.HasIndex("BundleProductId");
 
-                    b.HasIndex("BundleProductId", "ComponentProductId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ProductBundleItem_BundleProduct_ComponentProduct")
-                        .HasFilter("[IsDeleted] = 0");
+                    b.HasIndex("ComponentProductId");
 
                     b.ToTable("ProductBundleItems");
                 });
@@ -8480,6 +7418,127 @@ namespace EventForge.Server.Migrations
                     b.ToTable("ProductUnits");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.SupplierProductPriceHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ChangeSource")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ChangedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DeletedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int?>("NewLeadTimeDays")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("NewUnitCost")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int?>("OldLeadTimeDays")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OldUnitCost")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("PriceChange")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("PriceChangePercentage")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProductSupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SupplierId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt")
+                        .HasDatabaseName("IX_SupplierProductPriceHistory_ChangedAt");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.HasIndex("ProductId")
+                        .HasDatabaseName("IX_SupplierProductPriceHistory_ProductId");
+
+                    b.HasIndex("ProductSupplierId")
+                        .HasDatabaseName("IX_SupplierProductPriceHistory_ProductSupplierId");
+
+                    b.HasIndex("SupplierId")
+                        .HasDatabaseName("IX_SupplierProductPriceHistory_SupplierId");
+
+                    b.HasIndex("ProductId", "ChangedAt")
+                        .HasDatabaseName("IX_SupplierProductPriceHistory_ProductId_ChangedAt");
+
+                    b.HasIndex("SupplierId", "ChangedAt")
+                        .HasDatabaseName("IX_SupplierProductPriceHistory_SupplierId_ChangedAt");
+
+                    b.ToTable("SupplierProductPriceHistories");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.Promotion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8560,9 +7619,6 @@ namespace EventForge.Server.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
@@ -8595,6 +7651,9 @@ namespace EventForge.Server.Migrations
                     b.Property<string>("CreatedBy")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.PrimitiveCollection<string>("CustomerGroupIds")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -8734,144 +7793,6 @@ namespace EventForge.Server.Migrations
                         .HasDatabaseName("IX_PromotionRuleProducts_PromotionRuleId");
 
                     b.ToTable("PromotionRuleProducts");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Reports.ReportDataSource", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DataSourceName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("ReportDefinitionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReportDefinitionId", "DataSourceName")
-                        .IsUnique()
-                        .HasDatabaseName("IX_ReportDataSources_ReportDefinitionId_DataSourceName");
-
-                    b.ToTable("ReportDataSources");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Reports.ReportDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("ReportContent")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "Category", "IsDeleted")
-                        .HasDatabaseName("IX_ReportDefinitions_TenantId_Category_IsDeleted");
-
-                    b.HasIndex("TenantId", "IsActive", "IsDeleted")
-                        .HasDatabaseName("IX_ReportDefinitions_TenantId_IsActive_IsDeleted");
-
-                    b.ToTable("ReportDefinitions");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Sales.NoteFlag", b =>
@@ -9031,9 +7952,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("AppliedPromotionsJSON")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -9061,10 +7979,6 @@ namespace EventForge.Server.Migrations
                     b.Property<bool>("IsService")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("ManualDiscountPercent")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
-
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -9075,13 +7989,6 @@ namespace EventForge.Server.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid?>("PriceListId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PriceListName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ProductCode")
                         .HasMaxLength(50)
@@ -9094,10 +8001,6 @@ namespace EventForge.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<decimal>("PromotionDiscountPercent")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)");
 
                     b.Property<Guid?>("PromotionId")
                         .HasColumnType("uniqueidentifier");
@@ -9256,9 +8159,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("decimal(18,6)");
 
                     b.Property<Guid?>("DocumentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("FidelityCardId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("FinalTotal")
@@ -9508,9 +8408,6 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("Height")
-                        .HasColumnType("int");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -9535,9 +8432,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<int>("Shape")
-                        .HasColumnType("int");
-
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -9553,9 +8447,6 @@ namespace EventForge.Server.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Width")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CurrentSaleSessionId")
@@ -9569,9 +8460,6 @@ namespace EventForge.Server.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("AssignedPrinterId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -9618,18 +8506,12 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<bool>("PrintsReceiptCopy")
-                        .HasColumnType("bit");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StationType")
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -9639,8 +8521,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("AssignedPrinterId");
 
                     b.ToTable("Stations");
                 });
@@ -9738,536 +8618,10 @@ namespace EventForge.Server.Migrations
                     b.ToTable("StationOrderQueueItems");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.CashDenomination", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("DenominationType")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("FiscalDrawerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Value")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,4)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FiscalDrawerId")
-                        .HasDatabaseName("IX_CashDenomination_FiscalDrawerId");
-
-                    b.ToTable("CashDenominations");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.CashierShift", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid?>("PosId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime>("ShiftEnd")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("ShiftStart")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("StoreUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PosId")
-                        .HasDatabaseName("IX_CashierShift_PosId");
-
-                    b.HasIndex("ShiftEnd")
-                        .HasDatabaseName("IX_CashierShift_ShiftEnd");
-
-                    b.HasIndex("ShiftStart")
-                        .HasDatabaseName("IX_CashierShift_ShiftStart");
-
-                    b.HasIndex("StoreUserId")
-                        .HasDatabaseName("IX_CashierShift_StoreUserId");
-
-                    b.HasIndex("TenantId", "ShiftStart", "ShiftEnd")
-                        .HasDatabaseName("IX_CashierShift_TenantId_ShiftStart_ShiftEnd");
-
-                    b.ToTable("CashierShifts");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AssignmentType")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Code")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("CurrencyCode")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .HasColumnType("nvarchar(3)");
-
-                    b.Property<decimal>("CurrentBalance")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<decimal>("OpeningBalance")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid?>("OperatorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("PosId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OperatorId")
-                        .HasDatabaseName("IX_FiscalDrawer_OperatorId");
-
-                    b.HasIndex("PosId")
-                        .HasDatabaseName("IX_FiscalDrawer_PosId");
-
-                    b.ToTable("FiscalDrawers");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawerSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("ClosedByOperatorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("ClosingBalance")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("FiscalDrawerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("OpenedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("OpenedByOperatorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("OpeningBalance")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime>("SessionDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("TotalCashIn")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalCashOut")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalDeposits")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalSales")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalWithdrawals")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("TransactionCount")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClosedByOperatorId");
-
-                    b.HasIndex("FiscalDrawerId")
-                        .HasDatabaseName("IX_FiscalDrawerSession_FiscalDrawerId");
-
-                    b.HasIndex("OpenedByOperatorId");
-
-                    b.HasIndex("SessionDate")
-                        .HasDatabaseName("IX_FiscalDrawerSession_SessionDate");
-
-                    b.ToTable("FiscalDrawerSessions");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawerTransaction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("FiscalDrawerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("FiscalDrawerSessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("OperatorName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("PaymentType")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid?>("SaleSessionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("TransactionAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("TransactionType")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FiscalDrawerId")
-                        .HasDatabaseName("IX_FiscalDrawerTransaction_FiscalDrawerId");
-
-                    b.HasIndex("FiscalDrawerSessionId");
-
-                    b.HasIndex("TransactionAt")
-                        .HasDatabaseName("IX_FiscalDrawerTransaction_TransactionAt");
-
-                    b.ToTable("FiscalDrawerTransactions");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.PaymentTerminal", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("AgentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("AmountConfirmationRequired")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ConnectionType")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Port")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("TerminalId")
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
-                    b.Property<int>("TimeoutMs")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PaymentTerminals");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StorePos", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("CashierGroupId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -10282,9 +8636,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("nvarchar(3)");
 
                     b.Property<Guid?>("DefaultFiscalPrinterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("DefaultPaymentTerminalId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("DeletedAt")
@@ -10369,14 +8720,7 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CashierGroupId")
-                        .HasDatabaseName("IX_StorePos_CashierGroupId");
-
-                    b.HasIndex("DefaultFiscalPrinterId")
-                        .HasDatabaseName("IX_StorePos_DefaultFiscalPrinterId");
-
-                    b.HasIndex("DefaultPaymentTerminalId")
-                        .HasDatabaseName("IX_StorePos_DefaultPaymentTerminalId");
+                    b.HasIndex("DefaultFiscalPrinterId");
 
                     b.HasIndex("ImageDocumentId")
                         .HasDatabaseName("IX_StorePos_ImageDocumentId");
@@ -10464,10 +8808,6 @@ namespace EventForge.Server.Migrations
 
                     b.Property<Guid?>("PhotoDocumentId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("QuickPinHash")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Role")
                         .HasMaxLength(50)
@@ -10624,9 +8964,6 @@ namespace EventForge.Server.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<Guid?>("ImageDocumentId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -10671,9 +9008,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ImageDocumentId")
-                        .HasDatabaseName("IX_StoreUserPrivilege_ImageDocumentId");
 
                     b.ToTable("StoreUserPrivileges");
                 });
@@ -11071,10 +9405,6 @@ namespace EventForge.Server.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("FiscalCode")
-                        .HasMaxLength(16)
-                        .HasColumnType("nvarchar(16)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -12051,9 +10381,6 @@ namespace EventForge.Server.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("BusinessPartyId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -12081,9 +10408,6 @@ namespace EventForge.Server.Migrations
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsReconciliationAdjustment")
                         .HasColumnType("bit");
 
                     b.Property<Guid?>("LotId")
@@ -12122,9 +10446,6 @@ namespace EventForge.Server.Migrations
                     b.Property<int>("Reason")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("ReconciliationRunId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Reference")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -12159,9 +10480,6 @@ namespace EventForge.Server.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BusinessPartyId")
-                        .HasDatabaseName("IX_StockMovements_BusinessPartyId");
-
                     b.HasIndex("DocumentHeaderId");
 
                     b.HasIndex("DocumentRowId");
@@ -12172,6 +10490,8 @@ namespace EventForge.Server.Migrations
 
                     b.HasIndex("MovementPlanId");
 
+                    b.HasIndex("ProductId");
+
                     b.HasIndex("ProjectOrderId");
 
                     b.HasIndex("SerialId");
@@ -12179,9 +10499,6 @@ namespace EventForge.Server.Migrations
                     b.HasIndex("StockId");
 
                     b.HasIndex("ToLocationId");
-
-                    b.HasIndex("ProductId", "BusinessPartyId", "MovementDate")
-                        .HasDatabaseName("IX_StockMovements_ProductId_BusinessPartyId_MovementDate");
 
                     b.ToTable("StockMovements");
                 });
@@ -13096,10 +11413,14 @@ namespace EventForge.Server.Migrations
                         .HasForeignKey("AvatarDocumentId");
 
                     b.HasOne("EventForge.Server.Data.Entities.Auth.Tenant", "Tenant")
-                        .WithMany("Users")
+                        .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("EventForge.Server.Data.Entities.Auth.Tenant", null)
+                        .WithMany("Users")
+                        .HasForeignKey("TenantId1");
 
                     b.Navigation("AvatarDocument");
 
@@ -13162,25 +11483,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("PaymentTerm");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyClassification", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "BusinessParty")
-                        .WithMany("Classifications")
-                        .HasForeignKey("BusinessPartyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EventForge.Server.Data.Entities.Common.ClassificationNode", "ClassificationNode")
-                        .WithMany()
-                        .HasForeignKey("ClassificationNodeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BusinessParty");
-
-                    b.Navigation("ClassificationNode");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyGroupMember", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Business.BusinessPartyGroup", "Group")
@@ -13198,64 +11500,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("BusinessParty");
 
                     b.Navigation("Group");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityCard", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "BusinessParty")
-                        .WithMany()
-                        .HasForeignKey("BusinessPartyId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Business.FidelityTier", "Tier")
-                        .WithMany()
-                        .HasForeignKey("TierId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("BusinessParty");
-
-                    b.Navigation("Tier");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityPointsTransaction", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.FidelityCard", "FidelityCard")
-                        .WithMany("Transactions")
-                        .HasForeignKey("FidelityCardId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FidelityCard");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityTierMultiplier", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.FidelityPointsCampaign", "Campaign")
-                        .WithMany()
-                        .HasForeignKey("CampaignId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EventForge.Server.Data.Entities.Business.FidelityTier", "Tier")
-                        .WithMany()
-                        .HasForeignKey("TierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Campaign");
-
-                    b.Navigation("Tier");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityTierRule", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.FidelityTier", "Tier")
-                        .WithOne("Rule")
-                        .HasForeignKey("EventForge.Server.Data.Entities.Business.FidelityTierRule", "TierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Tier");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Calendar.CalendarReminder", b =>
@@ -13297,16 +11541,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("ReplyToMessage");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Chat.ChatThread", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "BusinessParty")
-                        .WithMany()
-                        .HasForeignKey("BusinessPartyId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("BusinessParty");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Chat.MessageAttachment", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Chat.ChatMessage", "Message")
@@ -13327,17 +11561,6 @@ namespace EventForge.Server.Migrations
                         .IsRequired();
 
                     b.Navigation("Message");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Chat.OrderConversationSession", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Chat.ChatThread", "ChatThread")
-                        .WithMany()
-                        .HasForeignKey("ChatThreadId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ChatThread");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Common.Address", b =>
@@ -13867,16 +12090,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Event");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.FiscalPrinting.DailyClosureRecord", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Printer", "Printer")
-                        .WithMany()
-                        .HasForeignKey("PrinterId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Printer");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Notifications.NotificationRecipient", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Notifications.Notification", "Notification")
@@ -14088,6 +12301,41 @@ namespace EventForge.Server.Migrations
                     b.Navigation("UnitOfMeasure");
                 });
 
+            modelBuilder.Entity("EventForge.Server.Data.Entities.Products.SupplierProductPriceHistory", b =>
+                {
+                    b.HasOne("EventForge.Server.Data.Entities.Auth.User", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EventForge.Server.Data.Entities.Products.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EventForge.Server.Data.Entities.Products.ProductSupplier", "ProductSupplier")
+                        .WithMany()
+                        .HasForeignKey("ProductSupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ProductSupplier");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("EventForge.Server.Data.Entities.Promotions.PromotionRule", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Promotions.Promotion", "Promotion")
@@ -14116,17 +12364,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Product");
 
                     b.Navigation("PromotionRule");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Reports.ReportDataSource", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Reports.ReportDefinition", "ReportDefinition")
-                        .WithMany("DataSources")
-                        .HasForeignKey("ReportDefinitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ReportDefinition");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Sales.SaleItem", b =>
@@ -14208,16 +12445,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("CurrentSaleSession");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.Station", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Common.Printer", "AssignedPrinter")
-                        .WithMany()
-                        .HasForeignKey("AssignedPrinterId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("AssignedPrinter");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.StationOrderQueueItem", b =>
                 {
                     b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
@@ -14257,122 +12484,18 @@ namespace EventForge.Server.Migrations
                     b.Navigation("TeamMember");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.CashDenomination", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.FiscalDrawer", "FiscalDrawer")
-                        .WithMany("CashDenominations")
-                        .HasForeignKey("FiscalDrawerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FiscalDrawer");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.CashierShift", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StorePos", "Pos")
-                        .WithMany()
-                        .HasForeignKey("PosId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUser", "StoreUser")
-                        .WithMany()
-                        .HasForeignKey("StoreUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Pos");
-
-                    b.Navigation("StoreUser");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawer", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUser", "Operator")
-                        .WithMany()
-                        .HasForeignKey("OperatorId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StorePos", "Pos")
-                        .WithMany()
-                        .HasForeignKey("PosId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Operator");
-
-                    b.Navigation("Pos");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawerSession", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUser", "ClosedByOperator")
-                        .WithMany()
-                        .HasForeignKey("ClosedByOperatorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Store.FiscalDrawer", "FiscalDrawer")
-                        .WithMany("Sessions")
-                        .HasForeignKey("FiscalDrawerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUser", "OpenedByOperator")
-                        .WithMany()
-                        .HasForeignKey("OpenedByOperatorId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("ClosedByOperator");
-
-                    b.Navigation("FiscalDrawer");
-
-                    b.Navigation("OpenedByOperator");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawerTransaction", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.FiscalDrawer", "FiscalDrawer")
-                        .WithMany("Transactions")
-                        .HasForeignKey("FiscalDrawerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EventForge.Server.Data.Entities.Store.FiscalDrawerSession", "FiscalDrawerSession")
-                        .WithMany("Transactions")
-                        .HasForeignKey("FiscalDrawerSessionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("FiscalDrawer");
-
-                    b.Navigation("FiscalDrawerSession");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StorePos", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Store.StoreUserGroup", "CashierGroup")
-                        .WithMany()
-                        .HasForeignKey("CashierGroupId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("EventForge.Server.Data.Entities.Common.Printer", "DefaultFiscalPrinter")
                         .WithMany()
-                        .HasForeignKey("DefaultFiscalPrinterId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("EventForge.Server.Data.Entities.Store.PaymentTerminal", "DefaultPaymentTerminal")
-                        .WithMany()
-                        .HasForeignKey("DefaultPaymentTerminalId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("DefaultFiscalPrinterId");
 
                     b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "ImageDocument")
                         .WithMany()
                         .HasForeignKey("ImageDocumentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("CashierGroup");
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DefaultFiscalPrinter");
-
-                    b.Navigation("DefaultPaymentTerminal");
 
                     b.Navigation("ImageDocument");
                 });
@@ -14386,7 +12509,7 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "PhotoDocument")
                         .WithMany()
                         .HasForeignKey("PhotoDocumentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("CashierGroup");
 
@@ -14398,19 +12521,9 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "LogoDocument")
                         .WithMany()
                         .HasForeignKey("LogoDocumentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("LogoDocument");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StoreUserPrivilege", b =>
-                {
-                    b.HasOne("EventForge.Server.Data.Entities.Teams.DocumentReference", "ImageDocument")
-                        .WithMany()
-                        .HasForeignKey("ImageDocumentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("ImageDocument");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Teams.InsurancePolicy", b =>
@@ -14670,11 +12783,6 @@ namespace EventForge.Server.Migrations
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Warehouse.StockMovement", b =>
                 {
-                    b.HasOne("EventForge.Server.Data.Entities.Business.BusinessParty", "BusinessParty")
-                        .WithMany()
-                        .HasForeignKey("BusinessPartyId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("EventForge.Server.Data.Entities.Documents.DocumentHeader", "DocumentHeader")
                         .WithMany()
                         .HasForeignKey("DocumentHeaderId");
@@ -14716,8 +12824,6 @@ namespace EventForge.Server.Migrations
                     b.HasOne("EventForge.Server.Data.Entities.Warehouse.StorageLocation", "ToLocation")
                         .WithMany()
                         .HasForeignKey("ToLocationId");
-
-                    b.Navigation("BusinessParty");
 
                     b.Navigation("DocumentHeader");
 
@@ -14951,8 +13057,6 @@ namespace EventForge.Server.Migrations
                 {
                     b.Navigation("Addresses");
 
-                    b.Navigation("Classifications");
-
                     b.Navigation("Contacts");
 
                     b.Navigation("GroupMemberships");
@@ -14963,16 +13067,6 @@ namespace EventForge.Server.Migrations
             modelBuilder.Entity("EventForge.Server.Data.Entities.Business.BusinessPartyGroup", b =>
                 {
                     b.Navigation("Members");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityCard", b =>
-                {
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Business.FidelityTier", b =>
-                {
-                    b.Navigation("Rule");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Chat.ChatMessage", b =>
@@ -15167,11 +13261,6 @@ namespace EventForge.Server.Migrations
                     b.Navigation("Products");
                 });
 
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Reports.ReportDefinition", b =>
-                {
-                    b.Navigation("DataSources");
-                });
-
             modelBuilder.Entity("EventForge.Server.Data.Entities.Sales.SaleSession", b =>
                 {
                     b.Navigation("ChildSessions");
@@ -15193,20 +13282,6 @@ namespace EventForge.Server.Migrations
             modelBuilder.Entity("EventForge.Server.Data.Entities.StationMonitor.Station", b =>
                 {
                     b.Navigation("Printers");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawer", b =>
-                {
-                    b.Navigation("CashDenominations");
-
-                    b.Navigation("Sessions");
-
-                    b.Navigation("Transactions");
-                });
-
-            modelBuilder.Entity("EventForge.Server.Data.Entities.Store.FiscalDrawerSession", b =>
-                {
-                    b.Navigation("Transactions");
                 });
 
             modelBuilder.Entity("EventForge.Server.Data.Entities.Store.StorePos", b =>
