@@ -83,83 +83,72 @@ public partial class DocumentHeaderService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var originalHeader = await context.DocumentHeaders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
+
+        if (originalHeader is null)
+        {
+            logger.LogWarning("Document header with ID {Id} not found for update.", id);
+            return null;
+        }
+
+        var documentHeader = await context.DocumentHeaders
+            .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
+
+        if (documentHeader is null)
+        {
+            logger.LogWarning("Document header with ID {Id} not found for update.", id);
+            return null;
+        }
+
+        // Detect if Date changed to sync stock movements
+        // Normalize both dates to UTC for proper comparison
+        var originalDateUtc = NormalizeDateToUtc(originalHeader.Date);
+        var newDateUtc = NormalizeDateToUtc(updateDto.Date);
+        var dateChanged = originalDateUtc != newDateUtc;
+
+        documentHeader.UpdateFromDto(updateDto);
+        documentHeader.ModifiedBy = currentUser;
+        documentHeader.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var originalHeader = await context.DocumentHeaders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
-
-            if (originalHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for update.", id);
-                return null;
-            }
-
-            var documentHeader = await context.DocumentHeaders
-                .FirstOrDefaultAsync(dh => dh.Id == id && dh.TenantId == currentTenantId && !dh.IsDeleted, cancellationToken);
-
-            if (documentHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for update.", id);
-                return null;
-            }
-
-            // Detect if Date changed to sync stock movements
-            // Normalize both dates to UTC for proper comparison
-            var originalDateUtc = NormalizeDateToUtc(originalHeader.Date);
-            var newDateUtc = NormalizeDateToUtc(updateDto.Date);
-            var dateChanged = originalDateUtc != newDateUtc;
-
-            documentHeader.UpdateFromDto(updateDto);
-            documentHeader.ModifiedBy = currentUser;
-            documentHeader.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating document header {DocumentHeaderId}.", id);
-                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
-
-            // Sync stock movement dates if document date changed
-            if (dateChanged)
-            {
-                await SyncStockMovementDatesForDocumentAsync(id, newDateUtc, currentUser, cancellationToken);
-            }
-
-            // Process stock movements on every content save so that movements are always
-            // up-to-date with the current rows, regardless of the document status.
-            var documentForStockMovement = await context.DocumentHeaders
-                .AsNoTracking()
-                .Include(dh => dh.DocumentType)
-                .Include(dh => dh.Rows)
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentForStockMovement is not null)
-            {
-                await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
-            }
-
-            logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
-
-            return documentHeader.ToDto();
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating document header {DocumentHeaderId}.", id);
+            throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
+
+        _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Update", currentUser, originalHeader, cancellationToken);
+
+        // Sync stock movement dates if document date changed
+        if (dateChanged)
         {
-            throw;
+            await SyncStockMovementDatesForDocumentAsync(id, newDateUtc, currentUser, cancellationToken);
         }
+
+        // Process stock movements on every content save so that movements are always
+        // up-to-date with the current rows, regardless of the document status.
+        var documentForStockMovement = await context.DocumentHeaders
+            .AsNoTracking()
+            .Include(dh => dh.DocumentType)
+            .Include(dh => dh.Rows)
+            .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+        if (documentForStockMovement is not null)
+        {
+            await ProcessStockMovementsForDocumentAsync(documentForStockMovement, currentUser, cancellationToken);
+        }
+
+        logger.LogInformation("Document header {DocumentHeaderId} updated by {User}.", id, currentUser);
+
+        return documentHeader.ToDto();
     }
 
     public async Task<bool> DeleteDocumentHeaderAsync(

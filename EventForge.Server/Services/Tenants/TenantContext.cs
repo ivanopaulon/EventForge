@@ -142,10 +142,6 @@ public class TenantContext(
             logger.LogWarning("Operazione di cambio tenant annullata.");
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task StartImpersonationAsync(Guid userId, string auditReason, CancellationToken ct = default)
@@ -221,10 +217,6 @@ public class TenantContext(
             logger.LogWarning("Operazione di impersonificazione annullata.");
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task EndImpersonationAsync(string auditReason, CancellationToken ct = default)
@@ -272,10 +264,6 @@ public class TenantContext(
             logger.LogWarning("Operazione di fine impersonificazione annullata.");
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<IEnumerable<Guid>> GetManageableTenantsAsync(CancellationToken ct = default)
@@ -320,10 +308,6 @@ public class TenantContext(
         catch (OperationCanceledException)
         {
             logger.LogWarning("Operazione di recupero tenant gestibili annullata.");
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -377,10 +361,6 @@ public class TenantContext(
         catch (OperationCanceledException)
         {
             logger.LogWarning("Operazione di verifica accesso tenant annullata.");
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }

@@ -303,65 +303,58 @@ public partial class StockService
 
     public async Task<StockDto?> UpdateStockLevelsAsync(Guid id, UpdateStockDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var stock = await context.Stocks
+            .Include(s => s.Product)
+            .Include(s => s.StorageLocation)
+                .ThenInclude(sl => sl!.Warehouse)
+            .Include(s => s.Lot)
+            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
+
+        if (stock is null)
+        {
+            return null;
+        }
+
+        // Update only provided fields
+        if (updateDto.Quantity.HasValue)
+            stock.Quantity = updateDto.Quantity.Value;
+        if (updateDto.ReservedQuantity.HasValue)
+            stock.ReservedQuantity = updateDto.ReservedQuantity.Value;
+        if (updateDto.MinimumLevel.HasValue)
+            stock.MinimumLevel = updateDto.MinimumLevel.Value;
+        if (updateDto.MaximumLevel.HasValue)
+            stock.MaximumLevel = updateDto.MaximumLevel.Value;
+        if (updateDto.ReorderPoint.HasValue)
+            stock.ReorderPoint = updateDto.ReorderPoint.Value;
+        if (updateDto.ReorderQuantity.HasValue)
+            stock.ReorderQuantity = updateDto.ReorderQuantity.Value;
+        if (updateDto.UnitCost.HasValue)
+            stock.UnitCost = updateDto.UnitCost.Value;
+        if (!string.IsNullOrEmpty(updateDto.Notes))
+            stock.Notes = updateDto.Notes;
+
+        stock.ModifiedBy = currentUser;
+        stock.ModifiedAt = DateTime.UtcNow;
+
+        _ = await auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var stock = await context.Stocks
-                .Include(s => s.Product)
-                .Include(s => s.StorageLocation)
-                    .ThenInclude(sl => sl!.Warehouse)
-                .Include(s => s.Lot)
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value, cancellationToken);
-
-            if (stock is null)
-            {
-                return null;
-            }
-
-            // Update only provided fields
-            if (updateDto.Quantity.HasValue)
-                stock.Quantity = updateDto.Quantity.Value;
-            if (updateDto.ReservedQuantity.HasValue)
-                stock.ReservedQuantity = updateDto.ReservedQuantity.Value;
-            if (updateDto.MinimumLevel.HasValue)
-                stock.MinimumLevel = updateDto.MinimumLevel.Value;
-            if (updateDto.MaximumLevel.HasValue)
-                stock.MaximumLevel = updateDto.MaximumLevel.Value;
-            if (updateDto.ReorderPoint.HasValue)
-                stock.ReorderPoint = updateDto.ReorderPoint.Value;
-            if (updateDto.ReorderQuantity.HasValue)
-                stock.ReorderQuantity = updateDto.ReorderQuantity.Value;
-            if (updateDto.UnitCost.HasValue)
-                stock.UnitCost = updateDto.UnitCost.Value;
-            if (!string.IsNullOrEmpty(updateDto.Notes))
-                stock.Notes = updateDto.Notes;
-
-            stock.ModifiedBy = currentUser;
-            stock.ModifiedAt = DateTime.UtcNow;
-
-            _ = await auditLogService.LogEntityChangeAsync("Stock", stock.Id, "StockLevels", "Update", null, "Updated stock levels", currentUser);
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Stock {StockId}.", id);
-                throw new InvalidOperationException("La giacenza è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            return stock.ToStockDto();
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Stock {StockId}.", id);
+            throw new InvalidOperationException("La giacenza è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
+
+        return stock.ToStockDto();
     }
 
 }

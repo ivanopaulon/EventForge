@@ -307,60 +307,49 @@ public partial class BusinessPartyService
 
     public async Task<bool> DeleteBusinessPartyAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for business party operations.");
+        }
+
+        var originalBusinessParty = await context.BusinessParties
+            .AsNoTracking()
+            .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalBusinessParty is null)
+            return false;
+
+        var businessParty = await context.BusinessParties
+            .AsNoTracking()
+            .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (businessParty is null)
+            return false;
+
+        businessParty.IsDeleted = true;
+        businessParty.DeletedAt = DateTime.UtcNow;
+        businessParty.DeletedBy = currentUser;
+        businessParty.ModifiedAt = DateTime.UtcNow;
+        businessParty.ModifiedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for business party operations.");
-            }
-
-            var originalBusinessParty = await context.BusinessParties
-                .AsNoTracking()
-                .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBusinessParty is null)
-                return false;
-
-            var businessParty = await context.BusinessParties
-                .AsNoTracking()
-                .Where(bp => bp.Id == id && bp.TenantId == currentTenantId.Value && !bp.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (businessParty is null)
-                return false;
-
-            businessParty.IsDeleted = true;
-            businessParty.DeletedAt = DateTime.UtcNow;
-            businessParty.DeletedBy = currentUser;
-            businessParty.ModifiedAt = DateTime.UtcNow;
-            businessParty.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting business party {BusinessPartyId}.", id);
-                throw new InvalidOperationException("L'anagrafica è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
-
-            logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting business party {BusinessPartyId}.", id);
+            throw new InvalidOperationException("L'anagrafica è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(businessParty, "Delete", currentUser, originalBusinessParty, cancellationToken);
+
+        logger.LogInformation("Business party {BusinessPartyId} deleted by {User}", id, currentUser);
+
+        return true;
     }
 
 }

@@ -47,10 +47,6 @@ public class ConfigurationService(
             logger.LogInformation("GetAllConfigurationsAsync operation was cancelled");
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<IEnumerable<ConfigurationDto>> GetConfigurationsByCategoryAsync(string category, CancellationToken ct = default)
@@ -70,10 +66,6 @@ public class ConfigurationService(
             logger.LogInformation("GetConfigurationsByCategoryAsync operation was cancelled for category {Category}", category);
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<ConfigurationDto?> GetConfigurationAsync(string key, CancellationToken ct = default)
@@ -89,10 +81,6 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetConfigurationAsync operation was cancelled for key {Key}", key);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -147,10 +135,6 @@ public class ConfigurationService(
             logger.LogInformation("CreateConfigurationAsync operation was cancelled for key {Key}", createDto.Key);
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<ConfigurationDto> UpdateConfigurationAsync(string key, UpdateConfigurationDto updateDto, CancellationToken ct = default)
@@ -201,10 +185,6 @@ public class ConfigurationService(
             logger.LogInformation("UpdateConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task DeleteConfigurationAsync(string key, CancellationToken ct = default)
@@ -245,10 +225,6 @@ public class ConfigurationService(
             logger.LogInformation("DeleteConfigurationAsync operation was cancelled for key {Key}", key);
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<string> GetValueAsync(string key, string defaultValue = "", CancellationToken ct = default)
@@ -269,10 +245,6 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetValueAsync operation was cancelled for key {Key}", key);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -310,10 +282,6 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("SetValueAsync operation was cancelled for key {Key}", key);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -414,10 +382,6 @@ public class ConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetCategoriesAsync operation was cancelled");
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }

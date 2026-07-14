@@ -97,107 +97,85 @@ public class VatRateService(
 
     public async Task<VatRateDto?> UpdateVatRateAsync(Guid id, UpdateVatRateDto updateVatRateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateVatRateDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+
+        var vatRate = await context.VatRates
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (vatRate is null) return null;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(vatRate).CurrentValues.Clone();
+        var originalVatRate = (VatRate)originalValues.ToObject();
+
+        vatRate.Name = updateVatRateDto.Name;
+        vatRate.Percentage = updateVatRateDto.Percentage;
+        vatRate.ValidFrom = updateVatRateDto.ValidFrom;
+        vatRate.ValidTo = updateVatRateDto.ValidTo;
+        vatRate.Notes = updateVatRateDto.Notes;
+        vatRate.VatNatureId = updateVatRateDto.VatNatureId;
+        vatRate.FiscalCode = updateVatRateDto.FiscalCode;
+        vatRate.ModifiedAt = DateTime.UtcNow;
+        vatRate.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateVatRateDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
-
-            var vatRate = await context.VatRates
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vatRate is null) return null;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(vatRate).CurrentValues.Clone();
-            var originalVatRate = (VatRate)originalValues.ToObject();
-
-            vatRate.Name = updateVatRateDto.Name;
-            vatRate.Percentage = updateVatRateDto.Percentage;
-            vatRate.ValidFrom = updateVatRateDto.ValidFrom;
-            vatRate.ValidTo = updateVatRateDto.ValidTo;
-            vatRate.Notes = updateVatRateDto.Notes;
-            vatRate.VatNatureId = updateVatRateDto.VatNatureId;
-            vatRate.FiscalCode = updateVatRateDto.FiscalCode;
-            vatRate.ModifiedAt = DateTime.UtcNow;
-            vatRate.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating VatRate {VatRateId}.", id);
-                throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
-
-            logger.LogInformation("VAT rate {VatRateId} updated by {User}.", vatRate.Id, currentUser);
-
-            return MapToVatRateDto(vatRate);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating VatRate {VatRateId}.", id);
+            throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Update", currentUser, originalVatRate, cancellationToken);
+
+        logger.LogInformation("VAT rate {VatRateId} updated by {User}.", vatRate.Id, currentUser);
+
+        return MapToVatRateDto(vatRate);
     }
 
     public async Task<bool> DeleteVatRateAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
+
+        var vatRate = await context.VatRates
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (vatRate is null) return false;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(vatRate).CurrentValues.Clone();
+        var originalVatRate = (VatRate)originalValues.ToObject();
+
+        vatRate.IsDeleted = true;
+        vatRate.ModifiedAt = DateTime.UtcNow;
+        vatRate.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for VAT rate operations.");
-
-            var vatRate = await context.VatRates
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vatRate is null) return false;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(vatRate).CurrentValues.Clone();
-            var originalVatRate = (VatRate)originalValues.ToObject();
-
-            vatRate.IsDeleted = true;
-            vatRate.ModifiedAt = DateTime.UtcNow;
-            vatRate.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting VatRate {VatRateId}.", id);
-                throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
-
-            logger.LogInformation("VAT rate {VatRateId} deleted by {User}.", vatRate.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting VatRate {VatRateId}.", id);
+            throw new InvalidOperationException("L'aliquota IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(vatRate, "Delete", currentUser, originalVatRate, cancellationToken);
+
+        logger.LogInformation("VAT rate {VatRateId} deleted by {User}.", vatRate.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> VatRateExistsAsync(Guid vatRateId, CancellationToken cancellationToken = default)

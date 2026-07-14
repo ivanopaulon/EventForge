@@ -251,221 +251,199 @@ public partial class ProductService
 
     public async Task<ProductDto?> UpdateProductAsync(Guid id, UpdateProductDto updateProductDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateProductDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
+        var product = await context.Products
+            .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
+            .Include(p => p.Codes.Where(c => !c.IsDeleted))
+            .Include(p => p.Units.Where(u => !u.IsDeleted))
+            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (product is null)
+        {
+            logger.LogWarning("Product with ID {ProductId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        // Store original for audit
+        var originalProduct = new Product
+        {
+            Id = product.Id,
+            Name = product.Name,
+            ShortDescription = product.ShortDescription,
+            Description = product.Description,
+            Code = product.Code,
+            ImageDocumentId = product.ImageDocumentId,
+            IsVatIncluded = product.IsVatIncluded,
+            DefaultPrice = product.DefaultPrice,
+            VatRateId = product.VatRateId,
+            UnitOfMeasureId = product.UnitOfMeasureId,
+            CategoryNodeId = product.CategoryNodeId,
+            FamilyNodeId = product.FamilyNodeId,
+            GroupNodeId = product.GroupNodeId,
+            StationId = product.StationId,
+            IsBundle = product.IsBundle,
+            BrandId = product.BrandId,
+            ModelId = product.ModelId,
+            PreferredSupplierId = product.PreferredSupplierId,
+            ReorderPoint = product.ReorderPoint,
+            SafetyStock = product.SafetyStock,
+            TargetStockLevel = product.TargetStockLevel,
+            AverageDailyDemand = product.AverageDailyDemand,
+            CreatedBy = product.CreatedBy,
+            CreatedAt = product.CreatedAt,
+            ModifiedBy = product.ModifiedBy,
+            ModifiedAt = product.ModifiedAt
+        };
+
+        // Log incoming DTO values for diagnostic purposes
+        logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}",
+            id, updateProductDto.IsVatIncluded, originalProduct.IsVatIncluded);
+
+        // Update properties
+        product.Name = updateProductDto.Name;
+        product.ShortDescription = updateProductDto.ShortDescription;
+        product.Description = updateProductDto.Description;
+        // Note: Code and IsBundle are intentionally not updatable after creation
+        product.ImageDocumentId = updateProductDto.ImageDocumentId;
+        product.Status = (EntityProductStatus)updateProductDto.Status;
+        product.IsVatIncluded = updateProductDto.IsVatIncluded;
+        product.DefaultPrice = updateProductDto.DefaultPrice;
+        product.VatRateId = updateProductDto.VatRateId;
+        product.UnitOfMeasureId = updateProductDto.UnitOfMeasureId;
+        product.CategoryNodeId = updateProductDto.CategoryNodeId;
+        product.FamilyNodeId = updateProductDto.FamilyNodeId;
+        product.GroupNodeId = updateProductDto.GroupNodeId;
+        product.StationId = updateProductDto.StationId;
+        product.BrandId = updateProductDto.BrandId;
+        product.ModelId = updateProductDto.ModelId;
+        product.PreferredSupplierId = updateProductDto.PreferredSupplierId;
+        product.ReorderPoint = updateProductDto.ReorderPoint;
+        product.SafetyStock = updateProductDto.SafetyStock;
+        product.TargetStockLevel = updateProductDto.TargetStockLevel;
+        product.AverageDailyDemand = updateProductDto.AverageDailyDemand;
+        product.ModifiedBy = currentUser;
+        product.ModifiedAt = DateTime.UtcNow;
+
+        // Log product entity value before SaveChanges for diagnostic purposes
+        logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}",
+            id, product.IsVatIncluded);
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateProductDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
-
-            var product = await context.Products
-                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
-                .Include(p => p.Codes.Where(c => !c.IsDeleted))
-                .Include(p => p.Units.Where(u => !u.IsDeleted))
-                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (product is null)
-            {
-                logger.LogWarning("Product with ID {ProductId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            // Store original for audit
-            var originalProduct = new Product
-            {
-                Id = product.Id,
-                Name = product.Name,
-                ShortDescription = product.ShortDescription,
-                Description = product.Description,
-                Code = product.Code,
-                ImageDocumentId = product.ImageDocumentId,
-                IsVatIncluded = product.IsVatIncluded,
-                DefaultPrice = product.DefaultPrice,
-                VatRateId = product.VatRateId,
-                UnitOfMeasureId = product.UnitOfMeasureId,
-                CategoryNodeId = product.CategoryNodeId,
-                FamilyNodeId = product.FamilyNodeId,
-                GroupNodeId = product.GroupNodeId,
-                StationId = product.StationId,
-                IsBundle = product.IsBundle,
-                BrandId = product.BrandId,
-                ModelId = product.ModelId,
-                PreferredSupplierId = product.PreferredSupplierId,
-                ReorderPoint = product.ReorderPoint,
-                SafetyStock = product.SafetyStock,
-                TargetStockLevel = product.TargetStockLevel,
-                AverageDailyDemand = product.AverageDailyDemand,
-                CreatedBy = product.CreatedBy,
-                CreatedAt = product.CreatedAt,
-                ModifiedBy = product.ModifiedBy,
-                ModifiedAt = product.ModifiedAt
-            };
-
-            // Log incoming DTO values for diagnostic purposes
-            logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, Incoming IsVatIncluded: {IncomingIsVatIncluded}, Current IsVatIncluded: {CurrentIsVatIncluded}",
-                id, updateProductDto.IsVatIncluded, originalProduct.IsVatIncluded);
-
-            // Update properties
-            product.Name = updateProductDto.Name;
-            product.ShortDescription = updateProductDto.ShortDescription;
-            product.Description = updateProductDto.Description;
-            // Note: Code and IsBundle are intentionally not updatable after creation
-            product.ImageDocumentId = updateProductDto.ImageDocumentId;
-            product.Status = (EntityProductStatus)updateProductDto.Status;
-            product.IsVatIncluded = updateProductDto.IsVatIncluded;
-            product.DefaultPrice = updateProductDto.DefaultPrice;
-            product.VatRateId = updateProductDto.VatRateId;
-            product.UnitOfMeasureId = updateProductDto.UnitOfMeasureId;
-            product.CategoryNodeId = updateProductDto.CategoryNodeId;
-            product.FamilyNodeId = updateProductDto.FamilyNodeId;
-            product.GroupNodeId = updateProductDto.GroupNodeId;
-            product.StationId = updateProductDto.StationId;
-            product.BrandId = updateProductDto.BrandId;
-            product.ModelId = updateProductDto.ModelId;
-            product.PreferredSupplierId = updateProductDto.PreferredSupplierId;
-            product.ReorderPoint = updateProductDto.ReorderPoint;
-            product.SafetyStock = updateProductDto.SafetyStock;
-            product.TargetStockLevel = updateProductDto.TargetStockLevel;
-            product.AverageDailyDemand = updateProductDto.AverageDailyDemand;
-            product.ModifiedBy = currentUser;
-            product.ModifiedAt = DateTime.UtcNow;
-
-            // Log product entity value before SaveChanges for diagnostic purposes
-            logger.LogInformation("UpdateProductAsync - ProductId: {ProductId}, IsVatIncluded value before SaveChanges: {IsVatIncludedBeforeSave}",
-                id, product.IsVatIncluded);
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating product {ProductId}.", id);
-                throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log for the updated product
-            _ = await auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
-
-            logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}",
-                id, currentUser, originalProduct.IsVatIncluded, product.IsVatIncluded);
-
-            return MapToProductDto(product);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating product {ProductId}.", id);
+            throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log for the updated product
+        _ = await auditLogService.TrackEntityChangesAsync(product, "Update", currentUser, originalProduct, cancellationToken);
+
+        logger.LogInformation("Product {ProductId} updated by user {User}. IsVatIncluded changed from {OldValue} to {NewValue}",
+            id, currentUser, originalProduct.IsVatIncluded, product.IsVatIncluded);
+
+        return MapToProductDto(product);
     }
 
     public async Task<bool> DeleteProductAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for product operations.");
+
+        var product = await context.Products
+            .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
+            .Include(p => p.Codes.Where(c => !c.IsDeleted))
+            .Include(p => p.Units.Where(u => !u.IsDeleted))
+            .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (product is null)
+        {
+            logger.LogWarning("Product with ID {ProductId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        // Store original for audit
+        var originalProduct = new Product
+        {
+            Id = product.Id,
+            Name = product.Name,
+            ShortDescription = product.ShortDescription,
+            Description = product.Description,
+            Code = product.Code,
+            IsVatIncluded = product.IsVatIncluded,
+            DefaultPrice = product.DefaultPrice,
+            VatRateId = product.VatRateId,
+            UnitOfMeasureId = product.UnitOfMeasureId,
+            CategoryNodeId = product.CategoryNodeId,
+            FamilyNodeId = product.FamilyNodeId,
+            GroupNodeId = product.GroupNodeId,
+            StationId = product.StationId,
+            IsBundle = product.IsBundle,
+            CreatedBy = product.CreatedBy,
+            CreatedAt = product.CreatedAt,
+            ModifiedBy = product.ModifiedBy,
+            ModifiedAt = product.ModifiedAt,
+            IsDeleted = product.IsDeleted,
+            DeletedBy = product.DeletedBy,
+            DeletedAt = product.DeletedAt
+        };
+
+        // Soft delete the product and all related entities
+        product.IsDeleted = true;
+        product.DeletedBy = currentUser;
+        product.DeletedAt = DateTime.UtcNow;
+
+        // Soft delete related codes
+        foreach (var code in product.Codes.Where(c => !c.IsDeleted))
+        {
+            code.IsDeleted = true;
+            code.DeletedBy = currentUser;
+            code.DeletedAt = DateTime.UtcNow;
+        }
+
+        // Soft delete related units
+        foreach (var unit in product.Units.Where(u => !u.IsDeleted))
+        {
+            unit.IsDeleted = true;
+            unit.DeletedBy = currentUser;
+            unit.DeletedAt = DateTime.UtcNow;
+        }
+
+        // Soft delete related bundle items
+        foreach (var bundleItem in product.BundleItems.Where(bi => !bi.IsDeleted))
+        {
+            bundleItem.IsDeleted = true;
+            bundleItem.DeletedBy = currentUser;
+            bundleItem.DeletedAt = DateTime.UtcNow;
+        }
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for product operations.");
-
-            var product = await context.Products
-                .Where(p => p.Id == id && p.TenantId == currentTenantId && !p.IsDeleted)
-                .Include(p => p.Codes.Where(c => !c.IsDeleted))
-                .Include(p => p.Units.Where(u => !u.IsDeleted))
-                .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (product is null)
-            {
-                logger.LogWarning("Product with ID {ProductId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            // Store original for audit
-            var originalProduct = new Product
-            {
-                Id = product.Id,
-                Name = product.Name,
-                ShortDescription = product.ShortDescription,
-                Description = product.Description,
-                Code = product.Code,
-                IsVatIncluded = product.IsVatIncluded,
-                DefaultPrice = product.DefaultPrice,
-                VatRateId = product.VatRateId,
-                UnitOfMeasureId = product.UnitOfMeasureId,
-                CategoryNodeId = product.CategoryNodeId,
-                FamilyNodeId = product.FamilyNodeId,
-                GroupNodeId = product.GroupNodeId,
-                StationId = product.StationId,
-                IsBundle = product.IsBundle,
-                CreatedBy = product.CreatedBy,
-                CreatedAt = product.CreatedAt,
-                ModifiedBy = product.ModifiedBy,
-                ModifiedAt = product.ModifiedAt,
-                IsDeleted = product.IsDeleted,
-                DeletedBy = product.DeletedBy,
-                DeletedAt = product.DeletedAt
-            };
-
-            // Soft delete the product and all related entities
-            product.IsDeleted = true;
-            product.DeletedBy = currentUser;
-            product.DeletedAt = DateTime.UtcNow;
-
-            // Soft delete related codes
-            foreach (var code in product.Codes.Where(c => !c.IsDeleted))
-            {
-                code.IsDeleted = true;
-                code.DeletedBy = currentUser;
-                code.DeletedAt = DateTime.UtcNow;
-            }
-
-            // Soft delete related units
-            foreach (var unit in product.Units.Where(u => !u.IsDeleted))
-            {
-                unit.IsDeleted = true;
-                unit.DeletedBy = currentUser;
-                unit.DeletedAt = DateTime.UtcNow;
-            }
-
-            // Soft delete related bundle items
-            foreach (var bundleItem in product.BundleItems.Where(bi => !bi.IsDeleted))
-            {
-                bundleItem.IsDeleted = true;
-                bundleItem.DeletedBy = currentUser;
-                bundleItem.DeletedAt = DateTime.UtcNow;
-            }
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting product {ProductId}.", id);
-                throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log for the deleted product
-            _ = await auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
-
-            logger.LogInformation("Product {ProductId} deleted by user {User}.", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting product {ProductId}.", id);
+            throw new InvalidOperationException("Il prodotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log for the deleted product
+        _ = await auditLogService.TrackEntityChangesAsync(product, "Delete", currentUser, originalProduct, cancellationToken);
+
+        logger.LogInformation("Product {ProductId} deleted by user {User}.", id, currentUser);
+
+        return true;
     }
 
     // Product Code management operations

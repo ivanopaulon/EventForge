@@ -176,131 +176,109 @@ public partial class StoreUserService
 
     public async Task<StoreUserDto?> UpdateStoreUserAsync(Guid id, UpdateStoreUserDto updateStoreUserDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for store user operations.");
+        }
+
+        var storeUser = await context.StoreUsers
+            .AsNoTracking()
+            .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (storeUser is null)
+        {
+            logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(storeUser).CurrentValues.Clone();
+        var originalStoreUser = (StoreUser)originalValues.ToObject();
+
+        storeUser.Name = updateStoreUserDto.Name;
+        // Note: Username and PasswordHash are intentionally not updatable via this method
+        storeUser.Email = updateStoreUserDto.Email;
+        storeUser.Role = updateStoreUserDto.Role;
+        storeUser.Status = (EventForge.Server.Data.Entities.Store.CashierStatus)updateStoreUserDto.Status;
+        storeUser.Notes = updateStoreUserDto.Notes;
+        storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
+        storeUser.PhotoDocumentId = updateStoreUserDto.ImageDocumentId;
+        // Issue #315: Extended Fields
+        storeUser.PhoneNumber = updateStoreUserDto.PhoneNumber;
+        storeUser.DateOfBirth = updateStoreUserDto.DateOfBirth;
+        storeUser.ModifiedAt = DateTime.UtcNow;
+        storeUser.ModifiedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for store user operations.");
-            }
-
-            var storeUser = await context.StoreUsers
-                .AsNoTracking()
-                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (storeUser is null)
-            {
-                logger.LogWarning("Store user with ID {StoreUserId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(storeUser).CurrentValues.Clone();
-            var originalStoreUser = (StoreUser)originalValues.ToObject();
-
-            storeUser.Name = updateStoreUserDto.Name;
-            // Note: Username and PasswordHash are intentionally not updatable via this method
-            storeUser.Email = updateStoreUserDto.Email;
-            storeUser.Role = updateStoreUserDto.Role;
-            storeUser.Status = (EventForge.Server.Data.Entities.Store.CashierStatus)updateStoreUserDto.Status;
-            storeUser.Notes = updateStoreUserDto.Notes;
-            storeUser.CashierGroupId = updateStoreUserDto.CashierGroupId;
-            storeUser.PhotoDocumentId = updateStoreUserDto.ImageDocumentId;
-            // Issue #315: Extended Fields
-            storeUser.PhoneNumber = updateStoreUserDto.PhoneNumber;
-            storeUser.DateOfBirth = updateStoreUserDto.DateOfBirth;
-            storeUser.ModifiedAt = DateTime.UtcNow;
-            storeUser.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating StoreUser {StoreUserId}.", id);
-                throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
-
-            logger.LogInformation("Store user {StoreUserId} updated by {User}", id, currentUser);
-
-            // Reload with includes
-            var updatedStoreUser = await context.StoreUsers
-                .AsNoTracking()
-                .Include(su => su.CashierGroup)
-                .Include(su => su.PhotoDocument)
-                .FirstAsync(su => su.Id == id, cancellationToken);
-
-            return MapToStoreUserDto(updatedStoreUser);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating StoreUser {StoreUserId}.", id);
+            throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Update", currentUser, originalStoreUser, cancellationToken);
+
+        logger.LogInformation("Store user {StoreUserId} updated by {User}", id, currentUser);
+
+        // Reload with includes
+        var updatedStoreUser = await context.StoreUsers
+            .AsNoTracking()
+            .Include(su => su.CashierGroup)
+            .Include(su => su.PhotoDocument)
+            .FirstAsync(su => su.Id == id, cancellationToken);
+
+        return MapToStoreUserDto(updatedStoreUser);
     }
 
     public async Task<bool> DeleteStoreUserAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for store user operations.");
+        }
+
+        var storeUser = await context.StoreUsers
+            .AsNoTracking()
+            .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (storeUser is null)
+        {
+            logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(storeUser).CurrentValues.Clone();
+        var originalStoreUser = (StoreUser)originalValues.ToObject();
+
+        storeUser.IsDeleted = true;
+        storeUser.DeletedAt = DateTime.UtcNow;
+        storeUser.DeletedBy = currentUser;
+        storeUser.ModifiedAt = DateTime.UtcNow;
+        storeUser.ModifiedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for store user operations.");
-            }
-
-            var storeUser = await context.StoreUsers
-                .AsNoTracking()
-                .Where(su => su.Id == id && !su.IsDeleted && su.TenantId == currentTenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (storeUser is null)
-            {
-                logger.LogWarning("Store user with ID {StoreUserId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(storeUser).CurrentValues.Clone();
-            var originalStoreUser = (StoreUser)originalValues.ToObject();
-
-            storeUser.IsDeleted = true;
-            storeUser.DeletedAt = DateTime.UtcNow;
-            storeUser.DeletedBy = currentUser;
-            storeUser.ModifiedAt = DateTime.UtcNow;
-            storeUser.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting StoreUser {StoreUserId}.", id);
-                throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
-
-            logger.LogInformation("Store user {StoreUserId} deleted by {User}", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting StoreUser {StoreUserId}.", id);
+            throw new InvalidOperationException("Lo store user è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(storeUser, "Delete", currentUser, originalStoreUser, cancellationToken);
+
+        logger.LogInformation("Store user {StoreUserId} deleted by {User}", id, currentUser);
+
+        return true;
     }
 
 }

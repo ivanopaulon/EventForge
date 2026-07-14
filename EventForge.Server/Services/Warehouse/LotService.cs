@@ -238,132 +238,110 @@ public class LotService(
 
     public async Task<LotDto?> UpdateLotAsync(Guid id, UpdateLotDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var lot = await context.Lots
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (lot is null)
+        {
+            return null;
+        }
+
+        // Check if lot code is unique (excluding current lot)
+        var existingLot = await context.Lots
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Code == updateDto.Code && l.Id != id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (existingLot is not null)
+        {
+            throw new InvalidOperationException($"A lot with code '{updateDto.Code}' already exists.");
+        }
+
+        var originalCode = lot.Code;
+        LotMapper.UpdateEntity(lot, updateDto, currentUser);
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lot = await context.Lots
-                .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (lot is null)
-            {
-                return null;
-            }
-
-            // Check if lot code is unique (excluding current lot)
-            var existingLot = await context.Lots
-                .AsNoTracking()
-                .FirstOrDefaultAsync(l => l.Code == updateDto.Code && l.Id != id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (existingLot is not null)
-            {
-                throw new InvalidOperationException($"A lot with code '{updateDto.Code}' already exists.");
-            }
-
-            var originalCode = lot.Code;
-            LotMapper.UpdateEntity(lot, updateDto, currentUser);
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Lot {LotId}.", id);
-                throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Log audit event
-            _ = await auditLogService.LogEntityChangeAsync(
-                "Lot",
-                lot.Id,
-                "Update",
-                "Update",
-                originalCode,
-                $"Updated lot from {originalCode} to {lot.Code}",
-                currentUser);
-
-            logger.LogInformation("Updated lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
-
-            return await GetLotByIdAsync(lot.Id, cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Lot {LotId}.", id);
+            throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Log audit event
+        _ = await auditLogService.LogEntityChangeAsync(
+            "Lot",
+            lot.Id,
+            "Update",
+            "Update",
+            originalCode,
+            $"Updated lot from {originalCode} to {lot.Code}",
+            currentUser);
+
+        logger.LogInformation("Updated lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
+
+        return await GetLotByIdAsync(lot.Id, cancellationToken);
     }
 
     public async Task<bool> DeleteLotAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var lot = await context.Lots
+            .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
+
+        if (lot is null)
+        {
+            return false;
+        }
+
+        // Check if lot has stock movements
+        var hasMovements = await context.StockMovements
+            .AnyAsync(sm => sm.LotId == id && sm.TenantId == currentTenantId.Value, cancellationToken);
+
+        if (hasMovements)
+        {
+            throw new InvalidOperationException("Cannot delete lot that has stock movements. Set status to inactive instead.");
+        }
+
+        // Soft delete
+        lot.IsDeleted = true;
+        lot.DeletedAt = DateTime.UtcNow;
+        lot.DeletedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var lot = await context.Lots
-                .FirstOrDefaultAsync(l => l.Id == id && l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-            if (lot is null)
-            {
-                return false;
-            }
-
-            // Check if lot has stock movements
-            var hasMovements = await context.StockMovements
-                .AnyAsync(sm => sm.LotId == id && sm.TenantId == currentTenantId.Value, cancellationToken);
-
-            if (hasMovements)
-            {
-                throw new InvalidOperationException("Cannot delete lot that has stock movements. Set status to inactive instead.");
-            }
-
-            // Soft delete
-            lot.IsDeleted = true;
-            lot.DeletedAt = DateTime.UtcNow;
-            lot.DeletedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Lot {LotId}.", id);
-                throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Log audit event
-            _ = await auditLogService.LogEntityChangeAsync(
-                "Lot",
-                lot.Id,
-                "Delete",
-                "Delete",
-                lot.Code,
-                "Deleted",
-                currentUser);
-
-            logger.LogInformation("Deleted lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Lot {LotId}.", id);
+            throw new InvalidOperationException("Il lotto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Log audit event
+        _ = await auditLogService.LogEntityChangeAsync(
+            "Lot",
+            lot.Id,
+            "Delete",
+            "Delete",
+            lot.Code,
+            "Deleted",
+            currentUser);
+
+        logger.LogInformation("Deleted lot {LotId} for tenant {TenantId}", lot.Id, currentTenantId.Value);
+        return true;
     }
 
     public async Task<bool> UpdateQualityStatusAsync(Guid id, string qualityStatus, string currentUser, string? notes = null, CancellationToken cancellationToken = default)

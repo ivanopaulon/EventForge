@@ -102,116 +102,94 @@ public class BrandService(
 
     public async Task<BrandDto?> UpdateBrandAsync(Guid id, UpdateBrandDto updateBrandDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateBrandDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
+        }
+
+        var originalBrand = await context.Brands
+            .AsNoTracking()
+            .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalBrand is null) return null;
+
+        var brand = await context.Brands
+            .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (brand is null) return null;
+
+        brand.Name = updateBrandDto.Name;
+        brand.Description = updateBrandDto.Description;
+        brand.Website = updateBrandDto.Website;
+        brand.Country = updateBrandDto.Country;
+        brand.ModifiedAt = DateTime.UtcNow;
+        brand.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateBrandDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
-
-            var originalBrand = await context.Brands
-                .AsNoTracking()
-                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBrand is null) return null;
-
-            var brand = await context.Brands
-                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (brand is null) return null;
-
-            brand.Name = updateBrandDto.Name;
-            brand.Description = updateBrandDto.Description;
-            brand.Website = updateBrandDto.Website;
-            brand.Country = updateBrandDto.Country;
-            brand.ModifiedAt = DateTime.UtcNow;
-            brand.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Brand {BrandId}.", id);
-                throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
-
-            logger.LogInformation("Brand {BrandId} updated by {User}.", brand.Id, currentUser);
-
-            return MapToBrandDto(brand);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Brand {BrandId}.", id);
+            throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(brand, "Update", currentUser, originalBrand, cancellationToken);
+
+        logger.LogInformation("Brand {BrandId} updated by {User}.", brand.Id, currentUser);
+
+        return MapToBrandDto(brand);
     }
 
     public async Task<bool> DeleteBrandAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for brand operations.");
+        }
+
+        var originalBrand = await context.Brands
+            .AsNoTracking()
+            .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalBrand is null) return false;
+
+        var brand = await context.Brands
+            .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (brand is null) return false;
+
+        brand.IsDeleted = true;
+        brand.ModifiedAt = DateTime.UtcNow;
+        brand.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for brand operations.");
-            }
-
-            var originalBrand = await context.Brands
-                .AsNoTracking()
-                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBrand is null) return false;
-
-            var brand = await context.Brands
-                .Where(b => b.Id == id && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (brand is null) return false;
-
-            brand.IsDeleted = true;
-            brand.ModifiedAt = DateTime.UtcNow;
-            brand.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Brand {BrandId}.", id);
-                throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
-
-            logger.LogInformation("Brand {BrandId} deleted by {User}.", brand.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Brand {BrandId}.", id);
+            throw new InvalidOperationException("Il brand è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(brand, "Delete", currentUser, originalBrand, cancellationToken);
+
+        logger.LogInformation("Brand {BrandId} deleted by {User}.", brand.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> BrandExistsAsync(Guid brandId, CancellationToken cancellationToken = default)

@@ -141,10 +141,6 @@ public sealed class AgentEpsonProxyCommunication : IEpsonChannel
 
             return forwardResponse.ResponseBody;
         }
-        catch (FiscalPrinterCommunicationException)
-        {
-            throw;
-        }
         catch (OperationCanceledException ex)
         {
             throw new FiscalPrinterCommunicationException(

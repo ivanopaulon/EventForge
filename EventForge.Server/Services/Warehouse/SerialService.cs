@@ -378,169 +378,147 @@ public class SerialService(
 
     public async Task<SerialDto?> UpdateSerialAsync(Guid id, UpdateSerialDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var serial = await context.Serials
-                .Include(s => s.Product)
-                .Include(s => s.Lot)
-                .Include(s => s.CurrentLocation)
-                    .ThenInclude(cl => cl!.Warehouse)
-                .Include(s => s.Owner)
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (serial is null)
-            {
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(updateDto.SerialNumber))
-            {
-                throw new ArgumentException("Serial number is required.");
-            }
-
-            var normalizedSerialNumber = updateDto.SerialNumber.Trim();
-
-            // Check serial number uniqueness if it's being changed
-            if (normalizedSerialNumber != serial.SerialNumber)
-            {
-                var existingSerial = await context.Serials
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(s => s.SerialNumber == normalizedSerialNumber &&
-                                            s.TenantId == currentTenantId.Value &&
-                                            s.Id != id &&
-                                            !s.IsDeleted, cancellationToken);
-
-                if (existingSerial is not null)
-                {
-                    throw new InvalidOperationException($"Serial number '{normalizedSerialNumber}' already exists.");
-                }
-            }
-
-            if (!string.IsNullOrWhiteSpace(updateDto.Status))
-            {
-                if (!TryParseSerialStatus(updateDto.Status, out var requestedStatus))
-                {
-                    throw new ArgumentException($"Invalid serial status: {updateDto.Status}");
-                }
-
-                if (requestedStatus == SerialStatus.Sold)
-                {
-                    throw new InvalidOperationException("Use the dedicated sell workflow to mark a serial as sold.");
-                }
-
-                if (serial.Status == SerialStatus.Sold && requestedStatus != SerialStatus.Sold)
-                {
-                    throw new InvalidOperationException("Use the dedicated return workflow to restore a sold serial.");
-                }
-            }
-
-            updateDto.SerialNumber = normalizedSerialNumber;
-            serial.UpdateFromDto(updateDto, currentUser);
-
-            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Serial {SerialId}.", id);
-                throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            return serial.ToSerialDto();
+            throw new InvalidOperationException("Current tenant ID is not available.");
         }
-        catch (DbUpdateConcurrencyException)
+
+        var serial = await context.Serials
+            .Include(s => s.Product)
+            .Include(s => s.Lot)
+            .Include(s => s.CurrentLocation)
+                .ThenInclude(cl => cl!.Warehouse)
+            .Include(s => s.Owner)
+            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (serial is null)
         {
-            throw;
+            return null;
         }
-        catch
+
+        if (string.IsNullOrWhiteSpace(updateDto.SerialNumber))
         {
-            throw;
+            throw new ArgumentException("Serial number is required.");
         }
-    }
 
-    public async Task<bool> UpdateSerialStatusAsync(Guid id, string status, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
-    {
-        try
+        var normalizedSerialNumber = updateDto.SerialNumber.Trim();
+
+        // Check serial number uniqueness if it's being changed
+        if (normalizedSerialNumber != serial.SerialNumber)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            var existingSerial = await context.Serials
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SerialNumber == normalizedSerialNumber &&
+                                        s.TenantId == currentTenantId.Value &&
+                                        s.Id != id &&
+                                        !s.IsDeleted, cancellationToken);
+
+            if (existingSerial is not null)
             {
-                throw new InvalidOperationException("Current tenant ID is not available.");
+                throw new InvalidOperationException($"Serial number '{normalizedSerialNumber}' already exists.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(updateDto.Status))
+        {
+            if (!TryParseSerialStatus(updateDto.Status, out var requestedStatus))
+            {
+                throw new ArgumentException($"Invalid serial status: {updateDto.Status}");
             }
 
-            if (!TryParseSerialStatus(status, out var serialStatus))
-            {
-                throw new ArgumentException($"Invalid serial status: {status}");
-            }
-
-            var serial = await context.Serials
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (serial is null)
-            {
-                return false;
-            }
-
-            if (serialStatus == SerialStatus.Sold)
+            if (requestedStatus == SerialStatus.Sold)
             {
                 throw new InvalidOperationException("Use the dedicated sell workflow to mark a serial as sold.");
             }
 
-            if (serial.Status == SerialStatus.Sold && serialStatus != SerialStatus.Sold)
+            if (serial.Status == SerialStatus.Sold && requestedStatus != SerialStatus.Sold)
             {
                 throw new InvalidOperationException("Use the dedicated return workflow to restore a sold serial.");
             }
-
-            if (serial.Status == SerialStatus.Scrapped && serialStatus != SerialStatus.Scrapped)
-            {
-                throw new InvalidOperationException("A scrapped serial cannot change status.");
-            }
-
-            var oldStatus = serial.Status.ToString();
-            serial.Status = serialStatus;
-            if (!string.IsNullOrEmpty(notes))
-            {
-                serial.Notes = string.IsNullOrEmpty(serial.Notes) ? notes : $"{serial.Notes}\n{notes}";
-            }
-            serial.ModifiedBy = currentUser;
-            serial.ModifiedAt = DateTime.UtcNow;
-
-            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Status", "StatusUpdate", oldStatus,
-                status, currentUser);
-            // Add notes separately if provided
-            if (!string.IsNullOrEmpty(notes))
-            {
-                _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
-                    $"Status change notes: {notes}", currentUser);
-            }
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Serial status {SerialId}.", id);
-                throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            return true;
         }
-        catch (DbUpdateConcurrencyException)
+
+        updateDto.SerialNumber = normalizedSerialNumber;
+        serial.UpdateFromDto(updateDto, currentUser);
+
+        _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Updated", "Update", null, "Updated serial information", currentUser);
+        try
         {
-            throw;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Serial {SerialId}.", id);
+            throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
+
+        return serial.ToSerialDto();
+    }
+
+    public async Task<bool> UpdateSerialStatusAsync(Guid id, string status, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
+    {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        if (!TryParseSerialStatus(status, out var serialStatus))
+        {
+            throw new ArgumentException($"Invalid serial status: {status}");
+        }
+
+        var serial = await context.Serials
+            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (serial is null)
+        {
+            return false;
+        }
+
+        if (serialStatus == SerialStatus.Sold)
+        {
+            throw new InvalidOperationException("Use the dedicated sell workflow to mark a serial as sold.");
+        }
+
+        if (serial.Status == SerialStatus.Sold && serialStatus != SerialStatus.Sold)
+        {
+            throw new InvalidOperationException("Use the dedicated return workflow to restore a sold serial.");
+        }
+
+        if (serial.Status == SerialStatus.Scrapped && serialStatus != SerialStatus.Scrapped)
+        {
+            throw new InvalidOperationException("A scrapped serial cannot change status.");
+        }
+
+        var oldStatus = serial.Status.ToString();
+        serial.Status = serialStatus;
+        if (!string.IsNullOrEmpty(notes))
+        {
+            serial.Notes = string.IsNullOrEmpty(serial.Notes) ? notes : $"{serial.Notes}\n{notes}";
+        }
+        serial.ModifiedBy = currentUser;
+        serial.ModifiedAt = DateTime.UtcNow;
+
+        _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Status", "StatusUpdate", oldStatus,
+            status, currentUser);
+        // Add notes separately if provided
+        if (!string.IsNullOrEmpty(notes))
+        {
+            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Notes", "Update", null,
+                $"Status change notes: {notes}", currentUser);
+        }
+        try
+        {
+            _ = await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex, "Concurrency conflict updating Serial status {SerialId}.", id);
+            throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+        }
+
+        return true;
     }
 
     public async Task<bool> MoveSerialAsync(Guid id, Guid newLocationId, string currentUser, string? notes = null, CancellationToken cancellationToken = default)
@@ -702,50 +680,39 @@ public class SerialService(
 
     public async Task<bool> DeleteSerialAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var serial = await context.Serials
+            .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
+
+        if (serial is null)
+        {
+            return false;
+        }
+
+        // Soft delete — keeps the record for audit trail and preserves StockMovement references
+        serial.IsDeleted = true;
+        serial.DeletedAt = DateTime.UtcNow;
+        serial.DeletedBy = currentUser;
+
+        _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
+            $"Deleted serial number {serial.SerialNumber}", currentUser);
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var serial = await context.Serials
-                .FirstOrDefaultAsync(s => s.Id == id && s.TenantId == currentTenantId.Value && !s.IsDeleted, cancellationToken);
-
-            if (serial is null)
-            {
-                return false;
-            }
-
-            // Soft delete — keeps the record for audit trail and preserves StockMovement references
-            serial.IsDeleted = true;
-            serial.DeletedAt = DateTime.UtcNow;
-            serial.DeletedBy = currentUser;
-
-            _ = await auditLogService.LogEntityChangeAsync("Serial", serial.Id, "Deleted", "Delete", null,
-                $"Deleted serial number {serial.SerialNumber}", currentUser);
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Serial {SerialId}.", id);
-                throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            logger.LogInformation("Soft-deleted serial {SerialId} ({SerialNumber}) for tenant {TenantId}", serial.Id, serial.SerialNumber, currentTenantId.Value);
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Serial {SerialId}.", id);
+            throw new InvalidOperationException("Il seriale è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        logger.LogInformation("Soft-deleted serial {SerialId} ({SerialNumber}) for tenant {TenantId}", serial.Id, serial.SerialNumber, currentTenantId.Value);
+        return true;
     }
 
     public async Task<IEnumerable<StockMovementDto>> GetSerialHistoryAsync(Guid serialId, CancellationToken cancellationToken = default)

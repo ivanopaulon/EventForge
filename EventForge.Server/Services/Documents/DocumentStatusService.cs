@@ -17,65 +17,54 @@ public class DocumentStatusService(
         string? reason = null,
         CancellationToken cancellationToken = default)
     {
-        try
+        var document = await context.DocumentHeaders
+            .Include(d => d.Rows.Where(r => !r.IsDeleted))
+            .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
+
+        if (document is null)
         {
-            var document = await context.DocumentHeaders
-                .Include(d => d.Rows.Where(r => !r.IsDeleted))
-                .FirstOrDefaultAsync(d => d.Id == documentId && !d.IsDeleted, cancellationToken);
-
-            if (document is null)
-            {
-                logger.LogWarning("Document with ID {DocumentId} not found", documentId);
-                return null;
-            }
-
-            var documentDto = document.ToDto();
-            var validationResult = DocumentStateMachine.ValidateTransition(documentDto, newStatus);
-
-            if (!validationResult.IsValid)
-            {
-                logger.LogWarning("Invalid status transition for document {DocumentId}: {ErrorMessage}",
-                    documentId, validationResult.ErrorMessage);
-                throw new InvalidOperationException(validationResult.ErrorMessage);
-            }
-
-            var oldStatus = document.Status;
-            document.Status = newStatus;
-            document.ModifiedAt = DateTime.UtcNow;
-            document.ModifiedBy = GetCurrentUser();
-
-            // Create status history record
-            var statusHistory = new DocumentStatusHistory
-            {
-                DocumentHeaderId = documentId,
-                FromStatus = oldStatus,
-                ToStatus = newStatus,
-                Reason = reason,
-                ChangedBy = GetCurrentUser(),
-                ChangedAt = DateTime.UtcNow,
-                IpAddress = GetClientIpAddress(),
-                UserAgent = GetUserAgent(),
-                TenantId = tenantContext.CurrentTenantId ?? Guid.Empty,
-                CreatedBy = GetCurrentUser(),
-                CreatedAt = DateTime.UtcNow
-            };
-
-            context.DocumentStatusHistories.Add(statusHistory);
-            await context.SaveChangesAsync(cancellationToken);
-
-            logger.LogInformation("Document {DocumentId} status changed from {OldStatus} to {NewStatus} by {User}",
-                documentId, oldStatus, newStatus, GetCurrentUser());
-
-            return document.ToDto();
+            logger.LogWarning("Document with ID {DocumentId} not found", documentId);
+            return null;
         }
-        catch (InvalidOperationException)
+
+        var documentDto = document.ToDto();
+        var validationResult = DocumentStateMachine.ValidateTransition(documentDto, newStatus);
+
+        if (!validationResult.IsValid)
         {
-            throw;
+            logger.LogWarning("Invalid status transition for document {DocumentId}: {ErrorMessage}",
+                documentId, validationResult.ErrorMessage);
+            throw new InvalidOperationException(validationResult.ErrorMessage);
         }
-        catch
+
+        var oldStatus = document.Status;
+        document.Status = newStatus;
+        document.ModifiedAt = DateTime.UtcNow;
+        document.ModifiedBy = GetCurrentUser();
+
+        // Create status history record
+        var statusHistory = new DocumentStatusHistory
         {
-            throw;
-        }
+            DocumentHeaderId = documentId,
+            FromStatus = oldStatus,
+            ToStatus = newStatus,
+            Reason = reason,
+            ChangedBy = GetCurrentUser(),
+            ChangedAt = DateTime.UtcNow,
+            IpAddress = GetClientIpAddress(),
+            UserAgent = GetUserAgent(),
+            TenantId = tenantContext.CurrentTenantId ?? Guid.Empty,
+            CreatedBy = GetCurrentUser(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.DocumentStatusHistories.Add(statusHistory);
+        await context.SaveChangesAsync(cancellationToken);
+
+        logger.LogInformation("Document {DocumentId} status changed from {OldStatus} to {NewStatus} by {User}",
+            documentId, oldStatus, newStatus, GetCurrentUser());
+
+        return document.ToDto();
     }
 
     public async Task<List<DocumentStatusHistoryDto>> GetStatusHistoryAsync(

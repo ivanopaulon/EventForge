@@ -95,130 +95,108 @@ public class PaymentTermService(
 
     public async Task<PaymentTermDto?> UpdatePaymentTermAsync(Guid id, UpdatePaymentTermDto updatePaymentTermDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updatePaymentTermDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for payment term operations.");
+
+        var originalPaymentTerm = await context.PaymentTerms
+            .AsNoTracking()
+            .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalPaymentTerm is null)
+        {
+            logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        var paymentTerm = await context.PaymentTerms
+            .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (paymentTerm is null)
+        {
+            logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        // Update properties
+        paymentTerm.Name = updatePaymentTermDto.Name;
+        paymentTerm.Description = updatePaymentTermDto.Description;
+        paymentTerm.DueDays = updatePaymentTermDto.DueDays;
+        paymentTerm.PaymentMethod = (EventForge.Server.Data.Entities.Business.PaymentMethod)updatePaymentTermDto.PaymentMethod;
+        paymentTerm.ModifiedBy = currentUser;
+        paymentTerm.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updatePaymentTermDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for payment term operations.");
-
-            var originalPaymentTerm = await context.PaymentTerms
-                .AsNoTracking()
-                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalPaymentTerm is null)
-            {
-                logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            var paymentTerm = await context.PaymentTerms
-                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (paymentTerm is null)
-            {
-                logger.LogWarning("Payment term with ID {PaymentTermId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            // Update properties
-            paymentTerm.Name = updatePaymentTermDto.Name;
-            paymentTerm.Description = updatePaymentTermDto.Description;
-            paymentTerm.DueDays = updatePaymentTermDto.DueDays;
-            paymentTerm.PaymentMethod = (EventForge.Server.Data.Entities.Business.PaymentMethod)updatePaymentTermDto.PaymentMethod;
-            paymentTerm.ModifiedBy = currentUser;
-            paymentTerm.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating PaymentTerm {PaymentTermId}.", id);
-                throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log for the updated payment term
-            _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
-
-            logger.LogInformation("Payment term {PaymentTermId} updated by user {User}.", id, currentUser);
-
-            return MapToPaymentTermDto(paymentTerm);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating PaymentTerm {PaymentTermId}.", id);
+            throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log for the updated payment term
+        _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Update", currentUser, originalPaymentTerm, cancellationToken);
+
+        logger.LogInformation("Payment term {PaymentTermId} updated by user {User}.", id, currentUser);
+
+        return MapToPaymentTermDto(paymentTerm);
     }
 
     public async Task<bool> DeletePaymentTermAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for payment term operations.");
+
+        var originalPaymentTerm = await context.PaymentTerms
+            .AsNoTracking()
+            .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalPaymentTerm is null)
+        {
+            logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        var paymentTerm = await context.PaymentTerms
+            .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (paymentTerm is null)
+        {
+            logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        // Soft delete the payment term
+        paymentTerm.IsDeleted = true;
+        paymentTerm.DeletedBy = currentUser;
+        paymentTerm.DeletedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for payment term operations.");
-
-            var originalPaymentTerm = await context.PaymentTerms
-                .AsNoTracking()
-                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalPaymentTerm is null)
-            {
-                logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            var paymentTerm = await context.PaymentTerms
-                .Where(pt => pt.Id == id && pt.TenantId == currentTenantId && !pt.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (paymentTerm is null)
-            {
-                logger.LogWarning("Payment term with ID {PaymentTermId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            // Soft delete the payment term
-            paymentTerm.IsDeleted = true;
-            paymentTerm.DeletedBy = currentUser;
-            paymentTerm.DeletedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting PaymentTerm {PaymentTermId}.", id);
-                throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log for the deleted payment term
-            _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
-
-            logger.LogInformation("Payment term {PaymentTermId} deleted by user {User}.", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting PaymentTerm {PaymentTermId}.", id);
+            throw new InvalidOperationException("Il termine di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log for the deleted payment term
+        _ = await auditLogService.TrackEntityChangesAsync(paymentTerm, "Delete", currentUser, originalPaymentTerm, cancellationToken);
+
+        logger.LogInformation("Payment term {PaymentTermId} deleted by user {User}.", id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> PaymentTermExistsAsync(Guid paymentTermId, CancellationToken cancellationToken = default)

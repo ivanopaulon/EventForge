@@ -288,175 +288,153 @@ public class StorageLocationService(
 
     public async Task<StorageLocationDto?> UpdateStorageLocationAsync(Guid id, UpdateStorageLocationDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        logger.LogDebug("Updating storage location: {Id}", id);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var originalLocation = await context.StorageLocations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
+
+        var location = await context.StorageLocations
+            .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
+        if (location is null)
+        {
+            logger.LogWarning("Storage location {Id} not found for update.", id);
+            return null;
+        }
+
+        if (updateDto.WarehouseId.HasValue && updateDto.WarehouseId != location.WarehouseId)
+        {
+            var warehouseExists = await context.StorageFacilities
+                .AsNoTracking()
+                .AnyAsync(sf => sf.Id == updateDto.WarehouseId.Value, cancellationToken);
+
+            if (!warehouseExists)
+            {
+                logger.LogWarning("Warehouse with ID {WarehouseId} not found.", updateDto.WarehouseId);
+                throw new ArgumentException($"Warehouse with ID {updateDto.WarehouseId} not found.");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(updateDto.Code) && updateDto.Code != location.Code)
+        {
+            var warehouseIdToCheck = updateDto.WarehouseId ?? location.WarehouseId;
+            var codeExists = await context.StorageLocations
+                .AsNoTracking()
+                .AnyAsync(sl => sl.Code == updateDto.Code && sl.WarehouseId == warehouseIdToCheck && sl.Id != id, cancellationToken);
+
+            if (codeExists)
+            {
+                logger.LogWarning("Storage location with code '{Code}' already exists in warehouse {WarehouseId}.", updateDto.Code, warehouseIdToCheck);
+                throw new ArgumentException($"Storage location with code '{updateDto.Code}' already exists in this warehouse.");
+            }
+        }
+
+        var newCapacity = updateDto.Capacity ?? location.Capacity;
+        var newOccupancy = updateDto.Occupancy ?? location.Occupancy;
+
+        if (newCapacity.HasValue && newOccupancy.HasValue && newOccupancy > newCapacity)
+        {
+            logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity}.", newOccupancy, newCapacity);
+            throw new ArgumentException("Occupancy cannot exceed capacity.");
+        }
+
+        if (!string.IsNullOrEmpty(updateDto.Code))
+            location.Code = updateDto.Code;
+        if (updateDto.Description is not null)
+            location.Description = updateDto.Description;
+        if (updateDto.WarehouseId.HasValue)
+            location.WarehouseId = updateDto.WarehouseId.Value;
+        if (updateDto.Capacity.HasValue)
+            location.Capacity = updateDto.Capacity;
+        if (updateDto.Occupancy.HasValue)
+            location.Occupancy = updateDto.Occupancy;
+        if (updateDto.IsRefrigerated.HasValue)
+            location.IsRefrigerated = updateDto.IsRefrigerated.Value;
+        if (updateDto.Notes is not null)
+            location.Notes = updateDto.Notes;
+        if (updateDto.Zone is not null)
+            location.Zone = updateDto.Zone;
+        if (updateDto.Floor is not null)
+            location.Floor = updateDto.Floor;
+        if (updateDto.Row is not null)
+            location.Row = updateDto.Row;
+        if (updateDto.Column is not null)
+            location.Column = updateDto.Column;
+        if (updateDto.Level is not null)
+            location.Level = updateDto.Level;
+        if (updateDto.IsActive.HasValue)
+            location.IsActive = updateDto.IsActive.Value;
+
+        location.ModifiedAt = DateTime.UtcNow;
+        location.ModifiedBy = currentUser;
+
         try
         {
-            logger.LogDebug("Updating storage location: {Id}", id);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var originalLocation = await context.StorageLocations
-                .AsNoTracking()
-                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
-
-            var location = await context.StorageLocations
-                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
-            if (location is null)
-            {
-                logger.LogWarning("Storage location {Id} not found for update.", id);
-                return null;
-            }
-
-            if (updateDto.WarehouseId.HasValue && updateDto.WarehouseId != location.WarehouseId)
-            {
-                var warehouseExists = await context.StorageFacilities
-                    .AsNoTracking()
-                    .AnyAsync(sf => sf.Id == updateDto.WarehouseId.Value, cancellationToken);
-
-                if (!warehouseExists)
-                {
-                    logger.LogWarning("Warehouse with ID {WarehouseId} not found.", updateDto.WarehouseId);
-                    throw new ArgumentException($"Warehouse with ID {updateDto.WarehouseId} not found.");
-                }
-            }
-
-            if (!string.IsNullOrEmpty(updateDto.Code) && updateDto.Code != location.Code)
-            {
-                var warehouseIdToCheck = updateDto.WarehouseId ?? location.WarehouseId;
-                var codeExists = await context.StorageLocations
-                    .AsNoTracking()
-                    .AnyAsync(sl => sl.Code == updateDto.Code && sl.WarehouseId == warehouseIdToCheck && sl.Id != id, cancellationToken);
-
-                if (codeExists)
-                {
-                    logger.LogWarning("Storage location with code '{Code}' already exists in warehouse {WarehouseId}.", updateDto.Code, warehouseIdToCheck);
-                    throw new ArgumentException($"Storage location with code '{updateDto.Code}' already exists in this warehouse.");
-                }
-            }
-
-            var newCapacity = updateDto.Capacity ?? location.Capacity;
-            var newOccupancy = updateDto.Occupancy ?? location.Occupancy;
-
-            if (newCapacity.HasValue && newOccupancy.HasValue && newOccupancy > newCapacity)
-            {
-                logger.LogWarning("Occupancy {Occupancy} cannot exceed capacity {Capacity}.", newOccupancy, newCapacity);
-                throw new ArgumentException("Occupancy cannot exceed capacity.");
-            }
-
-            if (!string.IsNullOrEmpty(updateDto.Code))
-                location.Code = updateDto.Code;
-            if (updateDto.Description is not null)
-                location.Description = updateDto.Description;
-            if (updateDto.WarehouseId.HasValue)
-                location.WarehouseId = updateDto.WarehouseId.Value;
-            if (updateDto.Capacity.HasValue)
-                location.Capacity = updateDto.Capacity;
-            if (updateDto.Occupancy.HasValue)
-                location.Occupancy = updateDto.Occupancy;
-            if (updateDto.IsRefrigerated.HasValue)
-                location.IsRefrigerated = updateDto.IsRefrigerated.Value;
-            if (updateDto.Notes is not null)
-                location.Notes = updateDto.Notes;
-            if (updateDto.Zone is not null)
-                location.Zone = updateDto.Zone;
-            if (updateDto.Floor is not null)
-                location.Floor = updateDto.Floor;
-            if (updateDto.Row is not null)
-                location.Row = updateDto.Row;
-            if (updateDto.Column is not null)
-                location.Column = updateDto.Column;
-            if (updateDto.Level is not null)
-                location.Level = updateDto.Level;
-            if (updateDto.IsActive.HasValue)
-                location.IsActive = updateDto.IsActive.Value;
-
-            location.ModifiedAt = DateTime.UtcNow;
-            location.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating StorageLocation {StorageLocationId}.", id);
-                throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
-
-            logger.LogInformation("Updated storage location: {Id} - {Code}", location.Id, location.Code);
-
-            return await GetStorageLocationByIdAsync(id, cancellationToken);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating StorageLocation {StorageLocationId}.", id);
+            throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(location, "Update", currentUser, originalLocation, cancellationToken);
+
+        logger.LogInformation("Updated storage location: {Id} - {Code}", location.Id, location.Code);
+
+        return await GetStorageLocationByIdAsync(id, cancellationToken);
     }
 
     public async Task<bool> DeleteStorageLocationAsync(Guid id, string currentUser, byte[] rowVersion, CancellationToken cancellationToken = default)
     {
+        logger.LogDebug("Deleting storage location: {Id}", id);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for this operation.");
+
+        var originalLocation = await context.StorageLocations
+            .AsNoTracking()
+            .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
+
+        var location = await context.StorageLocations
+            .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
+        if (location is null)
+        {
+            logger.LogWarning("Storage location {Id} not found for delete.", id);
+            return false;
+        }
+
+        if (location.Occupancy > 0)
+        {
+            logger.LogWarning("Cannot delete storage location {Id} because it contains inventory.", id);
+            throw new InvalidOperationException("Cannot delete storage location that contains inventory. Move inventory first.");
+        }
+
+        // RIMOSSO controllo su IHasRowVersion e rowVersion
+
+        location.IsDeleted = true;
+        location.DeletedAt = DateTime.UtcNow;
+        location.DeletedBy = currentUser;
+        location.ModifiedAt = DateTime.UtcNow;
+        location.ModifiedBy = currentUser;
+
         try
         {
-            logger.LogDebug("Deleting storage location: {Id}", id);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for this operation.");
-
-            var originalLocation = await context.StorageLocations
-                .AsNoTracking()
-                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
-
-            var location = await context.StorageLocations
-                .FirstOrDefaultAsync(sl => sl.Id == id && sl.TenantId == currentTenantId, cancellationToken);
-            if (location is null)
-            {
-                logger.LogWarning("Storage location {Id} not found for delete.", id);
-                return false;
-            }
-
-            if (location.Occupancy > 0)
-            {
-                logger.LogWarning("Cannot delete storage location {Id} because it contains inventory.", id);
-                throw new InvalidOperationException("Cannot delete storage location that contains inventory. Move inventory first.");
-            }
-
-            // RIMOSSO controllo su IHasRowVersion e rowVersion
-
-            location.IsDeleted = true;
-            location.DeletedAt = DateTime.UtcNow;
-            location.DeletedBy = currentUser;
-            location.ModifiedAt = DateTime.UtcNow;
-            location.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting StorageLocation {StorageLocationId}.", id);
-                throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
-
-            logger.LogInformation("Deleted storage location: {Id}", id);
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting StorageLocation {StorageLocationId}.", id);
+            throw new InvalidOperationException("La posizione di magazzino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(location, "Delete", currentUser, originalLocation, cancellationToken);
+
+        logger.LogInformation("Deleted storage location: {Id}", id);
+        return true;
     }
 
     public async Task<StorageLocationDto?> UpdateOccupancyAsync(Guid id, int newOccupancy, string currentUser, CancellationToken cancellationToken = default)

@@ -200,347 +200,314 @@ public class TransferOrderService(
 
     public async Task<TransferOrderDto> ShipTransferOrderAsync(Guid id, ShipTransferOrderDto shipDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var transferOrder = await context.TransferOrders
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.Product)
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
+
+        if (transferOrder is null)
+        {
+            throw new InvalidOperationException("Transfer order not found.");
+        }
+
+        if (transferOrder.Status != TransferOrderStatus.Pending)
+        {
+            throw new InvalidOperationException($"Transfer order cannot be shipped. Current status: {transferOrder.Status}.");
+        }
+
+        // Validate stock availability and create stock movements OUT
+        foreach (var row in transferOrder.Rows)
+        {
+            var stock = await context.Stocks
+                .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
+                                        s.StorageLocationId == row.SourceLocationId &&
+                                        s.LotId == row.LotId &&
+                                        s.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (stock is null || stock.AvailableQuantity < row.QuantityOrdered)
+            {
+                throw new InvalidOperationException($"Insufficient stock for product {row.Product?.Name ?? row.ProductId.ToString()} in source location.");
+            }
+
+            // Update stock quantity
+            stock.Quantity -= row.QuantityOrdered;
+            stock.LastMovementDate = DateTime.UtcNow;
+            stock.ModifiedBy = currentUser;
+            stock.ModifiedAt = DateTime.UtcNow;
+
+            // Create stock movement OUT
+            var stockMovement = new StockMovement
+            {
+                Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
+                MovementType = StockMovementType.Transfer,
+                ProductId = row.ProductId,
+                LotId = row.LotId,
+                FromLocationId = row.SourceLocationId,
+                ToLocationId = null, // In transit
+                Quantity = row.QuantityOrdered, // Always positive; direction is conveyed by MovementType + FromLocationId
+                UnitCost = stock.UnitCost,
+                MovementDate = shipDto.ShipmentDate,
+                Reason = StockMovementReason.Transfer,
+                Reference = transferOrder.Number,
+                Notes = $"Transfer order {transferOrder.Number} shipped to warehouse",
+                UserId = currentUser,
+                Status = MovementStatus.Completed,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            context.StockMovements.Add(stockMovement);
+
+            // Update row quantities
+            row.QuantityShipped = row.QuantityOrdered;
+            row.ModifiedBy = currentUser;
+            row.ModifiedAt = DateTime.UtcNow;
+        }
+
+        // Update transfer order
+        transferOrder.Status = TransferOrderStatus.Shipped;
+        transferOrder.ShipmentDate = shipDto.ShipmentDate;
+        transferOrder.ExpectedArrivalDate = shipDto.ExpectedArrivalDate;
+        transferOrder.ShippingReference = shipDto.ShippingReference;
+        transferOrder.ModifiedBy = currentUser;
+        transferOrder.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var transferOrder = await context.TransferOrders
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.Product)
-                .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
-
-            if (transferOrder is null)
-            {
-                throw new InvalidOperationException("Transfer order not found.");
-            }
-
-            if (transferOrder.Status != TransferOrderStatus.Pending)
-            {
-                throw new InvalidOperationException($"Transfer order cannot be shipped. Current status: {transferOrder.Status}.");
-            }
-
-            // Validate stock availability and create stock movements OUT
-            foreach (var row in transferOrder.Rows)
-            {
-                var stock = await context.Stocks
-                    .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
-                                            s.StorageLocationId == row.SourceLocationId &&
-                                            s.LotId == row.LotId &&
-                                            s.TenantId == currentTenantId.Value, cancellationToken);
-
-                if (stock is null || stock.AvailableQuantity < row.QuantityOrdered)
-                {
-                    throw new InvalidOperationException($"Insufficient stock for product {row.Product?.Name ?? row.ProductId.ToString()} in source location.");
-                }
-
-                // Update stock quantity
-                stock.Quantity -= row.QuantityOrdered;
-                stock.LastMovementDate = DateTime.UtcNow;
-                stock.ModifiedBy = currentUser;
-                stock.ModifiedAt = DateTime.UtcNow;
-
-                // Create stock movement OUT
-                var stockMovement = new StockMovement
-                {
-                    Id = Guid.NewGuid(),
-                    TenantId = currentTenantId.Value,
-                    MovementType = StockMovementType.Transfer,
-                    ProductId = row.ProductId,
-                    LotId = row.LotId,
-                    FromLocationId = row.SourceLocationId,
-                    ToLocationId = null, // In transit
-                    Quantity = row.QuantityOrdered, // Always positive; direction is conveyed by MovementType + FromLocationId
-                    UnitCost = stock.UnitCost,
-                    MovementDate = shipDto.ShipmentDate,
-                    Reason = StockMovementReason.Transfer,
-                    Reference = transferOrder.Number,
-                    Notes = $"Transfer order {transferOrder.Number} shipped to warehouse",
-                    UserId = currentUser,
-                    Status = MovementStatus.Completed,
-                    CreatedBy = currentUser,
-                    CreatedAt = DateTime.UtcNow,
-                    IsActive = true
-                };
-                context.StockMovements.Add(stockMovement);
-
-                // Update row quantities
-                row.QuantityShipped = row.QuantityOrdered;
-                row.ModifiedBy = currentUser;
-                row.ModifiedAt = DateTime.UtcNow;
-            }
-
-            // Update transfer order
-            transferOrder.Status = TransferOrderStatus.Shipped;
-            transferOrder.ShipmentDate = shipDto.ShipmentDate;
-            transferOrder.ExpectedArrivalDate = shipDto.ExpectedArrivalDate;
-            transferOrder.ShippingReference = shipDto.ShippingReference;
-            transferOrder.ModifiedBy = currentUser;
-            transferOrder.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict shipping TransferOrder {TransferOrderId}.", id);
-                throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "TransferOrder",
-                transferOrder.Id,
-                "Status",
-                "Update",
-                "Pending",
-                "Shipped",
-                currentUser,
-                $"Transfer order {transferOrder.Number} shipped",
-                cancellationToken);
-
-            logger.LogInformation("Transfer order {TransferOrderNumber} shipped successfully by {User}.", transferOrder.Number, currentUser);
-
-            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
-                ?? throw new InvalidOperationException("Failed to retrieve shipped transfer order.");
+            await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict shipping TransferOrder {TransferOrderId}.", id);
+            throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "TransferOrder",
+            transferOrder.Id,
+            "Status",
+            "Update",
+            "Pending",
+            "Shipped",
+            currentUser,
+            $"Transfer order {transferOrder.Number} shipped",
+            cancellationToken);
+
+        logger.LogInformation("Transfer order {TransferOrderNumber} shipped successfully by {User}.", transferOrder.Number, currentUser);
+
+        return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
+            ?? throw new InvalidOperationException("Failed to retrieve shipped transfer order.");
     }
 
     public async Task<TransferOrderDto> ReceiveTransferOrderAsync(Guid id, ReceiveTransferOrderDto receiveDto, string currentUser, CancellationToken cancellationToken = default)
     {
-        try
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var transferOrder = await context.TransferOrders
+            .Include(t => t.Rows)
+                .ThenInclude(r => r.Product)
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
+
+        if (transferOrder is null)
+        {
+            throw new InvalidOperationException("Transfer order not found.");
+        }
+
+        if (transferOrder.Status != TransferOrderStatus.Shipped && transferOrder.Status != TransferOrderStatus.InTransit)
+        {
+            throw new InvalidOperationException($"Transfer order cannot be received. Current status: {transferOrder.Status}.");
+        }
+
+        // Capture original status for audit log
+        var originalStatus = transferOrder.Status.ToString();
+
+        // Process each received row
+        foreach (var receiveRow in receiveDto.Rows)
+        {
+            var row = transferOrder.Rows.FirstOrDefault(r => r.Id == receiveRow.RowId);
+            if (row is null)
             {
-                throw new InvalidOperationException("Current tenant ID is not available.");
+                throw new InvalidOperationException($"Transfer order row {receiveRow.RowId} not found.");
             }
 
-            var transferOrder = await context.TransferOrders
-                .Include(t => t.Rows)
-                    .ThenInclude(r => r.Product)
-                .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
+            // Validate destination location belongs to destination warehouse
+            var destinationLocation = await context.StorageLocations
+                .FirstOrDefaultAsync(l => l.Id == receiveRow.DestinationLocationId &&
+                                        l.WarehouseId == transferOrder.DestinationWarehouseId &&
+                                        l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
 
-            if (transferOrder is null)
+            if (destinationLocation is null)
             {
-                throw new InvalidOperationException("Transfer order not found.");
+                throw new InvalidOperationException($"Destination location {receiveRow.DestinationLocationId} not found in destination warehouse.");
             }
 
-            if (transferOrder.Status != TransferOrderStatus.Shipped && transferOrder.Status != TransferOrderStatus.InTransit)
+            // Find or create stock entry at destination
+            var stock = await context.Stocks
+                .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
+                                        s.StorageLocationId == receiveRow.DestinationLocationId &&
+                                        s.LotId == row.LotId &&
+                                        s.TenantId == currentTenantId.Value, cancellationToken);
+
+            if (stock is null)
             {
-                throw new InvalidOperationException($"Transfer order cannot be received. Current status: {transferOrder.Status}.");
-            }
-
-            // Capture original status for audit log
-            var originalStatus = transferOrder.Status.ToString();
-
-            // Process each received row
-            foreach (var receiveRow in receiveDto.Rows)
-            {
-                var row = transferOrder.Rows.FirstOrDefault(r => r.Id == receiveRow.RowId);
-                if (row is null)
-                {
-                    throw new InvalidOperationException($"Transfer order row {receiveRow.RowId} not found.");
-                }
-
-                // Validate destination location belongs to destination warehouse
-                var destinationLocation = await context.StorageLocations
-                    .FirstOrDefaultAsync(l => l.Id == receiveRow.DestinationLocationId &&
-                                            l.WarehouseId == transferOrder.DestinationWarehouseId &&
-                                            l.TenantId == currentTenantId.Value && !l.IsDeleted, cancellationToken);
-
-                if (destinationLocation is null)
-                {
-                    throw new InvalidOperationException($"Destination location {receiveRow.DestinationLocationId} not found in destination warehouse.");
-                }
-
-                // Find or create stock entry at destination
-                var stock = await context.Stocks
-                    .FirstOrDefaultAsync(s => s.ProductId == row.ProductId &&
-                                            s.StorageLocationId == receiveRow.DestinationLocationId &&
-                                            s.LotId == row.LotId &&
-                                            s.TenantId == currentTenantId.Value, cancellationToken);
-
-                if (stock is null)
-                {
-                    // Create new stock entry
-                    stock = new Stock
-                    {
-                        Id = Guid.NewGuid(),
-                        TenantId = currentTenantId.Value,
-                        ProductId = row.ProductId,
-                        StorageLocationId = receiveRow.DestinationLocationId,
-                        LotId = row.LotId,
-                        Quantity = receiveRow.QuantityReceived,
-                        ReservedQuantity = 0,
-                        LastMovementDate = DateTime.UtcNow,
-                        CreatedBy = currentUser,
-                        CreatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    };
-                    context.Stocks.Add(stock);
-                }
-                else
-                {
-                    // Update existing stock
-                    stock.Quantity += receiveRow.QuantityReceived;
-                    stock.LastMovementDate = DateTime.UtcNow;
-                    stock.ModifiedBy = currentUser;
-                    stock.ModifiedAt = DateTime.UtcNow;
-                }
-
-                // Create stock movement IN
-                var stockMovement = new StockMovement
+                // Create new stock entry
+                stock = new Stock
                 {
                     Id = Guid.NewGuid(),
                     TenantId = currentTenantId.Value,
-                    MovementType = StockMovementType.Transfer,
                     ProductId = row.ProductId,
+                    StorageLocationId = receiveRow.DestinationLocationId,
                     LotId = row.LotId,
-                    FromLocationId = null, // From transit
-                    ToLocationId = receiveRow.DestinationLocationId,
-                    Quantity = receiveRow.QuantityReceived, // Positive for inbound
-                    UnitCost = stock.UnitCost,
-                    MovementDate = receiveDto.ActualArrivalDate,
-                    Reason = StockMovementReason.Transfer,
-                    Reference = transferOrder.Number,
-                    Notes = $"Transfer order {transferOrder.Number} received from warehouse",
-                    UserId = currentUser,
-                    Status = MovementStatus.Completed,
+                    Quantity = receiveRow.QuantityReceived,
+                    ReservedQuantity = 0,
+                    LastMovementDate = DateTime.UtcNow,
                     CreatedBy = currentUser,
                     CreatedAt = DateTime.UtcNow,
                     IsActive = true
                 };
-                context.StockMovements.Add(stockMovement);
-
-                // Update row
-                row.DestinationLocationId = receiveRow.DestinationLocationId;
-                row.QuantityReceived = receiveRow.QuantityReceived;
-                row.ModifiedBy = currentUser;
-                row.ModifiedAt = DateTime.UtcNow;
+                context.Stocks.Add(stock);
             }
-
-            // Update transfer order
-            transferOrder.Status = TransferOrderStatus.Completed;
-            transferOrder.ActualArrivalDate = receiveDto.ActualArrivalDate;
-            transferOrder.ModifiedBy = currentUser;
-            transferOrder.ModifiedAt = DateTime.UtcNow;
-
-            try
+            else
             {
-                await context.SaveChangesAsync(cancellationToken);
+                // Update existing stock
+                stock.Quantity += receiveRow.QuantityReceived;
+                stock.LastMovementDate = DateTime.UtcNow;
+                stock.ModifiedBy = currentUser;
+                stock.ModifiedAt = DateTime.UtcNow;
             }
-            catch (DbUpdateConcurrencyException ex)
+
+            // Create stock movement IN
+            var stockMovement = new StockMovement
             {
-                logger.LogWarning(ex, "Concurrency conflict receiving TransferOrder {TransferOrderId}.", id);
-                throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
+                Id = Guid.NewGuid(),
+                TenantId = currentTenantId.Value,
+                MovementType = StockMovementType.Transfer,
+                ProductId = row.ProductId,
+                LotId = row.LotId,
+                FromLocationId = null, // From transit
+                ToLocationId = receiveRow.DestinationLocationId,
+                Quantity = receiveRow.QuantityReceived, // Positive for inbound
+                UnitCost = stock.UnitCost,
+                MovementDate = receiveDto.ActualArrivalDate,
+                Reason = StockMovementReason.Transfer,
+                Reference = transferOrder.Number,
+                Notes = $"Transfer order {transferOrder.Number} received from warehouse",
+                UserId = currentUser,
+                Status = MovementStatus.Completed,
+                CreatedBy = currentUser,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+            context.StockMovements.Add(stockMovement);
 
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "TransferOrder",
-                transferOrder.Id,
-                "Status",
-                "Update",
-                originalStatus,
-                "Completed",
-                currentUser,
-                $"Transfer order {transferOrder.Number} received",
-                cancellationToken);
-
-            logger.LogInformation("Transfer order {TransferOrderNumber} received successfully by {User}.", transferOrder.Number, currentUser);
-
-            return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
-                ?? throw new InvalidOperationException("Failed to retrieve received transfer order.");
+            // Update row
+            row.DestinationLocationId = receiveRow.DestinationLocationId;
+            row.QuantityReceived = receiveRow.QuantityReceived;
+            row.ModifiedBy = currentUser;
+            row.ModifiedAt = DateTime.UtcNow;
         }
-        catch (DbUpdateConcurrencyException)
+
+        // Update transfer order
+        transferOrder.Status = TransferOrderStatus.Completed;
+        transferOrder.ActualArrivalDate = receiveDto.ActualArrivalDate;
+        transferOrder.ModifiedBy = currentUser;
+        transferOrder.ModifiedAt = DateTime.UtcNow;
+
+        try
         {
-            throw;
+            await context.SaveChangesAsync(cancellationToken);
         }
-        catch
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict receiving TransferOrder {TransferOrderId}.", id);
+            throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "TransferOrder",
+            transferOrder.Id,
+            "Status",
+            "Update",
+            originalStatus,
+            "Completed",
+            currentUser,
+            $"Transfer order {transferOrder.Number} received",
+            cancellationToken);
+
+        logger.LogInformation("Transfer order {TransferOrderNumber} received successfully by {User}.", transferOrder.Number, currentUser);
+
+        return await GetTransferOrderByIdAsync(transferOrder.Id, cancellationToken)
+            ?? throw new InvalidOperationException("Failed to retrieve received transfer order.");
     }
 
     public async Task<bool> CancelTransferOrderAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
+        var transferOrder = await context.TransferOrders
+            .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
+
+        if (transferOrder is null)
+        {
+            return false;
+        }
+
+        if (transferOrder.Status == TransferOrderStatus.Shipped ||
+            transferOrder.Status == TransferOrderStatus.InTransit ||
+            transferOrder.Status == TransferOrderStatus.Completed)
+        {
+            throw new InvalidOperationException($"Cannot cancel transfer order in status {transferOrder.Status}.");
+        }
+
+        // Capture original status for audit log
+        var originalStatus = transferOrder.Status.ToString();
+
+        transferOrder.Status = TransferOrderStatus.Cancelled;
+        transferOrder.ModifiedBy = currentUser;
+        transferOrder.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Current tenant ID is not available.");
-            }
-
-            var transferOrder = await context.TransferOrders
-                .FirstOrDefaultAsync(t => t.Id == id && t.TenantId == currentTenantId.Value && !t.IsDeleted, cancellationToken);
-
-            if (transferOrder is null)
-            {
-                return false;
-            }
-
-            if (transferOrder.Status == TransferOrderStatus.Shipped ||
-                transferOrder.Status == TransferOrderStatus.InTransit ||
-                transferOrder.Status == TransferOrderStatus.Completed)
-            {
-                throw new InvalidOperationException($"Cannot cancel transfer order in status {transferOrder.Status}.");
-            }
-
-            // Capture original status for audit log
-            var originalStatus = transferOrder.Status.ToString();
-
-            transferOrder.Status = TransferOrderStatus.Cancelled;
-            transferOrder.ModifiedBy = currentUser;
-            transferOrder.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict cancelling TransferOrder {TransferOrderId}.", id);
-                throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log
-            await auditLogService.LogEntityChangeAsync(
-                "TransferOrder",
-                transferOrder.Id,
-                "Status",
-                "Update",
-                originalStatus,
-                "Cancelled",
-                currentUser,
-                $"Transfer order {transferOrder.Number} cancelled",
-                cancellationToken);
-
-            logger.LogInformation("Transfer order {TransferOrderNumber} cancelled by {User}.", transferOrder.Number, currentUser);
-
-            return true;
+            await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict cancelling TransferOrder {TransferOrderId}.", id);
+            throw new InvalidOperationException("L'ordine di trasferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log
+        await auditLogService.LogEntityChangeAsync(
+            "TransferOrder",
+            transferOrder.Id,
+            "Status",
+            "Update",
+            originalStatus,
+            "Cancelled",
+            currentUser,
+            $"Transfer order {transferOrder.Number} cancelled",
+            cancellationToken);
+
+        logger.LogInformation("Transfer order {TransferOrderNumber} cancelled by {User}.", transferOrder.Number, currentUser);
+
+        return true;
     }
 
     private async Task<string> GenerateTransferOrderNumberAsync(string? series, Guid tenantId, CancellationToken cancellationToken)

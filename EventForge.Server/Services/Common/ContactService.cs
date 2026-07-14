@@ -113,105 +113,83 @@ public class ContactService(
 
     public async Task<ContactDto?> UpdateContactAsync(Guid id, UpdateContactDto updateContactDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateContactDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
+
+        var contact = await context.Contacts
+            .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (contact is null) return null;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(contact).CurrentValues.Clone();
+        var originalContact = (Contact)originalValues.ToObject();
+
+        contact.ContactType = updateContactDto.ContactType.ToEntity();
+        contact.Value = updateContactDto.Value;
+        contact.Notes = updateContactDto.Notes;
+        contact.ModifiedAt = DateTime.UtcNow;
+        contact.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateContactDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
-
-            var contact = await context.Contacts
-                .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (contact is null) return null;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(contact).CurrentValues.Clone();
-            var originalContact = (Contact)originalValues.ToObject();
-
-            contact.ContactType = updateContactDto.ContactType.ToEntity();
-            contact.Value = updateContactDto.Value;
-            contact.Notes = updateContactDto.Notes;
-            contact.ModifiedAt = DateTime.UtcNow;
-            contact.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Contact {ContactId}.", id);
-                throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
-
-            logger.LogInformation("Contact {ContactId} updated by {User}.", contact.Id, currentUser);
-
-            return MapToContactDto(contact);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Contact {ContactId}.", id);
+            throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(contact, "Update", currentUser, originalContact, cancellationToken);
+
+        logger.LogInformation("Contact {ContactId} updated by {User}.", contact.Id, currentUser);
+
+        return MapToContactDto(contact);
     }
 
     public async Task<bool> DeleteContactAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
+
+        var contact = await context.Contacts
+            .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (contact is null) return false;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(contact).CurrentValues.Clone();
+        var originalContact = (Contact)originalValues.ToObject();
+
+        contact.IsDeleted = true;
+        contact.DeletedAt = DateTime.UtcNow;
+        contact.DeletedBy = currentUser;
+        contact.ModifiedAt = DateTime.UtcNow;
+        contact.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for contact operations.");
-
-            var contact = await context.Contacts
-                .Where(c => c.Id == id && c.TenantId == currentTenantId && !c.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (contact is null) return false;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(contact).CurrentValues.Clone();
-            var originalContact = (Contact)originalValues.ToObject();
-
-            contact.IsDeleted = true;
-            contact.DeletedAt = DateTime.UtcNow;
-            contact.DeletedBy = currentUser;
-            contact.ModifiedAt = DateTime.UtcNow;
-            contact.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Contact {ContactId}.", id);
-                throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
-
-            logger.LogInformation("Contact {ContactId} deleted by {User}.", contact.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Contact {ContactId}.", id);
+            throw new InvalidOperationException("Il contatto è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(contact, "Delete", currentUser, originalContact, cancellationToken);
+
+        logger.LogInformation("Contact {ContactId} deleted by {User}.", contact.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> ContactExistsAsync(Guid contactId, CancellationToken cancellationToken = default)

@@ -84,122 +84,100 @@ public partial class TeamService
 
     public async Task<TeamMemberDto?> UpdateTeamMemberAsync(Guid id, UpdateTeamMemberDto updateTeamMemberDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateTeamMemberDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var member = await context.TeamMembers
+            .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
+            .Include(m => m.Team)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
+        {
+            logger.LogWarning("Team member con ID {MemberId} non trovato per update da parte di {User}.", id, currentUser);
+            return null;
+        }
+
+        var originalMember = await context.TeamMembers
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        member.FirstName = updateTeamMemberDto.FirstName;
+        member.LastName = updateTeamMemberDto.LastName;
+        member.Email = updateTeamMemberDto.Email;
+        member.Role = updateTeamMemberDto.Role;
+        member.DateOfBirth = updateTeamMemberDto.DateOfBirth;
+        member.FiscalCode = updateTeamMemberDto.FiscalCode;
+        member.Status = ToEntityTeamMemberStatus(updateTeamMemberDto.Status);
+        member.Position = updateTeamMemberDto.Position;
+        member.JerseyNumber = updateTeamMemberDto.JerseyNumber;
+        member.EligibilityStatus = updateTeamMemberDto.EligibilityStatus;
+        member.PhotoDocumentId = updateTeamMemberDto.PhotoDocumentId;
+        member.PhotoConsent = updateTeamMemberDto.PhotoConsent;
+        member.PhotoConsentAt = updateTeamMemberDto.PhotoConsentAt;
+        member.ModifiedBy = currentUser;
+        member.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateTeamMemberDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var member = await context.TeamMembers
-                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
-                .Include(m => m.Team)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (member is null)
-            {
-                logger.LogWarning("Team member con ID {MemberId} non trovato per update da parte di {User}.", id, currentUser);
-                return null;
-            }
-
-            var originalMember = await context.TeamMembers
-                .AsNoTracking()
-                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            member.FirstName = updateTeamMemberDto.FirstName;
-            member.LastName = updateTeamMemberDto.LastName;
-            member.Email = updateTeamMemberDto.Email;
-            member.Role = updateTeamMemberDto.Role;
-            member.DateOfBirth = updateTeamMemberDto.DateOfBirth;
-            member.FiscalCode = updateTeamMemberDto.FiscalCode;
-            member.Status = ToEntityTeamMemberStatus(updateTeamMemberDto.Status);
-            member.Position = updateTeamMemberDto.Position;
-            member.JerseyNumber = updateTeamMemberDto.JerseyNumber;
-            member.EligibilityStatus = updateTeamMemberDto.EligibilityStatus;
-            member.PhotoDocumentId = updateTeamMemberDto.PhotoDocumentId;
-            member.PhotoConsent = updateTeamMemberDto.PhotoConsent;
-            member.PhotoConsentAt = updateTeamMemberDto.PhotoConsentAt;
-            member.ModifiedBy = currentUser;
-            member.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating team member {MemberId}.", id);
-                throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log
-            _ = await auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
-
-            return MapToTeamMemberDto(member);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating team member {MemberId}.", id);
+            throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log
+        _ = await auditLogService.TrackEntityChangesAsync(member, "Update", currentUser, originalMember, cancellationToken);
+
+        return MapToTeamMemberDto(member);
     }
 
     public async Task<bool> RemoveTeamMemberAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for team operations.");
+
+        var member = await context.TeamMembers
+            .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (member is null)
+        {
+            logger.LogWarning("Team member con ID {MemberId} non trovato per cancellazione da parte di {User}.", id, currentUser);
+            return false;
+        }
+
+        var originalMember = await context.TeamMembers
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        member.IsDeleted = true;
+        member.DeletedBy = currentUser;
+        member.DeletedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for team operations.");
-
-            var member = await context.TeamMembers
-                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (member is null)
-            {
-                logger.LogWarning("Team member con ID {MemberId} non trovato per cancellazione da parte di {User}.", id, currentUser);
-                return false;
-            }
-
-            var originalMember = await context.TeamMembers
-                .AsNoTracking()
-                .Where(m => m.Id == id && m.TenantId == currentTenantId && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            member.IsDeleted = true;
-            member.DeletedBy = currentUser;
-            member.DeletedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict removing team member {MemberId}.", id);
-                throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log
-            _ = await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict removing team member {MemberId}.", id);
+            throw new InvalidOperationException("Il membro del team è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        // Audit log
+        _ = await auditLogService.TrackEntityChangesAsync(member, "Delete", currentUser, originalMember, cancellationToken);
+
+        return true;
     }
 
     public async Task<bool> TeamExistsAsync(Guid teamId, CancellationToken cancellationToken = default)

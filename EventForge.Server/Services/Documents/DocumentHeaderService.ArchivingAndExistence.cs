@@ -14,65 +14,50 @@ public partial class DocumentHeaderService
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        var originalHeader = await context.DocumentHeaders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+        if (originalHeader is null)
+        {
+            logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
+            return null;
+        }
+
+        if (originalHeader.Status != Prym.DTOs.Common.DocumentStatus.Active)
+        {
+            throw new InvalidOperationException("Solo i documenti nello stato Attivo possono essere archiviati.");
+        }
+
+        var documentHeader = await context.DocumentHeaders
+            .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
+
+        if (documentHeader is null)
+        {
+            logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
+            return null;
+        }
+
+        documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Archived;
+        documentHeader.ArchivedAt = DateTime.UtcNow;
+        documentHeader.ModifiedBy = currentUser;
+        documentHeader.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            var originalHeader = await context.DocumentHeaders
-                .AsNoTracking()
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (originalHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
-                return null;
-            }
-
-            if (originalHeader.Status != Prym.DTOs.Common.DocumentStatus.Active)
-            {
-                throw new InvalidOperationException("Solo i documenti nello stato Attivo possono essere archiviati.");
-            }
-
-            var documentHeader = await context.DocumentHeaders
-                .FirstOrDefaultAsync(dh => dh.Id == id && !dh.IsDeleted, cancellationToken);
-
-            if (documentHeader is null)
-            {
-                logger.LogWarning("Document header with ID {Id} not found for archiving.", id);
-                return null;
-            }
-
-            documentHeader.Status = Prym.DTOs.Common.DocumentStatus.Archived;
-            documentHeader.ArchivedAt = DateTime.UtcNow;
-            documentHeader.ModifiedBy = currentUser;
-            documentHeader.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict archiving document {DocumentHeaderId}.", id);
-                throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Archive", currentUser, originalHeader, cancellationToken);
-
-            logger.LogInformation("Document header {DocumentHeaderId} archived by {User}.", id, currentUser);
-
-            return documentHeader.ToDto();
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (InvalidOperationException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict archiving document {DocumentHeaderId}.", id);
+            throw new InvalidOperationException("Il documento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(documentHeader, "Archive", currentUser, originalHeader, cancellationToken);
+
+        logger.LogInformation("Document header {DocumentHeaderId} archived by {User}.", id, currentUser);
+
+        return documentHeader.ToDto();
     }
 
     public async Task<bool> DocumentHeaderExistsAsync(

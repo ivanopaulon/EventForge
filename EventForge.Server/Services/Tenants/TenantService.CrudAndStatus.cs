@@ -39,94 +39,83 @@ public partial class TenantService
 
     public async Task<TenantResponseDto> UpdateTenantAsync(Guid tenantId, UpdateTenantDto updateDto)
     {
+        var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
+        if (!canAccess)
+        {
+            logger.LogWarning("Accesso negato all'aggiornamento del tenant {TenantId}.", tenantId);
+            throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
+        }
+
+        var tenant = await context.Tenants
+            .FirstOrDefaultAsync(t => t.Id == tenantId);
+        if (tenant is null)
+        {
+            logger.LogWarning("Tenant {TenantId} non trovato per aggiornamento.", tenantId);
+            throw new ArgumentException($"Tenant {tenantId} not found.");
+        }
+
+        // Audit: copia originale
+        var originalTenant = new Tenant
+        {
+            Id = tenant.Id,
+            Name = tenant.Name,
+            DisplayName = tenant.DisplayName,
+            Description = tenant.Description,
+            Domain = tenant.Domain,
+            ContactEmail = tenant.ContactEmail,
+            MaxUsers = tenant.MaxUsers,
+            IsActive = tenant.IsActive,
+            SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
+            CreatedAt = tenant.CreatedAt,
+            CreatedBy = tenant.CreatedBy,
+            ModifiedAt = tenant.ModifiedAt,
+            ModifiedBy = tenant.ModifiedBy
+        };
+
+        tenant.DisplayName = updateDto.DisplayName;
+        tenant.Description = updateDto.Description;
+        tenant.Domain = updateDto.Domain;
+        tenant.ContactEmail = updateDto.ContactEmail;
+        tenant.MaxUsers = updateDto.MaxUsers;
+        tenant.SubscriptionExpiresAt = updateDto.SubscriptionExpiresAt;
+        tenant.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            var canAccess = await tenantContext.CanAccessTenantAsync(tenantId);
-            if (!canAccess)
-            {
-                logger.LogWarning("Accesso negato all'aggiornamento del tenant {TenantId}.", tenantId);
-                throw new UnauthorizedAccessException($"Access denied to tenant {tenantId}.");
-            }
+            _ = await context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            logger.LogWarning(ex, "Concurrency conflict updating Tenant {TenantId}.", tenantId);
+            throw new InvalidOperationException("Il tenant è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
+        }
 
-            var tenant = await context.Tenants
-                .FirstOrDefaultAsync(t => t.Id == tenantId);
-            if (tenant is null)
+        // Audit log
+        try
+        {
+            var currentUserId = tenantContext.CurrentUserId;
+            if (currentUserId.HasValue)
             {
-                logger.LogWarning("Tenant {TenantId} non trovato per aggiornamento.", tenantId);
-                throw new ArgumentException($"Tenant {tenantId} not found.");
-            }
-
-            // Audit: copia originale
-            var originalTenant = new Tenant
-            {
-                Id = tenant.Id,
-                Name = tenant.Name,
-                DisplayName = tenant.DisplayName,
-                Description = tenant.Description,
-                Domain = tenant.Domain,
-                ContactEmail = tenant.ContactEmail,
-                MaxUsers = tenant.MaxUsers,
-                IsActive = tenant.IsActive,
-                SubscriptionExpiresAt = tenant.SubscriptionExpiresAt,
-                CreatedAt = tenant.CreatedAt,
-                CreatedBy = tenant.CreatedBy,
-                ModifiedAt = tenant.ModifiedAt,
-                ModifiedBy = tenant.ModifiedBy
-            };
-
-            tenant.DisplayName = updateDto.DisplayName;
-            tenant.Description = updateDto.Description;
-            tenant.Domain = updateDto.Domain;
-            tenant.ContactEmail = updateDto.ContactEmail;
-            tenant.MaxUsers = updateDto.MaxUsers;
-            tenant.SubscriptionExpiresAt = updateDto.SubscriptionExpiresAt;
-            tenant.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
+                var auditTrail = new AuditTrail
+                {
+                    TenantId = tenant.Id,
+                    OperationType = AuthAuditOperationType.TenantUpdated,
+                    PerformedByUserId = currentUserId.Value,
+                    TargetTenantId = tenant.Id,
+                    Details = $"Tenant aggiornato: {tenant.Name}",
+                    WasSuccessful = true,
+                    PerformedAt = DateTime.UtcNow
+                };
+                _ = context.AuditTrails.Add(auditTrail);
                 _ = await context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Tenant {TenantId}.", tenantId);
-                throw new InvalidOperationException("Il tenant è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            // Audit log
-            try
-            {
-                var currentUserId = tenantContext.CurrentUserId;
-                if (currentUserId.HasValue)
-                {
-                    var auditTrail = new AuditTrail
-                    {
-                        TenantId = tenant.Id,
-                        OperationType = AuthAuditOperationType.TenantUpdated,
-                        PerformedByUserId = currentUserId.Value,
-                        TargetTenantId = tenant.Id,
-                        Details = $"Tenant aggiornato: {tenant.Name}",
-                        WasSuccessful = true,
-                        PerformedAt = DateTime.UtcNow
-                    };
-                    _ = context.AuditTrails.Add(auditTrail);
-                    _ = await context.SaveChangesAsync();
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Errore durante la scrittura dell'audit trail per l'aggiornamento tenant.");
-            }
-
-            return TenantMapper.ToServerResponseDto(tenant);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex)
         {
-            throw;
+            logger.LogError(ex, "Errore durante la scrittura dell'audit trail per l'aggiornamento tenant.");
         }
-        catch
-        {
-            throw;
-        }
+
+        return TenantMapper.ToServerResponseDto(tenant);
     }
 
     public async Task SetTenantStatusAsync(Guid tenantId, bool isEnabled, string reason)

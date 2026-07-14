@@ -92,108 +92,86 @@ public class BankService(
 
     public async Task<BankDto?> UpdateBankAsync(Guid id, UpdateBankDto updateBankDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateBankDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
+
+        var bank = await context.Banks
+            .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (bank is null) return null;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(bank).CurrentValues.Clone();
+        var originalBank = (Bank)originalValues.ToObject();
+
+        bank.Name = updateBankDto.Name;
+        // Note: Code and SwiftBic are intentionally not updatable - they are regulatory identifiers
+        bank.Branch = updateBankDto.Branch;
+        bank.Address = updateBankDto.Address;
+        bank.Country = updateBankDto.Country;
+        bank.Phone = updateBankDto.Phone;
+        bank.Email = updateBankDto.Email;
+        bank.Notes = updateBankDto.Notes;
+        bank.ModifiedAt = DateTime.UtcNow;
+        bank.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateBankDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
-
-            var bank = await context.Banks
-                .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (bank is null) return null;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(bank).CurrentValues.Clone();
-            var originalBank = (Bank)originalValues.ToObject();
-
-            bank.Name = updateBankDto.Name;
-            // Note: Code and SwiftBic are intentionally not updatable - they are regulatory identifiers
-            bank.Branch = updateBankDto.Branch;
-            bank.Address = updateBankDto.Address;
-            bank.Country = updateBankDto.Country;
-            bank.Phone = updateBankDto.Phone;
-            bank.Email = updateBankDto.Email;
-            bank.Notes = updateBankDto.Notes;
-            bank.ModifiedAt = DateTime.UtcNow;
-            bank.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Bank {BankId}.", id);
-                throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
-
-            logger.LogInformation("Bank {BankId} updated by {User}.", bank.Id, currentUser);
-
-            return MapToBankDto(bank);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Bank {BankId}.", id);
+            throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(bank, "Update", currentUser, originalBank, cancellationToken);
+
+        logger.LogInformation("Bank {BankId} updated by {User}.", bank.Id, currentUser);
+
+        return MapToBankDto(bank);
     }
 
     public async Task<bool> DeleteBankAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
+
+        var bank = await context.Banks
+            .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (bank is null) return false;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(bank).CurrentValues.Clone();
+        var originalBank = (Bank)originalValues.ToObject();
+
+        bank.IsDeleted = true;
+        bank.ModifiedAt = DateTime.UtcNow;
+        bank.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for bank operations.");
-
-            var bank = await context.Banks
-                .Where(b => b.Id == id && b.TenantId == currentTenantId && !b.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (bank is null) return false;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(bank).CurrentValues.Clone();
-            var originalBank = (Bank)originalValues.ToObject();
-
-            bank.IsDeleted = true;
-            bank.ModifiedAt = DateTime.UtcNow;
-            bank.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Bank {BankId}.", id);
-                throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
-
-            logger.LogInformation("Bank {BankId} deleted by {User}.", bank.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Bank {BankId}.", id);
+            throw new InvalidOperationException("La banca è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(bank, "Delete", currentUser, originalBank, cancellationToken);
+
+        logger.LogInformation("Bank {BankId} deleted by {User}.", bank.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> BankExistsAsync(Guid bankId, CancellationToken cancellationToken = default)
