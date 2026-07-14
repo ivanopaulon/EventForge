@@ -27,5 +27,9 @@ public class UpdatePromotionDtoValidator : AbstractValidator<Prym.DTOs.Promotion
         RuleFor(x => x.MaxTotalDiscountPercentage)
             .InclusiveBetween((decimal)0, (decimal)100)
             .WithMessage("Il campo MaxTotalDiscountPercentage deve essere compreso tra 0 e 100.");
+
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
     }
 }

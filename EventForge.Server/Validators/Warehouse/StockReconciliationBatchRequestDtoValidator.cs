@@ -13,5 +13,10 @@ public class StockReconciliationBatchRequestDtoValidator : AbstractValidator<Pry
         RuleFor(x => x.StockIds)
             .Must(v => v != null && v.Count >= 1)
             .WithMessage("Il campo StockIds deve contenere almeno 1 elemento/i.");
+
+        RuleFor(x => x.Filters)
+            .NotNull()
+            .WithMessage("Il campo Filters è obbligatorio.")
+            .SetValidator(new StockReconciliationRequestDtoValidator());
     }
 }

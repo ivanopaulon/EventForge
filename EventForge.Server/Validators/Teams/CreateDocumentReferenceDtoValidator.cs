@@ -20,6 +20,10 @@ public class CreateDocumentReferenceDtoValidator : AbstractValidator<Prym.DTOs.T
             .MaximumLength(255)
             .WithMessage("Il campo FileName non può superare 255 caratteri.");
 
+        RuleFor(x => x.Type)
+            .IsInEnum()
+            .WithMessage("Il campo Type deve essere un valore valido.");
+
         RuleFor(x => x.MimeType)
             .NotEmpty()
             .WithMessage("Il campo MimeType è obbligatorio.")

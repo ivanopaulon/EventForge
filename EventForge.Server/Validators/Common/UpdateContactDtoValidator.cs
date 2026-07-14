@@ -10,6 +10,10 @@ public class UpdateContactDtoValidator : AbstractValidator<Prym.DTOs.Common.Upda
 {
     public UpdateContactDtoValidator()
     {
+        RuleFor(x => x.ContactType)
+            .IsInEnum()
+            .WithMessage("Il campo ContactType deve essere un valore valido.");
+
         RuleFor(x => x.Value)
             .NotEmpty()
             .WithMessage("Il campo Value è obbligatorio.")

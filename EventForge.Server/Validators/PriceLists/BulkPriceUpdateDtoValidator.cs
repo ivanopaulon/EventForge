@@ -10,6 +10,10 @@ public class BulkPriceUpdateDtoValidator : AbstractValidator<Prym.DTOs.PriceList
 {
     public BulkPriceUpdateDtoValidator()
     {
+        RuleFor(x => x.Operation)
+            .IsInEnum()
+            .WithMessage("Il campo Operation deve essere un valore valido.");
+
         RuleFor(x => x.Value)
             .InclusiveBetween((decimal)0.01, (decimal)decimal.MaxValue)
             .WithMessage("Il campo Value deve essere compreso tra 0.01 e decimal.MaxValue.");

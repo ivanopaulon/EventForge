@@ -22,6 +22,10 @@ public class CreatePriceListEntryDtoValidator : AbstractValidator<Prym.DTOs.Pric
             .InclusiveBetween((int)0, (int)100)
             .WithMessage("Il campo Score deve essere compreso tra 0 e 100.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.MinQuantity)
             .InclusiveBetween((int)1, (int)int.MaxValue)
             .WithMessage("Il campo MinQuantity deve essere compreso tra 1 e int.MaxValue.");

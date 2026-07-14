@@ -24,6 +24,10 @@ public class UpdatePriceListDtoValidator : AbstractValidator<Prym.DTOs.PriceList
             .MaximumLength(1000)
             .WithMessage("Il campo Notes non può superare 1000 caratteri.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.Priority)
             .InclusiveBetween((int)0, (int)100)
             .WithMessage("Il campo Priority deve essere compreso tra 0 e 100.");

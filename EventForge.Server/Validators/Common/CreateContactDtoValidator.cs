@@ -16,6 +16,10 @@ public class CreateContactDtoValidator : AbstractValidator<Prym.DTOs.Common.Crea
             .MaximumLength(50)
             .WithMessage("Il campo OwnerType non può superare 50 caratteri.");
 
+        RuleFor(x => x.ContactType)
+            .IsInEnum()
+            .WithMessage("Il campo ContactType deve essere un valore valido.");
+
         RuleFor(x => x.Value)
             .NotEmpty()
             .WithMessage("Il campo Value è obbligatorio.")

@@ -10,6 +10,10 @@ public class UpdateCashierShiftDtoValidator : AbstractValidator<Prym.DTOs.Store.
 {
     public UpdateCashierShiftDtoValidator()
     {
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.Notes)
             .MaximumLength(500)
             .WithMessage("Il campo Notes non può superare 500 caratteri.");

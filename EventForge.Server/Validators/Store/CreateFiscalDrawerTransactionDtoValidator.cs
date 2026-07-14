@@ -10,6 +10,14 @@ public class CreateFiscalDrawerTransactionDtoValidator : AbstractValidator<Prym.
 {
     public CreateFiscalDrawerTransactionDtoValidator()
     {
+        RuleFor(x => x.TransactionType)
+            .IsInEnum()
+            .WithMessage("Il campo TransactionType deve essere un valore valido.");
+
+        RuleFor(x => x.PaymentType)
+            .IsInEnum()
+            .WithMessage("Il campo PaymentType deve essere un valore valido.");
+
         RuleFor(x => x.Amount)
             .InclusiveBetween((decimal)0.01, (decimal)decimal.MaxValue)
             .WithMessage("Il campo Amount deve essere compreso tra 0.01 e decimal.MaxValue.");

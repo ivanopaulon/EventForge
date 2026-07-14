@@ -20,6 +20,10 @@ public class UpdateDocumentRecurrenceDtoValidator : AbstractValidator<Prym.DTOs.
             .MaximumLength(500)
             .WithMessage("Il campo Description non può superare 500 caratteri.");
 
+        RuleFor(x => x.Pattern)
+            .IsInEnum()
+            .WithMessage("Il campo Pattern deve essere un valore valido.");
+
         RuleFor(x => x.Interval)
             .InclusiveBetween((int)1, (int)365)
             .WithMessage("Il campo Interval deve essere compreso tra 1 e 365.");

@@ -20,6 +20,10 @@ public class CreateVatRateDtoValidator : AbstractValidator<Prym.DTOs.VatRates.Cr
             .InclusiveBetween((decimal)0, (decimal)100)
             .WithMessage("Il campo Percentage deve essere compreso tra 0 e 100.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.Notes)
             .MaximumLength(200)
             .WithMessage("Il campo Notes non può superare 200 caratteri.");

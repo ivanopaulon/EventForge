@@ -10,6 +10,10 @@ public class CreateChatDtoValidator : AbstractValidator<Prym.DTOs.Chat.CreateCha
 {
     public CreateChatDtoValidator()
     {
+        RuleFor(x => x.Type)
+            .IsInEnum()
+            .WithMessage("Il campo Type deve essere un valore valido.");
+
         RuleFor(x => x.Name)
             .MaximumLength(100)
             .WithMessage("Il campo Name non può superare 100 caratteri.");

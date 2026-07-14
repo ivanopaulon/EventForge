@@ -30,6 +30,10 @@ public class CreateTeamDtoValidator : AbstractValidator<Prym.DTOs.Teams.CreateTe
             .MaximumLength(100)
             .WithMessage("Il campo Email non può superare 100 caratteri.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.ClubCode)
             .MaximumLength(50)
             .WithMessage("Il campo ClubCode non può superare 50 caratteri.");

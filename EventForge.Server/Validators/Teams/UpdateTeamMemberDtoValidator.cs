@@ -32,6 +32,10 @@ public class UpdateTeamMemberDtoValidator : AbstractValidator<Prym.DTOs.Teams.Up
             .MaximumLength(50)
             .WithMessage("Il campo Role non può superare 50 caratteri.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.FiscalCode)
             .MaximumLength(16)
             .WithMessage("Il campo FiscalCode non può superare 16 caratteri.");
@@ -43,5 +47,9 @@ public class UpdateTeamMemberDtoValidator : AbstractValidator<Prym.DTOs.Teams.Up
         RuleFor(x => x.JerseyNumber)
             .InclusiveBetween((int)1, (int)999)
             .WithMessage("Il campo JerseyNumber deve essere compreso tra 1 e 999.");
+
+        RuleFor(x => x.EligibilityStatus)
+            .IsInEnum()
+            .WithMessage("Il campo EligibilityStatus deve essere un valore valido.");
     }
 }

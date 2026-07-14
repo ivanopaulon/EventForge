@@ -24,6 +24,10 @@ public class CreateFiscalDrawerDtoValidator : AbstractValidator<Prym.DTOs.Store.
             .MaximumLength(200)
             .WithMessage("Il campo Description non può superare 200 caratteri.");
 
+        RuleFor(x => x.AssignmentType)
+            .IsInEnum()
+            .WithMessage("Il campo AssignmentType deve essere un valore valido.");
+
         RuleFor(x => x.CurrencyCode)
             .NotEmpty()
             .WithMessage("Il campo CurrencyCode è obbligatorio.")

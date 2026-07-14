@@ -25,5 +25,9 @@ public class CreateProductCodeDtoValidator : AbstractValidator<Prym.DTOs.Product
         RuleFor(x => x.AlternativeDescription)
             .MaximumLength(200)
             .WithMessage("Il campo AlternativeDescription non può superare 200 caratteri.");
+
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
     }
 }

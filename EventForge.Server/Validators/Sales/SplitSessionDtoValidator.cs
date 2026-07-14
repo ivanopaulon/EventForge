@@ -13,5 +13,9 @@ public class SplitSessionDtoValidator : AbstractValidator<Prym.DTOs.Sales.SplitS
         RuleFor(x => x.NumberOfPeople)
             .InclusiveBetween((int)2, (int)20)
             .WithMessage("Il campo NumberOfPeople deve essere compreso tra 2 e 20.");
+
+        RuleFor(x => x.SplitType)
+            .IsInEnum()
+            .WithMessage("Il campo SplitType deve essere un valore valido.");
     }
 }

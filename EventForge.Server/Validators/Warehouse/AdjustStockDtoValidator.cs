@@ -17,5 +17,9 @@ public class AdjustStockDtoValidator : AbstractValidator<Prym.DTOs.Warehouse.Adj
         RuleFor(x => x.PreviousQuantity)
             .InclusiveBetween((decimal)0, (decimal)999999999)
             .WithMessage("Il campo PreviousQuantity deve essere compreso tra 0 e 999999999.");
+
+        RuleFor(x => x.Reason)
+            .IsInEnum()
+            .WithMessage("Il campo Reason deve essere un valore valido.");
     }
 }

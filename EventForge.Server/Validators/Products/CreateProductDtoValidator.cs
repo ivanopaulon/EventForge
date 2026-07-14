@@ -28,6 +28,10 @@ public class CreateProductDtoValidator : AbstractValidator<Prym.DTOs.Products.Cr
             .MaximumLength(100)
             .WithMessage("Il campo Code non può superare 100 caratteri.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.DefaultPrice)
             .InclusiveBetween((decimal)0, (decimal)decimal.MaxValue)
             .WithMessage("Il campo DefaultPrice deve essere compreso tra 0 e decimal.MaxValue.");
