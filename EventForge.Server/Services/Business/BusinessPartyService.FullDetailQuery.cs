@@ -248,7 +248,13 @@ public partial class BusinessPartyService
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = (Prym.DTOs.Common.PriceListStatus)priceList.Status,
+            Status = priceList.Status switch
+            {
+                Data.Entities.PriceList.PriceListStatus.Active => Prym.DTOs.Common.PriceListStatus.Active,
+                Data.Entities.PriceList.PriceListStatus.Suspended => Prym.DTOs.Common.PriceListStatus.Suspended,
+                Data.Entities.PriceList.PriceListStatus.Deleted => Prym.DTOs.Common.PriceListStatus.Deleted,
+                _ => Prym.DTOs.Common.PriceListStatus.Active
+            },
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,

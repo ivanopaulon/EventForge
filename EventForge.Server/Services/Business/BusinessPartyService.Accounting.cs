@@ -49,11 +49,17 @@ public partial class BusinessPartyService
 
     public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for business party operations.");
+        }
+
         var businessPartyAccounting = await context.BusinessPartyAccountings
             .AsNoTracking()
             .Include(bpa => bpa.Bank)
             .Include(bpa => bpa.PaymentTerm)
-            .Where(bpa => bpa.Id == id && !bpa.IsDeleted)
+            .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId.Value && !bpa.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (businessPartyAccounting is null)
@@ -70,11 +76,17 @@ public partial class BusinessPartyService
 
     public async Task<BusinessPartyAccountingDto?> GetBusinessPartyAccountingByBusinessPartyIdAsync(Guid businessPartyId, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for business party operations.");
+        }
+
         var businessPartyAccounting = await context.BusinessPartyAccountings
             .AsNoTracking()
             .Include(bpa => bpa.Bank)
             .Include(bpa => bpa.PaymentTerm)
-            .Where(bpa => bpa.BusinessPartyId == businessPartyId && !bpa.IsDeleted)
+            .Where(bpa => bpa.BusinessPartyId == businessPartyId && bpa.TenantId == currentTenantId.Value && !bpa.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (businessPartyAccounting is null)

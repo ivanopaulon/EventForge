@@ -25,9 +25,16 @@ public partial class ProductService
 
     public async Task<ProductUnitDto?> GetProductUnitByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        // Validate tenant context
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Current tenant ID is not available.");
+        }
+
         var unit = await context.ProductUnits
             .AsNoTracking()
-            .Where(pu => pu.Id == id && !pu.IsDeleted)
+            .Where(pu => pu.Id == id && pu.TenantId == currentTenantId.Value && !pu.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
         return unit is not null ? MapToProductUnitDto(unit) : null;

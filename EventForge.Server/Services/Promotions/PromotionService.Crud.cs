@@ -43,9 +43,15 @@ public partial class PromotionService
 
     public async Task<PromotionDto?> GetPromotionByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for promotion operations.");
+        }
+
         var promotion = await context.Promotions
             .AsNoTracking()
-            .Where(p => p.Id == id && !p.IsDeleted)
+            .Where(p => p.Id == id && p.TenantId == currentTenantId.Value && !p.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (promotion is null)

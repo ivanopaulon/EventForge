@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Prym.DTOs.PriceLists;
 using PriceListBusinessParty = EventForge.Server.Data.Entities.PriceList.PriceListBusinessParty;
 using PriceListBusinessPartyStatus = EventForge.Server.Data.Entities.PriceList.PriceListBusinessPartyStatus;
+using PriceListStatus = EventForge.Server.Data.Entities.PriceList.PriceListStatus;
 
 namespace EventForge.Server.Services.PriceLists;
 
@@ -160,6 +161,8 @@ public class PriceListBusinessPartyService(
         var query = context.PriceListBusinessParties.AsNoTracking()
             .Include(plbp => plbp.PriceList)
             .ThenInclude(pl => pl.Event)
+            .Include(plbp => plbp.PriceList)
+            .ThenInclude(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
             .Where(plbp => plbp.BusinessPartyId == businessPartyId && !plbp.IsDeleted);
 
         // Apply type filter if provided
@@ -212,12 +215,18 @@ public class PriceListBusinessPartyService(
             ValidFrom = priceList.ValidFrom,
             ValidTo = priceList.ValidTo,
             Notes = priceList.Notes,
-            Status = (Prym.DTOs.Common.PriceListStatus)priceList.Status,
+            Status = priceList.Status switch
+            {
+                PriceListStatus.Active => Prym.DTOs.Common.PriceListStatus.Active,
+                PriceListStatus.Suspended => Prym.DTOs.Common.PriceListStatus.Suspended,
+                PriceListStatus.Deleted => Prym.DTOs.Common.PriceListStatus.Deleted,
+                _ => Prym.DTOs.Common.PriceListStatus.Active
+            },
             IsDefault = priceList.IsDefault,
             Priority = priceList.Priority,
             EventId = priceList.EventId,
             EventName = priceList.Event?.Name,
-            EntryCount = 0, // Not loading entries for performance
+            EntryCount = priceList.ProductPrices?.Count(ple => !ple.IsDeleted) ?? 0,
             CreatedAt = priceList.CreatedAt,
             CreatedBy = priceList.CreatedBy,
             ModifiedAt = priceList.ModifiedAt,

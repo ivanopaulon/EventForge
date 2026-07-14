@@ -25,9 +25,15 @@ public partial class ProductService
 
     public async Task<ProductCodeDto?> GetProductCodeByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product operations.");
+        }
+
         var code = await context.ProductCodes
             .AsNoTracking()
-            .Where(pc => pc.Id == id && !pc.IsDeleted)
+            .Where(pc => pc.Id == id && pc.TenantId == currentTenantId.Value && !pc.IsDeleted)
             .FirstOrDefaultAsync(cancellationToken);
 
         return code is not null ? MapToProductCodeDto(code) : null;
@@ -37,9 +43,15 @@ public partial class ProductService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(codeValue);
 
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product operations.");
+        }
+
         var productCode = await context.ProductCodes
             .AsNoTracking()
-            .Where(pc => pc.Code == codeValue && !pc.IsDeleted)
+            .Where(pc => pc.Code == codeValue && !pc.IsDeleted && pc.TenantId == currentTenantId.Value)
             .Include(pc => pc.Product)
             .FirstOrDefaultAsync(cancellationToken);
 
