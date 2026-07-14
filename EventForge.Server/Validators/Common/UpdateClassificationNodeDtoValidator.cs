@@ -22,6 +22,14 @@ public class UpdateClassificationNodeDtoValidator : AbstractValidator<Prym.DTOs.
             .MaximumLength(200)
             .WithMessage("Il campo Description non può superare 200 caratteri.");
 
+        RuleFor(x => x.Type)
+            .IsInEnum()
+            .WithMessage("Il campo Type deve essere un valore valido.");
+
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.Level)
             .InclusiveBetween((int)0, (int)10)
             .WithMessage("Il campo Level deve essere compreso tra 0 e 10.");

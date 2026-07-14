@@ -23,5 +23,9 @@ public class CreatePaymentTermDtoValidator : AbstractValidator<Prym.DTOs.Busines
         RuleFor(x => x.DueDays)
             .InclusiveBetween((int)0, (int)365)
             .WithMessage("Il campo DueDays deve essere compreso tra 0 e 365.");
+
+        RuleFor(x => x.PaymentMethod)
+            .IsInEnum()
+            .WithMessage("Il campo PaymentMethod deve essere un valore valido.");
     }
 }

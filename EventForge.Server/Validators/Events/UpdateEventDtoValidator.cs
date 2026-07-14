@@ -30,6 +30,10 @@ public class UpdateEventDtoValidator : AbstractValidator<Prym.DTOs.Events.Update
             .InclusiveBetween((int)1, (int)int.MaxValue)
             .WithMessage("Il campo Capacity deve essere compreso tra 1 e int.MaxValue.");
 
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
+
         RuleFor(x => x.Color)
             .MaximumLength(7)
             .WithMessage("Il campo Color non può superare 7 caratteri.");

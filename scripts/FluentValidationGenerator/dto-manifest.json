@@ -133,6 +133,7 @@
   "MergeSessionsDto": "Prym.DTOs/Sales/MergeSessionsDto.cs",
   "ModifyFidelityPointsDto": "Prym.DTOs/Business/Fidelity/ModifyFidelityPointsDto.cs",
   "NotificationExportRequestDto": "Prym.DTOs/Notifications/NotificationDtos.cs",
+  "NotificationPayloadDto": "Prym.DTOs/Notifications/NotificationDtos.cs",
   "NotificationPreferencesDto": "Prym.DTOs/Notifications/NotificationDtos.cs",
   "OpenFiscalDrawerSessionDto": "Prym.DTOs/Store/FiscalDrawerDto.cs",
   "PaymentRequestDto": "Prym.DTOs/PaymentTerminal/PaymentRequestDto.cs",

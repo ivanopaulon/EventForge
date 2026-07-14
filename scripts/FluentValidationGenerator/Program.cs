@@ -57,6 +57,22 @@ var byFile = manifest
     .GroupBy(kv => kv.Value)
     .ToDictionary(g => g.Key, g => g.Select(kv => kv.Key).ToList());
 
+// Collect every enum type name declared under Prym.DTOs so [Required] on an enum property
+// can be recognized and mapped to .IsInEnum() instead of being silently skipped.
+var enumTypeNames = new HashSet<string>(StringComparer.Ordinal);
+var dtosRoot = Path.Combine(repoRoot, "Prym.DTOs");
+if (Directory.Exists(dtosRoot))
+{
+    foreach (var enumFile in Directory.EnumerateFiles(dtosRoot, "*.cs", SearchOption.AllDirectories))
+    {
+        var enumTree = CSharpSyntaxTree.ParseText(File.ReadAllText(enumFile));
+        foreach (var enumDecl in enumTree.GetCompilationUnitRoot().DescendantNodes().OfType<EnumDeclarationSyntax>())
+        {
+            enumTypeNames.Add(enumDecl.Identifier.Text);
+        }
+    }
+}
+
 int generatedCount = 0;
 var skippedNoRules = new List<string>();
 var todoReviewLog = new List<string>();
@@ -107,6 +123,7 @@ foreach (var (relativeFilePath, typeNames) in byFile)
 
             var rules = new List<(string Rule, string Message)>();
             var unmapped = new List<string>();
+            var extraChainCalls = new List<string>();
 
             foreach (var attr in attributes)
             {
@@ -124,7 +141,27 @@ foreach (var (relativeFilePath, typeNames) in byFile)
                         {
                             rules.Add((".NotEmpty()", $"Il campo {propName} è obbligatorio."));
                         }
-                        // Non-nullable value types already guarantee presence: no rule needed.
+                        else if (enumTypeNames.Contains(propTypeText.Trim()))
+                        {
+                            // [Required] on an enum property validates nothing on its own (a non-nullable
+                            // enum can never be null); .IsInEnum() is the real, useful check here: it
+                            // catches an out-of-range integer silently cast to the enum by the JSON binder.
+                            rules.Add((".IsInEnum()", $"Il campo {propName} deve essere un valore valido."));
+                        }
+                        else if (!IsCollectionOrDictionaryType(propTypeText) && !IsKnownScalarValueType(propTypeText))
+                        {
+                            // Non-scalar, non-collection reference type (a nested complex DTO/class):
+                            // a real null check is possible and useful here, unlike for a plain enum.
+                            rules.Add((".NotNull()", $"Il campo {propName} è obbligatorio."));
+                            var nestedTypeName = propTypeText.Trim().TrimEnd('?');
+                            if (manifest.ContainsKey(nestedTypeName))
+                            {
+                                // Compose validation with the nested type's own generated validator
+                                // instead of duplicating its rules here.
+                                extraChainCalls.Add($".SetValidator(new {nestedTypeName}Validator())");
+                            }
+                        }
+                        // Non-nullable scalar value types already guarantee presence: no rule needed.
                         break;
 
                     case "MaxLength":
@@ -273,6 +310,10 @@ foreach (var (relativeFilePath, typeNames) in byFile)
                     sb.Append('\n').Append($"            {rule}");
                     sb.Append('\n').Append($"            .WithMessage(\"{message}\")");
                 }
+                foreach (var extraChainCall in extraChainCalls)
+                {
+                    sb.Append('\n').Append($"            {extraChainCall}");
+                }
                 sb.Append(';');
                 if (unmapped.Count > 0)
                 {
@@ -399,6 +440,48 @@ static bool IsCollectionType(string typeText)
         || t.StartsWith("HashSet<", StringComparison.Ordinal)
         || t.StartsWith("IReadOnlyList<", StringComparison.Ordinal)
         || t.StartsWith("IReadOnlyCollection<", StringComparison.Ordinal);
+}
+
+static bool IsCollectionOrDictionaryType(string typeText)
+{
+    if (IsCollectionType(typeText))
+    {
+        return true;
+    }
+    var t = typeText.Trim().TrimEnd('?');
+    return t.StartsWith("Dictionary<", StringComparison.Ordinal)
+        || t.StartsWith("IDictionary<", StringComparison.Ordinal)
+        || t.StartsWith("IReadOnlyDictionary<", StringComparison.Ordinal);
+}
+
+static bool IsKnownScalarValueType(string typeText)
+{
+    // Well-known non-nullable BCL value types: [Required] on these is already a no-op (the type
+    // itself guarantees non-null), so they must not be misclassified as a "complex nested class".
+    var t = typeText.Trim().TrimEnd('?');
+    return t switch
+    {
+        "bool" or "Boolean" => true,
+        "byte" or "Byte" => true,
+        "sbyte" or "SByte" => true,
+        "short" or "Int16" => true,
+        "ushort" or "UInt16" => true,
+        "int" or "Int32" => true,
+        "uint" or "UInt32" => true,
+        "long" or "Int64" => true,
+        "ulong" or "UInt64" => true,
+        "float" or "Single" => true,
+        "double" or "Double" => true,
+        "decimal" or "Decimal" => true,
+        "char" or "Char" => true,
+        "DateTime" => true,
+        "DateTimeOffset" => true,
+        "TimeSpan" => true,
+        "DateOnly" => true,
+        "TimeOnly" => true,
+        "Guid" => true,
+        _ => false,
+    };
 }
 
 static string? GetUnderlyingNumericTypeName(string typeText)

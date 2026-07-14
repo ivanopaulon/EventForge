@@ -23,5 +23,9 @@ public class UpdateProductUnitDtoValidator : AbstractValidator<Prym.DTOs.Product
         RuleFor(x => x.Description)
             .MaximumLength(100)
             .WithMessage("Il campo Description non può superare 100 caratteri.");
+
+        RuleFor(x => x.Status)
+            .IsInEnum()
+            .WithMessage("Il campo Status deve essere un valore valido.");
     }
 }

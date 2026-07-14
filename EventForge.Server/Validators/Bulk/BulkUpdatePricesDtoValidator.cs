@@ -16,6 +16,10 @@ public class BulkUpdatePricesDtoValidator : AbstractValidator<Prym.DTOs.Bulk.Bul
             .Must(v => v == null || v.Count <= 500)
             .WithMessage("Il campo ProductIds non può contenere più di 500 elemento/i.");
 
+        RuleFor(x => x.UpdateType)
+            .IsInEnum()
+            .WithMessage("Il campo UpdateType deve essere un valore valido.");
+
         RuleFor(x => x.NewPrice)
             .InclusiveBetween((decimal)0, (decimal)decimal.MaxValue)
             .WithMessage("Il campo NewPrice deve essere compreso tra 0 e decimal.MaxValue.");
