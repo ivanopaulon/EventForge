@@ -674,36 +674,6 @@ public class TenantUserManagementService(
     /// <summary>
     /// Generates a random password that meets security requirements using cryptographically secure random number generation.
     /// </summary>
-    private string GenerateRandomPassword()
-    {
-        const string lowercase = "abcdefghijklmnopqrstuvwxyz";
-        const string uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        const string digits = "0123456789";
-        const string special = "!@#$%^&*";
-
-        var password = new char[12];
-
-        // Ensure at least one of each required character type using cryptographically secure random
-        password[0] = lowercase[System.Security.Cryptography.RandomNumberGenerator.GetInt32(lowercase.Length)];
-        password[1] = uppercase[System.Security.Cryptography.RandomNumberGenerator.GetInt32(uppercase.Length)];
-        password[2] = digits[System.Security.Cryptography.RandomNumberGenerator.GetInt32(digits.Length)];
-        password[3] = special[System.Security.Cryptography.RandomNumberGenerator.GetInt32(special.Length)];
-
-        // Fill the rest randomly
-        var allChars = lowercase + uppercase + digits + special;
-        for (int i = 4; i < password.Length; i++)
-        {
-            password[i] = allChars[System.Security.Cryptography.RandomNumberGenerator.GetInt32(allChars.Length)];
-        }
-
-        // Shuffle the password using Fisher-Yates algorithm with cryptographically secure random
-        for (int i = password.Length - 1; i > 0; i--)
-        {
-            int j = System.Security.Cryptography.RandomNumberGenerator.GetInt32(i + 1);
-            (password[i], password[j]) = (password[j], password[i]);
-        }
-
-        return new string(password);
-    }
+    private string GenerateRandomPassword() => EventForge.Server.Services.Common.SecurePasswordGenerator.GenerateRandomPassword();
 
 }

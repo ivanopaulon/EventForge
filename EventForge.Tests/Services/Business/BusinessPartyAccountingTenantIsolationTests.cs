@@ -97,6 +97,67 @@ public class BusinessPartyAccountingTenantIsolationTests : IDisposable
             () => service.UpdateBusinessPartyAccountingAsync(_accountingAId, dto, "user"));
     }
 
+    [Fact]
+    public async Task GetBusinessPartyAccountingByIdAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetBusinessPartyAccountingByIdAsync(_accountingAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetBusinessPartyAccountingByIdAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetBusinessPartyAccountingByIdAsync(_accountingAId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetBusinessPartyAccountingByIdAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetBusinessPartyAccountingByIdAsync(_accountingAId));
+    }
+
+    [Fact]
+    public async Task GetBusinessPartyAccountingByBusinessPartyIdAsync_CrossTenant_ReturnsNull()
+    {
+        var accounting = await _context.BusinessPartyAccountings.AsNoTracking().FirstAsync(a => a.Id == _accountingAId);
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetBusinessPartyAccountingByBusinessPartyIdAsync(accounting.BusinessPartyId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetBusinessPartyAccountingByBusinessPartyIdAsync_SameTenant_ReturnsResult()
+    {
+        var accounting = await _context.BusinessPartyAccountings.AsNoTracking().FirstAsync(a => a.Id == _accountingAId);
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetBusinessPartyAccountingByBusinessPartyIdAsync(accounting.BusinessPartyId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetBusinessPartyAccountingByBusinessPartyIdAsync_MissingTenant_Throws()
+    {
+        var accounting = await _context.BusinessPartyAccountings.AsNoTracking().FirstAsync(a => a.Id == _accountingAId);
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetBusinessPartyAccountingByBusinessPartyIdAsync(accounting.BusinessPartyId));
+    }
+
     public void Dispose()
     {
         _context.Dispose();

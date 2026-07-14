@@ -265,8 +265,8 @@ public partial class TenantService
                 GeneratedPassword = randomPassword // Include generated password in response
             };
 
-            logger.LogInformation("Tenant '{TenantName}' creato con successo con admin user '{Username}' (Password: {Password})",
-                tenant.Name, adminUser.Username, randomPassword);
+            logger.LogInformation("Tenant '{TenantName}' creato con successo con admin user '{Username}'",
+                tenant.Name, adminUser.Username);
 
             return response;
         }
@@ -284,40 +284,7 @@ public partial class TenantService
     /// <returns>Random password string</returns>
     private static string GenerateRandomPassword()
     {
-        const string chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-        const string symbols = "!@#$%&*";
-        var random = new Random();
-
-        var password = new char[12];
-
-        // Ensure at least one uppercase, one lowercase, one digit, and one symbol
-        password[0] = chars[random.Next(0, 25)]; // Uppercase
-        password[1] = chars[random.Next(25, 50)]; // Lowercase
-        password[2] = chars[random.Next(50, chars.Length)]; // Digit
-        password[3] = symbols[random.Next(symbols.Length)]; // Symbol
-
-        // Fill the rest randomly
-        for (int i = 4; i < password.Length; i++)
-        {
-            var useSymbol = random.Next(10) == 0; // 10% chance for symbol
-            if (useSymbol)
-            {
-                password[i] = symbols[random.Next(symbols.Length)];
-            }
-            else
-            {
-                password[i] = chars[random.Next(chars.Length)];
-            }
-        }
-
-        // Shuffle the password to randomize the position of required characters
-        for (int i = password.Length - 1; i > 0; i--)
-        {
-            int j = random.Next(i + 1);
-            (password[i], password[j]) = (password[j], password[i]);
-        }
-
-        return new string(password);
+        return EventForge.Server.Services.Common.SecurePasswordGenerator.GenerateRandomPassword();
     }
 
 }

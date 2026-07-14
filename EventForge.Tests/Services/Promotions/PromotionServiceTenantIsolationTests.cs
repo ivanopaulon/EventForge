@@ -151,6 +151,35 @@ public class PromotionServiceTenantIsolationTests : IDisposable
         Assert.False(unchanged.IsDeleted);
     }
 
+    [Fact]
+    public async Task GetPromotionByIdAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetPromotionByIdAsync(_promotionAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetPromotionByIdAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetPromotionByIdAsync(_promotionAId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetPromotionByIdAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetPromotionByIdAsync(_promotionAId));
+    }
+
     public void Dispose()
     {
         _context.Dispose();

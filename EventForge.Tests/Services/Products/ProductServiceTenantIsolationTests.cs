@@ -180,6 +180,151 @@ public class ProductServiceTenantIsolationTests : IDisposable
         Assert.False(stillExists.IsDeleted);
     }
 
+    [Fact]
+    public async Task GetProductByIdAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetProductByIdAsync(_productAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetProductByIdAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetProductByIdAsync(_productAId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetProductByIdAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetProductByIdAsync(_productAId));
+    }
+
+    [Fact]
+    public async Task GetProductDetailAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetProductDetailAsync(_productAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetProductDetailAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetProductDetailAsync(_productAId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetProductDetailAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetProductDetailAsync(_productAId));
+    }
+
+    [Fact]
+    public async Task GetProductCodeByIdAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetProductCodeByIdAsync(_productCodeAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetProductCodeByIdAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetProductCodeByIdAsync(_productCodeAId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetProductCodeByIdAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetProductCodeByIdAsync(_productCodeAId));
+    }
+
+    [Fact]
+    public async Task GetProductByCodeAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetProductByCodeAsync("1234567890123");
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetProductByCodeAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetProductByCodeAsync("1234567890123");
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetProductByCodeAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetProductByCodeAsync("1234567890123"));
+    }
+
+    [Fact]
+    public async Task GetProductUnitByIdAsync_CrossTenant_ReturnsNull()
+    {
+        var service = CreateService(_tenantBId);
+
+        var result = await service.GetProductUnitByIdAsync(_productUnitAId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task GetProductUnitByIdAsync_SameTenant_ReturnsResult()
+    {
+        var service = CreateService(_tenantAId);
+
+        var result = await service.GetProductUnitByIdAsync(_productUnitAId);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetProductUnitByIdAsync_MissingTenant_Throws()
+    {
+        var service = CreateService(null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.GetProductUnitByIdAsync(_productUnitAId));
+    }
+
     public void Dispose()
     {
         _context.Dispose();

@@ -168,9 +168,15 @@ public partial class ProductService
 
     public async Task<ProductDto?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product operations.");
+        }
+
         var product = await context.Products
             .AsNoTracking()
-            .Where(p => p.Id == id && !p.IsDeleted)
+            .Where(p => p.Id == id && p.TenantId == currentTenantId.Value && !p.IsDeleted)
             .Include(p => p.Codes.Where(c => !c.IsDeleted))
             .Include(p => p.Units.Where(u => !u.IsDeleted))
             .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
@@ -184,10 +190,9 @@ public partial class ProductService
         string? preferredSupplierName = null;
         if (product.PreferredSupplierId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
             preferredSupplierName = await context.BusinessParties
                 .AsNoTracking()
-                .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
+                .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -199,9 +204,15 @@ public partial class ProductService
 
     public async Task<ProductDetailDto?> GetProductDetailAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for product operations.");
+        }
+
         var product = await context.Products
             .AsNoTracking()
-            .Where(p => p.Id == id && !p.IsDeleted)
+            .Where(p => p.Id == id && p.TenantId == currentTenantId.Value && !p.IsDeleted)
             .Include(p => p.Codes.Where(c => !c.IsDeleted))
             .Include(p => p.Units.Where(u => !u.IsDeleted))
             .Include(p => p.BundleItems.Where(bi => !bi.IsDeleted))
@@ -215,10 +226,9 @@ public partial class ProductService
         string? preferredSupplierName = null;
         if (product.PreferredSupplierId.HasValue)
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
             preferredSupplierName = await context.BusinessParties
                 .AsNoTracking()
-                .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && (!currentTenantId.HasValue || bp.TenantId == currentTenantId.Value))
+                .Where(bp => bp.Id == product.PreferredSupplierId.Value && !bp.IsDeleted && bp.TenantId == currentTenantId.Value)
                 .Select(bp => bp.Name)
                 .FirstOrDefaultAsync(cancellationToken);
         }
