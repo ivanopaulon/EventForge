@@ -133,157 +133,135 @@ public class BusinessPartyGroupService(
         string currentUser,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(dto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
+        }
+
+        var group = await context.BusinessPartyGroups
+            .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (group is null)
+        {
+            throw new InvalidOperationException($"Business Party Group with ID {id} not found.");
+        }
+
+        // Capture original state for audit
+        var originalGroup = new BusinessPartyGroup
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Code = group.Code,
+            Description = group.Description,
+            GroupType = group.GroupType,
+            ColorHex = group.ColorHex,
+            Icon = group.Icon,
+            Priority = group.Priority,
+            IsActive = group.IsActive,
+            ValidFrom = group.ValidFrom,
+            ValidTo = group.ValidTo
+        };
+
+        // Check for duplicate code if provided and changed
+        if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code != group.Code)
+        {
+            var codeExists = await context.BusinessPartyGroups
+                .AsNoTracking()
+                .AnyAsync(g => g.Code == dto.Code && g.Id != id && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
+
+            if (codeExists)
+            {
+                throw new InvalidOperationException($"A Business Party Group with code '{dto.Code}' already exists.");
+            }
+        }
+
+        group.Name = dto.Name;
+        group.Code = dto.Code;
+        group.Description = dto.Description;
+        group.GroupType = dto.GroupType;
+        group.ColorHex = dto.ColorHex;
+        group.Icon = dto.Icon;
+        group.Priority = dto.Priority;
+        group.IsActive = dto.IsActive;
+        group.ValidFrom = dto.ValidFrom;
+        group.ValidTo = dto.ValidTo;
+        group.ModifiedAt = DateTime.UtcNow;
+        group.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(dto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var group = await context.BusinessPartyGroups
-                .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (group is null)
-            {
-                throw new InvalidOperationException($"Business Party Group with ID {id} not found.");
-            }
-
-            // Capture original state for audit
-            var originalGroup = new BusinessPartyGroup
-            {
-                Id = group.Id,
-                Name = group.Name,
-                Code = group.Code,
-                Description = group.Description,
-                GroupType = group.GroupType,
-                ColorHex = group.ColorHex,
-                Icon = group.Icon,
-                Priority = group.Priority,
-                IsActive = group.IsActive,
-                ValidFrom = group.ValidFrom,
-                ValidTo = group.ValidTo
-            };
-
-            // Check for duplicate code if provided and changed
-            if (!string.IsNullOrWhiteSpace(dto.Code) && dto.Code != group.Code)
-            {
-                var codeExists = await context.BusinessPartyGroups
-                    .AsNoTracking()
-                    .AnyAsync(g => g.Code == dto.Code && g.Id != id && g.TenantId == currentTenantId.Value && !g.IsDeleted, cancellationToken);
-
-                if (codeExists)
-                {
-                    throw new InvalidOperationException($"A Business Party Group with code '{dto.Code}' already exists.");
-                }
-            }
-
-            group.Name = dto.Name;
-            group.Code = dto.Code;
-            group.Description = dto.Description;
-            group.GroupType = dto.GroupType;
-            group.ColorHex = dto.ColorHex;
-            group.Icon = dto.Icon;
-            group.Priority = dto.Priority;
-            group.IsActive = dto.IsActive;
-            group.ValidFrom = dto.ValidFrom;
-            group.ValidTo = dto.ValidTo;
-            group.ModifiedAt = DateTime.UtcNow;
-            group.ModifiedBy = currentUser;
-
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating BusinessPartyGroup {BusinessPartyGroupId}.", id);
-                throw new InvalidOperationException("Il gruppo anagrafico è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            await auditLogService.TrackEntityChangesAsync(group, "Update", currentUser, originalGroup, cancellationToken);
-
-            logger.LogInformation("Business Party Group {GroupId} updated by {User}.", group.Id, currentUser);
-
-            return MapToGroupDto(group);
+            await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating BusinessPartyGroup {BusinessPartyGroupId}.", id);
+            throw new InvalidOperationException("Il gruppo anagrafico è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        await auditLogService.TrackEntityChangesAsync(group, "Update", currentUser, originalGroup, cancellationToken);
+
+        logger.LogInformation("Business Party Group {GroupId} updated by {User}.", group.Id, currentUser);
+
+        return MapToGroupDto(group);
     }
 
     public async Task<bool> DeleteGroupAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
+        }
+
+        var group = await context.BusinessPartyGroups
+            .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (group is null)
+        {
+            logger.LogWarning("Business Party Group with ID {GroupId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        // Capture original state for audit
+        var originalGroup = new BusinessPartyGroup
+        {
+            Id = group.Id,
+            Name = group.Name,
+            Code = group.Code,
+            Description = group.Description,
+            GroupType = group.GroupType,
+            IsActive = group.IsActive
+        };
+
+        group.IsDeleted = true;
+        group.DeletedAt = DateTime.UtcNow;
+        group.DeletedBy = currentUser;
+        group.ModifiedAt = DateTime.UtcNow;
+        group.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for Business Party Group operations.");
-            }
-
-            var group = await context.BusinessPartyGroups
-                .Where(g => g.Id == id && g.TenantId == currentTenantId.Value && !g.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (group is null)
-            {
-                logger.LogWarning("Business Party Group with ID {GroupId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            // Capture original state for audit
-            var originalGroup = new BusinessPartyGroup
-            {
-                Id = group.Id,
-                Name = group.Name,
-                Code = group.Code,
-                Description = group.Description,
-                GroupType = group.GroupType,
-                IsActive = group.IsActive
-            };
-
-            group.IsDeleted = true;
-            group.DeletedAt = DateTime.UtcNow;
-            group.DeletedBy = currentUser;
-            group.ModifiedAt = DateTime.UtcNow;
-            group.ModifiedBy = currentUser;
-
-            try
-            {
-                await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting BusinessPartyGroup {BusinessPartyGroupId}.", id);
-                throw new InvalidOperationException("Il gruppo anagrafico è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            await auditLogService.TrackEntityChangesAsync(group, "Delete", currentUser, originalGroup, cancellationToken);
-
-            logger.LogInformation("Business Party Group {GroupId} deleted by {User}.", group.Id, currentUser);
-
-            return true;
+            await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting BusinessPartyGroup {BusinessPartyGroupId}.", id);
+            throw new InvalidOperationException("Il gruppo anagrafico è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        await auditLogService.TrackEntityChangesAsync(group, "Delete", currentUser, originalGroup, cancellationToken);
+
+        logger.LogInformation("Business Party Group {GroupId} deleted by {User}.", group.Id, currentUser);
+
+        return true;
     }
 
     #endregion

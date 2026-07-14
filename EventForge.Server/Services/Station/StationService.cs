@@ -123,140 +123,118 @@ public class StationService(
 
     public async Task<StationDto?> UpdateStationAsync(Guid id, UpdateStationDto updateStationDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            logger.LogWarning("Cannot update station without a tenant context.");
+            throw new InvalidOperationException("Tenant context is required.");
+        }
+
+        var originalStation = await context.Stations
+            .AsNoTracking()
+            .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalStation is null)
+        {
+            logger.LogWarning("Station with ID {StationId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        var station = await context.Stations
+            .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (station is null)
+        {
+            logger.LogWarning("Station with ID {StationId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        station.Name = updateStationDto.Name;
+        station.Description = updateStationDto.Description;
+        station.Status = updateStationDto.Status;
+        station.Location = updateStationDto.Location;
+        station.SortOrder = updateStationDto.SortOrder;
+        station.Notes = updateStationDto.Notes;
+        station.StationType = updateStationDto.StationType;
+        station.AssignedPrinterId = updateStationDto.AssignedPrinterId;
+        station.PrintsReceiptCopy = updateStationDto.PrintsReceiptCopy;
+        station.ModifiedAt = DateTime.UtcNow;
+        station.ModifiedBy = currentUser;
+
         try
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
-            {
-                logger.LogWarning("Cannot update station without a tenant context.");
-                throw new InvalidOperationException("Tenant context is required.");
-            }
-
-            var originalStation = await context.Stations
-                .AsNoTracking()
-                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalStation is null)
-            {
-                logger.LogWarning("Station with ID {StationId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            var station = await context.Stations
-                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (station is null)
-            {
-                logger.LogWarning("Station with ID {StationId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            station.Name = updateStationDto.Name;
-            station.Description = updateStationDto.Description;
-            station.Status = updateStationDto.Status;
-            station.Location = updateStationDto.Location;
-            station.SortOrder = updateStationDto.SortOrder;
-            station.Notes = updateStationDto.Notes;
-            station.StationType = updateStationDto.StationType;
-            station.AssignedPrinterId = updateStationDto.AssignedPrinterId;
-            station.PrintsReceiptCopy = updateStationDto.PrintsReceiptCopy;
-            station.ModifiedAt = DateTime.UtcNow;
-            station.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Station {StationId}.", id);
-                throw new InvalidOperationException("La stazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(station, "Update", currentUser, originalStation, cancellationToken);
-
-            logger.LogInformation("Station {StationId} updated by {User}", id, currentUser);
-
-            var printerCount = await context.Printers
-                .AsNoTracking()
-                .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
-
-            return MapToStationDto(station, printerCount);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Station {StationId}.", id);
+            throw new InvalidOperationException("La stazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(station, "Update", currentUser, originalStation, cancellationToken);
+
+        logger.LogInformation("Station {StationId} updated by {User}", id, currentUser);
+
+        var printerCount = await context.Printers
+            .AsNoTracking()
+            .CountAsync(p => p.StationId == id && !p.IsDeleted && p.TenantId == tenantId.Value, cancellationToken);
+
+        return MapToStationDto(station, printerCount);
     }
 
     public async Task<bool> DeleteStationAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var tenantId = tenantContext.CurrentTenantId;
+        if (!tenantId.HasValue)
+        {
+            logger.LogWarning("Cannot delete station without a tenant context.");
+            throw new InvalidOperationException("Tenant context is required.");
+        }
+
+        var originalStation = await context.Stations
+            .AsNoTracking()
+            .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalStation is null)
+        {
+            logger.LogWarning("Station with ID {StationId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        var station = await context.Stations
+            .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (station is null)
+        {
+            logger.LogWarning("Station with ID {StationId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        station.IsDeleted = true;
+        station.DeletedAt = DateTime.UtcNow;
+        station.DeletedBy = currentUser;
+        station.ModifiedAt = DateTime.UtcNow;
+        station.ModifiedBy = currentUser;
+
         try
         {
-            var tenantId = tenantContext.CurrentTenantId;
-            if (!tenantId.HasValue)
-            {
-                logger.LogWarning("Cannot delete station without a tenant context.");
-                throw new InvalidOperationException("Tenant context is required.");
-            }
-
-            var originalStation = await context.Stations
-                .AsNoTracking()
-                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalStation is null)
-            {
-                logger.LogWarning("Station with ID {StationId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            var station = await context.Stations
-                .Where(s => s.Id == id && !s.IsDeleted && s.TenantId == tenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (station is null)
-            {
-                logger.LogWarning("Station with ID {StationId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            station.IsDeleted = true;
-            station.DeletedAt = DateTime.UtcNow;
-            station.DeletedBy = currentUser;
-            station.ModifiedAt = DateTime.UtcNow;
-            station.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Station {StationId}.", id);
-                throw new InvalidOperationException("La stazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(station, "Delete", currentUser, originalStation, cancellationToken);
-
-            logger.LogInformation("Station {StationId} deleted by {User}", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Station {StationId}.", id);
+            throw new InvalidOperationException("La stazione è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(station, "Delete", currentUser, originalStation, cancellationToken);
+
+        logger.LogInformation("Station {StationId} deleted by {User}", id, currentUser);
+
+        return true;
     }
 
     #endregion

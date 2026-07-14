@@ -109,115 +109,93 @@ public class VatNatureService(
 
     public async Task<VatNatureDto?> UpdateVatNatureAsync(Guid id, UpdateVatNatureDto updateVatNatureDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateVatNatureDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
+
+        var originalVatNature = await context.VatNatures
+            .AsNoTracking()
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalVatNature is null) return null;
+
+        var vatNature = await context.VatNatures
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (vatNature is null) return null;
+
+        vatNature.Code = updateVatNatureDto.Code;
+        vatNature.Name = updateVatNatureDto.Name;
+        vatNature.Description = updateVatNatureDto.Description;
+        vatNature.ModifiedAt = DateTime.UtcNow;
+        vatNature.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateVatNatureDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
-
-            var originalVatNature = await context.VatNatures
-                .AsNoTracking()
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalVatNature is null) return null;
-
-            var vatNature = await context.VatNatures
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vatNature is null) return null;
-
-            vatNature.Code = updateVatNatureDto.Code;
-            vatNature.Name = updateVatNatureDto.Name;
-            vatNature.Description = updateVatNatureDto.Description;
-            vatNature.ModifiedAt = DateTime.UtcNow;
-            vatNature.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating VatNature {VatNatureId}.", id);
-                throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
-
-            logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
-
-            return MapToVatNatureDto(vatNature);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating VatNature {VatNatureId}.", id);
+            throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Update", currentUser, originalVatNature, cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
+
+        logger.LogInformation("VAT nature {VatNatureId} updated by {User}.", vatNature.Id, currentUser);
+
+        return MapToVatNatureDto(vatNature);
     }
 
     public async Task<bool> DeleteVatNatureAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
+
+        var originalVatNature = await context.VatNatures
+            .AsNoTracking()
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalVatNature is null) return false;
+
+        var vatNature = await context.VatNatures
+            .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (vatNature is null) return false;
+
+        vatNature.IsDeleted = true;
+        vatNature.ModifiedAt = DateTime.UtcNow;
+        vatNature.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for VAT nature operations.");
-
-            var originalVatNature = await context.VatNatures
-                .AsNoTracking()
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalVatNature is null) return false;
-
-            var vatNature = await context.VatNatures
-                .Where(v => v.Id == id && v.TenantId == currentTenantId && !v.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vatNature is null) return false;
-
-            vatNature.IsDeleted = true;
-            vatNature.ModifiedAt = DateTime.UtcNow;
-            vatNature.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting VatNature {VatNatureId}.", id);
-                throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
-
-            logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting VatNature {VatNatureId}.", id);
+            throw new InvalidOperationException("La natura IVA è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(vatNature, "Delete", currentUser, originalVatNature, cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, originalVatNature.TenantId);
+
+        logger.LogInformation("VAT nature {VatNatureId} deleted by {User}.", vatNature.Id, currentUser);
+
+        return true;
     }
 
     private static VatNatureDto MapToVatNatureDto(VatNature vatNature)

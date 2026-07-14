@@ -228,10 +228,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<SaleSessionDto?> RemoveItemAsync(Guid sessionId, Guid itemId, string currentUser, CancellationToken cancellationToken = default)
@@ -292,10 +288,6 @@ WHERE ss.Id = {sessionId} AND ss.TenantId = {currentTenantId.Value};
 
             throw new InvalidOperationException(
                 "The session or item was modified by another user. Please refresh and try again.", ex);
-        }
-        catch
-        {
-            throw;
         }
     }
 

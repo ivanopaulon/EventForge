@@ -199,112 +199,90 @@ public class CalendarReminderService(
 
     public async Task<CalendarReminderDto?> CompleteCalendarReminderAsync(Guid id, string? completionNotes, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
+
+        var entity = await context.CalendarReminders
+            .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (entity is null)
+        {
+            logger.LogWarning("Calendar reminder with ID {ReminderId} not found for completion.", id);
+            return null;
+        }
+
+        var originalValues = context.Entry(entity).CurrentValues.Clone();
+        var originalEntity = (CalendarReminder)originalValues.ToObject();
+
+        entity.IsCompleted = true;
+        entity.Status = Prym.DTOs.Common.ReminderStatus.Completed;
+        entity.CompletedAt = DateTime.UtcNow;
+        entity.CompletedBy = currentUser;
+        entity.CompletionNotes = completionNotes;
+        entity.ModifiedBy = currentUser;
+        entity.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-                throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
-
-            var entity = await context.CalendarReminders
-                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Calendar reminder with ID {ReminderId} not found for completion.", id);
-                return null;
-            }
-
-            var originalValues = context.Entry(entity).CurrentValues.Clone();
-            var originalEntity = (CalendarReminder)originalValues.ToObject();
-
-            entity.IsCompleted = true;
-            entity.Status = Prym.DTOs.Common.ReminderStatus.Completed;
-            entity.CompletedAt = DateTime.UtcNow;
-            entity.CompletedBy = currentUser;
-            entity.CompletionNotes = completionNotes;
-            entity.ModifiedBy = currentUser;
-            entity.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict completing calendar reminder {ReminderId}.", id);
-                throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
-
-            logger.LogInformation("Calendar reminder {ReminderId} completed by {User}.", id, currentUser);
-
-            return MapToDto(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict completing calendar reminder {ReminderId}.", id);
+            throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+
+        logger.LogInformation("Calendar reminder {ReminderId} completed by {User}.", id, currentUser);
+
+        return MapToDto(entity);
     }
 
     public async Task<bool> DeleteCalendarReminderAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+            throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
+
+        var entity = await context.CalendarReminders
+            .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (entity is null)
+        {
+            logger.LogWarning("Calendar reminder with ID {ReminderId} not found for deletion.", id);
+            return false;
+        }
+
+        var originalValues = context.Entry(entity).CurrentValues.Clone();
+        var originalEntity = (CalendarReminder)originalValues.ToObject();
+
+        entity.IsDeleted = true;
+        entity.DeletedBy = currentUser;
+        entity.DeletedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-                throw new InvalidOperationException("Tenant context is required for calendar reminder operations.");
-
-            var entity = await context.CalendarReminders
-                .Where(r => r.Id == id && r.TenantId == currentTenantId.Value)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Calendar reminder with ID {ReminderId} not found for deletion.", id);
-                return false;
-            }
-
-            var originalValues = context.Entry(entity).CurrentValues.Clone();
-            var originalEntity = (CalendarReminder)originalValues.ToObject();
-
-            entity.IsDeleted = true;
-            entity.DeletedBy = currentUser;
-            entity.DeletedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting calendar reminder {ReminderId}.", id);
-                throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
-
-            logger.LogInformation("Calendar reminder {ReminderId} deleted by {User}.", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting calendar reminder {ReminderId}.", id);
+            throw new InvalidOperationException("Il promemoria è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+
+        logger.LogInformation("Calendar reminder {ReminderId} deleted by {User}.", id, currentUser);
+
+        return true;
     }
 
     private static CalendarReminderDto MapToDto(CalendarReminder entity)

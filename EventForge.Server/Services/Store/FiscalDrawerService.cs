@@ -132,54 +132,43 @@ public class FiscalDrawerService(
 
     public async Task<FiscalDrawerDto?> UpdateFiscalDrawerAsync(Guid id, UpdateFiscalDrawerDto dto, string currentUser, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+        var entity = await context.FiscalDrawers
+            .Include(d => d.Pos)
+            .Include(d => d.Operator)
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
+
+        if (entity is null) return null;
+
+        // Prevent currency change if cash denominations already exist for this drawer
+        if (entity.CurrencyCode != dto.CurrencyCode)
         {
-            var tenantId = RequireTenantId();
-            var entity = await context.FiscalDrawers
-                .Include(d => d.Pos)
-                .Include(d => d.Operator)
-                .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted && d.TenantId == tenantId, ct);
-
-            if (entity is null) return null;
-
-            // Prevent currency change if cash denominations already exist for this drawer
-            if (entity.CurrencyCode != dto.CurrencyCode)
-            {
-                var hasDenominations = await context.CashDenominations
-                    .AsNoTracking()
-                    .AnyAsync(d => d.FiscalDrawerId == id && !d.IsDeleted && d.TenantId == tenantId, ct);
-                if (hasDenominations)
-                    throw new InvalidOperationException(
-                        "Cannot change currency code when cash denominations are already configured. " +
-                        "Reset denominations first via the 'Initialize' button.");
-            }
-
-            entity.Name = dto.Name;
-            entity.Code = dto.Code;
-            entity.Description = dto.Description;
-            entity.AssignmentType = dto.AssignmentType;
-            entity.CurrencyCode = dto.CurrencyCode;
-            entity.Status = dto.Status;
-            entity.PosId = dto.PosId;
-            entity.OperatorId = dto.OperatorId;
-            entity.Notes = dto.Notes;
-            entity.ModifiedBy = currentUser;
-            entity.ModifiedAt = DateTime.UtcNow;
-
-            await context.SaveChangesAsync(ct);
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, null, ct);
-
-            var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
-            return MapToDto(entity, openSession);
+            var hasDenominations = await context.CashDenominations
+                .AsNoTracking()
+                .AnyAsync(d => d.FiscalDrawerId == id && !d.IsDeleted && d.TenantId == tenantId, ct);
+            if (hasDenominations)
+                throw new InvalidOperationException(
+                    "Cannot change currency code when cash denominations are already configured. " +
+                    "Reset denominations first via the 'Initialize' button.");
         }
-        catch (InvalidOperationException)
-        {
-            throw; // Re-throw business rule violations as-is (controller handles 409)
-        }
-        catch
-        {
-            throw;
-        }
+
+        entity.Name = dto.Name;
+        entity.Code = dto.Code;
+        entity.Description = dto.Description;
+        entity.AssignmentType = dto.AssignmentType;
+        entity.CurrencyCode = dto.CurrencyCode;
+        entity.Status = dto.Status;
+        entity.PosId = dto.PosId;
+        entity.OperatorId = dto.OperatorId;
+        entity.Notes = dto.Notes;
+        entity.ModifiedBy = currentUser;
+        entity.ModifiedAt = DateTime.UtcNow;
+
+        await context.SaveChangesAsync(ct);
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, null, ct);
+
+        var openSession = await GetOpenSessionForDrawerAsync(id, tenantId, ct);
+        return MapToDto(entity, openSession);
     }
 
     public async Task<bool> DeleteFiscalDrawerAsync(Guid id, string currentUser, CancellationToken ct = default)
@@ -250,142 +239,116 @@ public class FiscalDrawerService(
 
     public async Task<FiscalDrawerSessionDto> OpenSessionAsync(Guid fiscalDrawerId, OpenFiscalDrawerSessionDto dto, string currentUser, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+
+        var existingSession = await context.FiscalDrawerSessions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == fiscalDrawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct);
+
+        if (existingSession is not null)
+            throw new InvalidOperationException("A session is already open for this fiscal drawer.");
+
+        var drawer = await context.FiscalDrawers
+            .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct)
+            ?? throw new KeyNotFoundException($"Fiscal drawer {fiscalDrawerId} not found.");
+
+        var now = DateTime.UtcNow;
+        var session = new FiscalDrawerSession
         {
-            var tenantId = RequireTenantId();
+            TenantId = tenantId,
+            FiscalDrawerId = fiscalDrawerId,
+            SessionDate = now.Date,
+            OpenedAt = now,
+            OpeningBalance = dto.OpeningBalance,
+            ClosingBalance = dto.OpeningBalance,
+            OpenedByOperatorId = dto.OperatorId,
+            Status = FiscalDrawerSessionStatus.Open,
+            Notes = dto.Notes,
+            CreatedBy = currentUser
+        };
 
-            var existingSession = await context.FiscalDrawerSessions
-                .AsNoTracking()
-                .FirstOrDefaultAsync(s =>
-                    s.FiscalDrawerId == fiscalDrawerId &&
-                    s.Status == FiscalDrawerSessionStatus.Open &&
-                    !s.IsDeleted &&
-                    s.TenantId == tenantId, ct);
+        context.FiscalDrawerSessions.Add(session);
 
-            if (existingSession is not null)
-                throw new InvalidOperationException("A session is already open for this fiscal drawer.");
-
-            var drawer = await context.FiscalDrawers
-                .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct)
-                ?? throw new KeyNotFoundException($"Fiscal drawer {fiscalDrawerId} not found.");
-
-            var now = DateTime.UtcNow;
-            var session = new FiscalDrawerSession
-            {
-                TenantId = tenantId,
-                FiscalDrawerId = fiscalDrawerId,
-                SessionDate = now.Date,
-                OpenedAt = now,
-                OpeningBalance = dto.OpeningBalance,
-                ClosingBalance = dto.OpeningBalance,
-                OpenedByOperatorId = dto.OperatorId,
-                Status = FiscalDrawerSessionStatus.Open,
-                Notes = dto.Notes,
-                CreatedBy = currentUser
-            };
-
-            context.FiscalDrawerSessions.Add(session);
-
-            context.FiscalDrawerTransactions.Add(new FiscalDrawerTransaction
-            {
-                TenantId = tenantId,
-                FiscalDrawerId = fiscalDrawerId,
-                FiscalDrawerSessionId = session.Id,
-                TransactionType = FiscalDrawerTransactionType.OpeningBalance,
-                PaymentType = FiscalDrawerPaymentType.Cash,
-                Amount = dto.OpeningBalance,
-                Description = "Fondo cassa apertura",
-                TransactionAt = now,
-                OperatorName = currentUser,
-                CreatedBy = currentUser
-            });
-
-            drawer.CurrentBalance = dto.OpeningBalance;
-            drawer.ModifiedBy = currentUser;
-            drawer.ModifiedAt = now;
-
-            await context.SaveChangesAsync(ct);
-
-            session = await context.FiscalDrawerSessions
-                .AsNoTracking()
-                .Include(s => s.OpenedByOperator)
-                .Include(s => s.FiscalDrawer)
-                .FirstAsync(s => s.Id == session.Id, ct);
-
-            logger.LogInformation("FiscalDrawer session opened for {FiscalDrawerId} by {User}", fiscalDrawerId, currentUser);
-            return MapSessionToDto(session);
-        }
-        catch (InvalidOperationException)
+        context.FiscalDrawerTransactions.Add(new FiscalDrawerTransaction
         {
-            throw;
-        }
-        catch (KeyNotFoundException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
+            TenantId = tenantId,
+            FiscalDrawerId = fiscalDrawerId,
+            FiscalDrawerSessionId = session.Id,
+            TransactionType = FiscalDrawerTransactionType.OpeningBalance,
+            PaymentType = FiscalDrawerPaymentType.Cash,
+            Amount = dto.OpeningBalance,
+            Description = "Fondo cassa apertura",
+            TransactionAt = now,
+            OperatorName = currentUser,
+            CreatedBy = currentUser
+        });
+
+        drawer.CurrentBalance = dto.OpeningBalance;
+        drawer.ModifiedBy = currentUser;
+        drawer.ModifiedAt = now;
+
+        await context.SaveChangesAsync(ct);
+
+        session = await context.FiscalDrawerSessions
+            .AsNoTracking()
+            .Include(s => s.OpenedByOperator)
+            .Include(s => s.FiscalDrawer)
+            .FirstAsync(s => s.Id == session.Id, ct);
+
+        logger.LogInformation("FiscalDrawer session opened for {FiscalDrawerId} by {User}", fiscalDrawerId, currentUser);
+        return MapSessionToDto(session);
     }
 
     public async Task<FiscalDrawerSessionDto> CloseSessionAsync(Guid fiscalDrawerId, CloseFiscalDrawerSessionDto dto, string currentUser, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+
+        var session = await context.FiscalDrawerSessions
+            .Include(s => s.OpenedByOperator)
+            .Include(s => s.FiscalDrawer)
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == fiscalDrawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct)
+            ?? throw new InvalidOperationException("No open session found for this fiscal drawer.");
+
+        var now = DateTime.UtcNow;
+
+        context.FiscalDrawerTransactions.Add(new FiscalDrawerTransaction
         {
-            var tenantId = RequireTenantId();
+            TenantId = tenantId,
+            FiscalDrawerId = fiscalDrawerId,
+            FiscalDrawerSessionId = session.Id,
+            TransactionType = FiscalDrawerTransactionType.ClosingBalance,
+            PaymentType = FiscalDrawerPaymentType.Cash,
+            Amount = dto.ClosingBalance,
+            Description = "Fondo cassa chiusura",
+            TransactionAt = now,
+            OperatorName = currentUser,
+            CreatedBy = currentUser
+        });
 
-            var session = await context.FiscalDrawerSessions
-                .Include(s => s.OpenedByOperator)
-                .Include(s => s.FiscalDrawer)
-                .FirstOrDefaultAsync(s =>
-                    s.FiscalDrawerId == fiscalDrawerId &&
-                    s.Status == FiscalDrawerSessionStatus.Open &&
-                    !s.IsDeleted &&
-                    s.TenantId == tenantId, ct)
-                ?? throw new InvalidOperationException("No open session found for this fiscal drawer.");
+        session.ClosedAt = now;
+        session.ClosingBalance = dto.ClosingBalance;
+        session.ClosedByOperatorId = dto.OperatorId;
+        session.Status = FiscalDrawerSessionStatus.Closed;
+        if (!string.IsNullOrEmpty(dto.Notes)) session.Notes = dto.Notes;
+        session.ModifiedBy = currentUser;
+        session.ModifiedAt = now;
 
-            var now = DateTime.UtcNow;
+        session.FiscalDrawer.CurrentBalance = dto.ClosingBalance;
+        session.FiscalDrawer.ModifiedBy = currentUser;
+        session.FiscalDrawer.ModifiedAt = now;
 
-            context.FiscalDrawerTransactions.Add(new FiscalDrawerTransaction
-            {
-                TenantId = tenantId,
-                FiscalDrawerId = fiscalDrawerId,
-                FiscalDrawerSessionId = session.Id,
-                TransactionType = FiscalDrawerTransactionType.ClosingBalance,
-                PaymentType = FiscalDrawerPaymentType.Cash,
-                Amount = dto.ClosingBalance,
-                Description = "Fondo cassa chiusura",
-                TransactionAt = now,
-                OperatorName = currentUser,
-                CreatedBy = currentUser
-            });
+        await context.SaveChangesAsync(ct);
+        logger.LogInformation("FiscalDrawer session closed for {FiscalDrawerId} by {User}", fiscalDrawerId, currentUser);
 
-            session.ClosedAt = now;
-            session.ClosingBalance = dto.ClosingBalance;
-            session.ClosedByOperatorId = dto.OperatorId;
-            session.Status = FiscalDrawerSessionStatus.Closed;
-            if (!string.IsNullOrEmpty(dto.Notes)) session.Notes = dto.Notes;
-            session.ModifiedBy = currentUser;
-            session.ModifiedAt = now;
-
-            session.FiscalDrawer.CurrentBalance = dto.ClosingBalance;
-            session.FiscalDrawer.ModifiedBy = currentUser;
-            session.FiscalDrawer.ModifiedAt = now;
-
-            await context.SaveChangesAsync(ct);
-            logger.LogInformation("FiscalDrawer session closed for {FiscalDrawerId} by {User}", fiscalDrawerId, currentUser);
-
-            return MapSessionToDto(session);
-        }
-        catch (InvalidOperationException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
+        return MapSessionToDto(session);
     }
 
     #endregion
@@ -420,77 +383,66 @@ public class FiscalDrawerService(
 
     public async Task<FiscalDrawerTransactionDto> CreateTransactionAsync(Guid fiscalDrawerId, CreateFiscalDrawerTransactionDto dto, string currentUser, CancellationToken ct = default)
     {
-        try
+        var tenantId = RequireTenantId();
+
+        var drawer = await context.FiscalDrawers
+            .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct)
+            ?? throw new KeyNotFoundException($"Fiscal drawer {fiscalDrawerId} not found.");
+
+        var session = await context.FiscalDrawerSessions
+            .FirstOrDefaultAsync(s =>
+                s.FiscalDrawerId == fiscalDrawerId &&
+                s.Status == FiscalDrawerSessionStatus.Open &&
+                !s.IsDeleted &&
+                s.TenantId == tenantId, ct);
+
+        var now = DateTime.UtcNow;
+        // Deposits are positive, withdrawals are negative for balance tracking
+        // Math.Abs is defensive: the DTO validates Amount > 0, but this ensures correct sign
+        // even if a caller bypasses model binding validation.
+        var signedAmount = dto.TransactionType == FiscalDrawerTransactionType.Withdrawal
+            ? -Math.Abs(dto.Amount)
+            : Math.Abs(dto.Amount);
+
+        var tx = new FiscalDrawerTransaction
         {
-            var tenantId = RequireTenantId();
+            TenantId = tenantId,
+            FiscalDrawerId = fiscalDrawerId,
+            FiscalDrawerSessionId = session?.Id,
+            TransactionType = dto.TransactionType,
+            PaymentType = dto.PaymentType,
+            Amount = dto.Amount,
+            Description = dto.Description,
+            TransactionAt = now,
+            OperatorName = currentUser,
+            CreatedBy = currentUser
+        };
 
-            var drawer = await context.FiscalDrawers
-                .FirstOrDefaultAsync(d => d.Id == fiscalDrawerId && !d.IsDeleted && d.TenantId == tenantId, ct)
-                ?? throw new KeyNotFoundException($"Fiscal drawer {fiscalDrawerId} not found.");
+        context.FiscalDrawerTransactions.Add(tx);
 
-            var session = await context.FiscalDrawerSessions
-                .FirstOrDefaultAsync(s =>
-                    s.FiscalDrawerId == fiscalDrawerId &&
-                    s.Status == FiscalDrawerSessionStatus.Open &&
-                    !s.IsDeleted &&
-                    s.TenantId == tenantId, ct);
-
-            var now = DateTime.UtcNow;
-            // Deposits are positive, withdrawals are negative for balance tracking
-            // Math.Abs is defensive: the DTO validates Amount > 0, but this ensures correct sign
-            // even if a caller bypasses model binding validation.
-            var signedAmount = dto.TransactionType == FiscalDrawerTransactionType.Withdrawal
-                ? -Math.Abs(dto.Amount)
-                : Math.Abs(dto.Amount);
-
-            var tx = new FiscalDrawerTransaction
+        if (session is not null)
+        {
+            if (dto.TransactionType == FiscalDrawerTransactionType.Deposit)
             {
-                TenantId = tenantId,
-                FiscalDrawerId = fiscalDrawerId,
-                FiscalDrawerSessionId = session?.Id,
-                TransactionType = dto.TransactionType,
-                PaymentType = dto.PaymentType,
-                Amount = dto.Amount,
-                Description = dto.Description,
-                TransactionAt = now,
-                OperatorName = currentUser,
-                CreatedBy = currentUser
-            };
-
-            context.FiscalDrawerTransactions.Add(tx);
-
-            if (session is not null)
-            {
-                if (dto.TransactionType == FiscalDrawerTransactionType.Deposit)
-                {
-                    session.TotalDeposits += dto.Amount;
-                    session.TotalCashIn += dto.Amount;
-                }
-                else if (dto.TransactionType == FiscalDrawerTransactionType.Withdrawal)
-                {
-                    session.TotalWithdrawals += dto.Amount;
-                    session.TotalCashOut += dto.Amount;
-                }
-                session.TransactionCount++;
-                session.ModifiedBy = currentUser;
-                session.ModifiedAt = now;
+                session.TotalDeposits += dto.Amount;
+                session.TotalCashIn += dto.Amount;
             }
+            else if (dto.TransactionType == FiscalDrawerTransactionType.Withdrawal)
+            {
+                session.TotalWithdrawals += dto.Amount;
+                session.TotalCashOut += dto.Amount;
+            }
+            session.TransactionCount++;
+            session.ModifiedBy = currentUser;
+            session.ModifiedAt = now;
+        }
 
-            drawer.CurrentBalance += signedAmount;
-            drawer.ModifiedBy = currentUser;
-            drawer.ModifiedAt = now;
+        drawer.CurrentBalance += signedAmount;
+        drawer.ModifiedBy = currentUser;
+        drawer.ModifiedAt = now;
 
-            await context.SaveChangesAsync(ct);
-            return MapTransactionToDto(tx);
-        }
-        catch (KeyNotFoundException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
+        await context.SaveChangesAsync(ct);
+        return MapTransactionToDto(tx);
     }
 
     public async Task RecordSaleTransactionAsync(Guid fiscalDrawerId, decimal cashAmount, decimal cardAmount, decimal otherAmount, Guid saleSessionId, string operatorName, CancellationToken ct = default)

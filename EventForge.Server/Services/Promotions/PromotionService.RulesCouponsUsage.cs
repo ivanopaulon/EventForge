@@ -83,70 +83,59 @@ public partial class PromotionService
     {
         const int maxRetries = 3;
 
-        try
-        {
-            var promotion = await context.Promotions
-                .Where(p => p.Id == promotionId && !p.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
+        var promotion = await context.Promotions
+            .Where(p => p.Id == promotionId && !p.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
 
-            if (promotion is null)
+        if (promotion is null)
+        {
+            logger.LogWarning("Promotion with ID {PromotionId} not found for usage increment.", promotionId);
+            return false;
+        }
+
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            if (promotion.MaxUses.HasValue && promotion.CurrentUses >= promotion.MaxUses.Value)
             {
-                logger.LogWarning("Promotion with ID {PromotionId} not found for usage increment.", promotionId);
+                logger.LogInformation("Promotion {PromotionId} has reached its maximum uses limit ({MaxUses}).", promotionId, promotion.MaxUses.Value);
                 return false;
             }
 
-            for (int attempt = 0; attempt < maxRetries; attempt++)
+            promotion.CurrentUses++;
+
+            try
             {
-                if (promotion.MaxUses.HasValue && promotion.CurrentUses >= promotion.MaxUses.Value)
+                await context.SaveChangesAsync(cancellationToken);
+                _ = await auditLogService.TrackEntityChangesAsync(promotion, "IncrementUsage", "System", null, cancellationToken);
+                logger.LogInformation("Successfully incremented usage for promotion {PromotionId}. CurrentUses: {CurrentUses}.", promotionId, promotion.CurrentUses);
+                return true;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                logger.LogWarning(ex, "Concurrency conflict while incrementing usage for promotion {PromotionId}. Attempt {Attempt}/{MaxRetries}.", promotionId, attempt + 1, maxRetries);
+
+                if (attempt >= maxRetries - 1)
                 {
-                    logger.LogInformation("Promotion {PromotionId} has reached its maximum uses limit ({MaxUses}).", promotionId, promotion.MaxUses.Value);
-                    return false;
+                    logger.LogError(ex, "Failed to increment usage for promotion {PromotionId} after {MaxRetries} attempts.", promotionId, maxRetries);
+                    throw;
                 }
 
-                promotion.CurrentUses++;
+                // Exponential backoff with cap: 50ms, 100ms, 200ms, … up to 500ms
+                var delayMs = Math.Min(50 * (1 << attempt), 500);
+                await Task.Delay(delayMs, cancellationToken);
 
-                try
+                var entry = ex.Entries.FirstOrDefault();
+                if (entry is not null)
                 {
-                    await context.SaveChangesAsync(cancellationToken);
-                    _ = await auditLogService.TrackEntityChangesAsync(promotion, "IncrementUsage", "System", null, cancellationToken);
-                    logger.LogInformation("Successfully incremented usage for promotion {PromotionId}. CurrentUses: {CurrentUses}.", promotionId, promotion.CurrentUses);
-                    return true;
-                }
-                catch (DbUpdateConcurrencyException ex)
-                {
-                    logger.LogWarning(ex, "Concurrency conflict while incrementing usage for promotion {PromotionId}. Attempt {Attempt}/{MaxRetries}.", promotionId, attempt + 1, maxRetries);
-
-                    if (attempt >= maxRetries - 1)
-                    {
-                        logger.LogError(ex, "Failed to increment usage for promotion {PromotionId} after {MaxRetries} attempts.", promotionId, maxRetries);
-                        throw;
-                    }
-
-                    // Exponential backoff with cap: 50ms, 100ms, 200ms, … up to 500ms
-                    var delayMs = Math.Min(50 * (1 << attempt), 500);
-                    await Task.Delay(delayMs, cancellationToken);
-
-                    var entry = ex.Entries.FirstOrDefault();
-                    if (entry is not null)
-                    {
-                        await entry.ReloadAsync(cancellationToken);
-                        promotion = (Promotion)entry.Entity;
-                    }
+                    await entry.ReloadAsync(cancellationToken);
+                    promotion = (Promotion)entry.Entity;
                 }
             }
+        }
 
-            // Unreachable in practice: the loop always returns true, returns false on limit reached,
-            // or throws on exhausted retries; required to satisfy the compiler.
-            return false;
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            throw;
-        }
-        catch
-        {
-            throw;
-        }
+        // Unreachable in practice: the loop always returns true, returns false on limit reached,
+        // or throws on exhausted retries; required to satisfy the compiler.
+        return false;
     }
 
     /// <inheritdoc/>

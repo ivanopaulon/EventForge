@@ -112,108 +112,86 @@ public class ReferenceService(
     /// <inheritdoc />
     public async Task<ReferenceDto?> UpdateReferenceAsync(Guid id, UpdateReferenceDto updateReferenceDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateReferenceDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
+
+        var entity = await context.References
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+
+        if (entity is null)
+        {
+            logger.LogWarning("Reference with ID {ReferenceId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(entity).CurrentValues.Clone();
+        var originalEntity = (Reference)originalValues.ToObject();
+
+        ReferenceMapper.UpdateEntity(entity, updateReferenceDto);
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateReferenceDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
-
-            var entity = await context.References
-                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Reference with ID {ReferenceId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(entity).CurrentValues.Clone();
-            var originalEntity = (Reference)originalValues.ToObject();
-
-            ReferenceMapper.UpdateEntity(entity, updateReferenceDto);
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Reference {ReferenceId}.", id);
-                throw new InvalidOperationException("Il riferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
-
-            logger.LogInformation("Reference {ReferenceId} updated by {User}.", id, currentUser);
-
-            return ReferenceMapper.ToDto(entity);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Reference {ReferenceId}.", id);
+            throw new InvalidOperationException("Il riferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Update", currentUser, originalEntity, cancellationToken);
+
+        logger.LogInformation("Reference {ReferenceId} updated by {User}.", id, currentUser);
+
+        return ReferenceMapper.ToDto(entity);
     }
 
     /// <inheritdoc />
     public async Task<bool> DeleteReferenceAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
+
+        var entity = await context.References
+            .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
+
+        if (entity is null)
+        {
+            logger.LogWarning("Reference with ID {ReferenceId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(entity).CurrentValues.Clone();
+        var originalEntity = (Reference)originalValues.ToObject();
+
+        entity.IsDeleted = true;
+        entity.ModifiedAt = DateTime.UtcNow;
+        entity.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for reference operations.");
-
-            var entity = await context.References
-                .FirstOrDefaultAsync(r => r.Id == id && r.TenantId == currentTenantId && !r.IsDeleted, cancellationToken);
-
-            if (entity is null)
-            {
-                logger.LogWarning("Reference with ID {ReferenceId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(entity).CurrentValues.Clone();
-            var originalEntity = (Reference)originalValues.ToObject();
-
-            entity.IsDeleted = true;
-            entity.ModifiedAt = DateTime.UtcNow;
-            entity.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Reference {ReferenceId}.", id);
-                throw new InvalidOperationException("Il riferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
-
-            logger.LogInformation("Reference {ReferenceId} deleted by {User}.", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Reference {ReferenceId}.", id);
+            throw new InvalidOperationException("Il riferimento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(entity, "Delete", currentUser, originalEntity, cancellationToken);
+
+        logger.LogInformation("Reference {ReferenceId} deleted by {User}.", id, currentUser);
+
+        return true;
     }
 
     /// <inheritdoc />

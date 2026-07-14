@@ -156,141 +156,119 @@ public class PriceListService(
 
     public async Task<PriceListDto?> UpdatePriceListAsync(Guid id, UpdatePriceListDto updatePriceListDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updatePriceListDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
+        if (updatePriceListDto.EventId.HasValue && !await EventExistsAsync(updatePriceListDto.EventId.Value, cancellationToken))
+        {
+            throw new ArgumentException($"Event with ID {updatePriceListDto.EventId.Value} does not exist.");
+        }
+
+        var originalPriceList = await context.PriceLists
+            .AsNoTracking()
+            .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+
+        if (originalPriceList is null)
+        {
+            logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        var priceList = await context.PriceLists
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+
+        if (priceList is null)
+        {
+            logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        priceList.Name = updatePriceListDto.Name;
+        priceList.Description = updatePriceListDto.Description;
+        priceList.ValidFrom = updatePriceListDto.ValidFrom;
+        priceList.ValidTo = updatePriceListDto.ValidTo;
+        priceList.Notes = updatePriceListDto.Notes;
+        priceList.IsDefault = updatePriceListDto.IsDefault;
+        priceList.Priority = updatePriceListDto.Priority;
+        priceList.EventId = updatePriceListDto.EventId;
+        priceList.ModifiedBy = currentUser;
+        priceList.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updatePriceListDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
-
-            if (updatePriceListDto.EventId.HasValue && !await EventExistsAsync(updatePriceListDto.EventId.Value, cancellationToken))
-            {
-                throw new ArgumentException($"Event with ID {updatePriceListDto.EventId.Value} does not exist.");
-            }
-
-            var originalPriceList = await context.PriceLists
-                .AsNoTracking()
-                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
-
-            if (originalPriceList is null)
-            {
-                logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            var priceList = await context.PriceLists
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
-
-            if (priceList is null)
-            {
-                logger.LogWarning("Price list with ID {PriceListId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            priceList.Name = updatePriceListDto.Name;
-            priceList.Description = updatePriceListDto.Description;
-            priceList.ValidFrom = updatePriceListDto.ValidFrom;
-            priceList.ValidTo = updatePriceListDto.ValidTo;
-            priceList.Notes = updatePriceListDto.Notes;
-            priceList.IsDefault = updatePriceListDto.IsDefault;
-            priceList.Priority = updatePriceListDto.Priority;
-            priceList.EventId = updatePriceListDto.EventId;
-            priceList.ModifiedBy = currentUser;
-            priceList.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating PriceList {PriceListId}.", id);
-                throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
-
-            logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
-
-            return MapToPriceListDto(priceList);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating PriceList {PriceListId}.", id);
+            throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(priceList, "Update", currentUser, originalPriceList, cancellationToken);
+
+        logger.LogInformation("Price list {PriceListId} updated by user {User}.", id, currentUser);
+
+        return MapToPriceListDto(priceList);
     }
 
     public async Task<bool> DeletePriceListAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
+        var originalPriceList = await context.PriceLists
+            .AsNoTracking()
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+
+        if (originalPriceList is null)
+        {
+            logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        var priceList = await context.PriceLists
+            .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
+            .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
+
+        if (priceList is null)
+        {
+            logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        priceList.IsDeleted = true;
+        priceList.DeletedBy = currentUser;
+        priceList.DeletedAt = DateTime.UtcNow;
+
+        foreach (var entry in priceList.ProductPrices.Where(ple => !ple.IsDeleted))
+        {
+            entry.IsDeleted = true;
+            entry.DeletedBy = currentUser;
+            entry.DeletedAt = DateTime.UtcNow;
+        }
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
-
-            var originalPriceList = await context.PriceLists
-                .AsNoTracking()
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
-
-            if (originalPriceList is null)
-            {
-                logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            var priceList = await context.PriceLists
-                .Include(pl => pl.ProductPrices.Where(ple => !ple.IsDeleted))
-                .FirstOrDefaultAsync(pl => pl.Id == id && pl.TenantId == currentTenantId && !pl.IsDeleted, cancellationToken);
-
-            if (priceList is null)
-            {
-                logger.LogWarning("Price list with ID {PriceListId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            priceList.IsDeleted = true;
-            priceList.DeletedBy = currentUser;
-            priceList.DeletedAt = DateTime.UtcNow;
-
-            foreach (var entry in priceList.ProductPrices.Where(ple => !ple.IsDeleted))
-            {
-                entry.IsDeleted = true;
-                entry.DeletedBy = currentUser;
-                entry.DeletedAt = DateTime.UtcNow;
-            }
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting PriceList {PriceListId}.", id);
-                throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
-
-            logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting PriceList {PriceListId}.", id);
+            throw new InvalidOperationException("Il listino prezzi è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(priceList, "Delete", currentUser, originalPriceList, cancellationToken);
+
+        logger.LogInformation("Price list {PriceListId} deleted by user {User}.", id, currentUser);
+
+        return true;
     }
 
     public async Task<IEnumerable<PriceListEntryDto>> GetPriceListEntriesAsync(Guid priceListId, CancellationToken cancellationToken = default)
@@ -382,128 +360,106 @@ public class PriceListService(
 
     public async Task<PriceListEntryDto?> UpdatePriceListEntryAsync(Guid id, UpdatePriceListEntryDto updatePriceListEntryDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updatePriceListEntryDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
+        var originalEntry = await context.PriceListEntries
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
+
+        if (originalEntry is null)
+        {
+            logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        var entry = await context.PriceListEntries
+            .Include(ple => ple.UnitOfMeasure)
+            .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
+
+        if (entry is null)
+        {
+            logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
+            return null;
+        }
+
+        entry.Price = updatePriceListEntryDto.Price;
+        entry.Currency = updatePriceListEntryDto.Currency;
+        entry.Score = updatePriceListEntryDto.Score;
+        entry.IsEditableInFrontend = updatePriceListEntryDto.IsEditableInFrontend;
+        entry.IsDiscountable = updatePriceListEntryDto.IsDiscountable;
+        entry.MinQuantity = updatePriceListEntryDto.MinQuantity;
+        entry.MaxQuantity = updatePriceListEntryDto.MaxQuantity;
+        entry.UnitOfMeasureId = updatePriceListEntryDto.UnitOfMeasureId;
+        entry.Notes = updatePriceListEntryDto.Notes;
+        entry.ModifiedBy = currentUser;
+        entry.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updatePriceListEntryDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
-
-            var originalEntry = await context.PriceListEntries
-                .AsNoTracking()
-                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
-
-            if (originalEntry is null)
-            {
-                logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            var entry = await context.PriceListEntries
-                .Include(ple => ple.UnitOfMeasure)
-                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
-
-            if (entry is null)
-            {
-                logger.LogWarning("Price list entry with ID {EntryId} not found for update by user {User}.", id, currentUser);
-                return null;
-            }
-
-            entry.Price = updatePriceListEntryDto.Price;
-            entry.Currency = updatePriceListEntryDto.Currency;
-            entry.Score = updatePriceListEntryDto.Score;
-            entry.IsEditableInFrontend = updatePriceListEntryDto.IsEditableInFrontend;
-            entry.IsDiscountable = updatePriceListEntryDto.IsDiscountable;
-            entry.MinQuantity = updatePriceListEntryDto.MinQuantity;
-            entry.MaxQuantity = updatePriceListEntryDto.MaxQuantity;
-            entry.UnitOfMeasureId = updatePriceListEntryDto.UnitOfMeasureId;
-            entry.Notes = updatePriceListEntryDto.Notes;
-            entry.ModifiedBy = currentUser;
-            entry.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating PriceListEntry {PriceListEntryId}.", id);
-                throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
-
-            logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
-
-            return MapToPriceListEntryDto(entry);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating PriceListEntry {PriceListEntryId}.", id);
+            throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(entry, "Update", currentUser, originalEntry, cancellationToken);
+
+        logger.LogInformation("Price list entry {EntryId} updated by user {User}.", id, currentUser);
+
+        return MapToPriceListEntryDto(entry);
     }
 
     public async Task<bool> RemovePriceListEntryAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
+
+        var originalEntry = await context.PriceListEntries
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
+
+        if (originalEntry is null)
+        {
+            logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        var entry = await context.PriceListEntries
+            .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
+
+        if (entry is null)
+        {
+            logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
+            return false;
+        }
+
+        entry.IsDeleted = true;
+        entry.DeletedBy = currentUser;
+        entry.DeletedAt = DateTime.UtcNow;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for price list operations.");
-
-            var originalEntry = await context.PriceListEntries
-                .AsNoTracking()
-                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
-
-            if (originalEntry is null)
-            {
-                logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            var entry = await context.PriceListEntries
-                .FirstOrDefaultAsync(ple => ple.Id == id && ple.TenantId == currentTenantId && !ple.IsDeleted, cancellationToken);
-
-            if (entry is null)
-            {
-                logger.LogWarning("Price list entry with ID {EntryId} not found for deletion by user {User}.", id, currentUser);
-                return false;
-            }
-
-            entry.IsDeleted = true;
-            entry.DeletedBy = currentUser;
-            entry.DeletedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting PriceListEntry {PriceListEntryId}.", id);
-                throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
-
-            logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting PriceListEntry {PriceListEntryId}.", id);
+            throw new InvalidOperationException("La voce del listino è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(entry, "Delete", currentUser, originalEntry, cancellationToken);
+
+        logger.LogInformation("Price list entry {EntryId} deleted by user {User}.", id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> PriceListExistsAsync(Guid priceListId, CancellationToken cancellationToken = default)

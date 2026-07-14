@@ -141,103 +141,81 @@ public class NoteFlagService(
 
     public async Task<NoteFlagDto?> UpdateAsync(Guid id, UpdateNoteFlagDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
+        }
+
+        var noteFlag = await context.NoteFlags
+            .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
+
+        if (noteFlag is null)
+        {
+            return null;
+        }
+
+        noteFlag.Name = updateDto.Name;
+        noteFlag.Description = updateDto.Description;
+        noteFlag.Color = updateDto.Color;
+        noteFlag.Icon = updateDto.Icon;
+        noteFlag.IsActive = updateDto.IsActive;
+        noteFlag.DisplayOrder = updateDto.DisplayOrder;
+        noteFlag.ModifiedBy = currentUser;
+        noteFlag.ModifiedAt = DateTime.UtcNow;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            var noteFlag = await context.NoteFlags
-                .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
-
-            if (noteFlag is null)
-            {
-                return null;
-            }
-
-            noteFlag.Name = updateDto.Name;
-            noteFlag.Description = updateDto.Description;
-            noteFlag.Color = updateDto.Color;
-            noteFlag.Icon = updateDto.Icon;
-            noteFlag.IsActive = updateDto.IsActive;
-            noteFlag.DisplayOrder = updateDto.DisplayOrder;
-            noteFlag.ModifiedBy = currentUser;
-            noteFlag.ModifiedAt = DateTime.UtcNow;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating NoteFlag {NoteFlagId}.", id);
-                throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
-
-            logger.LogInformation("Updated note flag {NoteFlagId}", id);
-
-            return MapToDto(noteFlag);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating NoteFlag {NoteFlagId}.", id);
+            throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "Name", "Update", null, updateDto.Name, currentUser, "Note Flag", cancellationToken);
+
+        logger.LogInformation("Updated note flag {NoteFlagId}", id);
+
+        return MapToDto(noteFlag);
     }
 
     public async Task<bool> DeleteAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for note flag operations.");
+        }
+
+        var noteFlag = await context.NoteFlags
+            .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
+
+        if (noteFlag is null)
+        {
+            return false;
+        }
+
+        noteFlag.IsDeleted = true;
+        noteFlag.DeletedAt = DateTime.UtcNow;
+        noteFlag.DeletedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for note flag operations.");
-            }
-
-            var noteFlag = await context.NoteFlags
-                .FirstOrDefaultAsync(nf => nf.Id == id && nf.TenantId == currentTenantId.Value && !nf.IsDeleted, cancellationToken);
-
-            if (noteFlag is null)
-            {
-                return false;
-            }
-
-            noteFlag.IsDeleted = true;
-            noteFlag.DeletedAt = DateTime.UtcNow;
-            noteFlag.DeletedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting NoteFlag {NoteFlagId}.", id);
-                throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
-
-            logger.LogInformation("Deleted note flag {NoteFlagId}", id);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting NoteFlag {NoteFlagId}.", id);
+            throw new InvalidOperationException("Il flag nota è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.LogEntityChangeAsync("NoteFlag", noteFlag.Id, "IsDeleted", "Delete", "false", "true", currentUser, "Note Flag", cancellationToken);
+
+        logger.LogInformation("Deleted note flag {NoteFlagId}", id);
+
+        return true;
     }
 
     private NoteFlagDto MapToDto(NoteFlag noteFlag)

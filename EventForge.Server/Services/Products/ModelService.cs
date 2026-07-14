@@ -163,132 +163,110 @@ public class ModelService(
 
     public async Task<ModelDto?> UpdateModelAsync(Guid id, UpdateModelDto updateModelDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateModelDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for model operations.");
+        }
+
+        var originalModel = await context.Models
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalModel is null) return null;
+
+        // Verify brand exists and belongs to the same tenant
+        var brandExists = await context.Brands
+            .AsNoTracking()
+            .Where(b => b.Id == updateModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
+            .AnyAsync(cancellationToken);
+
+        if (!brandExists)
+        {
+            throw new ArgumentException($"Brand with ID {updateModelDto.BrandId} not found.");
+        }
+
+        var model = await context.Models
+            .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (model is null) return null;
+
+        model.BrandId = updateModelDto.BrandId;
+        model.Name = updateModelDto.Name;
+        model.Description = updateModelDto.Description;
+        model.ManufacturerPartNumber = updateModelDto.ManufacturerPartNumber;
+        model.ModifiedAt = DateTime.UtcNow;
+        model.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateModelDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
-
-            var originalModel = await context.Models
-                .AsNoTracking()
-                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalModel is null) return null;
-
-            // Verify brand exists and belongs to the same tenant
-            var brandExists = await context.Brands
-                .AsNoTracking()
-                .Where(b => b.Id == updateModelDto.BrandId && b.TenantId == currentTenantId.Value && !b.IsDeleted)
-                .AnyAsync(cancellationToken);
-
-            if (!brandExists)
-            {
-                throw new ArgumentException($"Brand with ID {updateModelDto.BrandId} not found.");
-            }
-
-            var model = await context.Models
-                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (model is null) return null;
-
-            model.BrandId = updateModelDto.BrandId;
-            model.Name = updateModelDto.Name;
-            model.Description = updateModelDto.Description;
-            model.ManufacturerPartNumber = updateModelDto.ManufacturerPartNumber;
-            model.ModifiedAt = DateTime.UtcNow;
-            model.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Model {ModelId}.", id);
-                throw new InvalidOperationException("Il modello è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(model, "Update", currentUser, originalModel, cancellationToken);
-
-            logger.LogInformation("Model {ModelId} updated by {User}.", model.Id, currentUser);
-
-            // Reload with Brand to get brand name
-            var updatedModel = await context.Models
-                .Include(m => m.Brand)
-                .FirstAsync(m => m.Id == model.Id, cancellationToken);
-
-            return MapToModelDto(updatedModel);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Model {ModelId}.", id);
+            throw new InvalidOperationException("Il modello è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(model, "Update", currentUser, originalModel, cancellationToken);
+
+        logger.LogInformation("Model {ModelId} updated by {User}.", model.Id, currentUser);
+
+        // Reload with Brand to get brand name
+        var updatedModel = await context.Models
+            .Include(m => m.Brand)
+            .FirstAsync(m => m.Id == model.Id, cancellationToken);
+
+        return MapToModelDto(updatedModel);
     }
 
     public async Task<bool> DeleteModelAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for model operations.");
+        }
+
+        var originalModel = await context.Models
+            .AsNoTracking()
+            .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalModel is null) return false;
+
+        var model = await context.Models
+            .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (model is null) return false;
+
+        model.IsDeleted = true;
+        model.ModifiedAt = DateTime.UtcNow;
+        model.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for model operations.");
-            }
-
-            var originalModel = await context.Models
-                .AsNoTracking()
-                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalModel is null) return false;
-
-            var model = await context.Models
-                .Where(m => m.Id == id && m.TenantId == currentTenantId.Value && !m.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (model is null) return false;
-
-            model.IsDeleted = true;
-            model.ModifiedAt = DateTime.UtcNow;
-            model.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Model {ModelId}.", id);
-                throw new InvalidOperationException("Il modello è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(model, "Delete", currentUser, originalModel, cancellationToken);
-
-            logger.LogInformation("Model {ModelId} deleted by {User}.", model.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Model {ModelId}.", id);
+            throw new InvalidOperationException("Il modello è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(model, "Delete", currentUser, originalModel, cancellationToken);
+
+        logger.LogInformation("Model {ModelId} deleted by {User}.", model.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> ModelExistsAsync(Guid modelId, CancellationToken cancellationToken = default)

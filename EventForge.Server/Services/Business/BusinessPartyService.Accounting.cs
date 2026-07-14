@@ -148,128 +148,106 @@ public partial class BusinessPartyService
 
     public async Task<BusinessPartyAccountingDto?> UpdateBusinessPartyAccountingAsync(Guid id, UpdateBusinessPartyAccountingDto updateBusinessPartyAccountingDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
+
+        var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
+            .AsNoTracking()
+            .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalBusinessPartyAccounting is null)
+            return null;
+
+        var businessPartyAccounting = await context.BusinessPartyAccountings
+            .AsNoTracking()
+            .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (businessPartyAccounting is null)
+            return null;
+
+        businessPartyAccounting.BusinessPartyId = updateBusinessPartyAccountingDto.BusinessPartyId;
+        businessPartyAccounting.Iban = updateBusinessPartyAccountingDto.Iban;
+        businessPartyAccounting.BankId = updateBusinessPartyAccountingDto.BankId;
+        businessPartyAccounting.PaymentTermId = updateBusinessPartyAccountingDto.PaymentTermId;
+        businessPartyAccounting.CreditLimit = updateBusinessPartyAccountingDto.CreditLimit;
+        businessPartyAccounting.Notes = updateBusinessPartyAccountingDto.Notes;
+        businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
+        businessPartyAccounting.ModifiedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
-
-            var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
-                .AsNoTracking()
-                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBusinessPartyAccounting is null)
-                return null;
-
-            var businessPartyAccounting = await context.BusinessPartyAccountings
-                .AsNoTracking()
-                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (businessPartyAccounting is null)
-                return null;
-
-            businessPartyAccounting.BusinessPartyId = updateBusinessPartyAccountingDto.BusinessPartyId;
-            businessPartyAccounting.Iban = updateBusinessPartyAccountingDto.Iban;
-            businessPartyAccounting.BankId = updateBusinessPartyAccountingDto.BankId;
-            businessPartyAccounting.PaymentTermId = updateBusinessPartyAccountingDto.PaymentTermId;
-            businessPartyAccounting.CreditLimit = updateBusinessPartyAccountingDto.CreditLimit;
-            businessPartyAccounting.Notes = updateBusinessPartyAccountingDto.Notes;
-            businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
-            businessPartyAccounting.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating business party accounting {BusinessPartyAccountingId}.", id);
-                throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
-
-            logger.LogInformation("Business party accounting {BusinessPartyAccountingId} updated by {User}", id, currentUser);
-
-            // Reload with includes
-            var updatedBusinessPartyAccounting = await context.BusinessPartyAccountings
-                .AsNoTracking()
-                .Include(bpa => bpa.Bank)
-                .Include(bpa => bpa.PaymentTerm)
-                .FirstAsync(bpa => bpa.Id == id, cancellationToken);
-
-            var businessPartyName = await context.BusinessParties
-                .AsNoTracking()
-                .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
-                .Select(bp => bp.Name)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            return MapToBusinessPartyAccountingDto(updatedBusinessPartyAccounting, businessPartyName);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating business party accounting {BusinessPartyAccountingId}.", id);
+            throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Update", currentUser, originalBusinessPartyAccounting, cancellationToken);
+
+        logger.LogInformation("Business party accounting {BusinessPartyAccountingId} updated by {User}", id, currentUser);
+
+        // Reload with includes
+        var updatedBusinessPartyAccounting = await context.BusinessPartyAccountings
+            .AsNoTracking()
+            .Include(bpa => bpa.Bank)
+            .Include(bpa => bpa.PaymentTerm)
+            .FirstAsync(bpa => bpa.Id == id, cancellationToken);
+
+        var businessPartyName = await context.BusinessParties
+            .AsNoTracking()
+            .Where(bp => bp.Id == businessPartyAccounting.BusinessPartyId && !bp.IsDeleted)
+            .Select(bp => bp.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return MapToBusinessPartyAccountingDto(updatedBusinessPartyAccounting, businessPartyName);
     }
 
     public async Task<bool> DeleteBusinessPartyAccountingAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
+
+        var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
+            .AsNoTracking()
+            .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalBusinessPartyAccounting is null)
+            return false;
+
+        var businessPartyAccounting = await context.BusinessPartyAccountings
+            .AsNoTracking()
+            .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (businessPartyAccounting is null)
+            return false;
+
+        businessPartyAccounting.IsDeleted = true;
+        businessPartyAccounting.DeletedAt = DateTime.UtcNow;
+        businessPartyAccounting.DeletedBy = currentUser;
+        businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
+        businessPartyAccounting.ModifiedBy = currentUser;
+
         try
         {
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for business party accounting operations.");
-
-            var originalBusinessPartyAccounting = await context.BusinessPartyAccountings
-                .AsNoTracking()
-                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalBusinessPartyAccounting is null)
-                return false;
-
-            var businessPartyAccounting = await context.BusinessPartyAccountings
-                .AsNoTracking()
-                .Where(bpa => bpa.Id == id && bpa.TenantId == currentTenantId && !bpa.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (businessPartyAccounting is null)
-                return false;
-
-            businessPartyAccounting.IsDeleted = true;
-            businessPartyAccounting.DeletedAt = DateTime.UtcNow;
-            businessPartyAccounting.DeletedBy = currentUser;
-            businessPartyAccounting.ModifiedAt = DateTime.UtcNow;
-            businessPartyAccounting.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting business party accounting {BusinessPartyAccountingId}.", id);
-                throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
-
-            logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting business party accounting {BusinessPartyAccountingId}.", id);
+            throw new InvalidOperationException("I dati contabili sono stati modificati da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(businessPartyAccounting, "Delete", currentUser, originalBusinessPartyAccounting, cancellationToken);
+
+        logger.LogInformation("Business party accounting {BusinessPartyAccountingId} deleted by {User}", id, currentUser);
+
+        return true;
     }
 
 }

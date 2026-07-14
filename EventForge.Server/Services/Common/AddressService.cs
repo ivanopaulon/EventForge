@@ -115,111 +115,89 @@ public class AddressService(
 
     public async Task<AddressDto?> UpdateAddressAsync(Guid id, UpdateAddressDto updateAddressDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateAddressDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for address operations.");
+
+        var address = await context.Addresses
+            .AsNoTracking()
+            .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (address is null) return null;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(address).CurrentValues.Clone();
+        var originalAddress = (Address)originalValues.ToObject();
+
+        address.AddressType = updateAddressDto.AddressType.ToEntity();
+        address.Street = updateAddressDto.Street;
+        address.City = updateAddressDto.City;
+        address.ZipCode = updateAddressDto.ZipCode;
+        address.Province = updateAddressDto.Province;
+        address.Country = updateAddressDto.Country;
+        address.Notes = updateAddressDto.Notes;
+        address.ModifiedAt = DateTime.UtcNow;
+        address.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateAddressDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for address operations.");
-
-            var address = await context.Addresses
-                .AsNoTracking()
-                .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (address is null) return null;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(address).CurrentValues.Clone();
-            var originalAddress = (Address)originalValues.ToObject();
-
-            address.AddressType = updateAddressDto.AddressType.ToEntity();
-            address.Street = updateAddressDto.Street;
-            address.City = updateAddressDto.City;
-            address.ZipCode = updateAddressDto.ZipCode;
-            address.Province = updateAddressDto.Province;
-            address.Country = updateAddressDto.Country;
-            address.Notes = updateAddressDto.Notes;
-            address.ModifiedAt = DateTime.UtcNow;
-            address.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating Address {AddressId}.", id);
-                throw new InvalidOperationException("L'indirizzo è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(address, "Update", currentUser, originalAddress, cancellationToken);
-
-            logger.LogInformation("Address {AddressId} updated by {User}.", address.Id, currentUser);
-
-            return MapToAddressDto(address);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating Address {AddressId}.", id);
+            throw new InvalidOperationException("L'indirizzo è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(address, "Update", currentUser, originalAddress, cancellationToken);
+
+        logger.LogInformation("Address {AddressId} updated by {User}.", address.Id, currentUser);
+
+        return MapToAddressDto(address);
     }
 
     public async Task<bool> DeleteAddressAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for address operations.");
+
+        var address = await context.Addresses
+            .AsNoTracking()
+            .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (address is null) return false;
+
+        // Create snapshot of original state before modifications
+        var originalValues = context.Entry(address).CurrentValues.Clone();
+        var originalAddress = (Address)originalValues.ToObject();
+
+        address.IsDeleted = true;
+        address.DeletedAt = DateTime.UtcNow;
+        address.DeletedBy = currentUser;
+        address.ModifiedAt = DateTime.UtcNow;
+        address.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for address operations.");
-
-            var address = await context.Addresses
-                .AsNoTracking()
-                .Where(a => a.Id == id && a.TenantId == currentTenantId && !a.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (address is null) return false;
-
-            // Create snapshot of original state before modifications
-            var originalValues = context.Entry(address).CurrentValues.Clone();
-            var originalAddress = (Address)originalValues.ToObject();
-
-            address.IsDeleted = true;
-            address.DeletedAt = DateTime.UtcNow;
-            address.DeletedBy = currentUser;
-            address.ModifiedAt = DateTime.UtcNow;
-            address.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting Address {AddressId}.", id);
-                throw new InvalidOperationException("L'indirizzo è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(address, "Delete", currentUser, originalAddress, cancellationToken);
-
-            logger.LogInformation("Address {AddressId} deleted by {User}.", address.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting Address {AddressId}.", id);
+            throw new InvalidOperationException("L'indirizzo è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(address, "Delete", currentUser, originalAddress, cancellationToken);
+
+        logger.LogInformation("Address {AddressId} deleted by {User}.", address.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> AddressExistsAsync(Guid addressId, CancellationToken cancellationToken = default)

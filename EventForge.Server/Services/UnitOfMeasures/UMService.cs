@@ -95,110 +95,88 @@ public class UMService(
 
     public async Task<UMDto?> UpdateUMAsync(Guid id, UpdateUMDto updateUMDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateUMDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+
+        var originalUM = await context.UMs
+            .AsNoTracking()
+            .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalUM is null) return null;
+
+        var um = await context.UMs
+            .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (um is null) return null;
+
+        um.Name = updateUMDto.Name;
+        // Note: Symbol is intentionally not updatable - it's used in calculations
+        um.Description = updateUMDto.Description;
+        um.IsDefault = updateUMDto.IsDefault;
+        um.ModifiedAt = DateTime.UtcNow;
+        um.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateUMDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
-
-            var originalUM = await context.UMs
-                .AsNoTracking()
-                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalUM is null) return null;
-
-            var um = await context.UMs
-                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (um is null) return null;
-
-            um.Name = updateUMDto.Name;
-            // Note: Symbol is intentionally not updatable - it's used in calculations
-            um.Description = updateUMDto.Description;
-            um.IsDefault = updateUMDto.IsDefault;
-            um.ModifiedAt = DateTime.UtcNow;
-            um.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating UM {UMId}.", id);
-                throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
-
-            logger.LogInformation("Unit of measure {UMId} updated by {User}.", um.Id, currentUser);
-
-            return MapToUMDto(um);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating UM {UMId}.", id);
+            throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(um, "Update", currentUser, originalUM, cancellationToken);
+
+        logger.LogInformation("Unit of measure {UMId} updated by {User}.", um.Id, currentUser);
+
+        return MapToUMDto(um);
     }
 
     public async Task<bool> DeleteUMAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
+
+        var originalUM = await context.UMs
+            .AsNoTracking()
+            .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalUM is null) return false;
+
+        var um = await context.UMs
+            .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (um is null) return false;
+
+        um.IsDeleted = true;
+        um.ModifiedAt = DateTime.UtcNow;
+        um.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for unit of measure operations.");
-
-            var originalUM = await context.UMs
-                .AsNoTracking()
-                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalUM is null) return false;
-
-            var um = await context.UMs
-                .Where(u => u.Id == id && u.TenantId == currentTenantId && !u.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (um is null) return false;
-
-            um.IsDeleted = true;
-            um.ModifiedAt = DateTime.UtcNow;
-            um.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting UM {UMId}.", id);
-                throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
-
-            logger.LogInformation("Unit of measure {UMId} deleted by {User}.", um.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting UM {UMId}.", id);
+            throw new InvalidOperationException("L'unità di misura è stata modificata da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(um, "Delete", currentUser, originalUM, cancellationToken);
+
+        logger.LogInformation("Unit of measure {UMId} deleted by {User}.", um.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> UMExistsAsync(Guid umId, CancellationToken cancellationToken = default)

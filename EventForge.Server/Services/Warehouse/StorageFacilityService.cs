@@ -119,124 +119,102 @@ public class StorageFacilityService(
 
     public async Task<StorageFacilityDto?> UpdateStorageFacilityAsync(Guid id, UpdateStorageFacilityDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+
+        var originalFacility = await context.StorageFacilities
+            .AsNoTracking()
+            .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalFacility is null) return null;
+
+        var facility = await context.StorageFacilities
+            .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (facility is null) return null;
+
+        facility.Name = updateDto.Name;
+        facility.Address = updateDto.Address;
+        facility.Phone = updateDto.Phone;
+        facility.Email = updateDto.Email;
+        facility.Manager = updateDto.Manager;
+        facility.IsFiscal = updateDto.IsFiscal;
+        facility.Notes = updateDto.Notes;
+        facility.AreaSquareMeters = updateDto.AreaSquareMeters;
+        facility.Capacity = updateDto.Capacity;
+        facility.IsRefrigerated = updateDto.IsRefrigerated;
+        facility.ModifiedAt = DateTime.UtcNow;
+        facility.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for storage facility operations.");
-
-            var originalFacility = await context.StorageFacilities
-                .AsNoTracking()
-                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalFacility is null) return null;
-
-            var facility = await context.StorageFacilities
-                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (facility is null) return null;
-
-            facility.Name = updateDto.Name;
-            facility.Address = updateDto.Address;
-            facility.Phone = updateDto.Phone;
-            facility.Email = updateDto.Email;
-            facility.Manager = updateDto.Manager;
-            facility.IsFiscal = updateDto.IsFiscal;
-            facility.Notes = updateDto.Notes;
-            facility.AreaSquareMeters = updateDto.AreaSquareMeters;
-            facility.Capacity = updateDto.Capacity;
-            facility.IsRefrigerated = updateDto.IsRefrigerated;
-            facility.ModifiedAt = DateTime.UtcNow;
-            facility.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating StorageFacility {StorageFacilityId}.", id);
-                throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
-
-            logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
-
-            return MapToStorageFacilityDto(facility);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating StorageFacility {StorageFacilityId}.", id);
+            throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(facility, "Update", currentUser, originalFacility, cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
+
+        logger.LogInformation("Storage facility {FacilityId} updated by {User}.", facility.Id, currentUser);
+
+        return MapToStorageFacilityDto(facility);
     }
 
     public async Task<bool> DeleteStorageFacilityAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId
+            ?? throw new InvalidOperationException("Tenant context is required for storage facility operations.");
+
+        var originalFacility = await context.StorageFacilities
+            .AsNoTracking()
+            .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (originalFacility is null) return false;
+
+        var facility = await context.StorageFacilities
+            .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (facility is null) return false;
+
+        facility.IsDeleted = true;
+        facility.DeletedAt = DateTime.UtcNow;
+        facility.DeletedBy = currentUser;
+        facility.ModifiedAt = DateTime.UtcNow;
+        facility.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId
-                ?? throw new InvalidOperationException("Tenant context is required for storage facility operations.");
-
-            var originalFacility = await context.StorageFacilities
-                .AsNoTracking()
-                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (originalFacility is null) return false;
-
-            var facility = await context.StorageFacilities
-                .Where(sf => sf.Id == id && sf.TenantId == currentTenantId && !sf.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (facility is null) return false;
-
-            facility.IsDeleted = true;
-            facility.DeletedAt = DateTime.UtcNow;
-            facility.DeletedBy = currentUser;
-            facility.ModifiedAt = DateTime.UtcNow;
-            facility.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting StorageFacility {StorageFacilityId}.", id);
-                throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
-
-            logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting StorageFacility {StorageFacilityId}.", id);
+            throw new InvalidOperationException("Il magazzino è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.TrackEntityChangesAsync(facility, "Delete", currentUser, originalFacility, cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, originalFacility.TenantId);
+
+        logger.LogInformation("Storage facility {FacilityId} deleted by {User}.", facility.Id, currentUser);
+
+        return true;
     }
 
     public async Task<bool> StorageFacilityExistsAsync(Guid facilityId, CancellationToken cancellationToken = default)

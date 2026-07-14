@@ -187,139 +187,117 @@ public class PaymentMethodService(
 
     public async Task<PaymentMethodDto?> UpdatePaymentMethodAsync(Guid id, UpdatePaymentMethodDto updateDto, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(updateDto);
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for payment method operations.");
+        }
+
+        var paymentMethod = await context.PaymentMethods
+            .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (paymentMethod is null)
+        {
+            return null;
+        }
+
+        // Update properties
+        paymentMethod.Name = updateDto.Name;
+        paymentMethod.Description = updateDto.Description;
+        paymentMethod.Icon = updateDto.Icon;
+        paymentMethod.IsActive = updateDto.IsActive;
+        paymentMethod.DisplayOrder = updateDto.DisplayOrder;
+        paymentMethod.RequiresIntegration = updateDto.RequiresIntegration;
+        paymentMethod.IntegrationConfig = updateDto.IntegrationConfig;
+        paymentMethod.AllowsChange = updateDto.AllowsChange;
+        paymentMethod.FiscalCode = updateDto.FiscalCode;
+        paymentMethod.ModifiedAt = DateTime.UtcNow;
+        paymentMethod.ModifiedBy = currentUser;
+
         try
         {
-            ArgumentNullException.ThrowIfNull(updateDto);
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for payment method operations.");
-            }
-
-            var paymentMethod = await context.PaymentMethods
-                .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (paymentMethod is null)
-            {
-                return null;
-            }
-
-            // Update properties
-            paymentMethod.Name = updateDto.Name;
-            paymentMethod.Description = updateDto.Description;
-            paymentMethod.Icon = updateDto.Icon;
-            paymentMethod.IsActive = updateDto.IsActive;
-            paymentMethod.DisplayOrder = updateDto.DisplayOrder;
-            paymentMethod.RequiresIntegration = updateDto.RequiresIntegration;
-            paymentMethod.IntegrationConfig = updateDto.IntegrationConfig;
-            paymentMethod.AllowsChange = updateDto.AllowsChange;
-            paymentMethod.FiscalCode = updateDto.FiscalCode;
-            paymentMethod.ModifiedAt = DateTime.UtcNow;
-            paymentMethod.ModifiedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict updating PaymentMethod {PaymentMethodId}.", id);
-                throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                entityName: "PaymentMethod",
-                entityId: paymentMethod.Id,
-                propertyName: "All",
-                operationType: "Update",
-                oldValue: null,
-                newValue: $"Updated payment method: {paymentMethod.Name}",
-                changedBy: currentUser,
-                entityDisplayName: paymentMethod.Name,
-                cancellationToken: cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
-
-            logger.LogInformation("Payment method {Name} updated by {User}.", paymentMethod.Name, currentUser);
-
-            return MapToDto(paymentMethod);
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict updating PaymentMethod {PaymentMethodId}.", id);
+            throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.LogEntityChangeAsync(
+            entityName: "PaymentMethod",
+            entityId: paymentMethod.Id,
+            propertyName: "All",
+            operationType: "Update",
+            oldValue: null,
+            newValue: $"Updated payment method: {paymentMethod.Name}",
+            changedBy: currentUser,
+            entityDisplayName: paymentMethod.Name,
+            cancellationToken: cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
+        logger.LogInformation("Payment method {Name} updated by {User}.", paymentMethod.Name, currentUser);
+
+        return MapToDto(paymentMethod);
     }
 
     public async Task<bool> DeletePaymentMethodAsync(Guid id, string currentUser, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
+
+        var currentTenantId = tenantContext.CurrentTenantId;
+        if (!currentTenantId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context is required for payment method operations.");
+        }
+
+        var paymentMethod = await context.PaymentMethods
+            .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (paymentMethod is null)
+        {
+            return false;
+        }
+
+        // Soft delete
+        paymentMethod.IsDeleted = true;
+        paymentMethod.DeletedAt = DateTime.UtcNow;
+        paymentMethod.DeletedBy = currentUser;
+
         try
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(currentUser);
-
-            var currentTenantId = tenantContext.CurrentTenantId;
-            if (!currentTenantId.HasValue)
-            {
-                throw new InvalidOperationException("Tenant context is required for payment method operations.");
-            }
-
-            var paymentMethod = await context.PaymentMethods
-                .Where(pm => pm.Id == id && pm.TenantId == currentTenantId.Value && !pm.IsDeleted)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (paymentMethod is null)
-            {
-                return false;
-            }
-
-            // Soft delete
-            paymentMethod.IsDeleted = true;
-            paymentMethod.DeletedAt = DateTime.UtcNow;
-            paymentMethod.DeletedBy = currentUser;
-
-            try
-            {
-                _ = await context.SaveChangesAsync(cancellationToken);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                logger.LogWarning(ex, "Concurrency conflict deleting PaymentMethod {PaymentMethodId}.", id);
-                throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
-            }
-
-            _ = await auditLogService.LogEntityChangeAsync(
-                entityName: "PaymentMethod",
-                entityId: paymentMethod.Id,
-                propertyName: "IsDeleted",
-                operationType: "Delete",
-                oldValue: "false",
-                newValue: "true",
-                changedBy: currentUser,
-                entityDisplayName: paymentMethod.Name,
-                cancellationToken: cancellationToken);
-
-            // Invalidate cache
-            cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
-
-            logger.LogInformation("Payment method {Name} deleted by {User}.", paymentMethod.Name, currentUser);
-
-            return true;
+            _ = await context.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            throw;
+            logger.LogWarning(ex, "Concurrency conflict deleting PaymentMethod {PaymentMethodId}.", id);
+            throw new InvalidOperationException("Il metodo di pagamento è stato modificato da un altro utente. Ricarica la pagina e riprova.", ex);
         }
-        catch
-        {
-            throw;
-        }
+
+        _ = await auditLogService.LogEntityChangeAsync(
+            entityName: "PaymentMethod",
+            entityId: paymentMethod.Id,
+            propertyName: "IsDeleted",
+            operationType: "Delete",
+            oldValue: "false",
+            newValue: "true",
+            changedBy: currentUser,
+            entityDisplayName: paymentMethod.Name,
+            cancellationToken: cancellationToken);
+
+        // Invalidate cache
+        cacheService.Invalidate(CACHE_KEY_ALL, currentTenantId.Value);
+
+        logger.LogInformation("Payment method {Name} deleted by {User}.", paymentMethod.Name, currentUser);
+
+        return true;
     }
 
     public async Task<bool> CodeExistsAsync(string code, Guid? excludeId = null, CancellationToken cancellationToken = default)

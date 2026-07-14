@@ -64,10 +64,6 @@ public class DashboardConfigurationService(
             logger.LogInformation("GetConfigurationsAsync operation was cancelled");
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task<DashboardConfigurationDto?> GetConfigurationByIdAsync(Guid id, CancellationToken ct = default)
@@ -116,10 +112,6 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetConfigurationByIdAsync operation was cancelled for ID: {Id}", id);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -171,10 +163,6 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("GetDefaultConfigurationAsync operation was cancelled for entity type: {EntityType}", entityType);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -237,10 +225,6 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("CreateConfigurationAsync operation was cancelled");
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -313,10 +297,6 @@ public class DashboardConfigurationService(
             logger.LogInformation("UpdateConfigurationAsync operation was cancelled for ID: {Id}", id);
             throw;
         }
-        catch
-        {
-            throw;
-        }
     }
 
     public async Task DeleteConfigurationAsync(Guid id, CancellationToken ct = default)
@@ -349,10 +329,6 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("DeleteConfigurationAsync operation was cancelled for ID: {Id}", id);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
@@ -388,10 +364,6 @@ public class DashboardConfigurationService(
         catch (OperationCanceledException)
         {
             logger.LogInformation("SetAsDefaultAsync operation was cancelled for ID: {Id}", id);
-            throw;
-        }
-        catch
-        {
             throw;
         }
     }
