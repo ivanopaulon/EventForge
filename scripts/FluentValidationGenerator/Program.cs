@@ -58,7 +58,8 @@ var byFile = manifest
     .ToDictionary(g => g.Key, g => g.Select(kv => kv.Key).ToList());
 
 // Collect every enum type name declared under Prym.DTOs so [Required] on an enum property
-// can be recognized and mapped to .IsInEnum() instead of being silently skipped.
+// can be recognized and mapped to .IsInEnum() instead of being silently skipped. C# type
+// identifiers are case-sensitive, so an ordinal (case-sensitive) comparer is intentional here.
 var enumTypeNames = new HashSet<string>(StringComparer.Ordinal);
 var dtosRoot = Path.Combine(repoRoot, "Prym.DTOs");
 if (Directory.Exists(dtosRoot))
@@ -153,7 +154,7 @@ foreach (var (relativeFilePath, typeNames) in byFile)
                             // Non-scalar, non-collection reference type (a nested complex DTO/class):
                             // a real null check is possible and useful here, unlike for a plain enum.
                             rules.Add((".NotNull()", $"Il campo {propName} è obbligatorio."));
-                            var nestedTypeName = propTypeText.Trim().TrimEnd('?');
+                            var nestedTypeName = StripTrailingNullableMarker(propTypeText);
                             if (manifest.ContainsKey(nestedTypeName))
                             {
                                 // Compose validation with the nested type's own generated validator
@@ -448,7 +449,7 @@ static bool IsCollectionOrDictionaryType(string typeText)
     {
         return true;
     }
-    var t = typeText.Trim().TrimEnd('?');
+    var t = StripTrailingNullableMarker(typeText);
     return t.StartsWith("Dictionary<", StringComparison.Ordinal)
         || t.StartsWith("IDictionary<", StringComparison.Ordinal)
         || t.StartsWith("IReadOnlyDictionary<", StringComparison.Ordinal);
@@ -458,7 +459,7 @@ static bool IsKnownScalarValueType(string typeText)
 {
     // Well-known non-nullable BCL value types: [Required] on these is already a no-op (the type
     // itself guarantees non-null), so they must not be misclassified as a "complex nested class".
-    var t = typeText.Trim().TrimEnd('?');
+    var t = StripTrailingNullableMarker(typeText);
     return t switch
     {
         "bool" or "Boolean" => true,
@@ -482,6 +483,16 @@ static bool IsKnownScalarValueType(string typeText)
         "Guid" => true,
         _ => false,
     };
+}
+
+// Strips a single trailing '?' nullable-value-type marker (e.g. "Guid?" -> "Guid"), unlike
+// string.TrimEnd('?') which would also strip repeated markers. Not meant to be used on generic
+// types (e.g. "List<int?>"): callers only apply this to simple/non-generic type references,
+// after already excluding collection/dictionary types via IsCollectionOrDictionaryType.
+static string StripTrailingNullableMarker(string typeText)
+{
+    var t = typeText.Trim();
+    return t.EndsWith("?", StringComparison.Ordinal) ? t[..^1] : t;
 }
 
 static string? GetUnderlyingNumericTypeName(string typeText)
